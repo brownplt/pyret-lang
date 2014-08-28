@@ -21,6 +21,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       function mutableKey(s) {
         return " " + s;
       }
+      // Remove it when internal keys need to be shown to the user
+      function userKey(s) {
+        return s.slice(1);
+      }
 
       function makeMutableStringDict(underlyingDict) {
         // NOTE(joe): getMutable/setMutable etc are internal to
@@ -43,6 +47,34 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return self;
         });
 
+        var torepr = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
+          var keys = Object.keys(underlyingDict);
+          var elts = [];
+          function combine(elts) {
+            return "[string-dict: " + elts.join(", ") + "]";
+          }
+          function toreprElts() {
+            if (keys.length === 0) { return combine(elts); }
+            else {
+              var thisKey = keys.pop();
+              // The function recursiveToRepr is a callback for rendering
+              // sub-elements of collections.  If we call it on anything other
+              // than flat primitives, we need to use the following safeCall
+              // calling convention, which makes this work with the stack
+              // compilation strategy for Pyret.
+              return runtime.safeCall(function() {
+                return recursiveToRepr.app(underlyingDict[thisKey]);
+              },
+              function(result /* stringification of element */) {
+                elts.push(recursiveToRepr.app(userKey(thisKey)));
+                elts.push(result);
+                return toreprElts();
+              });
+            }
+          }
+          return toreprElts();
+        });
+
         var NYI = runtime.makeMethodFromFun(function(self) {
           runtime.ffi.throwMessageException("Not yet implemented");
         });
@@ -54,7 +86,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           keys: NYI,
           "has-key": NYI,
           _equals: NYI,
-          _torepr: NYI
+          _torepr: torepr
         });
         return applyBrand(brandMutable, obj);
       }
