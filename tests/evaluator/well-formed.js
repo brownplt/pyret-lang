@@ -71,6 +71,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("5 raises 5", "Cannot use `raises` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("5 does-not-raise", "Cannot use `does-not-raise` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("5 raises-other-than 5", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises-satisfies 5", "Cannot use `raises-satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises-violates 5", "Cannot use `raises-violates` outside of a `check` or `where` block");
         // nested but still not in check-blocks
         P.checkCompileErrorMsg("lam(): 5 is 5 end", "Cannot use `is` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("lam(): 5 is-not 5 end", "Cannot use `is-not` outside of a `check` or `where` block");
@@ -82,6 +84,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): 5 raises 5 end", "Cannot use `raises` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("lam(): 5 does-not-raise end", "Cannot use `does-not-raise` outside of a `check` or `where` block");
         P.checkCompileErrorMsg("lam(): 5 raises-other-than 5 end", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises-satisfies 5 end", "Cannot use `raises-satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises-violates 5 end", "Cannot use `raises-violates` outside of a `check` or `where` block");
         // bad refinements
         P.checkCompileErrorMsg("check: 5 satisfies%(5) 5 end", "Cannot use refinement syntax `%(...)` with `satisfies`");
         P.checkCompileErrorMsg("check: 5 violates%(5) 5 end", "Cannot use refinement syntax `%(...)` with `violates`");
