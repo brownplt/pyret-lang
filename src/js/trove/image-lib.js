@@ -62,7 +62,7 @@ define([
         var colorGreen = function(c) { return unwrap(gf(c, "green")); };
         var colorBlue = function(c) { return unwrap(gf(c, "blue")); };
         var colorAlpha = function(c) { return unwrap(gf(c, "alpha")); };
-        var equals = runtime.same;
+        var equals = runtime.equal_always;
 
         var imageEquals = function(left, right) {
           if (!isImage(left) || !isImage(right)) { return false; }
@@ -296,7 +296,7 @@ define([
         // Best-Guess equivalence for images. If they're vertex-based we're in luck,
         // otherwise we go pixel-by-pixel. It's up to exotic image types to provide
         // more efficient ways of comparing one another
-        BaseImage.prototype.equals = function(other, aUnionFind) {
+        BaseImage.prototype.equals = function(other) {
           if(this.width    !== other.getWidth()    ||
              this.height   !== other.getHeight()){ return false; }
           // if they're both vertex-based images, all we need to compare are
@@ -304,7 +304,7 @@ define([
           if(this.vertices && other.vertices){
             return (this.style    === other.style &&
                     verticesEqual(this.vertices, other.vertices) &&
-                    equals(this.color, other.color, aUnionFind));
+                    equals(this.color, other.color));
           }
           // if it's something more sophisticated, render both images to canvases
           // First check canvas dimensions, then go pixel-by-pixel
@@ -390,9 +390,9 @@ define([
           }
         };
 
-        SceneImage.prototype.equals = function(other, aUnionFind) {
+        SceneImage.prototype.equals = function(other) {
           if (!(other instanceof SceneImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           if (this.width    !== other.width ||
               this.height   !== other.height ||
@@ -405,7 +405,7 @@ define([
             var rec2 = other.children[i];
             if (rec1[1] !== rec2[1] ||
                 rec1[2] !== rec2[2] ||
-                !equals(rec1[0], rec2[0], aUnionFind)) {
+                !equals(rec1[0], rec2[0])) {
               return false;
             }
           }
@@ -499,9 +499,9 @@ define([
           return this.img.cloneNode(true);
         };
 
-        FileImage.prototype.equals = function(other, aUnionFind) {
+        FileImage.prototype.equals = function(other) {
           if (!(other instanceof FileImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.src === other.src);
         };
@@ -557,7 +557,7 @@ define([
         FileVideo.prototype.render = function(ctx, x, y) {
             ctx.drawImage(this.video, x, y);
         };
-        FileVideo.prototype.equals = function(other, aUnionFind) {
+        FileVideo.prototype.equals = function(other) {
           return (other instanceof FileVideo) && (this.src === other.src);
         };
 
@@ -668,9 +668,9 @@ define([
           ctx.restore();
         };
 
-        OverlayImage.prototype.equals = function(other, aUnionFind) {
+        OverlayImage.prototype.equals = function(other) {
           if (!(other instanceof OverlayImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width     === other.width &&
                   this.height    === other.height &&
@@ -678,8 +678,8 @@ define([
                   this.y1        === other.y1 &&
                   this.x2        === other.x2 &&
                   this.y2        === other.y2 &&
-                  equals(this.img1, other.img1, aUnionFind) &&
-                  equals(this.img2, other.img2, aUnionFind) );
+                  equals(this.img1, other.img1) &&
+                  equals(this.img2, other.img2) );
         };
 
 
@@ -734,16 +734,16 @@ define([
           ctx.restore();
         };
 
-        RotateImage.prototype.equals = function(other, aUnionFind) {
+        RotateImage.prototype.equals = function(other) {
           if (!(other instanceof RotateImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width     === other.width &&
                   this.height    === other.height &&
                   this.angle     === other.angle &&
                   this.translateX=== other.translateX &&
                   this.translateY=== other.translateY &&
-                  equals(this.img, other.img, aUnionFind) );
+                  equals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -779,15 +779,15 @@ define([
           ctx.restore();
         };
 
-        ScaleImage.prototype.equals = function(other, aUnionFind) {
+        ScaleImage.prototype.equals = function(other) {
           if (!(other instanceof ScaleImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width     === other.width &&
                   this.height    === other.height &&
                   this.xFactor   === other.xFactor &&
                   this.yFactor   === other.yFactor &&
-                  equals(this.img, other.img, aUnionFind) );
+                  equals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -814,15 +814,15 @@ define([
           ctx.restore();
         };
 
-        CropImage.prototype.equals = function(other, aUnionFind) {
+        CropImage.prototype.equals = function(other) {
           if (!(other instanceof CropImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width     === other.width &&
                   this.height    === other.height &&
                   this.x         === other.x &&
                   this.y         === other.y &&
-                  equals(this.img, other.img, aUnionFind) );
+                  equals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -848,11 +848,11 @@ define([
           ctx.restore();
         };
 
-        FrameImage.prototype.equals = function(other, aUnionFind) {
+        FrameImage.prototype.equals = function(other) {
           if (!(other instanceof FrameImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
-          return equals(this.img, other.img, aUnionFind);
+          return equals(this.img, other.img);
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -893,14 +893,14 @@ define([
           return this.height;
         };
 
-        FlipImage.prototype.equals = function(other, aUnionFind) {
+        FlipImage.prototype.equals = function(other) {
           if (!(other instanceof FlipImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width     === other.width &&
                   this.height    === other.height &&
                   this.direction === other.direction &&
-                  equals(this.img, other.img, aUnionFind) );
+                  equals(this.img, other.img) );
         };
 
 
@@ -1093,9 +1093,9 @@ define([
           return this.size;
         };
 
-        TextImage.prototype.equals = function(other, aUnionFind) {
+        TextImage.prototype.equals = function(other) {
           if (!(other instanceof TextImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.msg      === other.msg &&
                   this.size     === other.size &&
@@ -1104,7 +1104,7 @@ define([
                   this.style    === other.style &&
                   this.weight   === other.weight &&
                   this.underline === other.underline &&
-                  equals(this.color, other.color, aUnionFind) &&
+                  equals(this.color, other.color) &&
                   this.font === other.font);
         };
 
@@ -1213,14 +1213,14 @@ define([
           ctx.restore();
         };
 
-        EllipseImage.prototype.equals = function(other, aUnionFind) {
+        EllipseImage.prototype.equals = function(other) {
           if (!(other instanceof EllipseImage)) {
-            return BaseImage.prototype.equals.call(this, other, aUnionFind);
+            return BaseImage.prototype.equals.call(this, other);
           }
           return (this.width    === other.width &&
                   this.height   === other.height &&
                   this.style    === other.style &&
-                  equals(this.color, other.color, aUnionFind));
+                  equals(this.color, other.color));
         };
 
 
