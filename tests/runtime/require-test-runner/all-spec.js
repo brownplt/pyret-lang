@@ -17,10 +17,12 @@ r(["../runtime-test",
    "../runtime-booleans",
    "../runtime-brands",
    "../runtime-arrays",
+   "../runtime-refs",
+   "../runtime-equality",
    "../test-namespaces",
    "../ffi-helpers"
   ],
-  function (base, numbers, strings, booleans, brands, arrays, namespaces, ffi
+  function (base, numbers, strings, booleans, brands, arrays, refs, equality, namespaces, ffi
            ) {
     var USE_COMPILED = false;
     
@@ -30,6 +32,8 @@ r(["../runtime-test",
 //    booleans.performTest(USE_COMPILED);
     brands.performTest(USE_COMPILED);
     arrays.performTest(USE_COMPILED);
+    refs.performTest(USE_COMPILED);
+    equality.performTest(USE_COMPILED);
     namespaces.performTest(USE_COMPILED);
     ffi.performTest();
   }, function(err) {

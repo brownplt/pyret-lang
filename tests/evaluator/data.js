@@ -27,8 +27,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         pred(singleton + "singleton", function(val) {
             var fields = rt.getFields(val).sort();
             expect(fields[0]).toEqual("_match");
-            expect(fields[1]).toEqual("_torepr");
-            expect(fields.length).toEqual(2);
+            expect(fields[1]).not.toEqual("_torepr");
+            expect(fields.length).toEqual(1);
             return true;
           });
 
@@ -40,9 +40,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         pred(singletonWithMeth + "mt", function(val) {
             var fields = rt.getFields(val).sort();
             expect(fields[0]).toEqual("_match");
-            expect(fields[1]).toEqual("_torepr");
-            expect(fields[2]).toEqual("length");
-            expect(fields.length).toEqual(3);
+            expect(fields[1]).not.toEqual("_torepr");
+            expect(fields[1]).toEqual("length");
+            expect(fields.length).toEqual(2);
             return true;
           });
 
@@ -55,9 +55,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         pred(singletonWithSharing + "mt", function(val) {
             var fields = rt.getFields(val).sort();
             expect(fields[0]).toEqual("_match");
-            expect(fields[1]).toEqual("_torepr");
-            expect(fields[2]).toEqual("length");
-            expect(fields.length).toEqual(3);
+            expect(fields[1]).not.toEqual("_torepr");
+            expect(fields[1]).toEqual("length");
+            expect(fields.length).toEqual(2);
             return true;
           });
 

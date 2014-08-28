@@ -36,16 +36,16 @@ data ANFCont:
 end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, k-cont(lam(x):
-        cases(N.ALettable) x:
-            # tail call
-          | a-app(l, f, args) =>
-            name = mk-id(l, "anf_tail_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
-          | else => N.a-lettable(x.l, x)
-        end
-      end)
-    )
+  anf(e, k-cont(lam(x): N.a-lettable(x.l, x) end))
+    #     cases(N.ALettable) x:
+    #         # tail call
+    #       | a-app(l, f, args) =>
+    #         name = mk-id(l, "anf_tail_app")
+    #         N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
+    #       | else => N.a-lettable(x.l, x)
+    #     end
+    #   end)
+    # )
 end
 
 fun bind(l, id): N.a-bind(l, id, A.a-blank);
@@ -56,10 +56,16 @@ fun anf-bind(b):
   end
 end
 
+fun anf-cases-bind(cb :: A.CasesBind):
+  cases(A.CasesBind) cb:
+    | s-cases-bind(l, typ, b) => N.a-cases-bind(l, typ, anf-bind(b))
+  end
+end
+
 fun anf-cases-branch(branch):
   cases(A.CasesBranch) branch:
     | s-cases-branch(l, pat-loc, name, args, body) =>
-      N.a-cases-branch(l, pat-loc, name, args.map(anf-bind), anf-term(body))
+      N.a-cases-branch(l, pat-loc, name, args.map(anf-cases-bind), anf-term(body))
     | s-singleton-cases-branch(l, pat-loc, name, body) =>
       N.a-singleton-cases-branch(l, pat-loc, name, anf-term(body))
   end
@@ -292,18 +298,25 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-user-block(l, body) => anf(body, k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann_check_temp")
-      k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
-                  anf-term(A.s-let-expr(l,
-                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                    A.s-id(l, name.id)))))
+      if A.is-a-blank(ret) or A.is-a-any(ret):
+        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+      else:
+        name = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+            anf-term(A.s-let-expr(l,
+                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                A.s-id(l, name.id)))))
+      end
     | s-method(l, args, ret, doc, body, _) =>
-      name = mk-id(l, "ann_check_temp")
-      k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann);), ret,
-                  anf-term(A.s-let-expr(l,
-                    [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                    A.s-id(l, name.id)))))
-
+      if A.is-a-blank(ret) or A.is-a-any(ret):
+        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+      else:
+        name = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+            anf-term(A.s-let-expr(l,
+                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
+                A.s-id(l, name.id)))))
+      end
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):
         k.apply(l, N.a-array(l, vs))
@@ -334,6 +347,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end
       anf-name(obj, "anf_bracket", lam(t-obj): k.apply(l, N.a-dot(l, t-obj, fname)) end)
 
+    | s-ref(l, ann) =>
+      k.apply(l, N.a-ref(l, ann))
+
     | s-get-bang(l, obj, field) =>
       anf-name(obj, "anf_get_bang", lam(t): k.apply(l, N.a-get-bang(l, t, field)) end)
 
@@ -348,6 +364,18 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               N.a-field(f.l, f.name, t)
             end
           k.apply(l, N.a-obj(l, new-fields))
+        end)
+
+    | s-update(l, obj, fields) =>
+      exprs = fields.map(_.value)
+
+      anf-name(obj, "anf_update", lam(o):
+          anf-name-rec(exprs, "anf_update", lam(ts):
+              new-fields = for map2(f from fields, t from ts):
+                  N.a-field(f.l, f.name, t)
+                end
+              k.apply(l, N.a-update(l, o, new-fields))
+            end)
         end)
 
     | s-extend(l, obj, fields) =>

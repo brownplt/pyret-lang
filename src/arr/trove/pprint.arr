@@ -59,15 +59,13 @@ sharing:
   _plus(self, other):
     if is-mt-doc(self): other
     else if is-mt-doc(other): self
-    else if is-concat(self):
-      self.fst + (self.snd + other)
     else:
       if self.has-hardline or other.has-hardline: concat(self, other, 0, true)
       else: concat(self, other, self.flat-width + other.flat-width, false)
       end
     end
   end,
-  tostring(self):
+  tostring(self, shadow tostring):
     cases(PPrintDoc) self:
       | mt-doc(_, _) => "EmptyDoc"
       | str(s, _, _) => "Str('" + s + "')"
@@ -119,23 +117,33 @@ end
 #     end
 #   end
 # end
+fun collect-concats(i, m, it, rest):
+  if is-concat(it):
+    collect-concats(i, m, it.fst, collect-concats(i, m, it.snd, rest))
+  else:
+    link(item(i, m, it), rest)
+  end
+end
 fun format(width, doc :: PPrintDoc):
-  var output = [list: [list: ]]
+  var cur-line = empty
+  var output = empty
   fun emit-text(s):
-    output := [list: [list: s] + output.first] + output.rest
+    cur-line := link(s, cur-line)
   end
   fun emit-spaces(n):
     emit-text(string-repeat(" ", n))
   end
   fun emit-newline(i):
-    output := [list: [list: string-repeat(" ", i)]] + output
+    output := link(cur-line, output)
+    cur-line := link(string-repeat(" ", i), empty)
   end
   fun gen-output():
-    for lists.fold(lines from [list: ], line from output):
+    output := link(cur-line, output)
+    for lists.fold(lines from empty, line from output):
       l = for lists.fold(acc from "", piece from line):
         piece + acc
       end
-      [list: l] + lines
+      link(l, lines)
     end
   end
   fun process(column :: Number, items :: List<Item>) -> Nothing:
@@ -146,15 +154,15 @@ fun format(width, doc :: PPrintDoc):
       m = first.is-flat
       cases(PPrintDoc) first.d:
         | mt-doc(_, _) => process(column, items.rest)
-        | concat(fst, snd, _, _) => process(column, [list: item(i, m, fst), item(i, m, snd)] + items.rest)
+        | concat(fst, snd, _, _) => process(column, collect-concats(i, m, first.d, items.rest))
         | str(s, flat-width, _) =>
           emit-text(s)
           process(column + flat-width, items.rest)
         | blank(n, _, _) =>
           emit-spaces(n)
           process(column + n, items.rest)
-        | align(d, _, _) => process(column, [list: item(column, m, d)] + items.rest)
-        | nest(n, d, _, _) => process(column, [list: item(i + n, m, d)] + items.rest)
+        | align(d, _, _) => process(column, link(item(column, m, d), items.rest))
+        | nest(n, d, _, _) => process(column, link(item(i + n, m, d), items.rest))
         | hardline(_, _) =>
           if m: raise("Impossible for HardLine to be flat")
           else:
@@ -162,7 +170,7 @@ fun format(width, doc :: PPrintDoc):
             process(i, items.rest)
           end
         | if-flat(flat, vert, _, _) =>
-          process(column, [list: item(i, m, if m: flat else: vert end)] + items.rest)
+          process(column, link(item(i, m, if m: flat else: vert end), items.rest))
         | align-spaces(n, _, _) =>
           if m: process(column, items.rest)
           else:
@@ -170,15 +178,15 @@ fun format(width, doc :: PPrintDoc):
             process(column + n, items.rest)
           end
         | group(d, flat-width, has-hardline) =>
-          if m: process(column, [list: item(i, true, d)] + items.rest)
-          else if has-hardline: process(column, [list: item(i, false, d)] + items.rest)
+          if m: process(column, link(item(i, true, d), items.rest))
+          else if has-hardline: process(column, link(item(i, false, d), items.rest))
           else if (width - column) >= flat-width:
             # This used to check whether items.rest fits into the remaining space,
             # but that precludes implementing "flowing" text, which is more important.
             # If we need both behaviors, I guess I can add a flow-group...
-            process(column, [list: item(i, true, d)] + items.rest)
+            process(column, link(item(i, true, d), items.rest))
           else:
-            process(column, [list: item(i, false, d)] + items.rest)
+            process(column, link(item(i, false, d), items.rest))
           end
       end
     end

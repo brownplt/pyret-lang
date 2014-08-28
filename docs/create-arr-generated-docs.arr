@@ -68,16 +68,17 @@ fun process-module(file, fields, types, bindings, type-bindings):
   fun method-spec(data-name, meth):
     cases(A.Member) meth:
       | s-method-field(_, name, args, ann, doc, _, _) =>
+        shadow process-ann = process-ann(_, file, split-fields, bindings, type-bindings)
         sexp("method-spec",
           [list: spair("name", "\"" + PP.str(name).pretty(1000).first + "\""),
             spair("arity", tostring(args.length())),
             spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
+            spair("return", process-ann(ann)),
             spair("contract",
               process-ann(
                 A.a-arrow(A.dummy-loc,
                   A.a-name(A.dummy-loc, A.s-name(A.dummy-loc, data-name)) ^ link(_, args.rest.map(_.ann)),
-                  ann, false),
-                file, split-fields, bindings, type-bindings))
+                  ann, false)))
           ]
             + (if doc == "": [list: ] else: [list: spair("doc", torepr(doc))] end))
       | s-data-field(_, name, value) =>
@@ -97,13 +98,13 @@ fun process-module(file, fields, types, bindings, type-bindings):
                 sexp("cross-ref", [list: leaf(torepr(modname)), leaf(torepr(as-name))])
               ])
           | s-lam(l, params, args, ann, doc, _, _check) =>
+            shadow process-ann = process-ann(_, file, split-fields, bindings, type-bindings)
             sexp("fun-spec",
               [list: spair("name", torepr(name)),
                 spair("arity", tostring(args.length())),
                 spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
-                spair("contract",
-                  process-ann(A.a-arrow(l, args.map(_.ann), ann, false),
-                    file, split-fields, bindings, type-bindings))
+                spair("return", process-ann(ann)),
+                spair("contract", process-ann(A.a-arrow(l, args.map(_.ann), ann, false)))
               ]
                 + (if doc == "": [list: ] else: [list: spair("doc", torepr(doc))] end))
           | s-id(_, id) =>

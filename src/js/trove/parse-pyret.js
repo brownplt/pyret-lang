@@ -333,6 +333,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return RUNTIME.getField(ast, 's-graph')
                 .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
             },
+            'mgraph-expr': function(node) {
+              // (graph-expr GRAPH bind ... END)
+              return RUNTIME.getField(ast, 's-m-graph')
+                .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+            },
             'fun-expr': function(node) {
               // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
               return RUNTIME.getField(ast, 's-fun')
@@ -657,6 +662,29 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               // (app-arg-elt e COMMA)
               return tr(node.kids[0]);
             },
+            'cases-args': function(node) {
+              if (node.kids.length === 2) {
+                // (cases-args LPAREN RPAREN)
+                return makeList([]);
+              } else {
+                // (cases-args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
+                return makeList(node.kids.slice(1, -1).map(tr));
+              }
+            },
+            'list-cases-arg-elt': function(node) {
+              // (list-cases-arg-elt arg COMMA)
+              return tr(node.kids[0]);
+            },
+            'cases-binding': function(node) {
+              if(node.kids.length === 2) {
+                return RUNTIME.getField(ast, 's-cases-bind')
+                  .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-ref'), tr(node.kids[1]));
+              }
+              else {
+                return RUNTIME.getField(ast, 's-cases-bind')
+                  .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-normal'), tr(node.kids[0]));
+              }
+            },
             'cases-branch': function(node) {
               if (node.kids.length === 4) {
                 // (singleton-cases-branch PIPE NAME THICKARROW body)
@@ -952,23 +980,32 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
         }
 
         const opLookup = {
-          "+": RUNTIME.makeString("op+"),
-          "-": RUNTIME.makeString("op-"),
-          "*": RUNTIME.makeString("op*"),
-          "/": RUNTIME.makeString("op/"),
-          "$": RUNTIME.makeString("op^"),
-          "^": RUNTIME.makeString("op^"),
-          "<=": RUNTIME.makeString("op<="),
-          "<": RUNTIME.makeString("op<"),
-          ">=": RUNTIME.makeString("op>="),
-          ">": RUNTIME.makeString("op>"),
-          "==": RUNTIME.makeString("op=="),
-          "<>": RUNTIME.makeString("op<>"),
+          "+":   RUNTIME.makeString("op+"),
+          "-":   RUNTIME.makeString("op-"),
+          "*":   RUNTIME.makeString("op*"),
+          "/":   RUNTIME.makeString("op/"),
+          "$":   RUNTIME.makeString("op^"),
+          "^":   RUNTIME.makeString("op^"),
+          "<=":  RUNTIME.makeString("op<="),
+          "<":   RUNTIME.makeString("op<"),
+          ">=":  RUNTIME.makeString("op>="),
+          ">":   RUNTIME.makeString("op>"),
+          "==":  RUNTIME.makeString("op=="),
+          "=~":  RUNTIME.makeString("op=~"),
+          "<=>": RUNTIME.makeString("op<=>"),
+          "<>":  RUNTIME.makeString("op<>"),
           "and": RUNTIME.makeString("opand"),
-          "or": RUNTIME.makeString("opor"),
-          "is":                RUNTIME.getField(ast, "s-op-is"),
-          "is-not":            RUNTIME.getField(ast, "s-op-is-not"),
-          "satisfies":         RUNTIME.getField(ast, "s-op-satisfies"),
+          "or":  RUNTIME.makeString("opor"),
+
+          "is":            RUNTIME.getField(ast, "s-op-is"),
+          "is==":          RUNTIME.getField(ast, "s-op-is-op").app("op=="),
+          "is=~":          RUNTIME.getField(ast, "s-op-is-op").app("op=~"),
+          "is<=>":         RUNTIME.getField(ast, "s-op-is-op").app("op<=>"),
+          "is-not":        RUNTIME.getField(ast, "s-op-is-not"),
+          "is-not==":      RUNTIME.getField(ast, "s-op-is-not-op").app("op=="),
+          "is-not=~":      RUNTIME.getField(ast, "s-op-is-not-op").app("op=~"),
+          "is-not<=>":     RUNTIME.getField(ast, "s-op-is-not-op").app("op<=>"),
+          "satisfies":     RUNTIME.getField(ast, "s-op-satisfies"),
           "violates":          RUNTIME.getField(ast, "s-op-satisfies-not"),
           "raises":            RUNTIME.getField(ast, "s-op-raises"),
           "raises-other-than": RUNTIME.getField(ast, "s-op-raises-other"),

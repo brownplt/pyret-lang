@@ -285,11 +285,6 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
           expect(rt.makeBoolean(false)).not.toBeSameAs(rt, rt.makeBoolean(true))
           expect(rt.makeBoolean(false)).toBeSameAs(rt, rt.makeBoolean(false))
 
-          expect(rt.makeFunction(function() { })).not.toBeSameAs(rt, rt.makeFunction(function() { }));
-          var f = rt.makeFunction(function() { });
-          var g = rt.makeFunction(function() { });
-          expect(f).toBeSameAs(rt, f);
-          expect(f).not.toBeSameAs(rt, g);
         });
 
         it("should work for objects", function() {
@@ -308,9 +303,6 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
           expect(o({obj: obj})).toBeSameAs(rt, o({obj:obj}));
           expect(o({obj: mkobj()})).toBeSameAs(rt, o({obj: mkobj()}));
 
-          var f = rt.makeFunction(function() { });
-          expect(o({obj: f})).toBeSameAs(rt, o({obj: f}));
-          expect(o({obj: f})).not.toBeSameAs(rt, o({obj: rt.makeFunction(function() { })}));
         });
 
         it("should work for branded objects", function() {

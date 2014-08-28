@@ -23,10 +23,10 @@ fun make(arr :: RawArray) -> Array:
     end,
     length(_): raw-array-length(arr) end,
     to-list(_): raw-array-to-list(arr) end,
-    _torepr(self):
+    _torepr(self, shadow torepr):
       "[array: " + self.to-list().map(torepr).join-str(", ") + "]"
     end,
-    tostring(self):
+    tostring(self, shadow tostring):
       "[array: " + self.to-list().map(tostring).join-str(", ") + "]"
     end
   })

@@ -55,10 +55,44 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("anonymous bindings", function(done) {
         P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
         P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
-        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "Anonymous bindings");
+        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "graph expressions");
         P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
         P.wait(done);
       });
+      it("malformed check-tests", function(done) {
+        // toplevel
+        P.checkCompileErrorMsg("5 is 5", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is-not 5", "Cannot use `is-not` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is== 5", "Cannot use `is==` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is=~ 5", "Cannot use `is=~` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 is<=> 5", "Cannot use `is<=>` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 satisfies 5", "Cannot use `satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 violates 5", "Cannot use `violates` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises 5", "Cannot use `raises` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 does-not-raise", "Cannot use `does-not-raise` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("5 raises-other-than 5", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        // nested but still not in check-blocks
+        P.checkCompileErrorMsg("lam(): 5 is 5 end", "Cannot use `is` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is-not 5 end", "Cannot use `is-not` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is== 5 end", "Cannot use `is==` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is=~ 5 end", "Cannot use `is=~` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 is<=> 5 end", "Cannot use `is<=>` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 satisfies 5 end", "Cannot use `satisfies` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 violates 5 end", "Cannot use `violates` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises 5 end", "Cannot use `raises` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 does-not-raise end", "Cannot use `does-not-raise` outside of a `check` or `where` block");
+        P.checkCompileErrorMsg("lam(): 5 raises-other-than 5 end", "Cannot use `raises-other-than` outside of a `check` or `where` block");
+        // bad refinements
+        P.checkCompileErrorMsg("check: 5 satisfies%(5) 5 end", "Cannot use refinement syntax `%(...)` with `satisfies`");
+        P.checkCompileErrorMsg("check: 5 violates%(5) 5 end", "Cannot use refinement syntax `%(...)` with `violates`");
+        P.checkCompileErrorMsg("check: 5 is==%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is==`");
+        P.checkCompileErrorMsg("check: 5 is=~%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is=~`");
+        P.checkCompileErrorMsg("check: 5 is<=>%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is<=>`");
+        P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
+        P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
+        P.wait(done);
+      });
+        
       it("malformed blocks", function(done) {
         P.checkCompileErrorMsg("fun foo():\n" + 
                                " x = 10\n" + 
@@ -80,14 +114,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): x = 5\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): var x = 5\n y = 4\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
-
-
-        P.checkCompileErrorMsg("lam(): 1 is 2 end", "Cannot use `is` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("lam(): 1 raises 2 end", "Cannot use `raises` outside of a `check` or `where` block");
-        P.checkCompileErrorMsg("check: 1 raises%(2) 3 end",
-                               "Cannot use refinement syntax `%(...)` with `raises`.");
-        P.checkCompileErrorMsg("check: 1 satisfies%(2) 3 end",
-                               "Cannot use refinement syntax `%(...)` with `satisfies`. Consider changing the predicate instead.");
 
 
         P.checkCompileErrorMsg("lam():\n" + 
@@ -113,7 +139,16 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  z = 5\n" + 
                                "  end\n" + 
                                "end",
-                               "Cannot end a block with a graph definition");
+                               "graph expressions");
+        P.checkCompileErrorMsg("lam():\n" + 
+                               "  y = 10\n" + 
+                               "  x = 5\n" + 
+                               "  fun f(): nothing end\n" + 
+                               "  ref-graph:\n" + 
+                               "  z = 5\n" + 
+                               "  end\n" + 
+                               "end",
+                               "end a block with a graph");
         P.checkCompileErrorMsg("block:\n" + 
                                "  x = 5\n" + 
                                "  y = 10\n" + 
@@ -123,7 +158,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  x = 5\n" + 
                                "  graph: y = 10 end\n" + 
                                "end",
-                               "Cannot end a block with a graph definition");
+                               "graph expressions");
         P.checkCompileErrorMsg("if x < y:\n" + 
                                "  print('x less than y')\n" + 
                                "end",
@@ -298,8 +333,23 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("import shared-gdrive('a') as D", "two arguments");
         P.wait(done);
       });
+      it("underscores", function(done) {
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
+        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ foo(self): _ end }", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ fieldname: _ }", "Cannot use underscore");
+        P.checkCompileErrorMsg("{ ref fieldname: _ }", "Cannot use underscore");
+        P.checkCompileErrorMsg("method(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("lam(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("fun foo(self): _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("check: _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("provide _ end", "Cannot use underscore");
+        P.wait(done);
+      });
     });
-
   }
   return { performTest: performTest };
 });

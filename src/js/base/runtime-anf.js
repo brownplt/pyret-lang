@@ -7,7 +7,7 @@ var Bignum;
 
 
 define(["js/namespace", "js/js-numbers"],
-       function (Namespace, jsnumsIn) {
+       function (Namespace, jsnums) {
   if(requirejs.isBrowser) {
     var require = requirejs;
   }
@@ -16,48 +16,13 @@ define(["js/namespace", "js/js-numbers"],
   }
 
 
-
-  //var Namespace = require('./namespace.js').Namespace;
-
-  /**
-    @type {{
-        fromFixnum : function(number) : Bignum,
-        fromString : function(string) : (Bignum|boolean),
-        toFixnum : function() : number,
-
-        isSchemeNumber : function(Object) : boolean,
-
-        equals : function(Bignum, Bignum) : boolean,
-        lessThan : function(Bignum, Bignum) : boolean,
-        greaterThan : function(Bignum, Bignum) : boolean,
-        lessThanOrEqual : function(Bignum, Bignum) : boolean,
-        greaterThanOrEqual : function(Bignum, Bignum) : boolean,
-
-        add : function(Bignum, Bignum) : Bignum,
-        subtract : function(Bignum, Bignum) : Bignum,
-        multiply : function(Bignum, Bignum) : Bignum,
-        divide : function(Bignum, Bignum) : Bignum,
-
-        sin : function(Bignum) : Bignum,
-        cos : function(Bignum) : Bignum,
-        tan : function(Bignum) : Bignum,
-        asin : function(Bignum) : Bignum,
-        acos : function(Bignum) : Bignum,
-        atan : function(Bignum) : Bignum
-          }}
-   */
-  var jsnums = jsnumsIn;
-
-
-
 /**
 Creates a Pyret runtime
-@param {{stdout : function(string), initialGas : number}} theOutsideWorld contains the hooks
-into the environment
-
+@param {{stdout : function(string), initialGas : number}}
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
+
 /**
     Extends an object with the new fields in fields
     If all the fields are new, the brands are kept,
@@ -78,11 +43,14 @@ function extendWith(fields) {
     var allNewFields = true;
 
     for(var field in fields) {
-        if(allNewFields && hasProperty(this.dict, field)) {
-            allNewFields = false;
+      if(hasProperty(this.dict, field)) {
+        allNewFields = false;
+        if(isRef(this.dict[field])) {
+          ffi.throwMessageException("Cannot update ref field " + field);
         }
+      }
 
-        newDict[field] = fields[field];
+      newDict[field] = fields[field];
     } 
 
     var newObj = this.updateDict(newDict, allNewFields);
@@ -129,8 +97,7 @@ function extendWith(fields) {
   @param {Function} from the class that sub will subclass
   */
 function inherits(sub, from) {
-    sub.prototype = new from();
-    //sub.prototype = Object.create(from.prototype);
+  sub.prototype = Object.create(from.prototype);
 }
 
 //Set up heirarchy
@@ -149,7 +116,7 @@ inherits(POpaque, PBase);
     @return {boolean} true if obj has property p, false otherwise
 */
 function hasProperty(obj, p) {
-    return p in obj;
+  return p in obj;
 }
 
 /**
@@ -162,7 +129,7 @@ function hasProperty(obj, p) {
     @return {boolean} true if obj has property p, false otherwise
 */
 function hasOwnProperty(obj, p) {
-    return Object.prototype.hasOwnProperty.call(obj, p);
+  return Object.prototype.hasOwnProperty.call(obj, p);
 }
 
 var parameters = Object.create(null);
@@ -211,52 +178,7 @@ function getFields(obj) {
   return fields;
 }
 
-/**
-    Fold a function over the fields of an object (key and value)
-
-    @param {!PBase} obj the object to fold over
-    @param {Function} f the folding function takes the accumulator, then the
-                        field name, then the value
-    @param {!Object} init the initial value to fold over
-*/
-function foldFields(obj, f, init) {
-  var fields = getFields(obj);
-  var acc = init;
-  fields.forEach(function(fld) {
-      acc = f(acc, fld, obj.dict[fld]);
-    });
-  return acc;
-}
-
-
-/**
-  Makes a copy of a dictionary
-  Use this when cloning an object
-  Not a deep copy, field values are merely references and are shared between the copies
-
-  @param {!Object.<string, !PBase>} dict the dictionary to clone
-  @return {!Object.<string, !PBase>} a copy of the dict such that changes to the copy are *not* reflected in the original
-*/
-function copyDict(dict) {
-    return Object.create(dict);
-}
-
-/**
-  @param {Array.<number>} brands
-  @return Array.<number>
-*/
-function copyBrands(brands) {
-  return brands;
-}
-
 var emptyDict = Object.create(null);
-
-/** Creates a truly empty dictonary, with no inherit fields 
-    @return {!Object} an empty object
- **/
-function makeEmptyDict() {
-    return Object.create(null);
-}
 
 /**Tests whether an object is a PBase
     @param {Object} obj the item to test
@@ -280,7 +202,7 @@ function isBase(obj) { return obj instanceof PBase; }
 
   @return {!PBase}
 **/
-function getFieldLoc(val, field, loc) {
+function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) { 
       if (ffi === undefined) {
         throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
@@ -290,29 +212,36 @@ function getFieldLoc(val, field, loc) {
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
-        //TODO: Throw field not found error
-        //NOTE: When we change JSON.stringify to toReprJS, we'll need to support
-        //reentrant errors (see commit 24ff13d9e9)
       if (ffi === undefined) {
         throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
       } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }
     }
-    /*else if(isMutable(fieldVal)){
-        //TODO: Implement mutables then throw an error here
-    }*/
-    /*else if(isPlaceholder(fieldVal)){
-        //TODO: Implement placeholders then call get here
-        //Be wary of guards blowing up stack
-    }*/
+    else if(isRef(fieldVal)){
+      if(!isBang) {
+        return fieldVal;
+        // NOTE(joe Aug 8 2014): This is a design decision whether we
+        // want this to be an error or not
+        // ffi.throwMessageException("Got ref in dot lookup");
+      }
+      return getRef(fieldVal);
+    }
     else if(isMethod(fieldVal)){
-        var curried = fieldVal['meth'](val);
-        return makeFunctionArity(curried, fieldVal.arity - 1);
+      var curried = fieldVal['meth'](val);
+      return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
-        return fieldVal;
+      return fieldVal;
     }
+}
+
+function getFieldLoc(obj, field, loc) {
+  return getFieldLocInternal(obj, field, loc, false);
+}
+
+function getFieldRef(obj, field, loc) {
+  return getFieldLocInternal(obj, field, loc, true);
 }
 
 function getField(obj, field) {
@@ -358,13 +287,6 @@ function POpaque(val, equals) {
 }
 POpaque.prototype = Object.create(PBase.prototype);
 
-POpaque.prototype.extendWith = function() {
-  ffi.throwInternalError("Cannot extend opaque values", ffi.makeList([this]));
-};
-POpaque.prototype.updateDict = function(dict, keepBrands) {
-  ffi.throwInternalError("Cannot clone opaque values", ffi.makeList([this]));
-};
-
 function makeOpaque(val, equals) { return new POpaque(val, equals); }
 function isOpaque(val) { return val instanceof POpaque; }
 
@@ -383,17 +305,6 @@ function PNothing() {
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 }
-PNothing.prototype = Object.create(PBase.prototype);
-
-/**Clones the nothing
-  @return {!PNothing} With same dict
-*/
-PNothing.prototype.updateDict = function(dict, keepBrands) { 
-    var newNoth = makeNothing(); 
-    newNoth.dict = dict;
-    newNoth.brands = keepBrands ? this.brands : noBrands;
-    return newNoth;
-};
 
 /**Clones the nothing
   @param {!String} b The brand
@@ -443,7 +354,7 @@ function makeNumberBig(n) {
 function makeNumber(n) {
   return jsnums.fromFixnum(n);
 }
-//TODO: for BIG numbers, we'll need to compile them in as strings and use jsnums.fromString(_) to get the value
+
 /**Makes a PNumber using the given string
 
   @param {string} s 
@@ -528,22 +439,11 @@ function PFunction(fun, arity) {
     this.arity = arity || fun.length;
 
     /**@type {!Object.<string, !PBase>}*/
-    this.dict = createFunctionDict(); 
+    this.dict = emptyDict;
 
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 }
-//PFunction.prototype = Object.create(PBase.prototype); 
-
-/**Clones the function
-  @return {!PFunction} With same app and dict
-*/
-PFunction.prototype.updateDict = function(dict, keepBrands) { 
-    var newFun = makeFunction(this.app); 
-    newFun.dict = dict;
-    newFun.brands = keepBrands ? this.brands : noBrands;
-    return newFun;
-};
 
 /**Clones the function
   @param {!string} b The brand to add
@@ -559,13 +459,6 @@ PFunction.prototype.brand = function(b) {
     @return {boolean} true if object is a PFunction
 */
 function isFunction(obj) {return obj instanceof PFunction; }
-
-/**Creates a copy of the common dictionary all function have
-  @return {!Object.<string, !PBase>} the dictionary for a function
-*/
-function createFunctionDict() {
-    return emptyDict;
-}
 
 /**Makes a PFunction using the given n
 
@@ -601,23 +494,12 @@ function PMethod(meth, full_meth) {
     this.arity = full_meth.length;
 
     /**@type {!Object.<string, !PBase>}*/
-    this.dict = createMethodDict(); 
+    this.dict = emptyDict;
 
     /**@type {!Object.<string, Boolean>}*/
     this.brands = noBrands;
 
 }
-//PMethod.prototype = Object.create(PBase.prototype); 
-
-/**Clones the method
-  @return {!PMethod} With same meth and dict
-*/
-PMethod.prototype.updateDict = function(dict, keepBrands) { 
-    var newMeth = makeMethod(this['meth'], this['full_meth']); 
-    newMeth.dict = dict;
-    newMeth.brands = keepBrands ? this.brands : noBrands;
-    return newMeth;
-};
 
 /**Clones the method
   @param {!string} b The brand to add
@@ -633,13 +515,6 @@ PMethod.prototype.brand = function(b) {
     @return {boolean} true if object is a PMethod
 */
 function isMethod(obj) { return obj instanceof PMethod; }
-
-/**Creates a copy of the common dictionary all function have
-  @return {!Object.<string, !PBase>} the dictionary for a method
-*/
-function createMethodDict() {
-    return emptyDict;
-}
 
 /**Makes a PMethod using the given function
   The function first argument should be self
@@ -660,6 +535,106 @@ function createMethodDict() {
             };
         }, meth);
     }
+
+    var GRAPHABLE = 0;
+    var UNGRAPHABLE = 1;
+    var SET = 2;
+    var FROZEN = 3;
+    function PRef() {
+      this.state = GRAPHABLE;
+      this.anns = makePAnnList([]);
+      this.value = undefined;
+    }
+
+    function makeGraphableRef() {
+      return new PRef();
+    }
+    function makeRef(ann, loc) {
+      var loc = typeof loc === "undefined" ? ["references"] : loc;
+      var r = new PRef();
+      addRefAnn(r, ann, loc);
+      r.state = UNGRAPHABLE;
+      return r;
+    }
+    function makeUnsafeSetRef(ann, value, loc) {
+      var r = new PRef();
+      r.state = SET;
+      r.anns = makePAnnList([{ann: ann, loc: loc}]);
+      r.value = value;
+      return r;
+    }
+    function isRef(val) {
+      return val instanceof PRef;
+    }
+    function isGraphableRef(ref) {
+      return isRef(ref) && isRefGraphable(ref);
+    }
+    function isRefGraphable(ref) {
+      return ref.state === GRAPHABLE;
+    }
+    function isRefSet(ref) {
+      return ref.state >= SET;
+    }
+    function isRefFrozen(ref) {
+      return ref.state >= FROZEN;
+    }
+    function getRefAnns(ref) {
+      return ref.anns;
+    }
+    function refEndGraph(ref) {
+      if(ref.state >= UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to end graphing of already-done with graph ref");
+      }
+      ref.state = UNGRAPHABLE;
+      return ref;
+    }
+    function addRefAnn(ref, ann, loc) {
+      if(ref.state > UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to annotate already-set ref");
+      }
+      ref.anns.addAnn(ann, loc);
+      return ref;
+    }
+    function addRefAnns(ref, anns, locs) {
+      if(ref.state > UNGRAPHABLE) {
+        ffi.throwMessageException("Attempted to annotate already-set ref");
+      }
+      for(var i = 0; i < anns.length; i++) {
+        ref.anns.addAnn(anns[i], locs[i]);
+      }
+      return ref;
+    }
+    function freezeRef(ref) {
+      if(ref.state >= SET) {
+        ref.state = FROZEN;
+        return ref;
+      }
+      ffi.throwMessageException("Attempted to freeze an unset ref");
+    }
+    function unsafeSetRef(ref, value) {
+      if(ref.state === UNGRAPHABLE || ref.state === SET) {
+        ref.value = value;
+        ref.state = SET;
+        return ref;
+      }
+      ffi.throwMessageException("Attempted to set an unsettable ref");
+    }
+    /* Not stack-safe */
+    function setRef(ref, value) {
+      if(ref.state === UNGRAPHABLE || ref.state === SET) {
+        return checkAnn(["references"], ref.anns, value, function(_) {
+          ref.value = value; 
+          ref.state = SET;
+          return ref;
+        });
+      }
+      ffi.throwMessageException("Attempted to set an unsettable ref");
+    }
+    function getRef(ref) {
+      if(ref.state >= SET) { return ref.value; }
+      ffi.throwMessageException("Attempt to get an unset ref");
+    }
+
 
     /*********************
             Object
@@ -710,14 +685,72 @@ function createMethodDict() {
       return new PObject(dict, brands);
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $arity) {
+    function makeMatch(name, arity) {
+      if(arity === -1) {
+        return makeMethod(function(self) {
+          return function(handlers, els) {
+            if(hasField(handlers, name)) {
+              return getField(handlers, name).app();
+            }
+            else {
+              return els.app(self);
+            }
+          };
+        }, { length: 3 });
+      }
+      else {
+        return makeMethod(function(self) {
+          return function(handlers, els) {
+            if(hasField(handlers, name)) {
+              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }, self.$mut_fields_mask));
+            }
+            else {
+              return els.app(self);
+            }
+          };
+        }, { length: 3 });
+      }
+    }
+
+    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
+      ret.$app_fields_raw = $app_fields_raw;
+      ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
+      ret.$constructor = constructor
       return ret;
     }
 
+
+    function isDataValue(v) {
+      return hasProperty(v, "$name") && hasProperty(v, "$app_fields") && hasProperty(v, "$arity");
+    }
+
+    function derefField(value, fieldIsRef, lookupIsRef) {
+      if(isRef(value)) {
+        if(lookupIsRef) {
+          // ref keyword in cases and either kind of field
+          // Update fields in place with deref
+          return getRef(value);
+          fields[i] = getRef(fields[i]);
+        } else if(fieldIsRef) { 
+          ffi.throwMessageException("Cases on ref field needs to use ref"); 
+        }
+        else {
+          return value;
+        }
+      }
+      else {
+        if(lookupIsRef) {
+          ffi.throwMessageException("Cannot use ref in cases to access non-ref field");
+        }
+        else {
+          return value;
+        }
+      }
+    }
 
     /**The representation of an array
        A PArray is simply a JavaScript array
@@ -733,20 +766,6 @@ function createMethodDict() {
     /************************
           Type Checking
     ************************/
-    /**
-      Checks if value is ___
-      @param {!PBase} val the value to test
-      @param {!function(!PBase) : boolean} test
-
-      @return {!boolean} true if val passes test
-    */
-    function checkIf(val, test) {
-        if(!test(val)) {
-            throw makeMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
-        }
-        return true;
-    }
-
     function checkType(val, test, typeName) {
       if(!test(val)) { ffi.throwTypeMismatch(val, typeName) }
       return true;
@@ -762,6 +781,7 @@ function createMethodDict() {
       else if (isObject(val) ||
                isFunction(val) ||
                isMethod(val) ||
+               isRef(val) ||
                isOpaque(val) ||
                isNothing(val)) {
         return true
@@ -894,7 +914,54 @@ function createMethodDict() {
     };
 
     function toReprLoop(val, method) {
-      var stack = [{todo: [val], done: []}];
+      var stack = [];
+      var stackOfStacks = [];
+      var seen = [];
+      var referents = []
+      var needsGraph = false;
+      var seenFrozenRef = false;
+      var seenUnfrozenRef = false;
+      var gensymCount = 1;
+      function makeName() {
+        return "cyc_" + (gensymCount++) + "_";
+      }
+      function findSeen(obj) {
+        for (var i = 0; i < seen.length; i++) {
+          if (seen[i].obj === obj) {
+            seen[i].count++;
+            // console.log("Incrementing count for " + seen[i].asName + " => " + seen[i].count);
+            needsGraph = true;
+            seenFrozenRef = seenFrozenRef || isRefFrozen(obj);
+            seenUnfrozenRef = seenUnfrozenRef || !isRefFrozen(obj);
+            return seen[i].asName;
+          }
+        }
+        return undefined;
+      }
+      function findReferent(obj) {
+        for (var i = 0; i < referents.length; i++) {
+          if (referents[i].obj === obj) {
+            return referents[i].from;
+          }
+        }
+        return undefined;
+      }
+      function addNewRef(obj) {
+        var newObj = {count: 1, asName: makeName(), asDoc: "", obj: obj};
+        // console.log("Initializing count for " + newObj.asName + " => 1");
+        seen.push(newObj);
+        var referent = {obj: getRef(obj), from: newObj};
+        referents.push(referent);
+        return newObj.asName;
+      }
+      function setRefDoc(obj, doc) {
+        for (var i = 0; i < seen.length; i++) {
+          if (seen[i].obj === obj) {
+            seen[i].asDoc = doc;
+            return seen[i].asName;
+          }
+        }
+      }
       function toReprHelp() {
         while (stack.length > 0 && stack[0].todo.length > 0) {
           var top = stack[stack.length - 1];
@@ -919,10 +986,16 @@ function createMethodDict() {
             } else if (isObject(next)) {
               if (next.dict[method]) {
                 // If this call fails
-                var s = getField(next, method).app();
+                var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
                 // the continuation stacklet will get the result value, and do the next two steps manually
                 top.todo.pop();
                 top.done.push(thisRuntime.unwrap(s));
+              } else if(isDataValue(next)) {
+                var vals = next.$app_fields_raw(function(/* varargs */) {
+                  return Array.prototype.slice.call(arguments);
+                });
+                stack.push({todo: vals, done: [], arity: next.$arity, 
+                            implicitRefs: next.$mut_fields_mask, constructor: next.$name});
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];
@@ -938,24 +1011,118 @@ function createMethodDict() {
             } else if (isMethod(next)) {
               top.todo.pop();
               top.done.push("<method>");
+            } else if (isRef(next)) {
+              var found = findSeen(next);
+              var implicitRef = hasProperty(top, "implicitRefs") && top.implicitRefs[top.todo.length - 1];
+              if (found) {
+                top.todo.pop();
+                if (implicitRef || isRefFrozen(next)) {
+                  top.done.push(found);
+                } else {
+                  top.done.push("make-ref(" + found + ")");
+                }
+              } else if(!isRefSet(next)) {
+                top.todo.pop();
+                top.done.push("<uninitialized reference>");
+              } else {
+                var newName = addNewRef(next);
+                // Constructors implicitly wrap their mutable args in a reference if necessary
+                // So the constructor case above will use implicitRefs to indicate where 
+                // the refs were made implicitly, so they aren't printed.
+                stack.push({todo: [getRef(next)], done: [], theRef: next, wrapRef: !implicitRef});
+              }
+            } else if (typeof next === "object") {
+              top.todo.pop();
+              top.done.push(JSON.stringify(next, null, "  "));
             } else {
               top.todo.pop();
               top.done.push(String(next));
             }
-          } else { // All fields of a nested object have been stringified; collapse
+          } else { // All fields of a nested object or data value have been stringified; collapse
             stack.pop();
             var prev = stack[stack.length - 1];
             prev.todo.pop();
-            var s = "{";
-            for (var i = 0; i < top.keys.length; i++) {
-              if (i > 0) { s += ", "; }
-              s += top.keys[i] + ": " + top.done[i];
+            var s = "";
+            if(hasProperty(top, "keys")) {
+              s += "{";
+              for (var i = 0; i < top.keys.length; i++) {
+                if (i > 0) { s += ", "; }
+                s += top.keys[i] + ": " + top.done[i];
+              }
+              s += "}";
+            } else if (hasProperty(top, "wrapRef")) {
+              var refName = setRefDoc(top.theRef, top.done[0]);
+              if (top.wrapRef && !isRefFrozen(top.theRef)) {
+                s += "make-ref(" + refName + ")";
+              } else {
+                s += refName;
+              }
+            } else if(hasProperty(top, "constructor")) {
+              s += top.constructor;
+              // Sentinel value for singleton constructors
+              if(top.arity !== -1) {
+                // console.log("Constructing " + top.constructor + ", implicitRefs = " + top.implicitRefs);
+                s += "(";
+                for(var i = top.done.length - 1; i >= 0; i--) {
+                  if(i < top.done.length - 1) { s += ", "; }
+                  // console.log("  Field #" + i + ": implicitRef? " +
+                  //             top.implicitRefs[i] + ", and field: " + top.done[i]);
+                  s += top.done[i];
+                }
+                s += ")";
+              }
             }
-            s += "}";
             prev.done.push(s);
           }
         }
-        return stack[0].done[0];
+        var finalAns = stack[0].done[0];
+        if(stackOfStacks.length > 1) { return finalAns; }
+        var needsMutableGraph = false;
+        if (needsGraph) {
+          // console.log("FinalAns currently: " + finalAns);
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count > 1 && !isRefFrozen(seen[i].obj)) {
+              needsMutableGraph = true;
+              break;
+            }
+          }
+          finalAns = "<graph>\n";
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count > 1 || isRefFrozen(seen[i].obj)) {
+              // console.log("Including " + seen[i].asName + " => " + seen[i].asDoc + " because "
+              //             + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
+              finalAns += "  " + seen[i].asName + " = " + seen[i].asDoc + "\n";
+            // } else {
+            //   console.log("Skipping  " + seen[i].asName + " => " + seen[i].asDoc + " because "
+            //               + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
+            }
+          }
+          var mentioned = findReferent(stack[0].root);
+          if (needsMutableGraph && (mentioned === undefined)) {
+            finalAns += "  __ANS__ = " + stack[0].done[0] + "\n";
+            stack[0].done[0] = "ref-get(__ANS__)";
+          }
+          finalAns += "<in>\n"; 
+          if (mentioned !== undefined) {
+            finalAns += "  " + mentioned.asName + "\nend";
+          } else {
+            finalAns += "  " + stack[0].done[0] + "\nend";
+          }
+        }
+        var replacementsNeeded = true;
+        while (replacementsNeeded) {
+          replacementsNeeded = false;
+          for (var i = 0; i < seen.length; i++) {
+            if (seen[i].count === 1 && !isRefFrozen(seen[i].obj)) {
+              var replaced = finalAns.replace(new RegExp(seen[i].asName + "(?! =)", "g"), seen[i].asDoc);
+              if (replaced !== finalAns) { 
+                replacementsNeeded = true; 
+              }
+              finalAns = replaced;
+            }
+          }
+        }
+        return finalAns; 
       }
       function toReprFun($ar) {
         var $step = 0;
@@ -996,7 +1163,45 @@ function createMethodDict() {
           throw $e;
         }
       }
-      return toReprFun();
+      function reenterToReprFun(val) {
+        // arity check
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord(val)) {
+            $step = val.step;
+            $ans = val.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              stackOfStacks.push(stack);
+              stack = [{todo: [val], done: [], implicitRefs: [true], root: val}];
+              $step = 1;
+              $ans = toReprFun();
+              break;
+            case 1:
+              stack = stackOfStacks.pop();
+              return $ans;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr (reentrant)"],
+              reenterToReprFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["runtime torepr"]);
+          }
+          throw $e;
+        }
+      }
+      var toReprFunPy = makeFunction(reenterToReprFun);
+      return reenterToReprFun(val);
     }
       
     /**
@@ -1125,7 +1330,7 @@ function createMethodDict() {
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
         this.getStack().map(function(s) {
             var g = getField;
-            return s && hasField.app(s, "source") ? g(s, "source") +
+            return s && hasField(s, "source") ? g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
@@ -1181,7 +1386,7 @@ function createMethodDict() {
     var raisePyPy = makeFunction(raiseJSJS);
 
     /** type {!PFunction} */
-    var hasField = makeFunction(
+    var hasField =
         /**
           Checks if an object has a given field
           @param {!PBase} obj The object to test
@@ -1192,8 +1397,7 @@ function createMethodDict() {
           thisRuntime.checkArity(2, arguments, "has-field");
           checkString(str);
           return makeBoolean(hasProperty(obj.dict, str));
-        }
-      );
+        };
 
     function sameBrands(brands1, brands2) {
       if (brands1.brandCount !== brands2.brandCount) { return false; }
@@ -1202,6 +1406,272 @@ function createMethodDict() {
       }
       return true;
     }
+
+
+    function combineEquality(e1, e2) {
+      if (ffi.isEqual(e1)) { return e2; }
+      else if (ffi.isNotEqual(e1)) { return e1; }
+      else if (ffi.isNotEqual(e2)) { return e2; }
+      else return e1;
+    }
+    // JS function from Pyret values to Pyret equality answers
+    function equal3(left, right, alwaysFlag) {
+      var isIdentical = identical3(left, right);
+      if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
+      
+      var stackOfToCompare = [];
+      var toCompare = { stack: [], curAns: ffi.equal };
+      var current, curLeft, curRight, cache;
+      cache = {left: [], right: []};
+      function findPair(obj1, obj2) {
+        for (var i = 0; i < cache.left.length; i++) {
+          if (cache.left[i] === obj1 && cache.right[i] === obj2)
+            return true;
+        }
+        return false;
+      }
+      function cachePair(obj1, obj2) {
+        cache.left.push(obj1);
+        cache.right.push(obj2);
+      }
+      function equalHelp() {
+        while (toCompare.stack.length > 0 && !ffi.isNotEqual(toCompare.curAns)) {
+          current = toCompare.stack.pop();
+          curLeft = current.left;
+          curRight = current.right;
+          
+          if (ffi.isEqual(identical3(curLeft, curRight))) {
+            continue;
+          } else if (isNumber(curLeft) && isNumber(curRight)) {
+            if (jsnums.equals(curLeft, curRight)) {
+              continue;
+            } else {
+              toCompare.curAns = ffi.notEqual.app(current.path);
+            }
+          } else if (isNothing(curLeft) && isNothing(curRight)) {
+            continue;
+          } else if (isFunction(curLeft) && isFunction(curRight)) {
+            toCompare.curAns = ffi.unknown;
+          } else if (isMethod(curLeft) && isMethod(curRight)) {
+            toCompare.curAns = ffi.unknown;
+          } else if (isOpaque(curLeft) && isOpaque(curRight)) {
+            if (curLeft.equals(curLeft.val, curRight.val)) {
+              continue;
+            } else {
+              toCompare.curAns = ffi.notEqual.app(current.path);
+            }
+          } else {
+            if (findPair(curLeft, curRight)) {
+              continue; // Already checked this pair of objects
+            } else {
+              cachePair(curLeft, curRight);
+              if (isRef(curLeft) && isRef(curRight)) {
+                if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
+                  toCompare.curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
+                  toCompare.curAns = ffi.notEqual.app(current.path);
+                } else { // In equal-now, we walk through the refs
+                  var newPath = current.path;
+                  var lastDot = newPath.lastIndexOf(".");
+                  var lastParen = newPath.lastIndexOf(")");
+                  if (lastDot > -1 && lastDot > lastParen) {
+                    newPath = newPath.substr(0, lastDot) + "!" + newPath.substr(lastDot + 1);
+                  } else {
+                    newPath = "deref(" + newPath + ")";
+                  }
+                  toCompare.stack.push({
+                    left: getRef(curLeft),
+                    right: getRef(curRight),
+                    path: newPath
+                  });
+                }
+              } else if (isArray(curLeft) && isArray(curRight)) {
+                if (alwaysFlag || (curLeft.length !== curRight.length)) {
+                  toCompare.curAns = ffi.notEqual.app(current.path);
+                } else {
+                  for (var i = 0; i < curLeft.length; i++) {
+                    toCompare.stack.push({
+                      left: curLeft[i],
+                      right: curRight[i],
+                      path: "raw-array-get(" + current.path + ", " + i + ")"
+                    });
+                  }
+                }
+              } else if (isObject(curLeft) && curLeft.dict["_equals"]) {
+                // If this call stack-throws,
+                var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
+                // the continuation stacklet will get the result, and combine them manually
+                toCompare.curAns = combineEquality(toCompare.curAns, newAns);
+              } else if (isObject(curLeft) && isObject(curRight)) {
+                if (isDataValue(curLeft) && isDataValue(curRight)) {
+                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                    toCompare.curAns = ffi.notEqual.app(current.path);
+                  } else {
+                    var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                      return Array.prototype.slice.call(arguments);
+                    });
+                    if (fieldsLeft.length > 0) {
+                      var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
+                        return Array.prototype.slice.call(arguments);
+                      });
+                      var fieldNames = curLeft.$constructor.$fieldNames;
+                      for (var k = 0; k < fieldsLeft.length; k++) {
+                        toCompare.stack.push({ 
+                          left: fieldsLeft[k],
+                          right: fieldsRight[k],
+                          path: current.path + "." + fieldNames[k]
+                        });
+                      }
+                    }
+                  }
+                } else {
+                  var dictLeft = curLeft.dict;
+                  var dictRight = curRight.dict;
+                  var fieldsLeft;
+                  var fieldsRight;
+                  fieldsLeft = getFields(curLeft);
+                  fieldsRight = getFields(curRight);
+                  if(fieldsLeft.length !== fieldsRight.length) { 
+                    toCompare.curAns = ffi.notEqual.app(current.path); 
+                  }
+                  for(var k = 0; k < fieldsLeft.length; k++) {
+                    toCompare.stack.push({
+                      left: curLeft.dict[fieldsLeft[k]],
+                      right: curRight.dict[fieldsLeft[k]],
+                      path: current.path + "." + fieldsLeft[k]
+                    });
+                  }
+                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                    toCompare.curAns = ffi.notEqual.app(current.path);
+                  }
+                }
+              } else {
+                toCompare.curAns = ffi.notEqual.app(current.path);
+              }
+            }
+          }
+        }
+        return toCompare.curAns;
+      }
+      var stackFrameDesc = [alwaysFlag ? "runtime equal-always" : "runtime equal-now"];
+      function equalFun($ar) {
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            $step = $ar.step;
+            $ans = $ar.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              $step = 1;
+              return equalHelp();
+            case 1:
+              toCompare.curAns = combineEquality(toCompare.curAns, $ans);
+              $step = 0;
+              break;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              stackFrameDesc,
+              equalFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(stackFrameDesc);
+          }
+          throw $e;
+        }
+      }
+      function reenterEqualFun(left, right) {
+        // arity check
+        var $step = 0;
+        var $ans = undefined;
+        try {
+          if (thisRuntime.isActivationRecord(left)) {
+            $step = left.step;
+            $ans = left.ans;
+          }
+          while(true) {
+            switch($step) {
+            case 0:
+              stackOfToCompare.push(toCompare);
+              toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: ffi.equal};
+              $step = 1;
+              $ans = equalFun();
+              break;
+            case 1:
+              toCompare = stackOfToCompare.pop();
+              return $ans;
+            }
+          }
+        } catch($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              stackFrameDesc,
+              reenterEqualFun,
+              $step,
+              [],
+              []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(stackFrameDesc);
+          }
+          throw $e;
+        }
+      }
+      var equalFunPy = makeFunction(reenterEqualFun);
+      return reenterEqualFun(left, right);
+    }
+        
+
+    // JS function from Pyret values to Pyret equality answers
+    function equalAlways3(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-always3");
+      return equal3(left, right, true);
+    };
+    // JS function from Pyret values to JS booleans (or throws)
+    function equalAlways(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "equal-always");
+      return safeCall(function() {
+        return equal3(v1, v2, true);
+      }, function(ans) {
+        if (ffi.isEqual(ans)) { return true; }
+        else if (ffi.isNotEqual(ans)) { return false; }
+        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+      });
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var equalAlwaysPy = makeFunction(function(left, right) {
+        return makeBoolean(equalAlways(left, right));
+    });
+    // JS function from Pyret values to Pyret equality answers
+    function equalNow3(left, right) {
+      thisRuntime.checkArity(2, arguments, "equal-now3");
+      return equal3(left, right, false);
+    };
+    // JS function from Pyret values to JS booleans (or throws)
+    function equalNow(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "equal-now");
+      return safeCall(function() {
+        return equal3(v1, v2, false);
+      }, function(ans) {
+        if (ffi.isEqual(ans)) { return true; }
+        else if (ffi.isNotEqual(ans)) { return false; }
+        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+      });
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var equalNowPy = makeFunction(function(left, right) {
+        return makeBoolean(equalNow(left, right));
+    });
+  
+
     // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
@@ -1298,6 +1768,36 @@ function createMethodDict() {
     // JS function from Pyret values to Pyret booleans
     var sameJSPy = function(v1, v2) { return makeBoolean(same(v1, v2)); };
 
+    // JS function from Pyret values to Pyret equality answers
+    function identical3(v1, v2) {
+      if (isFunction(v1) && isFunction(v2)) {
+        return ffi.unknown;
+      } else if (isMethod(v1) && isMethod(v2)) {
+        return ffi.unknown;
+      } else if (v1 === v2) {
+        return ffi.equal;
+      } else {
+        return ffi.notEqual.app("");
+      }
+    };
+    // Pyret function from Pyret values to Pyret equality answers
+    var identical3Py = makeFunction(function(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "identical3");
+      return identical3(v1, v2);
+    });
+    // JS function from Pyret values to JS true/false or throws
+    function identical(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "identical");
+      var ans = identical3(v1, v2);
+      if (ffi.isEqual(ans)) { return true; }
+      else if (ffi.isNotEqual(ans)) { return false; }
+      else { ffi.throwMessageException("Attempted to compare functions or methods with identical"); }
+    };
+    // Pyret function from Pyret values to Pyret booleans (or throws)
+    var identicalPy = makeFunction(function(v1, v2) {
+        return makeBoolean(identical(v1, v2));
+    });
+
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
         thisRuntime.checkArity(1, arguments, "gensym");
@@ -1336,7 +1836,6 @@ function createMethodDict() {
     /** type {!PBase} */
     var builtins = makeObject({
         'has-field': hasField,
-        'equiv': samePyPy,
         'current-checker': makeFunction(function() {
           thisRuntime.checkArity(0, arguments, "current-checker");
           return getParam("current-checker");
@@ -1425,28 +1924,6 @@ function createMethodDict() {
       }
     }
 
-    function checkAnnArg(compilerLoc, ann, val) {
-      return safeCall(function() {
-        return ann.check(compilerLoc, val);
-      }, function(result) {
-        if(ffi.isOk(result)) { return val; }
-        if(ffi.isFail(result)) {
-          raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
-        }
-        throw "Internal error: got invalid result from annotation check";
-      },
-      "checkAnnArg");
-    }
-
-    function _checkAnnArg(compilerLoc, ann, val) {
-      var result = ann.check(compilerLoc, val);
-      if(ffi.isOk(result)) { return val; }
-      if(ffi.isFail(result)) {
-        raiseJSJS(ffi.contractFailArg(getField(result, "loc"), getField(result, "reason")));
-      }
-      throw "Internal error: got invalid result from annotation check";
-    }
-
     function checkAnnArgs(anns, args, locs, after) {
       function checkI(i) {
         if(i >= args.length) { return after(); }
@@ -1468,6 +1945,68 @@ function createMethodDict() {
         }
       }
       return checkI(0);
+    }
+    function checkConstructorArgs(anns, args, locs, after) {
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          if(isRefGraphable(args[i])) { return checkI(i + 1); }
+          else {
+            return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+              return checkI(i + 1);
+            });
+          }
+        }
+      }
+      return checkI(0);
+    }
+
+    function checkConstructorArgs2(anns, args, locs, mutMask, after) {
+      function checkI(i) {
+        if(i >= args.length) { return after(); }
+        else {
+          if(isRefGraphable(args[i]) && mutMask[i]) { return checkI(i + 1); }
+          else {
+            return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
+              return checkI(i + 1);
+            });
+          }
+        }
+      }
+      return checkI(0);
+    }
+    function checkRefAnns(obj, fields, vals, locs) {
+      if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
+      var anns = new Array(fields.length);
+      var refs = new Array(fields.length);
+      var field = null;
+      var ref = null;
+      for(var i = 0; i < vals.length; i++) {
+        field = fields[i];
+        if(hasField(obj, field)) {
+          ref = obj.dict[field];
+          if(isRef(ref)) {
+            if(isRefFrozen(ref)) {
+              ffi.throwMessageException("Update of frozen ref " + field);
+            }
+            anns[i] = getRefAnns(ref);
+            refs[i] = ref;
+          }
+          else {
+            ffi.throwMessageException("Update of non-ref field " + field);
+          }
+        }
+        else {
+          ffi.throwMessageException("Update of non-existent field " + field);
+        }
+      }
+      function afterCheck() {
+        for(var i = 0; i < refs.length; i++) {
+          unsafeSetRef(refs[i], vals[i]);
+        }
+        return obj;
+      }
+      return checkAnnArgs(anns, vals, locs, afterCheck);
     }
 
     function getDotAnn(loc, name, ann, field) {
@@ -1511,6 +2050,44 @@ function createMethodDict() {
 
     function makePrimitiveAnn(name, jsPred) {
       return new PPrimAnn(name, jsPred);
+    }
+
+    function PAnnList(anns) {
+      this.anns = anns;
+      var refinement = true;
+//      for(var i = 0; i < anns.length; i++) {
+//        if(anns[i].refinement) { refinement = true; }
+//      }
+      this.refinement = refinement;
+    }
+
+    function makePAnnList(anns) {
+      return new PAnnList(anns);
+    }
+    PAnnList.prototype.addAnn = function(ann, loc) {
+//      this.refinement = ann.refinement || this.refinement;
+      this.anns.push({ ann: ann, loc: loc });
+    }
+
+    PAnnList.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      function checkI(i) {
+        if(i >= that.anns.length) { return ffi.contractOk; }
+        else {
+          return safeCall(function() {
+            return that.anns[i].ann.check(compilerLoc, val);
+          }, function(passed) {
+            if(ffi.isOk(passed)) { return checkI(i + 1); }
+            else {
+              return ffi.contractFail(
+                getField(passed, "loc"),
+                ffi.makeRefInitFail(makeSrcloc(that.anns[i].loc), getField(passed, "reason"))
+              );
+            }
+          });
+        }
+      }
+      return checkI(0);
     }
 
     function PPredAnn(ann, pred, predname) {
@@ -1574,7 +2151,7 @@ function createMethodDict() {
       var that = this;
       var missingFields = [];
       for(var i = 0; i < that.fields.length; i++) {
-        if(!hasField.app(val, that.fields[i])) {
+        if(!hasField(val, that.fields[i])) {
           var reason = ffi.makeMissingField(
             makeSrcloc(that.locs[i]),
             that.fields[i]
@@ -1613,7 +2190,7 @@ function createMethodDict() {
           );
       }
       for(var i = 0; i < that.fields.length; i++) {
-        if(!hasField.app(val, that.fields[i])) {
+        if(!hasField(val, that.fields[i])) {
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
@@ -2095,7 +2672,7 @@ function createMethodDict() {
       },
       resume: function(val) {
         if(this.errorVal !== null || this.breakFlag) {
-          throw "Cannot resume eith error or break requested";
+          throw "Cannot resume with error or break requested";
         }
         if(this.handlers !== null) {
           this.handlers.resume(val);
@@ -2133,7 +2710,7 @@ function createMethodDict() {
             return ffi.makeRight(makeOpaque(res.exn));
           }
           else {
-            return ffi.makeRight(makeOpaque(makeMessageException(String(res.exn))));
+            return ffi.makeRight(makeOpaque(makePyretFailException(ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
           }
         } else {
           console.error("Bad execThunk result: ", res);
@@ -2436,7 +3013,7 @@ function createMethodDict() {
       thisRuntime.checkArity(2, arguments, "string-equals");
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
-      return thisRuntime.makeBoolean(same(l, r));
+      return thisRuntime.makeBoolean(l === r);
     }
     var string_append = function(l, r) {
       thisRuntime.checkArity(2, arguments, "string-append");
@@ -2543,7 +3120,7 @@ function createMethodDict() {
       thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
-      return thisRuntime.makeBoolean(same(l, r));
+      return thisRuntime.makeBoolean(jsnums.equals(l, r));
     }
     var num_max = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-max");
@@ -2749,7 +3326,7 @@ function createMethodDict() {
       return loadJSModules(namespace, modules, function(/* args */) {
         var ms = Array.prototype.slice.call(arguments);
         function wrapMod(m) {
-          if (hasField.app(m, "provide-plus-types")) {
+          if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
           }
           else {
@@ -2881,6 +3458,18 @@ function createMethodDict() {
 
           'not': makeFunction(bool_not),
 
+          'ref-set'    : makeFunction(setRef),
+          'ref-get'    : makeFunction(getRef),
+          'ref-end-graph'   : makeFunction(refEndGraph),
+          'ref-freeze' : makeFunction(freezeRef),
+
+          'identical3': identical3Py,
+          'identical': identicalPy,
+          'equal-now3': makeFunction(equalNow3),
+          'equal-now': equalNowPy,
+          'equal-always3': makeFunction(equalAlways3),
+          'equal-always': equalAlwaysPy,
+
           'exn-unwrap': makeFunction(getExnValue)
 
         }),
@@ -2900,9 +3489,9 @@ function createMethodDict() {
 
         'checkAnn': checkAnn,
         '_checkAnn': _checkAnn,
-        'checkAnnArg': checkAnnArg,
         'checkAnnArgs': checkAnnArgs,
-        '_checkAnnArgs': _checkAnnArgs,
+        'checkConstructorArgs': checkConstructorArgs,
+        'checkConstructorArgs2': checkConstructorArgs2,
         'getDotAnn': getDotAnn,
         'makePredAnn': makePredAnn,
         'makePrimitiveAnn': makePrimitiveAnn,
@@ -2928,11 +3517,12 @@ function createMethodDict() {
         'schedulePause'  : schedulePause,
         'breakAll' : breakAll,
 
-        'getField'    : getField,
-        'getFieldLoc'    : getFieldLoc,
-        'getFields'    : getFields,
-        'getColonField'    : getColonField,
-        'extendObj' : extendObj,
+        'getField'      : getField,
+        'getFieldLoc'   : getFieldLoc,
+        'getFieldRef'   : getFieldRef,
+        'getFields'     : getFields,
+        'getColonField' : getColonField,
+        'extendObj'     : extendObj,
 
         'hasBrand' : hasBrand,
 
@@ -2947,6 +3537,7 @@ function createMethodDict() {
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
         'isObject'    : isObject,
+        'isRef'       : isRef,
         'isOpaque'    : isOpaque,
         'isPyretVal'  : isPyretVal,
 
@@ -2970,8 +3561,28 @@ function createMethodDict() {
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,
+        'makeGraphableRef' : makeGraphableRef,
+        'makeRef' : makeRef,
+        'makeUnsafeSetRef' : makeUnsafeSetRef,
         'makeDataValue': makeDataValue,
+        'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
+
+        'derefField': derefField,
+
+        'checkRefAnns' : checkRefAnns,
+
+        'isGraphableRef' : isGraphableRef,
+        'isRefGraphable' : isRefGraphable,
+        'isRefFrozen' : isRefFrozen,
+        'isRefSet' : isRefSet,
+        'setRef' : setRef,
+        'unsafeSetRef' : unsafeSetRef,
+        'getRef' : getRef,
+        'refEndGraph' : refEndGraph,
+        'addRefAnn' : addRefAnn,
+        'addRefAnns' : addRefAnns,
+        'freezeRef' : freezeRef,
 
         'plus': plus,
         'minus': minus,
@@ -3029,6 +3640,13 @@ function createMethodDict() {
         'not': bool_not,
 
         'equiv': sameJSPy,
+        'identical3': identical3,
+        'identical': identical,
+        'equal_now3': equalNow3,
+        'equal_now': equalNow,
+        'equal_always3': equalAlways3,
+        'equal_always': equalAlways,
+
         'raise': raiseJSJS,
 
         'pyretTrue': pyretTrue,
@@ -3037,12 +3655,11 @@ function createMethodDict() {
         'undefined': undefined,
         'create': Object.create,
 
-        'hasField' : hasField.app,
+        'hasField' : hasField,
 
         'toReprJS' : toReprJS,
         'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
 
-        'same' : same,
         'wrap' : wrap,
         'unwrap' : unwrap,
 
@@ -3057,7 +3674,6 @@ function createMethodDict() {
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'makeCheckType' : makeCheckType,
-        'checkIf'      : checkIf,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),

@@ -18,6 +18,7 @@ fun ok-last(stmt):
     A.is-s-fun(stmt) or
     A.is-s-data(stmt) or
     A.is-s-graph(stmt) or
+    A.is-s-m-graph(stmt) or
     A.is-s-contract(stmt) or
     A.is-s-check(stmt) or
     A.is-s-type(stmt) or
@@ -248,7 +249,7 @@ fun <a, c> default-env-map-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       A.s-cases-branch(l, pat-loc, name, new-args, body.visit(self.{env: args-env}))
@@ -365,7 +366,7 @@ fun <a, c> default-env-iter-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       visit-args = lists.all(_.visit(self), args)
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       visit-args
@@ -605,4 +606,18 @@ letrec-visitor = A.default-map-visitor.{
     A.s-id-letrec(l, id, self.env.get(id.key()))
   end
 }
+
+fun make-renamer(replacements :: SD.StringDict):
+  A.default-map-visitor.{
+    s-atom(self, base, serial):
+      a = A.s-atom(base, serial)
+      k = a.key()
+      if replacements.has-key(k):
+        replacements.get(k)
+      else:
+        a
+      end
+    end
+  }
+end
 

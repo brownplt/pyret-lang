@@ -211,6 +211,7 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
     | s-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
+    | s-m-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
     | else => nothing
   end
 end
@@ -240,7 +241,9 @@ fun reachable-ops(self, l, op, ast):
 end
 
 
-
+fun is-underscore(e):
+  A.is-s-id(e) and A.is-s-underscore(e.id)
+end
 
 well-formed-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
@@ -287,12 +290,15 @@ well-formed-visitor = A.default-iter-visitor.{
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
     end
-    ensure-unique-ids(args)
+    ensure-unique-ids(args.map(_.bind))
     lists.all(_.visit(self), args) and body.visit(self)
   end,
   s-singleton-cases-branch(self, l, pat-loc, name, body):
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
+    end
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a cases branch", body.l)
     end
     body.visit(self)
   end,
@@ -314,6 +320,11 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(stmts.last())
+      for each(stmt from stmts):
+        when is-underscore(stmt):
+          wf-error("Cannot use underscore as a standalone statement", stmt.l)
+        end
+      end
       bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
       ensure-unique-bindings(bind-stmts.reverse())
       ensure-distinct-lines(A.dummy-loc, stmts)
@@ -349,11 +360,7 @@ well-formed-visitor = A.default-iter-visitor.{
           wf-error("Cannot use refinement syntax `%(...)` with `" + op-name + "`.", l)
       end
     end
-    left.visit(self)
-    cases(Option) right:
-      | none => true
-      | some(shadow right) => right.visit(self)
-    end
+    left.visit(self) and self.option(right)
   end,
   s-method-field(self, l, name, args, ann, doc, body, _check):
     when reserved-names.member(name):
@@ -361,6 +368,9 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
+    end
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a method", body.l)
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -373,17 +383,26 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.member(name):
       reserved-name(l, name)
     end
+    when is-underscore(value):
+      wf-error("Cannot use underscore as the value of an object field", l)
+    end
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
     when reserved-names.member(name):
       reserved-name(l, name)
     end
+    when is-underscore(value):
+      wf-error("Cannot use underscore as the value of an object field", l)
+    end
     ann.visit(self) and value.visit(self)
   end,
   s-method(self, l, args, ann, doc, body, _check):
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
+    end
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a method", body.l)
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -398,12 +417,18 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
     end
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a lambda", body.l)
+    end
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-fun(self, l, name, params, args, ann, doc, body, _check):
     when reserved-names.member(name):
       reserved-name(l, name)
+    end
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a function", body.l)
     end
     ensure-unique-ids(args)
     lists.all(_.visit(self), params)
@@ -413,7 +438,7 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-fields(fields.reverse())
     lists.all(_.visit(self), fields)
   end,
-  s-graph(self, l, bindings):
+  s-m-graph(self, l, bindings):
     for each(binding from bindings):
       when A.is-s-underscore(binding.name.id):
         add-error(C.pointless-graph-id(binding.l))
@@ -421,7 +446,14 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), bindings)
   end,
+  s-graph(self, l, bindings):
+    add-error(C.wf-err("graph expressions are not yet supported", l))
+    false
+  end,
   s-check(self, l, name, body, keyword-check):
+    when is-underscore(body):
+      wf-error("Cannot use underscore as the body of a check block", body.l)
+    end
     wrap-visit-check(self, some(body))
   end,
   s-if(self, l, branches):
@@ -432,10 +464,16 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-cases(self, l, typ, val, branches):
     ensure-unique-cases(branches)
+    when is-underscore(val):
+      wf-error("Cannot use underscore as the argument of a cases expression", val.l)
+    end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l, typ, val, branches, _else):
     ensure-unique-cases(branches)
+    when is-underscore(val):
+      wf-error("Cannot use underscore as the argument of a cases expression", val.l)
+    end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   s-frac(self, l, num, den):
@@ -447,6 +485,12 @@ well-formed-visitor = A.default-iter-visitor.{
   s-id(self, l, id):
     when (reserved-names.member(tostring(id))):
       reserved-name(l, tostring(id))
+    end
+    true
+  end,
+  s-provide(self, l, expr):
+    when is-underscore(expr):
+      wf-error("Cannot use underscore in a provide statement", expr.l)
     end
     true
   end
@@ -566,6 +610,9 @@ top-level-visitor = A.default-iter-visitor.{
   s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
   end,
+  s-ref(_, l :: Loc, ann :: A.Ann):
+    well-formed-visitor.s-ref(l, ann)
+  end,
   s-graph(_, l :: Loc, bindings :: List<A.Expr%(is-s-let)>): # PROBLEM HERE
     well-formed-visitor.s-graph(l, bindings)
   end,
@@ -596,7 +643,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr):
     well-formed-visitor.s-if-pipe-else(l, branches, _else)
   end,
-  s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.Bind>, body :: A.Expr):
+  s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.CasesBind>, body :: A.Expr):
     well-formed-visitor.s-cases-branch(l, pat-loc, name, args, body)
   end,
   s-singleton-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, body :: A.Expr):
@@ -614,7 +661,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,
-  s-check-test(_, l :: Loc, op :: String, refinement :: Option<A.Expr>, left :: A.Expr, right :: A.Expr):
+  s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
     well-formed-visitor.s-check-test(l, op, refinement, left, right)
   end,
   s-paren(_, l :: Loc, expr :: A.Expr):
