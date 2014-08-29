@@ -93,7 +93,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("check: 5 is=~%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is=~`");
         P.checkCompileErrorMsg("check: 5 is<=>%(5) 5 end", "Cannot use refinement syntax `%(...)` with `is<=>`");
         P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
-        P.checkCompileErrorMsg("check: 5 raises%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises`");
+        P.checkCompileErrorMsg("check: 5 raises-satisfies%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises-satisfies`");
+        P.checkCompileErrorMsg("check: 5 raises-violates%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises-violates`");
         P.wait(done);
       });
         
