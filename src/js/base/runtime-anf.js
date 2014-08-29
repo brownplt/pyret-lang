@@ -1701,7 +1701,15 @@ function createMethodDict() {
     Cont.prototype.toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ? 
-        stack.map(function(s) { return s && s.from ? s.from.join(",") : "<blank frame>"; }).join("\n") : "<no stack trace>";
+        stack.map(function(s) {
+          if(!s && s.from) { return "<blank frame>"; }
+          else {
+            if(typeof s.from === "string") { return s; }
+            else {
+              return s.from.join(",");
+            }
+          }
+        }).join("\n") : "<no stack trace>";
       return stackStr;
     }
 
@@ -1753,7 +1761,7 @@ function createMethodDict() {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
             thisRuntime.makeActivationRecord(
-              "safeCall2 for " + stackFrame,
+              "safeCall for " + stackFrame,
               safeCall,
               $step,
               [ fun, after, stackFrame ],
@@ -1773,7 +1781,6 @@ function createMethodDict() {
     var currentThreadId = 0;
     var activeThreads = {};
       
-
   function run(program, namespace, options, onDone) {
     // console.log("In run2");
     if(RUN_ACTIVE) {
@@ -1992,11 +1999,6 @@ function createMethodDict() {
     iter();
   }
 
-    function runThunk(f, then) {
-      return run(f, thisRuntime.namespace, {}, then);
-    }
-
-
   var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
   function ActivationRecord(from, fun, step, ans, args, vars) {
     this.from = from;
@@ -2041,6 +2043,7 @@ function createMethodDict() {
     }
 
     function pauseStack(resumer) {
+//      console.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
@@ -2117,6 +2120,10 @@ function createMethodDict() {
       return v.val.exn;
     }
 
+    function runThunk(f, then) {
+      thisRuntime.run(f, thisRuntime.namespace, {}, then);
+    }
+
     function execThunk(thunk) {
       function wrapResult(res) {
         if(isSuccessResult(res)) {
@@ -2139,6 +2146,24 @@ function createMethodDict() {
           }, thisRuntime.namespace, {
             sync: false
           }, function(result) {
+            if(isFailureResult(result) &&
+               isPyretException(result.exn) &&
+               ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
+            else {
+              restarter.resume(wrapResult(result))
+            }
+          });
+      });
+    }
+
+    function runWhileRunning(thunk) {
+      thisRuntime.pauseStack(function(restarter) {
+        thisRuntime.run(function(_, __) {
+            return thunk.app();
+          }, thisRuntime.namespace, {
+            sync: false
+          }, function(result) {
+            restarter.resume(result);
             if(isFailureResult(result) &&
                isPyretException(result.exn) &&
                ffi.isUserBreak(result.exn.exn)) { restarter.break(); }

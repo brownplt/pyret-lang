@@ -121,6 +121,21 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                   .app(pos(node.pos), makeList(names), tr(node.kids[node.kids.length - 1]));
               }
             },
+            'import-source': function(node) {
+              return tr(node.kids[0]);
+            },
+            // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
+            'import-special': function(node) {
+              var args = [];
+              for (var i = 2; i < node.kids.length - 1; i += 2) {
+                args.push(string(node.kids[i]));
+              }
+              var pyArgs = makeList(args);
+              var thePos = pos(node.pos);
+              var kind = symbol(node.kids[0]);
+              var makeImp = RUNTIME.getField(ast, 's-special-import');
+              return makeImp.app(thePos, kind, pyArgs);
+            },
             'import-name': function(node) {
               // (import-name NAME)
               return RUNTIME.getField(ast, 's-const-import')
@@ -372,17 +387,22 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               if (kids.length === 1) {
                 // (check-test e)
                 return tr(kids[0]);
+              } else if (kids.length === 2) {
+                // (check-test left op)
+                //             0    1
+                return RUNTIME.getField(ast, 's-check-test')
+                  .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), F.makeNone());
               } else if (kids.length === 3) {
                 // (check-test left op right)
                 //             0    1  2
                 return RUNTIME.getField(ast, 's-check-test')
-                  .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), tr(kids[2]));
+                  .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), F.makeSome(tr(kids[2])));
               }
               else {
                 // (check-test left op PERCENT LPAREN refinement RPAREN right)
                 //             0    1                 4                 6
                 return RUNTIME.getField(ast, 's-check-test')
-                  .app(pos(node.pos), tr(kids[1]), F.makeSome(tr(kids[4])), tr(kids[0]), tr(kids[6]));
+                  .app(pos(node.pos), tr(kids[1]), F.makeSome(tr(kids[4])), tr(kids[0]), F.makeSome(tr(kids[6])));
               }
             },
             'binop-expr': function(node) {
@@ -419,7 +439,17 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'check-op': function(node) {
               // (check-op str)
               var opname = String(node.kids[0].value).trim();
-              if(opLookup[opname]) {
+              if (opLookup[opname]) {
+                return opLookup[opname];
+              }
+              else {
+                throw "Unknown operator: " + opname;
+              }
+            },
+            'check-op-postfix': function(node) {
+              // (check-op-postfix str)
+              var opname = String(node.kids[0].value).trim();
+              if (opLookup[opname]) {
                 return opLookup[opname];
               }
               else {
@@ -936,46 +966,53 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           "<>": RUNTIME.makeString("op<>"),
           "and": RUNTIME.makeString("opand"),
           "or": RUNTIME.makeString("opor"),
-          "is":            RUNTIME.getField(ast, "s-op-is"),
-          "is-not":        RUNTIME.getField(ast, "s-op-is-not"),
-          "satisfies":     RUNTIME.getField(ast, "s-op-satisfies"),
-          "satisfies-not": RUNTIME.getField(ast, "s-op-satisfies-not"),
-          "raises":        RUNTIME.getField(ast, "s-op-raises"),
+          "is":                RUNTIME.getField(ast, "s-op-is"),
+          "is-not":            RUNTIME.getField(ast, "s-op-is-not"),
+          "satisfies":         RUNTIME.getField(ast, "s-op-satisfies"),
+          "violates":          RUNTIME.getField(ast, "s-op-satisfies-not"),
+          "raises":            RUNTIME.getField(ast, "s-op-raises"),
+          "raises-other-than": RUNTIME.getField(ast, "s-op-raises-other"),
+          "does-not-raise":    RUNTIME.getField(ast, "s-op-raises-not"),
         }
 
         function parseDataRaw(dialect, data, fileName) {
-          const toks = dialects.dialects[dialect].Tokenizer;
-          const grammar = dialects.dialects[dialect].Grammar;
-          toks.tokenizeFrom(data);
-          // while (toks.hasNext())
-          //   console.log(toks.next().toString(true));
-          var parsed = grammar.parse(toks);
-          //console.log("Result:");
-          var countParses = grammar.countAllParses(parsed);
-          if (countParses == 0) {
-            var nextTok = toks.curTok; 
-            console.error("There were " + countParses + " potential parses.\n" +
-                          "Parse failed, next token is " + nextTok.toString(true) +
-                          " at " + nextTok.pos.toString(true));
-            console.log(nextTok);
-            if (toks.isEOF(nextTok))
-              RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
-            else
-              RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
-          }
-          //console.log("There were " + countParses + " potential parses");
-          if (countParses === 1) {
-            var ast = grammar.constructUniqueParse(parsed);
-            //          console.log(ast.toString());
-            return translate(ast, fileName);
-          } else {
-            var asts = grammar.constructAllParses(parsed);
-            throw "Non-unique parse";
-            for (var i = 0; i < asts.length; i++) {
-              //console.log("Parse " + i + ": " + asts[i].toString());
-              //            console.log(("" + asts[i]) === ("" + asts2[i]));
+          try {
+            const toks = dialects.dialects[dialect].Tokenizer;
+            const grammar = dialects.dialects[dialect].Grammar;
+            toks.tokenizeFrom(data);
+            // while (toks.hasNext())
+            //   console.log(toks.next().toString(true));
+            var parsed = grammar.parse(toks);
+            //console.log("Result:");
+            var countParses = grammar.countAllParses(parsed);
+            if (countParses == 0) {
+              var nextTok = toks.curTok; 
+              console.error("There were " + countParses + " potential parses.\n" +
+                            "Parse failed, next token is " + nextTok.toString(true) +
+                            " at " + nextTok.pos.toString(true));
+              console.log(nextTok);
+              if (toks.isEOF(nextTok))
+                RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
+              else
+                RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
             }
-            return translate(ast, fileName);
+            //console.log("There were " + countParses + " potential parses");
+            if (countParses === 1) {
+              var ast = grammar.constructUniqueParse(parsed);
+              //          console.log(ast.toString());
+              return translate(ast, fileName);
+            } else {
+              var asts = grammar.constructAllParses(parsed);
+              throw "Non-unique parse";
+              for (var i = 0; i < asts.length; i++) {
+                //console.log("Parse " + i + ": " + asts[i].toString());
+                //            console.log(("" + asts[i]) === ("" + asts2[i]));
+              }
+              return translate(ast, fileName);
+            }
+          } catch(e) {
+            console.error("Fatal error in parsing: ", e);
+            throw e;
           }
         }
         

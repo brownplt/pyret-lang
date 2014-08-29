@@ -56,6 +56,7 @@ fun resolve-imports(imports :: List<A.Import>):
         else: A.s-file-import(l, "./" + file)
         end
       | s-const-import(_, _) => imp
+      | s-special-import(_, _, _) => imp
     end
   end
   ret = for fold(acc from {imports: [list: ], lets: [list: ]}, i from imports):

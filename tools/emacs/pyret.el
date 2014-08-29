@@ -89,10 +89,10 @@
 (defconst pyret-keywords
    '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
-     "and" "or" "is" "raises" "satisfies" "mutable" "cyclic" "lazy"
+     "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
-  '("provide-types" "type-let" "is-not" "satisfies-not"))
+  '("provide-types" "type-let" "is-not" "raises-other-than" "does-not-raise"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
 (defconst pyret-keywords-percent

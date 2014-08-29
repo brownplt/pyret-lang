@@ -20,7 +20,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
 
     function checkEvalsTo(str, answer) {
       pushTest(function(after) {
-        e.evalPyret(runtime, str, {}, function(result) {
+        e.runEvalPyret(runtime, str, {}, function(result) {
           expect(result).toBeSuccess(runtime);
           if(runtime.isSuccessResult(result)) {
             var actual = gf(result.result, "answer");
@@ -32,7 +32,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
     }
     function checkEvalTests(str, pred) {
       pushTest(function(after) {
-        e.evalPyret(runtime, str, {}, function(result) {
+        e.runEvalPyret(runtime, str, {}, function(result) {
           expect(result).toBeSuccess(runtime);
           if(runtime.isSuccessResult(result)) {
             var checks = gf(result.result, "checks");
@@ -44,7 +44,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
     }
     function checkEvalPred(str, pred) {
       pushTest(function(after) {
-        e.evalPyret(runtime, str, {}, function(result) {
+        e.runEvalPyret(runtime, str, {}, function(result) {
           expect(result).toBeSuccess(runtime);
           if (runtime.isSuccessResult(result)) {
             var actual = gf(result.result, "answer");
@@ -56,7 +56,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
     }
     function checkError(str, exnPred) {
       pushTest(function(after) {
-        e.evalPyret(runtime, str, {}, function(result) {
+        e.runEvalPyret(runtime, str, {}, function(result) {
           expect(result).toBeFailure(runtime);
           if (runtime.isFailureResult(result)) {
             var exn = result.exn;
@@ -101,9 +101,17 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
       }
       return checkCompileError(str, findInArray);
     }
+    function checkNoCompileError(str, exnPred) {
+      pushTest(function(after) {
+        e.runCompileSrcPyret(runtime, str, {}, function(result) {
+          expect(result).toBeSuccess(runtime);
+          after();
+        });
+      });
+    }
     function checkCompileError(str, exnPred) {
       pushTest(function(after) {
-        e.compileSrcPyret(runtime, str, {}, function(result) {
+        e.runCompileSrcPyret(runtime, str, {}, function(result) {
           expect(result).toBeFailure(runtime);
           var problems = result.exn;
           // Compiling returns a string or an array of 
@@ -118,6 +126,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
     }
     return {
       checkCompileError: checkCompileError,
+      checkNoCompileError: checkNoCompileError,
       checkCompileErrorMsg: checkCompileErrorMsg,
       checkEvalsTo: checkEvalsTo,
       checkEvalTests: checkEvalTests,

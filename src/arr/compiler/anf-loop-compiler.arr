@@ -1021,6 +1021,14 @@ fun compile-program(self, l, imports, prog, freevars, env):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
         | a-import-file(_, file) => file
+        | a-import-special(_, typ, args) =>
+          if typ == "my-gdrive":
+            "@my-gdrive/" + args.first
+          else if typ == "shared-gdrive":
+            "@shared-gdrive/" + args.first + "/" + args.rest.first
+          else:
+            raise("Should have been caught earlier: unhandled import-special-type")
+          end
       end
     end)
   module-id = compiler-name(l.source)

@@ -242,10 +242,23 @@ end
 
 
 
-
 well-formed-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
+  end,
+  s-special-import(self, l, kind, args):
+    if kind == "my-gdrive":
+      when args.length() <> 1:
+        wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+      end
+    else if kind == "shared-gdrive":
+      when args.length() <> 2:
+        wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+      end
+    else:
+      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
+    end
+    true
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     wf-error("Cannot define a data expression except at the top level of a file", l)
@@ -325,17 +338,22 @@ well-formed-visitor = A.default-iter-visitor.{
       cases(A.CheckOp) op:
         | s-op-is            => nothing
         | s-op-is-not        => nothing
-        | s-op-raises        =>
-          wf-error("Cannot use refinement syntax `%(...)` with `raises`.", l)
         | s-op-satisfies     =>
           wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
               + "Consider changing the predicate instead.", l)
         | s-op-satisfies-not =>
-          wf-error("Cannot use refinement syntax `%(...)` with `dissatisfies`. "
+          wf-error("Cannot use refinement syntax `%(...)` with `violates`. "
               + "Consider changing the predicate instead.", l)
+        | else               =>
+          op-name = op.tosource().pretty(80).join-str("\n")
+          wf-error("Cannot use refinement syntax `%(...)` with `" + op-name + "`.", l)
       end
     end
-    left.visit(self) and right.visit(self)
+    left.visit(self)
+    cases(Option) right:
+      | none => true
+      | some(shadow right) => right.visit(self)
+    end
   end,
   s-method-field(self, l, name, args, ann, doc, body, _check):
     when reserved-names.member(name):
