@@ -702,7 +702,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return makeMethod(function(self) {
           return function(handlers, els) {
             if(hasField(handlers, name)) {
-              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }, self.$mut_fields_mask));
+              return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask));
             }
             else {
               return els.app(self);
