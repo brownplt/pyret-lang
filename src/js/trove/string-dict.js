@@ -46,7 +46,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var s = unwrap(str); 
         var dict = RUNTIME.getField(self, "the-dict");
         if(dict.val instanceof ImmutableStringDict) {
-          return dict.val.get(s);
+          try {
+            return dict.val.get(s);
+          } catch(e) {
+            RUNTIME.ffi.throwMessageException("Key " + s + " not found in dictionary");
+          }
         }
         else {
           return dict.val.get(s);
