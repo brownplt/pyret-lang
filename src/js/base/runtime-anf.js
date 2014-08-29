@@ -700,12 +700,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       else {
         return makeMethod(function(self) {
-          return function(handlers, els) {
+          return function(handlers, _else) {
             if(hasField(handlers, name)) {
-              return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask));
+              return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask);
             }
             else {
-              return els.app(self);
+              return _else.app(self);
             }
           };
         }, { length: 3 });
@@ -2576,6 +2576,34 @@ function isMethod(obj) { return obj instanceof PMethod; }
     iter();
   }
 
+  var TRACE_DEPTH = 0;
+  var SHOW_TRACE = true;
+  var TOTAL_VARS = 0;
+  function traceEnter(name, vars) {
+    if (!SHOW_TRACE) return;
+    TRACE_DEPTH++;
+    TOTAL_VARS += vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "--> ",
+                name, vars, TOTAL_VARS);
+  }
+  function traceExit(name, vars) {
+    if (!SHOW_TRACE) return;
+    TOTAL_VARS -= vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "<-- ",
+                name, vars, TOTAL_VARS);
+    TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
+  }
+  function traceErrExit(name, vars) {
+    if (!SHOW_TRACE) return;
+    TOTAL_VARS -= vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "<XX ",
+                name, vars, TOTAL_VARS);
+    TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
+  }
+
   var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
   function ActivationRecord(from, fun, step, ans, args, vars) {
     this.from = from;
@@ -3478,6 +3506,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'safeCall': safeCall,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,
+
+        'traceEnter': traceEnter,
+        'traceExit': traceExit,
+        'traceErrExit': traceErrExit,
 
         'isActivationRecord'   : isActivationRecord,
         'makeActivationRecord' : makeActivationRecord,
