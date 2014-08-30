@@ -169,12 +169,16 @@ var getProto = Object.getPrototypeOf;
 
 */
 function getFields(obj) {
+  var fieldsObj = Object.create(null);
   var fields = [];
   var currentProto = obj.dict;
   while(currentProto !== null) {
-    fields = fields.concat(Object.keys(currentProto));
+    var keys = Object.keys(currentProto);
+    for (var i = 0; i < keys.length; i++)
+      fieldsObj[keys[i]] = true;
     currentProto = getProto(currentProto);
   }
+  fields = Object.keys(fieldsObj)
   return fields;
 }
 
@@ -1525,24 +1529,25 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     }
                   }
                 } else {
-                  var dictLeft = curLeft.dict;
-                  var dictRight = curRight.dict;
-                  var fieldsLeft;
-                  var fieldsRight;
-                  fieldsLeft = getFields(curLeft);
-                  fieldsRight = getFields(curRight);
-                  if(fieldsLeft.length !== fieldsRight.length) { 
-                    toCompare.curAns = ffi.notEqual.app(current.path); 
-                  }
-                  for(var k = 0; k < fieldsLeft.length; k++) {
-                    toCompare.stack.push({
-                      left: curLeft.dict[fieldsLeft[k]],
-                      right: curRight.dict[fieldsLeft[k]],
-                      path: current.path + "." + fieldsLeft[k]
-                    });
-                  }
                   if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                     toCompare.curAns = ffi.notEqual.app(current.path);
+                  } else {
+                    var dictLeft = curLeft.dict;
+                    var dictRight = curRight.dict;
+                    var fieldsLeft;
+                    var fieldsRight;
+                    fieldsLeft = getFields(curLeft);
+                    fieldsRight = getFields(curRight);
+                    if(fieldsLeft.length !== fieldsRight.length) { 
+                      toCompare.curAns = ffi.notEqual.app(current.path); 
+                    }
+                    for(var k = 0; k < fieldsLeft.length; k++) {
+                      toCompare.stack.push({
+                        left: curLeft.dict[fieldsLeft[k]],
+                        right: curRight.dict[fieldsLeft[k]],
+                        path: current.path + "." + fieldsLeft[k]
+                      });
+                    }
                   }
                 }
               } else {
