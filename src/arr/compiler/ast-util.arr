@@ -266,14 +266,18 @@ fun <a, c> default-env-map-visitor(
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
-    s-method(self, l, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, arg from new-args):
+    s-method(self, l, params, args, ann, doc, body, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      new-args = args.map(_.visit(with-params))
+      args-env = for lists.fold(acc from with-params.env, arg from new-args):
         bind-handlers.s-bind(arg, acc)
       end
-      new-body = body.visit(self.{env: args-env})
-      new-check = self.{env: args-env}.option(_check)
-      A.s-method(l, new-args, ann.visit(self.{env: args-env}), doc, new-body, new-check)
+      new-body = body.visit(with-params.{env: args-env})
+      new-check = with-params.{env: args-env}.option(_check)
+      A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, new-check)
     end
   }
 end
@@ -384,14 +388,18 @@ fun <a, c> default-env-iter-visitor(
       and lists.all(_.visit(with-params), shared-members)
       and with-params.option(_check)
     end,
-    s-method(self, l, args, ann, doc, body, _check):
+    s-method(self, l, params, args, ann, doc, body, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
       args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      lists.all(_.visit(self), args) and
-        ann.visit(self.{env: args-env}) and
-        body.visit(self.{env: args-env}) and
-        self.{env: args-env}.option(_check)
+      lists.all(_.visit(with-params), args) and
+        ann.visit(with-params.{env: args-env}) and
+        body.visit(with-params.{env: args-env}) and
+        with-params.{env: args-env}.option(_check)
     end
   }
 end

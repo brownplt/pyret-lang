@@ -135,7 +135,7 @@ string-expr: STRING
 
 lambda-expr: LAM ty-params args return-ann COLON doc-string block where-clause end
 
-method-expr: METHOD args return-ann COLON doc-string block where-clause end
+method-expr: METHOD ty-params args return-ann COLON doc-string block where-clause end
 
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
@@ -152,12 +152,12 @@ obj-fields: list-obj-field* obj-field [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
-     | key args return-ann COLON doc-string block where-clause end
+     | key ty-params args return-ann COLON doc-string block where-clause end
 
 fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
-     | key args return-ann COLON doc-string block where-clause end
+     | key ty-params args return-ann COLON doc-string block where-clause end
 key: STRING | NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK

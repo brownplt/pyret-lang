@@ -67,11 +67,12 @@ fun process-module(file, fields, types, bindings, type-bindings):
   split-fields = process-fields(trim-path(file), fields, types, bindings, type-bindings)
   fun method-spec(data-name, meth):
     cases(A.Member) meth:
-      | s-method-field(_, name, args, ann, doc, _, _) =>
+      | s-method-field(_, name, params, args, ann, doc, _, _) =>
         shadow process-ann = process-ann(_, file, split-fields, bindings, type-bindings)
         sexp("method-spec",
           [list: spair("name", "\"" + PP.str(name).pretty(1000).first + "\""),
             spair("arity", tostring(args.length())),
+            spair("params", params.map(lam(p): leaf(torepr(p.toname())) end)),
             spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
             spair("return", process-ann(ann)),
             spair("contract",
@@ -102,6 +103,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
             sexp("fun-spec",
               [list: spair("name", torepr(name)),
                 spair("arity", tostring(args.length())),
+                spair("params", params.map(lam(p): leaf(torepr(p.toname())) end)),
                 spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
                 spair("return", process-ann(ann)),
                 spair("contract", process-ann(A.a-arrow(l, args.map(_.ann), ann, false)))
@@ -111,11 +113,18 @@ fun process-module(file, fields, types, bindings, type-bindings):
             spair("unknown-item", spair("name", torepr(name)))
           | s-variant(_, _, variant-name, members, with-members) =>
             data-name = split-fields.constructors.get(variant-name)
+            fun member-type-str(m):
+              cases(A.VariantMemberType) m.member-type:
+                | s-normal => "normal"
+                | s-mutable => "mutable"
+              end
+            end
             sexp("constr-spec",
               [list: spair("name", torepr(variant-name)),
                 spair("members", slist(
                     members.map(lam(m):
                         sexp(torepr(m.bind.id.toname()), [list:
+                            spair("type", member-type-str(m)),
                             spair("contract",
                               process-ann(m.bind.ann, file, split-fields, bindings, type-bindings))])
                       end))),
@@ -125,12 +134,13 @@ fun process-module(file, fields, types, bindings, type-bindings):
             sexp("singleton-spec",
               [list: spair("name", torepr(variant-name)),
                 spair("with-members", slist(with-members.map(method-spec(data-name, _)))) ])
-          | s-data-expr(_, data-name, _, _, _, variants, shared, _) =>
+          | s-data-expr(_, data-name, _, type-vars, _, variants, shared, _) =>
             if string-index-of(name, "is-") == 0:
               DU.snothing
             else:
               sexp("data-spec",
                 [list: spair("name", torepr(data-name)),
+                  spair("type-vars", slist(type-vars.map(lam(tv): leaf(torepr(tv)) end))),
                   spair("variants", slist(variants.map(lam(m): leaf(torepr(m.name)) end))),
                   spair("shared", slist(shared.map(method-spec(data-name, _)))) ])
             end

@@ -362,7 +362,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     left.visit(self) and self.option(right)
   end,
-  s-method-field(self, l, name, args, ann, doc, body, _check):
+  s-method-field(self, l, name, params, args, ann, doc, body, _check):
     when reserved-names.member(name):
       reserved-name(l, name)
     end
@@ -397,7 +397,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     ann.visit(self) and value.visit(self)
   end,
-  s-method(self, l, args, ann, doc, body, _check):
+  s-method(self, l, params, args, ann, doc, body, _check):
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
     end
@@ -670,8 +670,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-lam(_, l :: Loc, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-lam(l, params, args, ann, doc, body, _check)
   end,
-  s-method(_, l :: Loc, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
-    well-formed-visitor.s-method(l, args, ann, doc, body, _check)
+  s-method(_, l :: Loc, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+    well-formed-visitor.s-method(l, params, args, ann, doc, body, _check)
   end,
   s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-extend(l, supe, fields)
@@ -727,8 +727,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  s-method-field(_, l :: Loc, name :: A.Expr, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
-    well-formed-visitor.s-method-field(l, name, args, ann, doc, body, _check)
+  s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check)
   end,
   s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)
