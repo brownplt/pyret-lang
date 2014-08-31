@@ -110,9 +110,9 @@ fun make-torepr(l, vname, fields, is-singleton):
         )
   end
   if is-singleton:
-    A.s-method(l, [list: self.id-b], A.a-blank, "", str(vname), none)
+    A.s-method(l, empty, [list: self.id-b], A.a-blank, "", str(vname), none)
   else:
-    A.s-method(l, [list: self.id-b], A.a-blank, "",
+    A.s-method(l, empty, [list: self.id-b], A.a-blank, "",
       concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
       none)
   end
@@ -134,7 +134,7 @@ fun make-match(l, case-name, fields):
           end
       end
     end
-  A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
+  A.s-method(l, empty, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
       A.s-if-else(l, [list:
           A.s-if-branch(l,
               A.s-prim-app(
@@ -210,8 +210,8 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, args, ann, doc, body, _check) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
+    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -438,8 +438,8 @@ fun desugar-expr(expr :: A.Expr):
       A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, params, args, ann, doc, body, _check) =>
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-method(l, args, ann, doc, body, _check) =>
-      A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
+    | s-method(l, params, args, ann, doc, body, _check) =>
+      A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body) =>

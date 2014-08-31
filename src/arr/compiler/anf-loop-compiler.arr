@@ -1260,6 +1260,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
             j-return(j-fun([list: "R", "NAMESPACE"],
                 j-block([list: 
+                    j-expr(j-str("use strict")),
                     j-if(module-ref(module-id),
                       j-block([list: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
