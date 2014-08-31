@@ -782,12 +782,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(self.{env: env-and-atoms.env}))
+          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params.{env: env-and-atoms.env}))
         end
       end
-      new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.option(_check)
-      A.s-method(l, new-types.atoms.reverse(), new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
+      new-body = body.visit(with-params.{env: env-and-atoms.env})
+      new-check = with-params.option(_check)
+      A.s-method(l, new-types.atoms.reverse(), new-args, ann.visit(with-params.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-method-field(self, l, name, params, args, ann, doc, body, _check):
       new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
@@ -801,12 +801,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
         cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(self.{env: env-and-atoms.env}))
+          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params.{env: env-and-atoms.env}))
         end
       end
-      new-body = body.visit(self.{env: env-and-atoms.env})
-      new-check = self.option(_check)
-      A.s-method-field(l, name, new-types.atoms.reverse(), new-args, ann.visit(self.{env: env-and-atoms.env}), doc, new-body, new-check)
+      new-body = body.visit(with-params.{env: env-and-atoms.env})
+      new-check = with-params.option(_check)
+      A.s-method-field(l, name, new-types.atoms.reverse(), new-args, ann.visit(with-params.{env: env-and-atoms.env}), doc, new-body, new-check)
     end,
     s-assign(self, l, id, expr):
       cases(A.Name) id:
