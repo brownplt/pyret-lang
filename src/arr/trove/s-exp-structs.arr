@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+provide-types *
 
 data S-Exp:
   | s-list(exps :: List<S-Exp>)

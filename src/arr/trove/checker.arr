@@ -55,9 +55,20 @@ data TestResult:
     reason(self):
       "Got unexpected exception " + torepr(self.actual-exn)
     end
-  | failure-no-exn(loc :: Loc, code :: String, exn-expected) with:
+  | failure-no-exn(loc :: Loc, code :: String, exn-expected :: Option<String>) with:
     reason(self):
-      "No exception raised, expected " + torepr(self.exn-expected)
+      cases(Option) self.exn-expected:
+        | some(exn) => "No exception raised, expected " + torepr(exn)
+        | none      => "No exception raised"
+      end
+    end
+  | failure-raise-not-satisfied(loc :: Loc, code :: String, exn, pred) with:
+    reason(self):
+      "Predicate failed for exception: " + torepr(self.exn)
+    end
+  | failure-raise-not-dissatisfied(loc :: Loc, code :: String, exn, pred) with:
+    reason(self):
+      "Predicate succeeded for exception (it should have failed): " + torepr(self.exn)
     end
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
@@ -138,7 +149,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     check-raises(self, code, thunk, expected, comparator, on-failure, loc):
       result = run-task(thunk)
       cases(Either) result:
-        | left(v) => add-result(failure-no-exn(loc, code, expected))
+        | left(v) => add-result(failure-no-exn(loc, code, some(expected)))
         | right(v) =>
           if comparator(exn-unwrap(v), expected):
             add-result(success(loc, code))
@@ -160,11 +171,35 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         loc)
     end,
     check-raises-not(self, code, thunk, loc):
-      result = run-task(thunk)
-      cases(Either) run-task(thunk):
-        | left(v)  => add-result(success(loc, code))
-        | right(v) => add-result(failure-exn(loc, code, exn-unwrap(v)))
-      end
+      add-result(
+        cases(Either) run-task(thunk):
+          | left(v)    => success(loc, code)
+          | right(exn) => failure-exn(loc, code, exn-unwrap(exn))
+        end)
+    end,
+    check-raises-satisfies(self, code, thunk, pred, loc):
+      add-result(
+        cases(Either) run-task(thunk):
+          | left(v)    => failure-no-exn(loc, code, none)
+          | right(exn) =>
+            if pred(exn-unwrap(exn)):
+              success(loc, code)
+            else:
+              failure-raise-not-satisfied(loc, code, exn-unwrap(exn), pred)
+            end
+        end)
+    end,
+    check-raises-violates(self, code, thunk, pred, loc):
+      add-result(
+        cases(Either) run-task(thunk):
+          | left(v)    => failure-no-exn(loc, code, none)
+          | right(exn) =>
+            if not(pred(exn-unwrap(exn))):
+              success(loc, code)
+            else:
+              failure-raise-not-dissatisfied(loc, code, exn-unwrap(exn), pred)
+            end
+        end)
     end,
     summary(self):
       results-summary(block-results)

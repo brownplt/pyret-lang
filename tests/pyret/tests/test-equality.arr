@@ -28,6 +28,16 @@ check "datatypes (no ref)":
   equal-now(S(Z), S(Z)) is true
 end
 
+check "functional extension":
+  identical({x:1, y:2}.{y:3}, {x:1, y:3}) is false
+  equal-always({x:1, y:2}.{y:3}, {x:1, y:3}) is true
+  equal-now({x:1, y:2}.{y:3}, {x:1, y:3}) is true
+  {x:1, y:2}.{y:3} is {x:1, y:3}
+  {x:1, y:2}.{y:3} is-not<=> {x:1, y:3}
+  {x:1, y:2}.{y:3} is== {x:1, y:3}
+  {x:1, y:2}.{y:3} is=~ {x:1, y:3}
+end
+
 data Box:
   | box(ref v)
 end

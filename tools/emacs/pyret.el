@@ -92,7 +92,8 @@
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
-  '("provide-types" "type-let" "is-not" "raises-other-than" "does-not-raise"))
+  '("provide-types" "type-let" "is-not" "raises-other-than"
+    "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
 (defconst pyret-keywords-percent

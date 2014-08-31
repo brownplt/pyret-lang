@@ -154,6 +154,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
   const opraisesother = new RegExp(kw("raises-other-than"), STICKY_REGEXP);
   const opraisesnot = new RegExp(kw("does-not-raise"), STICKY_REGEXP);
+  const opraisessatisfies = new RegExp(kw("raises-satisfies"), STICKY_REGEXP);
+  const opraisesviolates = new RegExp(kw("raises-violates"), STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
   const tquot_str =
@@ -276,6 +278,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
     {name: "RAISESOTHER", val: opraisesother, parenIsForExp: true},
     {name: "RAISESNOT", val: opraisesnot, parenIsForExp: true},
+    {name: "RAISESSATISFIES", val: opraisessatisfies, parenIsForExp: true},
+    {name: "RAISESVIOLATES", val: opraisesviolates, parenIsForExp: true},
     {name: "RAISES", val: opraises, parenIsForExp: true},
 
     {name: "LBRACK", val: lbrack},

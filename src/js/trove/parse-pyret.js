@@ -588,10 +588,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 return RUNTIME.getField(ast, 's-data-field')
                   .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
               } else {
-                // (obj-field key args ret COLON doc body check END)
+                // (obj-field key params args ret COLON doc body check END)
                 return RUNTIME.getField(ast, 's-method-field')
-                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]),
-                       tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
+                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+                       tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
               }
             },
             'obj-fields': function(node) {
@@ -613,10 +613,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 return RUNTIME.getField(ast, "s-data-field")
                   .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
               } else {
-                // (field key args ret COLON doc body check END)
+                // (field key params args ret COLON doc body check END)
                 return RUNTIME.getField(ast, "s-method-field")
-                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]),
-                       tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
+                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+                       tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
               }
             },
             'fields': function(node) {
@@ -856,10 +856,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                      tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
             },
             'method-expr': function(node) {
-              // (method-expr METHOD args return-ann COLON doc body check END)
+              // (method-expr METHOD params args return-ann COLON doc body check END)
               return RUNTIME.getField(ast, 's-method')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]),
-                     tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]));
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+                     tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
             },
             'extend-expr': function(node) {
               // (extend-expr e PERIOD LBRACE fields RBRACE)
@@ -1007,9 +1007,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
           "is-not<=>":     RUNTIME.getField(ast, "s-op-is-not-op").app("op<=>"),
           "satisfies":     RUNTIME.getField(ast, "s-op-satisfies"),
           "violates":          RUNTIME.getField(ast, "s-op-satisfies-not"),
-          "raises":        RUNTIME.getField(ast, "s-op-raises"),
+          "raises":            RUNTIME.getField(ast, "s-op-raises"),
           "raises-other-than": RUNTIME.getField(ast, "s-op-raises-other"),
-          "does-not-raise":    RUNTIME.getField(ast, "s-op-raises-not")
+          "does-not-raise":    RUNTIME.getField(ast, "s-op-raises-not"),
+          "raises-satisfies":  RUNTIME.getField(ast, "s-op-raises-satisfies"),
+          "raises-violates":   RUNTIME.getField(ast, "s-op-raises-violates"),
         }
 
         function parseDataRaw(dialect, data, fileName) {

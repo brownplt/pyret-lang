@@ -189,6 +189,9 @@ define([
         var url = checkString(maybeUrl);
         runtime.pauseStack(function(restarter) {
           var rawImage = new Image();
+          if(runtime.hasParam("imgUrlProxy")) {
+            url = runtime.getParam("imgUrlProxy")(url);
+          }
           rawImage.onload = function() {
             restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
           };
