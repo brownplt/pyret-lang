@@ -14,8 +14,13 @@ import lists as lists
 
 newtype Array as ArrayT
 
+get-arr-key = {}
+
 fun make(arr :: RawArray) -> Array:
   ArrayT.brand({
+    get-arr(_, key):
+      if key == get-arr-key: arr else: raise("Cannot get arr externally") end
+    end,
     get(_, ix): raw-array-get(arr, ix) end,
     set(self, ix, val):
       raw-array-set(arr, ix, val)
@@ -23,6 +28,9 @@ fun make(arr :: RawArray) -> Array:
     end,
     length(_): raw-array-length(arr) end,
     to-list(_): raw-array-to-list(arr) end,
+    _equals(self, other, eq):
+      eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
+    end,
     _torepr(self, shadow torepr):
       "[array: " + self.to-list().map(torepr).join-str(", ") + "]"
     end,
