@@ -132,48 +132,62 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
   }
 
   function loadSpecialImports(runtime, ast, options) {
-    // NOTE(joe):
-    // We're about to do something async (request getSpecialImport), so stash
-    // the stack so we don't lose our place in the middle of module loading.
-    // Note the lack of returns -- the return value flows out through restarter.resume()
     return runtime.loadModules(runtime.namespace, [replLib], function(repl) {
       var getImports = runtime.getField(repl, "get-special-imports");
       return runtime.safeCall(function() {
         return getImports.app(ast);
       }, function(imports) {
         var jsImports = runtime.ffi.toArray(imports);
+        // NOTE(joe):
+        // We're about to do something async (request getSpecialImport), so stash
+        // the stack so we don't lose our place in the middle of module loading.
+        // Note the lack of returns -- the return value flows out through
+        // restarter.resume() or restarter.error()
         runtime.pauseStack(function(restarter) {
           var allImports = q.all(jsImports.map(function(i) { return options.getSpecialImport(runtime, i); }));
           var moduleLoads = [];
           for(var i = 0; i < jsImports.length; i++) { moduleLoads[i] = q.defer(); }
           var loaded = q.all(moduleLoads.map(function(ml) { return ml.promise; }));
-          allImports.then(function(astAndNames) {
-            astAndNames.forEach(function(astAndName, i) {
-              // Cached (or already visited in DAG), so don't reload
-              if(astAndName === "loaded") {
+          allImports.then(function(codeAndNames) {
+            function loadCode(i) {
+              if(i >= codeAndNames[i].length) { return; }
+              var codeAndName = codeAndNames[i];
+              // NOTE(joe): Value "loaded" means Cached (or already visited in
+              // DAG), so don't reload
+              if(codeAndName === "loaded") {
                 moduleLoads[i].resolve("loaded");
+                loadCode(i + 1);
                 return;
               }
               var newOptions = Object.create(options);
-              newOptions.name = astAndName.name;
+              newOptions.name = codeAndName.name;
               // NOTE(joe):
               // Calling this for side effect of loading, and failures will propagate
               // on their own via the timeout on loaded below
               runtime.runThunk(function() {
                 return runtime.safeCall(function() {
-                  return runtime.getField(repl, "wrap-for-special-import").app(astAndName.ast);
-                }, function(safeAst) {
-                  loadParsedPyret(runtime, safeAst, newOptions);
+                  return parsePyret(runtime, codeAndName.code, newOptions);
+                }, function(ast) {
+                  return runtime.safeCall(function() {
+                    return runtime.getField(repl, "wrap-for-special-import").app(ast);
+                  }, function(safeAst) {
+                    // NOTE(joe): Don't actually care about return here, because
+                    // Success/FailureResult below is the signal we need
+                    return loadParsedPyret(runtime, safeAst, newOptions);
+                  });
                 });
               }, function(result) {
                 if(runtime.isSuccessResult(result)) {
                   moduleLoads[i].resolve(result.result);
+                  loadCode(i + 1);
                 }
                 else {
                   moduleLoads[i].reject(result.exn);
+                  // Don't call loadCode; we can stop as soon as the first error happens
                 }
               });
-            });
+            }
+            loadCode(0);
           });
           q.timeout(loaded, TIMEOUT_MS);
           loaded.then(function(v) {
