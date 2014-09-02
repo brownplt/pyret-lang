@@ -12,23 +12,12 @@ feel free to post a message on the
 @link["https://groups.google.com/forum/#!forum/pyret-discuss" "Pyret discussion
 list"], and we'll be happy to help.  }
 
+
 @include-section["Pyret-Tutorial/lander.scrbl"]
 
-@include-section["lang/forms.scrbl"]
+@include-section["language-concepts.scrbl"]
+
+@include-section["libraries.scrbl"]
 
 @include-section["trove/globals.scrbl"]
-
-@include-section["trove/lists.js.rkt"]
-@include-section["trove/sets.js.rkt"]
-@include-section["trove/option.js.rkt"]
-@include-section["trove/either.js.rkt"]
-
-@include-section["trove/image-structs.js.rkt"]
-@include-section["trove/image.js.rkt"]
-@include-section["trove/world.js.rkt"]
-
-@include-section["trove/srcloc.js.rkt"]
-@include-section["trove/pprint.js.rkt"]
-@include-section["trove/s-exp.js.rkt"]
-@include-section["trove/s-exp-structs.js.rkt"]
 

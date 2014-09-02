@@ -16,7 +16,9 @@
  (nested #:style 'code-inset
   (verbatim (string-join stx ""))))
 
-@title[#:tag "s:forms"]{Language Constructs}
+@title[#:tag "s:forms" #:style '(toc)]{Language Constructs}
+
+Stuff
 
 @section[#:tag "s:program"]{Programs}
 

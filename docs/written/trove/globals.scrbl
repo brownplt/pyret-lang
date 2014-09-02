@@ -3,29 +3,31 @@
 
 @docmodule["<global>" #:noimport #t]{
   @section[#:tag "globals_DataTypes"]{Built-in Types}
-   @data-spec["Boolean"]{
-     @nested{
-       The type of the values @tt{true} and @tt{false}.  For example:
+   @type-spec["Any" (list)]
 
-       @pyret-block{
-         x :: Boolean = true
-         x :: Boolean = 52 # an error
+    A type specification that permits all values.  This is mainly useful
+    in built-in language forms, like in @secref["Equality"] or
+    @pyret-id{torepr}, which truly do handle any value.  Pyret programs that
+    use @pyret-id{Any} on their own can usually be restructured to not use the annotation
+    and be clearer.
 
-         fun f(x) -> Boolean:
-           if x: 1
-           else: 0
-           end
-         end
-         f(2) # also an error, because f does not evaluate to a Boolean
-       }
-     }
-   }
-   @data-spec["String"]{
-     @para{
-       The type of string values
-     }
+@subsection{Boolean}
+  @type-spec["Boolean" (list)]
 
-     @subsection{String Functions}
+The type of the values @pyret{true} and @pyret{false}.
+
+@subsubsection{Boolean Functions}
+
+@function["not" #:contract (a-arrow B B) #:return B]
+
+
+@subsection{Strings}
+
+@type-spec["String" (list)]
+
+The type of string values
+
+@subsubsection{String Functions}
 
   @function["strings-equal" #:contract (a-arrow S S B)]{
 
@@ -69,7 +71,7 @@
   @function["string-index-of" #:contract (a-arrow S S N)]{
 
   }
-   }
+   
    @data-spec["Number"]{
      @para{
        The type of number values

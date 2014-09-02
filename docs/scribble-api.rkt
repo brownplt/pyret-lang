@@ -26,16 +26,26 @@
 
 (provide docmodule
          function
+         render-fun-helper
          re-export from
-         pyret pyret-block
+         pyret pyret-id pyret-block
          tag-name
+         type-spec
          data-spec
+         data-spec2
+         method-doc
          method-spec
          variants
+         collection-doc
+         constructor-spec
+         constructor-doc
          constr-spec
          singleton-spec
+         singleton-doc
+         singleton-spec2
          with-members
          shared
+         examples
          a-compound
          a-id
          a-arrow
@@ -54,6 +64,7 @@
          init-doc-checker
          append-gen-docs
          curr-module-name
+         make-header-elt-for
          )
 
 ;;;;;;;;; Parameters and Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,7 +73,7 @@
 (define curr-module-name (make-parameter #f))
 (define curr-data-spec (make-parameter #f))
 (define curr-var-spec (make-parameter #f))
-(define curr-method-location (make-parameter #f))
+(define curr-method-location (make-parameter 'shared))
 (define EMPTY-XREF-TABLE (make-hash))
 
 
@@ -157,6 +168,16 @@
 
 ;; finds definition in defn spec list that has given value for designated field
 ;; by-field is symbol, indefns is list<specs>
+(define (find-defn/nowarn by-field for-val indefns)
+  (if (or (empty? indefns) (not indefns))
+      #f
+      (let ([d (findf (lambda (d)
+        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+        d)))
+
+
+;; finds definition in defn spec list that has given value for designated field
+;; by-field is symbol, indefns is list<specs>
 (define (find-defn by-field for-val indefns)
   (if (or (empty? indefns) (not indefns))
       #f
@@ -186,7 +207,7 @@
   (make-style name (cons (make-alt-tag "div") css-js-additions)))
 
 (define (pre-style name)
-  (make-style name (cons (make-alt-tag "pre") css-js-additions)))
+  (make-style name (list (make-alt-tag "pre"))))
 
 (define code-style (make-style "pyret-code" (cons (make-alt-tag "span") css-js-additions)))
 
@@ -201,8 +222,10 @@
 (define (dt-style name) (make-style name (list (make-alt-tag "dt"))))
 (define (dd-style name) (make-style name (list (make-alt-tag "dd"))))
 
-(define (pyret-block . body) (nested #:style (pre-style "pyret-highlight") (nested #:style 'smaller  body)))
-(define pyret tt)
+(define (pyret-block . body) (nested #:style (pre-style "pyret-highlight") (apply literal body)))
+(define (pyret . body) (elem #:style (span-style "pyret-highlight") (apply tt body)))
+(define (pyret-id id (mod (curr-module-name)))
+  (seclink (xref mod id) (tt id)))
 
 ;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -268,12 +291,11 @@
                              #:friendly-title (friendly-title #f)
                              #:noimport (noimport #f)
                              . defs)
-   (interleave-parbreaks/all
     (list (title #:tag (tag-name name) (or friendly-title name))
           (if noimport ""
                        (list (para "Usage:")
                              (nested #:style (pre-style "code") "import " name " as ...")))
-          (interleave-parbreaks/all defs))))
+          defs))
 
 @(define (lod . assocLst)
    (let ([render-for "bs"])
@@ -290,6 +312,85 @@
 @(define (tag-name . args)
    (apply string-append (add-between args "_")))
 
+@(define (type-spec type-name tyvars)
+  (define name-part (make-header-elt-for (seclink (xref (curr-module-name) type-name) (tt type-name)) type-name))
+  (define vars (if (cons? tyvars) (append (list "<") (add-between tyvars ",") (list ">")) ""))
+    (para #:style (div-style "boxed")
+      (list name-part vars)))
+
+@(define-syntax (data-spec2 stx)
+  (syntax-case stx()
+    [(_ name tyvars args ...)
+      (syntax/loc stx
+        (parameterize ([curr-data-spec (find-doc (curr-module-name) name)])
+         (let ([contents (data-spec-internal2 name tyvars args ...)])
+           contents)))]))
+
+@(define (make-header-elt-for elt name)
+  (define tag (list 'part (tag-name (curr-module-name) name)))
+  (toc-target-element code-style elt tag))
+
+@(define (data-spec-internal2 data-name tyvars variants)
+  (define name-part (make-header-elt-for (seclink (xref (curr-module-name) data-name) (tt data-name)) data-name))
+  (define vars (if (cons? tyvars) (append (list "<") (add-between tyvars ",") (list ">")) ""))
+    (nested #:style (div-style "boxed")
+      (list
+        (tt "data " name-part vars ":")
+        (apply para #:style (dl-style "multiline-args") variants)
+        (tt "end"))))
+
+@(define (singleton-doc data-name variant-name return . body)
+  (define name-elt (make-header-elt-for (seclink (xref (curr-module-name) variant-name) (tt variant-name)) variant-name))
+  (define detector-name (string-append "is-" variant-name))
+  (append
+    (list 
+      (para #:style (div-style "boxed") (tt name-elt " :: " return))
+      #;(render-fun-helper
+       '(fun) detector-name 
+       (list 'part (tag-name (curr-module-name) detector-name))
+       (a-arrow (a-id "Any") (a-id "Boolean" (xref "<global>" "Boolean")))
+       (a-id "Boolean" (xref "<global>" "Boolean")) (list (list "value" #f)) '() '() '()))
+    body))
+
+@(define (constructor-doc data-name variant-name members return . body)
+  (define name-part (make-header-elt-for variant-name variant-name))
+  (define member-types (map (lambda (m) (cdr (assoc "contract" (rest m)))) members))
+  (define members-as-args (map (lambda (m) `(,(first m) #f)) members))
+  (define detector-name (string-append "is-" variant-name))
+  (append
+    (list
+      (render-fun-helper
+       '(fun) variant-name
+       (list 'part (tag-name (curr-module-name) variant-name))
+       (apply a-arrow (append member-types (list return)))
+       return members-as-args '() '() '())
+      #;(render-fun-helper
+       '(fun) detector-name 
+       (list 'part (tag-name (curr-module-name) detector-name))
+       (a-arrow (a-id "Any") (a-id "Boolean" (xref "<global>" "Boolean")))
+       (a-id "Boolean" (xref "<global>" "Boolean")) (list (list "value" #f)) '() '() '()))
+    body))
+
+@(define (singleton-spec2 data-name variant-name)
+  (set-documented! (curr-module-name) variant-name)
+  (define processing-module (curr-module-name))
+  (define name (seclink (xref processing-module variant-name) (tt variant-name)))
+  (list (dt-indent (tt "| " name))))
+
+;; String String List<Member> -> Scribbly-thing
+@(define (constructor-spec data-name variant-name members)
+  (define processing-module (curr-module-name))
+  (define args (map (lambda (m)
+    (define name (first m))
+    (define type (cdr (assoc "type" (rest m))))
+    (define contract (cdr (assoc "contract" (rest m))))
+    (define modifier (if (equal? type "mutable") "mutable " ""))
+    (if contract (tt modifier name " :: " contract) (tt modifier name))) members))
+  (define name (seclink (xref processing-module variant-name) (tt variant-name)))
+  (list (dt-indent (tt "| " name "(" (add-between args ", ") ")"))))
+
+
+;@(define (member-spec2 data-name variant-name name type contract)
 
 @(define-syntax (data-spec stx)
    (syntax-case stx ()
@@ -310,6 +411,22 @@
                                       (get 'doc-xrefs '())))
                @para{}))
             (interleave-parbreaks/all members)))))
+@(define (method-doc data-name var-name name
+                      #:params (params #f)
+                      #:contract (contract #f)
+                      #:return (return #f)
+                      #:args (args #f)
+                      #:alt-docstrings (alt-docstrings #f)
+                      #:examples (examples '())
+                      . body)
+  (let* ([methods (get-defn-field 'with-members (find-doc (curr-module-name) var-name))]
+         [spec (find-defn/nowarn 'name name methods)]
+         [methods2 (if spec methods (get-defn-field 'shared (find-doc (curr-module-name) data-name)))]
+         [spec (find-defn 'name name methods2)])
+    (render-fun-helper
+     spec name
+     (list 'part (tag-name (curr-module-name) data-name name))
+     contract return args alt-docstrings examples body)))
 @(define (method-spec name
                       #:params (params #f)
                       #:contract (contract #f)
@@ -325,11 +442,12 @@
       spec name
       (list 'part (tag-name (curr-module-name) var-name name))
       contract return args alt-docstrings examples body)))
-@(define (member-spec name #:contract (contract-in #f) . body)
+@(define (member-spec name #:type (type-in #f) #:contract (contract-in #f) . body)
    (let* ([members (get-defn-field 'members (curr-var-spec))]
           [member (if (list? members) (assoc name members) #f)]
-          [contract (or contract-in (interp (get-defn-field 'contract member)))])
-     (list (dt (if contract (tt name " :: " contract) (tt name)))
+          [contract (or contract-in (interp (get-defn-field 'contract member)))]
+          [modifier (if (equal? type-in "mutable") "mutable " "")])
+     (list (dt (if contract (tt modifier name " :: " contract) (tt modifier name)))
            (dd body))))
 
 @(define-syntax (singleton-spec stx)
@@ -371,7 +489,7 @@
        empty
        (list "Fields" (para #:style (dl-style "fields") mems))))
 @(define (a-id name . args)
-   (if (cons? args) (seclink (first args) name) name))
+   (if (cons? args) (seclink (first args) (tt name)) (tt name)))
 @(define (a-compound typ . args)
    (if (cons? args) (seclink (first args) typ) typ))
 @(define (a-app base . typs)
@@ -459,13 +577,19 @@
 
 ;; render documentation for a function
 @(define (render-fun-helper spec name part-tag contract-in return-in args alt-docstrings examples contents)
+   (define is-method (symbol=? (first spec) 'method-spec))
    (let* ([contract (or contract-in (interp (get-defn-field 'contract spec)))] 
           [return (or return-in (interp (get-defn-field 'return spec)))] 
-          [argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
-          [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length argnames)))]
-          [input-descr (if (list? args) (map second args) (map (lambda(i) #f) argnames))]
+          [orig-argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
+          [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length orig-argnames)))]
+          [argnames (if is-method (drop orig-argnames 1) orig-argnames)]
+          [input-types (if is-method (drop input-types 1) input-types)]
+          [input-descr (if (list? args) (map second args) (map (lambda(i) #f) orig-argnames))]
           [doc (or alt-docstrings (get-defn-field 'doc spec))]
-          [arity (get-defn-field 'arity spec)]
+          [arity (if args (length args) (get-defn-field 'arity spec))]
+          [arity (if is-method (- arity 1) arity)]
+;          [_ (printf "Input: ~a ~a ~a\n" name input-descr args)]
+          [input-descr (if is-method (drop input-descr 1) input-descr)]
           )
      ;; checklist
      ; - TODO: make sure found funspec or unknown-item
@@ -478,7 +602,6 @@
      ;; render the scribble
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
-     (define is-method (symbol=? (first spec) 'method-spec))
      (let ([processing-module (curr-module-name)])
        (interleave-parbreaks/all
         (list ;;(drop-anchor name)
@@ -489,10 +612,12 @@
              (define name-tt (if is-method (tt "." name) (seclink (xref processing-module name) (tt name))))
              (define name-elt (toc-target-element code-style (list name-tt) part-tag))
 ;             (define name-elt (seclink (xref processing-module name) name-target))
+;             (printf "argnames: ~a, ~a\n" argnames (length argnames))
+             (define no-descrs (or (empty? input-descr) (ormap (lambda (v) (false? v)) input-descr)))
              (define header-part
                (cond
-                [(and (< (length argnames) 3) (ormap (lambda (v) (false? v)) input-descr))
-                 (apply para #:style (div-style "boxed")
+                [(and (< (length argnames) 3) no-descrs)
+                 (apply para #:style (div-style "boxed pyret-header")
                    (append
                     (list (tt name-elt " :: " "("))
                     (render-singleline-args argnames input-types)
@@ -519,7 +644,18 @@
                             (nested #:style (div-style "examples") "")
                             (nested #:style (div-style "examples")
                                     (para (bold "Examples:"))
-                                    (pyret-block examples)))))))))))))))
+                                    (apply pyret-block examples)))))))))))))))
+
+@(define (collection-doc name arg-pattern return)
+  (define name-part (make-header-elt-for (seclink (xref (curr-module-name) name) (tt name)) name))
+  (define patterns (add-between (map (lambda (a) (list (car a) " :: " (cdr a))) arg-pattern) ","))
+  (para #:style (div-style "boxed pyret-header")
+    (tt "[" name-part ": " patterns ", ..." "] -> " return)))
+
+@(define (examples . body)
+  (nested #:style (div-style "examples")
+          (para (bold "Examples:"))
+          (apply pyret-block body)))
 
 @(define (function name
                    #:contract (contract #f)
@@ -540,7 +676,23 @@
 
 (define ALL-GEN-DOCS (load-gen-docs))
 
+;; finds module with given name within all files in docs/generated/arr/*
+;; mname is string naming the module
+(define (check-module mname)
+  (let ([m (findf (lambda (mspec)
+    (equal? (mod-name mspec) mname)) ALL-GEN-DOCS)])
+    m))
+
+
 (define (append-gen-docs s-exp)
   (define mod (read-mod s-exp))
-  (set! ALL-GEN-DOCS (cons s-exp ALL-GEN-DOCS)))
+  (define modname (second s-exp))
+  (define existing-mod (check-module modname))
+  (if
+    existing-mod
+    (let ()
+      (define new-elts (drop s-exp 3))
+      (define without-orig (remove (lambda(m) (equal? (second m) (second s-exp))) ALL-GEN-DOCS))
+      (set! ALL-GEN-DOCS (cons (append existing-mod new-elts) ALL-GEN-DOCS)))
+    (set! ALL-GEN-DOCS (cons s-exp ALL-GEN-DOCS))))
 
