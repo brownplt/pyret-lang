@@ -5,9 +5,8 @@ provide-types *
 
 data EqualityResult:
   | Equal
-  | NotEqual
+  | NotEqual(reason :: String)
   | Unknown
-  | NotEqualReason(reason :: String)
 end
 
 fun equal-and(er1 :: EqualityResult, er2 :: EqualityResult):
