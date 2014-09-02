@@ -2,6 +2,11 @@
   position: fixed;
   overflow: scroll;
   height: 100%;
+  padding-top: 1rem;
+}
+
+.navsettop {
+  display: none;
 }
 
 /* New styles just for Pyret */
