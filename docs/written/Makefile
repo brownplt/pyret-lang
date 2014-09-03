@@ -10,4 +10,5 @@ all:
     ++extra hilite.js \
     --dest ../../build/ \
     --dest-name docs \
-    --htmls test-harness.scrbl
+    ++arg $(VERSION) \
+    --htmls index.scrbl
