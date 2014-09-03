@@ -3,22 +3,22 @@
 provide *
 provide-types *
 
-data Option:
+data Option<a>:
   | none with:
-    or-else(self, v :: Any):
+    or-else(self :: Option<a>, v :: a) -> a:
       doc: "Return the default provided value"
       v
     end,
-    and-then(self, _):
+    and-then<b>(self :: Option<a>, _ :: (a -> b)) -> Option<b>:
       doc: "Return none"
       self
     end
   | some(value) with:
-    or-else(self, v :: Any):
+    or-else(self :: Option<a>, v :: a) -> a:
       doc: "Return self.value, rather than the default"
       self.value
     end,
-    and-then(self, f):
+    and-then<b>(self :: Option<a>, f :: (a -> b)) -> Option<b>:
       doc: "Returns the function applied to self.value"
       f(self.value)
     end
