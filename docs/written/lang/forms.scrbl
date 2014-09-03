@@ -18,7 +18,12 @@
 
 @title[#:tag "s:forms" #:style '(toc)]{Language Constructs}
 
-Stuff
+This section contains information on the various language forms in Pyret, from
+binary operators to data definitions to functions.  This is a more detailed
+reference to the grammar of expressions and statements and their evaluation,
+rather than to 
+
+@(table-of-contents)
 
 @section[#:tag "s:program"]{Programs}
 
@@ -38,26 +43,29 @@ provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 Import statements come in a few forms:
 
 @justcode{
-import-stmt: IMPORT (import-name | import-string) AS NAME
-import-stmt: IMPORT NAME (COMMA NAME)* FROM (import-name | import-string)
+import-stmt: IMPORT import-source AS NAME
+import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
+import-source: import-special | import-name | import-string 
+import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
 import-string: STRING
 }
 
 
-The form that uses a @prod{NAME} production looks for a file with that name in the
-built-in libraries of Pyret.  These are currently found in the @in-code{lang/racket-ffi/}
-directory of Pyret, and are maintained by the Pyret authors.
+The form with @justcode{import-name} looks for a file with that name in the
+built-in libraries of Pyret, and it is an error if there is no such library.
 
 Example:
 
-@justcode{
-  import io as IO
-  IO.read-line()
+@pyret{
+  import equality as EQ
+  check:
+    f = lam(): "" end
+    EQ.equal-always3(f, f) is EQ.Unknown
+  end
 }
 
-It is an error if there is no such named file in @in-code{lang/racket-ffi/}, or if the
-file does not provide an identifier named @in-code{%PYRET-PROVIDE}.
+
 
 @section{Provide Statements}
 
@@ -85,6 +93,8 @@ provide {
 } end
 }
 
+Where the @justcode{id}s are all the toplevel names in the file defined with
+@pyret{fun}, @pyret{data}, or @pyret{x = e}.
 
 @section{Blocks}
 
@@ -342,26 +352,7 @@ where:
 end
 }
 
-A data definition also sets up some special methods that are used by other
-constructs in the language.  Most of the time, you shouldn't need to call these
-directly, but they are present on each instance:
 
-@itemlist[
-  @item{@tt{tostring} is a method that produces a string
-        representation of the value}
-
-  @item{@tt{_torepr} is a method that produces a string that represents the
-  value in ``constructor form''.  This is distinct from @tt{tostring} in that,
-  for example, the @tt{tostring} of @tt{"a-str"} is the string value
-  @tt{"a-str"}, but the @tt{_torepr} is @tt{"\"a-str\""}.  This produces more
-  meaningful REPL output, among other things.}
- 
-  @item{@tt{_match} is a method that is used by @seclink["s:cases-expr" "cases
-  expressions"].}
-
-]
-
-@;{ TODO: singleton variants and mixins }
 
 @subsection[#:tag "s:var-expr"]{Variable Declarations}
 
@@ -715,10 +706,6 @@ the type of the value to branch on.  Typically, this should be the name of a
 datatype like @tt{list.List}.  The expression then evaluates @tt{expr-target},
 and checks if it matches the given annotation.  If it does not, an exception is
 raise, otherwise it proceeds to match it against the given cases.
-
-@margin-note{ Under the hood, @tt{cases} is calling the @tt{_match} function of
-the target value, which is defined for each variant and performs the
-appropriate dispatch.}
 
 Cases should use the names of the variants of the given data type as the
 @tt{NAME}s of each branch.  The branches will be tried, in order, checking if

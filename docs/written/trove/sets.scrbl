@@ -1,5 +1,6 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
+@(require (only-in scribble/core delayed-block))
 
 @(define (set-method name)
   (method-doc "Set" "set" name #:alt-docstrings ""))
@@ -8,11 +9,12 @@
 @(define l-of-a '(a-app (a-id "List" (xref "lists" "List")) "a"))
 @(define boolean '(a-id "Boolean" (xref "<global>" "Boolean")))
 
-@docmodule["sets"]{
-
 @(append-gen-docs
   `(module "sets"
     (path "src/js/base/runtime-anf.js")
+    (fun-spec
+      (name "set")
+      (arity 1))
     (data-spec
       (name "Set")
       (type-vars (a-id "a"))
@@ -122,6 +124,8 @@
         ))
       )
   ))
+
+@docmodule["sets"]{
 
 The interface to sets is in flux, and its design may change significantly in
 the future.

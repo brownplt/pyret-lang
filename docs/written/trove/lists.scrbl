@@ -115,12 +115,75 @@ end
 }
 
 @list-method["split-at"]
+
+@examples{
+check:
+  one-four = link(1, link(2, link(3, link(4, empty))))
+
+  one-four.split-at(0) is { prefix: empty, suffix: one-four }
+  one-four.split-at(4) is { prefix: one-four, suffix: empty }
+  one-four.split-at(2) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
+  one-four.split-at(-1) raises "Invalid index"
+  one-four.split-at(5) raises "Index too large"
+end
+}
+
 @list-method["take"]
+
+@examples{
+check:
+  [list: 1, 2, 3, 4, 5, 6].take(3) is [list: 1, 2, 3]
+end
+}
+
 @list-method["drop"]
+
+@examples{
+check:
+  [list: 1, 2, 3, 4, 5, 6].drop(3) is [list: 4, 5, 6]
+end
+}
+
 @list-method["get"]
+
+@examples{
+check:
+  [list: 1, 2, 3].get(0) is 1
+  [list: ].get(0) raises "too large"
+end
+}
+
 @list-method["set"]
+
+@examples{
+check:
+  [list: 1, 2, 3].set(0, 5) is [list: 5, 2, 3]
+  [list: ].set(0, 5) raises "too large"
+end
+}
+
 @list-method["foldl"]
+
+Applies @pyret{f(last-elt, f(second-last-elt, ... f(first-elt, base)))}.  For
+@pyret-id{empty}, returns @pyret{base}.
+
+@examples{
+check:
+  [list: 3, 2, 1].foldl(link, empty) is [list: 1, 2, 3]
+end
+}
+
 @list-method["foldr"]
+
+Applies @pyret{f(first-elt, f(second-elt, ... f(last-elt, base)))}.  For
+@pyret-id{empty}, returns @pyret{base}.
+
+@examples{
+check:
+  [list: 3, 2, 1].foldr(link, empty) is [list: 3, 2, 1]
+end
+}
+
 @list-method["member"]
 @list-method["append"]
 @list-method["last"]
@@ -140,79 +203,93 @@ end
   @seclink["<global>" "the section on global identifiers"] to learn more.
 
   @function[
-    "get-help"
+    "get"
     #:examples
     '@{
-      get-help([list: 1, 2, 3], 0) is 1
-      get-help([list: ], 0) raises ""
+    check:
+      lists.get([list: 1, 2, 3], 0) is 1
+      lists.get([list: ], 0) raises ""
+    end
     }
   ]
   @function[
-    "set-help"
+    "set"
     #:examples
     '@{
-      set-help([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
-      set-help([list: 1, 2, 3], 5, 5) raises ""
-    }
-  ]{
-    See, for example, @seclink[(xref "lists" "get-help") "get-help"]
-  }
-  @function[
-    "reverse-help"
-    #:examples
-    '@{
-      reverse-help([list: ], [list: ]) is [list: ]
-      reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
+    check:
+      set([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
+      set([list: 1, 2, 3], 5, 5) raises ""
+    end
     }
   ]
+  @;{@function[
+    "reverse"
+    #:examples
+    '@{
+    check:
+      reverse([list: ], [list: ]) is [list: ]
+      reverse([list: 1, 3], [list: ]) is [list: 3, 1]
+    end
+    }
+  ]}
   @function[
     "range"
     #:examples
     '@{
+    check:
       range(0, 0) is [list: ]
       range(0, 1) is [list: 0]
       range(-5, 5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+    end
     }
   ]
   @function[
     "repeat"
     #:examples
     '@{
+    check:
       repeat(0, 10) is empty
       repeat(3, -1) is [list: -1, -1, -1]
       repeat(1, "foo") is link("foo", empty)
+    end
     }
   ]
   @function[
     "filter"
     #:examples
     '@{
+    check:
       filter(lam(e): e > 5 end, [list: -1, 1]) is [list: ]
       filter(lam(e): e > 0 end, [list: -1, 1]) is [list: 1]
+    end
     }
   ]
   @function[
     "partition"
     #:examples
     '@{
+    check:
       partition(lam(e): e > 0 end, [list: -1, 1]) is
         { "is-true": [list: 1], "is-false": [list: -1] }
       partition(lam(e): e > 5 end, [list: -1, 1]) is
         { "is-true": [list: ], "is-false": [list: -1, 1] }
       partition(lam(e): e < 5 end, [list: -1, 1]) is
         { "is-true": [list: -1, 1], "is-false": [list: ] }
+    end
     }
   ]
   @function[
     "find"
     #:examples
     '@{
+    check:
       find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
       find(lam(elt): elt > 4 end, [list: 1, 2, 3]) is none
       find(lam(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
       find(lam(elt): true end, empty) is none
       find(lam(elt): false end, [list: "miss-me"]) is none
       find(lam(elt): false end, empty) is none
+    end
     }
     #:alt-docstrings '()
   ]
@@ -220,6 +297,7 @@ end
     "split-at"
     #:examples
     '@{
+    check:
       let one-four = [list: 1, 2, 3, 4]:
         split-at(0, one-four) is { prefix: empty, suffix: one-four }
         split-at(4, one-four) is { prefix: one-four, suffix: empty }
@@ -228,26 +306,31 @@ end
         split-at(-1, one-four) raises "Invalid index"
         split-at(5, one-four) raises "Index too large"
       end
+    end
     }
   ]
   @function[
     "any"
     #:examples
     '@{
+    check:
       any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
       any(lam(n): n > 3 end, [list: 1, 2, 3]) is false
       any(lam(x): true end, empty) is false
       any(lam(x): false end, empty) is false
+    end
     }
   ]
   @function[
     "all"
     #:examples
     '@{
+    check:
       all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
       all(lam(n): n <= 3 end, [list: 1, 2, 3]) is true
       all(lam(x): true end, empty) is true
       all(lam(x): false end, empty) is true
+    end
     }
   ]
   @function[
@@ -284,20 +367,29 @@ end
   ]
   @function["map3"]
   @function["map4"]
-  @function[
-    "map_n"
-    #:examples
-    '@{
-      map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
-    }
-  ]
+  @function["map_n"]
+
+  Like map, but also includes a numeric argument for the position in the list
+  that is currently being mapped over.
+
+  @examples{
+  check:
+    map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
+  end
+  }
+
   @function["map2_n"]
+
+  Like @pyret-id{map_n}, but for two-argument functions.
+
   @function["map3_n"]
   @function["map4_n"]
+
   @function[
     "each"
     #:examples
     '@{
+    check:
       let one-four = [list: 1, 2, 3, 4]:
         let  var counter = 0:
           each(lam(n): counter := counter + n end, one-four)
@@ -310,12 +402,19 @@ end
           counter is 24
         end
       end
+    end
     }
   ]
+
   @function["each2"]
   @function["each3"]
   @function["each4"]
+
   @function["each_n"]
+
+  Like @pyret-id{each}, but also includes a numeric argument for the position in the list
+  that is currently being visited.
+
   @function["each2_n"]
   @function["each3_n"]
   @function["each4_n"]
@@ -324,9 +423,11 @@ end
     "fold"
     #:examples
     '@{
+    check:
       fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
       fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
       fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+    end
     }
     #:alt-docstrings '()
   ]{
@@ -348,6 +449,7 @@ end
     "fold_n"
     #:examples
     '@{
+    check:
       fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is
         1 * 2 * 3 * 4
       fold_n(lam(n, acc, cur): tostring(n) + " " + cur + ", " + acc end,
@@ -364,8 +466,15 @@ end
         true,
         [list: false, true, false]) is
         true
+    end
     }
-  ]
+  ]{
+
+  Like @pyret-id{fold}, but takes a numeric argument for the position in the
+  list that is currently being visited.
+
+  }
+
   @function[
     "index"
     #:examples

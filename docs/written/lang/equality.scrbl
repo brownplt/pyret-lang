@@ -10,9 +10,8 @@
 
 @(define boolean '(a-id "Boolean" (xref "<global>" "Boolean")))
 @(define eq '(a-id "EqualityResult" (xref "equality" "EqualityResult")))
+@(define T (a-id "EqualityResult" (xref "equality" "EqualityResult")))
 
-@(let ()
-  (curr-module-name "equality"))
 
 @(append-gen-docs
   `(module "equality"
@@ -62,7 +61,9 @@
 @(define equal-always-op @code{==})
 @(define identical-op @code{<=>})
 
-@title{Equality}
+
+@docmodule["equality"]{
+
 
 @section{Types of Equality}
 
@@ -596,8 +597,6 @@ values without raising an exception.  Since the equality of functions is
 unknown, we define the result of a total equality check with a new datatype:
 
 
-@(define T (a-id "EqualityResult" (xref "equality" "EqualityResult")))
-
 
   @data-spec2["EqualityResult" (list) (list
   @singleton-spec2["EqualityResult" "Equal"]
@@ -808,7 +807,7 @@ The @pyret{_equals} method is called in the equality algorithm when:
   @item{If they are data values, the two values are of the same data type and
         variant, AND}
   @item{If they are objects not created by data, they have the same set of
-  @seclink["Brands"]}
+  @seclink["brands"]}
 ]
 
 So, for example, an object with an @pyret{_equals} method that always returns
@@ -846,4 +845,4 @@ are twofold:
   (even in deeply nested data structures).}
 ]
 
-
+}

@@ -314,6 +314,7 @@
    (apply string-append (add-between args "_")))
 
 @(define (type-spec type-name tyvars)
+  (set-documented! (curr-module-name) type-name)
   (define name-part (make-header-elt-for (seclink (xref (curr-module-name) type-name) (tt type-name)) type-name))
   (define vars (if (cons? tyvars) (append (list "<") (add-between tyvars ",") (list ">")) ""))
     (para #:style (div-style "boxed")
@@ -604,14 +605,14 @@
      ; defining processing-module because raw ref to curr-module-name in traverse-block
      ;  wasn't getting bound properly -- don't know why
      (let ([processing-module (curr-module-name)])
+       (define name-tt (if is-method (tt "." name) (seclink (xref processing-module name) (tt name))))
+       (define name-elt (toc-target-element code-style (list name-tt) part-tag))
        (interleave-parbreaks/all
         (list ;;(drop-anchor name)
           (traverse-block ; use this to build xrefs on an early pass through docs
            (lambda (get set!)
              (set! 'doc-xrefs (cons (list name processing-module)
                                     (get 'doc-xrefs '())))
-             (define name-tt (if is-method (tt "." name) (seclink (xref processing-module name) (tt name))))
-             (define name-elt (toc-target-element code-style (list name-tt) part-tag))
 ;             (define name-elt (seclink (xref processing-module name) name-target))
 ;             (printf "argnames: ~a, ~a\n" argnames (length argnames))
              (define no-descrs (or (empty? input-descr) (ormap (lambda (v) (false? v)) input-descr)))

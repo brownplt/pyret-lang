@@ -8,12 +8,33 @@
           "../../scribble-api.rkt"
           scribble/html-properties)
 
-@title{Testing}
+@(define (test-doc opname left right)
+  @para[#:style "boxed pyret-header"]{
+    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname) " " @right)
+  })
 
-@(let ()
-  (curr-module-name "<testing>"))
+@(define (test-doc1 opname left)
+  @para[#:style "boxed pyret-header"]{
+    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname))
+  })
 
-@section{@pyret{check:} and @pyret{where:} blocks}
+
+@(define (test-doc-pred opname pred left right)
+  @para[#:style "boxed pyret-header"]{
+    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname) "(" pred ")" " " @right)
+  })
+
+@(define (test-pred-use left opname pred right)
+  (list @pyret[left] " " @pyret-id[opname]@pyret{(}@|pred|@pyret{)} " " @pyret[left]))
+
+
+@(append-gen-docs
+  '(module "testing"
+    (path "src/js/base/runtime-anf.js")))
+
+@docmodule["testing" #:friendly-title "Testing"]{
+
+@section[#:tag "testing-blocks"]{@pyret{check:} and @pyret{where:} blocks}
 
 Tests in Pyret are written in special @emph{testing blocks}.  These blocks can
 contain any Pyret code that isn't toplevel-only (like data definitions and
@@ -102,30 +123,11 @@ end
 
 Testing operators must be written on their own line inside a 
 
-@(define (test-doc opname left right)
-  @para[#:style "boxed pyret-header"]{
-    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname) " " @right)
-  })
-
-@(define (test-doc1 opname left)
-  @para[#:style "boxed pyret-header"]{
-    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname))
-  })
-
-
-@(define (test-doc-pred opname pred left right)
-  @para[#:style "boxed pyret-header"]{
-    @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname) "(" pred ")" " " @right)
-  })
-
-@(define (test-pred-use left opname pred right)
-  (list @pyret[left] " " @pyret-id[opname]@pyret{(}@|pred|@pyret{)} " " @pyret[left]))
-
 
 @subsection{Binary Test Operators}
 
 Many useful tests compare two values, whether for a specific type of
-@seclink["Equality" "equality"] or a more sophisticated predicate.
+@seclink["equality" "equality"] or a more sophisticated predicate.
 
 @test-doc["is" "expr1" "expr2"]
 
@@ -324,3 +326,5 @@ end
 
 Like @pyret-id{raises-satisfies}, but the predicate must return
 @pyret{false}.  Still fails if no exception is raised.
+
+}

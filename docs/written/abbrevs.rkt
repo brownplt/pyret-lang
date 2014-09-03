@@ -15,3 +15,4 @@
 (define (S-of typ) (a-app (a-id "Set" (xref "sets" "Set")) typ))
 (define (O-of typ) (a-app (a-id "Option" (xref "option" "Option")) typ))
 (define (E-of typ1 typ2) (a-app (a-id "Either" (xref "either" "Either")) typ1 typ2))
+

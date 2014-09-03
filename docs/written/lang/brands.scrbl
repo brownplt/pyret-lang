@@ -1,16 +1,13 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@(let ()
-  (curr-module-name "brands"))
-
 @(append-gen-docs
   `(module "brands"
     (path "src/js/base/runtime-anf.js")
     (data-spec
       (name "Brand")
       (type-vars (a-id "a"))
-      (variants ("brands"))
+      (variants ("brander"))
       (shared
         ((method-spec
           (name "brand")
@@ -36,7 +33,7 @@
 
 @(define BR (a-id (a-id "Brand" (xref "<global>" "Brand"))))
 
-@title{Brands}
+@docmodule["brands" #:friendly-title "Brands"]{
 
 Brands are a mostly internal language concept, useful for implementing custom datatypes.
 
@@ -46,11 +43,12 @@ Brands are a mostly internal language concept, useful for implementing custom da
 
 Creates a new brand.
 
-@method-doc["Brand" "brand" "brand" #:alt-docstrings "" #:contract (a-arrow BR A "a")]
+@method-doc["Brand" "brander" "brand" #:alt-docstrings "" #:contract (a-arrow BR A "a")]
 
 Produce a copy of the value with this brand.
 
-@method-doc["Brand" "brand" "test" #:alt-docstrings "" #:contract (a-arrow BR A B)]
+@method-doc["Brand" "brander" "test" #:alt-docstrings "" #:contract (a-arrow BR A B)]
 
 Test if the value has this brand.
 
+}
