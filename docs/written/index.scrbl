@@ -1,7 +1,12 @@
 #lang scribble/manual
-@(require "../scribble-api.rkt")
 
-@title{Pyret Documentation}
+@(define cca (current-command-line-arguments))
+@(define VERSION
+  (if (> (vector-length cca) 0)
+      (list "(" (vector-ref cca 0) ")")
+      ""))
+
+@title{Pyret @smaller{@VERSION}}
 
 @nested{This document has detailed information on the Pyret grammar and the
 behavior of its expression forms and built-in libraries, along with many
@@ -19,5 +24,4 @@ list"], and we'll be happy to help.}
 
 @include-section["libraries.scrbl"]
 
-@include-section["trove/globals.scrbl"]
 
