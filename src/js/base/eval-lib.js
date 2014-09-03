@@ -150,7 +150,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
           var loaded = q.all(moduleLoads.map(function(ml) { return ml.promise; }));
           allImports.then(function(codeAndNames) {
             function loadCode(i) {
-              if(i >= codeAndNames[i].length) { return; }
+              if(i >= codeAndNames.length) { return; }
               var codeAndName = codeAndNames[i];
               // NOTE(joe): Value "loaded" means Cached (or already visited in
               // DAG), so don't reload
