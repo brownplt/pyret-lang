@@ -20,7 +20,7 @@ data Option<a>:
     end,
     and-then<b>(self :: Option<a>, f :: (a -> b)) -> Option<b>:
       doc: "Returns the function applied to self.value"
-      f(self.value)
+      some(f(self.value))
     end
 where:
   none.or-else(1) is 1

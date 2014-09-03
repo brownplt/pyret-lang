@@ -479,7 +479,7 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: CaseResults%(is-c
 end
 
 fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
   cases(Option) opt-dest:
     | some(dest) =>
       cases(Option) opt-compiled-body:
