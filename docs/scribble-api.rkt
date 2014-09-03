@@ -126,7 +126,8 @@
             (if (dict-ref (second mod) name)
                 (warning 'set-documented! (format "~s is already documented in module ~s" name modname))
                 (dict-set! (second mod) name #t))
-            (warning 'set-documented! (format "Unknown identifier ~s in module ~s" name modname)))
+            (begin
+              (warning 'set-documented! (format "Unknown identifier ~s in module ~s" name modname))))
         (warning 'set-documented! (format "Unknown module ~s" modname)))))
 
 (define (report-undocumented modname)
@@ -316,7 +317,7 @@
   (define name-part (make-header-elt-for (seclink (xref (curr-module-name) type-name) (tt type-name)) type-name))
   (define vars (if (cons? tyvars) (append (list "<") (add-between tyvars ",") (list ">")) ""))
     (para #:style (div-style "boxed")
-      (list name-part vars)))
+      (list name-part (tt vars))))
 
 @(define-syntax (data-spec2 stx)
   (syntax-case stx()
@@ -693,6 +694,8 @@
     (let ()
       (define new-elts (drop s-exp 3))
       (define without-orig (remove (lambda(m) (equal? (second m) (second s-exp))) ALL-GEN-DOCS))
-      (set! ALL-GEN-DOCS (cons (append existing-mod new-elts) ALL-GEN-DOCS)))
-    (set! ALL-GEN-DOCS (cons s-exp ALL-GEN-DOCS))))
+      (set! ALL-GEN-DOCS (cons (append existing-mod new-elts) without-orig)))
+    (set! ALL-GEN-DOCS (cons s-exp ALL-GEN-DOCS)))
+  (set! curr-doc-checks (init-doc-checker ALL-GEN-DOCS))
+  '())
 

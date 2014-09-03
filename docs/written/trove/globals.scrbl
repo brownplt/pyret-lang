@@ -2,6 +2,13 @@
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
 @docmodule["<global>" #:noimport #t]{
+
+  @section[#:tag "global-builtins"]{Useful Built-in Global Functions}
+
+@function["torepr" #:contract (a-arrow A S)]
+@function["tostring" #:contract (a-arrow A S)]
+@function["raise" #:contract (a-arrow A No)]
+
   @section[#:tag "globals_DataTypes"]{Built-in Types}
    @type-spec["Any" (list)]
 

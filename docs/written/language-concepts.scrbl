@@ -12,9 +12,12 @@
 
 @;@include-section["lang/data-definitions.scrbl"]
 
+@include-section["lang/testing.scrbl"]
+
 @include-section["lang/equality.scrbl"]
 
-@include-section["lang/testing.scrbl"]
+@include-section["lang/brands.scrbl"]
+
 
 @;@include-section["lang/annotations.scrbl"]
 

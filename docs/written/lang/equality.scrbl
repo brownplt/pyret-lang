@@ -17,15 +17,6 @@
 @(append-gen-docs
   `(module "equality"
     (path "src/js/base/runtime-anf.js")
-    (data-spec
-      (name "EqualityResult")
-      (variants ("Equal" "NotEqual" "Unknown")))
-    (singleton-spec (name "Equal") (with-members ()))
-    (constructor-spec (name "NotEqual")
-      (members
-        (("reason" (type normal) (contract (a-id "String" (xref "<global>" "String"))))
-      (with-members ()))))
-    (singleton-spec (name "Unknown") (with-members ()))
     (fun-spec
       (name "equal-now")
       (arity 2)
