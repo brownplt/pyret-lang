@@ -430,31 +430,38 @@ summarizes this relationship, which in fact does hold:
   #:column-properties (list (list (attributes '((style . "border: 1px solid black; padding: 5px;")))))
   (list
     (list
-      @list{When ↓, then →}
+      @list{If ↓, then →}
       @list{@code{v1 <=> v2} could be...}
       @list{@code{v1 == v2} could be...}
       @list{@code{v1 =~ v2} could be...}
     )
     (list
       @list{@code{v1 <=> v2 is true}}
-      @list{@code{true} only}
+      "-"
+      @;@list{@code{true} only}
       @list{@code{true} only}
       @list{@code{true} only}
     )
     (list
       @list{@code{v1 == v2 is true}}
       @list{@code{true} or @code{false}}
-      @list{@code{true} only}
+      "-"
+      @;@list{@code{true} only}
       @list{@code{true} only}
     )
     (list
       @list{@code{v1 =~ v2 is true}}
       @list{@code{true} or @code{false}}
       @list{@code{true} or @code{false}}
-      @list{@code{true} only}
+      "-"
+      @;@list{@code{true} only}
     )
     )
 ]
+
+This table doesn't have all the @pyret{false} cases in it, because we need to
+complete the story for a few values that haven't been discussed before we can
+give the whole picture.
 
 @section[#:tag "s:equality-and-functions"]{Equality and Functions}
 
@@ -509,22 +516,28 @@ must have the same behavior.  But when it returns @code{false}, we know
 nothing.  The functions may behave exactly the same, or they might be
 completely different, and the equality predicate can't tell us either way.
 
-Pyret takes the following stance: You probably should rethink your program
-if it relies on comparing functions for equality, since Pyret cannot give
-reliable answers (no language can).  So, all the examples above actually
-raise exceptions:
+Pyret takes the following stance: You probably should rethink your program if
+it relies on comparing functions for equality, since Pyret cannot give reliable
+answers (no language can).  So, all the examples above (with one notable
+exception) actually raise errors:
 
 @pyret-block{
   check:
     fun mk-ones():
-      stream(1, lam(): ones() end)  # <-- changed this line
+      stream(1, lam(): mk-ones() end)  # <-- changed this line
     end
     ones = mk-ones()
-    ones == ones raises "Attempted to compare functions"
+    ones == ones is true
     ones == mk-ones() raises "Attempted to compare functions"
     ones.rest() == mk-ones() raises "Attempted to compare functions"
   end
 }
+
+The first test is true because two @pyret-id{identical} values are considered
+@pyret-id{equal-always}.  This is an interesting point in this design space
+that Pyret may explore more in the future -- it isn't clear if the benefits of
+this relationship between @pyret-id{identical} and @pyret-id{equal-always} are
+worth the slight brittleness in the above example.
 
 @para{
 @bold{Note 1}: Functions can be compared with non-function values and return
@@ -632,6 +645,88 @@ check:
   identical3("a", f) satisfies is-NotEqual
 end
 }
+
+We can now modify our table from above to be more complete:
+
+
+@tabular[
+  #:style (style #f (list (attributes '((style . "border-collapse: collapse;")))))
+  #:column-properties (list (list (attributes '((style . "border: 1px solid black; padding: 5px;")))))
+  (list
+    (list
+      @list{If ↓, then →}
+      @list{@code{identical(v1, v2)} could be...}
+      @list{@code{equal-always(v1, v2)} could be...}
+      @list{@code{equal-now(v1, v2)} could be...}
+    )
+    (list
+      @list{@code{identical(v1, v2) is Equal}}
+      "-"
+      @;@list{@code{Equal} only}
+      @list{@code{Equal} only}
+      @list{@code{Equal} only}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is Equal}}
+      @list{@code{Equal} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Equal} only}
+      @list{@code{Equal} only}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is Equal}}
+      @list{@code{Equal} or @code{NotEqual}}
+      @list{@code{Equal} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Equal} only}
+    )
+    (list "" "" "" "")
+    (list
+      @list{@code{identical(v1, v2) is NotEqual}}
+      "-"
+      @;@list{@code{NotEqual} only}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is NotEqual}}
+      @list{@code{NotEqual} only}
+      "-"
+      @;@list{@code{NotEqual} only}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is NotEqual}}
+      @list{@code{NotEqual} only}
+      @list{@code{NotEqual} only}
+      "-"
+      @;@list{@code{NotEqual} only}
+    )
+    (list "" "" "" "")
+    (list
+      @list{@code{identical(v1, v2) is Unknown}}
+      "-"
+      @;@list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is Unknown}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is Unknown}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Unknown} only}
+    )
+    )
+]
+
 
 @section[#:tag "s:datatype-defined-equality"]{Datatype-defined Equality}
 
