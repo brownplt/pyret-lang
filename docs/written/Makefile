@@ -10,5 +10,5 @@ all:
     ++extra hilite.js \
     --dest ../../build/ \
     --dest-name docs \
-    ++arg $(VERSION) \
+    ++arg "$(VERSION)" \
     --htmls index.scrbl

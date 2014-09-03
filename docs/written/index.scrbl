@@ -3,10 +3,11 @@
 @(define cca (current-command-line-arguments))
 @(define VERSION
   (if (> (vector-length cca) 0)
-      (list "(" (vector-ref cca 0) ")")
-      ""))
+        (vector-ref cca 0)
+        ""))
 
-@title{Pyret @smaller{@VERSION}}
+@title[#:version @VERSION]{Pyret}
+
 
 @nested{This document has detailed information on the Pyret grammar and the
 behavior of its expression forms and built-in libraries, along with many
