@@ -50,6 +50,17 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return self;
         });
 
+        var hasKeyMutable = runtime.makeMethodFromFun(function(_, key) {
+          runtime.checkArity(2, arguments, "has-key");
+          runtime.checkString(key);
+          var mkey = mutableKey(key);
+          if (underlyingDict[mkey]) {
+            return runtime.makeBoolean(true);
+          } else {
+            return runtime.makeBoolean(false);
+          }
+        });
+
         var torepr = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
           runtime.checkArity(2, arguments, "torepr");
           var keys = Object.keys(underlyingDict);
@@ -98,7 +109,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           set: setMutable,
           remove: NYI,
           keys: NYI,
-          "has-key": NYI,
+          'has-key': hasKeyMutable,
           _equals: equals,
           _torepr: torepr
         });
@@ -131,7 +142,6 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         runtime.ffi.throwMessageException("Not yet implemented");
       });
 
-
       return O({
         "provide-plus-types": O({
           types: {
@@ -155,4 +165,3 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
     });
   });
 });
-
