@@ -216,6 +216,19 @@ $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 
 .PHONY : docs
 docs: $(DOCS_DEPS)
+	scribble \
+    ++style docs/written/styles.css \
+    ++style lib/CodeMirror/lib/codemirror.css \
+    ++style src/web/editor.css \
+    --prefix docs/written/myprefix.html \
+    ++extra lib/CodeMirror/mode/pyret/pyret.js \
+    ++extra lib/CodeMirror/lib/codemirror.js \
+    ++extra lib/CodeMirror/addon/runmode/runmode.js \
+    ++extra docs/written/hilite.js \
+    --dest build/ \
+    --dest-name docs \
+    ++arg $(VERSION) \
+    --htmls index.scrbl
 
 $(DOCS_DEPS): | $(PHASE1)/phase1.built docs-trove
 
@@ -390,6 +403,8 @@ release: release-gzip
 test-release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
+release-docs: docs
+	scp build/docs/ $(DOCS_TARGET)/$(VERSION)/
 else
 release-gzip:
 	$(error Cannot release from this platform)
@@ -398,3 +413,4 @@ release:
 test-release: release-gzip
 	$(error Cannot release from this platform)
 endif
+
