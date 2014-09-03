@@ -1,5 +1,4 @@
-
-#lang scribble/manual
+#lang scribble/base
 
 @title[#:style '(toc)]{Builtins}
 
@@ -7,6 +6,7 @@
 
 @(table-of-contents)
 
+@include-section["trove/globals.scrbl"]
 @include-section["builtin/numbers.scrbl"]
 @include-section["builtin/strings.scrbl"]
 @include-section["builtin/booleans.scrbl"]

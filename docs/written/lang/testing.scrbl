@@ -98,9 +98,10 @@ check "a later block":
 end
 }
 
-Keep an eye out for the message @pyret{"Check block <some-block> ended in an
-error (all tests may not have run):"}, because it means that later tests in the
-same block may not have run, and they may have failed.
+Keep an eye out for the message @pyret{"Check block <some-block> ended in an error (all tests may not have run):"},
+because it means that later tests in the
+same block may not have run, so the output doesn't reflect all the tests that
+were written.
 
 @subsection{@pyret{where:} blocks}
 
@@ -121,8 +122,9 @@ end
 
 @section[#:tag "testing-operators"]{Testing Operators}
 
-Testing operators must be written on their own line inside a 
-
+Testing operators should be written on their own line inside a @pyret{check:} or
+@pyret{where:} block.  They can check for a number of properties and come in
+several forms.
 
 @subsection{Binary Test Operators}
 

@@ -15,7 +15,7 @@
       (return (a-id "Boolean" (xref "<global>" "Boolean")))
       (doc "Negates the boolean value"))))
 
-@docmodule["booleans" #:noimport #t #:friendly-title "Boolean"]{
+@docmodule["booleans" #:noimport #t #:friendly-title "Booleans"]{
   @type-spec["Boolean" (list)]
 
   The type of the values @pyret{true} and @pyret{false}.

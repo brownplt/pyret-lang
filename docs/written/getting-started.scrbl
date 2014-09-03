@@ -1,4 +1,6 @@
-#lang scribble/manual
+#lang scribble/base
+
+@(require (only-in scribble/manual link))
 
 @title[#:style '(toc)]{Getting Started}
 

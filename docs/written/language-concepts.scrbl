@@ -1,4 +1,4 @@
-#lang scribble/manual
+#lang scribble/base
 
 @title[#:style '(toc)]{Language Concepts}
 

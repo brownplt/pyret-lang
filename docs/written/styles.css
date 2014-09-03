@@ -9,6 +9,10 @@
   display: none;
 }
 
+.version {
+  display: none;
+}
+
 /* New styles just for Pyret */
 
 .boxed .SIntrapara {
@@ -30,6 +34,10 @@
 .pyret-highlight {
   font-family: 'Source Code Pro', monospace;
   font-size: 1rem;
+}
+
+pre.pyret-highlight {
+  padding-bottom: 1rem;
 }
 
 

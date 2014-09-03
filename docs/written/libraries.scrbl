@@ -1,10 +1,11 @@
-#lang scribble/manual
+#lang scribble/base
 
 @title[#:style '(toc)]{Libraries}
 
+This section contains information on libraries that come with Pyret.
+
 @(table-of-contents)
 
-@nested{This section contains information on libbies}
 
 @include-section["trove/lists.scrbl"]
 @include-section["trove/sets.scrbl"]
