@@ -34,6 +34,30 @@
     (variants)
     (shared))
   (fun-spec
+    (name "not")
+    (arity 1)
+    (args ("b"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (doc "Negates the boolean value"))
+  (fun-spec
+    (name "raise")
+    (arity 1)
+    (args ("val"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (doc "Raises the value as an exception"))
+  (fun-spec
+    (name "torepr")
+    (arity 1)
+    (args ("val"))
+    (return (a-id "String" (xref "<global>" "String")))
+    (doc "Creates a string representation of the value"))
+  (fun-spec
+    (name "tostring")
+    (arity 1)
+    (args ("val"))
+    (return (a-id "String" (xref "<global>" "String")))
+    (doc "Creates a string representation of the value"))
+  (fun-spec
     (name "is-boolean")
     (arity 1)
     (args ("val"))

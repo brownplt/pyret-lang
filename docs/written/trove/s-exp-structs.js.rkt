@@ -22,10 +22,11 @@
   }
 
   @data-spec2["S-Exp" (list) (list
-  @constructor-spec["S-Exp" "s-list" s-list-args]
-  @constructor-spec["S-Exp" "s-num" s-num-args]
-  @constructor-spec["S-Exp" "s-str" s-str-args]
-  @constructor-spec["S-Exp" "s-sym" s-sym-args])]
+    @constructor-spec["S-Exp" "s-list" s-list-args]
+    @constructor-spec["S-Exp" "s-num" s-num-args]
+    @constructor-spec["S-Exp" "s-str" s-str-args]
+    @constructor-spec["S-Exp" "s-sym" s-sym-args]
+  )]
 
   @nested[#:style 'inset]{
   @constructor-doc["S-Exp" "s-list" s-list-args S-Exp]

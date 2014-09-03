@@ -1,14 +1,22 @@
 #lang scribble/base
-@(require "../../scribble-api.rkt")
+@(require "../../scribble-api.rkt" "../abbrevs.rkt")
+
+@(define left-args (list `("v" ("type" "normal") ("contract" ,(a-id "a")))))
+@(define right-args (list `("v" ("type" "normal") ("contract" ,(a-id "b")))))
+
 @docmodule["either"]{
   @; Ignored type testers
-  @ignore[(list "is-left" "is-right")]
   @section[#:tag "either_DataTypes"]{Data types}
-  @data-spec["Either" #:params (list "a" "b")]{
-    @variants{
-      @constr-spec["left"]{@members{@member-spec["v"]} @with-members{}}
-      @constr-spec["right"]{@members{@member-spec["v"]} @with-members{}}
-    }
-    @shared{}
+  @data-spec2["Either" (list "a" "b") (list
+    @constructor-spec["Either" "left" left-args]
+    @constructor-spec["Either" "right" right-args]
+  )]
+
+  @nested[#:style 'inset]{
+  @constructor-doc["Either" "left" left-args (E-of "a" "b")]
+  @constructor-doc["Either" "right" right-args (E-of "a" "b")]
+
+  @function["is-left" #:alt-docstrings ""]
+  @function["is-right" #:alt-docstrings ""]
   }
 }
