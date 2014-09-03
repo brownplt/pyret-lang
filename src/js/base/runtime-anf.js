@@ -1501,53 +1501,53 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     });
                   }
                 }
-              } else if (isObject(curLeft) && curLeft.dict["_equals"]) {
-                // If this call stack-throws,
-                var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
-                // the continuation stacklet will get the result, and combine them manually
-                toCompare.curAns = combineEquality(toCompare.curAns, newAns);
               } else if (isObject(curLeft) && isObject(curRight)) {
-                if (isDataValue(curLeft) && isDataValue(curRight)) {
-                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    toCompare.curAns = ffi.notEqual.app(current.path);
-                  } else {
-                    var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                  /* Two objects with brands that differ */
+                  toCompare.curAns = ffi.notEqual.app(current.path);
+                }
+                else if (isObject(curLeft) && curLeft.dict["_equals"]) {
+                  /* Two objects with the same brands and the left has an _equals method */
+                  // If this call stack-throws,
+                  var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
+                  // the continuation stacklet will get the result, and combine them manually
+                  toCompare.curAns = combineEquality(toCompare.curAns, newAns);
+                }
+                else if (isDataValue(curLeft) && isDataValue(curRight)) {
+                  /* Two data values with the same brands and no equals method on the left */
+                  var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                    return Array.prototype.slice.call(arguments);
+                  });
+                  if (fieldsLeft.length > 0) {
+                    var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
                       return Array.prototype.slice.call(arguments);
                     });
-                    if (fieldsLeft.length > 0) {
-                      var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
-                        return Array.prototype.slice.call(arguments);
+                    var fieldNames = curLeft.$constructor.$fieldNames;
+                    for (var k = 0; k < fieldsLeft.length; k++) {
+                      toCompare.stack.push({ 
+                        left: fieldsLeft[k],
+                        right: fieldsRight[k],
+                        path: current.path + "." + fieldNames[k]
                       });
-                      var fieldNames = curLeft.$constructor.$fieldNames;
-                      for (var k = 0; k < fieldsLeft.length; k++) {
-                        toCompare.stack.push({ 
-                          left: fieldsLeft[k],
-                          right: fieldsRight[k],
-                          path: current.path + "." + fieldNames[k]
-                        });
-                      }
                     }
                   }
                 } else {
-                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    toCompare.curAns = ffi.notEqual.app(current.path);
-                  } else {
-                    var dictLeft = curLeft.dict;
-                    var dictRight = curRight.dict;
-                    var fieldsLeft;
-                    var fieldsRight;
-                    fieldsLeft = getFields(curLeft);
-                    fieldsRight = getFields(curRight);
-                    if(fieldsLeft.length !== fieldsRight.length) { 
-                      toCompare.curAns = ffi.notEqual.app(current.path); 
-                    }
-                    for(var k = 0; k < fieldsLeft.length; k++) {
-                      toCompare.stack.push({
-                        left: curLeft.dict[fieldsLeft[k]],
-                        right: curRight.dict[fieldsLeft[k]],
-                        path: current.path + "." + fieldsLeft[k]
-                      });
-                    }
+                  /* Two non-data objects with the same brands and no equals method on the left */
+                  var dictLeft = curLeft.dict;
+                  var dictRight = curRight.dict;
+                  var fieldsLeft;
+                  var fieldsRight;
+                  fieldsLeft = getFields(curLeft);
+                  fieldsRight = getFields(curRight);
+                  if(fieldsLeft.length !== fieldsRight.length) { 
+                    toCompare.curAns = ffi.notEqual.app(current.path); 
+                  }
+                  for(var k = 0; k < fieldsLeft.length; k++) {
+                    toCompare.stack.push({
+                      left: curLeft.dict[fieldsLeft[k]],
+                      right: curRight.dict[fieldsLeft[k]],
+                      path: current.path + "." + fieldsLeft[k]
+                    });
                   }
                 }
               } else {

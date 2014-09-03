@@ -215,14 +215,14 @@ f-err = "compare functions or methods"
 f = lam(): "no-op" end
 m = method(self): "no-op" end
 
-check "eq-all is equal to everything always":
-  eq-all is== f
-  eq-all is== m
-  eq-all is== 0
-  eq-all is== "a"
-  eq-all is== nothing
-  eq-all is== true
-  eq-all is== [list: 1, 2, 3]
+check "eq-all is not equal to values with different tags":
+  eq-all is-not== f
+  eq-all is-not== m
+  eq-all is-not== 0
+  eq-all is-not== "a"
+  eq-all is-not== nothing
+  eq-all is-not== true
+  eq-all is-not== [list: 1, 2, 3]
   eq-all is== eq-none
 end
 
@@ -367,7 +367,4 @@ check "uninitialized refs should be different":
   foo = test-uninit-refs(x, y)
   end
   ref-get(x) is ref-get(ref-get(x))
-
-
-
 end
