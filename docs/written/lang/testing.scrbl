@@ -32,7 +32,7 @@
   '(module "testing"
     (path "src/js/base/runtime-anf.js")))
 
-@docmodule["testing" #:friendly-title "Testing"]{
+@docmodule["testing" #:friendly-title "Testing" #:noimport #t]{
 
 @section[#:tag "testing-blocks"]{@pyret{check:} and @pyret{where:} blocks}
 

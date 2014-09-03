@@ -1,7 +1,7 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@docmodule["<global>" #:noimport #t]{
+@docmodule["<global>" #:noimport #t #:friendly-title "Global Utilities"]{
 
 @section[#:tag "global-builtins"]{Built-in Utility Functions}
 

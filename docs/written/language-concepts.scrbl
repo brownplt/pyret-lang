@@ -2,9 +2,11 @@
 
 @title[#:style '(toc)]{Language Concepts}
 
-@(table-of-contents)
+This section documents the language forms in Pyret, as well as a number of
+Pyret-specific libraries and concepts, like @seclink["testing"] and
+@seclink["equality" "Equality"].
 
-@nested{This section contains information on languagy stuff}
+@(table-of-contents)
 
 @include-section["lang/forms.scrbl"]
 
