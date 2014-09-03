@@ -2,7 +2,6 @@ import string-dict2 as SD
 
 torepr([SD.string-dict: "a", 15, "b", 10])
 
-
 check "basics":
 
   sd1 = SD.make-string-dict()
@@ -36,9 +35,8 @@ check "basics":
 
   torepr([SD.string-dict: "a", long-torepr]) is "[string-dict: \"a\", 9999]"
 
-
   sd2.keys() raises "Not yet implemented"
-  sd2.has-key("a") raises "Not yet implemented"
+  sd2.has-key("a") is true
 
   (sd1 == sd2) raises "Not yet implemented"
 
@@ -48,5 +46,3 @@ check "immutables":
   SD.make-immutable-string-dict() raises "Not yet implemented"
   [SD.immutable-string-dict: "a", 5, "b", 10] raises "Not yet implemented"
 end
-
-
