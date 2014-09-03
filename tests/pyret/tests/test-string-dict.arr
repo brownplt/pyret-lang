@@ -37,6 +37,7 @@ check "basics":
 
   sd2.keys() raises "Not yet implemented"
   sd2.has-key("a") is true
+  sd2.has-key("z") is false
 
   (sd1 == sd2) raises "Not yet implemented"
 
