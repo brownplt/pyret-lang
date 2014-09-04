@@ -35,7 +35,8 @@ check "basics":
 
   torepr([SD.string-dict: "a", long-torepr]) is "[string-dict: \"a\", 9999]"
 
-  sd2.keys() raises "Not yet implemented"
+  sd2.keys() is [list: "a", "b"]
+
   sd2.has-key("a") is true
   sd2.has-key("z") is false
 
