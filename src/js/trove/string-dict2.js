@@ -61,6 +61,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
         });
 
+        var keysMutable = runtime.makeMethodFromFun(function(self) {
+          runtime.checkArity(1, arguments, "keys");
+          var keys = Object.keys(underlyingDict);
+          return runtime.ffi.makeList(keys.map(function(mkey) {
+            return runtime.makeString(userKey(mkey));
+          }));
+        });
+
         var torepr = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
           runtime.checkArity(2, arguments, "torepr");
           var keys = Object.keys(underlyingDict);
@@ -108,7 +116,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           get: getMutable,
           set: setMutable,
           remove: NYI,
-          keys: NYI,
+          'keys': keysMutable,
           'has-key': hasKeyMutable,
           _equals: equals,
           _torepr: torepr
