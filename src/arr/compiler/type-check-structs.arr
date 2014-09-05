@@ -77,9 +77,13 @@ fun empty-tc-info() -> TCInfo:
   tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), empty-bindings, errors)
 end
 
-fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
-  new-binds = info.binds.set(id.key(), bound)
+fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
+  new-binds = info.binds.set(id, bound)
   tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
+end
+
+fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
+  add-binding-string(id.key(), bound, info)
 end
 
 fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:

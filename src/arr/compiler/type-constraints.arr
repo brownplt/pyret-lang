@@ -880,7 +880,10 @@ data TypeConstraints:
 sharing:
   _insert(self, typ-str :: String, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     new-constraint = if self.dict.has-key(typ-str):
-                       self.dict.get(typ-str).and-then(_.meet(constraint, info))
+                       cases (Option<TypeConstraint>) (self.dict.get(typ-str)):
+                         | none => none
+                         | some(tc) => tc.meet(constraint, info)
+                       end
                      else:
                        some(constraint)
                      end
@@ -944,7 +947,7 @@ fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<Typ
   empty-type-constraints = type-constraints(SD.immutable-string-dict())
   # TODO(cody): Check that foralls are the same
   tmp-binds = for fold(curr from SD.immutable-string-dict(), y from s-introduces):
-    curr.set(y.id, y.upper-bound)
+    curr.set(y.id.key(), y.upper-bound)
   end
   ks-ds = for fold(curr from pair(tmp-binds, empty-type-constraints), t-f from t-introduces):
     key    = t-f.id
@@ -961,7 +964,7 @@ fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<Typ
   introduced      = ks-ds.left
   for-constraints = ks-ds.right
   new-info        = for fold(curr from info, y from introduced.keys()):
-    TCS.add-binding(y, introduced.get(y), curr)
+    TCS.add-binding-string(y, introduced.get(y), curr)
   end
   new-to-remove   = for fold(curr from to-remove, f from s-introduces + t-introduces):
     curr.add(t-var(f.id))
