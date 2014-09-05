@@ -3327,6 +3327,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function random(max) {
       thisRuntime.checkArity(1, arguments, "random");
+      thisRuntime.checkNumber(max);
       return makeNumber(jsnums.floor(jsnums.multiply(Math.random(), max)));
     }
 
