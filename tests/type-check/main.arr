@@ -33,20 +33,26 @@ run-str = lam(str):
   end
 end
 
+fun is-arr-file(filename):
+  string-index-of(filename, ".arr") == (string-length(filename) - 4)
+end
+
 
 check "These should all be good programs":
   base = "./tests/type-check/good/"
   good-progs = FL.list-files(base)
   for each(prog from good-progs):
-    filename  = base + prog
-    prog-file = FL.open-input-file(filename)
-    prog-text = FL.read-file(prog-file)
-    result = compile-str(filename, prog-text)
-    result satisfies CS.is-ok
-    when CS.is-err(result):
-      "Should be okay: " is filename
+    when is-arr-file(prog):
+      filename  = base + prog
+      prog-file = FL.open-input-file(filename)
+      prog-text = FL.read-file(prog-file)
+      result = compile-str(filename, prog-text)
+      result satisfies CS.is-ok
+      when CS.is-err(result):
+        "Should be okay: " is filename
+      end
+      FL.close-output-file(prog-file)
     end
-    FL.close-output-file(prog-file)
   end
 end
 
@@ -54,14 +60,16 @@ check "These should all be bad programs":
   base = "./tests/type-check/bad/"
   bad-progs = FL.list-files(base)
   for each(prog from bad-progs):
-    filename  = base + prog
-    prog-file = FL.open-input-file(filename)
-    prog-text = FL.read-file(prog-file)
-    result    = compile-str(filename, prog-text)
-    result satisfies CS.is-err
-    when CS.is-ok(result):
-      "Should be error: " is filename
+    when is-arr-file(prog):
+      filename  = base + prog
+      prog-file = FL.open-input-file(filename)
+      prog-text = FL.read-file(prog-file)
+      result    = compile-str(filename, prog-text)
+      result satisfies CS.is-err
+      when CS.is-ok(result):
+        "Should be error: " is filename
+      end
+      FL.close-output-file(prog-file)
     end
-    FL.close-output-file(prog-file)
   end
 end
