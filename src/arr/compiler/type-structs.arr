@@ -69,23 +69,6 @@ fun <T> list-compare(a :: List<T>, b :: List<T>) -> Comparison:
   end
 end
 
-fun <T> old-list-compare(a :: List<T>, b :: List<T>) -> Comparison:
-  cases(List<T>) a:
-    | empty => cases(List<T>) b:
-        | empty   => equal
-        | link(_) => less-than
-      end
-    | link(a-f, a-r) => cases(List<T>) b:
-        | empty => greater-than
-        | link(b-f, b-r) =>
-          if a-f < b-f:       less-than
-          else if a-f == b-f: list-compare(a-r, b-r)
-          else:               greater-than
-          end
-      end
-  end
-end
-
 fun fold-comparisons(l :: List<Comparison>) -> Comparison:
   cases (List<Comparison>) l:
     | empty      => equal
@@ -363,7 +346,7 @@ sharing:
           | t-var(_)            => greater-than
           | t-arrow(b-args, b-ret) =>
             fold-comparisons([list:
-              old-list-compare(a-args, b-args),
+              list-compare(a-args, b-args),
               a-ret._comp(b-ret)
             ])
           | t-app(_, _)      => less-than
@@ -379,7 +362,7 @@ sharing:
           | t-arrow(_, _)    => greater-than
           | t-app(b-onto, b-args) =>
             fold-comparisons([list:
-              old-list-compare(a-args, b-args),
+              list-compare(a-args, b-args),
               a-onto._comp(b-onto)
             ])
           | t-record(_)       => less-than
@@ -408,7 +391,7 @@ sharing:
           | t-record(_)      => greater-than
           | t-forall(b-introduces, b-onto) =>
             fold-comparisons([list:
-              old-list-compare(a-introduces, b-introduces),
+              list-compare(a-introduces, b-introduces),
               a-onto._comp(b-onto)
             ])
           | t-top               => less-than
