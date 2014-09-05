@@ -93,7 +93,7 @@ data Name:
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
     tostring(self, shadow tostring): "_" end,
-    toname(self): raise("Cannot get name for underscore") end,
+    toname(self): "_" end,
     key(self): "underscore#" end
 
   | s-name(l :: Loc, s :: String) with:
