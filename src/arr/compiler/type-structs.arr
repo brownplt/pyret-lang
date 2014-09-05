@@ -153,7 +153,7 @@ data TypeVariable:
   | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
   tostring(self) -> String:
-    self.id.toname() + " <: " + self.upper-bound.tostring()
+    self.id.toname() + " <: " + tostring(self.upper-bound)
   end,
   key(self) -> String:
     self.id.key() + " <: " + self.upper-bound.key()
@@ -163,7 +163,7 @@ end
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
     tostring(self):
-      self.field-name + " : " + self.typ.tostring()
+      self.field-name + " : " + tostring(self.typ)
     end,
     key(self):
       self.field-name + " : " + self.typ.key()
@@ -254,21 +254,19 @@ sharing:
       | t-var(id) => id.toname()
       | t-arrow(args, ret) =>
         "("
-          + args.map(_.tostring()).join-str(", ")
-          + " -> " + ret.tostring() + ")"
+          + args.map(tostring).join-str(", ")
+          + " -> " + tostring(ret) + ")"
       | t-app(onto, args) =>
-        onto.tostring() + "<" + args.map(_.tostring()).join-str(", ") + ">"
+        tostring(onto) + "<" + args.map(tostring).join-str(", ") + ">"
       | t-top => "Top"
       | t-bot => "Bot"
       | t-record(fields) =>
         "{"
-          + for map(field from fields):
-              field.tostring()
-            end.join-str(", ")
+          + fields.map(tostring).join-str(", ")
           + "}"
       | t-forall(introduces, onto) =>
-        "<" + introduces.map(_.tostring()).join-str(",") + ">"
-          + onto.tostring()
+        "<" + introduces.map(tostring).join-str(",") + ">"
+          + tostring(onto)
     end
   end,
   key(self) -> String:

@@ -212,7 +212,7 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ 
                 handle :: (A.Expr, Loc, List<TypeMember> -> SynthesisResult),
                 info :: TCInfo
 ) -> SynthesisResult:
-  non-obj-err = synthesis-err([list: C.incorrect-type(obj-typ.tostring(), obj-typ-loc, "an object type", access-loc)])
+  non-obj-err = synthesis-err([list: C.incorrect-type(tostring(obj-typ), obj-typ-loc, "an object type", access-loc)])
   cases(Type) obj-typ:
     | t-record(members) =>
       handle(obj, obj-typ-loc, members)
@@ -235,7 +235,7 @@ fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-
       | some(tm) =>
         synthesis-result(A.s-dot(l, new-obj, field-name), l, tm.typ)
       | none =>
-        synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(_.tostring()).join-str(", ") + "}", l, access-loc)])
+        synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(tostring).join-str(", ") + "}", l, access-loc)])
     end
   end, info)
 end
@@ -393,7 +393,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
             map-result(to-type-std(_, info), args)
               .bind(instantiate(l, base-typ, data-type, _, info))
           | none =>
-            fold-errors([list: C.given-parameters(base-typ.tostring(), l)])
+            fold-errors([list: C.given-parameters(tostring(base-typ), l)])
         end
       end
     | a-pred(l, ann, exp) =>
@@ -482,7 +482,7 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm-loc :: A.Loc, tm :: TypeMember) -
           info.typs.set(arg.id.key(), declared-typ)
           fold-result(info)
         else:
-          fold-errors([list: C.incorrect-type(declared-typ.tostring(), declared-loc, typ.tostring(), tm-loc)])
+          fold-errors([list: C.incorrect-type(tostring(declared-typ), declared-loc, tostring(typ), tm-loc)])
         end
       | none =>
         info.typs.set(arg.id.key(), typ)
@@ -594,7 +594,7 @@ fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A
           end
         end
       | none =>
-        create-err([list: C.cant-match-on(typ.tostring(), l)])
+        create-err([list: C.cant-match-on(tostring(typ), l)])
     end
   end
 end
@@ -684,7 +684,7 @@ fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, inf
           synthesis-result(new-inst, l, t-bot)
         end
       | else =>
-        synthesis-err([list: C.incorrect-type(tmp-typ.tostring(), tmp-typ-loc, "a function", l)])
+        synthesis-err([list: C.incorrect-type(tostring(tmp-typ), tmp-typ-loc, "a function", l)])
     end
   end)
 end
@@ -974,7 +974,7 @@ end
 
 fun <V> check-and-log(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
   when not(satisfies-type(typ, expect-typ, info)):
-    info.errors.insert(C.incorrect-type(typ.tostring(), typ-loc, expect-typ.tostring(), expect-loc))
+    info.errors.insert(C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc))
   end
   value
 end
@@ -983,7 +983,7 @@ fun check-and-return(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-
   if satisfies-type(typ, expect-typ, info):
     checking-result(value)
   else:
-    checking-err([list: C.incorrect-type(typ.tostring(), typ-loc, expect-typ.tostring(), expect-loc)])
+    checking-err([list: C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc)])
   end
 end
 

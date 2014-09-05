@@ -1001,7 +1001,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
         cases(Type) t:
           | t-arrow(t-args, t-ret) =>
             ret-constraints = generate-constraints(blame-loc, s-ret, t-ret, to-remove, unknowns, info)
-            args-fold = foldl2-result(C.incorrect-type(s.tostring(), blame-loc, t.tostring(), blame-loc))
+            args-fold = foldl2-result(C.incorrect-type(tostring(s), blame-loc, tostring(t), blame-loc))
             for args-fold(curr from ret-constraints,
                           s-arg from s-args, t-arg from t-args):
               generate-constraints(blame-loc, t-arg, s-arg, to-remove, unknowns, info)
@@ -1031,7 +1031,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
             onto-constraints = generate-constraints(blame-loc, s-onto, t-onto, to-remove, unknowns, info)
             cases(Option<DataType>) TCS.get-data-type(s-onto, info):
               | some(data-type) =>
-                args-fold = foldl3-result(C.incorrect-type(s.tostring(), blame-loc, t.tostring(), blame-loc))
+                args-fold = foldl3-result(C.incorrect-type(tostring(s), blame-loc, tostring(t), blame-loc))
                 for args-fold(curr from onto-constraints,
                               param from data-type.params,
                               s-arg from s-args, t-arg from t-args):
