@@ -359,7 +359,7 @@ bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
 
 .PHONY : docs-test
 docs-test: docs
-	cd docs/written && scribble --htmls test-harness.scrbl
+	cd docs/written && scribble --htmls index.scrbl
 
 .PHONY : clean
 clean:
