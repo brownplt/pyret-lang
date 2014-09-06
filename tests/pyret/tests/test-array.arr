@@ -3,8 +3,6 @@
 
 fun negate(f): lam(x): not(f(x));;
 
-identical = (_ == _)
-
 check:
   a1 = [array: 1, 2, 3]
 
@@ -137,12 +135,14 @@ end
 check:
   a1 = raw-array-of(3, 3)
   a2 = raw-array-of(3, 3)
-  a1 is a2
-  a2 is a1
+  a1 is=~ a2
+  a2 is=~ a1
 
   raw-array-set(a1, 0, "f")
-  a1 satisfies negate(identical(_, a2))
-  a2 satisfies negate(identical(_, a1))
+  a1 is-not<=> a2
+  a2 is-not<=> a1
+  a1 is-not=~ a2
+  a2 is-not=~ a1
 end
 
 data D:
@@ -187,3 +187,15 @@ check:
 
 end
 
+check:
+  [array: 1, 2, 3] is-not== [array: 1, 2, 3]
+  [array: 1, 2, 3] is=~ [array: 1, 2, 3]
+  [array: 1, 2] is-not=~ [array: 1, 2, 3]
+
+  a1 = [array: 1, 2]
+  a2 = [array: 1, 3]
+  a1 is-not=~ a2
+
+  a2.set(1, 2)
+  a1 is=~ a2
+end

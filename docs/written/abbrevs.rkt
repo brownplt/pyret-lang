@@ -1,6 +1,6 @@
 #lang racket/base
 (require "../scribble-api.rkt")
-(provide A N No B S RA RA-of L L-of O-of)
+(provide A N No B S EQ RA RA-of L L-of O-of S-of E-of)
 
 (define A (a-id "Any" (xref "<global>" "Any")))
 (define N (a-id "Number" (xref "<global>" "Number")))
@@ -8,7 +8,11 @@
 (define B (a-id "Boolean" (xref "<global>" "Boolean")))
 (define S (a-id "String" (xref "<global>" "String")))
 (define RA (a-id "RawArray" (xref "<global>" "RawArray")))
-(define (RA-of typ) (a-app (a-id "RawArray" (xref "<global>" "RawArray")) (list typ)))
+(define EQ (a-id "EqualityResult" (xref "equality" "EqualityResult")))
+(define (RA-of typ) (a-app (a-id "RawArray" (xref "<global>" "RawArray")) typ))
 (define L (a-id "List" (xref "lists" "List")))
-(define (L-of typ) (a-app (a-id "List" (xref "lists" "List")) (list typ)))
-(define (O-of typ) (a-app (a-id "Option" (xref "option" "Option")) (list typ)))
+(define (L-of typ) (a-app (a-id "List" (xref "lists" "List")) typ))
+(define (S-of typ) (a-app (a-id "Set" (xref "sets" "Set")) typ))
+(define (O-of typ) (a-app (a-id "Option" (xref "option" "Option")) typ))
+(define (E-of typ1 typ2) (a-app (a-id "Either" (xref "either" "Either")) typ1 typ2))
+

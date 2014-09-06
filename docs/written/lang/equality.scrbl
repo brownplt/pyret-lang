@@ -2,63 +2,68 @@
 
 @(require scribble/core
           scribble/decode
+          (only-in scribble/manual link)
+          scriblib/footnote
           "../abbrevs.rkt"
           "../../scribble-api.rkt"
           scribble/html-properties)
 
+@(define boolean '(a-id "Boolean" (xref "<global>" "Boolean")))
+@(define eq '(a-id "EqualityResult" (xref "equality" "EqualityResult")))
+@(define T (a-id "EqualityResult" (xref "equality" "EqualityResult")))
+
 
 @(append-gen-docs
-  '(module "<equality>"
+  `(module "equality"
     (path "src/js/base/runtime-anf.js")
-    (data-spec
-      (name "Truth")
-      (variants ("true" "false" "unknown")))
-    (singleton-spec (name "true") (with-members ()))
-    (singleton-spec (name "false") (with-members ()))
-    (singleton-spec (name "unknown") (with-members ()))
     (fun-spec
       (name "equal-now")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,boolean)
       (doc ""))
     (fun-spec
       (name "equal-always")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,boolean)
       (doc ""))
     (fun-spec
       (name "identical")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,boolean)
       (doc ""))
     (fun-spec
-      (name "equal-now-3")
+      (name "equal-now3")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,eq)
       (doc ""))
     (fun-spec
-      (name "equal-always-3")
+      (name "equal-always3")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,eq)
       (doc ""))
     (fun-spec
-      (name "identical-3")
+      (name "identical3")
       (arity 2)
       (args ("val1" "val2"))
+      (return ,eq)
       (doc ""))
-))
-
-@(let ()
-  (curr-module-name "<equality>"))
+  ))
 
 
-@(define code tt)
+@(define code pyret)
 
-@(define equal-now-op @code{"=~"})
-@(define equal-always-op @code{"=="})
-@(define identical-op @code{"<=>"})
+@(define equal-now-op @code{=~})
+@(define equal-always-op @code{==})
+@(define identical-op @code{<=>})
 
-@title{Equality}
+
+@docmodule["equality"]{
+
 
 @section{Types of Equality}
 
@@ -69,7 +74,7 @@ compare to some other languages' operators:
 
 @tabular[
   #:style (style #f (list (attributes '((style . "border-collapse: collapse;")))))
-  #:column-properties (list (list (attributes '((style . "border: 1px solid black;")))))
+  #:column-properties (list (list (attributes '((style . "border: 1px solid black; padding: 5px;")))))
   (list
     (list
       @list{@bold{Name}}
@@ -82,21 +87,21 @@ compare to some other languages' operators:
       @list{@emph{Equal Now}}
       @list{@code{=~}}
       @list{@code{equal-now}}
-      @list{@code{equal-now-3}}
+      @list{@code{equal-now3}}
       @list{@code{equal?} (Racket) @code{==} (Python, Ruby)}
     )
     (list
       @list{@emph{Always Equal}}
       @list{@code{==}}
       @list{@code{equal-always}}
-      @list{@code{equal-always-3}}
+      @list{@code{equal-always3}}
       @list{@code{=} (Ocaml)}
     )
     (list
       @list{@emph{Identical}}
       @list{@code{<=>}}
       @list{@code{identical}}
-      @list{@code{identical-3}}
+      @list{@code{identical3}}
       @list{
         @code{eq?} (Scheme)
         @code{==} (Ocaml)
@@ -111,338 +116,159 @@ compare to some other languages' operators:
 In most programs, you should use @emph{always equal}, or @code{==}, to compare
 values that you want to check for same-ness.  If you are working with mutable
 data, you may want to consider the special behavior of @emph{equal now}.  For
-some optimizations, truly defensive code, and capability patterns, you may
-have a reason to use @emph{identical}.
-
-@section{Always Equal}
-  @function["equal-always" #:contract (a-arrow A A B)]
-
-  Checks if the two values will always be equal, and corresponds to the
-  @equal-always-op operator.
-
-  @code{equal-always} checks for structural equality of immutable data, raises
-  exceptions on functions, and checks for identical-ness of mutable data.
-
-@subsection[#:tag "s:always-equal-primitives"]{Always Equal and Primitives}
-
-  @code{equal-always} checks primitive equality on numbers, strings, and
-  booleans:
-
-@pyret-block{
-  check:
-    5 is%(equal-always) 5
-    5 isnot%(equal-always) 6
-    "abc" is%(equal-always) "abc"
-    "a" isnot%(equal-always) "b"
-    "a" isnot%(equal-always) 5
-  end
-}
-
-@subsection[#:tag "s:always-equal-structural"]{Always Equal and Structural Equality}
-
-  For instances of @code{data} (including, for example, instances of
-  @code{List}), and objects, @code{equal-always} traverses their members and
-  checks for pairwise equality.  So, for example, lists will recursively check
-  that their contents are the same, including the case where their contents
-  are objects:
-
-@pyret-block{
-  check:
-    l1 = [list: 1, 2, 3]
-    l2 = [list: 1, 2, 3]
-
-    l1 is%(equal-always) l2
-    link(1, l1) isnot%(equal-always) l2
-
-    l3 = [{x: 5}]
-    l4 = [{x: 5}]
-    l5 = [{x: 6}]
-    l3 is%(equal-always) l4
-    l3 isnot%(equal-always) l5
-  end
-}
-
-  There are a few subtleties of structural equality that interact with mutable
-  data and with 
-
-@subsection[#:tag "s:always-equal-mutable"]{Always Equal and Mutable Data}
-
-  So, for example, two instances of a datatype with a mutable field will test
-  as not always equal:
-
-@pyret-block{
-
-  data MyBox:
-    | my-box(ref x)
-  end
-
-  check:
-    b1 = my-box(1)
-    b2 = my-box(1)
-
-    b1 is%(equal-always) b2 is false
-    b1!{x : 2}
-
-    b1 is%(equal-always) b2 is false
-  end
-
-}
-
-  However, two instances of an immutable datatype will traverse their members
-  when using @code{==}, so a list of boxes will compare its (potentially
-  mutable) contents recursively with @code{equal-always}
-
-@pyret-block{
-  check:
-    b1 = my-box(1)
-    b2 = my-box(1)
-
-    l1 = [list: b1, b2]
-    l2 = [list: b1, b2]
-    l3 = [list: b1, b1]
-
-    l1 is%(equal-always) l2
-    l1 isnot%(equal-always) l3
-  end
-}
-
-@subsection[#:tag "s:always-equal-frozen"]{Always Equal and Frozen Mutable Data}
-
-  Mutable references can be @emph{frozen}[REF] (as with @code{graph:}), which
-  renders them immutable.  @code{equal-always} @emph{will} traverse frozen
-  mutable fields, and will check for same-shaped cycles.  So, for example, it
-  will succeed for cyclic graphs created with @code{graph:} that have the same
-  shape:
-
-@pyret-block{
-  data MList:
-    | mlink(ref first, ref rest)
-    | mempty
-  end
-  mlist = {
-    make: fun(arr):
-      # fold mlink over arr 
-    end
-  }
-
-  graph:
-    BOS = [mlist: WOR, PROV]
-    PROV = [mlist: BOS]
-    WOR = [mlist: BOS]
-  end
-
-  graph:
-    SF = [mlist: OAK, MV]
-    MV = [mlist: SF]
-    OAK = [mlist: SF]
-  end
-
-  SF is%(equal-now) BOS
-  PROV is%(equal-now) WOR
-  PROV is%(equal-now) OAK
-  OAK is%(equal-now) PROV
-}
-
-@subsection[#:tag "s:always-equal-functions"]{Always Equal and Functions}
-
-  When comparing two functions or two methods, @code{equal-always} raises an
-  exception.  Why?  Well the traditional way to compare functions for equality
-  (short of solving the halting problem), is to use reference equality on the
-  function's representations.  For a hint of why this can be a misleading
-  definition of equality, consider this data definition:
-
-@pyret-block{
-  data Stream<a>:
-    | stream(first :: a, rest :: (-> Stream<a>))
-  end
-}
-
-  And some tests:
-
-@pyret-block{
-  check:
-    fun mk-ones():
-      stream(1, ones)
-    end
-    ones = mk-ones()
-    ones is%(equal-always) ones # Should this succeed?
-    ones is%(equal-always) mk-ones() # What about this?
-    ones.rest() is%(equal-always) mk-ones() # Or this...?
-  end
-}
-
-  All of these values (@code{ones}, @code{mk-ones()}, etc.) have the same
-  behavior, so we could argue that @code{is} (which uses @code{==} behind the
-  scenes) ought to succeed on these.  And indeed, if we used reference
-  equality, it would succeed.  But consider this small tweak to the program:
-  
-@pyret-block{
-  check:
-    fun mk-ones():
-      stream(1, lam(): ones() end)  # <-- changed this line
-    end
-    ones = mk-ones()
-    ones is%(equal-always) ones # Should this succeed?
-    ones is%(equal-always) mk-ones() # What about this?
-    ones.rest() is%(equal-always) mk-ones() # Or this...?
-  end
-}
-
-  If we used reference equality on these functions, all of these tests would
-  now fail, and @code{ones} @emph{has the exact same behavior}.  Here's the
-  situation:
-
-  When reference equality returns @code{true}, we know that the two functions
-  must have the same behavior.  But when it returns @code{false}, we know
-  nothing!  They functions may behave exactly the same, or they might be
-  compeltely different, and the equality predicate can't tell us either way
-  (indeed, this gets into the halting problem again).
-
-  Pyret takes the following stance: You probably should rethink your program
-  if it relies on comparing functions for equality, since Pyret cannot give
-  reliable answers (no language can).  So, all the examples above actually
-  raise exceptions:
-
-@pyret-block{
-  check:
-    fun mk-ones():
-      stream(1, lam(): ones() end)  # <-- changed this line
-    end
-    ones = mk-ones()
-    ones == ones raises "Incomparable"
-    ones == mk-ones() raises "Incomparable"
-    ones.rest() == mk-ones() raises "Incomparable"
-  end
-}
-
-  @bold{Note 1}: Functions can be compared with non-function values and return
-  @code{false}.  That is, @code{equal-always} only throws the error if actual
-  function values need to be compare to one another, not if a function value
-  is compared to another type of value:
-
-@pyret-block{
-  check:
-    f = lam(): "no-op" end
-    g = lam(): "also no-op" end
-
-    f == f raises "Incomparable"
-    f == g raises "Incomparable"
-    g == f raises "Incomparable"
-
-    5 isnot%(equal-always) f
-
-    { x: 5 } isnot%(equal-always) { x: f }
-  end
-}
-
-  @bold{Note 2}: This rule about functions interacts with structural equality.
-  When comparing two values, it seems at first unclear whether the result
-  should be @code{false} or an error for this test:
-
-@pyret-block{
-  check:
-    { x: 5, f: lam(): "no-op" end } is%(equal-always)
-      { x: 6, f: lam(): "no-op" end }
-  end
-}
-
-  This comparison will return @code{false}.  The rule is that if the equality
-  algorithm can find values that differ without comparing functions, it will
-  report the difference and return @code{false}.  However, if all of the
-  non-function comparisons are @code{true}, then an error is raised.  A few
-  more examples:
-
-@pyret-block{
-
-  check:
-    o = { x: 5, y: { z: 6 }, lam(): "no-op" end }
-    o2 = { x: 5, y: { z: 7 }, lam(): "no-op" end }
-
-    (o == o) raises "Incomparable"
-    o isnot%(equal-always) o2  # Test succeeds, because z fields differ
-  end
-
-}
-
+some optimizations, defensive code, and capability patterns, you may have a
+reason to use @emph{identical}.
 
 @section{Equal Now}
-  @function["equal-now" #:contract (a-arrow A A B)]
 
-  Checks if the two values are equal @emph{now} (they may not be later).
-  Corresponds to the @equal-now-op operator.
+@function["equal-now" #:contract (a-arrow A A B)]
 
-  @code{equal-now} only checks for equality @emph{now} because it traverses
-  mutable values and checks their contents for equality.
+Checks if the two values are equal @emph{now} (they may not be later).
+Corresponds to the @equal-now-op operator.
   
-@subsection{Equal Now and Primitives}
+@subsection[#:tag "s:equal-now-primitives"]{Equal Now and Primitives}
   
-  Equal Now has the same behavior on primitives as Always Equal
-  (@secref["s:always-equal-primitives"]).
-  
-@subsection[#:tag "s:equal-now-structural"]{Equal Now and Structural and Mutable Equality}
+@code{equal-now} checks primitive equality on numbers, strings, and
+booleans:
 
-  Equal now has the same structural behavior as Always Equal
-  (@secref["s:always-equal-structural"]) with the exception of mutable data.
-
-  Instead of using Identical to check unfrozen references, Equal Now checks
-  the contents of @emph{all} mutable data it reaches.  This gives it its name:
-  since it only checks the @emph{current} values, and those fields might
-  change, it is not true that if @code{e1 =~ e2}, then later @code{e1 =~ e2}
-  will hold again.  For example:
-
-@pyret-block{
-  check:
-    data MyBox:
-      | my-box(ref x)
-    end
-
-    check:
-      b1 = my-box(1)
-      b2 = my-box(1)
-
-      b1 is(equal-now) b2 is true
-      b1!{x : 2}
-
-      b1 is(equal-now) b2 is false
-    end
-  end
+@examples{
+check:
+  5 is%(equal-now) 5
+  5 is-not%(equal-now) 6
+  "abc" is%(equal-now) "abc"
+  "a" is-not%(equal-now) "b"
+  "a" is-not%(equal-now) 5
+end
 }
 
-@subsection[#:tag "s:equal-now-functions"]{Equal Now and Functions}
+@subsection[#:tag "s:equal-now-structural"]{Equal Now and Structured Data}
 
-  Equal now has the same behavior on functions as Always Equal
-  (@secref["s:always-equal-structural"]).
+For instances of @code{data} (including, for example, instances of
+@pyret-id["List" "lists"]), and objects, @pyret-id{equal-now} traverses their
+members and checks for pairwise equality.  So, for example, lists will
+recursively check that their contents are the same, including the case where
+their contents are objects:
+
+@examples{
+check:
+  l1 = [list: 1, 2, 3]
+  l2 = [list: 1, 2, 3]
+
+  l1 is%(equal-now) l2
+  link(1, l1) isnot%(equal-now) l2
+
+  l3 = [{x: 5}]
+  l4 = [{x: 5}]
+  l5 = [{x: 6}]
+  l3 is%(equal-now) l4
+  l3 isnot%(equal-now) l5
+end
+}
+
+@subsection[#:tag "s:equal-now-mutable"]{Equal Now and References}
+
+Equal Now checks the contents of mutable data it reaches.  This gives it its
+name: since it only checks the @emph{current} values, and those fields might
+change, it is not true that if @code{e1 =~ e2}, then later @code{e1 =~ e2} will
+hold again.  For example:
+
+@examples{
+data MyBox:
+  | my-box(ref x)
+end
+
+check:
+  b1 = my-box(1)
+  b2 = my-box(1)
+
+  b1 is%(equal-now) b2
+  b1!{x : 2}
+
+  b1 is-not%(equal-now) b2
+end
+}
+
+Equal Now will recognize when references form a cycle, and cycles of the same
+shape are recognized as equal (even though the references might change their
+contents later):
+
+@examples{
+data InfiniteList:
+  | i-link(first, ref rest)
+  | i-empty
+end
+
+check:
+  l1 = i-link(1, i-empty)
+  l2 = i-link(1, i-empty)
+  l3 = i-link(1, i-link(2, i-empty))
+  l1!{rest : l1}
+  l2!{rest : l2}
+  l3!rest!{rest : l3}
+
+  l1 is%(equal-now) l2
+  l1 is-not%(equal-now) l3
+end
+}
 
 @section{Identical}
 
-  @function["identical" #:contract (a-arrow A A B)]
-
+@function["identical" #:contract (a-arrow A A B)]
 
 @subsection[#:tag "s:identical-primitives"]{Identical and Primitives}
 
-  Identical has the same behavior on primitives as Always Equal
-  (@secref["s:always-equal-primitives"]).
+Identical has the same behavior on primitives as Equal Now
+(@secref["s:equal-now-primitives"]).
 
 @subsection[#:tag "s:identical-structural"]{Identical and Structural Equality}
 
-  Identical differs from the other equality operators in that it does not
-  visit members of objects or data instances.  Instead, it checks if the
-  values are actually the same exact value (the operator is meant to indicate
-  that the values are interchangable).  So objects with the same fields are
-  not identical:
+Identical does not visit members of objects or data instances.  Instead, it
+checks if the values are actually the same exact value (the operator is meant
+to indicate that the values are interchangable).  So objects with the same
+fields are not identical to anything but themselves:
 
-@pyret-block{
-  check:
-    o = { x: 5 }
-    o2 = { x: 5 }
-    o isnot%(identical) o2
-    o is%(identical) o
-    o2 is%(identical) o
-  end
+@examples{
+check:
+  o = { x: 5 }
+  o2 = { x: 5 }
+  o is-not%(identical) o2
+  o is%(identical) o
+  o2 is%(identical) o2
+end
 }
 
 @subsection[#:tag "s:identical-mutable"]{Identical and Mutable Data}
 
+Identical does not inspect the contents of mutable data, either.  It can be
+used to tell if two references are @emph{aliases} for the same underlying
+state, or if they are in fact different (even though they may be equal right
+now).
+
+@examples{
+data InfiniteList:
+  | i-link(first, ref rest)
+  | i-empty
+end
+
+check:
+  l1 = i-link(1, i-empty)
+  l2 = i-link(1, i-empty)
+  l1!{rest : l1}
+  l2!{rest : l2}
+
+  l1 is%(identical) l1
+  l1!rest is%(identical) l1
+  l1 is-not%(identical) l2
+  l1!rest is-not%(identical) l2
+
+  l2 is%(identical) l2
+  l2!rest is%(identical) l2
+  l2 is-not%(identical) l1
+  l2!rest is-not%(identical) l1
+end
+}
+
+@;{
   Identical differs from the other equality operators on mutable data in that
   on frozen immutable data, it does not inspect the contents of the reference.
   Instead, it checks that the two references are in fact the same reference.
@@ -480,11 +306,285 @@ have a reason to use @emph{identical}.
   BOS!rest is%(identical) PROV
   BOS is%(identical) BOS
 }
+}
 
-@subsection[#:tag "s:identical-functions"]{Identical and Functions}
+@section{Always Equal}
 
-  Equal Now has the same behavior on functions as Always Equal
-  (@secref["s:always-equal-functions"]).
+@function["equal-always" #:contract (a-arrow A A B)]
+
+Checks if the two values will always be equal, and corresponds to the
+@equal-always-op operator.
+
+@code{equal-always} checks for primitive and structural equality like
+@pyret-id{equal-now}, with the exception that it stops at mutable data and only
+checks that the mutable values are @pyret-id{identical}.  Stopping at mutable
+boundaries ensures that if two values were @pyret-id{equal-always} at any
+point, they will still be @pyret-id{equal-always} later.
+
+
+@subsection[#:tag "s:always-equal-mutable"]{Always Equal and Mutable Data}
+
+Here are some examples of @pyret-id{equal-always} stopping at mutable data, but
+checking immutable data, contrasted with @pyret-id{equal-now}
+
+@pyret-block{
+data MyBox:
+  | my-box(ref x)
+end
+
+check:
+  b1 = my-box(1)
+  b2 = my-box(1)
+
+  b1 is-not%(equal-always) b2
+  b1 is%(equal-now) b2
+  b2!{x : 2}
+
+  b1 is-not%(equal-always) b2
+  b1 is-not%(equal-now) b2
+
+  b3 = my-box(2)
+
+  # remember that b2 currently contains 2
+  l1 = [list: b1, b2]
+  l2 = [list: b1, b2]
+  l3 = [list: b1, b3]
+
+  l1 is%(equal-now) l2
+  l1 is%(equal-always) l2
+  l1 is-not%(identical) l2
+
+  l1 is%(equal-now) l3
+  l1 is-not%(equal-always) l3
+  l1 is-not%(identical) l3
+
+  b2!{x: 5}
+
+  l1 is%(equal-now) l2
+  l1 is%(equal-always) l2
+  l1 is-not%(identical) l2
+
+  l1 is-not%(equal-now) l3
+  l1 is-not%(equal-always) l3
+  l1 is-not%(identical) l3
+end
+}
+
+
+@;{
+@subsection[#:tag "s:always-equal-frozen"]{Always Equal and Frozen Mutable Data}
+
+  Mutable references can be @emph{frozen}[REF] (as with @code{graph:}), which
+  renders them immutable.  @code{equal-always} @emph{will} traverse frozen
+  mutable fields, and will check for same-shaped cycles.  So, for example, it
+  will succeed for cyclic graphs created with @code{graph:} that have the same
+  shape:
+
+@pyret-block{
+  data MList:
+    | mlink(ref first, ref rest)
+    | mempty
+  end
+  mlist = {
+    make: fun(arr):
+      # fold mlink over arr 
+    end
+  }
+
+  graph:
+    BOS = [mlist: WOR, PROV]
+    PROV = [mlist: BOS]
+    WOR = [mlist: BOS]
+  end
+
+  graph:
+    SF = [mlist: OAK, MV]
+    MV = [mlist: SF]
+    OAK = [mlist: SF]
+  end
+
+  SF is%(equal-now) BOS
+  PROV is%(equal-now) WOR
+  PROV is%(equal-now) OAK
+  OAK is%(equal-now) PROV
+}
+}
+
+@section{Properties of Equality Functions}
+
+The discussion above hints at a relationship between the three functions.  In
+particular, if two values are Identical, they ought to be Always Equal, and if
+they are Always Equal, they ought to be Equal Now.  The following table
+summarizes this relationship, which in fact does hold:
+
+@tabular[
+  #:style (style #f (list (attributes '((style . "border-collapse: collapse;")))))
+  #:column-properties (list (list (attributes '((style . "border: 1px solid black; padding: 5px;")))))
+  (list
+    (list
+      @list{If ↓, then →}
+      @list{@code{v1 <=> v2} could be...}
+      @list{@code{v1 == v2} could be...}
+      @list{@code{v1 =~ v2} could be...}
+    )
+    (list
+      @list{@code{v1 <=> v2 is true}}
+      "-"
+      @;@list{@code{true} only}
+      @list{@code{true} only}
+      @list{@code{true} only}
+    )
+    (list
+      @list{@code{v1 == v2 is true}}
+      @list{@code{true} or @code{false}}
+      "-"
+      @;@list{@code{true} only}
+      @list{@code{true} only}
+    )
+    (list
+      @list{@code{v1 =~ v2 is true}}
+      @list{@code{true} or @code{false}}
+      @list{@code{true} or @code{false}}
+      "-"
+      @;@list{@code{true} only}
+    )
+    )
+]
+
+This table doesn't have all the @pyret{false} cases in it, because we need to
+complete the story for a few values that haven't been discussed before we can
+give the whole picture.
+
+@section[#:tag "s:equality-and-functions"]{Equality and Functions}
+
+When comparing two functions or two methods, all the equality operators raise
+an exception.  Why?  Well, the traditional way to compare functions for
+equality (short of solving the halting problem), is to use reference equality
+(or @pyret-id{identical}) on the functions' representations, the same way as
+mutable data works.  For a hint of why this can be a misleading definition of
+equality, consider this data definition:
+
+@pyret-block{
+data Stream<a>:
+  | stream(first :: a, rest :: (-> Stream<a>))
+end
+check:
+  fun mk-ones(): stream(1, mk-ones) end
+  ones = mk-ones()
+  ones is ones # Should this succeed?
+  ones is mk-ones() # What about this?
+  ones.rest() is mk-ones() # Or this...?
+end
+}
+
+All of these values (@code{ones}, @code{mk-ones()}, etc.) have the same
+behavior, so we could argue that @code{is} (which uses @code{==} behind the
+scenes) ought to succeed on these.  And indeed, if we used reference equality,
+it would succeed.  But consider this small tweak to the program:
+  
+@pyret-block{
+check:
+  fun mk-ones():
+    stream(1, lam(): mk-ones() end)  # <-- changed this line
+  end
+  ones = mk-ones()
+  ones is ones # Should this succeed?
+  ones is mk-ones() # What about this?
+  ones.rest() is mk-ones() # Or this...?
+end
+}
+
+If we used reference equality on these functions, all of these tests would
+now fail, and @code{ones} @emph{has the exact same behavior}.  Here's the
+situation:
+
+@note{In fact, a @link["http://en.wikipedia.org/wiki/Rice's_theorem"]{famous
+result in theoretical computer science} is that it is impossible to figure out
+out if two functions do the same thing in general, even if it is possible in
+certain special cases (like reference equality).}
+
+When reference equality returns @code{true}, we know that the two functions
+must have the same behavior.  But when it returns @code{false}, we know
+nothing.  The functions may behave exactly the same, or they might be
+completely different, and the equality predicate can't tell us either way.
+
+Pyret takes the following stance: You probably should rethink your program if
+it relies on comparing functions for equality, since Pyret cannot give reliable
+answers (no language can).  So, all the examples above (with one notable
+exception) actually raise errors:
+
+@pyret-block{
+  check:
+    fun mk-ones():
+      stream(1, lam(): mk-ones() end)  # <-- changed this line
+    end
+    ones = mk-ones()
+    ones == ones is true
+    ones == mk-ones() raises "Attempted to compare functions"
+    ones.rest() == mk-ones() raises "Attempted to compare functions"
+  end
+}
+
+The first test is true because two @pyret-id{identical} values are considered
+@pyret-id{equal-always}.  This is an interesting point in this design space
+that Pyret may explore more in the future -- it isn't clear if the benefits of
+this relationship between @pyret-id{identical} and @pyret-id{equal-always} are
+worth the slight brittleness in the above example.
+
+@para{
+@bold{Note 1}: Functions can be compared with non-function values and return
+@code{false}.  That is, the equality operators only throw the error if actual
+function values need to be compared to one another, not if a function value is
+compared to another type of value:
+}
+
+@pyret-block{
+  check:
+    f = lam(): "no-op" end
+    g = lam(): "also no-op" end
+
+    f == f raises "Attempted to compare functions"
+    f == g raises "Attempted to compare functions"
+    g == f raises "Attempted to compare functions"
+
+    5 isnot%(equal-always) f
+
+    { x: 5 } isnot%(equal-always) { x: f }
+  end
+}
+
+@para{
+  @bold{Note 2}: This rule about functions interacts with structural equality.
+  When comparing two values, it seems at first unclear whether the result
+  should be @code{false} or an error for this test:
+  }
+
+@pyret-block{
+  check:
+    { x: 5, f: lam(): "no-op" end } is%(equal-always)
+      { x: 6, f: lam(): "no-op" end }
+  end
+}
+
+This comparison will return @code{false}.  The rule is that if the equality
+algorithm can find values that differ without comparing functions, it will
+report the difference and return @code{false}.  However, if all of the
+non-function comparisons are @code{true}, and some functions were compared,
+then an error is raised.  A few more examples:
+
+@pyret-block{
+
+  check:
+    o = { x: 5, y: { z: 6 }, lam(): "no-op" end }
+    o2 = { x: 5, y: { z: 7 }, lam(): "no-op" end }
+
+    (o == o) raises "Attempted to compare functions"
+    o isnot%(equal-always) o2  # Test succeeds, because z fields differ
+  end
+
+}
+
+
 
 
 @section[#:tag "s:total-equality-predicates"]{Total Equality Functions (Avoiding Incomparability Errors)}
@@ -496,41 +596,253 @@ compare arbitrary values, and it's convenient to have the ability to compare
 values without raising an exception.  Since the equality of functions is
 unknown, we define the result of a total equality check with a new datatype:
 
-@data-spec["Truth"]
-@pyret-block{
-  data Truth:
-    | true
-    | false
-    | unknown
-  end
-}
 
-@(define T (a-id "Truth" (xref "<equality>" "Truth")))
+
+  @data-spec2["EqualityResult" (list) (list
+  @singleton-spec2["EqualityResult" "Equal"]
+  @constructor-spec["EqualityResult" "NotEqual" (list `("reason" ("type" "normal") ("contract" ,S)))]
+  @singleton-spec2["EqualityResult" "Unknown"])]
+
+  @nested[#:style 'inset]{
+  @singleton-doc["EqualityResult" "Equal" T]
+  @constructor-doc["EqualityResult" "NotEqual" (list `("reason" ("type" "normal") ("contract" ,S))) T]
+  @singleton-doc["EqualityResult" "Unknown" T]
+
+  @function["is-Equal" #:alt-docstrings ""]
+  @function["is-NotEqual" #:alt-docstrings ""]
+  @function["is-Unknown" #:alt-docstrings ""]
+  }
+
 
 We define three parallel functions to the equality predicates that return
-@code{Truth} values.  They return @code{true} and @code{false} whenever the
-corresponding function would, and @code{unknown} whenever the corresponding
-function would throw an error:
+@pyret-id{EqualityResult} values.  They return @pyret-id{Equal} and
+@pyret-id{NotEqual} whenever the corresponding function would, and
+@pyret-id{Unknown} whenever the corresponding function would throw an error:
 
-  @function["equal-always-3" #:contract (a-arrow A A T)]
-  @function["equal-now-3" #:contract (a-arrow A A T)]
-  @function["identical-3" #:contract (a-arrow A A T)]
+  @function["equal-always3" #:contract (a-arrow A A T)]
+  @function["equal-now3" #:contract (a-arrow A A T)]
+  @function["identical3" #:contract (a-arrow A A T)]
 
-For example:
-
-@pyret-block{
-  check:
-    f = lam(): 5 end
-    equal-always-3(f, f) is unknown
-    equal-always-3(f, 5) is false
-    equal-now-3(f, f) is unknown
-    equal-now-3("a", f) is false
-    identical-3("a", f) is unknown
-    identical-3(f, f) is unknown
-    identical-3("a", f) is false
-  end
+@examples{
+check:
+  f = lam(): 5 end
+  equal-always3(f, f) is Unknown
+  equal-always3(f, 5) satisfies is-NotEqual
+  equal-now3(f, f) is Unknown
+  equal-now3("a", f) satisfies is-NotEqual
+  identical3("a", f) satisfies is-NotEqual
+  identical3(f, f) is Unknown
+  identical3("a", f) satisfies is-NotEqual
+end
 }
+
+We can now modify our table from above to be more complete:
+
+
+@tabular[
+  #:style (style #f (list (attributes '((style . "border-collapse: collapse;")))))
+  #:column-properties (list (list (attributes '((style . "border: 1px solid black; padding: 5px;")))))
+  (list
+    (list
+      @list{If ↓, then →}
+      @list{@code{identical(v1, v2)} could be...}
+      @list{@code{equal-always(v1, v2)} could be...}
+      @list{@code{equal-now(v1, v2)} could be...}
+    )
+    (list
+      @list{@code{identical(v1, v2) is Equal}}
+      "-"
+      @;@list{@code{Equal} only}
+      @list{@code{Equal} only}
+      @list{@code{Equal} only}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is Equal}}
+      @list{@code{Equal} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Equal} only}
+      @list{@code{Equal} only}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is Equal}}
+      @list{@code{Equal} or @code{NotEqual}}
+      @list{@code{Equal} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Equal} only}
+    )
+    (list "" "" "" "")
+    (list
+      @list{@code{identical(v1, v2) is NotEqual}}
+      "-"
+      @;@list{@code{NotEqual} only}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is NotEqual}}
+      @list{@code{NotEqual} only}
+      "-"
+      @;@list{@code{NotEqual} only}
+      @list{@code{Equal} or @code{NotEqual} or @code{Unknown}}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is NotEqual}}
+      @list{@code{NotEqual} only}
+      @list{@code{NotEqual} only}
+      "-"
+      @;@list{@code{NotEqual} only}
+    )
+    (list "" "" "" "")
+    (list
+      @list{@code{identical(v1, v2) is Unknown}}
+      "-"
+      @;@list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+    )
+    (list
+      @list{@code{equal-always(v1, v2) is Unknown}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Unknown} only}
+      @list{@code{Unknown} only}
+    )
+    (list
+      @list{@code{equal-now(v1, v2) is Unknown}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      @list{@code{Unknown} or @code{NotEqual}}
+      "-"
+      @;@list{@code{Unknown} only}
+    )
+    )
+]
+
 
 @section[#:tag "s:datatype-defined-equality"]{Datatype-defined Equality}
 
-[FILL] Call the @code{_equals} method and stuff
+The functions @pyret-id{equal-now} and @pyret-id{equal-always} are defined to
+work over values created with @pyret{data} by comparing fields in the same
+position.  However, sometimes user-defined values need a more sophisticated
+notion of equality than this simple definition provides.
+
+For consider implementing an unordered @emph{set} of values in Pyret.  We might
+choose to implement it as a function that creates an object closing over the
+implementation of the set itself:
+
+@pyret-block{
+fun<a> make-empty-set():
+  {
+    add(self, element :: a): ... end,
+    member(self, element :: a) -> Boolean: ... end,
+    equal-to-other-set(self, other) -> Boolean: ... end
+  }
+end
+}
+
+We could fill in the bodies of the methods to have this implementation let
+clients create sets and add elements to them, but it won't work well with
+testing:
+
+@pyret-block{
+check:
+  s = make-empty-set().add(5)
+  s2 = make-empty-set().add(5)
+
+  s.member(5) is true
+  s2.member(5) is true
+
+  s.equal-to-other-set(s2) is true
+
+  s == s2 raises "Attempted to compare functions"
+end
+}
+
+The final test raises an exception because it traverses the structure of the
+object, and the only visible values are the three methods, which cannot be
+compared.  We might just say that users of custom datatypes have to use custom
+predicates for testing, for example they could write:
+
+@pyret-block{
+check:
+  # as before ...
+  fun equal-sets(set1, set2): set1.equal-to-other-set(set2) end
+  s is%(equal-sets) s2
+end
+}
+
+This works for sets on their own, but the built-in testing and equality
+operators will not work with nested user-defined data structures.  For example,
+since lists are a dataype that checks built-in equality on their members, a
+list of sets as defined above will not use the equal-to-other-set method when
+comparing elements, and give an @pyret{"Attempted to compare functions"} error:
+
+@pyret-block{
+check:
+  # as before ...
+  ([list: s] == [list: s2]) raises "Attempted to compare functions"
+end
+}
+
+To help make this use case more pleasant, Pyret picks a method name to call, if
+it is present, on user-defined objects when checking equality.  The method name
+is @pyret{_equals}, and it has the following signature:
+
+@(render-fun-helper '(method-spec)
+  "_equals"
+  (list 'part (tag-name (curr-module-name) "_equal"))
+  (a-arrow "a" "a" (a-arrow A A EQ) EQ)
+  EQ
+  (list (list "self" "") (list "other" "") (list "equal-rec" ""))
+  '()
+  '()
+  '())
+
+Where @pyret{a} is the type of the object itself (so for sets, @pyret{other}
+would be annotated with @pyret{Set<a>}).
+
+The @pyret{_equals} method is called in the equality algorithm when:
+
+@itemlist[
+  @item{The two values are either both data values or both objects, AND}
+  @item{If they are data values, the two values are of the same data type and
+        variant, AND}
+  @item{If they are objects not created by data, they have the same set of
+  @seclink["brands"]}
+]
+
+So, for example, an object with an @pyret{_equals} method that always returns
+@pyret-id{Equal} is not considered equal to values that aren't also objects:
+
+@pyret-block{
+import Equal from equality
+check:  
+  eq-all = { _equals(self, other, eq): Equal end }
+  eq-all is-not== f
+  eq-all is-not== m
+  eq-all is-not== 0
+  eq-all is-not== "a"
+  eq-all is== {}
+end
+}
+
+The last argument to @pyret{_equals} is the recursive equality callback to use
+for checking equality of any members.  When checking for equality of members
+(say in our set implementation above), we would use this callback rather than
+one of @pyret-id{equal-always3} or @pyret-id{equal-now3}.  The reasons for this
+are twofold:
+
+@itemlist[
+  @item{In order to check for equality of cyclic values, Pyret needs to do
+  internal bookkeeping of visited references.  This information is stored
+  within the callback, and calling e.g. @pyret-id{equal-now3} directly would not
+  take previously visted references into account.}
+
+  @item{To avoid requiring datatypes to implement two equality methods, the
+  callback also knows whether this equality call was started by
+  @pyret-id{equal-now} or by @pyret-id{equal-always}.  Any recursive calls
+  should use the original semantics for comparing references, so using the
+  callback ensures that equality checks on elements have the right semantics
+  (even in deeply nested data structures).}
+]
+
+}

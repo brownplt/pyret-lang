@@ -431,6 +431,12 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("{ ref ref: 5 }")).toBe(false); 
     });
 
+    it("should parse mutable graph exprs", function() {
+      expect(parse("ref-graph: WOR = 5 end")).not.toBe(false);
+      expect(parse("ref-graph: WOR = [list: 1] BOS = [list: 3] end")).not.toBe(false);
+      expect(parse("ref-graph: WOR = [list: 1] BOS = [list: 3] PVD = [list: BOS] end")).not.toBe(false);
+    });
+
     it("should parse imports", function() {
       expect(parse('import modname as G')).not.toBe(false);
       expect(parse('import "modname.arr" as G')).not.toBe(false);
@@ -440,6 +446,53 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('import gdrive() as G')).toBe(false);
     });
 
+    it("should parse new equality operators", function() {
+      expect(parse('o <=> o2')).not.toBe(false);
+      expect(parse('o <= > o2')).toBe(false);
+      expect(parse('o < = > o2')).toBe(false);
+      expect(parse('o < => o2')).toBe(false);
+      expect(parse('o =~ o2')).not.toBe(false);
+      expect(parse('o == o2')).not.toBe(false);
 
+      expect(parse('check: o is== o2;')).not.toBe(false);
+      expect(parse('check: o is == o2;')).toBe(false);
+      expect(parse('check: o is=~ o2;')).not.toBe(false);
+      expect(parse('check: o is =~ o2;')).toBe(false);
+      expect(parse('check: o is<=> o2;')).not.toBe(false);
+      expect(parse('check: o is <=> o2;')).toBe(false);
+      
+      expect(parse('check: o is-not== o2;')).not.toBe(false);
+      expect(parse('check: o is-not == o2;')).toBe(false);
+      expect(parse('check: o is-not=~ o2;')).not.toBe(false);
+      expect(parse('check: o is-not =~ o2;')).toBe(false);
+      expect(parse('check: o is-not<=> o2;')).not.toBe(false);
+      expect(parse('check: o is-not <=> o2;')).toBe(false);
+    });
+
+    it("should parse ref cases bindings", function() {
+      expect(parse('cases(List) l: | link(ref first, rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first, ref rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(first, ref rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, rest) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, rest :: Number) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(first :: Number, ref rest :: Number) => 5 end')).not.toBe(false);
+      expect(parse('cases(List) l: | link(ref first :: Number, ref rest :: Number) => 5 end')).not.toBe(false);
+
+      expect(parse('cases(List) l: link(ref ref) => 5 end')).toBe(false);
+    });
+
+    it("should parse type parameters on methods", function() {
+      expect(parse('method<a>(self): self end')).not.toBe(false);
+      expect(parse('method<a,b>(self): self end')).not.toBe(false);
+      expect(parse('method<a,b,c>(self): self end')).not.toBe(false);
+      expect(parse('{ m<a>(self): self end }')).not.toBe(false);
+      expect(parse('{ m<a,b>(self): self end }')).not.toBe(false);
+      expect(parse('{ m<a,b,c>(self): self end }')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a>(self): 5 end sharing: m2<a>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a,b>(self): 5 end sharing: m2<a,b>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a,b,c>(self): 5 end sharing: m2<a,b,c>(self): 5 end end')).not.toBe(false);
+    });
   });
+
+
 });

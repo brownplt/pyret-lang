@@ -11,6 +11,7 @@ import either as E
 
 type Loc = SL.Srcloc
 
+
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
@@ -18,6 +19,7 @@ fun ok-last(stmt):
     A.is-s-fun(stmt) or
     A.is-s-data(stmt) or
     A.is-s-graph(stmt) or
+    A.is-s-m-graph(stmt) or
     A.is-s-contract(stmt) or
     A.is-s-check(stmt) or
     A.is-s-type(stmt) or
@@ -248,7 +250,7 @@ fun <a, c> default-env-map-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       A.s-cases-branch(l, pat-loc, name, new-args, body.visit(self.{env: args-env}))
@@ -265,14 +267,18 @@ fun <a, c> default-env-map-visitor(
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
-    s-method(self, l, args, ann, doc, body, _check):
-      new-args = args.map(_.visit(self))
-      args-env = for lists.fold(acc from self.env, arg from new-args):
+    s-method(self, l, params, args, ann, doc, body, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
+      new-args = args.map(_.visit(with-params))
+      args-env = for lists.fold(acc from with-params.env, arg from new-args):
         bind-handlers.s-bind(arg, acc)
       end
-      new-body = body.visit(self.{env: args-env})
-      new-check = self.{env: args-env}.option(_check)
-      A.s-method(l, new-args, ann.visit(self.{env: args-env}), doc, new-body, new-check)
+      new-body = body.visit(with-params.{env: args-env})
+      new-check = with-params.{env: args-env}.option(_check)
+      A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, new-check)
     end
   }
 end
@@ -365,7 +371,7 @@ fun <a, c> default-env-iter-visitor(
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       visit-args = lists.all(_.visit(self), args)
-      args-env = for lists.fold(acc from self.env, arg from args):
+      args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       visit-args
@@ -383,14 +389,18 @@ fun <a, c> default-env-iter-visitor(
       and lists.all(_.visit(with-params), shared-members)
       and with-params.option(_check)
     end,
-    s-method(self, l, args, ann, doc, body, _check):
+    s-method(self, l, params, args, ann, doc, body, _check):
+      new-type-env = for lists.fold(acc from self.type-env, param from params):
+        bind-handlers.s-param-bind(l, param, acc)
+      end
+      with-params = self.{type-env: new-type-env}
       args-env = for lists.fold(acc from self.env, arg from args):
         bind-handlers.s-bind(arg, acc)
       end
-      lists.all(_.visit(self), args) and
-        ann.visit(self.{env: args-env}) and
-        body.visit(self.{env: args-env}) and
-        self.{env: args-env}.option(_check)
+      lists.all(_.visit(with-params), args) and
+        ann.visit(with-params.{env: args-env}) and
+        body.visit(with-params.{env: args-env}) and
+        with-params.{env: args-env}.option(_check)
     end
   }
 end
@@ -515,11 +525,17 @@ end
 inline-lams = A.default-map-visitor.{
   s-app(self, loc, f, exps):
     cases(A.Expr) f:
-      | s-lam(l, _, args, _, _, body, _) =>
+      | s-lam(l, _, args, ann, _, body, _) =>
+        a = A.global-names.make-atom("inline_body")
         let-binds = for lists.map2(arg from args, exp from exps):
           A.s-let-bind(arg.l, arg, exp.visit(self))
         end
-        A.s-let-expr(l, let-binds, body)
+        cases(A.Ann) ann:
+          | a-blank => A.s-let-expr(l, let-binds, body.visit(self))
+          | a-any => A.s-let-expr(l, let-binds, body.visit(self))
+          | else =>
+            A.s-let-expr(l, let-binds + [list: A.s-let-bind(body.l, A.s-bind(l, false, a, ann), body.visit(self))], A.s-id(l, a))
+        end
       | else => A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
     end
   end
@@ -605,4 +621,18 @@ letrec-visitor = A.default-map-visitor.{
     A.s-id-letrec(l, id, self.env.get(id.key()))
   end
 }
+
+fun make-renamer(replacements :: SD.StringDict):
+  A.default-map-visitor.{
+    s-atom(self, base, serial):
+      a = A.s-atom(base, serial)
+      k = a.key()
+      if replacements.has-key(k):
+        replacements.get(k)
+      else:
+        a
+      end
+    end
+  }
+end
 

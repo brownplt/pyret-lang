@@ -1,227 +1,133 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@docmodule["<global>" #:noimport #t]{
-  @section[#:tag "globals_DataTypes"]{Built-in Types}
-   @data-spec["Boolean"]{
-     @nested{
-       The type of the values @tt{true} and @tt{false}.  For example:
+@docmodule["<global>" #:noimport #t #:friendly-title "Global Utilities"]{
 
-       @pyret-block{
-         x :: Boolean = true
-         x :: Boolean = 52 # an error
+@section[#:tag "global-builtins"]{Built-in Utility Functions}
 
-         fun f(x) -> Boolean:
-           if x: 1
-           else: 0
-           end
-         end
-         f(2) # also an error, because f does not evaluate to a Boolean
-       }
-     }
-   }
-   @data-spec["String"]{
-     @para{
-       The type of string values
-     }
+@function["torepr" #:contract (a-arrow A S) #:alt-docstrings ""]
 
-     @subsection{String Functions}
+Creates a string representation of the value that resembles an expression that
+could be used to construct it.  This is what the REPL and test-results printer
+use to display values. 
 
-  @function["strings-equal" #:contract (a-arrow S S B)]{
+@examples{
+check:
+  # torepr wraps strings in quotes
+  torepr("this-will-have-quotes") is "\"this-will-have-quotes\""
 
-  }
-  @function["string-contains" #:contract (a-arrow S S B)]{
+  # torepr on lists always prints with [list: ...] notation
+  torepr(link(1, empty)) is "[list: 1]"
+}
 
-  }
-  @function["string-append" #:contract (a-arrow S S S)]{
+@function["tostring" #:contract (a-arrow A S) #:alt-docstrings ""]
 
-  }
-  @function["string-length" #:contract (a-arrow S N)]{
+Creates a string representation of the value for display, that is
+value-dependent.  Error messages, for example, have different
+@pyret-id{tostring} results that print line and column information and a
+formatted error message, which is much different from their @pyret-id{torepr}.
 
-  }
-  @function["string-tonumber" #:contract (a-arrow S N)]{
+@function["raise" #:contract (a-arrow A No) #:alt-docstrings ""]
 
-  }
-  @function["string-repeat" #:contract (a-arrow S N S)]{
-
-  }
-  @function["string-substring" #:contract (a-arrow S N N S)]{
-
-  }
-  @function["string-replace" #:contract (a-arrow S S S S)]{
-
-  }
-  @function["string-split" #:contract (a-arrow S S)]{
-
-  }
-  @function["string-char-at" #:contract (a-arrow S N S)]{
-
-  }
-  @function["string-toupper" #:contract (a-arrow S S)]{
-
-  }
-  @function["string-tolower" #:contract (a-arrow S S)]{
-
-  }
-  @function["string-explode" #:contract (a-arrow S (L-of S))]{
-
-  }
-  @function["string-index-of" #:contract (a-arrow S S N)]{
-
-  }
-   }
-   @data-spec["Number"]{
-     @para{
-       The type of number values
-     }
-     @subsection{Number Functions}
-  @function["nums-equal" #:contract (a-arrow N N B)]{
-
-  }
-  @function["num-max" #:contract (a-arrow N N N)]{
-
-  }
-  @function["num-min" #:contract (a-arrow N N N)]{
-
-  }
-  @function["num-abs" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-sin" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-cos" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-tan" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-asin" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-acos" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-atan" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-modulo" #:contract (a-arrow N N N)]{
-
-  }
-  @function["num-truncate" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-sqrt" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-sqr" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-ceiling" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-floor" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-log" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-exp" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-expt" #:contract (a-arrow N N N)]{
-
-  }
-  @function["num-exact" #:contract (a-arrow N N)]{
-
-  }
-  @function["num-is-integer" #:contract (a-arrow N B)]{
-
-  }
-  @function["num-is-fixnum" #:contract (a-arrow N B)]{
-
-  }
-  @function["num-tostring" #:contract (a-arrow N S)]{
-
-  }
-   }
-   @data-spec["Nothing"]{
-     @para{
-       The type of the special value @tt{nothing}
-     }
-   }
-   @data-spec["Function"]{
-     @para{
-       The type of all function values
-     }
-   }
-   @data-spec["Method"]{
-     @para{
-       The type of all method values
-     }
-   }
-   @data-spec["RawArray"]{
-     @para{
-       The type of raw arrays: can be parameterized by type (as in @tt{RawArray<String>})
-     }
-  @function["raw-array-of" #:contract (a-arrow "a" N (RA-of "a"))]{
-
-  }
-  @function["raw-array-get" #:contract (a-arrow (RA-of "a") N "a")]{
-
-  }
-  @function["raw-array-set" #:contract (a-arrow (RA-of "a") N "a" (RA-of "a"))]{
-
-  }
-  @function["raw-array-length" #:contract (a-arrow (RA-of "a") N)]{
-
-  }
-  @function["raw-array-to-list" #:contract (a-arrow (RA-of "a") (L-of "a"))]{
-
-  }
-  @function["raw-array-fold" #:contract (a-arrow (a-arrow "b" "a" N) "b" (RA-of "a") N "b")]{
-
-  }
-
-   }
-   @data-spec["Object"]{
-     @para{
-       The type of all objects
-     }
-   }
-
-  @section[#:tag "globals_Functions"]{Functions}
-
-   @function["is-nothing" #:contract (a-arrow "Any" (a-id "Booleanean" (xref "<global>" "Boolean")))]{
-      The type of the value @tt{nothing}
-   }
-   @function["is-boolean" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]{
-      Returns @tt{true} for @tt{true} and @tt{false}, and @tt{false} for all other values.
-   }
-   @function["is-string" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]{
-      @para{Returns true for strings, false for non-strings.  Strings can be written @tt{@literal{"}text@literal{"}} or @tt{@literal{'}text@literal{'}}, 
-      and may not span multiple lines.  Allowed escapes are @tt{\n} (newline), 
-      @tt{\r} (carriage return), @tt{\t} (tab), @tt{\[0-8]{1,3}} for octal escapes, 
-      @tt{\x[0-9a-fA-F]{1,2}} for single-byte hexadecimal escapes, or @tt{\u[0-9a-fA-F]{1,4}} 
-      for double-byte Unicode escapes.  Additionally, @tt{@literal{\"}} escapes a double-quote within a 
-      double-quoted string, and @tt{@literal{\'}} escapes a single quote within a single-quoted string.}
-      
-      @para{Multi-line string literals may be written @tt{@literal{```} text @literal{```}}.  The same escape sequences
-      are valid as for single-line strings.  Leading and trailing whitespace of the string are
-      trimmed.}
-   }
-   @function["is-number" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]{
-      Returns true for numbers, false for non-numbers.  Numbers are @itemlist[
-         @item{Integers, e.g. @tt{345} or @tt{-321}}
-         @item{Rationals, e.g. @tt{355/113} or @tt{-321/6789}}
-         @item{Inexact numbers, e.g. @tt{123.4567} or @tt{-0.987}}
-         @item{Complex numbers, e.g. @tt{1+2i}, where the real and imaginary components may be integers, rationals or inexact numbers}
-      ]
-   }  
-   @function["is-function" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]{
-      Returns true for functions, false for non-functions
-      ]
-   }  
+Raises the value as an error.  This usually stops the program and reports the
+raised value, but errors can be caught and checked in tests by
+@pyret-id["raises" "testing"] and by @seclink["testing-blocks"]{@pyret{check:}
+blocks}.
 
 
+
+
+@section{Built-in Types}
+
+@type-spec["Any" (list)]
+
+A type specification that permits all values.  This is mainly useful
+in built-in language forms, like in @secref["equality"] or
+@pyret-id{torepr}, which truly do handle any value.  Pyret programs that
+use @pyret-id{Any} on their own can usually be restructured to not use the annotation
+and be clearer about what data they are working with.
+
+@type-spec["Number" (list)]
+
+The type of @seclink["numbers"].
+
+@type-spec["Boolean" (list)]
+
+The type of @seclink["booleans"].
+
+@type-spec["String" (list)]
+
+The type of @seclink["strings"].
+
+@type-spec["RawArray" (list)]
+
+The type of @seclink["raw-arrays"].
+
+@type-spec["Nothing" (list)]
+
+The type of the special value @pyret{nothing}, used in contexts where the
+program evaluates but has no meaningful answer by design (see, for example
+@pyret-id["each" "lists"]).
+
+@type-spec["Object" (list)]
+
+The type of all values constructed from @pyret{data} constructors and
+singletons, and by object literals.
+
+@type-spec["Function" (list)]
+
+The type of all function values.
+
+@type-spec["Method" (list)]
+
+The type of all method values; most Pyret programs should never need to work
+with method values directly.
+
+@section{Type Predicates}
+
+A number of functions are available to tell which kind of builtin value a
+particular value is.
+
+@function["is-boolean" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+Returns @tt{true} for @tt{true} and @tt{false}, and @tt{false} for all other values.
+
+@function["is-string" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+  @para{Returns true for strings, false for non-strings.  Strings can be written @tt{@literal{"}text@literal{"}} or @tt{@literal{'}text@literal{'}}, 
+  and may not span multiple lines.  Allowed escapes are @tt{\n} (newline), 
+  @tt{\r} (carriage return), @tt{\t} (tab), @tt{\[0-8]{1,3}} for octal escapes, 
+  @tt{\x[0-9a-fA-F]{1,2}} for single-byte hexadecimal escapes, or @tt{\u[0-9a-fA-F]{1,4}} 
+  for double-byte Unicode escapes.  Additionally, @tt{@literal{\"}} escapes a double-quote within a 
+  double-quoted string, and @tt{@literal{\'}} escapes a single quote within a single-quoted string.}
+  
+  @para{Multi-line string literals may be written @tt{@literal{```} text @literal{```}}.  The same escape sequences
+  are valid as for single-line strings.  Leading and trailing whitespace of the string are
+  trimmed.}
+
+@function["is-number" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+  Returns true for numbers, false for non-numbers.  Numbers are @itemlist[
+     @item{Integers, e.g. @tt{345} or @tt{-321}}
+     @item{Rationals, e.g. @tt{355/113} or @tt{-321/6789}}
+     @item{Inexact numbers, e.g. @tt{123.4567} or @tt{-0.987}}
+     @item{Complex numbers, e.g. @tt{1+2i}, where the real and imaginary components may be integers, rationals or inexact numbers}
+  ]
+
+@function["is-function" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+Returns true for functions, false for non-functions
+
+@function["is-nothing" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+@function["is-object" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+@function["is-method" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+@function["is-raw-array" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
+
+
+
+
+   
 }

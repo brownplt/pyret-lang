@@ -23,67 +23,67 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    tostring(self): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
+    tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    tostring(self): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
+    tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
   | reserved-name(loc :: Loc, id :: String) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
   | zero-fraction(loc, numerator) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
     end
   | unbound-id(id :: A.Expr) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
     end
   | unbound-type-id(ann :: A.Ann) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.ann.l) + ", but is not defined as a type."
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable"
     end
   | pointless-var(loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
   | pointless-graph-id(loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Anonymous bindings (such as the one at " + tostring(self.loc) + ") are not permitted in graphs, as they cannot be used"
     end
   | pointless-shadow(loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + self.id + " is assigned at " + tostring(self.loc)
         + ", but its definition at " + self.prev-loc.format(not(self.loc.same-file(self.prev-loc)))
         + " is not assignable.  (Only names declared with var are assignable.)"
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
         + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")"
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
         + ", but is already declared at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The field " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
@@ -273,6 +273,15 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-length",
   "raw-array-to-list",
   "raw-array-fold",
+  "ref-get",
+  "ref-set",
+  "ref-freeze",
+  "equal-always",
+  "equal-always3",
+  "equal-now",
+  "equal-now3",
+  "identical",
+  "identical3",
   "exn-unwrap"
 ])
 

@@ -296,7 +296,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
 
       it("should have correct _equals", function() {
 
-          var equals = rt.same;
+          var equals = rt.equal_always;
 
           //Equal
           expect(equals(zero, zero)).toEqual(  true);

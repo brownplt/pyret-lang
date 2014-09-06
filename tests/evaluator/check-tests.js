@@ -127,6 +127,25 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
       });
     });
 
+    describe("raises-satisfies/raises-violates", function() {
+      testGroup("should succeed/fail based on the predicate", function() {
+        test("check: raise('oops') raises-satisfies _ == 'oops' end", checkPassed);
+        test("check: raise('spoo') raises-satisfies _ == 'oops' end", checkFailed);
+        test("check: raise('oops') raises-violates  _ == 'oops' end", checkFailed);
+        test("check: raise('spoo') raises-violates  _ == 'oops' end", checkPassed);
+      });
+      testGroup("should fail on no exception", function() {
+        test("check: 'oops' raises-satisfies _ == 'oops' end", checkFailed);
+        test("check: 'oops' raises-violates  _ == 'oops' end", checkFailed);
+      });
+      testGroup("should give good error messages", function() {
+        test("check: raise('spoo') raises-satisfies _ == 'oops' end",  checkMessage("Predicate failed for exception"));
+        test("check: raise('oops') raises-violates  _ == 'oops' end",  checkMessage("Predicate succeeded for exception"));
+        test("check: 'oops'        raises-satisfies _ == 'oops'  end", checkMessage("No exception raised"));
+        test("check: 'oops'        raises-violates  _ == 'oops'  end", checkMessage("No exception raised"));
+      });
+    });
+
     describe("errors", function() {
       testGroup("should not report success when errors happen", function() {
         test("check: x :: String = 3\n  1 is 1 end", checkMessage("Ended in Error: 1"));

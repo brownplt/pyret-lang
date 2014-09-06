@@ -53,7 +53,9 @@ default-typs.set("isBoolean", t-arrow([list: t-top], t-boolean))
 default-typs.set(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
 default-typs.set("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
 default-typs.set("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
-default-typs.set("equiv", t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set(A.s-global("identical").key(), t-arrow([list: t-top, t-top], t-boolean))
 default-typs.set("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
 default-typs.set(A.s-global("_times").key(), t-arrow([list: t-number, t-number], t-number))
 default-typs.set(A.s-global("_minus").key(), t-arrow([list: t-number, t-number], t-number))
@@ -235,7 +237,7 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "fold-result(" + tostring(self.v) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -251,7 +253,7 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "fold-errors(" + tostring(self.errors) + ")"
     end,
     bind(self, f) -> FoldResult<V>:

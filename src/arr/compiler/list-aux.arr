@@ -42,7 +42,7 @@ fun <A, B, R> map2-strict(f :: (A, B -> R), l1 :: List<A>, l2 :: List<B>) -> Opt
     | link(a, ar) => cases (List<B>) l2:
         | empty       => none
         | link(b, br) => map2-strict(f, ar, br).and-then(lam(rest :: List<R>):
-              some(link(f(a, b), rest))
+              link(f(a, b), rest)
             end)
      end
   end

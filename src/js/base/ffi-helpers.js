@@ -1,8 +1,8 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
-       function(util, listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib, checkerLib) {
+define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
+       function(util, listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
     
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, O, E, ERR, S, CON, CH) {
+    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, O, E, EQ, ERR, S, CON, CH) {
 
       function makeList(arr) {
         var lst = runtime.getField(L, "empty");
@@ -238,6 +238,11 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("type-mismatch")(val, name);
       }
 
+      function makeRefInitFail(loc, reason) {
+        checkSrcloc(loc);
+        return contract("ref-init")(loc, reason);
+      }
+
       function makePredicateFailure(val, name) {
         runtime.checkString(name);
         runtime.checkPyretVal(val);
@@ -260,6 +265,18 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
 
       function isFailArg(val) {
         return contract("is-fail-arg")(val);
+      }
+
+      function isEqual(val) {
+        return gf(EQ, "is-Equal").app(val);
+      }
+
+      function isNotEqual(val) {
+        return gf(EQ, "is-NotEqual").app(val);
+      }
+
+      function isUnknown(val) {
+        return gf(EQ, "is-Unknown").app(val);
       }
 
       return {
@@ -293,6 +310,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         makeFieldFailure: makeFieldFailure,
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
+        makeRefInitFail: makeRefInitFail,
         makePredicateFailure: makePredicateFailure,
         makeDotAnnNotPresent: makeDotAnnNotPresent,
         contractOk: gf(CON, "ok"),
@@ -301,6 +319,13 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         isOk: isOk,
         isFail: isFail,
         isFailArg: isFailArg,
+
+        equal: gf(EQ, "Equal"),
+        notEqual: gf(EQ, "NotEqual"),
+        unknown: gf(EQ, "Unknown"),
+        isEqual: isEqual,
+        isNotEqual: isNotEqual,
+        isUnknown: isUnknown,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,

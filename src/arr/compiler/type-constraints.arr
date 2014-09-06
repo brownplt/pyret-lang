@@ -1,8 +1,6 @@
 provide { generate-constraints   : generate-constraints,
           arrow-constraints      : arrow-constraints,
           empty-type-constraints : empty-type-constraints,
-          Equality               : Equality,
-          Bounds                 : Bounds,
           satisfies-type         : satisfies-type,
           determine-variance     : determine-variance,
           least-upper-bound      : least-upper-bound,
@@ -290,7 +288,7 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-app(b-onto, b-args) =>
-          a-onto._equal(b-onto) and
+          (a-onto == b-onto) and
           cases(Option<DataType>) TCS.get-data-type(a-onto, info):
             | some(data-type) =>
               params-length = data-type.params.length()
@@ -548,22 +546,22 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
     | else => raise("NYI(free-vars): " + torepr(t))
   end
 where:
-  free-vars(example-a, empty-bindings) satisfies [set: example-a]._equals
-  free-vars(example-b, empty-bindings) satisfies [set: example-b]._equals
-  free-vars(example-c, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-d, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-e, empty-bindings) satisfies [set: example-a]._equals
-  free-vars(example-f, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-g, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-h, empty-bindings) satisfies [set: example-a]._equals
-  free-vars(example-i, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-j, empty-bindings) satisfies [set: example-b]._equals
-  free-vars(example-k, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-l, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-m, empty-bindings) satisfies [set: example-a, example-b]._equals
-  free-vars(example-n, empty-bindings) satisfies [set: ]._equals
-  free-vars(example-o, empty-bindings) satisfies [set: ]._equals
-  free-vars(example-p, empty-bindings) satisfies [set: ]._equals
+  free-vars(example-a, empty-bindings) is [set: example-a]
+  free-vars(example-b, empty-bindings) is [set: example-b]
+  free-vars(example-c, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-d, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-e, empty-bindings) is [set: example-a]
+  free-vars(example-f, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-g, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-h, empty-bindings) is [set: example-a]
+  free-vars(example-i, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-j, empty-bindings) is [set: example-b]
+  free-vars(example-k, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-l, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-m, empty-bindings) is [set: example-a, example-b]
+  free-vars(example-n, empty-bindings) is [set: ]
+  free-vars(example-o, empty-bindings) is [set: ]
+  free-vars(example-p, empty-bindings) is [set: ]
 end
 
 fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
@@ -933,7 +931,7 @@ sharing:
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
-  tostring(self) -> String:
+  tostring(self, shadow tostring) -> String:
     "type-constraints("
       + dict-to-string(self.dict)
       + ")"
@@ -994,7 +992,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
   else if unknowns.member(t) and is-empty(s-free.intersect(unknowns).to-list()):
     r = least-supertype(s, to-remove, info)
     fold-result(initial.insert(t, Bounds(r, t-top), info))
-  else if s._equal(t):
+  else if s == t:
     fold-result(initial)
   else if binds.has-key(s-str):
     generate-constraints(blame-loc, binds.get(s-str), t, to-remove, unknowns, info)

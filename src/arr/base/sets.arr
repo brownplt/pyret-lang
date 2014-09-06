@@ -21,6 +21,7 @@ import lists as lists
 import error as error
 import option as option
 import arrays as arrays
+import equality as equality
 
 List = lists.List
 empty = lists.empty
@@ -94,8 +95,12 @@ sharing:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
-  _equals(self, other):
-    AVLTree(other) and (self.inorder() == other.inorder())
+  _equals(self, other, eq):
+    if not(AVLTree(other)):
+      equality.NotEqual("Non-AVLTree")
+    else:
+      eq(self.inorder(), other.inorder())
+    end
   end
 end
 
@@ -185,7 +190,7 @@ end
 
 data Set:
   | list-set(elems :: lists.List) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "[list-set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
@@ -194,7 +199,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self):
+    _torepr(self, shadow torepr):
       "[list-set: " + 
       self.elems.foldl(lam(elem, acc):
           if acc == "": torepr(elem)
@@ -263,7 +268,7 @@ data Set:
     
     
   | tree-set(elems :: AVLTree) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": tostring(elem)
@@ -272,7 +277,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self):
+    _torepr(self, shadow torepr):
       "[tree-set: " + 
       self.elems.fold(lam(acc, elem):
           if acc == "": torepr(elem)
@@ -337,8 +342,7 @@ data Set:
       end, self.elems)
       tree-set(new-elems)
     end
-    
-    
+
 sharing:
   
   symmetric_difference(self :: Set, other :: Set) -> Set:
@@ -346,10 +350,22 @@ sharing:
     self.union(other).difference(self.intersect(other))
   end,
   
-  _equals(self, other):
-    Set(other) and (self.to-list().sort() == other.to-list().sort())
+  _equals(self, other, eq):
+    if not(Set(other)):
+      equality.NotEqual("Non-Set")
+    else:
+      self-list = self.to-list()
+      other-list = other.to-list()
+      if not(other-list.length() == self-list.length()):
+        equality.NotEqual("set size")
+      else:
+        for fold(result from equality.Equal, elt from self-list):
+          result-for-elt = lists.member-with(other-list, elt, eq)
+          equality.equal-and(result, result-for-elt)
+        end
+      end
+    end
   end
-  
 end
 
 fun list-to-set(lst :: lists.List, base-set :: Set) -> Set:

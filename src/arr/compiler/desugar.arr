@@ -4,10 +4,11 @@ provide *
 provide-types *
 import ast as A
 import parse-pyret as PP
+import string-dict as SD
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 
-names = A.MakeName(0)
+names = A.global-names
 
 data DesugarEnv:
   | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
@@ -108,9 +109,9 @@ fun make-torepr(l, vname, fields, is-singleton):
         )
   end
   if is-singleton:
-    A.s-method(l, [list: self.id-b], A.a-blank, "", str(vname), none)
+    A.s-method(l, empty, [list: self.id-b], A.a-blank, "", str(vname), none)
   else:
-    A.s-method(l, [list: self.id-b], A.a-blank, "",
+    A.s-method(l, empty, [list: self.id-b], A.a-blank, "",
       concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
       none)
   end
@@ -124,13 +125,15 @@ fun make-match(l, case-name, fields):
   args = for map(f from fields):
       cases(A.VariantMember) f:
         | s-variant-member(l2, mtype, bind) =>
-          when mtype <> A.s-normal:
-            raise("Non-normal member in variant, NYI: " + torepr(f))
+          cases(A.MemberType) mtype:
+            | s-normal =>
+              A.s-dot(l2, self-id.id-e, bind.id.toname())
+            | s-mutable =>
+              A.s-get-bang(l2, self-id.id-e, bind.id.toname())
           end
-          A.s-dot(l2, self-id.id-e, bind.id.toname())
       end
     end
-  A.s-method(l, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
+  A.s-method(l, empty, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
       A.s-if-else(l, [list:
           A.s-if-branch(l,
               A.s-prim-app(
@@ -171,6 +174,12 @@ fun desugar-if(l, branches, _else :: A.Expr):
   end
 end
 
+fun desugar-cases-bind(cb):
+  cases(A.CasesBind) cb:
+    | s-cases-bind(l, typ, bind) => A.s-cases-bind(l, typ, desugar-bind(bind))
+  end
+end
+
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
     | s-cases-branch(l, pat-loc, name, args, body) =>
@@ -179,7 +188,7 @@ fun desugar-case-branch(c):
       #     pat-loc,
       #     name,
       #     A.s-lam(pat-loc, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
-      A.s-cases-branch(l, pat-loc, name, args.map(desugar-bind), desugar-expr(body))
+      A.s-cases-branch(l, pat-loc, name, args.map(desugar-cases-bind), desugar-expr(body))
     | s-singleton-cases-branch(l, pat-loc, name, body) =>
       # desugar-member(
       #   A.s-data-field(
@@ -199,8 +208,8 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, args, ann, doc, body, _check) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, args, ann, doc, body, _check)))
+    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -320,11 +329,95 @@ fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
   end
 end
 
+fun desugar-mutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
+  temps = SD.string-dict()
+  temp-names = for map(b from binds):
+    mk-id(l, b.b.id.toname())
+  end
+  b-ids = for map(b from binds):
+    A.s-id(b.l, b.b.id)
+  end
+  ref-let-binds = for map(b from binds):
+    A.s-let-bind(b.l, b.b, A.s-ref(b.l, none))
+  end
+  temp-let-binds = for map2(b from binds, n from temp-names):
+    A.s-let-bind(b.l, n.id-b, b.value)
+  end
+  finish-graph = for map(b from b-ids):
+    shadow l = b.l
+    A.s-prim-app(l, "refEndGraph", [list: b])
+  end
+  set-refs = for map2(b from b-ids, n from temp-names):
+    shadow l = b.l
+    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: b, n.id-e])
+  end
+  A.s-let-expr(l,
+    ref-let-binds +
+    temp-let-binds,
+    A.s-block(l, finish-graph + set-refs + [list: body])
+  )
+end
+
+
+fun desugar-immutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
+  replacements = SD.string-dict()
+  new-names = for map(b from binds):
+    name = mk-id(l, b.b.id.toname())
+    replacements.set(b.b.id.key(), name.id)
+    name
+  end
+  renamer = U.make-renamer(replacements)
+  ref-let-binds = for map2(b from binds, n from new-names):
+    A.s-let-bind(b.l, n.id-b, A.s-ref(b.l, none))
+  end
+  original-let-binds = for map2(b from binds, n from new-names):
+    A.s-let-bind(b.l, b.b, b.value.visit(renamer))
+  end
+  finish-graph = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-prim-app(l, "refEndGraph", [list: n.id-e])
+  end
+  set-refs = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: n.id-e, A.s-id(l, b.b.id)])
+  end
+  freeze-refs = for map2(b from binds, n from new-names):
+    shadow l = b.l
+    A.s-prim-app(l, "freezeRef", [list: n.id-e])
+  end
+
+  A.s-let-expr(l,
+    ref-let-binds +
+    original-let-binds,
+    A.s-block(l, finish-graph + set-refs + freeze-refs + [list: body])
+  )
+end
+
 fun desugar-bind(b :: A.Bind):
   cases(A.Bind) b:
     | s-bind(l, shadows, name, ann) =>
       A.s-bind(l, shadows, name, desugar-ann(ann))
     | else => raise("Non-bind given to desugar-bind: " + torepr(b))
+  end
+end
+
+fun desugar-let-binds(binds):
+  for map(bind from binds):
+    cases(A.LetBind) bind:
+      | s-let-bind(l2, b, val) =>
+        A.s-let-bind(l2, desugar-bind(b), desugar-expr(val))
+      | s-var-bind(l2, b, val) =>
+        A.s-var-bind(l2, desugar-bind(b), desugar-expr(val))
+    end
+  end
+end
+
+fun desugar-letrec-binds(binds):
+  for map(bind from binds):
+    cases(A.LetrecBind) bind:
+      | s-letrec-bind(l2, b, val) =>
+        A.s-letrec-bind(l2, desugar-bind(b), desugar-expr(val))
+    end
   end
 end
 
@@ -344,8 +437,8 @@ fun desugar-expr(expr :: A.Expr):
       A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, params, args, ann, doc, body, _check) =>
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-method(l, args, ann, doc, body, _check) =>
-      A.s-method(l, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
+    | s-method(l, params, args, ann, doc, body, _check) =>
+      A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
     | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body) =>
@@ -357,51 +450,29 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
     | s-let-expr(l, binds, body) =>
-      new-binds = for map(bind from binds):
-        cases(A.LetBind) bind:
-          | s-let-bind(l2, b, val) =>
-            A.s-let-bind(l2, desugar-bind(b), desugar-expr(val))
-          | s-var-bind(l2, b, val) =>
-            A.s-var-bind(l2, desugar-bind(b), desugar-expr(val))
-        end
-      end
+      new-binds = desugar-let-binds(binds)
       A.s-let-expr(l, new-binds, desugar-expr(body))
     | s-letrec(l, binds, body) =>
-      new-binds = for map(bind from binds):
-          cases(A.LetrecBind) bind:
-            | s-letrec-bind(l2, b, val) =>
-              A.s-letrec-bind(l2, desugar-bind(b), desugar-expr(val))
-          end
-        end
-      A.s-letrec(l, new-binds, desugar-expr(body))
+      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
+    | s-graph-expr(l, binds, body) =>
+      desugar-immutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
+    | s-m-graph-expr(l, binds, body) =>
+      desugar-mutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
-        fun make-methods(l2, vname, members, is-singleton):
-          do-match =
-            if lists.any(lam(s): s.name == "_match" end, shared): empty
-            else: [list: A.s-data-field(l2, "_match", make-match(l2, vname, members))]
-            end
-          do-torepr =
-            if lists.any(lam(s): s.name == "_torepr" end, shared): empty
-            else: [list: A.s-data-field(l2, "_torepr", make-torepr(l2, vname, members, is-singleton))]
-            end
-          do-match + do-torepr
-        end
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
-            methods = make-methods(l2, vname, members, false)
             A.s-variant(
               l2,
               constr-loc,
               vname,
               members.map(desugar-variant-member),
-              (methods + with-members).map(desugar-member))
+              with-members.map(desugar-member))
           | s-singleton-variant(l2, vname, with-members) =>
-            methods = make-methods(l2, vname, [list: ], true)
             A.s-singleton-variant(
               l2,
               vname,
-              (methods + with-members).map(desugar-member))
+              with-members.map(desugar-member))
         end
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
@@ -430,7 +501,9 @@ fun desugar-expr(expr :: A.Expr):
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
-    | s-extend(l, obj, fields) => A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
+    | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
+    | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, desugar-expr(obj), fields.map(desugar-member))
+    | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, desugar-expr(obj), fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body) =>
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
@@ -458,11 +531,15 @@ fun desugar-expr(expr :: A.Expr):
           collect-ors = collect-op("opor", _)
           collect-ands = collect-op("opand", _)
           collect-carets = collect-op("op^", _)
-          if op == "op==":
+          fun eq-op(fun-name):
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-prim-app(l, "equiv", [list: e1, e2])
+                A.s-app(l, gid(l, fun-name), [list: e1, e2])
               end)
+          end
+          if op == "op==": eq-op("equal-always")
+          else if op == "op=~": eq-op("equal-now")
+          else if op == "op<=>": eq-op("identical")
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
@@ -516,6 +593,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
+    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>

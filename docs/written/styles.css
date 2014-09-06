@@ -1,0 +1,40 @@
+.tocset {
+  position: fixed;
+  overflow: scroll;
+  height: 100%;
+  padding-top: 1rem;
+}
+
+.navsettop {
+  display: none;
+}
+
+/* New styles just for Pyret */
+
+.boxed .SIntrapara {
+  margin: 0;
+}
+
+.indent-arg {
+  margin-left: 1.5em;
+}
+
+.boxed blockquote {
+  margin-bottom: 0;
+}
+
+.pyret-header {
+  margin-bottom: 1rem;
+}
+
+.pyret-highlight {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 1rem;
+}
+
+pre.pyret-highlight {
+  padding-bottom: 1rem;
+}
+
+
+

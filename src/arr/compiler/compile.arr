@@ -13,7 +13,6 @@ import "compiler/resolve-scope.arr" as R
 import "compiler/desugar.arr" as D
 import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
-import "compiler/check-infer.arr" as CI
 import "compiler/desugar-check.arr" as CH
 
 data CompilationPhase:
@@ -55,7 +54,7 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
       desugared = D.desugar(named-ast, libs)
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
       type-checked =
-        if options.type-check: T.type-check(desugared, CI.check-infer(desugared), libs)
+        if options.type-check: T.type-check(desugared, libs)
         else: C.ok(desugared);
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
@@ -70,11 +69,11 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
           when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
           any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
           if is-empty(any-errors):
-            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
-            else: phase("Result", C.ok(P.make-compiled-pyret(cleaned, libs)), ret)
+            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, inlined, libs)
+            else: phase("Result", C.ok(P.make-compiled-pyret(inlined, libs)), ret)
             end
           else:
-            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, cleaned, libs)
+            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, inlined, libs)
             else: phase("Result", C.err(any-errors), ret)
             end
           end

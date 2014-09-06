@@ -4,6 +4,7 @@ provide-types *
 import ast as A
 import string-dict as SD
 import "compiler/list-aux.arr" as LA
+import equality as E
 
 all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
@@ -135,7 +136,7 @@ end
 data TypeVariable:
   | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
-  tostring(self) -> String:
+  tostring(self, shadow tostring) -> String:
     self.id.toname() + " <: " + tostring(self.upper-bound)
   end,
   key(self) -> String:
@@ -145,7 +146,7 @@ end
 
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       self.field-name + " : " + tostring(self.typ)
     end,
     key(self):
@@ -228,7 +229,7 @@ data Type:
   | t-record(fields :: TypeMembers)
   | t-forall(introduces :: List<TypeVariable>, onto :: Type)
 sharing:
-  tostring(self) -> String:
+  tostring(self, shadow tostring) -> String:
     cases(Type) self:
       | t-name(module-name, id) => cases(Option<String>) module-name:
           | none    => id.toname()
@@ -302,7 +303,7 @@ sharing:
   _lessequal    (self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
   _greaterthan  (self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
   _greaterequal (self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
-  _equal        (self, other :: Type) -> Boolean: self._comp(other) == equal        end,
+  _equals       (self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
   _comp(self, other :: Type) -> Comparison:
     cases(Type) self:
       | t-bot =>
