@@ -3036,7 +3036,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "string-isnumber");
       checkString(s);
       var num = jsnums.fromString(s);
-      if(num) { return true; }
+      if(num !== false) { return true; }
       else { return false; }
     }
     var string_tonumber = function(s) {
