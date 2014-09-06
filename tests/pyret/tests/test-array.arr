@@ -187,3 +187,15 @@ check:
 
 end
 
+check:
+  [array: 1, 2, 3] is-not== [array: 1, 2, 3]
+  [array: 1, 2, 3] is=~ [array: 1, 2, 3]
+  [array: 1, 2] is-not=~ [array: 1, 2, 3]
+
+  a1 = [array: 1, 2]
+  a2 = [array: 1, 3]
+  a1 is-not=~ a2
+
+  a2.set(1, 2)
+  a1 is=~ a2
+end

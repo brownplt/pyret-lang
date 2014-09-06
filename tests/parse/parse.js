@@ -480,6 +480,19 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
 
       expect(parse('cases(List) l: link(ref ref) => 5 end')).toBe(false);
     });
+
+    it("should parse type parameters on methods", function() {
+      expect(parse('method<a>(self): self end')).not.toBe(false);
+      expect(parse('method<a,b>(self): self end')).not.toBe(false);
+      expect(parse('method<a,b,c>(self): self end')).not.toBe(false);
+      expect(parse('{ m<a>(self): self end }')).not.toBe(false);
+      expect(parse('{ m<a,b>(self): self end }')).not.toBe(false);
+      expect(parse('{ m<a,b,c>(self): self end }')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a>(self): 5 end sharing: m2<a>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a,b>(self): 5 end sharing: m2<a,b>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: m<a,b,c>(self): 5 end sharing: m2<a,b,c>(self): 5 end end')).not.toBe(false);
+    });
   });
+
 
 });

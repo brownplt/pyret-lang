@@ -8,7 +8,7 @@ before_install:
   - echo   >> setup_commands
 language: node_js
 node_js:
-  - "0.10"
+  - "0.10.26"
 install:
   - sudo ./setup.sh < setup_commands 
   - make install

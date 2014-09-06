@@ -3,6 +3,7 @@
 @(define (sref s)
   (a-id s (xref "s-exp-structs" s)))
 @docmodule["s-exp"]{
+@ignore[(list "s-sym" "s-str" "s-num" "s-list")]
   @para{
   This module re-exports the constructors from @sref["S-Exp"],
   which defines the result of parsing an s-exp.
@@ -27,9 +28,7 @@ s-exp = "(" s-exp ... ")"
     @sref["s-str"]s, and all other names not inside quotes
     become @sref["s-sym"]s.
 
-    Some example invocations:
-
-@verbatim{
+@examples{
 import s-exp as S
 
 p = S.read-s-exp

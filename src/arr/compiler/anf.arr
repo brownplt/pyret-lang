@@ -307,7 +307,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
                 A.s-id(l, name.id)))))
       end
-    | s-method(l, args, ret, doc, body, _) =>
+    | s-method(l, params, args, ret, doc, body, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:

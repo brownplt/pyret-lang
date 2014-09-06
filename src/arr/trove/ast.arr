@@ -93,7 +93,7 @@ data Name:
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
     tostring(self, shadow tostring): "_" end,
-    toname(self): raise("Cannot get name for underscore") end,
+    toname(self): "_" end,
     key(self): "underscore#" end
 
   | s-name(l :: Loc, s :: String) with:
@@ -635,6 +635,7 @@ data Expr:
     end
   | s-method(
       l :: Loc,
+      params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -644,7 +645,7 @@ data Expr:
     label(self): "s-method" end,
     tosource(self):
       funlam-tosource(str-method,
-        nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
+        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-extend" end,
@@ -895,6 +896,7 @@ data Member:
   | s-method-field(
       l :: Loc,
       name :: String,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -905,7 +907,7 @@ data Member:
     tosource(self):
       name-part = PP.str(self.name)
       funlam-tosource(name-part,
-        nothing, nothing, self.args, self.ann, self.doc, self.body, self._check)
+        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
 sharing:
   visit(self, visitor):
@@ -1526,13 +1528,14 @@ default-map-visitor = {
   s-method(
       self,
       l :: Loc,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-method(l, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-method(l, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(l, supe.visit(self), fields.map(_.visit(self)))
@@ -1660,6 +1663,7 @@ default-map-visitor = {
       self,
       l :: Loc,
       name :: String,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -1669,6 +1673,7 @@ default-map-visitor = {
     s-method-field(
         l,
         name,
+        params.map(_.visit(self)),
         args.map(_.visit(self)),
         ann.visit(self),
         doc,
@@ -2003,13 +2008,14 @@ default-iter-visitor = {
   s-method(
       self,
       l :: Loc,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
       ):
-    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    lists.all(_.visit(self), params) and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and lists.all(_.visit(self), fields)
@@ -2129,6 +2135,7 @@ default-iter-visitor = {
       self,
       l :: Loc,
       name :: String,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -2136,6 +2143,7 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     lists.all(_.visit(self), args)
+    and lists.all(_.visit(self), args)
     and ann.visit(self)
     and body.visit(self)
     and self.option(_check)
@@ -2469,13 +2477,14 @@ dummy-loc-visitor = {
   s-method(
       self,
       l :: Loc,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
       _check :: Option<Expr>
     ):
-    s-method(dummy-loc, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-method(dummy-loc, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
   s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
@@ -2603,6 +2612,7 @@ dummy-loc-visitor = {
       self,
       l :: Loc,
       name :: String,
+      params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -2612,6 +2622,7 @@ dummy-loc-visitor = {
     s-method-field(
         dummy-loc,
         name,
+        params.map(_.visit(self)),
         args.map(_.visit(self)),
         ann.visit(self),
         doc,

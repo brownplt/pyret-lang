@@ -169,12 +169,16 @@ var getProto = Object.getPrototypeOf;
 
 */
 function getFields(obj) {
+  var fieldsObj = Object.create(null);
   var fields = [];
   var currentProto = obj.dict;
   while(currentProto !== null) {
-    fields = fields.concat(Object.keys(currentProto));
+    var keys = Object.keys(currentProto);
+    for (var i = 0; i < keys.length; i++)
+      fieldsObj[keys[i]] = true;
     currentProto = getProto(currentProto);
   }
+  fields = Object.keys(fieldsObj)
   return fields;
 }
 
@@ -700,12 +704,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       else {
         return makeMethod(function(self) {
-          return function(handlers, els) {
+          return function(handlers, _else) {
             if(hasField(handlers, name)) {
-              return getField(handlers, name).app.apply(null, self.$app_fields(function() { return arguments; }, self.$mut_fields_mask));
+              return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask);
             }
             else {
-              return els.app(self);
+              return _else.app(self);
             }
           };
         }, { length: 3 });
@@ -1497,34 +1501,38 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     });
                   }
                 }
-              } else if (isObject(curLeft) && curLeft.dict["_equals"]) {
-                // If this call stack-throws,
-                var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
-                // the continuation stacklet will get the result, and combine them manually
-                toCompare.curAns = combineEquality(toCompare.curAns, newAns);
               } else if (isObject(curLeft) && isObject(curRight)) {
-                if (isDataValue(curLeft) && isDataValue(curRight)) {
-                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    toCompare.curAns = ffi.notEqual.app(current.path);
-                  } else {
-                    var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
+                  /* Two objects with brands that differ */
+                  toCompare.curAns = ffi.notEqual.app(current.path);
+                }
+                else if (isObject(curLeft) && curLeft.dict["_equals"]) {
+                  /* Two objects with the same brands and the left has an _equals method */
+                  // If this call stack-throws,
+                  var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
+                  // the continuation stacklet will get the result, and combine them manually
+                  toCompare.curAns = combineEquality(toCompare.curAns, newAns);
+                }
+                else if (isDataValue(curLeft) && isDataValue(curRight)) {
+                  /* Two data values with the same brands and no equals method on the left */
+                  var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
+                    return Array.prototype.slice.call(arguments);
+                  });
+                  if (fieldsLeft.length > 0) {
+                    var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
                       return Array.prototype.slice.call(arguments);
                     });
-                    if (fieldsLeft.length > 0) {
-                      var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
-                        return Array.prototype.slice.call(arguments);
+                    var fieldNames = curLeft.$constructor.$fieldNames;
+                    for (var k = 0; k < fieldsLeft.length; k++) {
+                      toCompare.stack.push({ 
+                        left: fieldsLeft[k],
+                        right: fieldsRight[k],
+                        path: current.path + "." + fieldNames[k]
                       });
-                      var fieldNames = curLeft.$constructor.$fieldNames;
-                      for (var k = 0; k < fieldsLeft.length; k++) {
-                        toCompare.stack.push({ 
-                          left: fieldsLeft[k],
-                          right: fieldsRight[k],
-                          path: current.path + "." + fieldNames[k]
-                        });
-                      }
                     }
                   }
                 } else {
+                  /* Two non-data objects with the same brands and no equals method on the left */
                   var dictLeft = curLeft.dict;
                   var dictRight = curRight.dict;
                   var fieldsLeft;
@@ -1540,9 +1548,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
                       right: curRight.dict[fieldsLeft[k]],
                       path: current.path + "." + fieldsLeft[k]
                     });
-                  }
-                  if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
-                    toCompare.curAns = ffi.notEqual.app(current.path);
                   }
                 }
               } else {
@@ -2576,6 +2581,34 @@ function isMethod(obj) { return obj instanceof PMethod; }
     iter();
   }
 
+  var TRACE_DEPTH = 0;
+  var SHOW_TRACE = true;
+  var TOTAL_VARS = 0;
+  function traceEnter(name, vars) {
+    if (!SHOW_TRACE) return;
+    TRACE_DEPTH++;
+    TOTAL_VARS += vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "--> ",
+                name, vars, TOTAL_VARS);
+  }
+  function traceExit(name, vars) {
+    if (!SHOW_TRACE) return;
+    TOTAL_VARS -= vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "<-- ",
+                name, vars, TOTAL_VARS);
+    TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
+  }
+  function traceErrExit(name, vars) {
+    if (!SHOW_TRACE) return;
+    TOTAL_VARS -= vars;
+    console.log("%s %s, Num vars: %d, Total vars: %d",
+                Array(TRACE_DEPTH).join(" ") + "<XX ",
+                name, vars, TOTAL_VARS);
+    TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
+  }
+
   var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
   function ActivationRecord(from, fun, step, ans, args, vars) {
     this.from = from;
@@ -3294,6 +3327,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function random(max) {
       thisRuntime.checkArity(1, arguments, "random");
+      thisRuntime.checkNumber(max);
       return makeNumber(jsnums.floor(jsnums.multiply(Math.random(), max)));
     }
 
@@ -3478,6 +3512,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'safeCall': safeCall,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,
+
+        'traceEnter': traceEnter,
+        'traceExit': traceExit,
+        'traceErrExit': traceErrExit,
 
         'isActivationRecord'   : isActivationRecord,
         'makeActivationRecord' : makeActivationRecord,

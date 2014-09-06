@@ -279,6 +279,7 @@ local-bound-vars-visitor = {
 }
 
 
+show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean) -> J.JBlock:
   make-label = make-label-sequence(0)
   ret-label = make-label()
@@ -287,12 +288,22 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
   visited-body = body.visit(local-compiler)
   ann-cases = compile-anns(local-compiler, step, args, local-compiler.make-label())
-  switch-cases =
+  main-body-cases =
     concat-empty
   ^ concat-append(_, ann-cases.new-cases)
   ^ concat-snoc(_, j-case(ann-cases.new-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
-  ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block([list:
+  vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from main-body-cases):
+      base.union(case-expr.visit(local-bound-vars-visitor))
+    end).to-list()
+  switch-cases =
+    main-body-cases
+  ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block(
+        if show-stack-trace:
+          [list: j-expr(rt-method("traceExit", [list: j-str(tostring(l)), j-num(vars.length())]))]
+        else:
+          empty
+        end + [list:
           j-expr(j-unop(rt-field("GAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
   ^ concat-snoc(_, j-default(j-block([list:
@@ -312,9 +323,6 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   # check-no-dups(Sets.empty-tree-set, switch-cases.to-list())
   # Initialize the case numbers, for more legible output...
   switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
-  vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from switch-cases):
-      base.union(case-expr.visit(local-bound-vars-visitor))
-    end).to-list()
   act-record = rt-method("makeActivationRecord", [list:
       j-id(apploc),
       j-id(fun-name),
@@ -325,6 +333,10 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   e = js-id-of(compiler-name("e"))
   first-arg = js-id-of(tostring(args.first.id))
   ar = js-id-of(compiler-name("ar"))
+  entryExit = [list:
+    j-str(tostring(l)),
+    j-num(vars.length())
+  ]
   preamble = block:
     restorer =
       j-block(
@@ -344,11 +356,22 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
       | some(arity) =>
         j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
           restorer,
-          j-block([list:
-              arity-check(local-compiler.get-loc(l), arity)]))
-      | none => 
-        j-if1(rt-method("isActivationRecord", [list: j-id(first-arg)]),
-          restorer)
+          j-block(
+            [list: arity-check(local-compiler.get-loc(l), arity)] +
+            if show-stack-trace:
+              [list: rt-method("traceEnter", entryExit)]
+            else:
+              empty
+            end))
+      | none =>
+        if show-stack-trace:
+          j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+            restorer,
+            j-block([list: rt-method("traceEnter", entryExit)]))
+        else:
+          j-if1(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+            restorer)
+        end
     end
   end
   j-block([list:
@@ -376,6 +399,17 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
                       j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
               ]))] +
           if should-report-error-frame:
+            [list:
+              j-if1(rt-method("isPyretException", [list: j-id(e)]),
+                j-block(
+                  [list: j-expr(add-stack-frame(e, j-id(apploc)))] +
+                  if show-stack-trace:
+                    [list: j-expr(rt-method("traceErrExit", entryExit))]
+                  else:
+                    empty
+                  end
+                  ))]
+          else if show-stack-trace:
             [list:
               j-if1(rt-method("isPyretException", [list: j-id(e)]),
                 j-block([list: 
@@ -445,7 +479,7 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: CaseResults%(is-c
 end
 
 fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
-  opt-compiled-body = opt-body.and-then(lam(b): some(b.visit(compiler)) end)
+  opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
   cases(Option) opt-dest:
     | some(dest) =>
       cases(Option) opt-compiled-body:
@@ -1226,6 +1260,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   j-app(j-id("define"), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
             j-return(j-fun([list: "R", "NAMESPACE"],
                 j-block([list: 
+                    #j-expr(j-str("use strict")),
                     j-if(module-ref(module-id),
                       j-block([list: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +

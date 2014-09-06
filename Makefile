@@ -216,6 +216,7 @@ $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 
 .PHONY : docs
 docs: $(DOCS_DEPS)
+	cd docs/written && make VERSION=$(VERSION)
 
 $(DOCS_DEPS): | $(PHASE1)/phase1.built docs-trove
 
@@ -358,7 +359,7 @@ bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
 
 .PHONY : docs-test
 docs-test: docs
-	cd docs/written && scribble --htmls test-harness.scrbl
+	cd docs/written && scribble --htmls index.scrbl
 
 .PHONY : clean
 clean:
@@ -390,6 +391,8 @@ release: release-gzip
 test-release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
+release-docs: docs
+	scp -r build/docs/ $(DOCS_TARGET)/$(VERSION)/
 else
 release-gzip:
 	$(error Cannot release from this platform)
@@ -398,3 +401,4 @@ release:
 test-release: release-gzip
 	$(error Cannot release from this platform)
 endif
+
