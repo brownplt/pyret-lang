@@ -68,6 +68,10 @@ define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util
             "s-num": gf(vals, "s-num"),
             "s-str": gf(vals, "s-str"),
             "s-sym": gf(vals, "s-sym"),
+            "is-s-list": gf(vals, "is-s-list"),
+            "is-s-num": gf(vals, "is-s-num"),
+            "is-s-str": gf(vals, "is-s-str"),
+            "is-s-sym": gf(vals, "is-s-sym"),
             "read-s-exp": RUNTIME.makeFunction(readSexp)
           }),
           "types": {

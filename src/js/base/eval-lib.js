@@ -65,7 +65,9 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                     return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
                   }
                   else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                    throw ffi.toArray(gf(compiled, "problems"));
+                    // NOTE(joe): reverse added to get compile errors in the right order
+                    // for the UI reporting
+                    throw ffi.toArray(gf(compiled, "problems")).reverse();
                   }
                   else {
                     throw new Error("Unknown result type while compiling: ", compiled);

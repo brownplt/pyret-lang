@@ -125,6 +125,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  data D:\n" + 
                                "    | var1()\n" + 
                                "  end\n" + 
+                               "  42\n" +
                                "end",
                                "top level");
         P.checkCompileErrorMsg("lam():\n" + 
@@ -134,6 +135,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  data D:\n" + 
                                "    | var1()\n" + 
                                "  end\n" + 
+                               "  42\n" +
                                "end",
                                "top level");
         P.checkCompileErrorMsg("lam():\n" + 
@@ -144,7 +146,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  z = 5\n" + 
                                "  end\n" + 
                                "end",
-                               "graph expressions");
+                               "Cannot end a block");
         P.checkCompileErrorMsg("lam():\n" + 
                                "  y = 10\n" + 
                                "  x = 5\n" + 
@@ -163,7 +165,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  x = 5\n" + 
                                "  graph: y = 10 end\n" + 
                                "end",
-                               "graph expressions");
+                               "Cannot end a block");
         P.checkCompileErrorMsg("if x < y:\n" + 
                                "  print('x less than y')\n" + 
                                "end",

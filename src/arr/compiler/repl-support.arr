@@ -54,6 +54,7 @@ ok-imports = [list:
   "ast",
   "parse-pyret",
   "s-exp",
+  "s-exp-structs",
   "pprint",
   "srcloc",
   "format",

@@ -5,8 +5,20 @@ s-list = S.s-list
 s-num = S.s-num
 s-str = S.s-str
 s-sym = S.s-sym
+is-s-list = S.is-s-list
+is-s-num = S.is-s-num
+is-s-str = S.is-s-str
+is-s-sym = S.is-s-sym
+
+check "predicates":
+  p("0") satisfies is-s-num
+  p("a") satisfies is-s-sym
+  p('"a"') satisfies is-s-str
+  p("()") satisfies is-s-list
+end
 
 check:
+  p("0") is s-num(0)
   p("()") is s-list(empty)
   p("(5)") is s-list([list: s-num(5)])
   p("(5 4)") is s-list([list: s-num(5), s-num(4)])
