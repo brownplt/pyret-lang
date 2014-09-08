@@ -16,7 +16,7 @@
     "requirejs": "~2.1.11",
     "q": "~1.0.1",
     "lodash": "~2.4.1",
-    "s-expression": "~1.0.1"
+    "s-expression": "~2.2.0"
   },
   "devDependencies": {},
   "scripts": {
