@@ -300,7 +300,7 @@ install:
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test
 
 .PHONY : test-all
 test-all: test bootstrap-test docs-test
@@ -343,6 +343,13 @@ pyret-test: $(PHASE1)/phase1.built $(TEST_JS)
 	$(NODE) $(PHASE1)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
+
+.PHONY : type-check-test
+type-check-test: $(PHASE1)/phase1.built
+	$(NODE) $(PHASE1)/main-wrapper.js \
+    --module-load-dir tests/type-check \
+    -check-all tests/type-check/main.arr
+
 
 .PHONY : compiler-test
 compiler-test: $(PHASE1)/phase1.built

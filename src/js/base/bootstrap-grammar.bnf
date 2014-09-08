@@ -125,7 +125,8 @@ app-expr: expr app-args
 app-args: PARENNOSPACE [app-arg-elt* binop-expr] RPAREN
 app-arg-elt: binop-expr COMMA
 
-inst-expr: expr (LANGLE|LT) inst-elt* ann (RANGLE|GT)
+# at least one annotation must be provided
+inst-expr: expr LANGLE inst-elt* ann RANGLE
 inst-elt: ann COMMA
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
@@ -139,7 +140,7 @@ fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
      | key args return-ann COLON doc-string block where-clause end
-key: NAME | LBRACK binop-expr RBRACK
+key: STRING | NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
 construct-modifier: | LAZY
@@ -181,7 +182,7 @@ noparen-arrow-ann: [arrow-ann-elt* ann] THINARROW ann
 arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] THINARROW ann RPAREN
 arrow-ann-elt: ann COMMA
 
-app-ann: (name-ann|dot-ann) (LANGLE|LT) app-ann-elt* ann (RANGLE|GT)
+app-ann: (name-ann|dot-ann) LANGLE app-ann-elt* ann RANGLE
 app-ann-elt: ann COMMA
 
 pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN

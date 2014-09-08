@@ -19,6 +19,7 @@ compile-str = lam(str):
             check-mode : true,
             allow-shadowed : false,
             collect-all: false,
+            type-check: false,
             ignore-unbound: false
           }
           ).result

@@ -19,7 +19,8 @@ options = {
   width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
   dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use"),
   standard-builtins: C.flag(C.once, "Use standard buildins instead of minimal builtins"),
-  check-mode: C.flag(C.once, "Compile code with check-mode enabled")
+  check-mode: C.flag(C.once, "Compile code with check-mode enabled"),
+  type-check: C.flag(C.once, "Type check code")
 }
 
 parsed-options = C.parse-cmdline(options)
@@ -30,6 +31,7 @@ cases (C.ParsedArguments) parsed-options:
     dialect = opts.get("dialect")
     libs = if opts.has-key("standard-builtins"): CS.standard-builtins else: CS.minimal-builtins end
     check-mode = opts.has-key("check-mode")
+    type-check = opts.has-key("type-check")
     print("Success")
     cases (List) rest:
       | empty => print("Require a file name")
@@ -39,7 +41,7 @@ cases (C.ParsedArguments) parsed-options:
         print("")
 
         comp = CM.compile-js(CM.start, dialect, file-contents, file, libs,
-          {check-mode: check-mode, collect-all: true, ignore-unbound: true}).tolist()
+          {check-mode: check-mode, collect-all: true, ignore-unbound: true, type-check: type-check}).tolist()
 
         for each(phase from comp):
           print(">>>>>>>>>>>>>>>>>>")

@@ -23,12 +23,11 @@ mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
-fun check-bool(l, id, e, then, err):
-  A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, e)],
-    A.s-if-else(l,
-      [list: A.s-if-branch(l, A.s-prim-app(l, "isBoolean", [list: id.id-e]), then)],
-      err))
+fun <T> check-bool(l, e, cont :: (A.Expr -> T)) -> T:
+  bool-id = mk-id-ann(l, "must-be-bool-", A.a-name(l, A.s-type-global("Boolean")))
+  A.s-let-expr(l, [list: A.s-let-bind(l, bool-id.id-b, e)], cont(bool-id.id-e))
 end
+
 fun no-branches-exn(l, typ):
   A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
 end
@@ -67,7 +66,7 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
           - well-formed
-          - contains no s-let, s-var, s-data, s-check, or s-check-test
+          - contains no s-var, s-fun, s-data, s-check, or s-check-test
           - contains no s-provide in headers
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
@@ -85,12 +84,12 @@ fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
   end
 end
 
-fun mk-bind(l, id): A.s-bind(l, false, id, A.a-blank);
-
-fun mk-id(loc, base):
+fun mk-id-ann(loc, base, ann):
   a = names.make-atom(base)
-  { id: a, id-b: mk-bind(loc, a), id-e: A.s-id(loc, a) }
+  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
+
+fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank);
 
 fun make-torepr(l, vname, fields, is-singleton):
   self = mk-id(l, "self")
@@ -121,8 +120,8 @@ end
 fun make-match(l, case-name, fields):
   call-match-case = mk-id(l, "call_" + case-name)
   self-id = mk-id(l, "self")
-  cases-id = mk-id(l, "cases-funs")
-  else-id = mk-id(l, "else-clause")
+  cases-id = mk-id-ann(l, "cases-funs", A.a-record(l, empty))
+  else-id = mk-id-ann(l, "else-clause", A.a-arrow(l, empty, A.a-any, true))
   args = for map(f from fields):
       cases(A.VariantMember) f:
         | s-variant-member(l2, mtype, bind) =>
@@ -167,12 +166,11 @@ end
 
 fun desugar-if(l, branches, _else :: A.Expr):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    test-id = mk-id(l, "if_")
-    check-bool(branch.l, test-id, desugar-expr(branch.test),
-      A.s-if-else(l,
-        [list: A.s-if-branch(branch.l, test-id.id-e, desugar-expr(branch.body))],
-        acc),
-      bool-exn(branch.test.l, "if", test-id.id-e))
+    check-bool(branch.l, desugar-expr(branch.test), lam(test-id):
+        A.s-if-else(l,
+          [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
+          acc)
+      end)
   end
 end
 
@@ -427,7 +425,8 @@ fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
     | s-module(l, answer, provides, types, checks) =>
       A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
-    | s-instantiate(l, inner-expr, params) => inner-expr # erased until TC lands
+    | s-instantiate(l, inner-expr, params) =>
+      A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
@@ -479,12 +478,11 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
-      test-id = mk-id(l, "when_")
-      check-bool(l, test-id, desugar-expr(test),
-        A.s-if-else(l,
-          [list: A.s-if-branch(l, test-id.id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-          A.s-block(l, [list: gid(l, "nothing")])),
-        bool-exn(test.l, "when", test-id.id-e))
+      check-bool(l, desugar-expr(test), lam(test-id-e):
+          A.s-if-else(l,
+            [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
+            A.s-block(l, [list: gid(l, "nothing")]))
+        end)
     | s-if(l, branches) =>
       desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]))
     | s-if-else(l, branches, _else) =>
@@ -494,9 +492,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-if-pipe-else(l, branches, _else) =>
       desugar-if(l, branches, _else)
     | s-cases(l, typ, val, branches) =>
-      A.s-cases-else(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch),
+      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch))
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
-        A.s-block(l, [list: no-branches-exn(l, "cases")]))
     | s-cases-else(l, typ, val, branches, _else) =>
       A.s-cases-else(l, desugar-ann(typ), desugar-expr(val),
         branches.map(desugar-case-branch),
@@ -550,34 +547,30 @@ fun desugar-expr(expr :: A.Expr):
               end)
           else if op == "opor":
             fun helper(operands):
-              or-oper = mk-id(l, "or_oper_")
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, or-oper, desugar-expr(operands.first), or-oper.id-e,
-                    bool-op-exn(operands.first.l, "second", "or", or-oper.id-e))
+                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper;)
                 | link(_, _) =>
-                  check-bool(l, or-oper, desugar-expr(operands.first),
-                    A.s-if-else(l,
-                      [list: A.s-if-branch(l, or-oper.id-e, A.s-bool(l, true))],
-                      helper(operands.rest)),
-                    bool-op-exn(operands.first.l, "first", "or", or-oper.id-e))
+                  check-bool(l, desugar-expr(operands.first), lam(or-oper):
+                      A.s-if-else(l,
+                        [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
+                        helper(operands.rest))
+                    end)
               end
             end
             operands = collect-ors(expr)
             helper(operands)
           else if op == "opand":
             fun helper(operands):
-              and-oper = mk-id(l, "and_oper_")
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, and-oper, desugar-expr(operands.first), and-oper.id-e,
-                    bool-op-exn(operands.first.l, "second", "and", and-oper.id-e))
+                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper;)
                 | link(_, _) =>
-                  check-bool(l, and-oper, desugar-expr(operands.first),
-                    A.s-if-else(l,
-                      [list: A.s-if-branch(l, and-oper.id-e, helper(operands.rest))],
-                      A.s-bool(l, false)),
-                    bool-op-exn(operands.first.l, "first", "and", and-oper.id-e))
+                  check-bool(l, desugar-expr(operands.first), lam(and-oper):
+                      A.s-if-else(l,
+                        [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
+                        A.s-bool(l, false))
+                    end)
               end
             end
             operands = collect-ands(expr)
@@ -616,8 +609,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
     | s-var(_, _, _)              => raise("s-var should have already been desugared")
     # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, _, _, _)         => raise("s-check should have already been desugared at " + torepr(l))
-    | s-check-test(l, _, _, _, _) => raise("s-check-test should have already been desugared at " + torepr(l))
+    | s-check(l, name, body, keyword-check) =>
+      A.s-check(l, name, desugar-expr(body), keyword-check)
+    | s-check-test(l, op, refinement, left, right) =>
+      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

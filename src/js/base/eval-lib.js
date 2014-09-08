@@ -53,6 +53,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                     "check-mode": runtime.pyretTrue,
                     "allow-shadowed": runtime.pyretFalse,
                     "collect-all": runtime.pyretFalse,
+                    "type-check": runtime.pyretFalse,
                     "ignore-unbound": runtime.pyretFalse
                   })
                 );
@@ -70,7 +71,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                   }
                   else {
                     throw new Error("Unknown result type while compiling: ", compiled);
-                  }  
+                  }
                 });
 
             },

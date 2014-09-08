@@ -476,6 +476,8 @@ fun<a, b> all2(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
   end
   help(lst1, lst2)
 where:
+  all2(lam(n, m): false end, [list: 1, 2, 3], empty) is false
+  all2(lam(n, m): true  end, [list: 1, 2, 3], empty) is false
   all2(lam(n, m): n > m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is true
   all2(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
   all2(lam(n, m): n < m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is false
@@ -719,6 +721,8 @@ fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>)
   else:
     fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
   end
+where:
+  fold2(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
 end
 
 fun<a, b, c, d> fold3(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>) -> a:

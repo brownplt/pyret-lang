@@ -87,6 +87,85 @@ data CompileError:
       "The field " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
+  | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
+    tostring(self):
+      "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
+        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + "."
+    end
+  | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
+    tostring(self):
+      "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
+        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + "."
+    end
+  | incorrect-number-of-args(loc :: A.Loc) with:
+    tostring(self):
+      "Incorrect number of arguments given to function at line " + tostring(self.loc) + "."
+    end
+  | apply-non-function(loc :: A.Loc) with:
+    tostring(self):
+      "You tried to apply something that is not a function at line " + tostring(self.loc) + "."
+    end
+  | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
+    tostring(self):
+      "The object type " + self.obj
+        + " (defined at " + self.obj-loc.tostring()
+        + ") does not have the field \"" + self.field-name
+        + "\" (accessed at line " + self.access-loc.tostring() + ")."
+    end
+  | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
+    tostring(self):
+      "The branch " + self.branch-name
+        + " (defined at " + self.branch-loc.tostring()
+        + ") is not a variant of " + self.type-name
+        + " (declared at " + self.type-loc.tostring() + ")"
+    end
+  | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The else branch for the cases expression at " + self.loc.tostring()
+        + " is not needed since all variants of " + self.type-name + " have been exhausted."
+    end
+  | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The cases expression at " + self.loc.tostring()
+        + " does not exhaust all variants of " + self.type-name
+        + ". It is missing: " + self.missing.join-str(", ") + "."
+    end
+  | cant-match-on(type-name :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The type specified " + self.type-name
+        + " at " + self.loc.tostring()
+        + " cannot be used in a cases expression."
+    end
+  | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
+    tostring(self):
+      "Incorrect number of bindings given to "
+        + "the variant " + self.variant-name
+        + " at " + self.loc.tostring() + ". "
+        + "Given " + num-tostring(self.given)
+        + ", but expected " + num-tostring(self.expected)
+        + "."
+    end
+  | cases-singleton-mismatch(branch-name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
+    tostring(self):
+      if self.should-be-singleton:
+        "The cases branch " + self.branch-name
+          + " at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
+      else:
+        "The cases branch at " + self.branch-loc.format(true) + " expects the value being examined to be a singleton, but it actually has fields"
+      end
+    end
+  | given-parameters(data-type :: String, loc :: A.Loc) with:
+    tostring(self):
+      "The data type " + self.data-type
+        + " does not take any parameters,"
+        + " but is given some at " + self.loc.tostring()
+        + "."
+    end
+  | unable-to-instantiate(loc :: A.Loc) with:
+    tostring(self):
+      "There is not enough information to instantiate the type at " + self.loc.tostring()
+         + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
+    end
 end
 
 data CompileTypeBinding:

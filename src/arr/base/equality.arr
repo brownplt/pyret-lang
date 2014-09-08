@@ -35,3 +35,7 @@ fun to-boolean(er :: EqualityResult):
   end
 end
 
+fun from-boolean(b :: Boolean):
+  if b: Equal else: NotEqual("false") end
+end
+

@@ -767,7 +767,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       with-params-and-args = with-params.{env: env-and-atoms.env}
       new-body = body.visit(with-params-and-args)
+      saved-name-errors = name-errors
       new-check = with-params.option(_check) # Maybe should be self?  Are any type params visible here?
+      # Restore the errors to what they were. (_check has already been desugared,
+      # so the programmer will see those errors, not the ones from here.)
+      name-errors := saved-name-errors
       A.s-lam(l, new-types.atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check)
     end,
     s-method(self, l, params, args, ann, doc, body, _check):
