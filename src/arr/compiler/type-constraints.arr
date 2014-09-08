@@ -891,15 +891,13 @@ sharing:
     typ-str = typ.key()
     self._insert(typ-str, constraint, info)
   end,
-  _get(self, typ-str :: String) -> Option<TypeConstraint>:
+  get(self, typ :: Type) -> Option<TypeConstraint>:
+    typ-str = typ.key()
     if self.dict.has-key(typ-str):
       self.dict.get(typ-str)
     else:
       some(Bounds(t-bot, t-top))
     end
-  end,
-  get(self, typ :: Type) -> Option<TypeConstraint>:
-    self._get(typ.key())
   end,
   meet(self, other :: TypeConstraints, info :: TCInfo) -> TypeConstraints:
     keys = other.dict.keys()
