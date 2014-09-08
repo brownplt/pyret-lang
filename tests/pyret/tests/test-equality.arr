@@ -368,3 +368,8 @@ check "uninitialized refs should be different":
   end
   ref-get(x) is ref-get(ref-get(x))
 end
+
+check "non-equality result from equals":
+  o = { _equals(_, _, _): true end }
+  o == {} raises "EqualityResult"
+end

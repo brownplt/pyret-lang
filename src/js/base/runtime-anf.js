@@ -1411,12 +1411,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return true;
     }
 
-
     function combineEquality(e1, e2) {
+      checkEQ(e1);
+      checkEQ(e2);
       if (ffi.isEqual(e1)) { return e2; }
       else if (ffi.isNotEqual(e1)) { return e1; }
       else if (ffi.isNotEqual(e2)) { return e2; }
-      else return e1;
+      else if (ffi.isUnknown(e1)) { return e1; }
     }
     // JS function from Pyret values to Pyret equality answers
     function equal3(left, right, alwaysFlag) {
@@ -3766,6 +3767,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var checkList = makeCheckType(ffi.isList, "List");
     thisRuntime["checkList"] = checkList;
+
+    var checkEQ = makeCheckType(ffi.isEqualityResult, "EqualityResult");
 
     return thisRuntime;
 }

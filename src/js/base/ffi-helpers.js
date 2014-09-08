@@ -267,6 +267,10 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         return contract("is-fail-arg")(val);
       }
 
+      function isEqualityResult(val) {
+        return gf(EQ, "is-EqualityResult").app(val);
+      }
+
       function isEqual(val) {
         return gf(EQ, "is-Equal").app(val);
       }
@@ -326,6 +330,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         isEqual: isEqual,
         isNotEqual: isNotEqual,
         isUnknown: isUnknown,
+        isEqualityResult: isEqualityResult,
 
         makeMessageException: makeMessageException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
