@@ -24,6 +24,11 @@ check:
   p("(5 4)") is s-list([list: s-num(5), s-num(4)])
   p("(a 5)") is s-list([list: s-sym("a"), s-num(5)])
   p("a") is s-sym("a")
+  p("\"a a\"") is s-str("a a")
+  p("\"a a a\"") is s-str("a a a")
+  p("\"a 'a a\"") is s-str("a 'a a")
+  p("\"a '(a) a\"") is s-str("a '(a) a")
+  p("\"\\\"a\\\" '(a) a\"") is s-str("\"a\" '(a) a")
   p("\"a\"") is s-str("a")
   p("(a (b c))") is
     s-list([list:
@@ -40,6 +45,8 @@ check:
       ]),
       s-str("b")
     ])
+  p("(((())))") is s-list([list: s-list([list: s-list([list: s-list([list:])])])])
+  p("(((()))())") is s-list([list: s-list([list: s-list([list: s-list([list:])])]), s-list([list:])])
 
   p("-5") is s-num(-5)
   p("-4.4") is s-num(-4.4)

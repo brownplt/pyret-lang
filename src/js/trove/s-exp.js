@@ -18,36 +18,24 @@ define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util
         var num = function(nstr) { return sNum.app(RUNTIME.makeNumberFromString(nstr)); }
         var sym = function(x) { return sSym.app(RUNTIME.makeString(x)); }
         function convert(v) {
-          if(Array.isArray(v)) {
+          if(v instanceof String) {
+            return str(String(v));
+          } else if (typeof v === "string") {
+            if(RUNTIME.string_isnumber(v)) {
+              return num(v);
+            } else {
+              if(v.indexOf("'") !== -1 || v.indexOf('"') !== -1) {
+                RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
+              }
+              return sym(v);
+            }
+          }
+          else if(Array.isArray(v)) {
             if(v.length === 0) { return list([]); }
             if(v[0] === "quote") {
               RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported" + s);
             }
             return list(v.map(convert));
-          }
-          else if(RUNTIME.string_isnumber(v)) {
-            return num(v);
-          }
-          else if(typeof v === "string") {
-            if(v.length > 1) {
-              var first = v[0];
-              var last = v[v.length - 1];
-              if (first === "\"" || last === "\"") {
-                if (!(first === "\"" && last === "\"")) {
-                  RUNTIME.ffi.throwMessageException("Invalid s-expression: String without matching double quotes " + v);
-
-                }
-                else {
-                  return str(v.slice(1, v.length - 1));
-                }
-              }
-            }
-            if(v.indexOf("'") !== -1) {
-              RUNTIME.ffi.throwMessageException("Invalid s-expression: Single quotation mark (') and keyword 'quote' not supported " + v);
-            }
-            else {
-              return sym(v);
-            }
           }
           else {
             RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
