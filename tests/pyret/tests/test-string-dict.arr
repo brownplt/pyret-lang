@@ -40,7 +40,14 @@ check "basics":
   sd2.has-key("a") is true
   sd2.has-key("z") is false
 
-  (sd1 == sd2) raises "Not yet implemented"
+  sd3 = [SD.string-dict: "a", 15, "b", 10]
+  sd4 = [SD.string-dict: "a", 15, "b", 20]
+  sd5 = [SD.string-dict: "a", 15, "b", 10, "c", 15]
+
+  (sd2 == sd3) is true
+  (sd2 == sd4) is false
+  (sd2 == sd5) is false
+  (sd2 == 2) is false
 
 end
 
