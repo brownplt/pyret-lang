@@ -6,8 +6,8 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["js/namespace", "js/js-numbers"],
-       function (Namespace, jsnums) {
+define(["js/namespace", "js/js-numbers", "js/codePoint"],
+       function (Namespace, jsnums, codePoint) {
   if(requirejs.isBrowser) {
     var require = requirejs;
   }
@@ -15,6 +15,8 @@ define(["js/namespace", "js/js-numbers"],
     var require = requirejs.nodeRequire("requirejs");
   }
 
+  var codePointAt = codePoint.codePointAt;
+  var fromCodePoint = codePoint.fromCodePoint;
 
 /**
 Creates a Pyret runtime
@@ -339,6 +341,9 @@ var nothing = makeNothing();
 */
 function isNumber(obj) { 
   return jsnums.isSchemeNumber(obj);
+}
+function isJSNumber(obj) {
+  return typeof obj === "number";
 }
 
 /**Makes a PNumber using the given bignum
@@ -3143,6 +3148,64 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(find);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
+    var string_to_code_point = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-to-code-point");
+      thisRuntime.checkString(s);
+      if(s.length !== 1) {
+        ffi.throwMessageException("Expected a string of length exactly one, got " + s);
+      }
+      var charCode = codePointAt(s, 0);
+      if(Number.isNaN(charCode) || !(typeof charCode === "number")) {
+        ffi.throwMessageException("Could not find code for character: ", s);
+      }
+      else {
+        return charCode;
+      }
+    }
+    var checkNatural = makeCheckType(function(val) {
+        return thisRuntime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
+      }, "Natural Number");
+    var string_from_code_point = function(c) {
+      thisRuntime.checkArity(1, arguments, "string-from-code-point");
+      checkNatural(c);
+      var c = jsnums.toFixnum(c);
+      var ASTRAL_CUTOFF = 65535;
+      if(c > ASTRAL_CUTOFF) { 
+        ffi.throwMessageException("Invalid code point: " + c);
+      }
+      try {
+        var s = fromCodePoint(c);
+        if(typeof s === "string") { return s; }
+        else {
+          ffi.throwMessageException("Invalid code point: " + c);
+        }
+      }
+      catch(e) {
+        ffi.throwMessageException("Invalid code point: " + c);
+      }
+    }
+    var string_to_code_points = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-to-code-points");
+      thisRuntime.checkString(s);
+      var returnArray = [];
+      for(var i = 0; i < s.length; i++) {
+        var charCode = string_to_code_point(s[i]);
+        returnArray[i] = charCode;
+      }
+      return ffi.makeList(returnArray);
+    }
+    var string_from_code_points = function(l) {
+      thisRuntime.checkArity(1, arguments, "string-from-code-points");
+      thisRuntime.checkList(l);
+      var arr = ffi.toArray(l);
+      var retStr = "";
+      for(var i = 0; i < arr.length; i++) {
+        var c = arr[i];
+        var s = string_from_code_point(c);
+        retStr += s;
+      }
+      return retStr;
+    }
 
     var bool_not = function(l) {
       thisRuntime.checkArity(1, arguments, "not");
@@ -3483,6 +3546,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'string-tolower': makeFunction(string_tolower),
           'string-explode': makeFunction(string_explode),
           'string-index-of': makeFunction(string_indexOf),
+          'string-to-code-point': makeFunction(string_to_code_point),
+          'string-from-code-point': makeFunction(string_from_code_point),
+          'string-to-code-points': makeFunction(string_to_code_points),
+          'string-from-code-points': makeFunction(string_from_code_points),
 
           'raw-array-of': makeFunction(raw_array_of),
           'raw-array-get': makeFunction(raw_array_get),
