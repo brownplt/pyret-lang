@@ -77,6 +77,7 @@ check:
 end
 
 
+
 check:
   string-to-code-point("a", "b") raises "arity"
   string-to-code-point("ab") raises "length exactly one"
@@ -104,10 +105,6 @@ check:
   string-to-code-point("\u200b") is 8203
   string-from-code-point(8203) is "\u200b"
 
-  # katakana
-  #string-to-code-point("\ux30a1") is 12449
-  #string-from-code-point(12449) is "\ux30a1"
-
   # null
   string-to-code-point("\u0000") is 0
   string-from-code-point(0) is "\u0000"
@@ -119,23 +116,17 @@ check:
   string-from-code-points([list: 955, -1]) raises "Natural Number"
   string-from-code-points([list:]) is ""
 
-  for each(i from range(0, 1000)):
-    ix1 = random(100000)
-    ix2 = random(100000)
-    ix3 = random(100000)
-    str = string-from-code-points([list: ix1, ix2, ix3])
-    # this should normalize after one trip through; but won't be at first because unicode has multiple representations for things at higher code points (some code points get represented as two-character strings, etc)
-    codes = string-to-code-points(str)
-    str is string-from-code-points(codes)
-    codes is string-to-code-points(string-from-code-points(codes))
-  end
+  string-from-code-point(65535) is "\uFFFF"
+  string-from-code-point(65534) is "\uFFFE"
+  string-from-code-point(65536) raises "Invalid code point"
+  string-from-code-point(65537) raises "Invalid code point"
   
   for each(i from range(0, 1000)):
-    ix1 = random(100) + 27
-    ix2 = random(100) + 27
-    ix3 = random(100) + 27
+    ix1 = random(65535)
+    ix2 = random(65535)
+    ix3 = random(65535)
     str = string-from-code-points([list: ix1, ix2, ix3])
-    # this should always be true for ASCII
+    # this should always be true for non-astral plane characters
     codes = string-to-code-points(str)
     codes is [list: ix1, ix2, ix3]
   end
