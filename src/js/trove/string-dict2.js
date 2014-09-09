@@ -99,12 +99,35 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var equals = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
-          runtime.checkArity(3, arguments, "torepr");
-          if(!hasBrand(brandMutable, other)) { return runtime.ffi.NotEqual(""); }
-          else {
-            runtime.ffi.throwMessageException("Not yet implemented");
-            // Here recursiveEquality is a 2-place callback for checking
-            // equality of elements
+          runtime.checkArity(3, arguments, "equals");
+          if (!hasBrand(brandMutable, other)) {
+            return runtime.ffi.notEqual.app("");
+          } else {
+            var keys = Object.keys(underlyingDict);
+            var otherKeysLength = get(get(other,"keys").app(),"length").app();
+            function eqElts() {
+              if (keys.length === 0) {
+                return runtime.ffi.equal;
+              } else {
+                var thisKey = keys.pop();
+                return runtime.safeCall(function() {
+                  return recursiveEquality.app(underlyingDict[thisKey],
+                      get(other,"get").app(userKey(thisKey)));
+                },
+                function (result) {
+                  if (runtime.ffi.isNotEqual(result)) {
+                    return result;
+                  } else {
+                    return eqElts();
+                  }
+                });
+              }
+            }
+            if (keys.length !== otherKeysLength) {
+              return runtime.ffi.notEqual.app("");
+            } else {
+              return eqElts();
+            }
           }
         });
 
