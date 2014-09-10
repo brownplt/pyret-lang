@@ -1,3 +1,4 @@
+import pick as P
 
 check "member":
   [tree-set: 1, 2, 3].member(2) is true
@@ -123,4 +124,33 @@ check "Different constructors should work well together":
 
   test-constructor(list-set, tree-set)
   test-constructor(tree-set, list-set)
+end
+
+check "pick on list sets doesn't repeat order":
+  s = [list-set: 1, 2, 3]
+  var found-diff = false
+  # This will fail every 2^100 times it is run, given that JS has a decent RNG
+  # and given the current sets implementation
+  for each(i from range(0, 100)):
+    when not(s.pick().elt == s.pick().elt):
+      found-diff := true
+    end
+  end
+  found-diff is true
+end
+
+check "sets pick visits all elemeents":
+
+  fun pick-sum(s):
+    cases(P.Pick) s.pick():
+      | pick-none => 0
+      | pick-some(elt, rest) => elt + pick-sum(rest)
+    end
+  end
+
+  pick-sum([list-set: 1, 2, 3, 4]) is 10
+  pick-sum([tree-set: 1, 2, 3, 4]) is 10
+  pick-sum([list-set:]) is 0
+  pick-sum([tree-set:]) is 0
+
 end

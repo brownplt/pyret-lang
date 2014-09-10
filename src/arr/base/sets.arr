@@ -17,17 +17,23 @@ provide {
 } end
 provide-types *
 
+import pick as pick
 import lists as lists
 import error as error
 import option as option
 import arrays as arrays
 import equality as equality
 
+type List = lists.List
 List = lists.List
 empty = lists.empty
 link = lists.link
 is-empty = lists.is-empty
 fold = lists.fold
+
+type Pick = pick.Pick
+pick-none = pick.pick-none
+pick-some = pick.pick-some
 
 # SETS
 
@@ -190,8 +196,25 @@ end
 
 data Set:
   | list-set(elems :: lists.List) with:
+    pick(self):
+      lst = self.elems
+      cases(List) lst:
+        | empty => pick-none
+        | link(f, r) =>
+          cases(List) r:
+            | empty => pick-some(f, list-set(empty))
+            | link(f2, r2) =>
+              get-first = random(2)
+              if get-first == 0:
+                pick-some(f, list-set(r))
+              else:
+                pick-some(f2, list-set(link(f, r2)))
+              end
+          end
+      end 
+    end,
     tostring(self, shadow tostring):
-      "[list-set: " +
+      "[set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
           else: tostring(elem) + ", " + acc
@@ -268,6 +291,14 @@ data Set:
     
     
   | tree-set(elems :: AVLTree) with:
+    pick(self):
+      t = self.elems
+      cases(AVLTree) t:
+        | leaf => pick-none
+        | branch(v, _, _, _) =>
+          pick-some(v, tree-set(t.remove(v)))
+      end
+    end,
     tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):

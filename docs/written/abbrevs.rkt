@@ -1,6 +1,6 @@
 #lang racket/base
 (require "../scribble-api.rkt")
-(provide A N No B S EQ RA RA-of L L-of O-of S-of E-of)
+(provide A N No B S EQ RA RA-of L L-of O-of S-of E-of P-of)
 
 (define A (a-id "Any" (xref "<global>" "Any")))
 (define N (a-id "Number" (xref "<global>" "Number")))
@@ -14,5 +14,6 @@
 (define (L-of typ) (a-app (a-id "List" (xref "lists" "List")) typ))
 (define (S-of typ) (a-app (a-id "Set" (xref "sets" "Set")) typ))
 (define (O-of typ) (a-app (a-id "Option" (xref "option" "Option")) typ))
+(define (P-of typ1 typ2) (a-app (a-id "Pick" (xref "pick" "Pick")) typ1 typ2))
 (define (E-of typ1 typ2) (a-app (a-id "Either" (xref "either" "Either")) typ1 typ2))
 

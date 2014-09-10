@@ -33,6 +33,12 @@
               "b"))
         )
         (method-spec
+          (name "pick")
+          (arity 1)
+          (params)
+          (args ("self"))
+        )
+        (method-spec
           (name "member")
           (arity 2)
           (params)
@@ -193,6 +199,30 @@ Another name for @pyret-id{list-set}.
 
 Checks if @pyret{elt} is contained within this set (checking membership with
 @pyret-id["equal-always" "equality"]).
+
+@(method-doc "Set" "set" "pick" #:alt-docstrings "" #:contract (a-arrow (S-of "a") (P-of "a" (S-of "a"))) #:return (P-of "a" (S-of "a")))
+
+@emph{Picks} an arbitrary element out of the set, and returns a
+@pyret-id["Pick" "pick"] data structure.  If the set is empty, a
+@pyret-id["pick-none" "pick"] is returned, otherwise a @pyret-id["pick-some"
+"pick"] is returned, and the rest of the set (without the picked value) is
+stored in the @pyret{rest} field of the @pyret-id["pick-some" "pick"].
+
+@examples{
+import pick as P
+check:
+  fun pick-sum(s):
+    cases(P.Pick) s.pick():
+      | pick-none => 0
+      | pick-some(elt, rest) => elt + pick-sum(rest)
+    end
+  end
+
+  pick-sum([set: 1, 2, 3, 4]) is 10
+
+  [set:].pick() is P.pick-none
+end
+}
 
 @set-method["union"]
 @set-method["intersect"]
