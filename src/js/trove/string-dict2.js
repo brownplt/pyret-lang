@@ -104,7 +104,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             return runtime.ffi.notEqual.app("");
           } else {
             var keys = Object.keys(underlyingDict);
-            var otherKeysLength = get(get(other,"keys").app(),"length").app();
+            var otherKeysLength = runtime.ffi.toArray(get(other, "keys").app()).length;
+            // var otherKeysLength = get(get(other,"keys").app(),"length").app();
             function eqElts() {
               if (keys.length === 0) {
                 return runtime.ffi.equal;
@@ -120,6 +121,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                   } else {
                     return eqElts();
                   }
+                  /*
+                  return runtime.combineEquality(result,
+                      eqElts());
+                  */
                 });
               }
             }
