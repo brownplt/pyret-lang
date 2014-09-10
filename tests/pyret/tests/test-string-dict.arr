@@ -44,10 +44,10 @@ check "basics":
   sd4 = [SD.string-dict: "a", 15, "b", 20]
   sd5 = [SD.string-dict: "a", 15, "b", 10, "c", 15]
 
-  (sd2 == sd3) is true
-  (sd2 == sd4) is false
-  (sd2 == sd5) is false
-  (sd2 == 2) is false
+  sd2 is sd3
+  sd2 is-not sd4
+  sd2 is-not sd5
+  sd2 is-not 2
 
 end
 
