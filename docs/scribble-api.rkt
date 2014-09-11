@@ -28,7 +28,7 @@
          function
          render-fun-helper
          re-export from
-         pyret pyret-id pyret-block
+         pyret pyret-id pyret-method pyret-block
          tag-name
          type-spec
          data-spec
@@ -227,6 +227,8 @@
 (define (pyret . body) (elem #:style (span-style "pyret-highlight") (apply tt body)))
 (define (pyret-id id (mod (curr-module-name)))
   (seclink (xref mod id) (tt id)))
+(define (pyret-method datatype id (mod (curr-module-name)))
+  (seclink (xref mod datatype id) (tt (string-append "." id))))
 
 ;;;;;;;;;; Cross-Reference Infrastructure ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

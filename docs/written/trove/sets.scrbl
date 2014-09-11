@@ -140,22 +140,28 @@ the future.
 
 @type-spec["Set" (list "a")]
 
-There are no variants for @pyret-id{Set}s, and programs should not use
+There are no variants for @pyret-id{Set}s, and programs cannot use
 @pyret{cases} statements with @pyret-id{Set}s.  Instead, they can be created
 with the constructors below, and manipulated with the methods and functions
 below.
 
 There are two underlying representations that sets may have.  List-based sets
-work on all values and compares them using the @pyret-id["equal-always"
-"equality"] built-in function.  List-based sets have O(n) performance on
-removal and membership testing.  Tree-based sets require that all elements
-implement the @pyret["_lessthan"] method in order to perform comparisons.
+work on all values that can be compared with the @pyret-id["equal-always"
+"equality"] built-in function (this means that, for example, a set of functions
+won't work).  List-based sets perform up to n comparisons on removal, addition,
+and membership testing, where n is the number of elements in the set (in order
+to give this guarantee, list-based sets don't store duplicate elements by
+scanning the whole list on insertion).  Tree-based sets require that all
+elements implement the @pyret["_lessthan"] method in order to perform
+comparisons, and guarantee that only up to log(n) less-than comparisons will be
+performed for a set with n elements on removal, addition, and membership
+testing.
 
 @section{Set Constructors}
 
 @collection-doc["list-set" (list (cons "elt" "a")) (S-of "a")]
 
-Constructs a set out of the @pyret{elt}s backed by a list.
+Constructs a set out of the @pyret{elt}s.
 
 @examples{
 check:
@@ -168,7 +174,7 @@ end
 
 @singleton-doc["Set" "empty-list-set" (S-of "a")]
 
-An empty set backed by a list.
+An empty set.
 
 @collection-doc["tree-set" (list (cons "elt" "a")) (S-of "a")]
 
@@ -223,6 +229,10 @@ check:
   [set:].pick() is P.pick-none
 end
 }
+
+Note that the order of elements returned from @pyret-method["Set" "pick"] is
+non-deterministic, so multiple calls to @pyret-method["Set" "pick"] may not
+produce the same result for the same set.
 
 @set-method["union"]
 @set-method["intersect"]

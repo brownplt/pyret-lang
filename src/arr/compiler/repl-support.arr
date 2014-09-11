@@ -47,6 +47,7 @@ ok-imports = [list:
   "lists",
   "error",
   "option",
+  "pick",
   "either",
   "sets",
   "arrays",
