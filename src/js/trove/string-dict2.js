@@ -8,7 +8,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       var get = runtime.getField;
 
       var brandMutable = runtime.namedBrander("string-dict");
-      var brandImmutable = runtime.namedBrander("string-dict");
+      var brandImmutable = runtime.namedBrander("immutable-string-dict");
 
       var annMutable = runtime.makeBranderAnn(brandMutable, "StringDict");
       var annImmutable = runtime.makeBranderAnn(brandImmutable, "ImmutableStringDict");
@@ -21,7 +21,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       // Prepend a space to avoid conflicting with built-in names
-      function mutableKey(s) {
+      function internalKey(s) {
         return " " + s;
       }
       // Remove it when internal keys need to be shown to the user
@@ -29,31 +29,56 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         return s.slice(1);
       }
 
-      function makeMutableStringDict(underlyingDict) {
-        // NOTE(joe): getMutable/setMutable etc are internal to
-        // makeMutableStringDict because they need to close over underlyingDict
-        var getMutable = runtime.makeMethodFromFun(function(_, key) {
+      function cloneDict(dict) {
+        var keys = Object.keys(dict);
+        var newDict = {};
+        for (var i = 0; i < keys.length; i++) {
+          newDict[keys[i]] = dict[keys[i]];
+        }
+        return newDict;
+      }
+
+      function makeStringDict(underlyingDict, mutableP) {
+        // NOTE(joe): getSD/setSD etc are internal to
+        // makeStringDict because they need to close over underlyingDict
+        var myBrand = mutableP ? brandMutable : brandImmutable;
+        var toreprPrefix = mutableP ? "string-dict" : "immutable-string-dict";
+
+        var getSD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, "get");
           runtime.checkString(key);
-          var mkey = mutableKey(key);
+          var mkey = internalKey(key);
           if(!underlyingDict[mkey]) {
             runtime.ffi.throwMessageException("Key " + key + " not found");
           }
           return underlyingDict[mkey]
         });
 
-        var setMutable = runtime.makeMethodFromFun(function(self, key, val) {
-          runtime.checkArity(3, arguments, "get");
-          runtime.checkString(key);
-          runtime.checkPyretVal(val);
-          underlyingDict[mutableKey(key)] = val;
-          return self;
-        });
+        var setSD;
 
-        var hasKeyMutable = runtime.makeMethodFromFun(function(_, key) {
+        if (mutableP) {
+          setSD = runtime.makeMethodFromFun(function(self, key, val) {
+            runtime.checkArity(3, arguments, "get");
+            runtime.checkString(key);
+            runtime.checkPyretVal(val);
+            underlyingDict[internalKey(key)] = val;
+            return self;
+          });
+        } else {
+          setSD = runtime.makeMethodFromFun(function(self, key, val) {
+            runtime.checkArity(3, arguments, "get");
+            runtime.checkString(key);
+            runtime.checkPyretVal(val);
+            var newDict = cloneDict(underlyingDict);
+            newDict[internalKey(key)] = val;
+            return makeStringDict(newDict, false);
+          });
+        }
+
+        var hasKeySD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, "has-key");
           runtime.checkString(key);
-          var mkey = mutableKey(key);
+          var mkey = internalKey(key);
           if (underlyingDict[mkey]) {
             return runtime.makeBoolean(true);
           } else {
@@ -61,7 +86,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
         });
 
-        var keysMutable = runtime.makeMethodFromFun(function(self) {
+        var keysSD = runtime.makeMethodFromFun(function(self) {
           runtime.checkArity(1, arguments, "keys");
           var keys = Object.keys(underlyingDict);
           return runtime.ffi.makeList(keys.map(function(mkey) {
@@ -74,7 +99,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var keys = Object.keys(underlyingDict);
           var elts = [];
           function combine(elts) {
-            return "[string-dict: " + elts.join(", ") + "]";
+            //return "[string-dict: " + elts.join(", ") + "]";
+            return "[" + toreprPrefix + ": " + elts.join(", ") + "]";
           }
           function toreprElts() {
             if (keys.length === 0) { return combine(elts); }
@@ -100,7 +126,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         var equals = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "equals");
-          if (!hasBrand(brandMutable, other)) {
+          if (!hasBrand(myBrand, other)) {
             return runtime.ffi.notEqual.app("");
           } else {
             var keys = Object.keys(underlyingDict);
@@ -140,21 +166,22 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           runtime.ffi.throwMessageException("Not yet implemented");
         });
 
-        var obj = O({
-          get: getMutable,
-          set: setMutable,
+        obj = O({
+          get: getSD,
+          set: setSD,
           remove: NYI,
-          'keys': keysMutable,
-          'has-key': hasKeyMutable,
+          'keys': keysSD,
+            'has-key': hasKeySD,
           _equals: equals,
           _torepr: torepr
         });
-        return applyBrand(brandMutable, obj);
+
+        return applyBrand(myBrand, obj);
       }
 
       function createMutableStringDict() {
         arity(0, arguments, "make-string-dict");
-        return makeMutableStringDict({});
+        return makeStringDict({}, true);
       }
 
       function createMutableStringDictFromArray(array) {
@@ -169,9 +196,31 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var key = array[i];
           var val = array[i + 1];
           runtime.checkString(key);
-          dict[mutableKey(key)] = val;
+          dict[internalKey(key)] = val;
         }
-        return makeMutableStringDict(dict);
+        return makeStringDict(dict, true);
+      }
+
+      function createImmutableStringDict() {
+        arity(0, arguments, "make-immutable-string-dict");
+        return makeStringDict({}, false);
+      }
+
+      function createImutableStringDictFromArray(array) {
+        arity(1, arguments, "immutable-string-dict");
+        runtime.checkArray(array);
+        var dict = {};
+        var len = array.length;
+        if(len % 2 !== 0) {
+          runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
+        }
+        for(var i = 0; i < len; i += 2) {
+          var key = array[i];
+          var val = array[i + 1];
+          runtime.checkString(key);
+          dict[internalKey(key)] = val;
+        }
+        return makeStringDict(dict, false);
       }
 
       var NYIF = F(function() {
@@ -189,9 +238,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             "string-dict": O({
               make: F(createMutableStringDictFromArray)
             }),
-            "make-immutable-string-dict": NYIF,
+            "make-immutable-string-dict": F(createImmutableStringDict),
             "immutable-string-dict": O({
-              make: NYIF
+              make: F(createImutableStringDictFromArray)
             })
           })
         }),
