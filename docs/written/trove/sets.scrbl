@@ -161,7 +161,6 @@ Some methods, like @pyret-method["Set" "union"], combine multiple sets.  The
 set on the left-hand side is the representation of the result.  For example, in
 
 @pyret-block{
-check:
   [list-set: 1, 2].union([tree-set: 3, 4])
 }
 
