@@ -157,6 +157,16 @@ comparisons, and guarantee that only up to log(n) less-than comparisons will be
 performed for a set with n elements on removal, addition, and membership
 testing.
 
+Some methods, like @pyret-method["Set" "union"], combine multiple sets.  The
+set on the left-hand side is the representation of the result.  For example, in
+
+@pyret-block{
+check:
+  [list-set: 1, 2].union([tree-set: 3, 4])
+}
+
+the result will be a @pyret{list-set}.
+
 @section{Set Constructors}
 
 @collection-doc["list-set" (list (cons "elt" "a")) (S-of "a")]
