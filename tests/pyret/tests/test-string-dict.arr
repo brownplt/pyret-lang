@@ -49,9 +49,36 @@ check "basics":
   sd2 is-not sd5
   sd2 is-not 2
 
+  isd2 = [SD.immutable-string-dict: "a", 15, "b", 10]
+
+  isd2.keys() is [list: "a", "b"]
+
+  isd2.has-key("a") is true
+  isd2.has-key("z") is false
+
+  isd3 = [SD.immutable-string-dict: "a", 15, "b", 10]
+  isd4 = [SD.immutable-string-dict: "a", 15, "b", 20]
+  isd5 = [SD.immutable-string-dict: "a", 15, "b", 10, "c", 15]
+
+  isd2 is-not sd2
+  isd3 is-not sd3
+  isd4 is-not sd4
+  isd5 is-not sd5
+
+  isd2 is isd3
+  isd2 is-not isd4
+  isd2 is-not isd5
+  isd2 is-not 2
+
+  isd6 = isd5.set("a", 7)
+
+  isd5 is-not isd6
+  isd5.get("a") is 15
+  isd6.get("a") is 7
+
 end
 
-check "immutables":
-  SD.make-immutable-string-dict() raises "Not yet implemented"
-  [SD.immutable-string-dict: "a", 5, "b", 10] raises "Not yet implemented"
-end
+#check "immutables":
+#  SD.make-immutable-string-dict() raises "Not yet implemented"
+#  [SD.immutable-string-dict: "a", 5, "b", 10] raises "Not yet implemented"
+#end
