@@ -76,6 +76,12 @@ check "basics":
   isd5.get("a") is 15
   isd6.get("a") is 7
 
+  sd5.remove("a")
+  sd5.get("a") raises "Key a not found"
+
+  isd7 = isd6.remove("a")
+  isd7.get("a") raises "Key a not found"
+  isd6.get("a") is 7
 end
 
 #check "immutables":
