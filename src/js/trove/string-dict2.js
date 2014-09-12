@@ -75,6 +75,23 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           });
         }
 
+        if (mutableP) {
+          removeSD = runtime.makeMethodFromFun(function(self, key) {
+            runtime.checkArity(2, arguments, "remove");
+            runtime.checkString(key);
+            delete underlyingDict[internalKey(key)];
+            return self;
+          });
+        } else {
+          removeSD = runtime.makeMethodFromFun(function(self, key) {
+            runtime.checkArity(2, arguments, "remove");
+            runtime.checkString(key);
+            var newDict = cloneDict(underlyingDict);
+            delete newDict[internalKey(key)];
+            return makeStringDict(newDict, false);
+          });
+        }
+
         var hasKeySD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, "has-key");
           runtime.checkString(key);
@@ -169,7 +186,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         obj = O({
           get: getSD,
           set: setSD,
-          remove: NYI,
+          remove: removeSD,
           'keys': keysSD,
             'has-key': hasKeySD,
           _equals: equals,
