@@ -58,7 +58,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         if (mutableP) {
           setSD = runtime.makeMethodFromFun(function(self, key, val) {
-            runtime.checkArity(3, arguments, "get");
+            runtime.checkArity(3, arguments, "set");
             runtime.checkString(key);
             runtime.checkPyretVal(val);
             underlyingDict[internalKey(key)] = val;
@@ -66,7 +66,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           });
         } else {
           setSD = runtime.makeMethodFromFun(function(self, key, val) {
-            runtime.checkArity(3, arguments, "get");
+            runtime.checkArity(3, arguments, "set");
             runtime.checkString(key);
             runtime.checkPyretVal(val);
             var newDict = cloneDict(underlyingDict);
@@ -109,6 +109,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return runtime.ffi.makeList(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
+        });
+
+        var countSD = runtime.makeMethodFromFun(function(_) {
+          runtime.checkArity(1, arguments, "count");
+          return runtime.makeNumber(Object.keys(underlyingDict).length);
         });
 
         var torepr = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
@@ -188,6 +193,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           set: setSD,
           remove: removeSD,
           'keys': keysSD,
+            'count': countSD,
             'has-key': hasKeySD,
           _equals: equals,
           _torepr: torepr
