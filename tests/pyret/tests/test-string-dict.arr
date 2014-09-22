@@ -86,6 +86,9 @@ check "basics":
   sd7 = [SD.string-dict: "a", false]
   sd7.has-key("a") is true
   sd7.has-key("b") is false
+
+  sd5.count() is 2
+  isd5.count() is 3
 end
 
 #check "immutables":
