@@ -82,6 +82,10 @@ check "basics":
   isd7 = isd6.remove("a")
   isd7.get("a") raises "Key a not found"
   isd6.get("a") is 7
+
+  sd7 = [SD.string-dict: "a", false]
+  sd7.has-key("a") is true
+  sd7.has-key("b") is false
 end
 
 #check "immutables":
