@@ -96,7 +96,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           runtime.checkArity(2, arguments, "has-key");
           runtime.checkString(key);
           var mkey = internalKey(key);
-          if (underlyingDict[mkey] !== undefined) {
+          if (underlyingDict.hasOwnProperty(mkey) === true) {
             return runtime.makeBoolean(true);
           } else {
             return runtime.makeBoolean(false);
