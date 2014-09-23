@@ -31,7 +31,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
       function cloneDict(dict) {
         var keys = Object.keys(dict);
-        var newDict = {};
+        var newDict = Object.create(null);
         for (var i = 0; i < keys.length; i++) {
           newDict[keys[i]] = dict[keys[i]];
         }
@@ -96,7 +96,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           runtime.checkArity(2, arguments, "has-key");
           runtime.checkString(key);
           var mkey = internalKey(key);
-          if (underlyingDict.hasOwnProperty(mkey) === true) {
+          if (mkey in underlyingDict) {
             return runtime.makeBoolean(true);
           } else {
             return runtime.makeBoolean(false);
@@ -204,13 +204,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
       function createMutableStringDict() {
         arity(0, arguments, "make-string-dict");
-        return makeStringDict({}, true);
+        var dict = Object.create(null);
+        return makeStringDict(dict, true);
       }
 
       function createMutableStringDictFromArray(array) {
         arity(1, arguments, "string-dict");
         runtime.checkArray(array);
-        var dict = {};
+        var dict = Object.create(null);
         var len = array.length;
         if(len % 2 !== 0) {
           runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
@@ -226,13 +227,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
       function createImmutableStringDict() {
         arity(0, arguments, "make-immutable-string-dict");
-        return makeStringDict({}, false);
+        var dict = Object.create(null);
+        return makeStringDict(dict, false);
       }
 
       function createImutableStringDictFromArray(array) {
         arity(1, arguments, "immutable-string-dict");
         runtime.checkArray(array);
-        var dict = {};
+        var dict = Object.create(null);
         var len = array.length;
         if(len % 2 !== 0) {
           runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
