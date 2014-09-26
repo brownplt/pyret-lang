@@ -48,7 +48,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           if (val === undefined) {
             runtime.ffi.throwMessageException('Key ' + key + ' not found');
           }
-          if (!underlyingObj.hasOwnProperty(mkey)) {
+          if (!Object.prototype.hasOwnProperty.call(underlyingObj, mkey)) {
             underlyingObj[mkey] = val;
           }
           return val;
@@ -346,14 +346,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
       function createImmutableStringDict() {
         arity(0, arguments, "make-immutable-string-dict");
-        var dict = {};
+        var dict = Object.create(null);
         return makeImmutableStringDict(dict);
       }
 
       function createImmutableStringDictFromArray(array) {
         arity(1, arguments, "immutable-string-dict");
         runtime.checkArray(array);
-        var dict = {};
+        var dict = Object.create(null);
         var len = array.length;
         if(len % 2 !== 0) {
           runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
