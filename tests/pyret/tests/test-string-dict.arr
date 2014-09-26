@@ -89,6 +89,18 @@ check "basics":
 
   sd5.count() is 2
   isd5.count() is 3
+
+  isd8 = sd5.freeze()
+  isd8.get("b") is 10
+  sd5.set("b", 5)
+  sd5.get("b") is 5
+  isd8.get("b") is 10
+
+  sd8 = isd5.unfreeze()
+  sd8.get("a") is 15
+  sd8.set("a", 23)
+  sd8.get("a") is 23
+  isd5.get("a") is 15
 end
 
 #check "immutables":
