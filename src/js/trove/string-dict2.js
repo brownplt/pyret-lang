@@ -38,46 +38,46 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         return newDict;
       }
 
-      function makeImmutableStringDict(underlyingObj) {
+      function makeImmutableStringDict(underlyingDict) {
 
-        var getSD = runtime.makeMethodFromFun(function(_, key) {
+        var getISD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'get');
           runtime.checkString(key);
           var mkey = internalKey(key);
-          var val = underlyingObj[mkey];
+          var val = underlyingDict[mkey];
           if (val === undefined) {
             runtime.ffi.throwMessageException('Key ' + key + ' not found');
           }
-          if (!Object.prototype.hasOwnProperty.call(underlyingObj, mkey)) {
-            underlyingObj[mkey] = val;
+          if (!Object.prototype.hasOwnProperty.call(underlyingDict, mkey)) {
+            underlyingDict[mkey] = val;
           }
           return val;
         });
 
-        var setSD = runtime.makeMethodFromFun(function(_, key, val) {
+        var setISD = runtime.makeMethodFromFun(function(_, key, val) {
           runtime.checkArity(3, arguments, 'set');
           runtime.checkString(key);
           runtime.checkPyretVal(val);
-          var newObj = Object.create(underlyingObj);
+          var newObj = Object.create(underlyingDict);
           var mkey = internalKey(key);
           newObj[mkey] = val;
           return makeImmutableStringDict(newObj);
         });
 
-        var removeSD = runtime.makeMethodFromFun(function(_, key) {
+        var removeISD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'remove');
           runtime.checkString(key);
-          var newObj = Object.create(underlyingObj);
+          var newObj = Object.create(underlyingDict);
           var mkey = internalKey(key);
           newObj[mkey] = undefined;
           return makeImmutableStringDict(newObj);
         });
 
-        var hasKeySD = runtime.makeMethodFromFun(function(_, key) {
+        var hasKeyISD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'has-key');
           runtime.checkString(key);
           var mkey = internalKey(key);
-          if (mkey in underlyingObj) {
+          if (mkey in underlyingDict) {
             return runtime.makeBoolean(true);
           } else {
             return runtime.makeBoolean(false);
@@ -86,13 +86,13 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         function getAllKeys() {
           var keys = [];
-          for (var key in underlyingObj) {
+          for (var key in underlyingDict) {
             keys.push(key);
           }
           return keys;
         }
 
-        var keysSD = runtime.makeMethodFromFun(function(_) {
+        var keysISD = runtime.makeMethodFromFun(function(_) {
           runtime.checkArity(1, arguments, 'keys');
           var keys = getAllKeys();
           return runtime.ffi.makeList(keys.map(function(mkey) {
@@ -100,16 +100,16 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }));
         });
 
-        var countSD = runtime.makeMethodFromFun(function(_) {
+        var countISD = runtime.makeMethodFromFun(function(_) {
           runtime.checkArity(1, arguments, 'count');
           var num = 0;
-          for (var prop in underlyingObj) {
+          for (var prop in underlyingDict) {
             num++;
           }
           return runtime.makeNumber(num);
         });
 
-        var toreprSD = runtime.makeMethodFromFun(function(_, recursiveToRepr) {
+        var toreprISD = runtime.makeMethodFromFun(function(_, recursiveToRepr) {
           runtime.checkArity(2, arguments, 'torepr');
           var elts = [];
           var keys = getAllKeys();
@@ -122,7 +122,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             } else {
               var thisKey = keys.pop();
               return runtime.safeCall(function() {
-                return recursiveToRepr.app(underlyingObj[thisKey]);
+                return recursiveToRepr.app(underlyingDict[thisKey]);
               },
               function (result) {
                 elts.push(recursiveToRepr.app(userKey(thisKey)));
@@ -134,7 +134,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return toreprElts();
         });
 
-        var equalsSD = runtime.makeMethodFromFun(function(_, other, recursiveEquality) {
+        var equalsISD = runtime.makeMethodFromFun(function(_, other, recursiveEquality) {
           runtime.checkArity(3, arguments, 'equals');
           if (!hasBrand(brandImmutable, other)) {
             return runtime.ffi.notEqual.app('');
@@ -147,7 +147,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               } else {
                 var thisKey = keys.pop();
                 return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingObj[thisKey],
+                  return recursiveEquality.app(underlyingDict[thisKey],
                       get(other, 'get').app(userKey(thisKey)));
                 },
                 function (result) {
@@ -167,15 +167,25 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
         });
 
+        var unfreezeISD = runtime.makeMethodFromFun(function(_) {
+          runtime.checkArity(1, arguments, 'unfreeze');
+          var dict = Object.create(null);
+          for (var mkey in underlyingDict) {
+            dict[mkey] = underlyingDict[mkey];
+          }
+          return makeMutableStringDict(dict);
+        });
+
         obj = O({
-          get: getSD,
-          set: setSD,
-          remove: removeSD,
-          keys: keysSD,
-          count: countSD,
-            'has-key': hasKeySD,
-          _equals: equalsSD,
-          _torepr: toreprSD
+          get: getISD,
+          set: setISD,
+          remove: removeISD,
+          keys: keysISD,
+          count: countISD,
+            'has-key': hasKeyISD,
+          _equals: equalsISD,
+          _torepr: toreprISD,
+          unfreeze: unfreezeISD
         });
 
         return applyBrand(brandImmutable, obj);
@@ -186,7 +196,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         // NOTE(joe): getSD/setSD etc are internal to
         // makeStringDict because they need to close over underlyingDict
 
-        var getSD = runtime.makeMethodFromFun(function(_, key) {
+        var getMSD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, "get");
           runtime.checkString(key);
           var mkey = internalKey(key);
@@ -196,7 +206,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return underlyingDict[mkey]
         });
 
-        var setSD = runtime.makeMethodFromFun(function(self, key, val) {
+        var setMSD = runtime.makeMethodFromFun(function(self, key, val) {
           runtime.checkArity(3, arguments, "set");
           runtime.checkString(key);
           runtime.checkPyretVal(val);
@@ -204,14 +214,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return self;
         });
 
-        var removeSD = runtime.makeMethodFromFun(function(self, key) {
+        var removeMSD = runtime.makeMethodFromFun(function(self, key) {
           runtime.checkArity(2, arguments, "remove");
           runtime.checkString(key);
           delete underlyingDict[internalKey(key)];
           return self;
         });
 
-        var hasKeySD = runtime.makeMethodFromFun(function(_, key) {
+        var hasKeyMSD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, "has-key");
           runtime.checkString(key);
           var mkey = internalKey(key);
@@ -222,7 +232,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
         });
 
-        var keysSD = runtime.makeMethodFromFun(function(self) {
+        var keysMSD = runtime.makeMethodFromFun(function(self) {
           runtime.checkArity(1, arguments, "keys");
           var keys = Object.keys(underlyingDict);
           return runtime.ffi.makeList(keys.map(function(mkey) {
@@ -230,12 +240,12 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }));
         });
 
-        var countSD = runtime.makeMethodFromFun(function(_) {
+        var countMSD = runtime.makeMethodFromFun(function(_) {
           runtime.checkArity(1, arguments, "count");
           return runtime.makeNumber(Object.keys(underlyingDict).length);
         });
 
-        var toreprSD = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
+        var toreprMSD = runtime.makeMethodFromFun(function(self, recursiveToRepr) {
           runtime.checkArity(2, arguments, "torepr");
           var keys = Object.keys(underlyingDict);
           var elts = [];
@@ -265,7 +275,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return toreprElts();
         });
 
-        var equalsSD = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
+        var equalsMSD = runtime.makeMethodFromFun(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "equals");
           if (!hasBrand(brandMutable, other)) {
             return runtime.ffi.notEqual.app("");
@@ -303,19 +313,29 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
         });
 
+        var freezeMSD = runtime.makeMethodFromFun(function(_) {
+          runtime.checkArity(1, arguments, 'freeze');
+          var dict = Object.create(null);
+          for (var mkey in underlyingDict) {
+            dict[mkey] = underlyingDict[mkey];
+          }
+          return makeImmutableStringDict(dict);
+        });
+
         var NYI = runtime.makeMethodFromFun(function(self) {
           runtime.ffi.throwMessageException("Not yet implemented");
         });
 
         obj = O({
-          get: getSD,
-          set: setSD,
-          remove: removeSD,
-          'keys': keysSD,
-          'count': countSD,
-            'has-key': hasKeySD,
-          _equals: equalsSD,
-          _torepr: toreprSD
+          get: getMSD,
+          set: setMSD,
+          remove: removeMSD,
+          'keys': keysMSD,
+          'count': countMSD,
+            'has-key': hasKeyMSD,
+          _equals: equalsMSD,
+          _torepr: toreprMSD,
+            freeze: freezeMSD
         });
 
         return applyBrand(brandMutable, obj);
