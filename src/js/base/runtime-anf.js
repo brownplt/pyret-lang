@@ -926,13 +926,31 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var stack = [];
       var stackOfStacks = [];
       var seen = [];
+      var seenArrays = [];
       var referents = []
       var needsGraph = false;
       var seenFrozenRef = false;
       var seenUnfrozenRef = false;
       var gensymCount = 1;
+      var arrayCount = 1;
       function makeName() {
         return "cyc_" + (gensymCount++) + "_";
+      }
+      function makeArrayName() {
+        return "<cyclic_array>";
+      }
+      function findSeenArray(arr) {
+        for (var i = 0; i < seenArrays.length; i++) {
+          if (seenArrays[i].arr === arr) {
+            return seenArrays[i].asName;
+          }
+        }
+        return undefined;
+      }
+      function addNewArray(arr) {
+        var newArr = { asName: makeArrayName(), arr: arr };
+        seenArrays.push(newArr);
+        return newArr.asName;
       }
       function findSeen(obj) {
         for (var i = 0; i < seen.length; i++) {
@@ -995,7 +1013,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
             } else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
               // Baffling bugs will result if next is passed directly
-              stack.push({todo: Array.prototype.slice.call(next), done: [], array: true});
+              var arrayHasBeenSeen = findSeenArray(next);
+              if(typeof arrayHasBeenSeen === "string") {
+                top.todo.pop();
+                top.done.push(arrayHasBeenSeen);
+              }
+              else {
+                addNewArray(next);
+                stack.push({todo: Array.prototype.slice.call(next), done: [], array: true});
+              }
             } else if (isObject(next)) {
               if (next.dict[method]) {
                 // If this call fails
