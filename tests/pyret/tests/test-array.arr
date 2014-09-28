@@ -119,7 +119,7 @@ end
 check:
   torepr([array: 1,2,"3"]) is '[array: 1, 2, "3"]'
   torepr([array: ]) is '[array: ]'
-#  torepr(raw-array-of(3, 3)) is '[array: 3, 3, 3]'
+  torepr(raw-array-of(3, 3)) is '[raw-array: 3, 3, 3]'
 end
 
 check:
