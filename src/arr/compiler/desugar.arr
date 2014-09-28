@@ -262,9 +262,14 @@ fun ds-curry(l, f, args):
   fun fallthrough():
     params-and-args = ds-curry-args(l, args)
     params = params-and-args.left
-    ds-f = desugar-expr(f)
-    if is-empty(params): A.s-app(l, ds-f, args)
-    else: A.s-lam(l, [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none)
+    if is-underscore(f):
+      f-id = mk-id(l, "f_")
+      A.s-lam(l, empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none)
+    else:
+      ds-f = desugar-expr(f)
+      if is-empty(params): A.s-app(l, ds-f, args)
+      else: A.s-lam(l, [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none)
+      end
     end
   end
   cases(A.Expr) f:
