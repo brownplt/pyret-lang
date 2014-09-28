@@ -54,3 +54,10 @@ check "Should correctly derive tostring and torepr only when needed":
   tostring(z()) is "tostring-shared"
   torepr(z()) is "torepr-z"
 end
+
+check "Should correctly torepr raw-arrays":
+  torepr(raw-array-of(1, 2)) is "[raw-array: 1, 1]"
+  torepr(raw-array-of(2, 1)) is "[raw-array: 2]"
+#  torepr([raw-array: [set:]]) is "[raw-array: [set:]]"
+#  torepr([raw-array:]) is "[raw-array:]"
+end

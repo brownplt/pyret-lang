@@ -992,6 +992,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
             } else if (isNothing(next)) {
               top.todo.pop();
               top.done.push("nothing");
+            } else if (isArray(next)) {
+              // NOTE(joe): need to copy the array below because we will pop from it
+              // Baffling bugs will result if next is passed directly
+              stack.push({todo: Array.prototype.slice.call(next), done: [], array: true});
             } else if (isObject(next)) {
               if (next.dict[method]) {
                 // If this call fails
@@ -1004,7 +1008,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   return Array.prototype.slice.call(arguments);
                 });
                 stack.push({todo: vals, done: [], arity: next.$arity, 
-                            implicitRefs: next.$mut_fields_mask, constructor: next.$name});
+                            implicitRefs: next.$mut_fields_mask, constructorName: next.$name});
               } else { // Push the fields of this nested object onto the work stack
                 var keys = [];
                 var vals = [];
@@ -1052,25 +1056,25 @@ function isMethod(obj) { return obj instanceof PMethod; }
             var prev = stack[stack.length - 1];
             prev.todo.pop();
             var s = "";
-            if(hasProperty(top, "keys")) {
+            if(hasOwnProperty(top, "keys")) {
               s += "{";
               for (var i = 0; i < top.keys.length; i++) {
                 if (i > 0) { s += ", "; }
                 s += top.keys[i] + ": " + top.done[i];
               }
               s += "}";
-            } else if (hasProperty(top, "wrapRef")) {
+            } else if (hasOwnProperty(top, "wrapRef")) {
               var refName = setRefDoc(top.theRef, top.done[0]);
               if (top.wrapRef && !isRefFrozen(top.theRef)) {
                 s += "make-ref(" + refName + ")";
               } else {
                 s += refName;
               }
-            } else if(hasProperty(top, "constructor")) {
-              s += top.constructor;
+            } else if(hasOwnProperty(top, "constructorName")) {
+              s += top.constructorName;
               // Sentinel value for singleton constructors
               if(top.arity !== -1) {
-                // console.log("Constructing " + top.constructor + ", implicitRefs = " + top.implicitRefs);
+                // console.log("Constructing " + top.constructorName + ", implicitRefs = " + top.implicitRefs);
                 s += "(";
                 for(var i = top.done.length - 1; i >= 0; i--) {
                   if(i < top.done.length - 1) { s += ", "; }
@@ -1080,6 +1084,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 }
                 s += ")";
               }
+            } else if(hasOwnProperty(top, "array")) {
+              s += "[raw-array: ";
+              for(var i = top.done.length - 1; i >= 0; i--) {
+                if(i < top.done.length - 1) { s += ", "; }
+                s += top.done[i];
+              }
+              s += "]";
             }
             prev.done.push(s);
           }
@@ -2985,6 +2996,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return ffi.makeList(arr);
     };
 
+    var raw_array_constructor = function(arr) {
+      thisRuntime.checkArity(1, arguments, "raw-array");
+      thisRuntime.checkArray(arr);
+      return arr;
+    };
+
     var raw_array_fold = function(f, init, arr, start) {
       thisRuntime.checkArity(4, arguments, "raw-array-fold");
       thisRuntime.checkFunction(f);
@@ -3557,6 +3574,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
+          'raw-array': makeObject({
+              make: makeFunction(raw_array_constructor)
+          }),
 
           'not': makeFunction(bool_not),
 

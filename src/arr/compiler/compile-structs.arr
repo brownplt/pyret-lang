@@ -277,6 +277,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "raw-array-length",
   "raw-array-to-list",
   "raw-array-fold",
+  "raw-array",
   "ref-get",
   "ref-set",
   "ref-freeze",
