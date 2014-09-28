@@ -115,7 +115,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     check-is-not(self, code, left, right, loc):
       check-bool(loc, code,
-        left <> right,
+        not(left == right),
         lam(): failure-not-different(loc, code, none, left, right);)
     end,
     check-is-refinement(self, code, refinement, left, right, loc):

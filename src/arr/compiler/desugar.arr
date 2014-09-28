@@ -548,7 +548,7 @@ fun desugar-expr(expr :: A.Expr):
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-prim-app(l, "not", [list: A.s-prim-app(l, "equiv", [list: e1, e2])])
+                A.s-prim-app(l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])])
               end)
           else if op == "opor":
             fun helper(operands):
