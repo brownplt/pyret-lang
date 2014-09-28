@@ -21,11 +21,13 @@
       (name "raw-array-get")
       (arity 2)
       (args ("array" "index"))
+      (return "a")
       (doc ""))
     (fun-spec
       (name "raw-array-set")
       (arity 3)
       (args ("array" "index" "new-value"))
+      (return ,ra-of-a)
       (doc ""))
     (fun-spec
       (name "raw-array-length")
@@ -100,9 +102,9 @@ check:
 end
 }
 
-  @function["raw-array-get" #:contract (a-arrow (RA-of "a") N "a")]
-  @function["raw-array-set" #:contract (a-arrow (RA-of "a") N "a" (RA-of "a"))]
-  @function["raw-array-length" #:contract (a-arrow (RA-of "a") N)]
+  @function["raw-array-get" #:contract (a-arrow (RA-of "a") N "a") #:return "a"]
+  @function["raw-array-set" #:contract (a-arrow (RA-of "a") N "a" (RA-of "a")) #:return (RA-of "a")]
+  @function["raw-array-length" #:contract (a-arrow (RA-of "a") N) #:return N]
 
 @examples{
   a1 = raw-array-of(0, 3)
@@ -117,7 +119,7 @@ end
   raw-array-get(a1, 2) is 3
   raw-array-get(a1, 3) raises "too large"
 }
-  @function["raw-array-to-list" #:contract (a-arrow (RA-of "a") (L-of "a"))]
+  @function["raw-array-to-list" #:contract (a-arrow (RA-of "a") (L-of "a")) #:return (L-of "a")]
 
     Converts a @pyret-id{RawArray} to a @pyret-id["List" "lists"] containing
     the same elements in the same order.
@@ -136,7 +138,7 @@ check:
 end
     }
 
-  @function["raw-array-fold" #:contract (a-arrow (a-arrow "b" "a" N) "b" (RA-of "a") N "b")]
+  @function["raw-array-fold" #:contract (a-arrow (a-arrow "b" "a" N "b") "b" (RA-of "a") N "b") #:return "b"]
 
   Combines the elements in the array with a function that accumulates each
   element with an intermediate result.  Similar to @pyret-id["fold_n" "lists"].
