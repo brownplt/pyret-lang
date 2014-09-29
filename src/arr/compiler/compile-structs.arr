@@ -92,65 +92,65 @@ data CompileError:
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
         + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + "."
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
         + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + "."
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Incorrect number of arguments given to function at line " + tostring(self.loc) + "."
     end
   | apply-non-function(loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "You tried to apply something that is not a function at line " + tostring(self.loc) + "."
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The object type " + self.obj
-        + " (defined at " + self.obj-loc.tostring()
+        + " (defined at " + tostring(self.obj-loc)
         + ") does not have the field \"" + self.field-name
-        + "\" (accessed at line " + self.access-loc.tostring() + ")."
+        + "\" (accessed at line " + tostring(self.access-loc) + ")."
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The branch " + self.branch-name
-        + " (defined at " + self.branch-loc.tostring()
+        + " (defined at " + tostring(self.branch-loc)
         + ") is not a variant of " + self.type-name
-        + " (declared at " + self.type-loc.tostring() + ")"
+        + " (declared at " + tostring(self.type-loc) + ")"
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    tostring(self):
-      "The else branch for the cases expression at " + self.loc.tostring()
+    tostring(self, shadow tostring):
+      "The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted."
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
-    tostring(self):
-      "The cases expression at " + self.loc.tostring()
+    tostring(self, shadow tostring):
+      "The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + "."
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The type specified " + self.type-name
-        + " at " + self.loc.tostring()
+        + " at " + tostring(self.loc)
         + " cannot be used in a cases expression."
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "Incorrect number of bindings given to "
         + "the variant " + self.variant-name
-        + " at " + self.loc.tostring() + ". "
+        + " at " + tostring(self.loc) + ". "
         + "Given " + num-tostring(self.given)
         + ", but expected " + num-tostring(self.expected)
         + "."
     end
   | cases-singleton-mismatch(branch-name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       if self.should-be-singleton:
         "The cases branch " + self.branch-name
           + " at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
@@ -159,15 +159,15 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
-    tostring(self):
+    tostring(self, shadow tostring):
       "The data type " + self.data-type
         + " does not take any parameters,"
-        + " but is given some at " + self.loc.tostring()
+        + " but is given some at " + tostring(self.loc)
         + "."
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    tostring(self):
-      "There is not enough information to instantiate the type at " + self.loc.tostring()
+    tostring(self, shadow tostring):
+      "There is not enough information to instantiate the type at " + tostring(self.loc)
          + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
     end
 end

@@ -66,8 +66,13 @@ check "These should all be bad programs":
       prog-text = FL.read-file(prog-file)
       result    = compile-str(filename, prog-text)
       result satisfies CS.is-err
-      when CS.is-ok(result):
-        "Should be error: " is filename
+      cases(CS.CompileResult) result:
+        | ok(_) =>
+          "Should be error: " is filename
+        | err(problems) =>
+          for each(problem from problems):
+            tostring(problem) satisfies is-string
+          end
       end
       FL.close-output-file(prog-file)
     end
