@@ -91,7 +91,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         function getAllKeys() {
           var keys = [];
           for (var key in underlyingDict) {
-            keys.push(key);
+            if (underlyingDict[key] !== undefined) {
+              keys.push(key);
+            }
           }
           return keys;
         }
@@ -107,8 +109,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var countISD = runtime.makeMethodFromFun(function(_) {
           runtime.checkArity(1, arguments, 'count');
           var num = 0;
-          for (var prop in underlyingDict) {
-            num++;
+          for (var key in underlyingDict) {
+            if (underlyingDict[key] !== undefined) {
+              num++;
+            }
           }
           return runtime.makeNumber(num);
         });
