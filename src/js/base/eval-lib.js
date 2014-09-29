@@ -53,7 +53,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                     "check-mode": runtime.pyretTrue,
                     "allow-shadowed": runtime.pyretFalse,
                     "collect-all": runtime.pyretFalse,
-                    "type-check": runtime.pyretFalse,
+                    "type-check": runtime.makeBoolean(options.typeCheck || false),
                     "ignore-unbound": runtime.pyretFalse
                   })
                 );
