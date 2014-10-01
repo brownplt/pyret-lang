@@ -65,7 +65,7 @@ end
 
 type ToCompile = { locator: Locator, provide-map: SD.StringDict<Provides>, path :: List<Locator> }
 
-fun<CompileContext> make-compile-lib(find :: (CompileContext, Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
+fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
 
   fun compile-worklist(locator :: Locator, context :: CompileContext) -> List<ToCompile>:
     fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: CompileContext, curr-path :: List<ToCompile>, acc :: List<ToCompile>) -> List<ToCompile>:
@@ -75,7 +75,7 @@ fun<CompileContext> make-compile-lib(find :: (CompileContext, Dependency -> Loca
       pmap = SD.string-dict()
       deps = get-dependencies(locator).to-list()
       dlocs = for map(d from deps):
-        dloc = find(context, d)
+        dloc = dfind(context, d)
         pmap.set(d.key(), get-provides(dloc))
         dloc
       end
