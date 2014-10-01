@@ -46,6 +46,7 @@ syn match comment '\#.*$'
 
 syntax region string start=/\v"/ skip=/\v\\./ end=/\v"/
 syntax region string start=/\v'/ skip=/\v\\./ end=/\v'/
+syntax region string start=/\v```/ skip=/\v\\./ end=/\v```/
 
 syn match number "[0-9]+"
 
