@@ -1,6 +1,7 @@
 import parse-pyret as P
 import ast as A
 import sets as S
+import string-dict as SD
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 
@@ -14,11 +15,13 @@ type PyretCode = String
 
 type Provides = Set<String>
 
+type CompileContext = Any
+
 type Locator = {
  
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
-  needs-compile :: (SD.StringDict<Provides> -> Bool),
+  needs-compile :: (SD.StringDict<Provides> -> Boolean),
 
   get-module :: ( -> PyretCode),
 
