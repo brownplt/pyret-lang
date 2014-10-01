@@ -638,7 +638,7 @@ end
 
 
 
-fun lookup-id(id, info :: TCInfo) -> Type:
+fun lookup-id(blame-loc :: A.Loc, id, info :: TCInfo) -> FoldResult<Type>:
   id-key = if is-string(id):
              id
            else if A.is-Name(id):
@@ -647,9 +647,16 @@ fun lookup-id(id, info :: TCInfo) -> Type:
              raise("I don't know how to lookup your id! Received: " + torepr(id))
            end
   if info.typs.has-key(id-key):
-    info.typs.get(id-key)
+    fold-result(info.typs.get(id-key))
   else:
-    raise("Identifier not found in environment! Tried to find: " + id-key)
+    id-expr = if is-string(id):
+                A.s-id(blame-loc, A.s-global(id))
+              else if A.is-Name(id):
+                A.s-id(blame-loc, id)
+              else:
+                A.s-id(blame-loc, A.s-global(tostring(id)))
+              end
+    fold-errors([list: C.unbound-id(id-expr)])
   end
 end
 
@@ -692,7 +699,8 @@ end
 fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
   cases(A.Expr) e:
     | s-module(l, answer, provides, types, checks) =>
-      raise("s-module not yet handled")
+      synthesis(answer, info)
+        .map-expr(A.s-module(l, _, provides, types, checks))
     | s-type-let-expr(l, binds, body) =>
       for synth-bind(_ from handle-type-let-binds(binds, info)):
         synthesis(body, info)
@@ -704,8 +712,25 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         synthesis(body, info)
           .map-expr(A.s-let-expr(l, new-bindings, _))
       end
-    | s-letrec(l, binds, body) =>
-      raise("s-letrec not yet handled")
+    | s-letrec(l, bindings, body) =>
+      # Collect initial annotations. If we don't have any, make them t-bot
+      fun traverse(curr-bindings :: List<A.LetrecBind>) -> FoldResult<List<A.Expr>>:
+        for map-synthesis(binding from curr-bindings):
+          cases(A.LetrecBind) binding:
+            | s-letrec-bind(l2, b, value) =>
+              recreate = A.s-letrec-bind(l2, _, _)
+              synthesis-binding(b, value, recreate, info)
+          end
+        end
+      end
+      for synth-bind(_ from map-result(process-letrec-binding(_, t-bot, info), bindings)):
+        for synth-bind(tmp-bindings from traverse(bindings)): # Traverse once to determine each one's correct type.
+          for synth-bind(new-bindings from traverse(tmp-bindings)): # Traverse again to check recursive references.
+            synthesis(body, info)
+              .map-expr(A.s-letrec(l, new-bindings, _))
+          end
+        end
+      end
     | s-hint-exp(l, hints, exp) =>
       raise("s-hint-exp not yet handled")
     | s-instantiate(l, expr, params) =>
@@ -725,15 +750,15 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
           end)
       end.synth-bind(build-ret-pair)
     | s-type(l, name, ann) =>
-      raise("s-type not yet handled")
+      synthesis-err([list: C.unsupported("Synthesizing type aliases is currently unsupported by the type checker", l)])
     | s-newtype(l, name, namet) =>
-      raise("s-newtype not yet handled: " + torepr(e))
+      synthesis-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
     | s-graph(l, bindings) =>
-      raise("s-graph not yet handled")
+      synthesis-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
-      raise("s-contract not yet handled")
+      synthesis-err([list: C.unsupported("s-contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>
-      raise("s-assign not yet handled")
+      synthesis-err([list: C.unsupported("Variables and assignment are currently unsupported by the type checker", l)])
     | s-if-else(l, branches, _else) =>
       for synth-bind(result from map-result(handle-if-branch(_, info), branches)):
         synthesis(_else, info).bind(
@@ -750,7 +775,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
     | s-cases-else(l, typ, val, branches, _else) =>
       synthesis-cases(l, typ, val, branches, some(_else), info)
     | s-try(l, body, id, _except) =>
-      raise("s-try not yet handled")
+      synthesis-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,
@@ -765,9 +790,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         doc, body, _check) =>
       synthesis-fun(l, body, empty, args, ann, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
-      raise("s-extend not yet handled")
+      synthesis-err([list: C.unsupported("Object extension is currently unsupported by the type checker", l)])
     | s-update(l, supe, fields) =>
-      raise("s-update not yet handled")
+      synthesis-err([list: C.unsupported("Updating object fields is currently unsupported by the type checker", l)])
     | s-obj(l, fields) =>
       for synth-bind(result from map-result(to-type-member(_, info), fields)):
         split-fields = split(result)
@@ -778,13 +803,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         synthesis-result(new-obj, l, obj-typ)
       end
     | s-array(l, values) =>
-      raise("s-array not yet handled")
+      synthesis-err([list: C.unsupported("Arrays are currently unsupported by the type checker", l)])
     | s-construct(l, modifier, constructor, values) =>
-      raise("s-construct not yet handled")
-    | s-confirm(l, expr, typ) =>
-      raise("s-confirm not yet handled")
-    | s-bless(l, expr, typ) =>
-      raise("s-bless not yet handled")
+      synthesis-err([list: C.unsupported("s-construct is currently unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
       synthesis(_fun, info).bind(
       lam(new-fun, arrow-typ-loc, arrow-typ):
@@ -795,24 +816,31 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         end
       end)
     | s-prim-app(l, _fun, args) =>
-      arrow-typ = lookup-id(_fun, info)
-      result = check-app(l, args, arrow-typ, t-top, info)
-      for synth-bind(new-args from result.left):
-        ast = A.s-prim-app(l, _fun, new-args)
-        synthesis-result(ast, l, result.right)
+      for synth-bind(arrow-typ from lookup-id(l, _fun, info)):
+        result = check-app(l, args, arrow-typ, t-top, info)
+        for synth-bind(new-args from result.left):
+          ast = A.s-prim-app(l, _fun, new-args)
+          synthesis-result(ast, l, result.right)
+        end
       end
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      synthesis-result(e, l, lookup-id(id, info))
+      for synth-bind(id-typ from lookup-id(l, id, info)):
+        synthesis-result(e, l, id-typ)
+      end
     | s-id-var(l, id) =>
-      synthesis-result(e, l, lookup-id(id, info))
+      for synth-bind(id-typ from lookup-id(l, id, info)):
+        synthesis-result(e, l, id-typ)
+      end
     | s-id-letrec(l, id, safe) =>
-      synthesis-result(e, l, lookup-id(id, info))
+      for synth-bind(id-typ from lookup-id(l, id, info)):
+        synthesis-result(e, l, id-typ)
+      end
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
-      raise("s-srcloc not yet handled")
+      synthesis-result(e, l, t-srcloc)
     | s-num(l, n) =>
       synthesis-result(e, l, t-number)
     | s-frac(l, num, den) =>
@@ -871,7 +899,7 @@ fun synthesis-let-bind(binding :: A.LetBind, info :: TCInfo) -> SynthesisResult:
     | s-let-bind(l, b, value) =>
       synthesis-binding(b, value, A.s-let-bind(l, _, _), info)
     | s-var-bind(l, b, value) =>
-      raise("s-var-bind not yet handled")
+      synthesis-err([list: C.unsupported("Variables and assignment are currently unsupported by the type-checker.", l)])
   end
 end
 
@@ -1004,7 +1032,6 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
           .map(A.s-let-expr(l, new-bindings, _))
       end
     | s-letrec(l, bindings, body) =>
-      # TODO(cody): This needs to be thought out more...
       # Collect initial annotations. If we don't have any, make them t-bot
       fun traverse(curr-bindings :: List<A.LetrecBind>) -> FoldResult<List<A.Expr>>:
         for map-synthesis(binding from curr-bindings):
@@ -1057,13 +1084,13 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         checking-result(e)
       end
     | s-newtype(l, name, namet) =>
-      raise("s-newtype not yet handled")
+      checking-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
     | s-graph(l, bindings) =>
-      raise("s-graph not yet handled")
+      checking-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
-      raise("s-contract not yet handled")
+      checking-err([list: C.unsupported("Contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>
-      raise("s-assign not yet handled")
+      checking-err([list: C.unsupported("Assignment is currently unsupported by the type checker", l)])
     | s-if-else(l, branches, _else) =>
       for map-result(branch from branches):
         for fold-bind(new-test from checking(branch.test, branch.l, t-boolean, info)):
@@ -1080,7 +1107,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
     | s-cases-else(l, typ, val, branches, _else) =>
       checking-cases(l, typ, val, branches, some(_else), expect-loc, expect-typ, info)
     | s-try(l, body, id, _except) =>
-      raise("s-try not yet handled")
+      checking-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,
@@ -1095,9 +1122,9 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         doc, body, _check) =>
       check-fun(l, body, empty, args, ann, expect-loc, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
-      raise("s-extend not yet handled")
+      checking-err([list: C.unsupported("Object extension is currently unsupported by the type checker", l)])
     | s-update(l, supe, fields) =>
-      raise("s-update not yet handled")
+      checking-err([list: C.unsupported("Object updates are currently unsupported by the type checker", l)])
     | s-obj(l, fields) =>
       for check-bind(result from map-result(to-type-member(_, info), fields)):
         split-fields = split(result)
@@ -1108,13 +1135,9 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         check-and-return(l, obj-typ, expect-loc, expect-typ, new-obj, info)
       end
     | s-array(l, values) =>
-      raise("s-array not yet handled")
+      checking-err([list: C.unsupported("s-array is currently unsupported by the type checker", l)])
     | s-construct(l, modifier, constructor, values) =>
-      raise("s-construct not yet handled")
-    | s-confirm(l, expr, typ) =>
-      raise("s-confirm not yet handled")
-    | s-bless(l, expr, typ) =>
-      raise("s-bless not yet handled")
+      checking-err([list: C.unsupported("s-construct is unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
       synthesis(_fun, info).check-bind(
       lam(new-fun, new-fun-loc, new-fun-typ):
@@ -1125,20 +1148,27 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         end
       end)
     | s-prim-app(l, _fun, args) =>
-      arrow-typ = lookup-id(_fun, info)
-      result = check-app(l, args, arrow-typ, expect-typ, info)
-      for check-bind(new-args from result.left):
-        ast = A.s-prim-app(l, _fun, new-args)
-        check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
+      for check-bind(arrow-typ from lookup-id(l, _fun, info)):
+        result = check-app(l, args, arrow-typ, expect-typ, info)
+        for check-bind(new-args from result.left):
+          ast = A.s-prim-app(l, _fun, new-args)
+          check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
+        end
       end
     | s-prim-val(l, name) =>
       raise("s-prim-val not yet handled")
     | s-id(l, id) =>
-      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
+      for check-bind(id-typ from lookup-id(l, id, info)):
+        check-and-return(l, id-typ, expect-loc, expect-typ, e, info)
+      end
     | s-id-var(l, id) =>
-      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
+      for check-bind(id-typ from lookup-id(l, id, info)):
+        check-and-return(l, id-typ, expect-loc, expect-typ, e, info)
+      end
     | s-id-letrec(l, id, safe) =>
-      check-and-return(l, lookup-id(id, info), expect-loc, expect-typ, e, info)
+      for check-bind(id-typ from lookup-id(l, id, info)):
+        check-and-return(l, id-typ, expect-loc, expect-typ, e, info)
+      end
     | s-undefined(l) =>
       raise("s-undefined not yet handled")
     | s-srcloc(l, loc) =>
@@ -1189,18 +1219,22 @@ end
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = TCS.empty-tc-info()
-      tc-result = checking(body, A.dummy-loc, t-top, info)
-      side-errs = info.errors.get()
-      cases(CheckingResult) tc-result:
-        | checking-result(new-body) =>
-          if is-empty(side-errs):
-            C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
-          else:
-            C.err(side-errs)
-          end
-        | checking-err(err-list) =>
-          C.err(err-list + side-errs)
+      if is-empty(imports):
+        info = TCS.empty-tc-info()
+        tc-result = checking(body, A.dummy-loc, t-top, info)
+        side-errs = info.errors.get()
+        cases(CheckingResult) tc-result:
+          | checking-result(new-body) =>
+            if is-empty(side-errs):
+              C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
+            else:
+              C.err(side-errs)
+            end
+          | checking-err(err-list) =>
+            C.err(err-list + side-errs)
+        end
+      else:
+        C.err([list: C.unsupported("The type-checker does not currently support imports.", l)])
       end
     | else => raise("Attempt to type-check non-program: " + torepr(program))
   end
