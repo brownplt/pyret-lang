@@ -207,6 +207,7 @@ fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
     | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
     | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
+    | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
     | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
@@ -308,6 +309,12 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     bind.visit(self) and val.visit(self)
   end,
+  s-rec(self, l, bind, val):
+    when A.is-s-underscore(bind.id):
+      add-error(C.pointless-rec(l.at-start() + bind.l))
+    end
+    bind.visit(self) and val.visit(self)
+  end,
   s-var-bind(self, l, bind, val):
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
@@ -325,7 +332,7 @@ well-formed-visitor = A.default-iter-visitor.{
           wf-error("Cannot use underscore as a standalone statement", stmt.l)
         end
       end
-      bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) end).map(_.name)
+      bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
       ensure-unique-bindings(bind-stmts.reverse())
       ensure-distinct-lines(A.dummy-loc, stmts)
       lists.all(_.visit(self), stmts)
@@ -606,6 +613,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-var(l, name, value)
+  end,
+  s-rec(_, l :: Loc, name :: A.Bind, value :: A.Expr):
+    well-formed-visitor.s-rec(l, name, value)
   end,
   s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)

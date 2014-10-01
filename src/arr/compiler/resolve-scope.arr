@@ -191,6 +191,8 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-let-bind(binding-group, A.s-let-bind(l, bind, expr), rest-stmts)
         | s-var(l, bind, expr) =>
           add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
+        | s-rec(l, bind, expr) =>
+          add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
         | s-graph(l, lets) =>
           gbs = for map(lt from lets):
             A.s-let-bind(lt.l, lt.name, lt.value)
@@ -507,7 +509,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
        Requires:
         1. desugar-scope
        Preconditions on p:
-        -  Contains no s-block, s-let, s-var, s-data
+        -  Contains no s-block, s-let, s-var, s-data, s-rec
        Postconditions on p (in addition to preconditions):
         -  Contains no s-name in names
        ```

@@ -23,7 +23,7 @@ block: stmt*
 
 stmt: type-expr | newtype-expr
     | let-expr | fun-expr | data-expr | datatype-expr | when-expr
-    | var-expr | assign-expr | check-test | check-expr
+    | var-expr | rec-expr | assign-expr | check-test | check-expr
     | graph-expr | mgraph-expr | contract-stmt
 
 type-expr: TYPE NAME EQUALS ann
@@ -85,6 +85,7 @@ datatype-variant: BAR variant-constructor constructor-clause | BAR NAME construc
 constructor-clause: WITHCONSTRUCTOR (PARENSPACE|PARENNOSPACE) NAME RPAREN COLON block end
 
 var-expr: VAR toplevel-binding EQUALS binop-expr
+rec-expr: REC toplevel-binding EQUALS binop-expr
 assign-expr: NAME COLONEQUALS binop-expr
 
 graph-expr: GRAPH let-expr* end

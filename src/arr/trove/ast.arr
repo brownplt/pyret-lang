@@ -70,6 +70,7 @@ str-thickarrow = PP.str("=>")
 str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
+str-rec = PP.str("rec ")
 str-newtype = PP.str("type ")
 str-type = PP.str("type ")
 str-val = PP.str("val ")
@@ -445,6 +446,13 @@ data Expr:
     label(self): "s-var" end,
     tosource(self):
       str-var
+        + PP.group(PP.nest(INDENT, self.name.tosource()
+            + str-spaceequal + break-one + self.value.tosource()))
+    end
+  | s-rec(l :: Loc, name :: Bind, value :: Expr) with:
+    label(self): "s-rec" end,
+    tosource(self):
+      str-rec
         + PP.group(PP.nest(INDENT, self.name.tosource()
             + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -1266,6 +1274,7 @@ fun binding-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
     | s-let(_, b, _, _) => [list: b.id]
     | s-var(_, b, _) => [list: b.id]
+    | s-rec(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-m-graph(_, bindings) => flatten(bindings.map(binding-ids))
@@ -1427,6 +1436,10 @@ default-map-visitor = {
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
     s-var(l, name.visit(self), value.visit(self))
+  end,
+
+  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+    s-rec(l, name.visit(self), value.visit(self))
   end,
 
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
@@ -1907,6 +1920,10 @@ default-iter-visitor = {
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
+
+  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+    name.visit(self) and value.visit(self)
+  end,
   
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
     name.visit(self) and value.visit(self)
@@ -2376,6 +2393,10 @@ dummy-loc-visitor = {
 
   s-var(self, l :: Loc, name :: Bind, value :: Expr):
     s-var(dummy-loc, name.visit(self), value.visit(self))
+  end,
+
+  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+    s-rec(dummy-loc, name.visit(self), value.visit(self))
   end,
 
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):

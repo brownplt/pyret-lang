@@ -492,6 +492,12 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('data D: | var1 with: m<a,b>(self): 5 end sharing: m2<a,b>(self): 5 end end')).not.toBe(false);
       expect(parse('data D: | var1 with: m<a,b,c>(self): 5 end sharing: m2<a,b,c>(self): 5 end end')).not.toBe(false);
     });
+
+    it("should parse rec statements", function() {
+      expect(parse('rec a = 10')).not.toBe(false);
+      expect(parse('rec ohn = lz(1, lam(): ohn end)')).not.toBe(false);
+      expect(parse('rec = 5')).toBe(false);
+    });
   });
 
 

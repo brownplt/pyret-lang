@@ -16,6 +16,7 @@ fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
     A.is-s-var(stmt) or
+    A.is-s-rec(stmt) or
     A.is-s-fun(stmt) or
     A.is-s-data(stmt) or
     A.is-s-graph(stmt) or
