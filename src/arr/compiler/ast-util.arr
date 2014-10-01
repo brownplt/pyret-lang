@@ -526,15 +526,22 @@ inline-lams = A.default-map-visitor.{
   s-app(self, loc, f, exps):
     cases(A.Expr) f:
       | s-lam(l, _, args, ann, _, body, _) =>
-        a = A.global-names.make-atom("inline_body")
-        let-binds = for lists.map2(arg from args, exp from exps):
-          A.s-let-bind(arg.l, arg, exp.visit(self))
-        end
-        cases(A.Ann) ann:
-          | a-blank => A.s-let-expr(l, let-binds, body.visit(self))
-          | a-any => A.s-let-expr(l, let-binds, body.visit(self))
-          | else =>
-            A.s-let-expr(l, let-binds + [list: A.s-let-bind(body.l, A.s-bind(l, false, a, ann), body.visit(self))], A.s-id(l, a))
+        if (args.length() == exps.length()):
+          a = A.global-names.make-atom("inline_body")
+          let-binds = for lists.map2(arg from args, exp from exps):
+            A.s-let-bind(arg.l, arg, exp.visit(self))
+          end
+          cases(A.Ann) ann:
+            | a-blank => A.s-let-expr(l, let-binds, body.visit(self))
+            | a-any => A.s-let-expr(l, let-binds, body.visit(self))
+            | else =>
+              A.s-let-expr(l,
+                let-binds
+                  + [list: A.s-let-bind(body.l, A.s-bind(l, false, a, ann), body.visit(self))],
+                A.s-id(l, a))
+          end
+        else:
+          A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
         end
       | else => A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
     end
