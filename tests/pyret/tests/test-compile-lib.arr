@@ -1,4 +1,5 @@
 import string-dict as SD
+import "compiler/compiler-lib.arr" as CL
 
 modules = SD.string-dict()
 modules.set("foo",
@@ -16,24 +17,24 @@ fun g(x): x end
 ```)
 
 fun string-to-locator(dep :: String):
-  file = modules[dep]
+  file = modules.get(dep)
   {
-    needs-compiles(self, provs): true end
-    get-module(self): file end
-    update-compile-context(self, ctxt): ctxt end
-    uri(self): "file://" + dep end
-    name(self): dep end
-    set-compiled(self, ctxt, provs): nothing end
-    get-compiled(self): none end
+    needs-compiles(self, provs): true end,
+    get-module(self): file end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): "file://" + dep end,
+    name(self): dep end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
     _equals(self, that, rec-eq): self.uri() == that.uri() end
   }
 end
 
-fun find(ctxt :: CompileContext, dep :: Dependency):
+fun dfind(ctxt :: CompileContext, dep :: Dependency):
   string-to-locator(dep)
 end
 
-clib = make-compile-lib(find)
+clib = CL.make-compile-lib(dfind)
 
 check "Worklist generation":
   floc = string-to-locator("foo")

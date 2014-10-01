@@ -1,3 +1,5 @@
+provide {make-compile-lib: make-compile-lib} end
+
 import parse-pyret as P
 import ast as A
 import sets as S
