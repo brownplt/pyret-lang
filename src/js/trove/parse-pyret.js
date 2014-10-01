@@ -247,6 +247,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return RUNTIME.getField(ast, 's-var')
                 .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
             },
+            'rec-expr': function(node) {
+              // (rec-expr REC bind EQUALS e)
+              return RUNTIME.getField(ast, 's-rec')
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+            },
             'let-expr': function(node) {
               if (node.kids.length === 3) {
                 // (let-expr bind EQUALS e)

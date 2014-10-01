@@ -53,6 +53,10 @@ data CompileError:
     tostring(self, shadow tostring):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
+  | pointless-rec(loc :: Loc) with:
+    tostring(self, shadow tostring):
+      "The anonymous recursive identifier at " + tostring(self.loc) + " can never be re-used"
+    end
   | pointless-graph-id(loc :: Loc) with:
     tostring(self, shadow tostring):
       "Anonymous bindings (such as the one at " + tostring(self.loc) + ") are not permitted in graphs, as they cannot be used"
