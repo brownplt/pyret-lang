@@ -170,6 +170,10 @@ data CompileError:
       "There is not enough information to instantiate the type at " + tostring(self.loc)
          + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
     end
+  | unsupported(message :: String, blame-loc :: A.Loc) with:
+    tostring(self, shadow tostring):
+      self.message + " (found at " + tostring(self.blame-loc) + ")"
+    end
 end
 
 data CompileTypeBinding:
