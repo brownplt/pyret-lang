@@ -1,6 +1,7 @@
 #lang pyret
 
 provide *
+import error as E
 
 check:
   string-contains("a", "") is true
@@ -79,11 +80,11 @@ end
 
 
 check:
-  string-to-code-point("a", "b") raises "arity"
+  string-to-code-point("a", "b") raises-satisfies E.is-arity-mismatch
   string-to-code-point("ab") raises "length exactly one"
   string-to-code-point("") raises "length exactly one"
   string-to-code-point(5) raises "String"
-  string-from-code-point(5, 6) raises "arity"
+  string-from-code-point(5, 6) raises-satisfies E.is-arity-mismatch
   string-from-code-point("a") raises "Natural Number"
   string-from-code-point(-1) raises "Natural Number"
   string-from-code-point(1000000000000000000000) raises "Invalid code point"
@@ -92,8 +93,8 @@ check:
   string-to-code-points(5) raises "String"
   string-from-code-points(5) raises "List"
 
-  string-to-code-points("", 5) raises "arity"
-  string-from-code-points([list:], 5) raises "arity"
+  string-to-code-points("", 5) raises-satisfies E.is-arity-mismatch
+  string-from-code-points([list:], 5) raises-satisfies E.is-arity-mismatch
 
   string-to-code-point("a") is 97
   string-to-code-point("\n") is 10

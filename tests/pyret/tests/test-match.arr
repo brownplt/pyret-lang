@@ -1,3 +1,5 @@
+import error as E
+
 data D:
   | singleton
   | nullary()
@@ -25,6 +27,6 @@ check:
 
   trinary(1, 2, 3)._match({ trifail: lam(v1, v2, v3): v1 + v2 + v3 end }, id) is trinary(1, 2, 3)
 
-  trinary(1, 2, 3)._match({ trinary: lam(v1, v2, v3, v4): v1 + v2 + v3 end }, id) raises "arity"
+  trinary(1, 2, 3)._match({ trinary: lam(v1, v2, v3, v4): v1 + v2 + v3 end }, id) raises-satisfies E.is-arity-mismatch
 
 end
