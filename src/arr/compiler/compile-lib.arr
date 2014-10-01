@@ -1,4 +1,4 @@
-provide {make-compile-lib: make-compile-lib} end
+provide *
 
 import parse-pyret as P
 import ast as A
@@ -9,6 +9,8 @@ import "compiler/compile-structs.arr" as CS
 
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
+    with:
+    key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
 end
 
 type URI = String
@@ -70,9 +72,9 @@ type ToCompile = { locator: Locator, provide-map: SD.StringDict<Provides>, path 
 fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
 
   fun compile-worklist(locator :: Locator, context :: CompileContext) -> List<ToCompile>:
-    fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: CompileContext, curr-path :: List<ToCompile>, acc :: List<ToCompile>) -> List<ToCompile>:
-      when acc.member(locator):
-        raise("Detected module cycle with " + locator.uri())
+    fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: CompileContext, curr-path :: List<ToCompile>) -> List<ToCompile>:
+      when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
+        raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
       pmap = SD.string-dict()
       deps = get-dependencies(locator).to-list()
@@ -82,12 +84,12 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
         dloc
       end
       tocomp = {locator: locator, provide-map: pmap, path: curr-path}
-      for fold(ret from empty, dloc from dlocs):
-        pret = add-preds-to-worklist(dloc, dloc.update-compile-context(context), curr-path + [list: tocomp], link(tocomp, acc))
+      for fold(ret from [list: tocomp], dloc from dlocs):
+        pret = add-preds-to-worklist(dloc, dloc.update-compile-context(context), curr-path + [list: tocomp])
         pret + ret
       end
     end
-    add-preds-to-worklist(locator, context, empty, empty)
+    add-preds-to-worklist(locator, context, empty)
   end
 
   fun compile-program(worklist :: List<ToCompile>) -> List<CS.CompileResult>:

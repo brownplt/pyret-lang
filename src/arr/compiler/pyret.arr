@@ -5,6 +5,7 @@ import file as F
 import exec as X
 import string-dict as D
 import "compiler/compile.arr" as CM
+import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import format as Format
 import either as E
