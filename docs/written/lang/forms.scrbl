@@ -730,7 +730,7 @@ An @pyret{ask} expression is a different way of writing an @pyret{if}
 expression that can be easier to read in some cases.
 
 @justcode{
-ask-expr: ASKCOLON if-pipe-branch* [BAR OTHERWISECOLON block] end
+ask-expr: ASKCOLON ask-branch* [BAR OTHERWISECOLON block] end
 ask-branch: BAR binop-expr THENCOLON block
 }
 
