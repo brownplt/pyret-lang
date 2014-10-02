@@ -687,6 +687,78 @@ check:
 end
 }
 
+@subsection[#:tag "s:if-expr"]{If Expressions}
+
+An if expression has a number of test conditions and an optional else case.
+
+@justcode{
+if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
+else-if: ELSEIF binop-expr COLON block
+}
+
+For example, this if expression has an "else:"
+
+@pyret-block{
+if x == 0:
+  1
+else if x > 0:
+  x
+else:
+  x * -1
+end
+}
+
+This one does not:
+
+@pyret-block{
+if x == 0:
+  1
+else if x > 0:
+  x
+end
+}
+
+Both are valid.  The conditions are tried in order, and the block corresponding
+to the first one to return @pyret{true} is evaluated.  If no condition matches,
+the else branch is evaluated if present.  If no condition matches and no else
+branch is present, an error is thrown.  If a condition evaluates to a value
+other than @pyret{true} or @pyret{false}, a runtime error is thrown.
+
+@subsection[#:tag "s:ask-expr"]{Ask Expressions}
+
+An @pyret{ask} expression is a different way of writing an @pyret{if}
+expression that can be easier to read in some cases.
+
+@justcode{
+ask-expr: ASKCOLON if-pipe-branch* [BAR OTHERWISECOLON block] end
+ask-branch: BAR binop-expr THENCOLON block
+}
+
+This ask expression:
+
+@pyret-block{
+ask:
+  | x == 0 then: 1
+  | x > 0 then: x
+  | otherwise: x * -1
+end
+}
+
+is equivalent to
+
+@pyret-block{
+if x == 0:
+  1
+else if x > 0:
+  x
+else:
+  x * -1
+end
+}
+
+Similar to @pyret{if}, if an @pyret{otherwise:} branch isn't specified and no
+branch matches, a runtime error results.
+
 @subsection[#:tag "s:cases-expr"]{Cases Expressions}
 
 A cases expression consists of a datatype (in parentheses), an expression to
