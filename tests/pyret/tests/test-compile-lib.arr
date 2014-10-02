@@ -126,3 +126,45 @@ check "Worklist generation (DAG)":
   retrievals.get("C") is 1
   retrievals.get("D") is 1
 end
+
+check "Worklist generation (Cycle)":
+  modules = SD.string-dict()
+  modules.set("A",
+    ```
+    provide { f: f } end
+    import file("B") as B
+
+    fun f(x): B.g(x) end
+    ```)
+  modules.set("B",
+    ```
+    provide { g: g } end
+    import file("A") as A
+
+    fun g(x): A.f(x) end
+    ```)
+
+  fun string-to-locator(name :: String):
+    {
+      needs-compile(self, provs): true end,
+      get-module(self): modules.get(name) end,
+      update-compile-context(self, ctxt): ctxt end,
+      uri(self): "file://" + name end,
+      name(self): name end,
+      set-compiled(self, ctxt, provs): nothing end,
+      get-compiled(self): none end,
+      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    }
+  end
+
+  fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
+
+  clib = CL.make-compile-lib(dfind)
+
+  floc = string-to-locator("A")
+  CL.get-dependencies(floc) is [set: CL.dependency("file", [list: "B"])]
+  gloc = string-to-locator("B")
+  CL.get-dependencies(gloc) is [set: CL.dependency("file", [list: "A"])]
+
+  clib.compile-worklist(floc, {}) raises "cycle"
+end
