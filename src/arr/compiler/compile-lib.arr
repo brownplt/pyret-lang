@@ -109,12 +109,12 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
 
   fun compile-module(locator :: Locator, dependencies :: SD.StringDict<Provides>) -> CS.CompileResult:
     if locator.needs-compile(dependencies):
-      CM.compile-js(
+      cr = CM.compile-js(
         CM.start,
         "Pyret",
-        locator.get-program(),
+        locator.get-module(),
         locator.name(),
-        CS.standard-libs,
+        CS.standard-builtins,
         {
           check-mode : true,
           allow-shadowed : false,
@@ -123,6 +123,8 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
           ignore-unbound: false
         }
         ).result
+      locator.set-compiled(cr, dependencies)
+      cr
     else:
       locator.get-compiled().value
     end

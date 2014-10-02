@@ -79,16 +79,21 @@ check "Worklist generation (DAG)":
     fun h(x): x end
     ```)
 
-  locs = SD.string-dict()
+  cresults = SD.string-dict()
+  retrievals = SD.string-dict()
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): not(locs.has-key(name)) end,
-      get-module(self): modules.get(name) end,
+      needs-compile(self, provs): not(cresults.has-key(name)) end,
+      get-module(self):
+        count = if retrievals.has-key(name): retrievals.get(name) else: 0 end
+        retrievals.set(name, count + 1)
+        modules.get(name)
+      end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
-      set-compiled(self, ctxt, provs): nothing end,
-      get-compiled(self): none end,
+      set-compiled(self, cr, provs): cresults.set(name, cr) end,
+      get-compiled(self): if cresults.has-key(name): some(cresults.get(name)) else: none end end,
       _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -99,11 +104,25 @@ check "Worklist generation (DAG)":
 
   floc = string-to-locator("A")
   CL.get-dependencies(floc) is [set: CL.dependency("file", [list: "B"]), CL.dependency("file", [list: "C"])]
+
   wlist = clib.compile-worklist(floc, {})
 
   # Don't want to be too specific, just make sure they're in the checklist at least once.
-  string-to-locator("A") satisfies worklist-contains-checker(wlist)
-  string-to-locator("B") satisfies worklist-contains-checker(wlist)
-  string-to-locator("C") satisfies worklist-contains-checker(wlist)
-  string-to-locator("D") satisfies worklist-contains-checker(wlist)
+  wlist-checker = worklist-contains-checker(wlist)
+  string-to-locator("A") satisfies wlist-checker
+  string-to-locator("B") satisfies wlist-checker
+  string-to-locator("C") satisfies wlist-checker
+  string-to-locator("D") satisfies wlist-checker
+
+  # Reset retrievals, because get-provides calls get-module every time currently.
+  # This way, we can make sure that we only get one retrieval during actual compilation of each module.
+  for each(s from retrievals.keys()): retrievals.set(s, 0) end
+
+  results = clib.compile-program(wlist)
+
+  # Are we respecting needs-compile?
+  retrievals.get("A") is 1
+  retrievals.get("B") is 1
+  retrievals.get("C") is 1
+  retrievals.get("D") is 1
 end
