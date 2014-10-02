@@ -61,3 +61,14 @@ check "Should correctly torepr raw-arrays":
   torepr([raw-array: [set:]]) is "[raw-array: [list-set: ]]"
   torepr([raw-array:]) is "[raw-array: ]"
 end
+
+data M:
+  | m(ref x)
+end
+
+check "Should print refs as refs only when necessary":
+  m1 = m(5)
+  torepr(m1) is "m(5)"
+  torepr(m1!x) is "5"
+  torepr(m1.x) is "make-ref(5)"
+end

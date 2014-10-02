@@ -1222,7 +1222,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             switch($step) {
             case 0:
               stackOfStacks.push(stack);
-              stack = [{todo: [val], done: [], implicitRefs: [true], root: val}];
+              stack = [{todo: [val], done: [], implicitRefs: [false], root: val}];
               $step = 1;
               $ans = toReprFun();
               break;
