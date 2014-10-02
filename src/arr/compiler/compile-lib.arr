@@ -1,4 +1,5 @@
 provide *
+provide-types *
 
 import parse-pyret as P
 import ast as A
