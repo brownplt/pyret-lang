@@ -109,7 +109,8 @@ check-op-postfix: RAISESNOT
 expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
     | obj-expr
-    | dot-expr | bracket-expr
+    | dot-expr
+#    | bracket-expr NOTE(joe): commented out until it has semantics
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr

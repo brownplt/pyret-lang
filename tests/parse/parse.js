@@ -498,6 +498,10 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('rec ohn = lz(1, lam(): ohn end)')).not.toBe(false);
       expect(parse('rec = 5')).toBe(false);
     });
+
+    it("should not parse bracket exprs", function() {
+      expect(parse('o.[x]')).toBe(false);
+    });
   });
 
 
