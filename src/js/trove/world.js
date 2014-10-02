@@ -373,6 +373,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         "provide": makeObject({
           "big-bang": makeFunction(function(init, handlers) {
             ffi.checkArity(2, arguments, "big-bang");
+            runtime.checkList(handlers);
             var arr = ffi.toArray(handlers);
             var initialWorldValue = init;
             arr.map(function(h) { checkHandler(h); });
