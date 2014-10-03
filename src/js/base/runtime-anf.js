@@ -1058,7 +1058,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 if (implicitRef || isRefFrozen(next)) {
                   top.done.push(found);
                 } else {
-                  top.done.push("make-ref(" + found + ")");
+                  top.done.push("ref(" + found + ")");
                 }
               } else if(!isRefSet(next)) {
                 top.todo.pop();
@@ -1092,7 +1092,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             } else if (hasOwnProperty(top, "wrapRef")) {
               var refName = setRefDoc(top.theRef, top.done[0]);
               if (top.wrapRef && !isRefFrozen(top.theRef)) {
-                s += "make-ref(" + refName + ")";
+                s += "ref(" + refName + ")";
               } else {
                 s += refName;
               }

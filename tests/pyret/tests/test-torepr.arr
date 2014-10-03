@@ -70,5 +70,5 @@ check "Should print refs as refs only when necessary":
   m1 = m(5)
   torepr(m1) is "m(5)"
   torepr(m1!x) is "5"
-  torepr(m1.x) is "make-ref(5)"
+  torepr(m1.x) is "ref(5)"
 end
