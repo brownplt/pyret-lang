@@ -49,6 +49,41 @@ end
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
+# Need to be added:
+# "raw-array-get",
+# "raw-array-set",
+# "raw-array-of",
+# "raw-array-length",
+# "raw-array-to-list",
+# "raw-array-fold",
+# "raw-array",
+# "ref-get",
+# "ref-set",
+# "ref-freeze",
+# "equal-always3",
+# "equal-now3",
+# "identical3",
+# "exn-unwrap"
+# "test-print",
+# "print-error",
+# "display-error",
+# "brander",
+# "builtins",
+# "is-nothing",
+# "is-number",
+# "is-string",
+# "is-boolean",
+# "is-object",
+# "is-function",
+# "is-raw-array",
+# "run-task",
+# "string-split",
+# "string-split-all",
+# "string-explode",
+# "string-index-of",
+# "string-to-code-points",
+# "string-from-code-points",
+
 default-typs = SD.make-mutable-string-dict()
 default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
 default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
@@ -56,6 +91,7 @@ default-typs.set-now("checkWrapBoolean", t-arrow([list: t-top], t-boolean))
 default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
 default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
 default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
+default-typs.set-now(A.s-global("not").key(), t-arrow([list: t-boolean], t-boolean))
 default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
 default-typs.set-now(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
 default-typs.set-now(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
@@ -66,12 +102,56 @@ default-typs.set-now(A.s-global("_times").key(), t-number-binop)
 default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
 default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
 default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
+
+# Number functions
+default-typs.set-now(A.s-global("num-max").key(), t-number-binop)
+default-typs.set-now(A.s-global("num-min").key(), t-number-binop)
+default-typs.set-now(A.s-global("nums-equal").key(), t-number-binop)
+default-typs.set-now(A.s-global("num-modulo").key(), t-number-binop)
+default-typs.set-now(A.s-global("num-expt").key(), t-number-binop)
+default-typs.set-now(A.s-global("num-abs").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-sin").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-cos").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-tan").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-asin").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-acos").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-atan").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-truncate").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-sqrt").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-sqr").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-ceiling").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-floor").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-log").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-exp").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-exact").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-is-fixnum").key(), t-arrow([list: t-number], t-number))
+default-typs.set-now(A.s-global("num-tostring").key(), t-arrow([list: t-number], t-string))
+default-typs.set-now(A.s-global("random").key(), t-arrow([list: t-number], t-number))
+
+# String functions
+default-typs.set-now(A.s-global("gensym").key(), t-arrow(empty, t-string))
+default-typs.set-now(A.s-global("string-repeat").key(), t-arrow([list: t-string, t-number], t-string))
+default-typs.set-now(A.s-global("string-substring").key(), t-arrow([list: t-string, t-number, t-number], t-string))
+default-typs.set-now(A.s-global("string-toupper").key(), t-arrow([list: t-string], t-string))
+default-typs.set-now(A.s-global("string-tolower").key(), t-arrow([list: t-string], t-string))
+default-typs.set-now(A.s-global("string-append").key(), t-arrow([list: t-string, t-string], t-string))
+default-typs.set-now(A.s-global("strings-equal").key(), t-arrow([list: t-string, t-string], t-boolean))
+default-typs.set-now(A.s-global("string-contains").key(), t-arrow([list: t-string, t-string], t-boolean))
+default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
+default-typs.set-now(A.s-global("string-length").key(), t-arrow([list: t-string], t-number))
+default-typs.set-now(A.s-global("string-replace").key(), t-arrow([list: t-string, t-string, t-string], t-string))
+default-typs.set-now(A.s-global("string-char-at").key(), t-arrow([list: t-string, t-number], t-string))
+default-typs.set-now(A.s-global("string-to-code-point").key(), t-arrow([list: t-string], t-number))
+default-typs.set-now(A.s-global("string-from-code-point").key(), t-arrow([list: t-number], t-string))
+
 default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
 default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
 default-typs.set-now(A.s-global("_greaterthan").key(), t-number-binop)
 default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
 print-variable = A.s-atom(gensym("A"), 1)
 default-typs.set-now(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
+default-typs.set-now(A.s-global("display").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
 
 fun empty-tc-info() -> TCInfo:
   errors = block:
