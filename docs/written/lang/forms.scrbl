@@ -543,6 +543,62 @@ lam(x, y, z): x + y + z end
 Pyret just does not provide syntactic sugar to help in this case
 (or other more complicated ones).
 
+@subsection[#:tag "s:cannonball-expr"]{Chaining Application}
+
+@justcode{
+CARET: "^"
+chain-app-expr: binop-expr CARET binop-expr
+}
+
+The expression @pyret{e1 ^ e2} is equivalent to @pyret{e2(e1)}.  It's just
+another way of writing a function application to a single argument.
+
+Sometimes, composing functions doesn't produce readable code.  For example, if
+say we have a @pyret{Tree} datatype, and we have an @pyret{add} operation on
+it, defined via a function.  To build up a tree with a series of adds, we'd
+write something like:
+
+@pyret-block{
+t = add(add(add(add(empty-tree, 1), 2), 3), 4)
+}
+
+Or maybe
+
+@pyret-block{
+t1 = add(empty-tree, 1)
+t2 = add(t1, 2)
+t3 = add(t2, 3)
+t  = add(t3, 4)
+}
+
+If @pyret{add} were a method, we could write:
+
+@pyret-block{
+t = empty-tree.add(1).add(2).add(3).add(4)
+}
+
+which would be more readable, but since @pyret{add} is a function, this doesn't
+work.
+
+In this case, we can write instead:
+
+@pyret-block{
+t = empty-tree ^ add(_, 1) ^ add(_, 2) ^ add(_, 3)
+}
+
+This uses @seclink["s:curried-apply-expr" "curried application"] to create a
+single argument function, and chaining application to apply it.  This can be
+more readable across several lines of initialization as well, when compared to
+composing “inside-out” or using several intermediate names:
+
+@pyret-block{
+t = empty-tree
+  ^ add(_, 1)
+  ^ add(_, 2)
+  ^ add(_, 3)
+  # and so on
+}
+
 @subsection[#:tag "s:binop-expr"]{Binary Operators}
 
 There are a number of binary operators in Pyret.  A binary operator expression
