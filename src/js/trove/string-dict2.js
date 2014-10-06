@@ -29,19 +29,25 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         return s.slice(1);
       }
 
-      function cloneDict(dict) {
-        var keys = Object.keys(dict);
-        var newDict = Object.create(null);
-        for (var i = 0; i < keys.length; i++) {
-          newDict[keys[i]] = dict[keys[i]];
-        }
-        return newDict;
-      }
-
       function makeImmutableStringDict(underlyingDict) {
 
         var getISD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'get');
+          runtime.checkString(key);
+          var mkey = internalKey(key);
+          var val = underlyingDict[mkey];
+          if (val === undefined) {
+            return runtime.ffi.makeNone();
+          } else {
+            if (!Object.prototype.hasOwnProperty.call(underlyingDict, mkey)) {
+              underlyingDict[mkey] = val;
+            }
+            return runtime.ffi.makeSome(val);
+          }
+        });
+
+        var getValueISD = runtime.makeMethodFromFun(function(_, key) {
+          runtime.checkArity(2, arguments, 'get-value');
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -156,7 +162,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 var thisKey = keys.pop();
                 return runtime.safeCall(function() {
                   return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get').app(userKey(thisKey)));
+                      get(other, 'get-value').app(userKey(thisKey)));
                 },
                 function (result) {
                   if (runtime.ffi.isNotEqual(result)) {
@@ -186,6 +192,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         obj = O({
           get: getISD,
+          'get-value': getValueISD,
           set: setISD,
           remove: removeISD,
           keys: keysISD,
@@ -205,13 +212,26 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         // makeStringDict because they need to close over underlyingDict
 
         var getMSD = runtime.makeMethodFromFun(function(_, key) {
-          runtime.checkArity(2, arguments, "get-now");
+          runtime.checkArity(2, arguments, 'get-now');
           runtime.checkString(key);
           var mkey = internalKey(key);
-          if(!underlyingDict[mkey]) {
+          var val = underlyingDict[mkey];
+          if (val === undefined) {
+            return runtime.ffi.makeNone();
+          } else {
+            return runtime.ffi.makeSome(val);
+          }
+        });
+
+        var getValueMSD = runtime.makeMethodFromFun(function(_, key) {
+          runtime.checkArity(2, arguments, "get-value-now");
+          runtime.checkString(key);
+          var mkey = internalKey(key);
+          var val = underlyingDict[mkey];
+          if (val === undefined) {
             runtime.ffi.throwMessageException("Key " + key + " not found");
           }
-          return underlyingDict[mkey]
+          return val;
         });
 
         var setMSD = runtime.makeMethodFromFun(function(self, key, val) {
@@ -298,7 +318,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 var thisKey = keys.pop();
                 return runtime.safeCall(function() {
                   return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other,"get-now").app(userKey(thisKey)));
+                      get(other, 'get-value-now').app(userKey(thisKey)));
                 },
                 function (result) {
                   if (runtime.ffi.isNotEqual(result)) {
@@ -336,6 +356,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         obj = O({
           'get-now': getMSD,
+          'get-value-now': getValueMSD,
           'set-now': setMSD,
           'remove-now': removeMSD,
             'keys-now': keysMSD,
