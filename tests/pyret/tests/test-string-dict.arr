@@ -105,4 +105,10 @@ check "basics":
   sd8.set-now("a", 23)
   sd8.get-value-now("a") is 23
   isd5.get-value("a") is 15
+
+  sd9 = sd3.seal()
+  sd9.get-value-now("a") is 15
+  sd9.set-now("b", 20) raises "Cannot modify sealed string dict"
+  sd3.set-now("b", 20)
+  sd9.get-value-now("b") is 20
 end
