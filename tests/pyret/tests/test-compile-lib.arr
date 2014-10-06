@@ -1,5 +1,5 @@
 import string-dict as SD
-#import run as R
+import load-lib as L
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 
@@ -9,24 +9,41 @@ fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
 end
 
 
+type PyretMod = Any
+
 #run :: CompiledProgram, List<PyretResult> -> PyretResult
 
-#fun run-worklist(ws :: List<ToCompile>, modvals :: StringDict<PyretMod>) -> PyretMod:
-#  compiled-mods = CL.compile-program(ws)
-#  when is-empty(compiled-mods):
-#    raise("Didn't get anything to run in run-worklist")
-#  end
-#  cases(List) ws:
-#    | empty =>
-#    | link(f, r) =>
-#      for map(d from deps):
-#        modvals.get(d)
-#      end
-#      ans = R.run(compiled-mods.first, depvals)
-#      modvals-new = modvals.set(compiled.loc
-#  end
-#  
-#end
+fun compile-and-run-worklist(cl, ws :: List<CL.ToCompile>):
+  compiled-mods = cl.compile-program(ws)
+  load-infos = for map2(tc from ws, cm from compiled-mods):
+    { to-compile: tc, compiled-mod: cm }
+  end
+  load-worklist(load-infos, SD.immutable-string-dict())
+end
+
+fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>) -> Any:
+  cases(List) ws:
+    | empty =>
+      raise("Didn't get anything to run in run-worklist")
+    | link(load-info, r) =>
+      dependencies = load-info.to-compile.dependency-map
+      depnames = dependencies.keys()
+      depvals = for map(d from depnames.sort()):
+        { modval: modvals.get(dependencies.get(d).uri()), key: d }
+      end
+      cases(CM.CompileResult) load-info.compiled-mod:
+        | err(problems) => raise(problems)
+        | ok(cp) => 
+          ans = L.load(cp, depvals)
+          modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
+          answer = L.run(ans)
+          cases(List) r:
+            | empty => answer
+            | link(_, _) => load-worklist(r, modvals-new)
+          end
+      end
+  end
+end
 
 check "Worklist generation (simple)":
   modules = SD.string-dict()
@@ -36,6 +53,7 @@ check "Worklist generation (simple)":
     import file("bar") as B
 
     fun f(x): B.g(x) end
+    f(42) 
     ```)
   modules.set("bar",
     ```
@@ -69,6 +87,9 @@ check "Worklist generation (simple)":
   wlist.length() is 2
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
+
+  ans = compile-and-run-worklist(clib, wlist)
+  ans is 42
 end
 
 check "Worklist generation (DAG)":

@@ -24,4 +24,4 @@ import sets as _
 import srcloc as _
 import string-dict as _
 import world as _
-
+import load-lib as _
