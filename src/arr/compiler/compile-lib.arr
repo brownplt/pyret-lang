@@ -8,12 +8,6 @@ import string-dict as SD
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 
-data Dependency:
-  | dependency(protocol :: String, arguments :: List<String>)
-    with:
-    key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
-end
-
 type URI = String
 
 type PyretCode = String
@@ -29,7 +23,7 @@ type Locator = {
   needs-compile :: (SD.StringDict<Provides> -> Boolean),
 
   get-module :: ( -> PyretCode),
-  get-dependencies :: ( -> Set<Dependency>),
+  get-dependencies :: ( -> Set<CS.Dependency>),
   get-provides :: ( -> Provides),
 
   # e.g. create a new CompileContext that is at the base of the directory
@@ -48,11 +42,11 @@ type Locator = {
   _equals :: Method
 }
 
-fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<Dependency>:
+fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
   parsed = P.surface-parse(p, uri)
   special-imports = parsed.imports.map(_.file).filter(A.is-s-special-import)
   dependency-list = for map(s from special-imports):
-    dependency(s.kind, s.args)
+    CS.dependency(s.kind, s.args)
   end
   S.list-to-list-set(dependency-list)
 end
@@ -80,7 +74,7 @@ fun<a, b> dict-map(sd :: SD.StringDict, f :: (String, a -> b)):
   sd2
 end
 
-fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
+fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
 
   fun compile-worklist(locator :: Locator, context :: CompileContext) -> List<ToCompile>:
     fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: CompileContext, curr-path :: List<ToCompile>) -> List<ToCompile>:

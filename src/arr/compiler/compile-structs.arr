@@ -13,6 +13,12 @@ data PyretDialect:
   | Bootstrap
 end
 
+data Dependency:
+  | dependency(protocol :: String, arguments :: List<String>)
+    with:
+    key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
+end
+
 data CompileEnvironment:
   | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
 end

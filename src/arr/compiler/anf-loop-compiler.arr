@@ -1211,8 +1211,46 @@ fun mk-abbrevs(l):
 end
 
 
-fun compile-program(self, l, imports, prog, freevars, env):
+fun compare-str(name1, name2):
+  if name1 < name2: -1
+  else if name1 > name2: 1
+  else: 0
+  end
+end
+fun compare-imports(imp1, imp2):
+  i1 = imp1.import-type
+  i2 = imp2.import-type
+  cases(N.AImportType) i1:
+    | a-import-builtin(_, name1) =>
+      cases(N.AImportType) i2:
+        | a-import-builtin(_, name2) => compare-str(name1, name2)
+        | a-import-file(_, _) => -1
+        | a-import-special(_, _, _) => -1
+      end
+    | a-import-file(_, name1) => 
+      cases(N.AImportType) i2:
+        | a-import-builtin(_, _) => 1
+        | a-import-file(_, name2) => compare-str(name1, name2)
+        | a-import-special(_, _, _) => -1
+      end
+    | a-import-special(_, kind1, args1) =>
+      cases(N.AImportType) i2:
+        | a-import-builtin(_, _) => 1
+        | a-import-file(_, _) => 1
+        | a-import-special(_, kind2, args2) =>
+          k1 = CS.dependency(kind1, args1).key()
+          k2 = CS.dependency(kind2, args2).key()
+          compare-str(k1, k2)
+      end
+  end
+end
+
+fun compile-program(self, l, imports-in, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
+  imports = imports-in.sort-by(
+      lam(i1, i2): compare-imports(i1, i2) < 0 end,
+      lam(i1, i2): compare-imports(i1, i2) == 0 end
+    )
   remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
     freevars.remove(elt.key())
   end
