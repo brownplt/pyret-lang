@@ -207,7 +207,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
       }
 
-      function makeMutableStringDict(underlyingDict) {
+      function makeMutableStringDict(underlyingDict, sealed) {
         // NOTE(joe): getSD/setSD etc are internal to
         // makeStringDict because they need to close over underlyingDict
 
@@ -236,6 +236,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         var setMSD = runtime.makeMethodFromFun(function(self, key, val) {
           runtime.checkArity(3, arguments, "set-now");
+          if (sealed) {
+            runtime.ffi.throwMessageException("Cannot modify sealed string dict");
+          }
           runtime.checkString(key);
           runtime.checkPyretVal(val);
           underlyingDict[internalKey(key)] = val;
@@ -244,6 +247,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
 
         var removeMSD = runtime.makeMethodFromFun(function(self, key) {
           runtime.checkArity(2, arguments, "remove-now");
+          if (sealed) {
+            runtime.ffi.throwMessageException("Cannot modify sealed string dict");
+          }
           runtime.checkString(key);
           delete underlyingDict[internalKey(key)];
           return runtime.nothing;
@@ -350,6 +356,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return makeImmutableStringDict(dict);
         });
 
+        var sealMSD = runtime.makeMethodFromFun(function(_) {
+          runtime.checkArity(1, arguments, 'seal');
+          return makeMutableStringDict(underlyingDict, true);
+        });
+
         var NYI = runtime.makeMethodFromFun(function(self) {
           runtime.ffi.throwMessageException("Not yet implemented");
         });
@@ -364,7 +375,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               'has-key-now': hasKeyMSD,
           _equals: equalsMSD,
           _torepr: toreprMSD,
-          freeze: freezeMSD
+          freeze: freezeMSD,
+            seal: sealMSD
         });
 
         return applyBrand(brandMutable, obj);
