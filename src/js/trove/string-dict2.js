@@ -239,14 +239,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           runtime.checkString(key);
           runtime.checkPyretVal(val);
           underlyingDict[internalKey(key)] = val;
-          return self;
+          return runtime.nothing;
         });
 
         var removeMSD = runtime.makeMethodFromFun(function(self, key) {
           runtime.checkArity(2, arguments, "remove-now");
           runtime.checkString(key);
           delete underlyingDict[internalKey(key)];
-          return self;
+          return runtime.nothing;
         });
 
         var hasKeyMSD = runtime.makeMethodFromFun(function(_, key) {
