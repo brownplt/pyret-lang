@@ -89,7 +89,7 @@ check "Worklist generation (simple)":
   wlist.get(0).locator is string-to-locator("bar")
 
   ans = compile-and-run-worklist(clib, wlist)
-  ans is 42
+  ans.answer is 42
 end
 
 check "Worklist generation (DAG)":
