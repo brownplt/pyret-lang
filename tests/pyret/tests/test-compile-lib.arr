@@ -1,4 +1,5 @@
 import string-dict as SD
+#import run as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 
@@ -6,6 +7,26 @@ fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
   lam(loc :: CL.Locator): locs.member(loc) end
 end
+
+
+#run :: CompiledProgram, List<PyretResult> -> PyretResult
+
+#fun run-worklist(ws :: List<ToCompile>, modvals :: StringDict<PyretMod>) -> PyretMod:
+#  compiled-mods = CL.compile-program(ws)
+#  when is-empty(compiled-mods):
+#    raise("Didn't get anything to run in run-worklist")
+#  end
+#  cases(List) ws:
+#    | empty =>
+#    | link(f, r) =>
+#      for map(d from deps):
+#        modvals.get(d)
+#      end
+#      ans = R.run(compiled-mods.first, depvals)
+#      modvals-new = modvals.set(compiled.loc
+#  end
+#  
+#end
 
 check "Worklist generation (simple)":
   modules = SD.string-dict()
@@ -27,6 +48,8 @@ check "Worklist generation (simple)":
     {
       needs-compile(self, provs): true end,
       get-module(self): modules.get(name) end,
+      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
+      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
@@ -41,7 +64,7 @@ check "Worklist generation (simple)":
   clib = CL.make-compile-lib(dfind)
 
   floc = string-to-locator("foo")
-  CL.get-dependencies(floc) is [set: CL.dependency("file", [list: "bar"])]
+  CL.get-dependencies(floc.get-module(), floc.uri()) is [set: CL.dependency("file", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
   wlist.length() is 2
   wlist.get(1).locator is floc
@@ -89,6 +112,8 @@ check "Worklist generation (DAG)":
         retrievals.set(name, count + 1)
         modules.get(name)
       end,
+      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
+      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
@@ -103,7 +128,7 @@ check "Worklist generation (DAG)":
   clib = CL.make-compile-lib(dfind)
 
   floc = string-to-locator("A")
-  CL.get-dependencies(floc) is [set: CL.dependency("file", [list: "B"]), CL.dependency("file", [list: "C"])]
+  CL.get-dependencies(floc.get-module(), floc.uri()) is [set: CL.dependency("file", [list: "B"]), CL.dependency("file", [list: "C"])]
 
   wlist = clib.compile-worklist(floc, {})
 
@@ -119,6 +144,8 @@ check "Worklist generation (DAG)":
   for each(s from retrievals.keys()): retrievals.set(s, 0) end
 
   results = clib.compile-program(wlist)
+
+  print(results.first)
 
   # Are we respecting needs-compile?
   retrievals.get("A") is 1
@@ -148,6 +175,8 @@ check "Worklist generation (Cycle)":
     {
       needs-compile(self, provs): true end,
       get-module(self): modules.get(name) end,
+      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
+      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
@@ -162,9 +191,9 @@ check "Worklist generation (Cycle)":
   clib = CL.make-compile-lib(dfind)
 
   floc = string-to-locator("A")
-  CL.get-dependencies(floc) is [set: CL.dependency("file", [list: "B"])]
+  CL.get-dependencies(floc.get-module(), floc.uri()) is [set: CL.dependency("file", [list: "B"])]
   gloc = string-to-locator("B")
-  CL.get-dependencies(gloc) is [set: CL.dependency("file", [list: "A"])]
+  CL.get-dependencies(gloc.get-module(), gloc.uri()) is [set: CL.dependency("file", [list: "A"])]
 
   clib.compile-worklist(floc, {}) raises "cycle"
 end

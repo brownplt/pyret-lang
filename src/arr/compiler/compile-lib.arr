@@ -29,6 +29,8 @@ type Locator = {
   needs-compile :: (SD.StringDict<Provides> -> Boolean),
 
   get-module :: ( -> PyretCode),
+  get-dependencies :: ( -> Set<Dependency>),
+  get-provides :: ( -> Provides),
 
   # e.g. create a new CompileContext that is at the base of the directory
   # this Locator is in.  The CC holds the current working directory
@@ -46,8 +48,8 @@ type Locator = {
   _equals :: Method
 }
 
-fun get-dependencies(loc :: Locator) -> Set<Dependency>:
-  parsed = P.surface-parse(loc.get-module(), loc.uri())
+fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<Dependency>:
+  parsed = P.surface-parse(p, uri)
   special-imports = parsed.imports.map(_.file).filter(A.is-s-special-import)
   dependency-list = for map(s from special-imports):
     dependency(s.kind, s.args)
@@ -55,8 +57,8 @@ fun get-dependencies(loc :: Locator) -> Set<Dependency>:
   S.list-to-list-set(dependency-list)
 end
 
-fun get-provides(loc :: Locator) -> Provides:
-  parsed = P.surface-parse(loc.get-module(), loc.uri())
+fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
+  parsed = P.surface-parse(p, uri)
   cases (A.Provides) parsed._provide:
     | s-provide-none(l) => S.empty-list-set
     | s-provide-all(l) => S.list-to-list-set(A.toplevel-ids(parsed).map(_.toname()))
@@ -68,7 +70,15 @@ fun get-provides(loc :: Locator) -> Provides:
   end
 end
 
-type ToCompile = { locator: Locator, provide-map: SD.StringDict<Provides>, path :: List<Locator> }
+type ToCompile = { locator: Locator, dependency-map: SD.StringDict<Locator>, path :: List<Locator> }
+
+fun<a, b> dict-map(sd :: SD.StringDict, f :: (String, a -> b)):
+  sd2 = SD.string-dict()
+  for each(k from sd.keys()):
+    sd2.set(k, f(k, sd.get(k)))
+  end
+  sd2
+end
 
 fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
 
@@ -78,13 +88,13 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
         raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
       pmap = SD.string-dict()
-      deps = get-dependencies(locator).to-list()
+      deps = locator.get-dependencies().to-list()
       dlocs = for map(d from deps):
         dloc = dfind(context, d)
-        pmap.set(d.key(), get-provides(dloc))
+        pmap.set(d.key(), dloc)
         dloc
       end
-      tocomp = {locator: locator, provide-map: pmap, path: curr-path}
+      tocomp = {locator: locator, dependency-map: pmap, path: curr-path}
       for fold(ret from [list: tocomp], dloc from dlocs):
         pret = add-preds-to-worklist(dloc, dloc.update-compile-context(context), curr-path + [list: tocomp])
         pret + ret
@@ -98,7 +108,7 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
     for map(w from worklist):
       uri = w.locator.uri()
       if not(cache.has-key(uri)):
-        cr = compile-module(w.locator, w.provide-map)
+        cr = compile-module(w.locator, w.dependency-map)
         cache.set(uri, cr)
         cr
       else:
@@ -107,8 +117,9 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
     end
   end
 
-  fun compile-module(locator :: Locator, dependencies :: SD.StringDict<Provides>) -> CS.CompileResult:
-    if locator.needs-compile(dependencies):
+  fun compile-module(locator :: Locator, dependencies :: SD.StringDict<Locator>) -> CS.CompileResult:
+    provide-map = dict-map(dependencies, lam(_, v): v.get-provides() end)
+    if locator.needs-compile(provide-map):
       cr = CM.compile-js(
         CM.start,
         "Pyret",
@@ -123,7 +134,7 @@ fun make-compile-lib(dfind :: (CompileContext, Dependency -> Locator)) -> { comp
           ignore-unbound: false
         }
         ).result
-      locator.set-compiled(cr, dependencies)
+      locator.set-compiled(cr, provide-map)
       cr
     else:
       locator.get-compiled().value
