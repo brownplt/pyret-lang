@@ -66,7 +66,7 @@ end
 
 type ToCompile = { locator: Locator, dependency-map: SD.StringDict<Locator>, path :: List<Locator> }
 
-fun<a, b> dict-map(sd :: SD.StringDict, f :: (String, a -> b)):
+fun dict-map<a, b>(sd :: SD.StringDict, f :: (String, a -> b)):
   sd2 = SD.string-dict()
   for each(k from sd.keys()):
     sd2.set(k, f(k, sd.get(k)))
