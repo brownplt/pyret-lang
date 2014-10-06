@@ -402,7 +402,7 @@ data Expr:
     tosource(self):
       PP.group(self.expr.tosource() +
         PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
-            self.params.map(_.tosource)))
+            self.params.map(_.tosource())))
     end
   | s-block(l :: Loc, stmts :: List<Expr>) with:
     label(self): "s-block" end,
