@@ -107,7 +107,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var keysISD = runtime.makeMethodFromFun(function(_) {
           runtime.checkArity(1, arguments, 'keys');
           var keys = getAllKeys();
-          return runtime.ffi.makeList(keys.map(function(mkey) {
+          return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
         });
@@ -208,8 +208,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       function makeMutableStringDict(underlyingDict, sealed) {
-        // NOTE(joe): getSD/setSD etc are internal to
-        // makeStringDict because they need to close over underlyingDict
+        // NOTE(joe): getMSD/setMSD etc are internal to
+        // makeMutableStringDict because they need to close over underlyingDict
 
         var getMSD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'get-now');
@@ -269,7 +269,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var keysMSD = runtime.makeMethodFromFun(function(self) {
           runtime.checkArity(1, arguments, "keys-now");
           var keys = Object.keys(underlyingDict);
-          return runtime.ffi.makeList(keys.map(function(mkey) {
+          return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
         });
@@ -315,8 +315,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             return runtime.ffi.notEqual.app("");
           } else {
             var keys = Object.keys(underlyingDict);
-            var otherKeysLength = runtime.ffi.toArray(get(other, "keys-now").app()).length;
-            // var otherKeysLength = get(get(other,"keys").app(),"length").app();
+            var otherKeysLength = get(other, "count-now").app();
             function eqElts() {
               if (keys.length === 0) {
                 return runtime.ffi.equal;
