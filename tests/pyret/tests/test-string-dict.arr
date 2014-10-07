@@ -38,7 +38,8 @@ check "basics":
 
   torepr([SD.string-dict: "a", long-torepr]) is "[string-dict: \"a\", 9999]"
 
-  sd2.keys-now() is [list: "a", "b"]
+  sd2.keys-now() is [tree-set: "a", "b"]
+  sd2.keys-now() is [tree-set: "b", "a"]
 
   sd2.has-key-now("a") is true
   sd2.has-key-now("z") is false
@@ -54,7 +55,7 @@ check "basics":
 
   isd2 = [SD.immutable-string-dict: "a", 15, "b", 10]
 
-  isd2.keys() is [list: "a", "b"]
+  isd2.keys() is [tree-set: "a", "b"]
 
   isd2.has-key("a") is true
   isd2.has-key("z") is false
