@@ -3198,7 +3198,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwMessageException("Expected a string of length exactly one, got " + s);
       }
       var charCode = codePointAt(s, 0);
-      if(Number.isNaN(charCode) || !(typeof charCode === "number")) {
+      if(!(typeof charCode === "number") || (isNaN(charCode))) {
         ffi.throwMessageException("Could not find code for character: ", s);
       }
       else {
