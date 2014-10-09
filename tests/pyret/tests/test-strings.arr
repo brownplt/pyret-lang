@@ -4,6 +4,12 @@ provide *
 import error as E
 
 check:
+  string-char-at("", 0) raises "index"
+  string-char-at("a", -1) raises "index"
+  string-char-at("a", 1.5) raises "integer"
+end
+
+check:
   string-contains("a", "") is true
   string-contains("a", "a") is true
   string-contains("aa", "a") is true
