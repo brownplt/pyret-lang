@@ -3071,6 +3071,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(min);
       thisRuntime.checkNumber(max);
+      function exactCheck(name, val) {
+        if(!jsnums.isExactInteger(val)) {
+          ffi.throwMessageException("substring: expected a positive integer for " + name + " index, but got " + String(val));
+        }
+      }
+      exactCheck("start", min);
+      exactCheck("end", max);
       if(jsnums.greaterThan(min, max)) {
         throw makeMessageException("substring: min index " + String(min) + " is greater than max index " + String(max));
       }
@@ -3130,6 +3137,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       else {
         return makeNothing();
+      }
+    }
+    var string_to_number = function(s) {
+      thisRuntime.checkArity(1, arguments, "string-to-number");
+      thisRuntime.checkString(s);
+      var num = jsnums.fromString(s);
+      if(num !== false) {
+        return ffi.makeSome(makeNumberBig(/**@type {Bignum}*/ (num)));
+      }
+      else {
+        return ffi.makeNone();
       }
     }
     var string_repeat = function(s, n) {
@@ -3576,6 +3594,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-is-fixnum': makeFunction(num_is_fixnum),
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
+          'num-to-string': makeFunction(num_tostring),
 
           'strings-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
@@ -3583,6 +3602,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'string-length': makeFunction(string_length),
           'string-isnumber': makeFunction(string_isnumber),
           'string-tonumber': makeFunction(string_tonumber),
+          'string-to-number': makeFunction(string_to_number),
           'string-repeat': makeFunction(string_repeat),
           'string-substring': makeFunction(string_substring),
           'string-replace': makeFunction(string_replace),
@@ -3769,11 +3789,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_is_integer': num_is_integer,
         'num_expt': num_expt,
         'num_tostring': num_tostring,
+        'num_to_string': num_tostring,
 
         'string_contains': string_contains,
         'string_append': string_append,
         'string_length': string_length,
         'string_isnumber': string_isnumber,
+        'string_to_number': string_to_number,
         'string_tonumber': string_tonumber,
         'string_repeat': string_repeat,
         'string_substring': string_substring,

@@ -10,6 +10,16 @@ check:
 end
 
 check:
+  string-substring("abc", 1.5, 3) raises "start"
+  string-substring("abc", 1, 1.5) raises "end"
+end
+
+check:
+  string-to-number("asdf").or-else("worked") is "worked"
+  string-to-number("100").or-else("failed") is 100
+end
+
+check:
   string-contains("a", "") is true
   string-contains("a", "a") is true
   string-contains("aa", "a") is true
