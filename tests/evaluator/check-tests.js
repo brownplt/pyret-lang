@@ -2,7 +2,7 @@ var r = require("requirejs")
 define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], function(rtLib, e, ffiLib) {
 
   var _ = require('jasmine-node');
-  var rt;
+  var rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
   var P;
   var same;
   var err;
@@ -12,7 +12,6 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
   function performTest() {
 
     beforeEach(function() {
-      rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
       P =  e.makeEvalCheckers(this, rt);
       same = P.checkEvalsTo;
       err = P.checkError;

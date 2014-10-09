@@ -2,7 +2,7 @@ var r = require("requirejs")
 define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
   var _ = require('jasmine-node');
-  var rt;
+  var rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
   var P;
 
   function wf_check(s) { 
@@ -11,7 +11,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
   function performTest() {
 
     beforeEach(function() {
-      rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
       P =  e.makeEvalCheckers(this, rt);
     });
     describe("Well-formedness", function() {
