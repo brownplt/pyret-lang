@@ -146,6 +146,78 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
       });
     });
 
+    describe("nested check blocks", function() {
+      testGroup("should run nested blocks", function() {
+        test(
+"fun f(y):" +
+"  fun g(x):\n" +
+"    x\n" +
+"  where:\n" +
+"    g(y) is y\n" +
+"  end\n" +
+"  g(y)\n" +
+"where:\n" +
+"  f(4) is 5\n" +
+"  f(4) is 5\n" +
+"  f(5) is 6\n" +
+"end\n", checkMessage("Passed: 3; Failed: 3; Ended in Error: 0; Total: 6"));
+      });
+
+      testGroup("should not fail if nested blocks error", function() {
+        test(
+"fun f(y):" +
+"  fun g(x):\n" +
+"    x\n" +
+"  where:\n" +
+"    g(y) is raise('a')\n" +
+"  end\n" +
+"  g(y)\n" +
+"where:\n" +
+"  f(4) is 5\n" +
+"  f(4) is 5\n" +
+"  f(5) is 6\n" +
+"end\n", checkMessage("Passed: 0; Failed: 3; Ended in Error: 3; Total: 3"));
+      });
+
+      testGroup("should report failures in nested blocks", function() {
+        test(
+"fun f(y):" +
+"  fun g(x):\n" +
+"    x\n" +
+"  where:\n" +
+"    g(y) is y + 1\n" +
+"  end\n" +
+"  g(y)\n" +
+"where:\n" +
+"  f(4) is 4\n" +
+"  f(4) is 4\n" +
+"  f(5) is 4\n" +
+"end\n", checkMessage("Passed: 2; Failed: 4; Ended in Error: 0; Total: 6"));
+      });
+
+      testGroup("should report failures in nested blocks", function() {
+        test(
+"fun f(y):" +
+"  fun h(x):\n" +
+"    x\n" +
+"  where:\n" +
+"    h(y) is raise('a')\n" +
+"  end\n" +
+"  fun g(x):\n" +
+"    x\n" +
+"  where:\n" +
+"    g(y) is y + 1\n" +
+"  end\n" +
+"  g(y)\n" +
+"where:\n" +
+"  f(4) is 4\n" +
+"  f(4) is 4\n" +
+"  f(5) is 4\n" +
+"  f(4) is 4\n" +
+"end\n", checkMessage("Passed: 3; Failed: 5; Ended in Error: 4; Total: 8"));
+      });
+    });
+
     describe("errors", function() {
       testGroup("should not report success when errors happen", function() {
         test("check: x :: String = 3\n  1 is 1 end", checkMessage("Ended in Error: 1"));

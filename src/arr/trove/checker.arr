@@ -99,12 +99,14 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
         for each(c from checks):
+          results-before = current-results
           reset-results()
           result = run-task(c.run)
           cases(Either) result:
             | left(v) => add-block-result(check-block-result(c.name, c.location, current-results, none))
             | right(err) => add-block-result(check-block-result(c.name, c.location, current-results, some(err)))
           end
+          current-results := results-before
         end
       end
     end,
