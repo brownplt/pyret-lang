@@ -29,7 +29,7 @@
       (args ("s"))
       (doc ""))
     (fun-spec
-      (name "string-tonumber")
+      (name "string-to-number")
       (arity 1)
       (args ("s"))
       (doc ""))
@@ -166,7 +166,18 @@ check:
 end
 }
 
-  @function["string-tonumber" #:contract (a-arrow S N) #:return N]
+  @function["string-to-number" #:contract (a-arrow S N) #:return (O-of N)]
+
+Converts the argument string to a number, returning @pyret-id["none" "Option"]
+if it is not a valid numeric string, and a @a-app[@pyret-id["some" "Option"]
+@pyret-id["Number" "numbers"]] if it is.
+
+@examples{
+check:
+  string-to-number("100") is some(100)
+  string-to-number("not-a-number") is none
+end
+}
 
 
   @function["string-repeat" #:contract (a-arrow S N S) #:return S]
