@@ -195,7 +195,7 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
 "end\n", checkMessage("Passed: 2; Failed: 4; Ended in Error: 0; Total: 6"));
       });
 
-      testGroup("should report failures in nested blocks", function() {
+      testGroup("should report failures in parallel nested blocks", function() {
         test(
 "fun f(y):" +
 "  fun h(x):\n" +
@@ -215,6 +215,27 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
 "  f(5) is 4\n" +
 "  f(4) is 4\n" +
 "end\n", checkMessage("Passed: 3; Failed: 5; Ended in Error: 4; Total: 8"));
+      });
+
+      testGroup("should report failures in parallel nested blocks", function() {
+        test(
+"fun f(y):" +
+"  fun g(x):\n" +
+"    fun h(shadow x):\n" +
+"      x\n" +
+"    where:\n" +
+"      h(y) is 4\n" +
+"    end\n" +
+"    x\n" +
+"  where:\n" +
+"    g(y) is y + 1\n" +
+"  end\n" +
+"  g(y)\n" +
+"where:\n" +
+"  f(4) is 4\n" +
+"  f(5) is 4\n" +
+"  f(4) is 4\n" +
+"end\n", checkMessage("Passed: 6; Failed: 6; Ended in Error: 0; Total: 12"));
       });
     });
 
