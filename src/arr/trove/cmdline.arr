@@ -81,10 +81,10 @@ end
 
 
 data ParamRepeat:
-  | once with: tostring(_): "may be used at most once" end
-  | many with: tostring(_): "may be repeated" end
-  | required-once with: tostring(_): "must be used exactly once" end
-  | required-many with: tostring(_): "must be used at least once" end
+  | once with: tostring(_, ts): "may be used at most once" end
+  | many with: tostring(_, ts): "may be repeated" end
+  | required-once with: tostring(_, ts): "must be used exactly once" end
+  | required-many with: tostring(_, ts): "must be used at least once" end
 end
 
 data Param:
