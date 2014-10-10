@@ -92,7 +92,7 @@ end
 
 data BindingInfo:
   | b-prim(name :: String) # Some "primitive" value supplied by the initial environment
-  | b-dict(dict :: SD.StringDict) # Some module supplied by the initial environment
+  | b-dict(dict :: SD.ImmutableStringDict) # Some module supplied by the initial environment
   | b-exp(exp :: A.Expr) # This name is bound to some expression that we can't interpret yet
   | b-dot(base :: BindingInfo, name :: String) # A field lookup off some binding that isn't a b-dict
   | b-typ # A type
@@ -111,7 +111,7 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
           b = eb.info
           cases(BindingInfo) b:
             | b-dict(dict) =>
-              if dict.has-key(name.key()): some(e-bind(A.dummy-loc, false, dict.get(name.key())))
+              if dict.has-key(name.key()): some(e-bind(A.dummy-loc, false, dict.get-value(name.key())))
               else: some(e-bind(A.dummy-loc, false, b-dot(b, name)))
               end
             | else => some(e-bind(A.dummy-loc, false, b-dot(b, name)))
@@ -119,15 +119,15 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
         | none => none
       end
     | s-id(_, name) =>
-      if env.has-key(name.key()): some(env.get(name.key()))
+      if env.has-key(name.key()): some(env.get-value(name.key()))
       else: none
       end
     | s-id-var(_, name) =>
-      if env.has-key(name.key()): some(env.get(name.key()))
+      if env.has-key(name.key()): some(env.get-value(name.key()))
       else: none
       end
     | s-id-letrec(_, name, _) =>
-      if env.has-key(name.key()): some(env.get(name.key()))
+      if env.has-key(name.key()): some(env.get-value(name.key()))
       else: none
       end
     | else => some(e-bind(A.dummy-loc, false, b-exp(e)))
@@ -147,10 +147,10 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
 end
 
 fun binding-type-env-from-env(initial-env):
-  for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.types):
+  for lists.fold(acc from SD.make-immutable-string-dict(), binding from initial-env.types):
     cases(CS.CompileTypeBinding) binding:
       | type-module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
+        mod = for lists.fold(m from SD.make-immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
         end
         acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
@@ -159,10 +159,10 @@ fun binding-type-env-from-env(initial-env):
   end
 end
 fun binding-env-from-env(initial-env):
-  for lists.fold(acc from SD.immutable-string-dict(), binding from initial-env.bindings):
+  for lists.fold(acc from SD.make-immutable-string-dict(), binding from initial-env.bindings):
     cases(CS.CompileBinding) binding:
       | module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.immutable-string-dict(), b from ids):
+        mod = for lists.fold(m from SD.make-immutable-string-dict(), b from ids):
           m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
         end
         acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
@@ -603,7 +603,7 @@ fun value-delays-exec-of(name, expr):
 end
 
 letrec-visitor = A.default-map-visitor.{
-  env: SD.immutable-string-dict(),
+  env: SD.make-immutable-string-dict(),
   s-letrec(self, l, binds, body):
     bind-envs = for map2(b1 from binds, i from range(0, binds.length())):
       rhs-is-delayed = value-delays-exec-of(b1.b.id, b1.value)
@@ -626,17 +626,17 @@ letrec-visitor = A.default-map-visitor.{
     A.s-letrec(l, new-binds, new-body)
   end,
   s-id-letrec(self, l, id, _):
-    A.s-id-letrec(l, id, self.env.get(id.key()))
+    A.s-id-letrec(l, id, self.env.get-value(id.key()))
   end
 }
 
-fun make-renamer(replacements :: SD.StringDict):
+fun make-renamer(replacements :: SD.ImmutableStringDict):
   A.default-map-visitor.{
     s-atom(self, base, serial):
       a = A.s-atom(base, serial)
       k = a.key()
       if replacements.has-key(k):
-        replacements.get(k)
+        replacements.get-value(k)
       else:
         a
       end

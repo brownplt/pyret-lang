@@ -81,15 +81,15 @@ end
 
 
 js-id-of = block:
-  var js-ids = D.string-dict()
+  var js-ids = D.make-string-dict()
   lam(id :: String):
     when not(is-string(id)): raise("js-id-of got non-string: " + torepr(id));
-    if js-ids.has-key(id):
-      js-ids.get(id)
+    if js-ids.has-key-now(id):
+      js-ids.get-value-now(id)
     else:
       no-hyphens = string-replace(id, "-", "_DASH_")
       safe-id = G.make-name(no-hyphens)
-      js-ids.set(id, safe-id)
+      js-ids.set-now(id, safe-id)
       safe-id
     end
   end
@@ -1235,15 +1235,15 @@ fun compile-program(self, l, imports, prog, freevars, env):
   end
   var locations = concat-empty
   var loc-count = 0
-  var loc-cache = D.string-dict()
+  var loc-cache = D.make-string-dict()
   locs = "L"
   fun get-loc(shadow l :: Loc):
     as-str = torepr(l)
-    if loc-cache.has-key(as-str):
-      loc-cache.get(as-str)
+    if loc-cache.has-key-now(as-str):
+      loc-cache.get-value-now(as-str)
     else:
       ans = j-bracket(j-id(locs), j-num(loc-count))
-      loc-cache.set(as-str, ans)
+      loc-cache.set-now(as-str, ans)
       loc-count := loc-count + 1
       locations := concat-snoc(locations, obj-of-loc(l))
       ans

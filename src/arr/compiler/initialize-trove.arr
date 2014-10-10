@@ -23,6 +23,5 @@ import s-exp as _
 import sets as _
 import srcloc as _
 import string-dict as _
-import string-dict2 as _
 import world as _
 

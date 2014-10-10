@@ -1,4 +1,4 @@
-import string-dict2 as SD
+import string-dict as SD
 
 torepr([SD.string-dict: "a", 15, "b", 10])
 
