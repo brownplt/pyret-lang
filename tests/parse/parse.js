@@ -205,6 +205,16 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       console.log("Finished token-triple tests");      
     });
   });
+  describe("lexing", function() {
+    it("should lex triple-quoted strings", function() {
+      expect(parse("```asd`asd```")).not.toBe(false);
+      expect(parse("```asd\`asd```")).not.toBe(false);
+      expect(parse("```asd``asd```")).not.toBe(false);
+      expect(parse("```asd``\\`asd```")).not.toBe(false);
+      expect(parse("```asd``\\````")).not.toBe(false);
+      expect(parse("```asd```asd```")).toBe(false);
+    });
+  });   
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
       expect(parse("let: 10 end")).toBe(false);

@@ -41,6 +41,17 @@
     (define-key map (kbd "=") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "<") 'pyret-indent-initial-punctuation)
     (define-key map (kbd ">") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "`")
+      (function (lambda (&optional N)
+                  (interactive "^p")
+                  (message "Got here")
+                  (or N (setq N 1))
+                  (self-insert-command N)
+                  (ignore-errors
+                    (when (and (not (pyret-in-string))
+                               (save-excursion (forward-char -3) (looking-at "```"))
+                               (not (looking-at "```")))
+                      (save-excursion (self-insert-command 3)))))))
     (define-key map (kbd "d")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -137,8 +148,8 @@
   (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
   (defconst pyret-font-lock-keywords-1
     (list
-     ";"
-     `("\\(```[^`]\\(?:\\\\[`\\\\]\\|[^`\\\\]\\|`[^`]\\|``[^`]\\)*```\\)" 
+     `(";" . font-lock-keyword-face)
+     `("\\(```\\(?:\\\\[`\\]\\|[^`\\]\\|``?[^`]\\)*?```\\)" 
        (1 '(face font-lock-string-face font-lock-multiline t) t))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
@@ -233,7 +244,7 @@
     (modify-syntax-entry ?} "){" st)
     (modify-syntax-entry ?. "." st)
     (modify-syntax-entry ?\; "." st)
-    (modify-syntax-entry ?` "\"" st)
+    ;(modify-syntax-entry ?` "\"" st)
     st)
   "Syntax table for pyret-mode")
 
@@ -979,6 +990,82 @@ For detail, see `comment-dwim'."
   (let ((comment-start "#") (comment-end ""))
     (comment-dwim arg)))
 
+
+;;; ADAPTED FROM http://sourceforge.net/p/python-mode/patches/26/
+;; Syntactic keywords.  This syntactic keyword table allows
+;; pyret-mode to handle triple-quoted strings (almost) correctly.
+
+(defvar pyret-font-lock-syntactic-keywords
+  '((pyret-quote-in-triple-quoted-string-matcher 0 (1 . nil))
+    )
+  "Syntactic keyword table for Pyret, which finds quote marks that
+should not be considered string delimiters because they are inside
+triple-quoted strings, and marks them as punctuation instead.")
+
+(defun pyret-quote-in-triple-quoted-string-matcher (limit)
+  "A `font-lock-mode' MATCHER that searches for quote marks (\" or \' or \`)
+that should not be considered string delimiters because they are
+inside triple-quoted strings.
+    It also marks all quote marks it encounters with the text-property
+`pyret-strtype', indicating what sort of string begins immediately after
+that quote mark.  For open-quote marks, the value is one of:
+\"```\", \"\\\"\", \"\\'\".  For close-quote
+marks, the value is nil.  For backslashed quotes, quotes in comments,
+and non-triple-quotes inside triple-quoted- strings, the value is the
+quote mark that opened the string."
+  (let (result strtype)
+    ;; Find a known starting place & state.
+    (cond ((= (point) (car pyret-strtype-cache))
+           (setq strtype (cdr pyret-strtype-cache)))
+          ((re-search-backward "[`\"\']" nil t)
+           (setq strtype (get-text-property (point) 'pyret-strtype))
+           (forward-char 1))
+          (t nil))
+    ;; Scan forward looking for string-internal quotes.
+    (while (not result)
+      ;; Find the next token.
+      (if (re-search-forward "[`\"\'\\#]" limit t)
+          (let ((start (match-beginning 0))
+                (tok (char-before)))
+            ;;(mydebug "%s@%s [in %s]" tok start strtype)
+            (cond
+             ;; Backslashed char: move over it.
+             ((eq tok ?\\) (forward-char 1))
+             ;; Comment marker: go to eol unless we're in a string.
+             ((eq tok ?\#) (unless strtype (end-of-line)))
+             ;; Close quote: set strtype to nil.
+             ((and strtype (save-excursion (backward-char 1)
+                                           (looking-at strtype)))
+              (setq strtype nil) (goto-char (match-end 0)))
+             ;; String-internal quote: mark it as normal (non-
+             ;; quoting) punctuation.
+             (strtype (if (and (member strtype '("```"))
+                               (eq tok (elt strtype 0)))
+                          (setq result 'found-one)))
+             ;; Open quote: set strtype.
+             (t (backward-char 1)
+                (if (re-search-forward "```\\|\"\\|\'" limit t)
+                    (setq strtype (match-string 0))
+                  (forward-char 1))))
+            ;; Save strtype for future reference.
+            (put-text-property start (point) 'pyret-strtype strtype))
+        ;; No tokens left
+        (setq result 'reached-limit)))
+    (setq pyret-strtype-cache (cons (point) strtype))
+    (eq result 'found-one)))
+
+(defvar pyret-strtype-cache '(-1 . nil)
+  "Cached value indicating what kind of string we're in (if any).
+Encoded as a tuple (POS . STRTYPE).  POS is a buffer position --
+only use the cache if you're still at that position.  STRTYPE is
+one of: \"```\", \"\\\"\", \"\\'\", or nil,
+indicating what open quote was used for the string we're currently
+in (nil if we're not in a string).")
+
+;; Don't let the 'pyret-strtype' property spread to other characters.
+(when (boundp 'text-property-default-nonsticky)
+  (add-to-list 'text-property-default-nonsticky '(pyret-strtype . t)))
+
 (defun pyret-mode ()
   "Major mode for editing Pyret files"
   (interactive)
@@ -989,6 +1076,7 @@ For detail, see `comment-dwim'."
   (pyret-recompute-lexical-regexes)
   (set (make-local-variable 'pyret-dialect) 'Pyret)
   (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
+  (set (make-local-variable 'font-lock-syntactic-keywords) pyret-font-lock-syntactic-keywords)
   (font-lock-refresh-defaults)
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")

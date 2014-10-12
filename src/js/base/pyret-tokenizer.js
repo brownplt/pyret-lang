@@ -157,14 +157,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opraisessatisfies = new RegExp(kw("raises-satisfies"), STICKY_REGEXP);
   const opraisesviolates = new RegExp(kw("raises-violates"), STICKY_REGEXP);
 
-  const slashable = "[\\\\nrt\"\']"
   const tquot_str =
     new RegExp("^```(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
                "|\\\\u[0-9a-fA-f]{1,4}" +
-               "|\\\\[\\\\nrt\"\']" +
-               "|[^`])*```", STICKY_REGEXP); // NOTE: Allow unescaped newlines
+               "|\\\\[\\\\nrt\"\'`]" +
+               "|`{1,2}(?!`)" +
+               "|[^`\\\\])*```", STICKY_REGEXP); // NOTE: Allow unescaped newlines
   const dquot_str =
     new RegExp("^\"(?:" +
                "\\\\[01234567]{1,3}" +
@@ -180,7 +180,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
                "|\\\\[\\\\nrt\"\']" +
                "|[^\\\\\'\n\r])*\'", STICKY_REGEXP);
 
-  const unterminated_string = new RegExp("^[\"\'].*", STICKY_REGEXP);
+  const unterminated_string = new RegExp("^(?:[\"\']|```).*", STICKY_REGEXP);
 
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
   const Tokens = [
