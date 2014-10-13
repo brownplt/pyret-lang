@@ -18,3 +18,4 @@ import "./tests/test-lists.arr" as _
 import "./tests/test-cases.arr" as _
 import "./tests/test-rec.arr" as _
 import "./tests/test-compile-errors.arr" as _
+import "./tests/test-file.arr" as _
