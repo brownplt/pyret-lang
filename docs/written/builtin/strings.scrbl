@@ -168,8 +168,8 @@ end
 
   @function["string-to-number" #:contract (a-arrow S N) #:return (O-of N)]
 
-Converts the argument string to a number, returning @pyret-id["none" "Option"]
-if it is not a valid numeric string, and a @a-app[@pyret-id["some" "Option"]
+Converts the argument string to a number, returning @pyret-id["none" "option"]
+if it is not a valid numeric string, and a @a-app[@pyret-id["some" "option"]
 @pyret-id["Number" "numbers"]] if it is.
 
 @examples{
