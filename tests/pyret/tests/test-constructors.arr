@@ -20,7 +20,7 @@ check:
   
   dictkv = {
     make: lam(arr):
-      d = SD.make-string-dict()
+      d = SD.make-mutable-string-dict()
       for each(i from range(0, raw-array-length(arr))):
         elt = raw-array-get(arr, i)
         d.set-now(elt.k, elt.v)
@@ -53,7 +53,7 @@ check:
     make: lam(arr):
       len = raw-array-length(arr)
       when num-modulo(len, 2) <> 0: raise("Odd number of arguments to dict-list") end
-      d = SD.make-string-dict()
+      d = SD.make-mutable-string-dict()
       for each(i from range(0, len / 2)):
         ix = i * 2
         d.set-now(raw-array-get(arr, ix), raw-array-get(arr, ix + 1))

@@ -33,15 +33,15 @@ type TypeVariable         = TS.TypeVariable
 t-variable                = TS.t-variable
 
 type DataType              = TS.DataType
-type Bindings              = SD.ImmutableStringDict<TS.Type>
-empty-bindings :: Bindings = SD.make-immutable-string-dict()
+type Bindings              = SD.StringDict<TS.Type>
+empty-bindings :: Bindings = SD.make-string-dict()
 
 
 data TCInfo:
-  | tc-info(typs       :: SD.StringDict<TS.Type>,
-            aliases    :: SD.StringDict<TS.Type>,
-            data-exprs :: SD.StringDict<TS.DataType>,
-            branders   :: SD.StringDict<TS.Type>,
+  | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
+            aliases    :: SD.MutableStringDict<TS.Type>,
+            data-exprs :: SD.MutableStringDict<TS.DataType>,
+            branders   :: SD.MutableStringDict<TS.Type>,
             binds      :: Bindings,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
@@ -49,7 +49,7 @@ end
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
-default-typs = SD.make-string-dict()
+default-typs = SD.make-mutable-string-dict()
 default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
 default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
 default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
@@ -84,7 +84,7 @@ fun empty-tc-info() -> TCInfo:
       end
     }
   end
-  tc-info(default-typs, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), empty-bindings, errors)
+  tc-info(default-typs, SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), empty-bindings, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:

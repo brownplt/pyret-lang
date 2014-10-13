@@ -364,7 +364,7 @@ end
 
 
 fun desugar-immutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
-  replacements = SD.make-string-dict()
+  replacements = SD.make-mutable-string-dict()
   new-names = for map(b from binds):
     name = mk-id(l, b.b.id.toname())
     replacements.set(b.b.id.key(), name.id)

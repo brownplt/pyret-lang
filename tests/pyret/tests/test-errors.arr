@@ -186,22 +186,22 @@ check:
     e20.obj is D
   end
   
-  e21 = get-err(lam(): D.make-immutable-string-dict("too", "many", "arguments") end)
+  e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e21):
     e21.expected-arity is 0
     e21.args.length() is 3
     e21.fun-loc satisfies S.is-builtin
-    e21.fun-loc.module-name is "make-immutable-string-dict"
+    e21.fun-loc.module-name is "make-string-dict"
   end
   
-  e22 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
+  e22 = get-err(lam(): D.make-mutable-string-dict("too", "many", "arguments") end)
   e22 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e22):
     e22.expected-arity is 0
     e22.args.length() is 3
     e22.fun-loc satisfies S.is-builtin
-    e22.fun-loc.module-name is "make-string-dict"
+    e22.fun-loc.module-name is "make-mutable-string-dict"
   end
   
   e23 = get-err(lam(): FL.open-input-file("too", "many", "arguments") end)

@@ -23,7 +23,7 @@ fun parse-dialects(arg-index, name, val):
 end
 
 fun main(args):
-  options = [D.immutable-string-dict:
+  options = [D.string-dict:
     "compile-standalone-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "compile-module-js",

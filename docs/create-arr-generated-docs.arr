@@ -39,7 +39,7 @@ process-ann = DU.process-ann
 lookup-value = DU.lookup-value
 process-fields = DU.process-fields
 
-options = [S.immutable-string-dict:
+options = [S.string-dict:
   "width",
     C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
   "dialect",

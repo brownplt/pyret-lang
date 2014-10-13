@@ -12,7 +12,7 @@ import "compiler/gensym.arr" as G
 
 data NameResolution:
   | resolved(ast :: A.Program, errors :: List<C.CompileError>,
-      bindings :: SD.StringDict, type-bindings :: SD.StringDict)
+      bindings :: SD.MutableStringDict, type-bindings :: SD.MutableStringDict)
 end
 
 fun mk-bind(l, id) -> A.Expr: A.s-bind(l, false, id, A.a-blank);
@@ -479,7 +479,7 @@ data TypeBinding:
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
-  for fold(acc from SD.make-immutable-string-dict(), b from initial.bindings):
+  for fold(acc from SD.make-string-dict(), b from initial.bindings):
     cases(C.CompileBinding) b:
       | module-bindings(name, ids) => acc
       | builtin-id(name) =>
@@ -493,7 +493,7 @@ where:
 end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):
-  for fold(acc from SD.make-immutable-string-dict(), b from initial.types):
+  for fold(acc from SD.make-string-dict(), b from initial.types):
     cases(C.CompileBinding) b:
       | type-module-bindings(name, ids) => acc
       | type-id(name) =>
@@ -514,8 +514,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         -  Contains no s-name in names
        ```
   var name-errors = [list: ]
-  bindings = SD.make-string-dict()
-  type-bindings = SD.make-string-dict()
+  bindings = SD.make-mutable-string-dict()
+  type-bindings = SD.make-mutable-string-dict()
 
   fun make-atom-for(name, is-shadowing, env, shadow bindings, typ):
     cases(A.Name) name:

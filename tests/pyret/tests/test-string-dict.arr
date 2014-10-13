@@ -1,10 +1,8 @@
 import string-dict as SD
 
-torepr([SD.string-dict: "a", 15, "b", 10])
-
 check "basics":
 
-  sd1 = SD.make-string-dict()
+  sd1 = SD.make-mutable-string-dict()
   sd1.set-now("a", 5)
   sd1.get-value-now("a") is 5
   sd1.get-now("a").or-else(1) is 5
@@ -15,13 +13,13 @@ check "basics":
   sd1.get-now("c").or-else(42) is 42
   sd1.get-value-now("c") raises "Key c not found"
 
-  sd2 = [SD.string-dict: "a", 15, "b", 10]
+  sd2 = [SD.mutable-string-dict: "a", 15, "b", 10]
   sd2.get-now("a").or-else(42) is 15
   sd2.get-value-now("b") is 10
 
   fun check-sdstr(s):
-    (s == "[string-dict: \"a\", 15, \"b\", 10]") or
-      (s == "[string-dict: \"b\", 10, \"a\", 15]")
+    (s == "[mutable-string-dict: \"a\", 15, \"b\", 10]") or
+      (s == "[mutable-string-dict: \"b\", 10, \"a\", 15]")
   end
   torepr(sd2) satisfies check-sdstr
 
@@ -36,7 +34,7 @@ check "basics":
     end
   }
 
-  torepr([SD.string-dict: "a", long-torepr]) is "[string-dict: \"a\", 9999]"
+  torepr([SD.mutable-string-dict: "a", long-torepr]) is "[mutable-string-dict: \"a\", 9999]"
 
   sd2.keys-now() is [tree-set: "a", "b"]
   sd2.keys-now() is [tree-set: "b", "a"]
@@ -44,25 +42,25 @@ check "basics":
   sd2.has-key-now("a") is true
   sd2.has-key-now("z") is false
 
-  sd3 = [SD.string-dict: "a", 15, "b", 10]
-  sd4 = [SD.string-dict: "a", 15, "b", 20]
-  sd5 = [SD.string-dict: "a", 15, "b", 10, "c", 15]
+  sd3 = [SD.mutable-string-dict: "a", 15, "b", 10]
+  sd4 = [SD.mutable-string-dict: "a", 15, "b", 20]
+  sd5 = [SD.mutable-string-dict: "a", 15, "b", 10, "c", 15]
 
   sd2 is sd3
   sd2 is-not sd4
   sd2 is-not sd5
   sd2 is-not 2
 
-  isd2 = [SD.immutable-string-dict: "a", 15, "b", 10]
+  isd2 = [SD.string-dict: "a", 15, "b", 10]
 
   isd2.keys() is [tree-set: "a", "b"]
 
   isd2.has-key("a") is true
   isd2.has-key("z") is false
 
-  isd3 = [SD.immutable-string-dict: "a", 15, "b", 10]
-  isd4 = [SD.immutable-string-dict: "a", 15, "b", 20]
-  isd5 = [SD.immutable-string-dict: "a", 15, "b", 10, "c", 15]
+  isd3 = [SD.string-dict: "a", 15, "b", 10]
+  isd4 = [SD.string-dict: "a", 15, "b", 20]
+  isd5 = [SD.string-dict: "a", 15, "b", 10, "c", 15]
 
   isd2 is-not sd2
   isd3 is-not sd3
@@ -88,7 +86,7 @@ check "basics":
   isd7.get-value("a") raises "Key a not found"
   isd6.get-value("a") is 7
 
-  sd7 = [SD.string-dict: "a", false]
+  sd7 = [SD.mutable-string-dict: "a", false]
   sd7.has-key-now("a") is true
   sd7.has-key-now("b") is false
 

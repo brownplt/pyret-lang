@@ -66,7 +66,7 @@ end
 
 fun trim-path(path):
   var ret = path
-  prefixes = [S.immutable-string-dict: 
+  prefixes = [S.string-dict: 
       "trove", "",
       "js", "js/",
       "base", "",
@@ -87,7 +87,7 @@ fun trim-path(path):
   ret
 end
 fun relative-dir(path):
-  prefixes = [S.immutable-string-dict:
+  prefixes = [S.string-dict:
       "trove", "../../",
       "js", "../../",
       "base", "../../",
@@ -319,7 +319,7 @@ fun tosource(val):
   end
 end
 
-fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, CrossRef>:
+fun lookup-ann(ann :: A.Ann, type-bindings :: S.MutableStringDict) -> E.Either<A.Ann, CrossRef>:
   cases(A.Ann) ann:
     | a-dot(_, mod, name) =>
       cases(R.TypeBinding) type-bindings.get-value-now(mod.key()):
@@ -374,8 +374,8 @@ fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, C
 end
 
 fun process-fields(module-name, fields, types, bindings, type-bindings):
-  var looked-up-vals = S.make-immutable-string-dict()
-  var looked-up-typs = S.make-immutable-string-dict()
+  var looked-up-vals = S.make-string-dict()
+  var looked-up-typs = S.make-string-dict()
   for each(field from fields):
     field-name = field.name
     value = lookup-value(field.value, bindings)
@@ -403,13 +403,13 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
     new-typ = lookup-ann(typ.ann, type-bindings).v
     looked-up-typs := looked-up-typs.set(typ.name, new-typ)
   end
-  var data-vals = S.make-immutable-string-dict()
-  var fun-vals = S.make-immutable-string-dict()
-  var ignored-vals = S.make-immutable-string-dict()
-  var unknown-vals = S.make-immutable-string-dict()
-  var imports = S.make-immutable-string-dict()
-  var cross-refs = S.make-immutable-string-dict()
-  var constructors = S.make-immutable-string-dict()
+  var data-vals = S.make-string-dict()
+  var fun-vals = S.make-string-dict()
+  var ignored-vals = S.make-string-dict()
+  var unknown-vals = S.make-string-dict()
+  var imports = S.make-string-dict()
+  var cross-refs = S.make-string-dict()
+  var constructors = S.make-string-dict()
   for each(field from looked-up-typs.keys().to-list()):
     typ = looked-up-typs.get-value(field)
     cases(A.Ann) typ:

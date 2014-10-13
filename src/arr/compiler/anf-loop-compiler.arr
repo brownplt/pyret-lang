@@ -81,7 +81,7 @@ end
 
 
 js-id-of = block:
-  var js-ids = D.make-string-dict()
+  var js-ids = D.make-mutable-string-dict()
   lam(id :: String):
     when not(is-string(id)): raise("js-id-of got non-string: " + torepr(id));
     if js-ids.has-key-now(id):
@@ -1235,7 +1235,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   end
   var locations = concat-empty
   var loc-count = 0
-  var loc-cache = D.make-string-dict()
+  var loc-cache = D.make-mutable-string-dict()
   locs = "L"
   fun get-loc(shadow l :: Loc):
     as-str = torepr(l)

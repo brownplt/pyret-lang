@@ -143,7 +143,7 @@ example-o-demoted  = t-top
 example-p-promoted = t-bot
 example-p-demoted  = t-bot
 
-fun dict-to-string(dict :: SD.ImmutableStringDict) -> String:
+fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
     + for map(key from dict.keys().to-list()):
         key + " => " + torepr(dict.get-value(key))
@@ -874,7 +874,7 @@ fun is-rigid-under(r :: Type, binds :: Bindings) -> Boolean:
 end
 
 data TypeConstraints:
-  | type-constraints(dict :: SD.ImmutableStringDict<Option<TypeConstraint>>)
+  | type-constraints(dict :: SD.StringDict<Option<TypeConstraint>>)
 sharing:
   _insert(self, typ-str :: String, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     new-constraint = if self.dict.has-key(typ-str):
@@ -936,13 +936,13 @@ sharing:
   end
 end
 
-# empty-type-constraints = type-constraints(SD.immutable-string-dict())
+# empty-type-constraints = type-constraints(SD.string-dict())
 # TODO(cody): Uncomment above and remove definitions in below functions below once `rec' keyword exists
 
 fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<TypeVariable>, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo):
-  empty-type-constraints = type-constraints(SD.make-immutable-string-dict())
+  empty-type-constraints = type-constraints(SD.make-string-dict())
   # TODO(cody): Check that foralls are the same
-  tmp-binds = for fold(curr from SD.make-immutable-string-dict(), y from s-introduces):
+  tmp-binds = for fold(curr from SD.make-string-dict(), y from s-introduces):
     curr.set(y.id.key(), y.upper-bound)
   end
   ks-ds = for fold(curr from pair(tmp-binds, empty-type-constraints), t-f from t-introduces):
@@ -974,7 +974,7 @@ fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<Typ
 end
 
 fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> FoldResult<TypeConstraints>:
-  empty-type-constraints = type-constraints(SD.make-immutable-string-dict())
+  empty-type-constraints = type-constraints(SD.make-string-dict())
   binds   = info.binds
   s-free  = free-vars(s, binds)
   s-str   = s.key()
@@ -1061,7 +1061,7 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
 end
 
 fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> Pair<Type,TypeConstraints>:
-  empty-type-constraints = type-constraints(SD.make-immutable-string-dict())
+  empty-type-constraints = type-constraints(SD.make-string-dict())
   ru-union = to-remove.union(unknowns)
   if is-t-top(s) and is-t-top(t):
     pair(t-top, empty-type-constraints)
@@ -1097,4 +1097,4 @@ fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, un
   end
 end
 
-empty-type-constraints = type-constraints(SD.make-immutable-string-dict())
+empty-type-constraints = type-constraints(SD.make-string-dict())

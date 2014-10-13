@@ -7,11 +7,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       var arity = runtime.checkArity;
       var get = runtime.getField;
 
-      var brandMutable = runtime.namedBrander("string-dict");
-      var brandImmutable = runtime.namedBrander("immutable-string-dict");
+      var brandMutable = runtime.namedBrander("mutable-string-dict");
+      var brandImmutable = runtime.namedBrander("string-dict");
 
-      var annMutable = runtime.makeBranderAnn(brandMutable, "StringDict");
-      var annImmutable = runtime.makeBranderAnn(brandImmutable, "ImmutableStringDict");
+      var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
+      var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
 
       function applyBrand(brand, val) {
         return get(brand, "brand").app(val);
@@ -128,7 +128,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var elts = [];
           var keys = getAllKeys();
           function combine(elts) {
-            return '[immutable-string-dict: ' + elts.join(', ') + ']';
+            return '[string-dict: ' + elts.join(', ') + ']';
           }
           function toreprElts() {
             if (keys.length === 0) {
@@ -285,7 +285,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var elts = [];
           function combine(elts) {
             //return "[string-dict: " + elts.join(", ") + "]";
-            return "[string-dict: " + elts.join(", ") + "]";
+            return "[mutable-string-dict: " + elts.join(", ") + "]";
           }
           function toreprElts() {
             if (keys.length === 0) { return combine(elts); }
@@ -382,13 +382,13 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       function createMutableStringDict() {
-        arity(0, arguments, "make-string-dict");
+        arity(0, arguments, "make-mutable-string-dict");
         var dict = Object.create(null);
         return makeMutableStringDict(dict);
       }
 
       function createMutableStringDictFromArray(array) {
-        arity(1, arguments, "string-dict");
+        arity(1, arguments, "mutable-string-dict");
         runtime.checkArray(array);
         var dict = Object.create(null);
         var len = array.length;
@@ -405,13 +405,13 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       }
 
       function createImmutableStringDict() {
-        arity(0, arguments, "make-immutable-string-dict");
+        arity(0, arguments, "make-string-dict");
         var dict = Object.create(null);
         return makeImmutableStringDict(dict);
       }
 
       function createImmutableStringDictFromArray(array) {
-        arity(1, arguments, "immutable-string-dict");
+        arity(1, arguments, "string-dict");
         runtime.checkArray(array);
         var dict = Object.create(null);
         var len = array.length;
@@ -434,16 +434,16 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       return O({
         "provide-plus-types": O({
           types: {
-            StringDict: annMutable,
-            ImmutableStringDict: annImmutable
+            MutableStringDict: annMutable,
+            StringDict: annImmutable
           },
           values: O({
-            "make-string-dict": F(createMutableStringDict),
-            "string-dict": O({
+            "make-mutable-string-dict": F(createMutableStringDict),
+            "mutable-string-dict": O({
               make: F(createMutableStringDictFromArray)
             }),
-            "make-immutable-string-dict": F(createImmutableStringDict),
-            "immutable-string-dict": O({
+            "make-string-dict": F(createImmutableStringDict),
+            "string-dict": O({
               make: F(createImmutableStringDictFromArray)
             })
           })
