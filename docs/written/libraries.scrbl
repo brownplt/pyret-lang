@@ -9,6 +9,7 @@ This section contains information on libraries that come with Pyret.
 
 @include-section["trove/lists.scrbl"]
 @include-section["trove/sets.scrbl"]
+@include-section["trove/string-dict.scrbl"]
 @include-section["trove/option.js.rkt"]
 @include-section["trove/pick.scrbl"]
 @include-section["trove/either.js.rkt"]
