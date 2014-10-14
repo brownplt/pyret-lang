@@ -335,7 +335,6 @@ fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
 end
 
 fun desugar-mutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
-  temps = SD.string-dict()
   temp-names = for map(b from binds):
     mk-id(l, b.b.id.toname())
   end
@@ -365,7 +364,7 @@ end
 
 
 fun desugar-immutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
-  replacements = SD.string-dict()
+  replacements = SD.make-mutable-string-dict()
   new-names = for map(b from binds):
     name = mk-id(l, b.b.id.toname())
     replacements.set(b.b.id.key(), name.id)

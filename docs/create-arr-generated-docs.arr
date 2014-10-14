@@ -14,8 +14,8 @@ import "compiler/ast-util.arr" as U
 # import "compiler/ast-split.arr" as AS
 # import "compiler/js-of-pyret.arr" as JS
 # import "compiler/desugar-check.arr" as CH
-import file as F
 import string-dict as S
+import file as F
 import pprint as PP
 
 import "docs/doc-utils.arr" as DU
@@ -39,10 +39,12 @@ process-ann = DU.process-ann
 lookup-value = DU.lookup-value
 process-fields = DU.process-fields
 
-options = {
-  width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
-  dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use")
-}
+options = [S.string-dict:
+  "width",
+    C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
+  "dialect",
+    C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use")
+]
 
 parsed-options = C.parse-cmdline(options)
 
@@ -112,7 +114,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
           | s-id(_, id) =>
             spair("unknown-item", spair("name", torepr(name)))
           | s-variant(_, _, variant-name, members, with-members) =>
-            data-name = split-fields.constructors.get(variant-name)
+            data-name = split-fields.constructors.get-value(variant-name)
             fun member-type-str(m):
               cases(A.VariantMemberType) m.member-type:
                 | s-normal => "normal"
@@ -130,7 +132,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
                       end))),
                 spair("with-members", slist(with-members.map(method-spec(data-name, _)))) ])
           | s-singleton-variant(_,  variant-name, with-members) =>
-            data-name = split-fields.constructors.get(variant-name)
+            data-name = split-fields.constructors.get-value(variant-name)
             sexp("singleton-spec",
               [list: spair("name", torepr(variant-name)),
                 spair("with-members", slist(with-members.map(method-spec(data-name, _)))) ])
@@ -154,8 +156,8 @@ end
 
 cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
-    print-width = opts.get("width")
-    dialect = opts.get("dialect")
+    print-width = opts.get-value("width")
+    dialect = opts.get-value("dialect")
     cases (List) rest:
       | empty => print("Require a file name")
       | link(file, more) =>

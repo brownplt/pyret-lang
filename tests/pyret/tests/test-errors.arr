@@ -180,30 +180,28 @@ check:
   end
   
   e20 = get-err(lam(): D.to-dict("too", "many", "arguments") end)
-  e20 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e20):
-    e20.expected-arity is 1
-    e20.args.length() is 3
-    e20.fun-loc satisfies S.is-builtin
-    e20.fun-loc.module-name is "to-dict"
+  e20 satisfies E.is-field-not-found
+  when E.is-field-not-found(e20):
+    e20.field is "to-dict"
+    e20.obj is D
   end
   
-  e21 = get-err(lam(): D.immutable-string-dict("too", "many", "arguments") end)
+  e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e21):
     e21.expected-arity is 0
     e21.args.length() is 3
     e21.fun-loc satisfies S.is-builtin
-    e21.fun-loc.module-name is "immutable-string-dict"
+    e21.fun-loc.module-name is "make-string-dict"
   end
   
-  e22 = get-err(lam(): D.string-dict("too", "many", "arguments") end)
+  e22 = get-err(lam(): D.make-mutable-string-dict("too", "many", "arguments") end)
   e22 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e22):
     e22.expected-arity is 0
     e22.args.length() is 3
     e22.fun-loc satisfies S.is-builtin
-    e22.fun-loc.module-name is "string-dict"
+    e22.fun-loc.module-name is "make-mutable-string-dict"
   end
   
   e23 = get-err(lam(): FL.open-input-file("too", "many", "arguments") end)

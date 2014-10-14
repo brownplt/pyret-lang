@@ -3,6 +3,7 @@ provide-types *
 
 import either as E
 import pprint as PP
+import srcloc as L
 import string-dict as S
 import ast as A
 import "compiler/resolve-scope.arr" as R
@@ -65,18 +66,18 @@ end
 
 fun trim-path(path):
   var ret = path
-  prefixes = S.to-dict({
-      trove: "",
-      js: "js/",
-      base: "",
-      compiler: "compiler/"
-    })
+  prefixes = [S.string-dict: 
+      "trove", "",
+      "js", "js/",
+      "base", "",
+      "compiler", "compiler/"
+    ]
   ret := string-replace(ret, "\\", "/")
-  for each(prefix from prefixes.keys()):
+  for each(prefix from prefixes.keys().to-list()):
     i = string-index-of(ret, prefix + "/")
     when i >= 0:
-      ret := string-replace(string-substring(ret, i, string-length(ret)), prefix + "/", prefixes.get(prefix))
-      if string-index-of(prefixes.get(prefix), "/") >= 0:
+      ret := string-replace(string-substring(ret, i, string-length(ret)), prefix + "/", prefixes.get-value(prefix))
+      if string-index-of(prefixes.get-value(prefix), "/") >= 0:
         ret := '"' + ret + '"'
       else:
         ret := string-replace(ret, ".arr", "")
@@ -86,14 +87,14 @@ fun trim-path(path):
   ret
 end
 fun relative-dir(path):
-  prefixes = S.to-dict({
-      trove: "../../",
-      js: "../../",
-      base: "../../",
-      compiler: "../../../"
-    })
-  for fold(acc from "", prefix from prefixes.keys()):
-    if string-index-of(path, prefix + "/") >= 0: prefixes.get(prefix)
+  prefixes = [S.string-dict:
+      "trove", "../../",
+      "js", "../../",
+      "base", "../../",
+      "compiler", "../../../"
+    ]
+  for fold(acc from "", prefix from prefixes.keys().to-list()):
+    if string-index-of(path, prefix + "/") >= 0: prefixes.get-value(prefix)
     else: acc
     end
   end
@@ -114,9 +115,9 @@ fun lookup-value(value, bindings):
     to-examine =
       if A.Name(item):
         if seen.member(item): none
-        else if bindings.has-key(item.key()):
+        else if bindings.has-key-now(item.key()):
           # print("Found " + item.key() + " in bindings")
-          bindings.get(item.key()).expr
+          bindings.get-value-now(item.key()).expr
         else: none
         end
       else if A.Expr(item): some(item)
@@ -250,11 +251,11 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
                   sexp("a-id", [list: leaf(torepr(name.toname())), xref("<global>", name.toname())])
                 | else =>
                   if fields.cross-refs.has-key(name.toname()):
-                    cases(CrossRef) fields.cross-refs.get(name.toname()):
+                    cases(CrossRef) fields.cross-refs.get-value(name.toname()):
                       | crossref(modname, as-name) =>
                         sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
                     end
-                  else if bindings.has-key(name.key()):# and (bindings.get(name.toname()) == name.toname()):
+                  else if bindings.has-key-now(name.key()):# and (bindings.get(name.toname()) == name.toname()):
                     val = lookup-value(name, bindings)
                     cases(Any) val:
                       | crossref(modname, as-name) =>
@@ -269,14 +270,14 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
                           leaf(torepr(name.toname()))
                         end
                     end
-                  else if bindings.has-key(name.toname()):# and (bindings.get(name.toname()) == name.toname()):
+                  else if bindings.has-key-now(name.toname()):# and (bindings.get(name.toname()) == name.toname()):
                     leaf(torepr(name.toname()))
                   else if fields.data-vals.has-key(name.toname()):
-                    cases(Any) fields.data-vals.get(name.toname()):
+                    cases(Any) fields.data-vals.get-value(name.toname()):
                       | crossref(modname, as-name) =>
                         sexp("a-id", [list: leaf(torepr(name.toname())), xref(modname, as-name)])
                       | else =>
-                        print("Found " + torepr(fields.data-vals.get(name.toname())))
+                        print("Found " + torepr(fields.data-vals.get-value(name.toname())))
                         leaf(torepr(name.toname()))
                     end
                   else:
@@ -295,7 +296,7 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
       sexp("a-app", process-ann(base, file, fields, bindings, type-bindings) ^ link(_, args.map(process-ann(_, file, fields, bindings, type-bindings))))
     | a-dot(l, obj, field) =>
       bound-as-import =
-        if type-bindings.has-key(obj.key()): type-bindings.get(obj.key()).ann.value
+        if type-bindings.has-key-now(obj.key()): type-bindings.get-value-now(obj.key()).ann.value
         else: lookup-value(obj, bindings)
         end      
       if A.Import(bound-as-import):
@@ -314,15 +315,14 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
 end
 fun tosource(val):
   if is-string(val): PP.str(val)
-  else if S.to-dict(val).has-key("tosource"): val.tosource()
-  else: PP.str(torepr(val))
+  else: val.tosource()
   end
 end
 
-fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, CrossRef>:
+fun lookup-ann(ann :: A.Ann, type-bindings :: S.MutableStringDict) -> E.Either<A.Ann, CrossRef>:
   cases(A.Ann) ann:
     | a-dot(_, mod, name) =>
-      cases(R.TypeBinding) type-bindings.get(mod.key()):
+      cases(R.TypeBinding) type-bindings.get-value-now(mod.key()):
         | let-type-bind(_, _, opt-ann) =>
           cases(Option) opt-ann:
             | none =>
@@ -344,8 +344,8 @@ fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, C
           E.left(ann)
       end
     | a-name(_, id) =>
-      if type-bindings.has-key(id.key()):
-        cases(R.TypeBinding) type-bindings.get(id.key()):
+      if type-bindings.has-key-now(id.key()):
+        cases(R.TypeBinding) type-bindings.get-value-now(id.key()):
           | let-type-bind(_, _, opt-ann) =>
             cases(Option) opt-ann:
               | none => E.left(ann)
@@ -374,16 +374,16 @@ fun lookup-ann(ann :: A.Ann, type-bindings :: S.StringDict) -> E.Either<A.Ann, C
 end
 
 fun process-fields(module-name, fields, types, bindings, type-bindings):
-  var looked-up-vals = S.immutable-string-dict()
-  var looked-up-typs = S.immutable-string-dict()
+  var looked-up-vals = S.make-string-dict()
+  var looked-up-typs = S.make-string-dict()
   for each(field from fields):
     field-name = field.name
     value = lookup-value(field.value, bindings)
     # print("Binding " + torepr(field-name) + " to " + tosource(value).pretty(80).first)
     looked-up-vals := looked-up-vals.set(field-name, value)
   end
-  for each(typ from type-bindings.keys()):
-    cases(R.TypeBinding) type-bindings.get(typ):
+  for each(typ from type-bindings.keys-now().to-list()):
+    cases(R.TypeBinding) type-bindings.get-value-now(typ):
       | let-type-bind(_, name, opt-ann) =>
         cases(Option) opt-ann:
           | none => nothing
@@ -403,15 +403,15 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
     new-typ = lookup-ann(typ.ann, type-bindings).v
     looked-up-typs := looked-up-typs.set(typ.name, new-typ)
   end
-  var data-vals = S.immutable-string-dict()
-  var fun-vals = S.immutable-string-dict()
-  var ignored-vals = S.immutable-string-dict()
-  var unknown-vals = S.immutable-string-dict()
-  var imports = S.immutable-string-dict()
-  var cross-refs = S.immutable-string-dict()
-  var constructors = S.immutable-string-dict()
-  for each(field from looked-up-typs.keys()):
-    typ = looked-up-typs.get(field)
+  var data-vals = S.make-string-dict()
+  var fun-vals = S.make-string-dict()
+  var ignored-vals = S.make-string-dict()
+  var unknown-vals = S.make-string-dict()
+  var imports = S.make-string-dict()
+  var cross-refs = S.make-string-dict()
+  var constructors = S.make-string-dict()
+  for each(field from looked-up-typs.keys().to-list()):
+    typ = looked-up-typs.get-value(field)
     cases(A.Ann) typ:
       | crossref(_, _) =>
         cross-refs := cross-refs.set(field, typ)
@@ -419,8 +419,8 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
         cross-refs := cross-refs.set(field, crossref(module-name, field))
     end
   end
-  for each(field from looked-up-vals.keys()):
-    value = looked-up-vals.get(field)
+  for each(field from looked-up-vals.keys().to-list()):
+    value = looked-up-vals.get-value(field)
     cases(A.Expr) value:
       | crossref(_, _) =>
         imports := imports.set(field, value)

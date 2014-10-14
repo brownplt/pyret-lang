@@ -1,17 +1,22 @@
-define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
-       function(util, listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib) {
+define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
+       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
-    
-    return runtime.loadModules(namespace, [listLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, O, E, EQ, ERR, S, CON, CH) {
+
+    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, Se, O, E, EQ, ERR, S, CON, CH) {
+
+      var gf = runtime.getField;
 
       function makeList(arr) {
-        var lst = runtime.getField(L, "empty");
+        var lst = gf(L, "empty");
         for(var i = arr.length - 1; i >= 0; i--) {
-          lst = runtime.getField(L, "link").app(arr[i], lst); 
+          lst = gf(L, "link").app(arr[i], lst);
         }
         return lst;
       }
-      var gf = runtime.getField;
+
+      function makeTreeSet(arr) {
+        return gf(Se, 'list-to-tree-set').app(makeList(arr));
+      }
 
       var checkSrcloc = runtime.makeCheckType(function(val) {
         return runtime.unwrap(gf(S, "Srcloc").app(val));
@@ -54,7 +59,6 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
           },
           "results-summary");
       };
-
 
       function err(str) { return gf(ERR, str).app; }
       function contract(str) { return gf(CON, str).app; }
@@ -154,7 +158,6 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         throwArityError(loc, arity, argsPyret);
       }
 
-
       function throwCasesArityError(branchLoc, arity, fields) {
         checkSrcloc(branchLoc);
         runtime.checkNumber(arity);
@@ -166,7 +169,6 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         var loc = runtime.makeSrcloc(branchLoc);
         throwCasesArityError(loc, arity, fields);
       }
-
 
       function throwCasesSingletonError(branchLoc, shouldBeSingleton) {
         checkSrcloc(branchLoc);
@@ -347,6 +349,7 @@ define(["js/runtime-util", "trove/lists", "trove/option", "trove/either", "trove
         checkResultsSummary: checkResultsSummary,
 
         makeList: makeList,
+          makeTreeSet: makeTreeSet,
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },

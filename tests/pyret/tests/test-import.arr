@@ -1,10 +1,11 @@
 import "tests/exporter.arr" as E
 import x, f from "tests/exporter.arr"
-import string-dict as S
+import error as Err
 
 check "Should import only what is exported":
-  keys = S.to-dict(E).keys()
-  sets.list-to-tree-set(keys).to-list() is [set: "x", "f"].to-list()
+  E.x is 10
+  E.f satisfies is-function
+  E.not-provided raises-satisfies Err.is-field-not-found
 end
 
 check "Should import constants": x is 10 end

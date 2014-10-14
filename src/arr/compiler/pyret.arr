@@ -23,29 +23,29 @@ fun parse-dialects(arg-index, name, val):
 end
 
 fun main(args):
-  options = {
-    compile-standalone-js:
+  options = [D.string-dict:
+    "compile-standalone-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
-    compile-module-js:
+    "compile-module-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
-    library:
+    "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
-    libs:
+    "libs",
       C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
-    module-load-dir:
+    "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
-    check-all:
+    "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
-    no-check-mode:
+    "no-check-mode",
       C.flag(C.once, "Skip checks"),
-    allow-shadow:
+    "allow-shadow",
       C.flag(C.once, "Run without checking for shadowed variables"),
-    type-check:
+    "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
-    dialect:
+    "dialect",
         C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
           "Pyret", some("d"), C.once, "Dialect of Pyret to use when compiling")
-  }
+  ]
   
   params-parsed = C.parse-args(options, args)
 
@@ -62,16 +62,16 @@ fun main(args):
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-builtins
-        else if r.get("dialect") == "Bootstrap": CS.bootstrap-builtins
+        else if r.get-value("dialect") == "Bootstrap": CS.bootstrap-builtins
         else: CS.standard-builtins end
-      module-dir = r.get("module-load-dir")
+      module-dir = r.get-value("module-load-dir")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       if not(is-empty(rest)):
         program-name = rest.first
         result = CM.compile-js(
           CM.start,
-          r.get("dialect"),
+          r.get-value("dialect"),
           F.file-to-string(program-name),
           program-name,
           libs,
@@ -85,7 +85,7 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
-            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get("dialect"), rest)
+            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get-value("dialect"), rest)
             if (exec-result.success):
               when check-mode:
                 results-str = exec-result.render-check-results()
@@ -109,7 +109,7 @@ fun main(args):
       else:
         result = if r.has-key("compile-standalone-js"):
           CM.compile-standalone-js-file(
-            r.get("compile-standalone-js"),
+            r.get-value("compile-standalone-js"),
             libs,
             {
               check-mode : check-mode,
@@ -120,9 +120,9 @@ fun main(args):
         else if r.has-key("compile-module-js"):
           CM.compile-js(
             CM.start,
-            r.get("dialect"),
-            F.file-to-string(r.get("compile-module-js")),
-            r.get("compile-module-js"),
+            r.get-value("dialect"),
+            F.file-to-string(r.get-value("compile-module-js")),
+            r.get-value("compile-module-js"),
             libs,
             {
               check-mode : check-mode,

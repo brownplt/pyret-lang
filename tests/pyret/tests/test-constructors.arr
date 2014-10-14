@@ -20,10 +20,10 @@ check:
   
   dictkv = {
     make: lam(arr):
-      d = SD.string-dict()
+      d = SD.make-mutable-string-dict()
       for each(i from range(0, raw-array-length(arr))):
         elt = raw-array-get(arr, i)
-        d.set(elt.k, elt.v)
+        d.set-now(elt.k, elt.v)
       end
       d
     end
@@ -43,9 +43,9 @@ check:
     [kv: "c", [dictkv: [kv: "d", 6]]]
   ]
 
-  d1.get("a") is 10
-  d1.get("b") is 42
-  d1.get("c").get("d") is 6
+  d1.get-value-now("a") is 10
+  d1.get-value-now("b") is 42
+  d1.get-value-now("c").get-value-now("d") is 6
 
   [kv: "a", 1, 2] raises "Bad key-value"
 
@@ -53,10 +53,10 @@ check:
     make: lam(arr):
       len = raw-array-length(arr)
       when num-modulo(len, 2) <> 0: raise("Odd number of arguments to dict-list") end
-      d = SD.string-dict()
+      d = SD.make-mutable-string-dict()
       for each(i from range(0, len / 2)):
         ix = i * 2
-        d.set(raw-array-get(arr, ix), raw-array-get(arr, ix + 1))
+        d.set-now(raw-array-get(arr, ix), raw-array-get(arr, ix + 1))
       end
       d
     end
@@ -68,9 +68,9 @@ check:
     "c", [dict-list: "d", 6]
   ]
 
-  d2.get("a") is 10
-  d2.get("b") is 42
-  d2.get("c").get("d") is 6
+  d2.get-value-now("a") is 10
+  d2.get-value-now("b") is 42
+  d2.get-value-now("c").get-value-now("d") is 6
 
   [dict-list: "a"] raises "Odd number"
 

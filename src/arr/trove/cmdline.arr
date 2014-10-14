@@ -104,10 +104,10 @@ end
 
 # options : Dictionary of Params
 fun usage-info(options-raw) -> List<String>:
-  options = D.to-dict(options-raw)
+  options = options-raw
   option-info = 
-    for lists.map(key from options.keys()):
-      cases(Param) options.get(key):
+    for lists.map(key from options.keys().to-list()):
+      cases(Param) options.get-value(key):
         | flag(repeated, desc) =>
           format("  -~a: ~a (~a)", [list: key, desc, repeated])
         | equals-val(parser, repeated, desc) =>
@@ -141,19 +141,19 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
   doc: ```Takes a dictionary of Param definitions, and a list of string arguments, 
   and returns either the parsed argument results, or an error if the provided 
   arguments do not satisfy the requirements of the Params dictionary.```
-  opts-dict = D.to-dict(options)
+  opts-dict = options
   options-and-aliases =
-    for lists.fold(acc from {options: opts-dict, aliases: D.immutable-string-dict()}, key from opts-dict.keys()):
+    for lists.fold(acc from {options: opts-dict, aliases: D.make-string-dict()}, key from opts-dict.keys().to-list()):
       if is-arg-error(acc): acc
       else:
-        cur-option = opts-dict.get(key)
+        cur-option = opts-dict.get-value(key)
         cases(Param) cur-option:
           | equals-val-default(_, _, short-name, _, _) =>
             cases(Option<String>) short-name:
               | none => acc
               | some(short) =>
                 if acc.options.has-key(short):
-                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict(), [list: ]))
+                  arg-error("Options map already includes entry for short-name " + short, success(D.make-string-dict(), [list: ]))
                 else: acc.{options: acc.options, aliases: acc.aliases.set(short, key)}
                 end
             end
@@ -162,7 +162,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
               | none => acc
               | some(short) =>
                 if acc.options.has-key(short):
-                  arg-error("Options map already includes entry for short-name " + short, success(D.immutable-string-dict(), [list: ]))
+                  arg-error("Options map already includes entry for short-name " + short, success(D.make-string-dict(), [list: ]))
                 else: acc.{options: acc.options, aliases: acc.aliases.set(short, key)}
                 end
             end
@@ -185,7 +185,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
               end
             | many =>
               if results.parsed.has-key(name):
-                success(parsed.set(name, results.parsed.get(name) + [list: val]), unknown)
+                success(parsed.set(name, results.parsed.get-value(name) + [list: val]), unknown)
               else:
                 success(parsed.set(name, [list: val]), unknown)
               end
@@ -204,8 +204,8 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         | else => results
       end
     end
-    required = for lists.filter(key from opts-dict.keys()):
-      repeated = opts-dict.get(key).repeated
+    required = for lists.filter(key from opts-dict.keys().to-list()):
+      repeated = opts-dict.get-value(key).repeated
       (repeated == required-once) or (repeated == required-many)
     end
     fun process(results, cur-index, remaining):
@@ -218,7 +218,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
               key-parts = string-split(string-substring(first, 2, string-length(first)), "=")
               key = key-parts.first
               if full-options.has-key(key):
-                cases(Param) full-options.get(key):
+                cases(Param) full-options.get-value(key):
                   | equals-val(parser, repeated, _) =>
                     cases(List<String>) key-parts.rest:
                       | empty =>
@@ -311,10 +311,10 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
             else if string-substring(first, 0, 1) == "-":
               key = string-substring(first, 1, string-length(first))
               lookup = 
-                if option-aliases.has-key(key) and full-options.has-key(option-aliases.get(key)):
-                  full-options.get(option-aliases.get(key))
+                if option-aliases.has-key(key) and full-options.has-key(option-aliases.get-value(key)):
+                  full-options.get-value(option-aliases.get-value(key))
                 else if full-options.has-key(key):
-                  full-options.get(key)
+                  full-options.get-value(key)
                 else:
                   nothing
                 end
@@ -323,9 +323,9 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                   | flag(repeated, _) =>
                     process(handle-repeated(results, repeated, key, true), cur-index + 1, more-args)
                   | equals-val-default(_, default, _, repeated, _) =>
-                    process(handle-repeated(results, repeated, option-aliases.get(key), default), cur-index + 1, more-args)
+                    process(handle-repeated(results, repeated, option-aliases.get-value(key), default), cur-index + 1, more-args)
                   | next-val-default(_, default, _, repeated, _) =>
-                    process(handle-repeated(results, repeated, option-aliases.get(key), default), cur-index + 1, more-args)
+                    process(handle-repeated(results, repeated, option-aliases.get-value(key), default), cur-index + 1, more-args)
                   | else => arg-error(format("Command line option --~a must start with two dashes", [list: key]), results)
                 end
               else:
@@ -337,11 +337,11 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         end
       end
     end
-    parsed-results = process(success(D.immutable-string-dict(), [list: ]), 1, args)
+    parsed-results = process(success(D.make-string-dict(), [list: ]), 1, args)
     cases(ParsedArguments) parsed-results:
       | success(parsed, other) =>
-        filled-missing-defaults = for lists.fold(acc from parsed, key from opts-dict.keys()):
-          cases(Param) opts-dict.get(key):
+        filled-missing-defaults = for lists.fold(acc from parsed, key from opts-dict.keys().to-list()):
+          cases(Param) opts-dict.get-value(key):
             | next-val-default(_, default, _, repeated, _) =>
               if not(acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)
               else: acc
@@ -374,7 +374,7 @@ end
 
 
 fun dict(l):
-  for fold(d from D.immutable-string-dict(), i from lists.range(0, l.length() / 2)):
+  for fold(d from D.make-string-dict(), i from lists.range(0, l.length() / 2)):
     d.set(l.get(2 * i), l.get((2 * i) + 1))
   end
 end
@@ -394,7 +394,7 @@ check:
     foo: flag(once, "Foo")
   }
   parse-args(once-optional-flag, [list: "-foo"]) is success(dict([list: "foo", true]), [list: ])
-  parse-args(once-optional-flag, [list: "bar"]) is success(D.immutable-string-dict(), [list: "bar"])
+  parse-args(once-optional-flag, [list: "bar"]) is success(D.make-string-dict(), [list: "bar"])
   parse-args(once-optional-flag, [list: "--foo"]) satisfies error-text("two dashes")
   parse-args(once-optional-flag, [list: "-foo", "-foo"]) satisfies error-text("already been used")
   parse-args(once-optional-flag, [list: "-foo", "bar"]) is success(dict([list: "foo", true]), [list: "bar"])

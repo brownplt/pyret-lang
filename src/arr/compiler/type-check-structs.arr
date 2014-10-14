@@ -34,14 +34,14 @@ t-variable                = TS.t-variable
 
 type DataType              = TS.DataType
 type Bindings              = SD.StringDict<TS.Type>
-empty-bindings :: Bindings = SD.immutable-string-dict()
+empty-bindings :: Bindings = SD.make-string-dict()
 
 
 data TCInfo:
-  | tc-info(typs       :: SD.StringDict<TS.Type>,
-            aliases    :: SD.StringDict<TS.Type>,
-            data-exprs :: SD.StringDict<TS.DataType>,
-            branders   :: SD.StringDict<TS.Type>,
+  | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
+            aliases    :: SD.MutableStringDict<TS.Type>,
+            data-exprs :: SD.MutableStringDict<TS.DataType>,
+            branders   :: SD.MutableStringDict<TS.Type>,
             binds      :: Bindings,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
@@ -49,28 +49,28 @@ end
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
-default-typs = SD.string-dict()
-default-typs.set(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
-default-typs.set("isBoolean", t-arrow([list: t-top], t-boolean))
-default-typs.set(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
-default-typs.set("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
-default-typs.set("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
-default-typs.set(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
-default-typs.set(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set(A.s-global("identical").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
-default-typs.set(A.s-global("tostring").key(), t-arrow([list: t-top], t-string))
-default-typs.set(A.s-global("_times").key(), t-number-binop)
-default-typs.set(A.s-global("_minus").key(), t-number-binop)
-default-typs.set(A.s-global("_divide").key(), t-number-binop)
-default-typs.set(A.s-global("_plus").key(), t-number-binop)
-default-typs.set(A.s-global("_lessthan").key(), t-number-binop)
-default-typs.set(A.s-global("_lessequal").key(), t-number-binop)
-default-typs.set(A.s-global("_greaterthan").key(), t-number-binop)
-default-typs.set(A.s-global("_greaterequal").key(), t-number-binop)
+default-typs = SD.make-mutable-string-dict()
+default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
+default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
+default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
+default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
+default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
+default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
+default-typs.set-now(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set-now(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set-now(A.s-global("identical").key(), t-arrow([list: t-top, t-top], t-boolean))
+default-typs.set-now("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
+default-typs.set-now(A.s-global("tostring").key(), t-arrow([list: t-top], t-string))
+default-typs.set-now(A.s-global("_times").key(), t-number-binop)
+default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
+default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
+default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
+default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
+default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
+default-typs.set-now(A.s-global("_greaterthan").key(), t-number-binop)
+default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
 print-variable = A.s-atom(gensym("A"), 1)
-default-typs.set(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
+default-typs.set-now(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
 
 fun empty-tc-info() -> TCInfo:
   errors = block:
@@ -84,7 +84,7 @@ fun empty-tc-info() -> TCInfo:
       end
     }
   end
-  tc-info(default-typs, SD.string-dict(), SD.string-dict(), SD.string-dict(), empty-bindings, errors)
+  tc-info(default-typs, SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), empty-bindings, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
@@ -104,15 +104,15 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   cases(Type) typ:
     | t-name(module-name, name) =>
       key = typ.key()
-      if info.data-exprs.has-key(key):
-        some(info.data-exprs.get(key))
+      if info.data-exprs.has-key-now(key):
+        some(info.data-exprs.get-value-now(key))
       else:
         none
       end
     | t-app(base-typ, args) =>
       key = base-typ.key()
-      if info.data-exprs.has-key(key):
-        data-type = info.data-exprs.get(key).introduce(args)
+      if info.data-exprs.has-key-now(key):
+        data-type = info.data-exprs.get-value-now(key).introduce(args)
         cases(Option<DataType>) data-type:
           | some(dt) => data-type
           | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")

@@ -294,8 +294,8 @@ fun mk-variant-constructor(variant :: TypeVariant, brander-typ :: Type, params :
 end
 
 fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check :: Option<A.Expr>, info :: TCInfo) -> SynthesisResult:
-  if info.branders.has-key(namet.key()):
-    brander-typ    = info.branders.get(namet.key())
+  if info.branders.has-key-now(namet.key()):
+    brander-typ    = info.branders.get-value-now(namet.key())
     tmp-t-vars = for map(param from params):
       t-variable(l, param, t-top, bivariant)
     end
@@ -305,7 +305,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
                       datatype-fields :: TS.TypeMembers
     ) -> DataType:
       tmp-datatype = t-datatype(name, t-vars, variant-typs, datatype-fields)
-      info.data-exprs.set(brander-typ.key(), tmp-datatype)
+      info.data-exprs.set-now(brander-typ.key(), tmp-datatype)
       tmp-datatype
     end
 
@@ -455,14 +455,14 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
     cases(A.TypeLetBind) binding:
       | s-type-bind(_, name, ann) =>
         for bind(typ from to-type-std(ann, info)):
-          info.aliases.set(name.key(), typ)
+          info.aliases.set-now(name.key(), typ)
           fold-result(typ)
         end
       | s-newtype-bind(l, name, namet) =>
         typ = t-name(none, name)
         namet-key = namet.key()
-        info.branders.set(namet-key, typ)
-        info.typs.set(namet-key, t-record([list:
+        info.branders.set-now(namet-key, typ)
+        info.typs.set-now(namet-key, t-record([list:
           t-member("test", t-arrow([list: t-top], t-boolean)),
           t-member("brand", t-arrow([list: t-top], typ))
         ]))
@@ -473,7 +473,7 @@ end
 
 fun process-binding(arg :: A.Bind, default-typ :: Type, info :: TCInfo):
   for bind(arg-typ from to-type(arg.ann, info).map(_.or-else(default-typ))):
-    info.typs.set(arg.id.key(), arg-typ)
+    info.typs.set-now(arg.id.key(), arg-typ)
     fold-result(arg-typ)
   end
 end
@@ -518,13 +518,13 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm-loc :: A.Loc, tm :: TypeMember) -
       | some(declared-typ) =>
         declared-loc = ann-loc(arg.ann, A.dummy-loc)
         if satisfies-type(typ, declared-typ, info):
-          info.typs.set(arg.id.key(), declared-typ)
+          info.typs.set-now(arg.id.key(), declared-typ)
           fold-result(info)
         else:
           fold-errors([list: C.incorrect-type(tostring(declared-typ), declared-loc, tostring(typ), tm-loc)])
         end
       | none =>
-        info.typs.set(arg.id.key(), typ)
+        info.typs.set-now(arg.id.key(), typ)
         fold-result(info)
     end
   end
@@ -685,8 +685,8 @@ fun lookup-id(blame-loc :: A.Loc, id, info :: TCInfo) -> FoldResult<Type>:
            else:
              raise("I don't know how to lookup your id! Received: " + torepr(id))
            end
-  if info.typs.has-key(id-key):
-    fold-result(info.typs.get(id-key))
+  if info.typs.has-key-now(id-key):
+    fold-result(info.typs.get-value-now(id-key))
   else:
     id-expr = if is-string(id):
                 A.s-id(blame-loc, A.s-global(id))
@@ -920,7 +920,7 @@ end
 
 fun synthesis-binding(binding :: A.Bind, value :: A.Expr, recreate :: (A.Bind, A.Expr -> A.LetBind), info :: TCInfo) -> SynthesisResult:
   fun process-value(expr, typ-loc, typ):
-    info.typs.set(binding.id.key(), typ)
+    info.typs.set-now(binding.id.key(), typ)
     synthesis-binding-result(recreate(binding, expr), typ)
   end
   for synth-bind(maybe-typ from to-type(binding.ann, info)):
@@ -1166,7 +1166,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
     | s-type(l, name, ann) =>
       for check-bind(type-aliased from to-type-std(ann, info)):
         type-alias = name.key()
-        info.aliases.set(type-alias, type-aliased)
+        info.aliases.set-now(type-alias, type-aliased)
         checking-result(e)
       end
     | s-newtype(l, name, namet) =>
