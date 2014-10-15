@@ -59,13 +59,24 @@ created with the constructors below, and manipulated with the methods and
 functions below.
 
 @pyret-id{StringDict}s keep track of a mapping from @pyret-id["String"
-"strings"]s to any Pyret value.
+"strings"]s to any Pyret value. A @pyret-id{StringDict} is
+immutable, i.e., a mapping cannot be changed; however, a new
+@pyret-id{StringDict} can be fashioned from an existing
+@pyret-id{StringDict} with a new, omitted, or changed mapping.
+
+A @pyret{StringDict} can unfrozen, i.e.,  used as the basis for
+@pyret{MutableStringDict}, which does allow modification (see
+below).
 
 @section{StringDict Constructor}
 
 @collection-doc["string-dict" (list (cons "key" "String") (cons "elt" "a")) (SD-of "a")]
 
 Creates a string-dict with the given @pyret{elt}s.
+
+@examples{
+  sd1 = [string-dict: "a", 5, "b", 10]
+}
 
 @section{StringDict Methods}
 
@@ -215,9 +226,30 @@ end
 
 @type-spec["MutableStringDict" (list "a")]
 
+There are no variants for @pyret-id{MutableStringDict}s, and
+programs cannot use @pyret{cases} statements with
+@pyret-id{MutableStringDict}s. Instead, they can be created with
+the constructors below, and manipulated with the methods and
+functions below.
+
+@pyret-id{MutableStringDict}s keep track of a mapping from
+@pyret-id["String" "strings"]s to any Pyret value. In contrast to
+@pyret-id{StringDict}s, a @pyret{MutableStringDict} can have
+mappings added, deleted, or changed.
+
+A @pyret-id{MutableStringDict} can be sealed to produce a variant
+that is read-only. A @pyret-id{MutableStringDict} can also be
+frozen to produce an immutable @pyret-id{StringDict} (see above).
+
 @section{MutableStringDict Constructor}
 
 @collection-doc["mutable-string-dict" (list (cons "elt" "a")) (SD-of "a")]
+
+Creates an mutable string-dict with the given @pyret{elt}s.
+
+@examples{
+  msd1 = [mutable-string-dict: "a", 5, "b", 10]
+}
 
 @section{MutableStringDict Methods}
 
