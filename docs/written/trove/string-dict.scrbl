@@ -125,11 +125,11 @@ and is otherwise similar to the original string-dict.
 @examples{
 check:
   sd1 = [string-dict: "a", 5, "b", 10]
-  sd1.get("a") is 5
-  sd1.get("b") is 10
+  sd1.get-value("a") is 5
+  sd1.get-value("b") is 10
   sd2 = sd1.set("a", 15)
-  sd2.get("a") is 15
-  sd2.get("b") is 10
+  sd2.get-value("a") is 15
+  sd2.get-value("b") is 10
 end
 }
 
@@ -218,7 +218,7 @@ check:
   sd1 = [string-dict: "a", 5, "b", 10]
   msd1 = sd1.unfreeze()
   msd1.set-now("a", 0)
-  msd1.get-now("a") is 0
+  msd1.get-value-now("a") is 0
 end
 }
 
@@ -265,8 +265,8 @@ if the key is in the dictionary.
 
 @examples{
 check:
-  [string-dict: "a", 5].get-now("a") is some(5)
-  [string-dict: "a", 5].get-now("b") is none
+  [mutable-string-dict: "a", 5].get-now("a") is some(5)
+  [mutable-string-dict: "a", 5].get-now("b") is none
 end
 }
 
@@ -281,8 +281,8 @@ exception otherwise.
 
 @examples{
 check:
-  [string-dict: "a", 5].get-value-now("a") is 5
-  [string-dict: "a", 5].get-value-now("b") raises "Key b not found"
+  [mutable-string-dict: "a", 5].get-value-now("a") is 5
+  [mutable-string-dict: "a", 5].get-value-now("b") raises "Key b not found"
 end
 }
 
@@ -298,12 +298,12 @@ and so returns @pyret{nothing}
 
 @examples{
 check:
-  sd1 = [string-dict: "a", 5, "b", 10]
-  sd1.get-now("a") is 5
-  sd1.get-now("b") is 10
-  sd1.set-now("a", 15) is nothing
-  sd1.get-now("a") is 15
-  sd1.get-now("b") is 10
+  msd1 = [mutable-string-dict: "a", 5, "b", 10]
+  msd1.get-value-now("a") is 5
+  msd1.get-value-now("b") is 10
+  msd1.set-now("a", 15) is nothing
+  msd1.get-value-now("a") is 15
+  msd1.get-value-now("b") is 10
 end
 }
 
@@ -317,9 +317,9 @@ Returns @pyret{true} if @pyret{key} is in the string-dict; @pyret{false} if not.
 
 @examples{
 check:
-  sd1 = [mutable-string-dict: "a", 5]
-  sd1.has-key-now("a") is true
-  sd1.has-key-now("b") is false
+  msd1 = [mutable-string-dict: "a", 5]
+  msd1.has-key-now("a") is true
+  msd1.has-key-now("b") is false
 end
 }
 
@@ -333,9 +333,9 @@ Returns the set of keys in the string-dict.
 
 @examples{
 check:
-  sd1 = [mutable-string-dict: "a", 5, "b", 10]
-  sd1.keys-now() is [tree-set: "a", "b"]
-  sd1.keys-now() is [tree-set: "b", "a"]
+  msd1 = [mutable-string-dict: "a", 5, "b", 10]
+  msd1.keys-now() is [tree-set: "a", "b"]
+  msd1.keys-now() is [tree-set: "b", "a"]
 end
 }
 
@@ -350,12 +350,12 @@ argument @pyret{key}.
 
 @examples{
 check:
-  sd1 = [mutable-string-dict: "a", 5, "b", 10]
-  sd1.has-key-now("a") is true
-  sd1.has-key-now("b") is true
-  sd1.remove-now("b") is nothing
-  sd1.has-key-now("a") is true
-  sd1.has-key-now("b") is false
+  msd1 = [mutable-string-dict: "a", 5, "b", 10]
+  msd1.has-key-now("a") is true
+  msd1.has-key-now("b") is true
+  msd1.remove-now("b") is nothing
+  msd1.has-key-now("a") is true
+  msd1.has-key-now("b") is false
 end
 }
 
@@ -369,12 +369,12 @@ Returns the number of keys in the mutable-string-dict.
 
 @examples{
 check:
-  sd1 = [mutable-string-dict: "a", 5, "b", 10]
-  sd1.count-now() is 2
-  sd1.set-now("c", 15)
-  sd1.count-now() is 3
-  sd1.remove-now("a")
-  sd1.count-now() is 2
+  msd1 = [mutable-string-dict: "a", 5, "b", 10]
+  msd1.count-now() is 2
+  msd1.set-now("c", 15)
+  msd1.count-now() is 3
+  msd1.remove-now("a")
+  msd1.count-now() is 2
 end
 }
 
@@ -413,8 +413,8 @@ check:
   msd1 = [mutable-string-dict: "a", 5, "b", 10]
   smsd1 = msd1.seal()
   smsd1.get-value-now("a") is 5
-  smsd1.set("a", 15) raises "Cannot modify sealed string dict"
-  msd1.set("a", 15) is nothing
+  smsd1.set-now("a", 15) raises "Cannot modify sealed string dict"
+  msd1.set-now("a", 15) is nothing
   msd1.get-value-now("a") is 15
   smsd1.get-value-now("a") is 15
 end
