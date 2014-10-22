@@ -573,7 +573,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return r;
     }
     function isRef(val) {
-      return val instanceof PRef;
+      return typeof val === "object" && val instanceof PRef;
     }
     function isGraphableRef(ref) {
       return isRef(ref) && isRefGraphable(ref);
@@ -1998,7 +1998,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       function checkI(i) {
         if(i >= args.length) { return after(); }
         else {
-          if(isRefGraphable(args[i])) { return checkI(i + 1); }
+          if(isGraphableRef(args[i])) { return checkI(i + 1); }
           else {
             return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
               return checkI(i + 1);
@@ -2013,7 +2013,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       function checkI(i) {
         if(i >= args.length) { return after(); }
         else {
-          if(isRefGraphable(args[i]) && mutMask[i]) { return checkI(i + 1); }
+          if(isGraphableRef(args[i]) && mutMask[i]) { return checkI(i + 1); }
           else {
             return safeCheckAnnArg(locs[i], anns[i], args[i], function(ignoredArg) {
               return checkI(i + 1);
@@ -3857,6 +3857,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeMessageException'      : makeMessageException,
         'serial' : Math.random(),
         'log': log,
+
+        'nothing': nothing,
 
         'makeSrcloc': makeSrcloc,
         '_link': function(f, r) { return getField(list, "link").app(f, r); },

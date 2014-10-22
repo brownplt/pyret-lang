@@ -3,10 +3,10 @@ import string-dict as SD
 check "basics":
 
   sd1 = SD.make-mutable-string-dict()
-  sd1.set-now("a", 5)
+  sd1.set-now("a", 5) is nothing
   sd1.get-value-now("a") is 5
   sd1.get-now("a").or-else(1) is 5
-  sd1.set-now("a", 10)
+  sd1.set-now("a", 10) is nothing
   sd1.get-value-now("a") is 10
   sd1.get-now("a").or-else(1) is 10
 
@@ -95,19 +95,19 @@ check "basics":
 
   isd8 = sd5.freeze()
   isd8.get-value("b") is 10
-  sd5.set-now("b", 5)
+  sd5.set-now("b", 5) is nothing
   sd5.get-value-now("b") is 5
   isd8.get-value("b") is 10
 
   sd8 = isd5.unfreeze()
   sd8.get-value-now("a") is 15
-  sd8.set-now("a", 23)
+  sd8.set-now("a", 23) is nothing
   sd8.get-value-now("a") is 23
   isd5.get-value("a") is 15
 
   sd9 = sd3.seal()
   sd9.get-value-now("a") is 15
   sd9.set-now("b", 20) raises "Cannot modify sealed string dict"
-  sd3.set-now("b", 20)
+  sd3.set-now("b", 20) is nothing
   sd9.get-value-now("b") is 20
 end
