@@ -1,7 +1,7 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
-@(define s-some-args (list `("v" ("type" "normal") ("contract" ,(a-id "a")))))
+@(define s-some-args (list `("value" ("type" "normal") ("contract" ,(a-id "a")))))
 
 @docmodule["option"]{
   @; Ignored type testers
@@ -24,7 +24,7 @@
   @method-doc["Option" "some" "and-then" #:alt-docstrings ""]
 
   For @pyret-id{none}, returns @pyret-id{none}.  For @pyret-id{some}, applies
-  @pyret{f} to the value inside and returns a new @pyret-id{some} with the
+  @pyret{f} to the @pyret{value} field and returns a new @pyret-id{some} with the
   updated value.
 
 @examples{
@@ -41,7 +41,7 @@ end
   @method-doc["Option" "some" "or-else" #:alt-docstrings ""]
 
   For @pyret-id{none}, returns @pyret{v}.  For @pyret-id{some}, returns the
-  value inside.  Useful for providing values.
+  @pyret{value} field.  Useful for providing default values.
 
 @examples{
 check:
