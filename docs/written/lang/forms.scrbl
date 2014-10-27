@@ -21,7 +21,7 @@
 This section contains information on the various language forms in Pyret, from
 binary operators to data definitions to functions.  This is a more detailed
 reference to the grammar of expressions and statements and their evaluation,
-rather than to 
+rather than to
 
 @(table-of-contents)
 
@@ -45,12 +45,11 @@ Import statements come in a few forms:
 @justcode{
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
-import-source: import-special | import-name | import-string 
+import-source: import-special | import-name | import-string
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
 import-string: STRING
 }
-
 
 The form with @justcode{import-name} looks for a file with that name in the
 built-in libraries of Pyret, and it is an error if there is no such library.
@@ -64,8 +63,6 @@ Example:
     EQ.equal-always3(f, f) is EQ.Unknown
   end
 }
-
-
 
 @section{Provide Statements}
 
@@ -306,7 +303,7 @@ where:
 
   BTree(a-btree) is true
   BTree("not-a-tree") is false
-  BTree(leaf(5)) is false
+  BTree(leaf(5)) is true
   is-leaf(leaf(5)) is true
   is-leaf(a-btree) is false
   is-leaf("not-a-tree") is false
@@ -351,8 +348,6 @@ where:
   a-btree.increment() # raises error: field increment not found.
 end
 }
-
-
 
 @subsection[#:tag "s:var-expr"]{Variable Declarations}
 
@@ -416,7 +411,7 @@ doc-string: ["doc:" STRING]
 The @tt{ty-params} and @tt{where-clause} of lambda expressions are currently not
 interpreted by Pyret.  The @tt{ty-params} will be used when Pyret has more
 complete support for checking polymorphic functions.  The @tt{where-clause} is
-included for homogeneity with @seclink["s:fun-expr" "function statements"]. 
+included for homogeneity with @seclink["s:fun-expr" "function statements"].
 }
 
 A lambda expression creates a function value that can be applied with
@@ -436,7 +431,6 @@ end
 add1("not-a-number")
 # Error: expected a Number and got "not-a-number"
 }
-
 
 @subsection[#:tag "s:app-expr"]{Application Expressions}
 
@@ -643,7 +637,6 @@ field: key ":" binop-expr
 key: NAME
 }
 
-
 A comma-separated sequence of fields enclosed in @tt{{}} creates an object; we
 refer to the expression as an @emph{object literal}.  There are two types of
 fields: @emph{data} fields and @emph{method} fields.  A data field in an object
@@ -688,10 +681,10 @@ of five things:
   not a method}
 
   @item{
-  
+
     If the @tt{NAME} field is a method value, evaluates to a function that is
-    the @emph{method binding} of the method value to @tt{val}.  For a method 
-    
+    the @emph{method binding} of the method value to @tt{val}.  For a method
+
     @justcode{
       m = method(self, x): body end
     }
@@ -962,4 +955,3 @@ arrow-ann-elt: ann ","
 
 When an arrow annotation appears in a binding, that binding position simply
 checks that the value is a function.
-
