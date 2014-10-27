@@ -400,6 +400,8 @@ test-release: release-gzip
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
 release-docs: docs
 	scp -r build/docs/ $(DOCS_TARGET)/$(VERSION)/
+	chmod -R a+rx $(DOCS_TARGET)/$(VERSION)/
+	cd $(DOCS_TARGET) && unlink latest && ln -s $(VERSION) latest
 else
 release-gzip:
 	$(error Cannot release from this platform)
