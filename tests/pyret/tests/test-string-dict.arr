@@ -115,5 +115,5 @@ end
 check "cyclic":
   s1 = [SD.mutable-string-dict: "a", nothing]
   s1.set-now("a", s1)
-  torepr(s1) satisfies is-string
+  torepr(s1) is "[mutable-string-dict: \"a\", <cyclic-object-1>]"
 end
