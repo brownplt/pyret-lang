@@ -72,3 +72,13 @@ check "Should print refs as refs only when necessary":
   torepr(m1!x) is "5"
   torepr(m1.x) is "ref(5)"
 end
+
+check "Cyclic objects":
+  rec o = {
+    _torepr(self, shadow torepr):
+      "{ myself is: " + torepr(self) + " }"
+    end
+  }
+
+  torepr(o) is "{ myself is: <cyclic-object-1> }"
+end

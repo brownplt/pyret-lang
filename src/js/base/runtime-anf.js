@@ -926,6 +926,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var stack = [];
       var stackOfStacks = [];
       var seen = [];
+      var seenObj = [];
       var seenArrays = [];
       var referents = []
       var needsGraph = false;
@@ -933,11 +934,32 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var seenUnfrozenRef = false;
       var gensymCount = 1;
       var arrayCount = 1;
+      function addSeen(obj) {
+        var newArr = { asName: makeArrayName(), arr: arr };
+        seenArrays.push(newArr);
+        return newArr.asName;
+      }
       function makeName() {
         return "cyc_" + (gensymCount++) + "_";
       }
+      function makeObjName() {
+        return "<cyclic-object-" + (gensymCount++) + ">";
+      }
       function makeArrayName() {
-        return "<cyclic_array>";
+        return "<cyclic-array-" + (gensymCount++) + ">";
+      }
+      function findSeenObj(obj) {
+        for (var i = 0; i < seenObj.length; i++) {
+          if (seenObj[i].obj === obj) {
+            return seenObj[i].asName;
+          }
+        }
+        return undefined;
+      }
+      function addNewObj(obj) {
+        var newObj = { asName: makeObjName(), obj: obj };
+        seenObj.push(newObj);
+        return newObj.asName;
       }
       function findSeenArray(arr) {
         for (var i = 0; i < seenArrays.length; i++) {
@@ -1023,7 +1045,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 stack.push({todo: Array.prototype.slice.call(next), done: [], array: true});
               }
             } else if (isObject(next)) {
-              if (next.dict[method]) {
+              var found = findSeenObj(next);
+              // NOTE(joe): The structure of ifs is a little confusing here.
+              // First we push the object on the cache if we need to.
+              // Then we're either going to "return" (via push) the string form
+              // if this is a cyclic reference, or otherwise go through the normal
+              // cases of trying the method call, then trying data serialization,
+              // then trying object literal printing.
+              if (typeof found !== "string") {
+                addNewObj(next);
+              }
+              if (typeof found === "string") {
+                top.todo.pop();
+                top.done.push(found);
+              }
+              else if (next.dict[method]) {
                 // If this call fails
                 var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
                 // the continuation stacklet will get the result value, and do the next two steps manually

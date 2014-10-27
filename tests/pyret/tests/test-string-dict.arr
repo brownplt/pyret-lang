@@ -111,3 +111,9 @@ check "basics":
   sd3.set-now("b", 20) is nothing
   sd9.get-value-now("b") is 20
 end
+
+check "cyclic":
+  s1 = [SD.mutable-string-dict: "a", nothing]
+  s1.set-now("a", s1)
+  torepr(s1) satisfies is-string
+end
