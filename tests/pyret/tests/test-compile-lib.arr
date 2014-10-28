@@ -18,7 +18,7 @@ fun compile-and-run-worklist(cl, ws :: List<CL.ToCompile>):
   load-infos = for map2(tc from ws, cm from compiled-mods):
     { to-compile: tc, compiled-mod: cm }
   end
-  load-worklist(load-infos, SD.immutable-string-dict())
+  load-worklist(load-infos, SD.make-string-dict())
 end
 
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>) -> Any:
@@ -27,9 +27,9 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>) -> Any:
       raise("Didn't get anything to run in run-worklist")
     | link(load-info, r) =>
       dependencies = load-info.to-compile.dependency-map
-      depnames = dependencies.keys()
+      depnames = dependencies.keys-now().to-list()
       depvals = for map(d from depnames.sort()):
-        { modval: modvals.get(dependencies.get(d).uri()), key: d }
+        { modval: modvals.get-value(dependencies.get-value-now(d).uri()), key: d }
       end
       cases(CM.CompileResult) load-info.compiled-mod:
         | err(problems) => raise(problems)
@@ -46,8 +46,8 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>) -> Any:
 end
 
 check "Worklist generation (simple)":
-  modules = SD.string-dict()
-  modules.set("foo",
+  modules = SD.make-mutable-string-dict()
+  modules.set-now("foo",
     ```
     provide { f: f } end
     import file("bar") as B
@@ -55,7 +55,7 @@ check "Worklist generation (simple)":
     fun f(x): B.g(x) end
     f(42) 
     ```)
-  modules.set("bar",
+  modules.set-now("bar",
     ```
     provide { g: g } end
 
@@ -65,9 +65,9 @@ check "Worklist generation (simple)":
   fun string-to-locator(name :: String):
     {
       needs-compile(self, provs): true end,
-      get-module(self): modules.get(name) end,
-      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
-      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
+      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
@@ -93,8 +93,8 @@ check "Worklist generation (simple)":
 end
 
 check "Worklist generation (DAG)":
-  modules = SD.string-dict()
-  modules.set("A",
+  modules = SD.make-mutable-string-dict()
+  modules.set-now("A",
     ```
     provide { f: f } end
     import file("B") as B
@@ -102,44 +102,44 @@ check "Worklist generation (DAG)":
 
     fun f(x): B.g(x) end
     ```)
-  modules.set("B",
+  modules.set-now("B",
     ```
     provide { g: g } end
     import file("D") as D
 
     fun g(x): D.h(x) end
     ```)
-  modules.set("C",
+  modules.set-now("C",
     ```
     provide { g: g } end
     import file("D") as D
 
     fun g(x): D.h(x) end
     ```)
-  modules.set("D",
+  modules.set-now("D",
     ```
     provide { h: h } end
 
     fun h(x): x end
     ```)
 
-  cresults = SD.string-dict()
-  retrievals = SD.string-dict()
+  cresults = SD.make-mutable-string-dict()
+  retrievals = SD.make-mutable-string-dict()
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): not(cresults.has-key(name)) end,
+      needs-compile(self, provs): not(cresults.has-key-now(name)) end,
       get-module(self):
-        count = if retrievals.has-key(name): retrievals.get(name) else: 0 end
-        retrievals.set(name, count + 1)
-        modules.get(name)
+        count = if retrievals.has-key-now(name): retrievals.get-value-now(name) else: 0 end
+        retrievals.set-now(name, count + 1)
+        CL.pyret-string(modules.get-value-now(name))
       end,
-      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
-      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
+      get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
+      get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,
-      set-compiled(self, cr, provs): cresults.set(name, cr) end,
-      get-compiled(self): if cresults.has-key(name): some(cresults.get(name)) else: none end end,
+      set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
+      get-compiled(self): if cresults.has-key-now(name): some(cresults.get-value-now(name)) else: none end end,
       _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -162,27 +162,27 @@ check "Worklist generation (DAG)":
 
   # Reset retrievals, because get-provides calls get-module every time currently.
   # This way, we can make sure that we only get one retrieval during actual compilation of each module.
-  for each(s from retrievals.keys()): retrievals.set(s, 0) end
+  for each(s from retrievals.keys-now().to-list()): retrievals.set-now(s, 0) end
 
   results = clib.compile-program(wlist)
 
   # Are we respecting needs-compile?
-  retrievals.get("A") is 1
-  retrievals.get("B") is 1
-  retrievals.get("C") is 1
-  retrievals.get("D") is 1
+  retrievals.get-value-now("A") is 1
+  retrievals.get-value-now("B") is 1
+  retrievals.get-value-now("C") is 1
+  retrievals.get-value-now("D") is 1
 end
 
 check "Worklist generation (Cycle)":
-  modules = SD.string-dict()
-  modules.set("A",
+  modules = SD.make-mutable-string-dict()
+  modules.set-now("A",
     ```
     provide { f: f } end
     import file("B") as B
 
     fun f(x): B.g(x) end
     ```)
-  modules.set("B",
+  modules.set-now("B",
     ```
     provide { g: g } end
     import file("A") as A
@@ -193,9 +193,9 @@ check "Worklist generation (Cycle)":
   fun string-to-locator(name :: String):
     {
       needs-compile(self, provs): true end,
-      get-module(self): modules.get(name) end,
-      get-dependencies(self): CL.get-dependencies(modules.get(name), self.uri()) end,
-      get-provides(self): CL.get-provides(modules.get(name), self.uri()) end,
+      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): "file://" + name end,
       name(self): name end,

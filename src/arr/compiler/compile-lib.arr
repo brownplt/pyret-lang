@@ -10,7 +10,10 @@ import "compiler/compile-structs.arr" as CS
 
 type URI = String
 
-type PyretCode = String
+data PyretCode:
+  | pyret-string(s :: String)
+  | pyret-ast(ast :: A.Program)
+end
 
 type Provides = Set<String>
 
@@ -20,7 +23,7 @@ type Locator = {
  
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
-  needs-compile :: (SD.StringDict<Provides> -> Boolean),
+  needs-compile :: (SD.MutableStringDict<Provides> -> Boolean),
 
   get-module :: ( -> PyretCode),
   get-dependencies :: ( -> Set<CS.Dependency>),
@@ -35,15 +38,22 @@ type Locator = {
 
   # Note that CompileResults can contain both errors and successful
   # compilations
-  set-compiled :: (CS.CompileResult, SD.StringDict<Provides> -> Nothing),
+  set-compiled :: (CS.CompileResult, SD.MutableStringDict<Provides> -> Nothing),
   get-compiled :: ( -> Option<CS.CompileResult>),
 
   # _equals should compare uris for locators
   _equals :: Method
 }
 
+fun get-ast(p :: PyretCode, uri :: URI):
+  cases(PyretCode) p:
+    | pyret-string(s) => P.surface-parse(s, uri)
+    | pyret-ast(a) => a
+  end
+end
+
 fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
-  parsed = P.surface-parse(p, uri)
+  parsed = get-ast(p, uri)
   special-imports = parsed.imports.map(_.file).filter(A.is-s-special-import)
   dependency-list = for map(s from special-imports):
     CS.dependency(s.kind, s.args)
@@ -52,7 +62,7 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
 end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
-  parsed = P.surface-parse(p, uri)
+  parsed = get-ast(p, uri)
   cases (A.Provides) parsed._provide:
     | s-provide-none(l) => S.empty-list-set
     | s-provide-all(l) => S.list-to-list-set(A.toplevel-ids(parsed).map(_.toname()))
@@ -64,12 +74,12 @@ fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   end
 end
 
-type ToCompile = { locator: Locator, dependency-map: SD.StringDict<Locator>, path :: List<Locator> }
+type ToCompile = { locator: Locator, dependency-map: SD.MutableStringDict<Locator>, path :: List<Locator> }
 
-fun dict-map<a, b>(sd :: SD.StringDict, f :: (String, a -> b)):
-  sd2 = SD.string-dict()
-  for each(k from sd.keys()):
-    sd2.set(k, f(k, sd.get(k)))
+fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
+  sd2 = SD.make-mutable-string-dict()
+  for each(k from sd.keys-now().to-list()):
+    sd2.set-now(k, f(k, sd.get-value-now(k)))
   end
   sd2
 end
@@ -81,11 +91,11 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
       when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
         raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
-      pmap = SD.string-dict()
+      pmap = SD.make-mutable-string-dict()
       deps = locator.get-dependencies().to-list()
       dlocs = for map(d from deps):
         dloc = dfind(context, d)
-        pmap.set(d.key(), dloc)
+        pmap.set-now(d.key(), dloc)
         dloc
       end
       tocomp = {locator: locator, dependency-map: pmap, path: curr-path}
@@ -98,36 +108,51 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
   end
 
   fun compile-program(worklist :: List<ToCompile>) -> List<CS.CompileResult>:
-    cache = SD.string-dict()
+    cache = SD.make-mutable-string-dict()
     for map(w from worklist):
       uri = w.locator.uri()
-      if not(cache.has-key(uri)):
+      if not(cache.has-key-now(uri)):
         cr = compile-module(w.locator, w.dependency-map)
-        cache.set(uri, cr)
+        cache.set-now(uri, cr)
         cr
       else:
-        cache.get(uri)
+        cache.get-value-now(uri)
       end
     end
   end
 
-  fun compile-module(locator :: Locator, dependencies :: SD.StringDict<Locator>) -> CS.CompileResult:
+  rec options = {
+    check-mode : true,
+    allow-shadowed : false,
+    collect-all: false,
+    type-check: false,
+    ignore-unbound: false
+  }
+
+  fun compile-module(locator :: Locator, dependencies :: SD.MutableStringDict<Locator>) -> CS.CompileResult:
     provide-map = dict-map(dependencies, lam(_, v): v.get-provides() end)
     if locator.needs-compile(provide-map):
-      cr = CM.compile-js(
-        CM.start,
-        "Pyret",
-        locator.get-module(),
-        locator.name(),
-        CS.standard-builtins,
-        {
-          check-mode : true,
-          allow-shadowed : false,
-          collect-all: false,
-          type-check: false,
-          ignore-unbound: false
-        }
-        ).result
+      mod = locator.get-module()
+      cr = cases(PyretCode) mod:
+        | pyret-string(module-string) =>
+          CM.compile-js(
+            CM.start,
+            "Pyret",
+            module-string,
+            locator.name(),
+            CS.standard-builtins,
+            options
+            ).result
+        | pyret-ast(module-ast) =>
+          CM.compile-js-ast(
+            CM.start,
+            "Pyret",
+            module-ast,
+            locator.name(),
+            CS.standard-builtins,
+            options
+            ).result
+      end
       locator.set-compiled(cr, provide-map)
       cr
     else:
