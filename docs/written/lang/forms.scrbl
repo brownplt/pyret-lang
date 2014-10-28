@@ -705,7 +705,7 @@ of five things:
       o = { m(self, x): self.y + x end, y: 22 }
       check:
         the-m-method-closed-over-o = o.m
-        m(5) is 27
+        the-m-method-closed-over-o(5) is 27
       end
     }
   }
