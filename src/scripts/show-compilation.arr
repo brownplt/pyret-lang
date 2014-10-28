@@ -2,6 +2,7 @@
 
 import cmdline as C
 import parse-pyret as P
+import string-dict as SD
 import "compiler/desugar.arr" as D
 import "compiler/desugar-check.arr" as DC
 import ast as A
@@ -15,20 +16,25 @@ import "compiler/js-of-pyret.arr" as JS
 import "compiler/desugar-check.arr" as CH
 import file as F
 
-options = {
-  width: C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
-  dialect: C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use"),
-  standard-builtins: C.flag(C.once, "Use standard buildins instead of minimal builtins"),
-  check-mode: C.flag(C.once, "Compile code with check-mode enabled"),
-  type-check: C.flag(C.once, "Type check code")
-}
+options = [SD.string-dict:
+  "width",
+    C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
+  "dialect",
+    C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use"),
+  "standard-builtins",
+    C.flag(C.once, "Use standard buildins instead of minimal builtins"),
+  "check-mode",
+    C.flag(C.once, "Compile code with check-mode enabled"),
+  "type-check",
+    C.flag(C.once, "Type check code")
+]
 
 parsed-options = C.parse-cmdline(options)
 
 cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
-    print-width = opts.get("width")
-    dialect = opts.get("dialect")
+    print-width = opts.get-value("width")
+    dialect = opts.get-value("dialect")
     libs = if opts.has-key("standard-builtins"): CS.standard-builtins else: CS.minimal-builtins end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
