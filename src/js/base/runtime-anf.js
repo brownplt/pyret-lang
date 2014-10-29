@@ -925,228 +925,178 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function toReprLoop(val, method) {
       var stack = [];
       var stackOfStacks = [];
-      var seen = [];
-      var seenObj = [];
-      var seenArrays = [];
-      var referents = []
-      var needsGraph = false;
-      var seenFrozenRef = false;
-      var seenUnfrozenRef = false;
-      var gensymCount = 1;
-      var arrayCount = 1;
-      function addSeen(obj) {
-        var newArr = { asName: makeArrayName(), arr: arr };
-        seenArrays.push(newArr);
-        return newArr.asName;
-      }
-      function makeName() {
-        return "cyc_" + (gensymCount++) + "_";
-      }
-      function makeObjName() {
-        return "<cyclic-object-" + (gensymCount++) + ">";
-      }
-      function makeArrayName() {
-        return "<cyclic-array-" + (gensymCount++) + ">";
-      }
-      function findSeenObj(obj) {
-        for (var i = 0; i < seenObj.length; i++) {
-          if (seenObj[i].obj === obj) {
-            return seenObj[i].asName;
+      function makeCache(type) {
+        var cyclicCounter = 1;
+        return {
+          add: function(elts, elt) {
+            return [{elt: elt, name: null}].concat(elts);
+          },
+          check: function(elts, elt) {
+            var matches = elts.filter(function(a) { return a.elt === elt; });
+            if(matches.length === 0) {
+              return null;
+            }
+            else {
+              if(matches[0].name === null) { 
+                matches[0].name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
+              }
+              return matches[0].name;
+            }
           }
-        }
-        return undefined;
+        };
       }
-      function addNewObj(obj) {
-        var newObj = { asName: makeObjName(), obj: obj };
-        seenObj.push(newObj);
-        return newObj.asName;
-      }
-      function findSeenArray(arr) {
-        for (var i = 0; i < seenArrays.length; i++) {
-          if (seenArrays[i].arr === arr) {
-            return seenArrays[i].asName;
-          }
-        }
-        return undefined;
-      }
-      function addNewArray(arr) {
-        var newArr = { asName: makeArrayName(), arr: arr };
-        seenArrays.push(newArr);
-        return newArr.asName;
-      }
-      function findSeen(obj) {
-        for (var i = 0; i < seen.length; i++) {
-          if (seen[i].obj === obj) {
-            seen[i].count++;
-            // console.log("Incrementing count for " + seen[i].asName + " => " + seen[i].count);
-            needsGraph = true;
-            seenFrozenRef = seenFrozenRef || isRefFrozen(obj);
-            seenUnfrozenRef = seenUnfrozenRef || !isRefFrozen(obj);
-            return seen[i].asName;
-          }
-        }
-        return undefined;
-      }
-      function findReferent(obj) {
-        for (var i = 0; i < referents.length; i++) {
-          if (referents[i].obj === obj) {
-            return referents[i].from;
-          }
-        }
-        return undefined;
-      }
-      function addNewRef(obj) {
-        var newObj = {count: 1, asName: makeName(), asDoc: "", obj: obj};
-        // console.log("Initializing count for " + newObj.asName + " => 1");
-        seen.push(newObj);
-        var referent = {obj: getRef(obj), from: newObj};
-        referents.push(referent);
-        return newObj.asName;
-      }
-      function setRefDoc(obj, doc) {
-        for (var i = 0; i < seen.length; i++) {
-          if (seen[i].obj === obj) {
-            seen[i].asDoc = doc;
-            return seen[i].asName;
-          }
-        }
-      }
+      var arrayCache = makeCache("array");
+      var addNewArray = arrayCache.add;
+      var findSeenArray = arrayCache.check;
+      var refCache = makeCache("ref");
+      var addNewRef = refCache.add;
+      var findSeenRef = refCache.check;
+      var objCache = makeCache("object");
+      var addNewObject = objCache.add;
+      var findSeenObject = objCache.check;
+
       function toReprHelp() {
+        var top;
+        function finishVal(str) {
+          top.todo.pop();
+          top.done.push(str);
+        }
         while (stack.length > 0 && stack[0].todo.length > 0) {
-          var top = stack[stack.length - 1];
+          top = stack[stack.length - 1];
           if (top.todo.length > 0) {
             var next = top.todo[top.todo.length - 1];
-            if (isNumber(next)) {
-              top.todo.pop();
-              top.done.push(String(/**@type {!PNumber}*/ (next)));
-            } else if (isBoolean(next)) {
-              top.todo.pop();
-              top.done.push(String(/**@type {!PBoolean}*/ (next)));
-            } else if (isString(next)) {
-              top.todo.pop();
+            if(isNumber(next)) { finishVal(String(next)); }
+            else if (isBoolean(next)) { finishVal(String(next)); }
+            else if (isNothing(next)) { finishVal("nothing"); }
+            else if (isFunction(next)) { finishVal("<function>"); }
+            else if (isMethod(next)) { finishVal("<method>"); }
+            else if(isString(next)) {
               if (method === "_torepr") {
-                top.done.push('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
+                finishVal('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
               } else {
-                top.done.push(String(/**@type {!PString}*/ (next)));
+                finishVal(next);
               }
-            } else if (isNothing(next)) {
-              top.todo.pop();
-              top.done.push("nothing");
-            } else if (isArray(next)) {
+            }
+            else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
               // Baffling bugs will result if next is passed directly
-              var arrayHasBeenSeen = findSeenArray(next);
+              var arrayHasBeenSeen = findSeenArray(top.arrays, next);
               if(typeof arrayHasBeenSeen === "string") {
-                top.todo.pop();
-                top.done.push(arrayHasBeenSeen);
+                finishVal(arrayHasBeenSeen);
               }
               else {
-                addNewArray(next);
-                stack.push({todo: Array.prototype.slice.call(next), done: [], array: true});
+                stack.push({
+                  arrays: addNewArray(top.arrays, next),
+                  objects: top.objects,
+                  refs: top.refs,
+                  todo: Array.prototype.slice.call(next),
+                  done: [],
+                  type: "array"
+                });
               }
-            } else if (isObject(next)) {
-              var found = findSeenObj(next);
-              // NOTE(joe): The structure of ifs is a little confusing here.
-              // First we push the object on the cache if we need to.
-              // Then we're either going to "return" (via push) the string form
-              // if this is a cyclic reference, or otherwise go through the normal
-              // cases of trying the method call, then trying data serialization,
-              // then trying object literal printing.
-              if (typeof found !== "string") {
-                addNewObj(next);
+            }
+            else if(isRef(next)) {
+              var refHasBeenSeen = findSeenRef(top.refs, next);
+              var implicit = top.implicitRefs && top.implicitRefs[top.todo.length - 1];
+              if(typeof refHasBeenSeen === "string") {
+                finishVal(refHasBeenSeen);
               }
-              if (typeof found === "string") {
-                top.todo.pop();
-                top.done.push(found);
+              else if(!isRefSet(next)) {
+                finishVal("<uninitialized-ref>");
               }
-              else if (next.dict[method]) {
-                // If this call fails
+              else {
+                stack.push({
+                  arrays: top.arrays,
+                  objects: top.objects,
+                  refs: addNewRef(top.refs, next),
+                  todo: [getRef(next)],
+                  done: [],
+                  type: "ref",
+                  implicit: implicit
+                });
+              }
+            }
+            else if(isObject(next)) {
+              var objHasBeenSeen = findSeenObject(top.objects, next);
+              if(typeof objHasBeenSeen === "string") {
+                finishVal(objHasBeenSeen);
+              }
+              else if(next.dict[method]) {
+                top.objects = addNewObject(top.objects, next);
                 var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
-                // the continuation stacklet will get the result value, and do the next two steps manually
-                top.todo.pop();
-                top.done.push(thisRuntime.unwrap(s));
-              } else if(isDataValue(next)) {
+                finishVal(thisRuntime.unwrap(s))
+              }
+              else if(isDataValue(next)) {
                 var vals = next.$app_fields_raw(function(/* varargs */) {
                   return Array.prototype.slice.call(arguments);
                 });
-                stack.push({todo: vals, done: [], arity: next.$arity, 
-                            implicitRefs: next.$mut_fields_mask, constructorName: next.$name});
-              } else { // Push the fields of this nested object onto the work stack
+                stack.push({
+                  arrays: top.arrays,
+                  objects: addNewObject(top.objects, next),
+                  refs: top.refs,
+                  todo: vals,
+                  done: [],
+                  type: "data",
+                  arity: next.$arity,
+                  implicitRefs: next.$mut_fields_mask,
+                  constructorName: next.$name
+                });
+              }
+              else {
                 var keys = [];
                 var vals = [];
                 for (var field in next.dict) {
                   keys.push(field); // NOTE: this is reversed order from the values,
                   vals.unshift(next.dict[field]); // because processing will reverse them back
                 }
-                stack.push({todo: vals, done: [], keys: keys});
+                stack.push({
+                  arrays: top.arrays,
+                  objects: addNewObject(top.objects, next),
+                  refs: top.refs,
+                  todo: vals,
+                  done: [],
+                  type: "object",
+                  keys: keys
+                });
               }
-            } else if (isFunction(next)) {
-              top.todo.pop();
-              top.done.push("<function>");
-            } else if (isMethod(next)) {
-              top.todo.pop();
-              top.done.push("<method>");
-            } else if (isRef(next)) {
-              var found = findSeen(next);
-              var implicitRef = hasProperty(top, "implicitRefs") && top.implicitRefs[top.todo.length - 1];
-              if (found) {
-                top.todo.pop();
-                if (implicitRef || isRefFrozen(next)) {
-                  top.done.push(found);
-                } else {
-                  top.done.push("ref(" + found + ")");
-                }
-              } else if(!isRefSet(next)) {
-                top.todo.pop();
-                top.done.push("<uninitialized reference>");
-              } else {
-                var newName = addNewRef(next);
-                // Constructors implicitly wrap their mutable args in a reference if necessary
-                // So the constructor case above will use implicitRefs to indicate where 
-                // the refs were made implicitly, so they aren't printed.
-                stack.push({todo: [getRef(next)], done: [], theRef: next, wrapRef: !implicitRef});
-              }
-            } else if (typeof next === "object") {
-              top.todo.pop();
-              top.done.push(JSON.stringify(next, null, "  "));
-            } else {
-              top.todo.pop();
-              top.done.push(String(next));
             }
-          } else { // All fields of a nested object or data value have been stringified; collapse
+
+          }
+          else {
+            // Done with object, array, or ref, so pop the todo list, and pop
+            // the object/array/ref itself
             stack.pop();
             var prev = stack[stack.length - 1];
             prev.todo.pop();
             var s = "";
-            if(hasOwnProperty(top, "keys")) {
+            if(top.type === "object") {
               s += "{";
               for (var i = 0; i < top.keys.length; i++) {
                 if (i > 0) { s += ", "; }
                 s += top.keys[i] + ": " + top.done[i];
               }
               s += "}";
-            } else if (hasOwnProperty(top, "wrapRef")) {
-              var refName = setRefDoc(top.theRef, top.done[0]);
-              if (top.wrapRef && !isRefFrozen(top.theRef)) {
-                s += "ref(" + refName + ")";
+            }
+            else if (top.type === "ref") {
+              if (top.implicit) {
+                s += top.done[0];
               } else {
-                s += refName;
+                s += "ref(" + top.done[0] + ")";
               }
-            } else if(hasOwnProperty(top, "constructorName")) {
+            }
+            else if (top.type === "data") {
               s += top.constructorName;
               // Sentinel value for singleton constructors
               if(top.arity !== -1) {
-                // console.log("Constructing " + top.constructorName + ", implicitRefs = " + top.implicitRefs);
                 s += "(";
                 for(var i = top.done.length - 1; i >= 0; i--) {
                   if(i < top.done.length - 1) { s += ", "; }
-                  // console.log("  Field #" + i + ": implicitRef? " +
-                  //             top.implicitRefs[i] + ", and field: " + top.done[i]);
                   s += top.done[i];
                 }
                 s += ")";
               }
-            } else if(hasOwnProperty(top, "array")) {
+            }
+            else if (top.type === "array") {
               s += "[raw-array: ";
               for(var i = top.done.length - 1; i >= 0; i--) {
                 if(i < top.done.length - 1) { s += ", "; }
@@ -1154,57 +1104,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
               s += "]";
             }
+            else if (top.type === "method-call") {
+              s += top.done[0];
+            }
             prev.done.push(s);
           }
         }
         var finalAns = stack[0].done[0];
-        if(stackOfStacks.length > 1) { return finalAns; }
-        var needsMutableGraph = false;
-        if (needsGraph) {
-          // console.log("FinalAns currently: " + finalAns);
-          for (var i = 0; i < seen.length; i++) {
-            if (seen[i].count > 1 && !isRefFrozen(seen[i].obj)) {
-              needsMutableGraph = true;
-              break;
-            }
-          }
-          finalAns = "<graph>\n";
-          for (var i = 0; i < seen.length; i++) {
-            if (seen[i].count > 1 || isRefFrozen(seen[i].obj)) {
-              // console.log("Including " + seen[i].asName + " => " + seen[i].asDoc + " because "
-              //             + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
-              finalAns += "  " + seen[i].asName + " = " + seen[i].asDoc + "\n";
-            // } else {
-            //   console.log("Skipping  " + seen[i].asName + " => " + seen[i].asDoc + " because "
-            //               + "count? " + (seen[i].count) + ", frozen ref? " + isRefFrozen(seen[i].obj));
-            }
-          }
-          var mentioned = findReferent(stack[0].root);
-          if (needsMutableGraph && (mentioned === undefined)) {
-            finalAns += "  __ANS__ = " + stack[0].done[0] + "\n";
-            stack[0].done[0] = "ref-get(__ANS__)";
-          }
-          finalAns += "<in>\n"; 
-          if (mentioned !== undefined) {
-            finalAns += "  " + mentioned.asName + "\nend";
-          } else {
-            finalAns += "  " + stack[0].done[0] + "\nend";
-          }
-        }
-        var replacementsNeeded = true;
-        while (replacementsNeeded) {
-          replacementsNeeded = false;
-          for (var i = 0; i < seen.length; i++) {
-            if (seen[i].count === 1 && !isRefFrozen(seen[i].obj)) {
-              var replaced = finalAns.replace(new RegExp(seen[i].asName + "(?! =)", "g"), seen[i].asDoc);
-              if (replaced !== finalAns) { 
-                replacementsNeeded = true; 
-              }
-              finalAns = replaced;
-            }
-          }
-        }
-        return finalAns; 
+        return finalAns;
       }
       function toReprFun($ar) {
         var $step = 0;
@@ -1249,6 +1156,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
         // arity check
         var $step = 0;
         var $ans = undefined;
+        var oldStack = stack;
+        function getOld(name) {
+          if(oldStack.length > 0) {
+            return oldStack[oldStack.length - 1][name];
+          }
+          else {
+            return [];
+          }
+        }
         try {
           if (thisRuntime.isActivationRecord(val)) {
             $step = val.step;
@@ -1258,7 +1174,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
             switch($step) {
             case 0:
               stackOfStacks.push(stack);
-              stack = [{todo: [val], done: [], implicitRefs: [false], root: val}];
+              stack = [{
+                arrays: getOld("arrays"),
+                objects: getOld("objects"),
+                refs: getOld("refs"),
+                todo: [val],
+                done: [],
+                implicitRefs: [false],
+                root: val
+              }];
               $step = 1;
               $ans = toReprFun();
               break;
@@ -1285,7 +1209,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var toReprFunPy = makeFunction(reenterToReprFun);
       return reenterToReprFun(val);
     }
-      
+
     /**
       Creates the js string representation for the value
       @param {!PBase} val

@@ -82,3 +82,21 @@ check "Cyclic objects":
 
   torepr(o) is "{ myself is: <cyclic-object-1> }"
 end
+
+check "Cyclic arrays":
+  a = [raw-array: "dummy"]
+  raw-array-set(a, 0, a)
+  torepr(a) is "[raw-array: <cyclic-array-1>]"
+end
+
+check "Shared but not cyclic values":
+
+  o = {}
+  o2 = {x: o, y: o}
+  torepr(o2) is "{x: {}, y: {}}"
+
+  a = [raw-array:]
+  o3 = {x: a, y: a}
+  torepr(o3) is "{x: [raw-array: ], y: [raw-array: ]}"
+
+end
