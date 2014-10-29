@@ -937,7 +937,7 @@ x :: Number = "not-a-number"
 # Error: expected Number and got "not-a-number"
 }
 
-@tt{Any} is an annotation that allows any value to be used.  It semantically
+@tt{Any} is an annotation that allows any value to be used.  It's semantically
 equivalent to not putting an annotation on an identifier, but it allows a
 program to clearly signal that no restrictions are intended for the identifier
 it annotates.
