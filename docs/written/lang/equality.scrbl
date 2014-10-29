@@ -12,7 +12,6 @@
 @(define eq '(a-id "EqualityResult" (xref "equality" "EqualityResult")))
 @(define T (a-id "EqualityResult" (xref "equality" "EqualityResult")))
 
-
 @(append-gen-docs
   `(module "equality"
     (path "src/js/base/runtime-anf.js")
@@ -54,16 +53,13 @@
       (doc ""))
   ))
 
-
 @(define code pyret)
 
 @(define equal-now-op @code{=~})
 @(define equal-always-op @code{==})
 @(define identical-op @code{<=>})
 
-
 @docmodule["equality"]{
-
 
 @section{Types of Equality}
 
@@ -125,9 +121,9 @@ reason to use @emph{identical}.
 
 Checks if the two values are equal @emph{now} (they may not be later).
 Corresponds to the @equal-now-op operator.
-  
+
 @subsection[#:tag "s:equal-now-primitives"]{Equal Now and Primitives}
-  
+
 @code{equal-now} checks primitive equality on numbers, strings, and
 booleans:
 
@@ -155,13 +151,13 @@ check:
   l2 = [list: 1, 2, 3]
 
   l1 is%(equal-now) l2
-  link(1, l1) isnot%(equal-now) l2
+  link(1, l1) is-not%(equal-now) l2
 
-  l3 = [{x: 5}]
-  l4 = [{x: 5}]
-  l5 = [{x: 6}]
+  l3 = [list: {x: 5}]
+  l4 = [list: {x: 5}]
+  l5 = [list: {x: 6}]
   l3 is%(equal-now) l4
-  l3 isnot%(equal-now) l5
+  l3 is-not%(equal-now) l5
 end
 }
 
@@ -282,7 +278,7 @@ end
   end
   mlist = {
     make: fun(arr):
-      # fold mlink over arr 
+      # fold mlink over arr
     end
   }
 
@@ -320,7 +316,6 @@ Checks if the two values will always be equal, and corresponds to the
 checks that the mutable values are @pyret-id{identical}.  Stopping at mutable
 boundaries ensures that if two values were @pyret-id{equal-always} at any
 point, they will still be @pyret-id{equal-always} later.
-
 
 @subsection[#:tag "s:always-equal-mutable"]{Always Equal and Mutable Data}
 
@@ -370,7 +365,6 @@ check:
 end
 }
 
-
 @;{
 @subsection[#:tag "s:always-equal-frozen"]{Always Equal and Frozen Mutable Data}
 
@@ -387,7 +381,7 @@ end
   end
   mlist = {
     make: fun(arr):
-      # fold mlink over arr 
+      # fold mlink over arr
     end
   }
 
@@ -481,7 +475,7 @@ All of these values (@code{ones}, @code{mk-ones()}, etc.) have the same
 behavior, so we could argue that @code{is} (which uses @code{==} behind the
 scenes) ought to succeed on these.  And indeed, if we used reference equality,
 it would succeed.  But consider this small tweak to the program:
-  
+
 @pyret-block{
 check:
   fun mk-ones():
@@ -547,9 +541,9 @@ compared to another type of value:
     f == g raises "Attempted to compare functions"
     g == f raises "Attempted to compare functions"
 
-    5 isnot%(equal-always) f
+    5 is-not%(equal-always) f
 
-    { x: 5 } isnot%(equal-always) { x: f }
+    { x: 5 } is-not%(equal-always) { x: f }
   end
 }
 
@@ -579,13 +573,10 @@ then an error is raised.  A few more examples:
     o2 = { x: 5, y: { z: 7 }, lam(): "no-op" end }
 
     (o == o) raises "Attempted to compare functions"
-    o isnot%(equal-always) o2  # Test succeeds, because z fields differ
+    o is-not%(equal-always) o2  # Test succeeds, because z fields differ
   end
 
 }
-
-
-
 
 @section[#:tag "s:total-equality-predicates"]{Total Equality Functions (Avoiding Incomparability Errors)}
 
@@ -595,8 +586,6 @@ raised if functions are compared.  Some programs, however, need to be able to
 compare arbitrary values, and it's convenient to have the ability to compare
 values without raising an exception.  Since the equality of functions is
 unknown, we define the result of a total equality check with a new datatype:
-
-
 
   @data-spec2["EqualityResult" (list) (list
   @singleton-spec2["EqualityResult" "Equal"]
@@ -612,7 +601,6 @@ unknown, we define the result of a total equality check with a new datatype:
   @function["is-NotEqual" #:alt-docstrings ""]
   @function["is-Unknown" #:alt-docstrings ""]
   }
-
 
 We define three parallel functions to the equality predicates that return
 @pyret-id{EqualityResult} values.  They return @pyret-id{Equal} and
@@ -637,7 +625,6 @@ end
 }
 
 We can now modify our table from above to be more complete:
-
 
 @tabular[
   #:style (style #f (list (attributes '((style . "border-collapse: collapse;")))))
@@ -716,7 +703,6 @@ We can now modify our table from above to be more complete:
     )
     )
 ]
-
 
 @section[#:tag "s:datatype-defined-equality"]{Datatype-defined Equality}
 
@@ -815,7 +801,7 @@ So, for example, an object with an @pyret{_equals} method that always returns
 
 @pyret-block{
 import Equal from equality
-check:  
+check:
   eq-all = { _equals(self, other, eq): Equal end }
   eq-all is-not== f
   eq-all is-not== m
