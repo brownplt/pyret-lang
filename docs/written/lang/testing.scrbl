@@ -18,7 +18,6 @@
     @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname))
   })
 
-
 @(define (test-doc-pred opname pred left right)
   @para[#:style "boxed pyret-header"]{
     @(tt @left " " @(make-header-elt-for (seclink (xref (curr-module-name) opname) (tt opname)) opname) "(" pred ")" " " @right)
@@ -26,7 +25,6 @@
 
 @(define (test-pred-use left opname pred right)
   (list @pyret[left] " " @pyret-id[opname]@pyret{(}@|pred|@pyret{)} " " @pyret[left]))
-
 
 @(append-gen-docs
   '(module "testing"
@@ -80,7 +78,6 @@ Check block: a second block
 
 1/3 tests passed in all check blocks
 }
-
 
 Testing blocks are also a unit of failure: most of the time an error stops the
 whole program, but inside a check block (and also inside @pyret-id{raises},
@@ -208,11 +205,13 @@ end
 
 @test-doc["is==" "expr1" "expr2"]
 
-Shorthand for @(test-pred-use "expr1" "is%" @pyret-id["equal-always" "equality"] "expr2")
+Shorthand for @(test-pred-use "expr1" "is%" @pyret-id["equal-always" "equality"] "expr2").
+Same as @pyret-id{is}.
 
 @test-doc["is-not==" "expr1" "expr2"]
 
 Like @pyret-id{is==}, but failure and success are reversed.
+Same as @pyret-id{is-not}.
 
 @test-doc["is=~" "expr1" "expr2"]
 
@@ -229,7 +228,6 @@ Shorthand for @(test-pred-use "expr1" "is%" @pyret-id["identical" "equality"] "e
 @test-doc["is-not<=>" "expr1" "expr2"]
 
 Like @pyret-id{is<=>}, but failure and success are reversed.
-
 
 @subsection{Unary Test Operators}
 
@@ -254,7 +252,6 @@ check:
   6 violates is-odd
 end
 }
-
 
 @subsection{Exception Test Operators}
 
