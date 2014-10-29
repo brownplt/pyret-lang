@@ -1022,7 +1022,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 finishVal(objHasBeenSeen);
               }
               else if(next.dict[method]) {
-                top.objects = addNewObject(top.objects, next);
+                stack.push({
+                  arrays: top.arrays,
+                  objects: addNewObject(top.objects, next),
+                  refs: top.refs,
+                  todo: ["dummy"],
+                  done: [],
+                  type: "method-call",
+                });
+                top = stack[stack.length - 1];
+
                 var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s))
               }

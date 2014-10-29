@@ -81,6 +81,25 @@ check "Cyclic objects":
   }
 
   torepr(o) is "{ myself is: <cyclic-object-1> }"
+
+  torepr({x: o, y: o}) is
+    "{x: { myself is: <cyclic-object-1> }, y: { myself is: <cyclic-object-2> }}"
+
+  rec olong = {
+    _torepr(self, shadow torepr):
+      for each(i from range(0, 10000)):
+        "do nothing"
+      end
+      "{ myself is: " + torepr(self) + " }"
+    end
+  }
+  torepr(olong) is "{ myself is: <cyclic-object-1> }"
+  torepr({x: olong, y: olong}) is
+    "{x: { myself is: <cyclic-object-1> }, y: { myself is: <cyclic-object-2> }}"
+
+  o2 = { _torepr(self, shadow torepr): "myself" end }
+  torepr({x: o2, y: o2}) is "{x: myself, y: myself}"
+
 end
 
 check "Cyclic arrays":
