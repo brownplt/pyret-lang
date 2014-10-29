@@ -28,6 +28,7 @@ type Locator = {
   get-module :: ( -> PyretCode),
   get-dependencies :: ( -> Set<CS.Dependency>),
   get-provides :: ( -> Provides),
+  get-compile-env :: ( -> CS.CompileEnv),
 
   # e.g. create a new CompileContext that is at the base of the directory
   # this Locator is in.  The CC holds the current working directory
@@ -140,7 +141,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             "Pyret",
             module-string,
             locator.name(),
-            CS.standard-builtins,
+            locator.get-compile-env(),
             options
             ).result
         | pyret-ast(module-ast) =>
@@ -149,7 +150,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             "Pyret",
             module-ast,
             locator.name(),
-            CS.standard-builtins,
+            locator.get-compile-env(),
             options
             ).result
       end
