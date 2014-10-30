@@ -127,3 +127,11 @@ check:
   (_ / _)(6, 3) is 2
   
 end
+
+check:
+  randoms = for map(i from range(0, 15)):
+    random(100)
+  end
+
+  randoms violates lists.all(lam(v): v == randoms.first end, _)
+end

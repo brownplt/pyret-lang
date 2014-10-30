@@ -3426,7 +3426,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function random(max) {
       thisRuntime.checkArity(1, arguments, "random");
       thisRuntime.checkNumber(max);
-      return makeNumber(Math.floor(Math.random(), jsnums.toFixnum(max)));
+      return makeNumber(Math.floor(Math.random() * jsnums.toFixnum(max)));
     }
 
     function loadModule(module, runtime, namespace, withModule) {
