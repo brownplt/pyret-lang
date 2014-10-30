@@ -184,7 +184,9 @@ fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
           cases(Loc) first.l:
             | builtin(_) => ensure-distinct-lines(loc, rest) # No need to preserve builtin() locs
             | srcloc(_, start-line2, _, _, _, _, _) =>
-              when end-line1 == start-line2: wf-error2("Found two expressions on the same line", loc, first.l) end
+              when end-line1 == start-line2:
+                wf-error2("Found two expressions on the same line", loc, first.l)
+              end
               ensure-distinct-lines(first.l, rest)
           end
       end
@@ -239,6 +241,18 @@ fun reachable-ops(self, l, op, ast):
       true
     | else => ast.visit(self)
   end
+end
+
+fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
+  for each(stmt from stmts):
+    when is-underscore(stmt):
+      wf-error("Cannot use underscore as a standalone statement", stmt.l)
+    end
+  end
+  bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
+  ensure-unique-bindings(bind-stmts.reverse())
+  ensure-distinct-lines(A.dummy-loc, stmts)
+  lists.all(_.visit(visitor), stmts)
 end
 
 
@@ -327,15 +341,7 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(stmts.last())
-      for each(stmt from stmts):
-        when is-underscore(stmt):
-          wf-error("Cannot use underscore as a standalone statement", stmt.l)
-        end
-      end
-      bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
-      ensure-unique-bindings(bind-stmts.reverse())
-      ensure-distinct-lines(A.dummy-loc, stmts)
-      lists.all(_.visit(self), stmts)
+      wf-block-stmts(self, l, stmts)
     end
   end,
   s-bind(self, l, shadows, name, ann):
@@ -506,7 +512,7 @@ well-formed-visitor = A.default-iter-visitor.{
 top-level-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
     ok-body = cases(A.Expr) body:
-      | s-block(l2, stmts) => lists.all(_.visit(self), stmts)
+      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
       | else => body.visit(self)
     end
     ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))

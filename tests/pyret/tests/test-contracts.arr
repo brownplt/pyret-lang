@@ -86,9 +86,9 @@ is-sorted =
 
 check "should work for refinements":
   contract-errors = [list:
-    "is-odd = lam(n): num-modulo(n, 2) == 1 end x :: String%(is-odd) = 5",
-    "is-odd = lam(n): num-modulo(n, 2) == 1 end x :: Number%(is-odd) = 6",
-    "is-zero-length = lam(s): string-length(s) == 0 end s :: String%(is-zero-length) = 'foo'"
+    "is-odd = lam(n): num-modulo(n, 2) == 1 end\nx :: String%(is-odd) = 5",
+    "is-odd = lam(n): num-modulo(n, 2) == 1 end\nx :: Number%(is-odd) = 6",
+    "is-zero-length = lam(s): string-length(s) == 0 end\ns :: String%(is-zero-length) = 'foo'"
   ]
   for each(program from contract-errors):
     result = run-str(program)
@@ -101,8 +101,8 @@ check "should work for refinements":
     end
   end
   non-errors = [list:
-    "is-odd = lam(n): num-modulo(n, 2) == 1 end x :: Number%(is-odd) = 5",
-    "is-zero-length = lam(s): string-length(s) == 0 end s :: String%(is-zero-length) = ''",
+    "is-odd = lam(n): num-modulo(n, 2) == 1 end\nx :: Number%(is-odd) = 5",
+    "is-zero-length = lam(s): string-length(s) == 0 end\ns :: String%(is-zero-length) = ''",
     is-sorted + "l :: Any%(is-sorted) = lists.range(0, 100)"
   ]
   for each(program from non-errors):
@@ -161,7 +161,7 @@ check "should notice unbound contracts":
     "x :: (Number -> { x:: Fail }) = 5",
     "x :: Numba % (is-even) = 5",
     "x :: lisst.List = 10",
-    "y = 5 x :: y = 5"
+    "y = 5\nx :: y = 5"
   ]
   for each(program from contract-errors):
     result = compile-str(program)
@@ -242,13 +242,13 @@ end
 
 
 check "should work for standalone binding constructs":
-  run-str("type N = Number x :: N = 'foo'") satisfies is-contract-error-str
+  run-str("type N = Number\nx :: N = 'foo'") satisfies is-contract-error-str
   run-str("newtype Lyst as LystT").success is true
 end
 
 check "should work for data":
-  run-str("data D: | var1 end x :: D = 5") satisfies is-contract-error-str
-  run-str("data D: | var1 end x :: D = var1").success is true
+  run-str("data D: | var1 end\nx :: D = 5") satisfies is-contract-error-str
+  run-str("data D: | var1 end\nx :: D = var1").success is true
 end
 
 check "should work with deep refinements":

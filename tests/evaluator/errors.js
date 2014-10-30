@@ -78,7 +78,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("x :: Number % (is-even) = 5", "is-even");
         P.checkCompileErrorMsg("x :: lisst.List = 10", "not defined as a type");
 
-        P.checkCompileErrorMsg("y = 5 x :: y = 5", "not defined as a type");
+        P.checkCompileErrorMsg("y = 5\nx :: y = 5", "not defined as a type");
         P.wait(done);
       });
 

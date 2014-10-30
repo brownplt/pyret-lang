@@ -43,7 +43,7 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
               if ok-last(last-stmt): none
               else:
                 some(A.s-program(l1, _provide, _provide-types, imports,
-                    A.s-block(l2, stmts + [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
+                    A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))])))
               end
           end
         | else => none

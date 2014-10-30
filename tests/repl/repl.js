@@ -110,7 +110,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       it("should include check results", function(done) {
         aRepl.then(function(aRepl) {
           var rt = aRepl.runtime;
-          aRepl.restartInteractions("check: 1 is 1; check: 2 is 2;")
+          aRepl.restartInteractions("check: 1 is 1;\ncheck: 2 is 2;")
             .then(function(replResult) {
               expect(getChecks(rt, replResult).length).toBe(2);
               return aRepl.run("check: 4 is 5 end")

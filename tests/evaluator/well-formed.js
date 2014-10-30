@@ -25,8 +25,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                        rt.makeNumber(10));
         // returns a number because we are really just checking OK parse/wf,
         // and this is (void) otherwise
-        P.checkEvalsTo("fun f(): nothing where: 5 + 2 is 7 end 42", rt.makeNumber(42));
-        P.checkEvalsTo("fun f(): nothing where: 1 is 2 end 10", rt.makeNumber(10));
+        P.checkEvalsTo("fun f(): nothing where: 5 + 2 is 7 end\n42", rt.makeNumber(42));
+        P.checkEvalsTo("fun f(): nothing where: 1 is 2 end\n10", rt.makeNumber(10));
 
         P.wait(done);
       });
@@ -45,8 +45,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("multiple statements on a line", function(done) {
-        P.checkCompileErrorMsg("fun f(x): f x end", "Found two expressions on the same line");
-        P.checkCompileErrorMsg("fun f(x): f (x) end", "Found two expressions on the same line");
+        var msg =  "Found two expressions on the same line";
+        P.checkCompileErrorMsg("5-2", msg);
+        P.checkCompileErrorMsg("'ab''de'", msg);
+        P.checkCompileErrorMsg("a\"abc\"", msg);
+        P.checkCompileErrorMsg("a=3b=4", msg)
+        P.checkCompileErrorMsg("fun f(x): f x end", msg);
+        P.checkCompileErrorMsg("fun f(x): f (x) end",msg);
         P.checkEvalsTo("fun f(x): f\n (x) end\n10", rt.makeNumber(10));
         P.checkEvalsTo("fun f(x):\n  f\n  # a comment\n  (x)\nend\n10", rt.makeNumber(10));
         P.wait(done);

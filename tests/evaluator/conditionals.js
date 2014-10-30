@@ -148,8 +148,8 @@ xfg("false", "true") +
 
     describe("when", function() {
       it("should only have its effect when true", function(done) {
-        same("var x = 0 when true: x := 4 end x", rt.makeNumber(4));
-        same("var x = 0 when false: x := 4 end x", rt.makeNumber(0));
+        same("var x = 0\nwhen true: x := 4 end\nx", rt.makeNumber(4));
+        same("var x = 0\nwhen false: x := 4 end\nx", rt.makeNumber(0));
 
         P.wait(done);
       });
