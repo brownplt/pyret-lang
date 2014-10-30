@@ -133,5 +133,6 @@ check:
     random(100)
   end
 
+  randoms satisfies lists.all(lam(v): (v < 100) and (v >= 0) end, _)
   randoms violates lists.all(lam(v): v == randoms.first end, _)
 end
