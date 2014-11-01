@@ -7,4 +7,5 @@ import "./regression/is-not-uses-equal-always.arr" as _
 import "./regression/double-desugar-extend.arr" as _
 import "./regression/pretty-print-instantiate.arr" as _
 import "./regression/random-bogus-range.arr" as _
+import "./regression/seq-of-lettable.arr" as _
 

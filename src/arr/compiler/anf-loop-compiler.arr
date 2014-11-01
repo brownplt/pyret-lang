@@ -735,17 +735,13 @@ compiler-visitor = {
       | a-update(l2, obj, fields) =>
         compile-split-update(self, none, obj, fields, some(e2))
       | else =>
-        e1-visit = e1.visit(self).exp
+        e1-visit = e1.visit(self)
         e2-visit = e2.visit(self)
-        if J.JStmt(e1-visit):
-          c-block(
-            j-block(link(e1-visit, e2-visit.block.stmts)),
-            e2-visit.new-cases)
-        else:
-          c-block(
-            j-block(link(j-expr(e1-visit), e2-visit.block.stmts)),
-            e2-visit.new-cases)
-        end
+        first-stmt = if J.JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
+        c-block(
+          j-block(e1-visit.other-stmts + link(first-stmt, e2-visit.block.stmts)),
+          e2-visit.new-cases
+        )
     end
   end,
   a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
