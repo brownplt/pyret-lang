@@ -8,6 +8,10 @@ data RuntimeError:
     tostring(self, shadow tostring):
       self.message
     end
+  | no-cases-matched(loc, val) with:
+    tostring(self, shadow tostring):
+      "At " + self.loc.format(true) + ", no branches matched in the cases expression for value\n" + torepr(self.val)
+    end
   | no-branches-matched(loc, expression :: String) with:
     tostring(self, shadow tostring):
       "No branches matched in the `" + self.expression + "` expression at " + self.loc.format(true)

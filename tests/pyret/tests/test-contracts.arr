@@ -303,3 +303,14 @@ check "should work with named refinements":
 
 end
 
+check:
+
+  data-def = ```
+    data D: d end
+    cases(D) 5:
+      | c => true
+    end
+  ```
+
+  run-str(data-def) satisfies is-contract-error-str
+end

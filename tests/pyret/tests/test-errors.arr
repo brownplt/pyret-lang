@@ -336,5 +336,16 @@ check:
     data-cases-var2-arity3.branch-loc satisfies S.is-srcloc
   end
 
+  cases-miss = get-err(
+    lam():
+      cases(Data) var2(5):
+        | var1 => true
+      end
+    end)
+  cases-miss satisfies E.is-no-cases-matched
+  when E.is-cases-singleton-mismatch(cases-miss):
+    cases-miss.val is var2(5)
+    cases-miss.loc satisfies S.is-srcloc
+  end
 end
 

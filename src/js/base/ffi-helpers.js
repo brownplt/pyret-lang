@@ -196,6 +196,10 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(type);
         raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
       }
+      function throwNoCasesMatched(locArray, val) {
+        runtime.checkPyretVal(val);
+        raise(err("no-cases-matched")(runtime.makeSrcloc(locArray), val));
+      }
       function throwNonFunApp(locArray, funVal) {
         runtime.checkPyretVal(funVal);
         raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
@@ -306,6 +310,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
         throwNoBranchesMatched: throwNoBranchesMatched,
+        throwNoCasesMatched: throwNoCasesMatched,
         throwNonFunApp: throwNonFunApp,
         throwModuleLoadFailureL: throwModuleLoadFailureL,
 

@@ -3868,6 +3868,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // NOTE(joe): set a few of these explicitly to work with s-prim-app
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
     thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
+    thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
     thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
