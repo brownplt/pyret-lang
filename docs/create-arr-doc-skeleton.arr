@@ -87,7 +87,7 @@ fun lookup-value(value, bindings):
           | s-let(_, _, _, body) => help(seen, body)
           | s-dot(_, obj, field) =>
             help-obj = help(seen, obj)
-            cases(A.Expr) help-obj:
+            cases(Any) help-obj:
               | s-import(_, file, _) => crossref(file.tosource().pretty(1000).first, field)
               | s-obj(_, obj-fields) =>
                 cases(Option) obj-fields.find(lam(f): A.is-s-str(f.name) and (f.name.s == field) end):
@@ -209,7 +209,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
   # print("Data keys are " + torepr(fields.data-vals.keys()))
   # print("Fun keys are " + torepr(fields.fun-vals.keys()))
   fun process-item(name :: String, e):
-    cases(A.Expr) e: # Not guaranteed to be an Expr!
+    cases(Any) e: # Not guaranteed to be an Expr!
       | crossref(modname, as-name) =>
         at-exp("re-export",
           some([list: leaf(torepr(name)), spair("from", xref(modname, as-name))]),

@@ -127,7 +127,7 @@ fun lookup-value(value, bindings):
       | none => value
       | some(v) =>
         # print("Further processing on " + v.tosource().pretty(80).first)
-        cases(A.Expr) v:
+        cases(Any) v:
           | s-import(_, _, _) => v
           | s-import-types(_, _, _, _) => v
           | s-import-fields(_, _, _) => v
@@ -144,7 +144,7 @@ fun lookup-value(value, bindings):
           | s-dot(_, obj, field) =>
             help-obj = help(seen, obj)
             # print("Looking for " + field + " on " + help-obj.tosource().pretty(80).join-str("\n"))
-            cases(A.Expr) help-obj:
+            cases(Any) help-obj:
               | s-import(_, file, _) => crossref(file.tosource().pretty(1000).first, field)
               | s-import-types(_, file, _, _) => crossref(file.tosource().pretty(1000).first, field)
               | s-import-fields(_, _, file) => crossref(file.tosource().pretty(1000).first, field)
@@ -231,7 +231,7 @@ end
 
 
 fun process-ann(ann, file, fields, bindings, type-bindings):
-  cases(A.Ann) ann:
+  cases(Any) ann:
     | a-type-var(_, n) => leaf(torepr(n.toname()))
     | a-name(l, name) =>
       looked-up = lookup-ann(ann, type-bindings)
@@ -412,7 +412,7 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
   var constructors = S.make-string-dict()
   for each(field from looked-up-typs.keys().to-list()):
     typ = looked-up-typs.get-value(field)
-    cases(A.Ann) typ:
+    cases(Any) typ:
       | crossref(_, _) =>
         cross-refs := cross-refs.set(field, typ)
       | else =>
@@ -421,7 +421,7 @@ fun process-fields(module-name, fields, types, bindings, type-bindings):
   end
   for each(field from looked-up-vals.keys().to-list()):
     value = looked-up-vals.get-value(field)
-    cases(A.Expr) value:
+    cases(Any) value:
       | crossref(_, _) =>
         imports := imports.set(field, value)
         cross-refs := cross-refs.set(field, value)
