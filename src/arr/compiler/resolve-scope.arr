@@ -393,7 +393,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | else => raise("Should have been resolved away")
       end
       provides = resolve-type-provide(provide-types-raw, body)
-      provt = cases(A.Provide) provides:
+      provt = cases(A.ProvideTypes) provides:
         | s-provide-types-none(_) => [list: ]
         | s-provide-types(_, anns) => anns
         | else => raise("Should have been resolve-typed away" + torepr(provides))
