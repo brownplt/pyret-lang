@@ -194,7 +194,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
         anns.others.reverse()
         )
     | a-pred(l, base, exp) =>
-      name = cases(A.AExpr) exp:
+      name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
         | s-id-letrec(_, id, _) => id.toname()
       end
@@ -554,7 +554,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   end
   compiled-branch-fun =
     compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-  preamble = cases(N.CasesBranch) branch:
+  preamble = cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")

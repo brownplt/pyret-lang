@@ -494,7 +494,7 @@ end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):
   for fold(acc from SD.make-string-dict(), b from initial.types):
-    cases(C.CompileBinding) b:
+    cases(C.CompileTypeBinding) b:
       | type-module-bindings(name, ids) => acc
       | type-id(name) =>
         acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
