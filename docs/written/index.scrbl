@@ -17,6 +17,11 @@ to post a message on the
 @link["https://groups.google.com/forum/#!forum/pyret-discuss" "Pyret discussion
 list"], and we'll be happy to help.}
 
+@nested{If you want to learn some computer science while learning how to
+program in Pyret, check out
+@link["http://papl.cs.brown.edu/2014/" "Programming and Programming Languages
+(PAPL)"], which is a textbook on programming with all its examples in Pyret.}
+
 @include-section["getting-started.scrbl"]
 
 @include-section["language-concepts.scrbl"]
