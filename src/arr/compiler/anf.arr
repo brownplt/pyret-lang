@@ -9,6 +9,8 @@ import "compiler/ast-anf.arr" as N
 
 type Loc = SL.Srcloc
 
+fun get-value(o): o.value end
+
 names = A.global-names
 
 fun mk-id(loc, base):
@@ -228,7 +230,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       fun anf-variant(v :: A.Variant, kv :: (N.AVariant -> N.AExpr)):
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
-            with-exprs = with-members.map(_.value)
+            with-exprs = with-members.map(get-value)
             anf-name-rec(with-exprs, "anf_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name, t)
@@ -236,7 +238,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 kv(N.a-variant(l2, constr-loc, vname, members.map(anf-member), new-fields))
               end)
           | s-singleton-variant(l2, vname, with-members) =>
-            with-exprs = with-members.map(_.value)
+            with-exprs = with-members.map(get-value)
             anf-name-rec(with-exprs, "anf_singleton_variant_member", lam(ts):
                 new-fields = for map2(f from with-members, t from ts):
                     N.a-field(f.l, f.name, t)
@@ -252,7 +254,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             anf-variant(f, lam(v): anf-variants(r, lam(rest-vs): ks([list: v] + rest-vs););)
         end
       end
-      exprs = shared.map(_.value)
+      exprs = shared.map(get-value)
 
       anf-name-rec(exprs, "anf_shared", lam(ts):
           new-shared = for map2(f from shared, t from ts):
@@ -362,7 +364,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(value, "anf_assign", lam(v): k.apply(l, N.a-assign(l, id, v)) end)
 
     | s-obj(l, fields) =>
-      exprs = fields.map(_.value)
+      exprs = fields.map(get-value)
 
       anf-name-rec(exprs, "anf_obj", lam(ts):
           new-fields = for map2(f from fields, t from ts):
@@ -372,7 +374,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-update(l, obj, fields) =>
-      exprs = fields.map(_.value)
+      exprs = fields.map(get-value)
 
       anf-name(obj, "anf_update", lam(o):
           anf-name-rec(exprs, "anf_update", lam(ts):
@@ -384,7 +386,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
     | s-extend(l, obj, fields) =>
-      exprs = fields.map(_.value)
+      exprs = fields.map(get-value)
 
       anf-name(obj, "anf_extend", lam(o):
           anf-name-rec(exprs, "anf_extend", lam(ts):
