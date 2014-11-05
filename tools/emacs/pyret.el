@@ -99,7 +99,7 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords
    '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
-     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec"
+     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
@@ -298,6 +298,7 @@
 (defsubst pyret-LAM () (pyret-keyword "lam"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
+(defsubst pyret-VAR () (pyret-keyword "rec"))
 (defsubst pyret-LET () (pyret-keyword "let"))
 (defsubst pyret-LETREC () (pyret-keyword "letrec"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
@@ -531,7 +532,7 @@
               (push 'var opens)
               (push 'needsomething opens)))
             (forward-char))
-           ((pyret-VAR)
+           ((or (pyret-VAR) (pyret-REC))
             ;;(message "Line %d, Seen var, current text is '%s', and opens is %s, incrementing defered-opened-vars" (1+ n) (buffer-substring (point) (min (point-max) (+ 10 (point)))) opens)
             (incf (pyret-indent-vars defered-opened))
             (push 'var opens)
