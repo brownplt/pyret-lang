@@ -23,6 +23,8 @@ t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
 t-srcloc                  = TS.t-srcloc
 
+t-member                  = TS.t-member
+
 type Variance             = TS.Variance
 constant                  = TS.constant
 invariant                 = TS.invariant
@@ -68,7 +70,6 @@ t-number-binop = t-arrow([list: t-number, t-number], t-number)
 # "print-error",
 # "display-error",
 # "brander",
-# "builtins",
 # "is-nothing",
 # "is-number",
 # "is-string",
@@ -85,6 +86,25 @@ t-number-binop = t-arrow([list: t-number, t-number], t-number)
 # "string-from-code-points",
 
 default-typs = SD.make-mutable-string-dict()
+default-typs.set-now(A.s-global("builtins").key(), t-record([list:
+    t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
+    t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
+        t-member("run-checks", t-bot),
+        t-member("check-is", t-bot),
+        t-member("check-is-refinement", t-bot),
+        t-member("check-is-not", t-bot),
+        t-member("check-is-not-refinement", t-bot),
+        t-member("check-is-refinement", t-bot),
+        t-member("check-is-not-refinement", t-bot),
+        t-member("check-satisfies", t-bot),
+        t-member("check-satisfies-not", t-bot),
+        t-member("check-raises-str", t-bot),
+        t-member("check-raises-not", t-bot),
+        t-member("check-raises-other-str", t-bot),
+        t-member("check-raises-satisfies", t-bot),
+        t-member("check-raises-violates" , t-bot)
+    ])))
+]))
 default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
 default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
 default-typs.set-now("checkWrapBoolean", t-arrow([list: t-top], t-boolean))
