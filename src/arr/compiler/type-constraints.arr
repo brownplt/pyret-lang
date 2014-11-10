@@ -37,6 +37,7 @@ t-bot                = TS.t-bot
 t-app                = TS.t-app
 t-record             = TS.t-record
 t-forall             = TS.t-forall
+t-ref                = TS.t-ref
 
 t-number             = TS.t-number
 t-string             = TS.t-string
@@ -102,11 +103,13 @@ example-m = t-arrow([list: example-d], example-b)
 example-n = t-name(none, foo-name)
 example-o = t-top
 example-p = t-bot
+example-q = t-ref(t-number)
+example-r = t-ref(example-a)
 
 all-examples = [list: example-a, example-b, example-c, example-d, example-e,
                       example-f, example-g, example-h, example-i, example-j,
                       example-k, example-l, example-m, example-n, example-o,
-                      example-p]
+                      example-p, example-q, example-r]
 
 test-to-remove = [set: example-a]
 test-info      = TCS.add-binding(example-a.id, t-top, TCS.empty-tc-info())
@@ -142,6 +145,10 @@ example-o-promoted = t-top
 example-o-demoted  = t-top
 example-p-promoted = t-bot
 example-p-demoted  = t-bot
+example-q-promoted = t-ref(t-number)
+example-q-demoted  = t-ref(t-number)
+example-r-promoted = t-top
+example-r-demoted  = t-bot
 
 fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
@@ -331,6 +338,13 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
           fields-satisfy(fields, there-fields, info)
         | else => false
       end
+    | t-ref(a-typ) =>
+      cases(Type) there:
+        | t-top => true
+        | t-ref(b-typ) =>
+          satisfies-type(a-typ, b-typ, info) and satisfies-type(b-typ, a-typ, info)
+        | else => false
+      end
   end
 where:
   info = TCS.empty-tc-info()
@@ -380,6 +394,11 @@ where:
   satisfies-type(c, d, info) is false
   satisfies-type(a, d, info) is true
   satisfies-type(d, d, info) is true
+
+  satisfies-type(t-ref(t-number), t-ref(t-number), info) is true
+  satisfies-type(t-ref(t-number), t-ref(t-string), info) is false
+  satisfies-type(t-ref(t-number), t-ref(t-top), info)    is false
+  satisfies-type(t-ref(t-bot), t-ref(t-number), info)    is false
 end
 
 fun fields-satisfy(a-fields :: TypeMembers, b-fields :: TypeMembers, info :: TCInfo) -> Boolean:
@@ -539,6 +558,8 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
       fields
         .map(lam(field): free-vars(field.typ, binds);)
         .foldl(union, [set: ])
+    | t-ref(typ) =>
+      free-vars(typ, binds)
     | t-top =>
       [set: ]
     | t-bot =>
@@ -562,6 +583,8 @@ where:
   free-vars(example-n, empty-bindings) is [set: ]
   free-vars(example-o, empty-bindings) is [set: ]
   free-vars(example-p, empty-bindings) is [set: ]
+  free-vars(example-q, empty-bindings) is [set: ]
+  free-vars(example-r, empty-bindings) is [set: example-a]
 end
 
 fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
@@ -615,7 +638,7 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
                     | contravariant =>
                       process(there(arg-typ, to-remove, info))
                     | invariant =>
-                      arg-typ-free = free-vars(arg-typ, info.binds)
+                      arg-typ-free = free-vars(arg-typ, empty-bindings)
                       intersection = arg-typ-free.intersect(to-remove)
                       set-is-empty = is-empty(intersection.to-list())
                       if set-is-empty:
@@ -647,6 +670,13 @@ fun eliminate-variables(typ :: Type, to-remove :: Set<Type>,
           t-member(field.field-name, here(field.typ, to-remove, info))
         end
         t-record(new-fields)
+      | t-ref(arg-typ) =>
+        arg-typ-free = free-vars(arg-typ, empty-bindings)
+        intersection = arg-typ-free.intersect(to-remove)
+        cases(List<Type>) intersection.to-list():
+          | empty => t-ref(arg-typ)
+          | link(_, _) => to-typ
+        end
       | t-top =>
         t-top
       | t-bot =>
@@ -687,6 +717,8 @@ where:
   least-supertype(example-n, test-to-remove, test-info) is example-n-promoted
   least-supertype(example-o, test-to-remove, test-info) is example-o-promoted
   least-supertype(example-p, test-to-remove, test-info) is example-p-promoted
+  least-supertype(example-q, test-to-remove, test-info) is example-q-promoted
+  least-supertype(example-r, test-to-remove, test-info) is example-r-promoted
 end
 
 fun greatest-subtype(typ :: Type, to-remove :: Set<Type>, info :: TCInfo) -> Type:
@@ -708,6 +740,8 @@ where:
   greatest-subtype(example-n, test-to-remove, test-info) is example-n-demoted
   greatest-subtype(example-o, test-to-remove, test-info) is example-o-demoted
   greatest-subtype(example-p, test-to-remove, test-info) is example-p-demoted
+  greatest-subtype(example-q, test-to-remove, test-info) is example-q-demoted
+  greatest-subtype(example-r, test-to-remove, test-info) is example-r-demoted
 end
 
 data TypeConstraint:
@@ -825,6 +859,8 @@ fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
     | t-forall(introduces, onto) =>
       # TODO(cody): Rename all introduces in onto to avoid conflict.
       determine-variance(onto, var-id, info)
+    | t-ref(_) =>
+      invariant
   end
 where:
   info = TCS.empty-tc-info()
@@ -844,6 +880,8 @@ where:
   determine-variance(example-n, example-name, info) is constant
   determine-variance(example-o, example-name, info) is constant
   determine-variance(example-p, example-name, info) is constant
+  determine-variance(example-q, example-name, info) is invariant
+  determine-variance(example-q, example-name, info) is invariant
 end
 
 fun is-bottom-variable(x :: Type, binds :: Bindings) -> Boolean:
@@ -936,11 +974,9 @@ sharing:
   end
 end
 
-# empty-type-constraints = type-constraints(SD.string-dict())
-# TODO(cody): Uncomment above and remove definitions in below functions below once `rec' keyword exists
+rec empty-type-constraints = type-constraints(SD.make-string-dict())
 
 fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<TypeVariable>, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo):
-  empty-type-constraints = type-constraints(SD.make-string-dict())
   # TODO(cody): Check that foralls are the same
   tmp-binds = for fold(curr from SD.make-string-dict(), y from s-introduces):
     curr.set(y.id.key(), y.upper-bound)
@@ -974,7 +1010,6 @@ fun handle-matching(s-introduces :: List<TypeVariable>, t-introduces :: List<Typ
 end
 
 fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: Set<Type>, unknowns :: Set<Type>, info :: TCInfo) -> FoldResult<TypeConstraints>:
-  empty-type-constraints = type-constraints(SD.make-string-dict())
   binds   = info.binds
   s-free  = free-vars(s, binds)
   s-str   = s.key()
@@ -1054,6 +1089,17 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
           | else =>
             fold-errors([list: C.unable-to-instantiate(blame-loc)])
         end
+      | t-ref(s-typ) =>
+        cases(Type) t:
+          | t-ref(t-typ) =>
+            result-a = generate-constraints(blame-loc, s-typ, t-typ, to-remove, unknowns, info)
+            result-b = generate-constraints(blame-loc, t-typ, s-typ, to-remove, unknowns, info)
+            for bind(unwrapped from result-a):
+              result-b.map(_.meet(unwrapped, info))
+            end
+          | else =>
+            fold-errors([list: C.unable-to-instantiate(blame-loc)])
+        end
       | else =>
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
@@ -1061,7 +1107,6 @@ fun generate-constraints(blame-loc :: A.Loc, s :: Type, t :: Type, to-remove :: 
 end
 
 fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, unknowns :: Set<Type>) -> Pair<Type,TypeConstraints>:
-  empty-type-constraints = type-constraints(SD.make-string-dict())
   ru-union = to-remove.union(unknowns)
   if is-t-top(s) and is-t-top(t):
     pair(t-top, empty-type-constraints)
@@ -1091,10 +1136,16 @@ fun matching(s :: Type, t :: Type, binds :: Bindings, to-remove :: Set<Type>, un
           | else =>
             raise("The matching relationship should match everything")
         end
+      | t-ref(s-typ) =>
+        cases(Type) t:
+          | t-ref(t-typ) =>
+            # TODO(cody): Implement this section
+            raise("Not yet implemented")
+          | else =>
+            raise("The matching relationship should match everything")
+        end
       | else =>
         raise("The matching relationship should match everything")
     end
   end
 end
-
-empty-type-constraints = type-constraints(SD.make-string-dict())
