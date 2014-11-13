@@ -298,7 +298,7 @@
 (defsubst pyret-LAM () (pyret-keyword "lam"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
-(defsubst pyret-VAR () (pyret-keyword "rec"))
+(defsubst pyret-REC () (pyret-keyword "rec"))
 (defsubst pyret-LET () (pyret-keyword "let"))
 (defsubst pyret-LETREC () (pyret-keyword "letrec"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
