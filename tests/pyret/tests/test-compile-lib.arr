@@ -1,5 +1,4 @@
 import string-dict as SD
-import load-lib as L
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 
@@ -8,42 +7,6 @@ fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   lam(loc :: CL.Locator): locs.member(loc) end
 end
 
-
-type PyretMod = Any
-
-#run :: CompiledProgram, List<PyretResult> -> PyretResult
-
-fun compile-and-run-worklist(cl, ws :: List<CL.ToCompile>):
-  compiled-mods = cl.compile-program(ws)
-  load-infos = for map2(tc from ws, cm from compiled-mods):
-    { to-compile: tc, compiled-mod: cm }
-  end
-  load-worklist(load-infos, SD.make-string-dict())
-end
-
-fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>) -> Any:
-  cases(List) ws:
-    | empty =>
-      raise("Didn't get anything to run in run-worklist")
-    | link(load-info, r) =>
-      dependencies = load-info.to-compile.dependency-map
-      depnames = dependencies.keys-now().to-list()
-      depvals = for map(d from depnames.sort()):
-        { modval: modvals.get-value(dependencies.get-value-now(d).uri()), key: d }
-      end
-      cases(CM.CompileResult) load-info.compiled-mod:
-        | err(problems) => raise(problems)
-        | ok(cp) => 
-          ans = L.load(cp, depvals)
-          modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
-          answer = L.run(ans)
-          cases(List) r:
-            | empty => answer
-            | link(_, _) => load-worklist(r, modvals-new)
-          end
-      end
-  end
-end
 
 check "Worklist generation (simple)":
   modules = SD.make-mutable-string-dict()
@@ -89,8 +52,8 @@ check "Worklist generation (simple)":
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = compile-and-run-worklist(clib, wlist)
-  ans.answer is 42
+  ans = CL.compile-and-run-worklist(clib, wlist)
+  ans.success is true
 end
 
 check "Worklist generation (DAG)":

@@ -3,6 +3,7 @@ provide-types *
 
 import parse-pyret as P
 import ast as A
+import load-lib as L
 import sets as S
 import string-dict as SD
 import "compiler/compile.arr" as CM
@@ -162,5 +163,40 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
   end
 
   {compile-worklist: compile-worklist, compile-program: compile-program}
+end
+
+type PyretAnswer = Any
+type PyretMod = Any
+
+fun compile-and-run-worklist(cl, ws :: List<ToCompile>):
+  compiled-mods = cl.compile-program(ws)
+  load-infos = for map2(tc from ws, cm from compiled-mods):
+    { to-compile: tc, compiled-mod: cm }
+  end
+  load-worklist(load-infos, SD.make-string-dict(), L.make-loader())
+end
+
+fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader) -> PyretAnswer:
+  cases(List) ws:
+    | empty =>
+      raise("Didn't get anything to run in run-worklist")
+    | link(load-info, r) =>
+      dependencies = load-info.to-compile.dependency-map
+      depnames = dependencies.keys-now().to-list()
+      depvals = for map(d from depnames.sort()):
+        { modval: modvals.get-value(dependencies.get-value-now(d).uri()), key: d }
+      end
+      cases(CM.CompileResult) load-info.compiled-mod:
+        | err(problems) => raise(problems)
+        | ok(cp) => 
+          ans = loader.load(cp, depvals)
+          modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
+          answer = loader.run(ans, load-info.to-compile.locator.uri())
+          cases(List) r:
+            | empty => answer
+            | link(_, _) => load-worklist(r, modvals-new, loader)
+          end
+      end
+  end
 end
 
