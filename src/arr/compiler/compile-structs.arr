@@ -33,6 +33,14 @@ data CompileError:
     tostring(self, shadow tostring):
       "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
     end
+  | underscore-as-expr(l :: Loc) with:
+    tostring(self, shadow tostring):
+      "Underscore used as an expression at " + tostring(self.l) + ", which is not allowed."
+    end
+  | underscore-as-ann(l :: Loc) with:
+    tostring(self, shadow tostring):
+      "Underscore used as an annotation at " + tostring(self.l) + ", which is not allowed."
+    end
   | unbound-id(id :: A.Expr) with:
     tostring(self, shadow tostring):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
