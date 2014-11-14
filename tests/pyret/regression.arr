@@ -8,4 +8,5 @@ import "./regression/double-desugar-extend.arr" as _
 import "./regression/pretty-print-instantiate.arr" as _
 import "./regression/random-bogus-range.arr" as _
 import "./regression/seq-of-lettable.arr" as _
+import "./regression/cases-expr-parse.arr" as _
 
