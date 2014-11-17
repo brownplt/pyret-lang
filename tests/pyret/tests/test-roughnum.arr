@@ -11,6 +11,7 @@ check "roughnum":
   1 < 2 is true
   ~1 < ~2 is true
   2 == (1 + 1) is true
+  ~2 == (~1 + ~1) raises "roughnums cannot be compared for equality"
   ~2 is%(within(~0.01)) (~1 + ~1)
   1.5 is 3/2
   num-sqrt(-1) raises "sqrt of negative number"
