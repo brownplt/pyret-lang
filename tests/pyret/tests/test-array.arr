@@ -14,12 +14,32 @@ check:
 end
 
 check:
+  a = array-of("a", 3)
+  a is=~ [array: "a", "a", "a"]
+
+  array-set-now(a, 1, "b")
+  a is=~ [array: "a", "b", "a"]
+
+  array-get-now(a, 1) is "b"
+
+  array-length(a) is 3
+  l = array-to-list-now(a)
+  l is [list: "a", "b", "a"]
+
+  # Updating doesn't change the old to-list value
+  array-set-now(a, 2, "c")
+  l is [list: "a", "b", "a"]
+  l2 = array-to-list-now(a)
+  l2 is [list: "a", "b", "c"]
+end
+
+check:
   a1 = build-array(lam(i): i * i end, 6)
   a1.to-list() is [list: 0, 1, 4, 9, 16, 25]
   a2 = for build-array(i from 7):
     (i * i) - i
   end
-  a2.to-list() is [list: 0, 0, 2, 6, 12, 20, 30]
+  a2.to-list-now() is [list: 0, 0, 2, 6, 12, 20, 30]
 end
 
 check:
@@ -27,22 +47,22 @@ check:
   a1.length() is 3
 
   a1 is a1
-  a1 satisfies identical(_, a1)
+  a1 is<=> a1
 
   a2 = [array: 1, 2, 3]
   a2.length() is 3
 
-  a1 satisfies _ <> a2
-  a1.to-list() is a2.to-list()
+  a1 is-not a2
+  a1.to-list-now() is a2.to-list-now()
 
-  a1 satisfies negate(identical(_, a2))
-  a2 satisfies negate(identical(_, a1))
+  a1 is-not<=> a2
+  a2 is-not<=> a1
 
   a3 = [array: 4, "a", 6]
   a3.length() is 3
 
-  a1.to-list() satisfies _ <> a3.to-list()
-  a3.to-list() satisfies _ <> a1.to-list()
+  a1.to-list-now() is-not a3.to-list-now()
+  a3.to-list-now() is-not a1.to-list-now()
 
 end
 

@@ -6,11 +6,17 @@ provide {
   },
   build-array: build-array,
   array-from-list: array-from-list,
-  is-array: is-array
+  is-array: is-array,
+  array-of: array-of,
+  array-set-now: array-set-now,
+  array-get-now: array-get-now,
+  array-length: array-length,
+  array-to-list-now: array-to-list-now
 } end
 provide-types *
 
 import lists as lists
+type List = lists.List
 
 newtype Array as ArrayT
 
@@ -21,21 +27,21 @@ fun make(arr :: RawArray) -> Array:
     get-arr(_, key):
       if key == get-arr-key: arr else: raise("Cannot get arr externally") end
     end,
-    get(_, ix): raw-array-get(arr, ix) end,
-    set(self, ix, val):
+    get-now(_, ix :: Number): raw-array-get(arr, ix) end,
+    set-now(self, ix :: Number, val) -> Nothing:
       raw-array-set(arr, ix, val)
-      self
+      nothing
     end,
     length(_): raw-array-length(arr) end,
-    to-list(_): raw-array-to-list(arr) end,
+    to-list-now(_): raw-array-to-list(arr) end,
     _equals(self, other, eq):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
     end,
     _torepr(self, shadow torepr):
-      "[array: " + self.to-list().map(torepr).join-str(", ") + "]"
+      "[array: " + self.to-list-now().map(torepr).join-str(", ") + "]"
     end,
     tostring(self, shadow tostring):
-      "[array: " + self.to-list().map(tostring).join-str(", ") + "]"
+      "[array: " + self.to-list-now().map(tostring).join-str(", ") + "]"
     end
   })
 end
@@ -62,3 +68,23 @@ fun array-from-list(l):
   make(arr)
 end
 
+fun<a> array-of(elt :: a, count :: Number) -> Array<a>:
+  arr = raw-array-of(elt, count)
+  make(arr)
+end
+
+fun<a> array-set-now(arr :: Array<a>, index :: Number, val :: a) -> Array<a>:
+  arr.set-now(index, val)
+end
+
+fun<a> array-get-now(arr :: Array<a>, index :: Number) -> a:
+  arr.get-now(index)
+end
+
+fun<a> array-length(arr :: Array<a>) -> Number:
+  arr.length()
+end
+
+fun<a> array-to-list-now(arr :: Array<a>) -> List<a>:
+  arr.to-list-now()
+end
