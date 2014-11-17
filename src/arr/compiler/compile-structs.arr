@@ -484,7 +484,12 @@ standard-builtins = compile-env(
           "array",
           "build-array",
           "array-from-list",
-          "is-array"
+          "is-array",
+          "array-of",
+          "array-set-now",
+          "array-get-now",
+          "array-length",
+          "array-to-list-now"
         ]),
       module-bindings("lists", [list: 
           "list",

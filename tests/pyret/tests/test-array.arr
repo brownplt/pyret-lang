@@ -6,20 +6,40 @@ fun negate(f): lam(x): not(f(x));;
 check:
   a1 = [array: 1, 2, 3]
 
-  a1.get(-1) raises "negative"
-  a1.get(1 / 2) raises "integer"
+  a1.get-now(-1) raises "negative"
+  a1.get-now(1 / 2) raises "integer"
 
   non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, method(self): 10 end]
-  for each(n from non-nums): a1.get(n) raises "Number";
+  for each(n from non-nums): a1.get-now(n) raises "Number";
+end
+
+check:
+  a = array-of("a", 3)
+  a is=~ [array: "a", "a", "a"]
+
+  array-set-now(a, 1, "b")
+  a is=~ [array: "a", "b", "a"]
+
+  array-get-now(a, 1) is "b"
+
+  array-length(a) is 3
+  l = array-to-list-now(a)
+  l is [list: "a", "b", "a"]
+
+  # Updating doesn't change the old to-list value
+  array-set-now(a, 2, "c")
+  l is [list: "a", "b", "a"]
+  l2 = array-to-list-now(a)
+  l2 is [list: "a", "b", "c"]
 end
 
 check:
   a1 = build-array(lam(i): i * i end, 6)
-  a1.to-list() is [list: 0, 1, 4, 9, 16, 25]
+  a1.to-list-now() is [list: 0, 1, 4, 9, 16, 25]
   a2 = for build-array(i from 7):
     (i * i) - i
   end
-  a2.to-list() is [list: 0, 0, 2, 6, 12, 20, 30]
+  a2.to-list-now() is [list: 0, 0, 2, 6, 12, 20, 30]
 end
 
 check:
@@ -27,22 +47,22 @@ check:
   a1.length() is 3
 
   a1 is a1
-  a1 satisfies identical(_, a1)
+  a1 is<=> a1
 
   a2 = [array: 1, 2, 3]
   a2.length() is 3
 
-  a1 satisfies _ <> a2
-  a1.to-list() is a2.to-list()
+  a1 is-not a2
+  a1.to-list-now() is a2.to-list-now()
 
-  a1 satisfies negate(identical(_, a2))
-  a2 satisfies negate(identical(_, a1))
+  a1 is-not<=> a2
+  a2 is-not<=> a1
 
   a3 = [array: 4, "a", 6]
   a3.length() is 3
 
-  a1.to-list() satisfies _ <> a3.to-list()
-  a3.to-list() satisfies _ <> a1.to-list()
+  a1.to-list-now() is-not a3.to-list-now()
+  a3.to-list-now() is-not a1.to-list-now()
 
 end
 
@@ -52,18 +72,23 @@ check:
 
   a1 satisfies is-array
 
-  a1.get(0) is 1
-  a1.get(1) is 2
-  a1.get(2) is 3
-  a1.get(3) raises "too large"
+  a1.get-now(0) is 1
+  a1.get-now(1) is 2
+  a1.get-now(2) is 3
+  a1.get-now(3) raises "too large"
 
-  a1.set(1, 5) satisfies identical(_, a1)
-  a1.get(1) is 5
+  a1.set-now(1, 5)
+  a1 satisfies identical(_, a1)
+  a1.get-now(1) is 5
 
-  a1.set(1, 3).set(2, 6) satisfies identical(_, a1)
-  a1.set(1, 3).set(2, 6) is a1
-  a1.get(1) is 3
-  a1.get(2) is 6
+  a1.set-now(1, 3)
+  a1.set-now(2, 6)
+  a1 satisfies identical(_, a1)
+  a1.set-now(1, 3)
+  a1.set-now(2, 6)
+  a1 is a1
+  a1.get-now(1) is 3
+  a1.get-now(2) is 6
 
   a1.length() is 3
 
@@ -93,10 +118,10 @@ end
 check:
   a = [array: ]
   a.length() is 0
-  a.get(0) raises "too large"
-  a.get(1) raises "too large"
+  a.get-now(0) raises "too large"
+  a.get-now(1) raises "too large"
 
-  a.set(0, "val") raises "too large"
+  a.set-now(0, "val") raises "too large"
 end
 
 check:
@@ -108,7 +133,7 @@ check:
   raw-array-get(a1, 5) raises "too large"
   a2 = [array: "init","init","init","init","init"]
 
-  raw-array-to-list(a1) is a2.to-list()
+  raw-array-to-list(a1) is a2.to-list-now()
   raw-array-set(a1, 0, "update")
   a1 satisfies _ <> a2
   raw-array-get(a1, 0) is "update"
@@ -128,7 +153,7 @@ check:
     v
   end
   f([list: ]) raises "Array"
-  f([array: ]).to-list() is [list: ]
+  f([array: ]).to-list-now() is [list: ]
   f([array: ]) satisfies is-array
 end
 
@@ -152,8 +177,9 @@ end
 check:
   a = [array: single, multi(1, "2")]
   torepr(a) is "[array: single, multi(1, \"2\")]"
-  a.set(0, a.get(1)).to-list() is [list: multi(1, "2"), multi(1, "2")]
-  a.get(0) satisfies identical(_, a.get(1))
+  a.set-now(0, a.get-now(1))
+  a.to-list-now() is [list: multi(1, "2"), multi(1, "2")]
+  a.get-now(0) satisfies identical(_, a.get-now(1))
   a.length() is 2
 end
 
@@ -196,6 +222,6 @@ check:
   a2 = [array: 1, 3]
   a1 is-not=~ a2
 
-  a2.set(1, 2)
+  a2.set-now(1, 2)
   a1 is=~ a2
 end
