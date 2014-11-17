@@ -206,7 +206,7 @@ data CompileBinding:
   | module-bindings(name :: String, bindings :: List<String>)
 end
 
-runtime-builtins = lists.map(builtin-id, [list: 
+runtime-builtins = lists.map(builtin-id, [list:
   "test-print",
   "print",
   "display",
@@ -277,6 +277,12 @@ runtime-builtins = lists.map(builtin-id, [list:
   "num-exp",
   "num-exact",
   "num-is-integer",
+  "num-is-rational",
+  "num-is-roughnum",
+  "num-is-positive",
+  "num-is-negative",
+  "num-is-non-positive",
+  "num-is-non-negative",
   "num-is-fixnum",
   "num-expt",
   "num-tostring",
@@ -305,7 +311,7 @@ no-builtins = compile-env([list: ], [list: ])
 minimal-builtins = compile-env(runtime-builtins, runtime-types)
 
 bootstrap-builtins = compile-env(
-  [list: module-bindings("lists", [list: 
+  [list: module-bindings("lists", [list:
       "list",
       "is-empty",
       "is-link",
@@ -342,13 +348,12 @@ bootstrap-builtins = compile-env(
       "fold4",
       "index"
   ])] +
-  runtime-builtins + lists.map(builtin-id, [list: 
-  
+  runtime-builtins + lists.map(builtin-id, [list:
 
   "_link",
   "_empty",
 
-  # new arithmetic aliases  
+  # new arithmetic aliases
   "add",
   "sub",
   "div",
@@ -469,16 +474,16 @@ bootstrap-builtins = compile-env(
 )
 
 standard-builtins = compile-env(
-    runtime-builtins + [list: 
+    runtime-builtins + [list:
       builtin-id("_link"),
       builtin-id("_empty"),
-      module-bindings("arrays", [list: 
+      module-bindings("arrays", [list:
           "array",
           "build-array",
           "array-from-list",
           "is-array"
         ]),
-      module-bindings("lists", [list: 
+      module-bindings("lists", [list:
           "list",
           "is-empty",
           "is-link",
@@ -513,7 +518,7 @@ standard-builtins = compile-env(
           "fold4",
           "index"
         ]),
-      module-bindings("option", [list: 
+      module-bindings("option", [list:
           "Option",
           "is-none",
           "is-some",
@@ -521,7 +526,7 @@ standard-builtins = compile-env(
           "some"
         ]),
       module-bindings("error", [list: ]),
-      module-bindings("sets", [list: 
+      module-bindings("sets", [list:
           "set",
           "tree-set",
           "list-set"
@@ -529,4 +534,3 @@ standard-builtins = compile-env(
     ],
     standard-types
     )
-
