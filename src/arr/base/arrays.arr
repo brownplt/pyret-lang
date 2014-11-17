@@ -73,7 +73,7 @@ fun<a> array-of(elt :: a, count :: Number) -> Array<a>:
   make(arr)
 end
 
-fun<a> array-set-now(arr :: Array<a>, index :: Number, val :: a) -> Array<a>:
+fun<a> array-set-now(arr :: Array<a>, index :: Number, val :: a) -> Nothing:
   arr.set-now(index, val)
 end
 
