@@ -235,6 +235,10 @@ function getFieldLocInternal(val, field, loc, isBang) {
     }
     else if(isMethod(fieldVal)){
       var curried = fieldVal['meth'](val);
+      if(field === "_plus") {
+      //  console.log("Curried: ", curried);
+      //  console.log("Arity: ", fieldVal.arity);
+      }
       return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
@@ -535,15 +539,84 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function makeMethod(meth, full_meth) {
       return new PMethod(meth, full_meth); 
     }
+    var app0 = function(obj) {
+      var that = this;
+      return function() { return that.full_meth(obj); }
+    };
+    var app1 = function(obj) {
+      var that = this;
+      return function(v) { return that.full_meth(obj, v); };
+    };
+    var app2 = function(obj) {
+      var that = this;
+      return function(v1, v2) { return that.full_meth(obj, v1, v2); };
+    };
+    var app3 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3) { return that.full_meth(obj, v1, v2, v3); };
+    };
+    var app4 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3, v4) { return that.full_meth(obj, v1, v2, v3, v4); };
+    };
+    var app5 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3, v4, v5) { return that.full_meth(obj, v1, v2, v3, v4, v5); };
+    };
+    var app6 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3, v4, v5, v6) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6); };
+    };
+    var app7 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3, v4, v5, v6, v7) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7); };
+    };
+    var app8 = function(obj) {
+      var that = this;
+      return function(v1, v2, v3, v4, v5, v6, v7, v8) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7, v8); };
+    };
+    var appN = function(obj) {
+      var that = this;
+      return function() {
+          var argList = Array.prototype.slice.call(arguments);
+          return that.full_meth.apply(null, [obj].concat(argList));
+        };
+    }
+    function makeMethod0(meth) {
+      return new PMethod(app0, meth);
+    }
+    function makeMethod1(meth) {
+      return new PMethod(app1, meth);
+    }
+    function makeMethod2(meth) {
+      return new PMethod(app2, meth);
+    }
+    function makeMethod3(meth) {
+      return new PMethod(app3, meth);
+    }
+    function makeMethod3(meth) {
+      return new PMethod(app3, meth);
+    }
+    function makeMethod4(meth) {
+      return new PMethod(app4, meth);
+    }
+    function makeMethod5(meth) {
+      return new PMethod(app5, meth);
+    }
+    function makeMethod6(meth) {
+      return new PMethod(app6, meth);
+    }
+    function makeMethod7(meth) {
+      return new PMethod(app7, meth);
+    }
+    function makeMethod8(meth) {
+      return new PMethod(app8, meth);
+    }
 
     function makeMethodFromFun(meth) {
-      return new PMethod(function(obj) {
-          return function() {
-              var argList = Array.prototype.slice.call(arguments);
-              return meth.apply(null, [obj].concat(argList));
-            };
-        }, meth);
+      return new PMethod(appN, meth);
     }
+    var makeMethodN = makeMethodFromFun;
 
     var GRAPHABLE = 0;
     var UNGRAPHABLE = 1;
@@ -696,28 +769,26 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     function makeMatch(name, arity) {
       if(arity === -1) {
-        return makeMethod(function(self) {
-          return function(handlers, els) {
-            if(hasField(handlers, name)) {
-              return getField(handlers, name).app();
-            }
-            else {
-              return els.app(self);
-            }
-          };
-        }, { length: 3 });
+        var f = function(self, handlers, els) {
+          if(hasField(handlers, name)) {
+            return getField(handlers, name).app();
+          }
+          else {
+            return els.app(self);
+          }
+        };
+        return makeMethod2(f);
       }
       else {
-        return makeMethod(function(self) {
-          return function(handlers, _else) {
-            if(hasField(handlers, name)) {
-              return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask);
-            }
-            else {
-              return _else.app(self);
-            }
-          };
-        }, { length: 3 });
+        var f = function(self, handlers, _else) {
+          if(hasField(handlers, name)) {
+            return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask);
+          }
+          else {
+            return _else.app(self);
+          }
+        };
+        return makeMethod2(f);
       }
     }
 
@@ -3702,6 +3773,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeString'   : makeString,
         'makeFunction' : makeFunction,
         'makeMethod'   : makeMethod,
+        'makeMethod0'   : makeMethod0,
+        'makeMethod1'   : makeMethod1,
+        'makeMethod2'   : makeMethod2,
+        'makeMethod3'   : makeMethod3,
+        'makeMethod4'   : makeMethod4,
+        'makeMethod5'   : makeMethod5,
+        'makeMethod6'   : makeMethod6,
+        'makeMethod7'   : makeMethod7,
+        'makeMethod8'   : makeMethod8,
+        'makeMethodN'   : makeMethodN,
         'makeMethodFromFun' : makeMethodFromFun,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,

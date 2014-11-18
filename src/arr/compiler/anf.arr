@@ -38,19 +38,7 @@ data ANFCont:
 end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
-  anf(e, k-cont(lam(x):
-        cases(N.ALettable) x:
-            # tail call
-          | a-app(l, _, _) =>
-            name = mk-id(l, "anf_tail_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
-          | a-method-app(l, _, _, _) =>
-            name = mk-id(l, "anf_tail_method_app")
-            N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
-          | else => N.a-lettable(x.l, x)
-        end
-      end)
-    )
+  anf(e, k-cont(lam(x): N.a-lettable(x.l, x) end))
 end
 
 fun bind(l, id): N.a-bind(l, id, A.a-blank);
@@ -334,12 +322,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
     | s-app(l, f, args) =>
       cases(A.Expr) f:
-        #| s-dot(l2, obj, m) =>
-        #  anf-name(obj, "anf_method_obj", lam(v):
-        #    anf-name-rec(args, "anf_arg", lam(vs):
-        #      k.apply(l, N.a-method-app(l, v, m, vs))
-        #    end)
-        #  end)
+        | s-dot(l2, obj, m) =>
+          anf-name(obj, "anf_method_obj", lam(v):
+            anf-name-rec(args, "anf_arg", lam(vs):
+              k.apply(l, N.a-method-app(l, v, m, vs))
+            end)
+          end)
         | else =>
           anf-name(f, "anf_fun", lam(v):
               anf-name-rec(args, "anf_arg", lam(vs):

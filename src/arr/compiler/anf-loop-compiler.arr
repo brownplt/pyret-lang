@@ -883,25 +883,26 @@ compiler-visitor = {
     step-curry = js-id-of(compiler-name("step"))
     temp-curry = js-id-of(compiler-name("temp_curry"))
     temp-full = js-id-of(compiler-name("temp_full"))
+    len = args.length()
     # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-curry-args =
-      if args.length() > 1: args.rest
+      if len > 1: args.rest
       else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
     compiled-body-curry = j-block([list: j-return(j-app(j-id(temp-full), args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)))])
     curry-var = j-var(temp-curry,
       j-fun(effective-curry-args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-curry))
-    #### TODO!
     full-var = 
       j-var(temp-full,
         j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end),
           compile-fun-body(l, step-curry, temp-full, self, args, some(args.length()), body, true)
         ))
-    c-exp(
-      rt-method("makeMethod", [list: j-fun([list: js-id-of(tostring(args.first.id))],
-            j-block([list: curry-var, j-return(j-id(temp-curry))])),
-          j-id(temp-full)]),
-      [list: full-var])
+    method-expr = if len < 9:
+      rt-method("makeMethod" + tostring(len - 1), [list: j-id(temp-full)])
+    else:
+      rt-method("makeMethodN", [list: j-id(temp-full)])
+    end
+    c-exp(method-expr, [list: full-var])
   end,
   a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)
