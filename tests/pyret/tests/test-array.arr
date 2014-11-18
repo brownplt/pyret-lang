@@ -113,6 +113,8 @@ check:
   raw-array-get(a1, 2) is 6
 
   raw-array-length(a1) is 3
+
+  raw-array-length([array: 1, 2]) raises "RawArray"
 end
 
 check:

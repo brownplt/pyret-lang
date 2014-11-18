@@ -816,7 +816,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
-    var checkArray = makeCheckType(isArray, "Array");
+    var checkArray = makeCheckType(isArray, "RawArray");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
     var checkFunction = makeCheckType(isFunction, "Function");
