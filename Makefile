@@ -325,36 +325,50 @@ TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildc
 REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PHASE1)/phase1.built
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PHASE1)/phase1.built
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PHASE1)/phase1.built
-	$(NODE) $(PHASE1)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
+PYRET_TEST_PHASE=$(P)
+ifeq ($(PYRET_TEST_PHASE),2)
+  PYRET_TEST_PHASE=$(PHASE2)
+  PYRET_TEST_PREREQ=$(PHASE2)/phase2.built
+else
+ifeq ($(PYRET_TEST_PHASE),3)
+  PYRET_TEST_PHASE=$(PHASE3)
+  PYRET_TEST_PREREQ=$(PHASE3)/phase3.built
+else
+  PYRET_TEST_PHASE=$(PHASE1)
+  PYRET_TEST_PREREQ=$(PHASE1)/phase1.built
+endif
+endif
+
+tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : regression-test
-regression-test: $(PHASE1)/phase1.built $(REGRESSION_TEST_JS)
-	$(NODE) $(PHASE1)/main-wrapper.js \
+regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/regression.arr
 
 .PHONY : pyret-test
-pyret-test: $(PHASE1)/phase1.built $(TEST_JS)
-	$(NODE) $(PHASE1)/main-wrapper.js \
+pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
 .PHONY : type-check-test
-type-check-test: $(PHASE1)/phase1.built
-	$(NODE) $(PHASE1)/main-wrapper.js \
+type-check-test: $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/type-check \
     -check-all tests/type-check/main.arr
 
 
 .PHONY : compiler-test
-compiler-test: $(PHASE1)/phase1.built
-	$(NODE) $(PHASE1)/main-wrapper.js \
-    --module-load-dir $(PHASE1)/arr/compiler/ \
+compiler-test: $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
+    --module-load-dir $(PYRET_TEST_PHASE)/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
 
 .PHONY : bootstrap-test
