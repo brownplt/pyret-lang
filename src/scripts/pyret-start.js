@@ -15,7 +15,7 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr"], function(r, RT, py
           return rt.toReprJS(result.exn.exn, "tostring");
         }, rt.namespace, {sync: true}, function(printResult) {
           if(rt.isFailureResult(printResult)) {
-            console.error('Pyret terminated with an error:\n' + JSON.stringify(printResult) + "\nStack:\n" 
+            console.error('Pyret terminated with an unprintable error:\n' + JSON.stringify(result) + "\nStack:\n" 
                           + JSON.stringify(exnStack) + "\nPyret stack:\n" + rt.printPyretStack(pyretStack));
             process.exit(1);
           } else {
