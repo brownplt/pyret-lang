@@ -117,39 +117,6 @@ fun make-torepr(l, vname, fields, is-singleton):
   end
 end
 
-fun make-match(l, case-name, fields):
-  call-match-case = mk-id(l, "call_" + case-name)
-  self-id = mk-id(l, "self")
-  cases-id = mk-id-ann(l, "cases-funs", A.a-record(l, empty))
-  else-id = mk-id-ann(l, "else-clause", A.a-arrow(l, empty, A.a-any, true))
-  args = for map(f from fields):
-      cases(A.VariantMember) f:
-        | s-variant-member(l2, mtype, bind) =>
-          cases(A.MemberType) mtype:
-            | s-normal =>
-              A.s-dot(l2, self-id.id-e, bind.id.toname())
-            | s-mutable =>
-              A.s-get-bang(l2, self-id.id-e, bind.id.toname())
-          end
-      end
-    end
-  A.s-method(l, empty, [list: self-id, cases-id, else-id].map(_.id-b), A.a-blank, "",
-      A.s-if-else(l, [list:
-          A.s-if-branch(l,
-              A.s-prim-app(
-                  l,
-                  "hasField",
-                  [list: cases-id.id-e, A.s-str(l, case-name)]
-                ),
-              A.s-let-expr(l, [list: A.s-let-bind(l, call-match-case.id-b, A.s-dot(l, cases-id.id-e, case-name))],
-                  A.s-app(l, call-match-case.id-e, args)
-                )
-            )
-        ],
-        A.s-app(l, else-id.id-e, [list: ])),
-      none)
-end
-
 
 fun get-arith-op(str):
   if str == "op+": some("_plus")
