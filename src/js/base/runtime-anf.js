@@ -1103,7 +1103,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 });
                 top = stack[stack.length - 1];
 
-                var s = getField(next, method).app(toReprFunPy); // NOTE: Passing in the function below!
+                var m = getColonField(next, method);
+                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + method); }
+                var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s))
               }
               else if(isDataValue(next)) {
@@ -1592,7 +1594,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
                   // If this call stack-throws,
-                  var newAns = getField(curLeft, "_equals").app(curRight, equalFunPy);
+                  var newAns = getColonField(curLeft, "_equals").full_meth(curLeft, curRight, equalFunPy);
                   // the continuation stacklet will get the result, and combine them manually
                   toCompare.curAns = combineEquality(toCompare.curAns, newAns);
                 }
