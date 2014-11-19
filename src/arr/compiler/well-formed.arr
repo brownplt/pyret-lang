@@ -9,6 +9,7 @@ import ast as A
 import srcloc as SL
 import "compiler/compile-structs.arr" as C
 import format as F
+import string-dict as SD
 
 type Loc = SL.Srcloc
 
@@ -20,45 +21,45 @@ var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by
 
 is-s-let = A.is-s-let # ANNOYING WORKAROUND
 
-reserved-names = [list: 
-  "function",
-  "break",
-  "return",
-  "do",
-  "yield",
-  "throw",
-  "continue",
-  "while",
-  "class",
-  "interface",
-  "type",
-  "generator",
-  "alias",
-  "extends",
-  "implements",
-  "module",
-  "package",
-  "namespace",
-  "use",
-  "public",
-  "private",
-  "protected",
-  "static",
-  "const",
-  "enum",
-  "super",
-  "export",
-  "new",
-  "try",
-  "finally",
-  "debug",
-  "spy",
-  "switch",
-  "this",
-  "match",
-  "case",
-  "with",
-  "__proto__"
+reserved-names = [SD.string-dict: 
+  "function", true,
+  "break", true,
+  "return", true,
+  "do", true,
+  "yield", true,
+  "throw", true,
+  "continue", true,
+  "while", true,
+  "class", true,
+  "interface", true,
+  "type", true,
+  "generator", true,
+  "alias", true,
+  "extends", true,
+  "implements", true,
+  "module", true,
+  "package", true,
+  "namespace", true,
+  "use", true,
+  "public", true,
+  "private", true,
+  "protected", true,
+  "static", true,
+  "const", true,
+  "enum", true,
+  "super", true,
+  "export", true,
+  "new", true,
+  "try", true,
+  "finally", true,
+  "debug", true,
+  "spy", true,
+  "switch", true,
+  "this", true,
+  "match", true,
+  "case", true,
+  "with", true,
+  "__proto__", true
 ]
 
 
@@ -353,7 +354,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-bind(self, l, shadows, name, ann):
-    when (reserved-names.member(tostring(name))):
+    when (reserved-names.has-key(tostring(name))):
       reserved-name(l, tostring(name))
     end
     when shadows and A.is-s-underscore(name):
@@ -384,7 +385,7 @@ well-formed-visitor = A.default-iter-visitor.{
     left.visit(self) and self.option(right)
   end,
   s-method-field(self, l, name, params, args, ann, doc, body, _check):
-    when reserved-names.member(name):
+    when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     when args.length() == 0:
@@ -398,13 +399,13 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-data-field(self, l, name, value):
-    when reserved-names.member(name):
+    when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
-    when reserved-names.member(name):
+    when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ann.visit(self) and value.visit(self)
@@ -430,7 +431,7 @@ well-formed-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-fun(self, l, name, params, args, ann, doc, body, _check):
-    when reserved-names.member(name):
+    when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ensure-unique-ids(args)
@@ -478,7 +479,7 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   s-id(self, l, id):
-    when (reserved-names.member(tostring(id))):
+    when (reserved-names.has-key(tostring(id))):
       reserved-name(l, tostring(id))
     end
     true
