@@ -5,6 +5,10 @@ provide-types *
 import ast as A
 import pprint as PP
 import srcloc as SL
+import string-dict as SD
+
+type StringDict = SD.StringDict
+
 
 type Loc = SL.Srcloc
 
@@ -661,17 +665,19 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
-fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+rec get-ann = _.ann
+
+fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   lst-a = freevars-list-acc(_, seen-so-far)
   cases(A.Ann) ann:
     | a-blank => seen-so-far
     | a-any => seen-so-far
-    | a-name(l, name) => seen-so-far.add(name)
+    | a-name(l, name) => seen-so-far.set(name.key(), name)
     | a-type-var(l, name) => seen-so-far
-    | a-dot(l, left, right) => seen-so-far.add(left)
+    | a-dot(l, left, right) => seen-so-far.set(left.key(), left)
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))
-    | a-record(l, fields) => lst-a(fields.map(_.ann))
+    | a-record(l, fields) => lst-a(fields.map(get-ann))
     | a-app(l, a, args) => lst-a(link(a, args))
     | a-method-app(l, a, _, args) => lst-a(link(a, args))
     | a-pred(l, a, pred) =>
@@ -679,26 +685,26 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
         | s-id(_, n) => n
         | s-id-letrec(_, n, _) => n
       end
-      freevars-ann-acc(a, seen-so-far.add(name))
+      freevars-ann-acc(a, seen-so-far.set(name.key(), name))
   end
 end
 
-fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+fun freevars-e-acc(expr :: AExpr, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   cases(AExpr) expr:
     | a-type-let(_, b, body) =>
       body-ids = freevars-e-acc(body, seen-so-far)
       cases(ATypeBind) b:
         | a-type-bind(_, name, ann) =>
-          freevars-ann-acc(ann, body-ids.remove(name))
+          freevars-ann-acc(ann, body-ids.remove(name.key()))
         | a-newtype-bind(_, name, nameb) =>
-          body-ids.remove(name).remove(nameb)
+          body-ids.remove(name.key()).remove(nameb.key())
       end
     | a-let(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id)))
+      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id.key())))
     | a-var(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id)))
+      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body.remove(b.id.key())))
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
       freevars-l-acc(e1, from-e2)
@@ -706,8 +712,8 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   end
 end
 
-fun freevars-e(expr :: AExpr) -> Set<A.Name>:
-  freevars-e-acc(expr, sets.empty-tree-set)
+fun freevars-e(expr :: AExpr) -> StringDict<A.Name>:
+  freevars-e-acc(expr, empty-dict)
 where:
   d = dummy-loc
   n = A.global-names.make-atom
@@ -715,10 +721,10 @@ where:
   y = n("y")
   freevars-e(
       a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
-        a-lettable(d, a-val(d, a-id(d, y))))).to-list() is [list: y]
+        a-lettable(d, a-val(d, a-id(d, y))))).keys().to-list() is [list: y.key()]
 end
 
-fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+fun freevars-variant-acc(v :: AVariant, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   from-members = cases(AVariant) v:
     | a-variant(_, _, _, members, _) =>
       for fold(acc from seen-so-far, m from members):
@@ -731,13 +737,17 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: Set<A.Name>) -> Set<A.Nam
   end
 end
 
-fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+rec get-id = _.id
+
+fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   for fold(acc from seen-so-far, b from branches):
     cases(ACasesBranch) b:
       | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
-        without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
+        without-args = for fold(without from from-body, arg from args.map(get-id)):
+          without.remove(arg.key())
+        end
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
         end
@@ -746,7 +756,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: Set<A.N
     end
   end
 end
-fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+fun freevars-l-acc(e :: ALettable, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   cases(ALettable) e:
     | a-module(_, ans, provs, types, checks) =>
       freevars-v-acc(ans,
@@ -764,7 +774,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
       for fold(acc from seen-so-far, shadow v from vs):
         freevars-v-acc(v, acc)
       end
-    | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.add(id))
+    | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.set(id.key(), id))
     | a-app(_, f, args) =>
       from-f = freevars-v-acc(f, seen-so-far)
       for fold(acc from from-f, arg from args):
@@ -781,14 +791,18 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
       end
     | a-lam(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
+      without-args = for fold(without from from-body, arg from args.map(get-id)):
+          without.remove(arg.key())
+        end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end
       freevars-ann-acc(ret, from-args)
     | a-method(_, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      without-args = from-body.difference(sets.list-to-tree-set(args.map(_.id)))
+      without-args = for fold(without from from-body, arg from args.map(get-id)):
+          without.remove(arg.key())
+        end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
       end
@@ -814,7 +828,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
       from-shared = for fold(acc from from-variants, s from shared):
         freevars-v-acc(s.value, acc)
       end
-      from-shared.add(namet)
+      from-shared.set(namet.key(), namet)
     | a-extend(_, supe, fields) =>
       from-supe = freevars-v-acc(supe, seen-so-far)
       for fold(acc from from-supe, f from fields):
@@ -828,15 +842,15 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   end
 end
 
-fun freevars-l(e :: ALettable) -> Set<A.Name>:
-  freevars-l-acc(e, sets.empty-tree-set)
+fun freevars-l(e :: ALettable) -> StringDict<A.Name>:
+  freevars-l-acc(e, empty-dict)
 end
 
-fun freevars-v-acc(v :: AVal, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
+fun freevars-v-acc(v :: AVal, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   cases(AVal) v:
-    | a-id(_, id) => seen-so-far.add(id)
-    | a-id-var(_, id) => seen-so-far.add(id)
-    | a-id-letrec(_, id, _) => seen-so-far.add(id)
+    | a-id(_, id) => seen-so-far.set(id.key(), id)
+    | a-id-var(_, id) => seen-so-far.set(id.key(), id)
+    | a-id-letrec(_, id, _) => seen-so-far.set(id.key(), id)
     | a-srcloc(_, _) => seen-so-far
     | a-num(_, _) => seen-so-far
     | a-str(_, _) => seen-so-far
@@ -846,13 +860,9 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: Set<A.Name>) -> Set<A.Name>:
   end
 end
 
-fun freevars-v(v :: AVal) -> Set<A.Name>:
-  freevars-v-acc(v, sets.empty-tree-set)
+fun freevars-v(v :: AVal) -> StringDict<A.Name>:
+  freevars-v-acc(v, empty-dict)
 end
 
-fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
-  for fold(unioned from sets.empty-tree-set, s from ss):
-    unioned.union(s)
-  end
-end
+rec empty-dict = [SD.string-dict:]
 

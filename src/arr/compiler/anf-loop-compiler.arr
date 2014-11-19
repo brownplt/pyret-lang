@@ -1215,6 +1215,7 @@ end
 
 fun compile-program(self, l, imports, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
+  shadow freevars = sets.list-to-tree-set(freevars.keys().to-list().map(lam(k): freevars.get-value(k) end))
   free-ids = freevars.difference(sets.list-to-tree-set(imports.map(get-name))).difference(sets.list-to-tree-set(imports.map(_.types)))
   namespace-binds = for map(n from free-ids.to-list()):
     bind-name = cases(A.Name) n:
