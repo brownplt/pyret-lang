@@ -120,6 +120,8 @@ check "Different constructors should work well together":
     c([s-a: 1, 2].symmetric_difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
     ([s-a: 1, 2.1, 3] <> [s-b: 1, 2.2, 3]) is true
     c([s-a: 1, 2, 4]) is c([s-b: 2, 1, 4])
+    [s-a: 1, 2, 4].size() is 3
+    [s-a: 1, 2, 4].size() is 3
   end
 
   test-constructor(list-set, tree-set)
