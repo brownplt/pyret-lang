@@ -265,6 +265,8 @@ runtime-builtins = lists.map(builtin-id, [list:
   "string-from-code-point",
   "string-to-code-points",
   "string-from-code-points",
+  "num-random",
+  "num-random-seed",
   "num-max",
   "num-min",
   "nums-equal",

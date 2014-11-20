@@ -136,3 +136,18 @@ check:
   randoms satisfies lists.all(lam(v): (v < 100) and (v >= 0) end, _)
   randoms violates lists.all(lam(v): v == randoms.first end, _)
 end
+
+check "random seed":
+  num-random-seed(0)
+  s = num-random(10000)
+
+  num-random-seed(1)
+  s2 = num-random(10000)
+
+  num-random-seed(0)
+  num-random(10000) is s
+  num-random-seed(1)
+  num-random(10000) is s2
+end
+
+

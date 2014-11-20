@@ -56,7 +56,18 @@ check "member":
   lists.member-now3(l1, b1) is E.Equal
   lists.member-now3(l1, b2) satisfies E.is-NotEqual
 
+end
 
+check "shuffle":
+  l = [list: 1, 2, 3, 4]
 
+  num-random-seed(0)
+  l-mixed = lists.shuffle(l)
+  sets.list-to-set(l-mixed) is sets.list-to-set(l)
+  l-mixed.length() is l.length()
+
+  num-random-seed(0)
+  l-mixed2 = lists.shuffle(l)
+  l-mixed2 is l-mixed
 end
 

@@ -10,8 +10,10 @@ provide {
   tree-set: {
     make: arr-to-tree-set
   },
+  empty-set: list-set(empty),
   empty-list-set: list-set(empty),
   empty-tree-set: tree-set(leaf),
+  list-to-set: list-to-list-set,
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set
 } end

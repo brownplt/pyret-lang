@@ -6,8 +6,9 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["js/namespace", "js/js-numbers", "js/codePoint"],
-       function (Namespace, jsnums, codePoint) {
+define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom"],
+       function (Namespace, jsnums, codePoint, seedrandom) {
+
   if(requirejs.isBrowser) {
     var require = requirejs;
   }
@@ -3247,6 +3248,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return thisRuntime.makeBoolean(!l);
     }
 
+    var rng = seedrandom("ahoy, world!");
+
+    var num_random = function(max) {
+      checkArity(1, arguments, "num-random");
+      checkNumber(max);
+      var f = rng();
+      return makeNumber(Math.floor(jsnums.toFixnum(max) * f));
+    };
+
+    var num_random_seed = function(seed) {
+      checkArity(1, arguments, "num-random-seed");
+      checkNumber(seed);
+      rng = seedrandom(String(seed));
+      return nothing;
+    }
+
     var num_equals = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
@@ -3426,7 +3443,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function random(max) {
       thisRuntime.checkArity(1, arguments, "random");
       thisRuntime.checkNumber(max);
-      return makeNumber(Math.floor(Math.random() * jsnums.toFixnum(max)));
+      return num_random(max);
     }
 
     function loadModule(module, runtime, namespace, withModule) {
@@ -3540,6 +3557,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           '_greaterequal': makeFunction(greaterequal),
           '_lessequal': makeFunction(lessequal),
 
+          'num-random': makeFunction(num_random),
+          'num-random-seed': makeFunction(num_random_seed),
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
           'nums-equal': makeFunction(num_equals),

@@ -390,6 +390,20 @@ where:
   partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
+fun<a> remove(lst :: List<a>, elt :: a) -> List<a>:
+  doc: ```Returns the list without the element if found, or the whole list if it is not```
+  if is-empty(lst):
+    empty
+  else:
+    if elt == lst.first:
+      remove(lst.rest, elt)
+    else:
+      link(lst.first, remove(lst.rest, elt))
+    end
+  end
+end
+
+
 fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
@@ -809,6 +823,15 @@ end
 
 fun<a> member-identical(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-identical3(lst, elt))
+end
+
+fun<a> shuffle(lst :: List<a>) -> List<a>:
+  if is-empty(lst): empty
+  else:
+    ix = random(lst.length())
+    elt = lst.get(ix)
+    link(elt, shuffle(remove(lst, elt)))
+  end
 end
 
 index = get
