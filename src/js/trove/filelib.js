@@ -70,6 +70,13 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                     ctime: Number(stats.ctime)
                   });
                 }),
+              "real-path": RUNTIME.makeFunction(function(path) {
+                  ffi.checkArity(1, arguments, "real-path");
+                  RUNTIME.checkString(path);
+                  var s = RUNTIME.unwrap(path);
+                  var newpath = fs.realpathSync(s);
+                  return RUNTIME.makeString(newpath);
+                }),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   ffi.checkArity(1, arguments, "close-output-file");
                 }),
