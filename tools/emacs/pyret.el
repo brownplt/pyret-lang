@@ -41,6 +41,7 @@
     (define-key map (kbd "=") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "<") 'pyret-indent-initial-punctuation)
     (define-key map (kbd ">") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "s") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "`")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -116,7 +117,7 @@
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
-  (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
+  (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "is%" "satisfies" "raises")) "\\_>"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 
 
