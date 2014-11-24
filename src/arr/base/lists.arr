@@ -174,7 +174,7 @@ data List<a>:
 
     reverse(self :: List<a>) -> List<a>:
       doc: "Returns a new list containing the same elements as this list, in reverse order"
-      reverse(self, empty)
+      reverse-help(self, empty)
     end,
 
     tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
@@ -294,13 +294,15 @@ fun<a> set(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
-fun<a> reverse(lst :: List<a>, acc :: List<a>) -> List<a>:
+fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   cases(List) lst:
     | empty => acc
-    | link(first, rest) => reverse(rest, first ^ link(_, acc))
+    | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
   end
 end
+
+fun<a> reverse(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"

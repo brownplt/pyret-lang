@@ -44,8 +44,9 @@ check "repeat where: block":
 end
 
 check "reverse where: block":
-  lists.reverse([list: ], [list: ]) is [list: ]
-  lists.reverse([list: 1, 3], [list: ]) is [list: 3, 1]
+  lists.reverse([list: ]) is [list: ]
+  lists.reverse([list: 1, 3]) is [list: 3, 1]
+  lists.reverse([list: 1, 3, 2]) is [list: 2, 3, 1]
 end
 
 check "filter where: block":
