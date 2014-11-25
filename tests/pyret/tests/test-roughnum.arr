@@ -56,4 +56,6 @@ check "roughnum":
   num-is-non-positive(0) is true
   num-is-non-positive(~-2) is true
   num-is-non-positive(-2) is true
+  num-modulo(10,3) is 1
+  num-modulo(10,0) raises "second argument is zero"
 end
