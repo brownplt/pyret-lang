@@ -58,4 +58,12 @@ check:
     c("data Node: node(a, _) end") satisfies CS.is-wf-err
     c("data Node: node(_, a) end") satisfies CS.is-wf-err
   end
+
+  check "underscore object fields":
+    c("{_: 5}") satisfies CS.is-wf-err
+    c("data D: n() with: _(self): 5 end end") satisfies CS.is-wf-err
+    c("data D: n() sharing: _(self): 5 end end") satisfies CS.is-wf-err
+    c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-wf-err
+    c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-wf-err
+  end
 end

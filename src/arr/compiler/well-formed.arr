@@ -182,6 +182,14 @@ fun ensure-unique-fields(rev-fields):
   end
 end
 
+fun check-underscore-name(fields, kind-of-thing :: String) -> Boolean:
+  underscores = fields.filter(lam(f): f.name == "_" end)
+  when not(is-empty(underscores)):
+    wf-error("Cannot use underscore as a " + kind-of-thing, underscores.first.l)
+  end
+  is-empty(underscores)
+end
+
 fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
   cases(List) stmts:
     | empty => nothing
@@ -431,6 +439,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-obj(self, l, fields):
     ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "field name")
     lists.all(_.visit(self), fields)
   end,
   s-m-graph(self, l, bindings):
@@ -504,11 +513,12 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant(self, l, constr-loc, name, binds, with-members):
     ids = fields-to-binds(with-members) + binds.map(_.bind)
-    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     ensure-unique-ids(ids)
+    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     when not(is-empty(underscores)):
       wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
     end
+    check-underscore-name(with-members, "field name")
     is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
@@ -518,6 +528,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     ensure-unique-variant-ids(variants)
+    check-underscore-name(variants, "data variant name")
+    check-underscore-name(shares, "shared field name")
+    check-underscore-name([list: {l: l, name: name}], "datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
     params-v = lists.all(_.visit(well-formed-visitor), params)
@@ -533,6 +546,10 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
     ensure-unique-variant-ids(variants)
+    underscores = variants.filter(lam(v): v.name == "_" end)
+    when not(is-empty(underscores)):
+      wf-error("Cannot use underscore as a data variant name ", underscores.first.l)
+    end
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
     ret = lists.all(_.visit(well-formed-visitor), params)
@@ -540,7 +557,8 @@ top-level-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(well-formed-visitor), variants)
     and lists.all(_.visit(well-formed-visitor), shared)
     cur-shared := the-cur-shared
-    ret and wrap-visit-check(well-formed-visitor, _check)
+    is-empty(underscores) and
+      ret and wrap-visit-check(well-formed-visitor, _check)
   end,
 
 
