@@ -89,6 +89,11 @@
     (args ("n"))
     (doc ""))
   (fun-spec
+    (name "num-round")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
     (name "num-log")
     (arity 1)
     (args ("n"))
@@ -124,7 +129,6 @@
     (args ("n"))
     (doc ""))
 ))
-
 
 @docmodule["numbers" #:noimport #t #:friendly-title "Numbers"]{
    @type-spec["Number" (list)]
@@ -178,6 +182,9 @@
 
   }
   @function["num-floor" #:contract (a-arrow N N)]{
+
+  }
+  @function["num-round" #:contract (a-arrow N N)]{
 
   }
   @function["num-log" #:contract (a-arrow N N)]{
