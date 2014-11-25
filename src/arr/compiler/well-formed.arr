@@ -503,7 +503,7 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   s-variant(self, l, constr-loc, name, binds, with-members):
-    ids = fields-to-binds(with-members) + binds.map(_.bind) + cur-shared
+    ids = fields-to-binds(with-members) + binds.map(_.bind)
     underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     ensure-unique-ids(ids)
     when not(is-empty(underscores)):
@@ -513,7 +513,7 @@ top-level-visitor = A.default-iter-visitor.{
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-singleton-variant(self, l, name, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
+    ensure-unique-ids(fields-to-binds(with-members))
     lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
