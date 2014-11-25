@@ -132,9 +132,14 @@
     (args ("n"))
     (doc ""))
   (fun-spec
-    (name "num-tostring")
+    (name "num-to-string")
     (arity 1)
     (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-to-string-digits")
+    (arity 2)
+    (args ("n" "digits"))
     (doc ""))
 ))
 
@@ -344,9 +349,31 @@ Calculate an approximation of @pyret{base}@superscript{@pyret{n}}.
 
 Check if the number is an exact integer.
 
-  @function["num-tostring" #:contract (a-arrow N S) #:return S]
+  @function["num-to-string" #:contract (a-arrow N S) #:return S]
 
 Converts the number to a string.
+
+  @function["num-to-string-digits" #:contract (a-arrow N N S) #:return S]
+
+Converts the number to a string, providing @pyret{digits} precision in the
+output.  If @pyret{digits} is positive, provides that many digits to the right
+of the decimal point (including adding zeroes beyond the actual precision of
+the number).  If @pyret{digits} is negative, rounds that many positions to the
+@emph{left} of the decimal, replacing them with zeroes.
+
+Note that @pyret-id{num-to-string-digits} is only for formatting, and its
+output's apparent precision may be unrelated to the actual precision of the
+input number, which may have been an approximation, or unrepresentable in
+decimal.
+
+@examples{
+check:
+  num-to-string-digits(5432.1234, 2) is "5432.12"
+  num-to-string-digits(0.123456789, 2) is "0.12"
+  num-to-string-digits(5, 2) is "5.00"
+  num-to-string-digits(555, -2) is "500"
+end
+}
 
   @function["nums-equal" #:contract (a-arrow N N B) #:return B]
 
