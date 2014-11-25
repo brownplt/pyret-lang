@@ -490,6 +490,10 @@ end
   @function[
     "member-with"
   ]
+  @function[
+    "reverse"
+  ]
+
 
   @function[
     "shuffle"
