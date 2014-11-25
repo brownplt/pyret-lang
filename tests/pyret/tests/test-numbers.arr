@@ -150,4 +150,12 @@ check "random seed":
   num-random(10000) is s2
 end
 
+check:
+  num-to-string-digits(5432.1234, 2) is "5432.12"
+  num-to-string-digits(0.123456789, 2) is "0.12"
+  num-to-string-digits(5, 2) is "5.00"
+  # NOTE(joe): This test is awaiting a fixed numeric library for rounding
+  # num-to-string-digits(100000000000000000000000000000000000000001234 / 10000, 2) is 
+  #  "10000000000000000000000000000000000000000.12"
+end
 

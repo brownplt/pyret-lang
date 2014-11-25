@@ -291,6 +291,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "num-expt",
   "num-tostring",
   "num-to-string",
+  "num-to-string-digits",
   "raw-array-get",
   "raw-array-set",
   "raw-array-of",

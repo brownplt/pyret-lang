@@ -3583,6 +3583,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
           'num-to-string': makeFunction(num_tostring),
+          'num-to-string-digits': makeFunction(num_tostring_digits),
 
           'strings-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
