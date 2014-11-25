@@ -126,14 +126,22 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
     | link(f, rest) =>
       cases(A.Bind) f:
         | s-bind(l, shadows, id, ann) =>
-          if A.is-s-underscore(id): nothing
-          else:
-            elt = lists.find(lam(b): b.id == id end, rest)
-            cases(Option) elt:
-              | some(found) =>
-                wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
-              | none => nothing
-            end
+          cases(A.Name) id:
+            | s-underscore(_) => nothing
+            | s-name(_, name) =>
+              elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
+              cases(Option) elt:
+                | some(found) =>
+                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                | none => nothing
+              end
+            | else =>
+              elt = lists.find(lam(b): b.id == id end, rest)
+              cases(Option) elt:
+                | some(found) =>
+                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                | none => nothing
+              end
           end
       end
       ensure-unique-ids(rest)
@@ -495,7 +503,8 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   s-variant(self, l, constr-loc, name, binds, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
+    ids = fields-to-binds(with-members) + binds.map(_.bind) + cur-shared
+    ensure-unique-ids(ids)
     lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-singleton-variant(self, l, name, with-members):
@@ -506,12 +515,12 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-variant-ids(variants)
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
-    ret = lists.all(_.visit(well-formed-visitor), params)
-    and lists.all(_.visit(well-formed-visitor), mixins)
-    and lists.all(_.visit(well-formed-visitor), variants)
-    and lists.all(_.visit(well-formed-visitor), shares)
+    params-v = lists.all(_.visit(well-formed-visitor), params)
+    mixins-v = lists.all(_.visit(well-formed-visitor), mixins)
+    variants-v = lists.all(_.visit(self), variants)
+    shares-v = lists.all(_.visit(well-formed-visitor), shares)
     cur-shared := the-cur-shared
-    ret and wrap-visit-check(well-formed-visitor, _check)
+    params-v and mixins-v and variants-v and shares-v and wrap-visit-check(well-formed-visitor, _check)
   end,
   s-datatype-variant(self, l, name, binds, constructor):
     ensure-unique-ids(fields-to-binds(binds))
@@ -713,9 +722,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
-  end,
-  s-variant(_, l :: Loc, constr-loc :: Loc, name :: String, members :: List<A.VariantMember>, with-members :: List<A.Member>):
-    well-formed-visitor.s-variant(l, constr-loc, name, members, with-members)
   end,
   s-datatype-singleton-variant(_, l :: Loc, name :: String, constructor :: A.Constructor):
     well-formed-visitor.s-datatype-singleton-variant(l, name, constructor)
