@@ -45,11 +45,17 @@ check:
     c("a :: _.List = 5") satisfies CS.is-underscore-as-ann
   end
 
-  check "pure standalone statements":
-    c(```
-  data Node:
-    | node(a, a, a)
+  check "duplicate data fields":
+    c("data Node: node(a, a, a) end") satisfies CS.is-wf-err-split
+    c("data Node: node(a, b, a) end") satisfies CS.is-wf-err-split
+    c("data Node: node(a :: Number, a :: String) end") satisfies CS.is-wf-err-split
+    c("data Node: node(z, a, a, c) end") satisfies CS.is-wf-err-split
   end
-  ```) satisfies CS.is-wf-err-split
+
+  check "underscore data fields":
+    c("data Node: node(_) end") satisfies CS.is-wf-err
+    c("data Node: node(_, _) end") satisfies CS.is-wf-err
+    c("data Node: node(a, _) end") satisfies CS.is-wf-err
+    c("data Node: node(_, a) end") satisfies CS.is-wf-err
   end
 end

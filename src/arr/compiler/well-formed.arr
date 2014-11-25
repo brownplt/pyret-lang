@@ -442,7 +442,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), bindings)
   end,
   s-graph(self, l, bindings):
-    add-error(C.wf-err("graph expressions are not yet supported", l))
+    add-error(C.wf-error("graph expressions are not yet supported", l))
     false
   end,
   s-check(self, l, name, body, keyword-check):
@@ -504,8 +504,13 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant(self, l, constr-loc, name, binds, with-members):
     ids = fields-to-binds(with-members) + binds.map(_.bind) + cur-shared
+    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     ensure-unique-ids(ids)
-    lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
+    when not(is-empty(underscores)):
+      wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
+    end
+    is-empty(underscores) and
+      lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-singleton-variant(self, l, name, with-members):
     ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
