@@ -3327,6 +3327,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.floor(n));
     }
+    var num_round = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-round");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.round(n));
+    }
     var num_log = function(n) {
       thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
@@ -3572,6 +3577,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-sqr': makeFunction(num_sqr),
           'num-ceiling': makeFunction(num_ceiling),
           'num-floor': makeFunction(num_floor),
+          'num-round': makeFunction(num_round),
           'num-log': makeFunction(num_log),
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
