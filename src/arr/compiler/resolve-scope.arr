@@ -393,7 +393,7 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
         | else => raise("Should have been resolved away")
       end
       provides = resolve-type-provide(provide-types-raw, body)
-      provt = cases(A.Provide) provides:
+      provt = cases(A.ProvideTypes) provides:
         | s-provide-types-none(_) => [list: ]
         | s-provide-types(_, anns) => anns
         | else => raise("Should have been resolve-typed away" + torepr(provides))
@@ -494,7 +494,7 @@ end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):
   for fold(acc from SD.make-string-dict(), b from initial.types):
-    cases(C.CompileBinding) b:
+    cases(C.CompileTypeBinding) b:
       | type-module-bindings(name, ids) => acc
       | type-id(name) =>
         acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))

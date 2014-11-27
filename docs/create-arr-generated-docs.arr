@@ -94,7 +94,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
       | s-data-field(_, name, value) =>
         # print("***** Trying to lookup " + value.tosource().pretty(200).first)
         e = lookup-value(value, bindings)
-        cases(A.Expr) e: # Not guaranteed to be an Expr!
+        cases(Any) e: # Not guaranteed to be an Expr!
           | crossref(modname, as-name) =>
             sexp("re-export", [list: 
                 spair("name", torepr(name)),

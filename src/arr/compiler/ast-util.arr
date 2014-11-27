@@ -553,13 +553,21 @@ fun check-unbound(initial-env, ast):
   var errors = [list: ] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(this-id, env):
-    when is-none(bind-exp(this-id, env)):
+    if A.is-s-underscore(this-id.id):
+      add-error(CS.underscore-as-expr(this-id.id.l))
+    else if is-none(bind-exp(this-id, env)):
       add-error(CS.unbound-id(this-id))
+    else:
+      nothing
     end
   end
   fun handle-type-id(ann, env):
-    when not(env.has-key(ann.id.key())):
+    if A.is-s-underscore(ann.id):
+      add-error(CS.underscore-as-ann(ann.id.l))
+    else if not(env.has-key(ann.id.key())):
       add-error(CS.unbound-type-id(ann))
+    else:
+      nothing
     end
   end
   ast.visit(binding-env-iter-visitor(initial-env).{

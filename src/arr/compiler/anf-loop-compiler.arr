@@ -14,6 +14,13 @@ import srcloc as SL
 type Loc = SL.Srcloc
 type ConcatList = CL.ConcatList
 
+fun get-exp(o): o.exp end
+fun get-id(o): o.id end
+fun get-name(o): o.name end
+fun get-l(o): o.l end
+fun get-bind(o): o.bind end
+fun o-get-field(o): o.field end
+
 concat-empty = CL.concat-empty
 concat-singleton = CL.concat-singleton
 concat-append = CL.concat-append
@@ -176,8 +183,8 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
     | a-method(_, _, _) => c-exp(rt-field("Method"), empty)
     | a-app(l, base, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>
-      names = j-list(false, fields.map(_.name).map(j-str))
-      locs = j-list(false, fields.map(_.l).map(visitor.get-loc))
+      names = j-list(false, fields.map(get-name).map(j-str))
+      locs = j-list(false, fields.map(get-l).map(visitor.get-loc))
       anns = for fold(acc from {fields: empty, others: empty}, f from fields):
         compiled = compile-ann(f.ann, visitor)
         {
@@ -194,7 +201,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
         anns.others.reverse()
         )
     | a-pred(l, base, exp) =>
-      name = cases(A.AExpr) exp:
+      name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
         | s-id-letrec(_, id, _) => id.toname()
       end
@@ -541,7 +548,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
   temp-branch = js-id-of(compiler-name("temp_branch"))
   branch-args =
-    if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(_.bind)
+    if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(get-bind)
     else: [list: N.a-bind(branch.body.l, A.s-name(branch.body.l, compiler-name("resumer")), A.a-blank)]
     end
   step = js-id-of(compiler-name("step"))
@@ -554,7 +561,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   end
   compiled-branch-fun =
     compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-  preamble = cases(N.CasesBranch) branch:
+  preamble = cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
@@ -788,7 +795,7 @@ compiler-visitor = {
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
     other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, set-loc)
-    c-exp(rt-method(f, visit-args.map(_.exp)), other-stmts)
+    c-exp(rt-method(f, visit-args.map(get-exp)), other-stmts)
   end,
   
   a-ref(self, l, maybe-ann):
@@ -800,7 +807,7 @@ compiler-visitor = {
   a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
-    c-exp(rt-method("makeObject", [list: j-obj(visit-fields.map(_.field))]), other-stmts)
+    c-exp(rt-method("makeObject", [list: j-obj(visit-fields.map(o-get-field))]), other-stmts)
   end,
   a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -810,7 +817,7 @@ compiler-visitor = {
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, visit-obj.other-stmts)
-    c-exp(rt-method("extendObj", [list: self.get-loc(l), visit-obj.exp, j-obj(visit-fields.map(_.field))]),
+    c-exp(rt-method("extendObj", [list: self.get-loc(l), visit-obj.exp, j-obj(visit-fields.map(o-get-field))]),
       other-stmts)
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
@@ -870,7 +877,7 @@ compiler-visitor = {
   a-array(self, l, values):
     visit-vals = values.map(_.visit(self))
     other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, empty)
-    c-exp(j-list(false, visit-vals.map(_.exp)), other-stmts)
+    c-exp(j-list(false, visit-vals.map(get-exp)), other-stmts)
   end,
   a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), empty)
@@ -917,7 +924,7 @@ compiler-visitor = {
     end
 
     visit-shared-fields = shared.map(_.visit(self))
-    shared-fields = visit-shared-fields.map(_.field)
+    shared-fields = visit-shared-fields.map(o-get-field)
     shared-stmts = visit-shared-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
     external-brand = j-id(js-id-of(tostring(namet)))
 
@@ -1075,7 +1082,7 @@ compiler-visitor = {
             j-var(refl-fields-id, refl-fields),
             j-var(refl-ref-fields-id, refl-ref-fields),
             j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
-            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + visit-with-fields.map(_.field) + [list: match-field])),
+            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + visit-with-fields.map(o-get-field) + [list: match-field])),
             j-var(variant-brand-obj-id, variant-brands),
             j-expr(j-bracket-assign(
               j-id(variant-brand-obj-id),
@@ -1171,7 +1178,7 @@ end
 
 fun compile-program(self, l, imports, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
-  free-ids = freevars.difference(sets.list-to-tree-set(imports.map(_.name))).difference(sets.list-to-tree-set(imports.map(_.types)))
+  free-ids = freevars.difference(sets.list-to-tree-set(imports.map(get-name))).difference(sets.list-to-tree-set(imports.map(_.types)))
   namespace-binds = for map(n from free-ids.to-list()):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
@@ -1202,7 +1209,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   fun wrap-modules(modules, body-name, body-fun):
     mod-input-names = modules.map(_.input-id)
     mod-input-ids = mod-input-names.map(j-id)
-    mod-val-ids = modules.map(_.id)
+    mod-val-ids = modules.map(get-id)
     j-return(rt-method("loadModulesNew",
         [list: j-id("NAMESPACE"), j-list(false, mod-input-ids),
           j-fun(mod-input-names,

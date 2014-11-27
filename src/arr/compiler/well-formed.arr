@@ -126,14 +126,22 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
     | link(f, rest) =>
       cases(A.Bind) f:
         | s-bind(l, shadows, id, ann) =>
-          if A.is-s-underscore(id): nothing
-          else:
-            elt = lists.find(lam(b): b.id == id end, rest)
-            cases(Option) elt:
-              | some(found) =>
-                wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
-              | none => nothing
-            end
+          cases(A.Name) id:
+            | s-underscore(_) => nothing
+            | s-name(_, name) =>
+              elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
+              cases(Option) elt:
+                | some(found) =>
+                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                | none => nothing
+              end
+            | else =>
+              elt = lists.find(lam(b): b.id == id end, rest)
+              cases(Option) elt:
+                | some(found) =>
+                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                | none => nothing
+              end
           end
       end
       ensure-unique-ids(rest)
@@ -172,6 +180,14 @@ fun ensure-unique-fields(rev-fields):
       end
       ensure-unique-fields(rest)
   end
+end
+
+fun check-underscore-name(fields, kind-of-thing :: String) -> Boolean:
+  underscores = fields.filter(lam(f): f.name == "_" end)
+  when not(is-empty(underscores)):
+    wf-error("Cannot use underscore as a " + kind-of-thing, underscores.first.l)
+  end
+  is-empty(underscores)
 end
 
 fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
@@ -244,11 +260,6 @@ fun reachable-ops(self, l, op, ast):
 end
 
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
-  for each(stmt from stmts):
-    when is-underscore(stmt):
-      wf-error("Cannot use underscore as a standalone statement", stmt.l)
-    end
-  end
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts.reverse())
   ensure-distinct-lines(A.dummy-loc, stmts)
@@ -311,9 +322,6 @@ well-formed-visitor = A.default-iter-visitor.{
   s-singleton-cases-branch(self, l, pat-loc, name, body):
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
-    end
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a cases branch", body.l)
     end
     body.visit(self)
   end,
@@ -382,9 +390,6 @@ well-formed-visitor = A.default-iter-visitor.{
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
     end
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a method", body.l)
-    end
     ensure-unique-ids(args)
     cases(Option) _check:
       | none => nothing
@@ -396,26 +401,17 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.member(name):
       reserved-name(l, name)
     end
-    when is-underscore(value):
-      wf-error("Cannot use underscore as the value of an object field", l)
-    end
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
     when reserved-names.member(name):
       reserved-name(l, name)
     end
-    when is-underscore(value):
-      wf-error("Cannot use underscore as the value of an object field", l)
-    end
     ann.visit(self) and value.visit(self)
   end,
   s-method(self, l, params, args, ann, doc, body, _check):
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
-    end
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a method", body.l)
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -430,9 +426,6 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
     end
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a lambda", body.l)
-    end
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
@@ -440,15 +433,13 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.member(name):
       reserved-name(l, name)
     end
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a function", body.l)
-    end
     ensure-unique-ids(args)
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-obj(self, l, fields):
     ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "field name")
     lists.all(_.visit(self), fields)
   end,
   s-m-graph(self, l, bindings):
@@ -460,13 +451,10 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), bindings)
   end,
   s-graph(self, l, bindings):
-    add-error(C.wf-err("graph expressions are not yet supported", l))
+    add-error(C.wf-error("graph expressions are not yet supported", l))
     false
   end,
   s-check(self, l, name, body, keyword-check):
-    when is-underscore(body):
-      wf-error("Cannot use underscore as the body of a check block", body.l)
-    end
     wrap-visit-check(self, some(body))
   end,
   s-if(self, l, branches):
@@ -477,16 +465,10 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-cases(self, l, typ, val, branches):
     ensure-unique-cases(branches)
-    when is-underscore(val):
-      wf-error("Cannot use underscore as the argument of a cases expression", val.l)
-    end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l, typ, val, branches, _else):
     ensure-unique-cases(branches)
-    when is-underscore(val):
-      wf-error("Cannot use underscore as the argument of a cases expression", val.l)
-    end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   s-frac(self, l, num, den):
@@ -502,9 +484,6 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   s-provide(self, l, expr):
-    when is-underscore(expr):
-      wf-error("Cannot use underscore in a provide statement", expr.l)
-    end
     true
   end
 }
@@ -533,23 +512,33 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   s-variant(self, l, constr-loc, name, binds, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + binds.map(_.bind) + cur-shared)
-    lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
+    ids = fields-to-binds(with-members) + binds.map(_.bind)
+    ensure-unique-ids(ids)
+    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
+    when not(is-empty(underscores)):
+      wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
+    end
+    check-underscore-name(with-members, "field name")
+    is-empty(underscores) and
+      lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-singleton-variant(self, l, name, with-members):
-    ensure-unique-ids(fields-to-binds(with-members) + cur-shared)
+    ensure-unique-ids(fields-to-binds(with-members))
     lists.all(_.visit(well-formed-visitor), with-members)
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     ensure-unique-variant-ids(variants)
+    check-underscore-name(variants, "data variant name")
+    check-underscore-name(shares, "shared field name")
+    check-underscore-name([list: {l: l, name: name}], "datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
-    ret = lists.all(_.visit(well-formed-visitor), params)
-    and lists.all(_.visit(well-formed-visitor), mixins)
-    and lists.all(_.visit(well-formed-visitor), variants)
-    and lists.all(_.visit(well-formed-visitor), shares)
+    params-v = lists.all(_.visit(well-formed-visitor), params)
+    mixins-v = lists.all(_.visit(well-formed-visitor), mixins)
+    variants-v = lists.all(_.visit(self), variants)
+    shares-v = lists.all(_.visit(well-formed-visitor), shares)
     cur-shared := the-cur-shared
-    ret and wrap-visit-check(well-formed-visitor, _check)
+    params-v and mixins-v and variants-v and shares-v and wrap-visit-check(well-formed-visitor, _check)
   end,
   s-datatype-variant(self, l, name, binds, constructor):
     ensure-unique-ids(fields-to-binds(binds))
@@ -557,6 +546,10 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
     ensure-unique-variant-ids(variants)
+    underscores = variants.filter(lam(v): v.name == "_" end)
+    when not(is-empty(underscores)):
+      wf-error("Cannot use underscore as a data variant name ", underscores.first.l)
+    end
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
     ret = lists.all(_.visit(well-formed-visitor), params)
@@ -564,7 +557,8 @@ top-level-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(well-formed-visitor), variants)
     and lists.all(_.visit(well-formed-visitor), shared)
     cur-shared := the-cur-shared
-    ret and wrap-visit-check(well-formed-visitor, _check)
+    is-empty(underscores) and
+      ret and wrap-visit-check(well-formed-visitor, _check)
   end,
 
 
@@ -751,9 +745,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
-  end,
-  s-variant(_, l :: Loc, constr-loc :: Loc, name :: String, members :: List<A.VariantMember>, with-members :: List<A.Member>):
-    well-formed-visitor.s-variant(l, constr-loc, name, members, with-members)
   end,
   s-datatype-singleton-variant(_, l :: Loc, name :: String, constructor :: A.Constructor):
     well-formed-visitor.s-datatype-singleton-variant(l, name, constructor)

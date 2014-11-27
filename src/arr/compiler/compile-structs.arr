@@ -33,6 +33,14 @@ data CompileError:
     tostring(self, shadow tostring):
       "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
     end
+  | underscore-as-expr(l :: Loc) with:
+    tostring(self, shadow tostring):
+      "Underscore used as an expression at " + tostring(self.l) + ", which is not allowed."
+    end
+  | underscore-as-ann(l :: Loc) with:
+    tostring(self, shadow tostring):
+      "Underscore used as an annotation at " + tostring(self.l) + ", which is not allowed."
+    end
   | unbound-id(id :: A.Expr) with:
     tostring(self, shadow tostring):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
@@ -257,6 +265,8 @@ runtime-builtins = lists.map(builtin-id, [list:
   "string-from-code-point",
   "string-to-code-points",
   "string-from-code-points",
+  "num-random",
+  "num-random-seed",
   "num-max",
   "num-min",
   "nums-equal",
@@ -281,6 +291,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "num-expt",
   "num-tostring",
   "num-to-string",
+  "num-to-string-digits",
   "raw-array-get",
   "raw-array-set",
   "raw-array-of",
@@ -476,7 +487,12 @@ standard-builtins = compile-env(
           "array",
           "build-array",
           "array-from-list",
-          "is-array"
+          "is-array",
+          "array-of",
+          "array-set-now",
+          "array-get-now",
+          "array-length",
+          "array-to-list-now"
         ]),
       module-bindings("lists", [list: 
           "list",
