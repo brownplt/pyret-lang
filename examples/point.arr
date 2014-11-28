@@ -4,11 +4,13 @@
 # Cut color-points
 # ColorPoint -> make-color-point
 
+import equality as E
+
 point-methods = {
   dist(self, other):
-    ysquared = (other.y - self.y).sqr()
-    xsquared = (other.x - self.x).sqr()
-    (ysquared + xsquared).sqrt()
+    ysquared = num-sqr(other.y - self.y)
+    xsquared = num-sqr(other.x - self.x)
+    num-sqrt(ysquared + xsquared)
   end
 }
 
@@ -42,17 +44,17 @@ sharing:
   end
 end
 
-colorpoint-methods = point-methods.{
+rec colorpoint-methods = point-methods.{
   midpoint(self, other):
     midx = self.x + ((other.x - self.x) / 2)
     midy = self.y + ((other.y - self.y) / 2)
     midcolor = self.color.mix(other.color)
     make-color-point(midx, midy, midcolor)
   end,
-  _equals(self, other):
-    (self.x == other.x) and 
-      (self.y == other.y) and
-      (self.color == other.color)
+  _equals(self, other, eq):
+    E.equal-and(eq(self.x, other.x),
+      E.equal-and(eq(self.y, other.y),
+        eq(self.color, other.color)))
   end
 }
 

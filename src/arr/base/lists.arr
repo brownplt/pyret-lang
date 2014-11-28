@@ -316,6 +316,24 @@ fun range(start :: Number, stop :: Number) -> List<Number>:
   end
 end
 
+fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
+  doc: ```Creates a list of numbers, starting with start, in intervals of delta,
+          until reaching (but not including) stop```
+  if delta == 0:
+    if start == stop: empty
+    else: raise("range-by: an interval of 0 would produce an infinite list")
+    end
+  else if delta < 0:
+    if start <= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  else:
+    if start >= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  end
+end
+
 fun<a> repeat(n :: Number, e :: a) -> List<a>:
   doc: "Creates a list with n copies of e"
   if n > 0:       link(e, repeat(n - 1, e))
