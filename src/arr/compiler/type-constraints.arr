@@ -25,6 +25,8 @@ fold2-strict = LA.fold2-strict
 
 type Name            = A.Name
 
+dict-to-string       = TS.dict-to-string
+
 type Pair            = TS.Pair
 pair                 = TS.pair
 
@@ -112,7 +114,7 @@ all-examples = [list: example-a, example-b, example-c, example-d, example-e,
                       example-p, example-q, example-r]
 
 test-to-remove = [set: example-a]
-test-info      = TCS.add-binding(example-a.id, t-top, TCS.empty-tc-info())
+test-info      = TCS.add-binding(example-a.id, t-top, TCS.empty-tc-info("test"))
 example-a-promoted = t-top
 example-a-demoted  = t-bot
 example-b-promoted = example-b
@@ -149,14 +151,6 @@ example-q-promoted = t-ref(t-number)
 example-q-demoted  = t-ref(t-number)
 example-r-promoted = t-top
 example-r-demoted  = t-bot
-
-fun dict-to-string(dict :: SD.StringDict) -> String:
-  "{"
-    + for map(key from dict.keys().to-list()):
-        key + " => " + torepr(dict.get-value(key))
-      end.join-str(", ")
-    + "}"
-end
 
 fun create-substitutions(blame-loc :: A.Loc,
                          constraints :: TypeConstraints,
@@ -347,7 +341,7 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       end
   end
 where:
-  info = TCS.empty-tc-info()
+  info = TCS.empty-tc-info("test")
   a1 = A.s-atom(gensym("A"), 3)
   a1-t = t-var(a1)
   a2 = A.s-atom(gensym("A"), 4)
@@ -863,7 +857,7 @@ fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
       invariant
   end
 where:
-  info = TCS.empty-tc-info()
+  info = TCS.empty-tc-info("test")
   determine-variance(example-a, example-name, info) is covariant
   determine-variance(example-b, example-name, info) is constant
   determine-variance(example-c, example-name, info) is contravariant

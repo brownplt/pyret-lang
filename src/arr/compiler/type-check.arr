@@ -27,6 +27,7 @@ t-forall                  = TS.t-forall
 t-ref                     = TS.t-ref
 
 is-t-record               = TS.is-t-record
+is-t-name                 = TS.is-t-name
 
 type Variance             = TS.Variance
 constant                  = TS.constant
@@ -44,6 +45,9 @@ t-member                  = TS.t-member
 type TypeVariant          = TS.TypeVariant
 t-variant                 = TS.t-variant
 t-singleton-variant       = TS.t-singleton-variant
+
+type ModuleType           = TS.ModuleType
+t-module                  = TS.t-module
 
 type DataType             = TS.DataType
 t-datatype                = TS.t-datatype
@@ -98,6 +102,7 @@ foldl2-result             = TCS.foldl2-result
 foldr2-result             = TCS.foldr2-result
 map2-result               = TCS.map2-result
 foldr-result              = TCS.foldr-result
+foldl-result              = TCS.foldl-result
 map2-checking             = TCS.map2-checking
 map-checking              = TCS.map-checking
 map-result                = TCS.map-result
@@ -442,6 +447,10 @@ fun ann-loc(in-ann :: A.Ann, default :: A.Loc) -> A.Loc:
   end
 end
 
+fun a-field-to-type(field :: A.AField, info :: TCInfo) -> FoldResult<TypeMember>:
+  to-type-std(field.ann, info).map(t-member(field.name, _))
+end
+
 fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
   cases(A.Ann) in-ann:
     | a-blank =>
@@ -465,10 +474,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
     | a-method(l, args, ret) =>
       raise("a-method not yet handled:" + torepr(in-ann))
     | a-record(l, fields) =>
-      fun field-to-type(field):
-        to-type-std(field.ann, info).map(t-member(field.name, _))
-      end
-      for bind(new-fields from map-result(field-to-type, fields)):
+      for bind(new-fields from map-result(a-field-to-type(_, info), fields)):
         fold-result(some(t-record(new-fields)))
       end
     | a-app(l, ann, args) =>
@@ -491,7 +497,20 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         fold-result(some(typ))
       end
     | a-dot(l, obj, field) =>
-      fold-result(some(t-name(some(obj), A.s-global(field))))
+      key = obj.key()
+      cases(Option<String>) info.mod-names.get-now(key):
+        | some(mod) =>
+          t-mod = info.modules.get-value-now(mod)
+          if t-mod.types.has-key(field):
+            fold-result(some(t-name(some(mod), A.s-global(field))))
+          else if t-mod.aliases.has-key(field):
+            fold-result(some(t-mod.aliases.get-value(field)))
+          else:
+            fold-errors([list: C.unbound-type-id(in-ann)])
+          end
+        | none =>
+          fold-errors([list: C.no-module(l, obj.toname())])
+      end
     | a-checked(checked, residual) =>
       raise("a-checked should not be appearing before type checking!")
   end
@@ -499,6 +518,28 @@ end
 
 fun to-type-std(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Type>:
   to-type(in-ann, info).map(_.or-else(t-top))
+end
+
+fun as-datatype(name :: String, typ :: Type, info :: TCInfo) -> FoldResult<DataType>:
+  err = fold-errors([list: C.cant-typecheck("Cannot export the type " + tostring(typ))])
+  cases(Type) typ:
+    | t-name(_, _) =>
+      cases(Option<DataType>) TCS.get-data-type(typ, info):
+        | some(dt) =>
+          fold-result(dt)
+        | none =>
+          fold-result(t-datatype(name, empty, empty, empty))
+      end
+    | t-app(_, _) =>
+      cases(Option<DataType>) TCS.get-data-type(typ, info):
+        | some(dt) =>
+          fold-result(dt)
+        | none =>
+          err
+      end
+    | else =>
+      err
+  end
 end
 
 fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
@@ -1086,7 +1127,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info
       fun pick2(num-typ :: Type, rec-typ :: Type):
         cases(List<A.Expr>) args:
           | empty      =>
-            synthesis-err([list: raise("fixme")])
+            synthesis-err([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
             synthesis(f, info).bind(
               lam(_, l, f-typ):
@@ -1102,7 +1143,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info
       fun pick3(num-typ :: Type, str-typ :: Type, rec-typ :: Type):
         cases(List<A.Expr>) args:
           | empty      =>
-            synthesis-err([list: raise("fixme")])
+            synthesis-err([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
             synthesis(f, info).bind(
               lam(_, l, f-typ):
@@ -1199,9 +1240,23 @@ end
 
 fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   cases(A.Expr) e:
-    | s-module(l, answer, provides, types, checks) =>
-      checking(answer, expect-loc, expect-typ, info)
-        .map(A.s-module(l, _, provides, types, checks))
+    | s-module(l, answer, provides, typs, checks) =>
+      synthesis(provides, info).check-bind(
+        lam(new-provides, provides-loc, provides-typ):
+          for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
+            wrapped = for foldl-result(base from fold-result(SD.make-string-dict()),
+                                                  tm from new-typs):
+              for bind(dt from as-datatype(tm.field-name, tm.typ, info)):
+                fold-result(base.set(tm.field-name, dt))
+              end
+            end
+            for check-bind(to-export from wrapped):
+              info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
+              checking(answer, expect-loc, expect-typ, info)
+                .map(A.s-module(l, _, provides, typs, checks))
+            end
+          end
+        end)
     | s-type-let-expr(l, binds, body) =>
       for check-bind(_ from handle-type-let-binds(binds, info)):
         checking(body, expect-loc, expect-typ, info)
@@ -1432,26 +1487,47 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
   end
 end
 
+fun import-to-string(i :: A.ImportType) -> String:
+  cases(A.ImportType) i:
+    | s-file-import(_, file) =>
+      "file:" + file
+    | s-const-import(_, mod) =>
+      "const:" + mod
+  end
+end
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      if is-empty(imports):
-        info = TCS.empty-tc-info()
-        tc-result = checking(body, A.dummy-loc, t-top, info)
-        side-errs = info.errors.get()
-        cases(CheckingResult) tc-result:
-          | checking-result(new-body) =>
-            if is-empty(side-errs):
-              C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
-            else:
-              C.err(side-errs)
+      info = TCS.empty-tc-info("default")
+      for each(_import from imports):
+        cases(A.Import) _import:
+          | s-import(_, file, name) =>
+            raise("NYI")
+          | s-import-types(_, file, name, types) =>
+            key = import-to-string(file)
+            info.mod-names.set-now(types.key(), key)
+            cases(Option<ModuleType>) info.modules.get-now(key):
+              | some(mod) =>
+                info.typs.set-now(name.key(), mod.provides)
+              | none =>
+                raise("Can't handle importing " + key + " because it doesn't exist")
             end
-          | checking-err(err-list) =>
-            C.err(err-list + side-errs)
+          | s-import-fields(_, fields, file) =>
+            raise("NYI")
         end
-      else:
-        C.err([list: C.unsupported("The type-checker does not currently support imports.", l)])
+      end
+      tc-result = checking(body, A.dummy-loc, t-top, info)
+      side-errs = info.errors.get()
+      cases(CheckingResult) tc-result:
+        | checking-result(new-body) =>
+          if is-empty(side-errs):
+            C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
+          else:
+            C.err(side-errs)
+          end
+        | checking-err(err-list) =>
+          C.err(err-list + side-errs)
       end
     | else => raise("Attempt to type-check non-program: " + torepr(program))
   end

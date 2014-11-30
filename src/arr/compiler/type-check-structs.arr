@@ -8,6 +8,8 @@ import "compiler/compile-structs.arr" as C
 
 type Name                 = A.Name
 
+dict-to-string            = TS.dict-to-string
+
 type Type                 = TS.Type
 t-name                    = TS.t-name
 t-var                     = TS.t-var
@@ -38,6 +40,9 @@ t-variable                = TS.t-variable
 type TypeMember           = TS.TypeMember
 t-member                  = TS.t-member
 
+type ModuleType           = TS.ModuleType
+t-module                  = TS.t-module
+
 type DataType             = TS.DataType
 t-datatype                = TS.t-datatype
 
@@ -54,9 +59,23 @@ data TCInfo:
             aliases    :: SD.MutableStringDict<TS.Type>,
             data-exprs :: SD.MutableStringDict<TS.DataType>,
             branders   :: SD.MutableStringDict<TS.Type>,
+            modules    :: SD.MutableStringDict<TS.ModuleType>,
+            mod-names  :: SD.MutableStringDict<String>,
             binds      :: Bindings,
+            ref modul  :: TS.ModuleType,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
+sharing:
+  tostring(self, shadow tostring):
+    "tc-info(" +
+      dict-to-string(self.typs) + ", " +
+      dict-to-string(self.aliases) + ", " +
+      dict-to-string(self.data-exprs) + ", " +
+      dict-to-string(self.branders) + ", " +
+      dict-to-string(self.modules) + ", " +
+      tostring(self.binds) + ", " +
+      tostring(self.errors.get()) + ")"
+  end
 end
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
@@ -201,7 +220,14 @@ fun make-default-data-exprs():
   default-data-exprs
 end
 
-fun empty-tc-info() -> TCInfo:
+fun make-default-modules():
+  default-modules = SD.make-mutable-string-dict()
+
+  default-modules
+end
+
+fun empty-tc-info(mod-name :: String) -> TCInfo:
+  curr-module = t-module(mod-name, t-top, SD.make-string-dict(), SD.make-string-dict())
   errors = block:
     var err-list = empty
     {
@@ -213,12 +239,12 @@ fun empty-tc-info() -> TCInfo:
       end
     }
   end
-  tc-info(default-typs, SD.make-mutable-string-dict(), make-default-data-exprs(), SD.make-mutable-string-dict(), empty-bindings, errors)
+  tc-info(default-typs, SD.make-mutable-string-dict(), make-default-data-exprs(), SD.make-mutable-string-dict(), make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
   new-binds = info.binds.set(id, bound)
-  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
+  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, info.modules, info.mod-names, new-binds, info!modul, info.errors)
 end
 
 fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
@@ -232,22 +258,27 @@ end
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   cases(Type) typ:
     | t-name(module-name, name) =>
-      key = typ.key()
-      if info.data-exprs.has-key-now(key):
-        some(info.data-exprs.get-value-now(key))
-      else:
-        none
+      cases(Option<String>) module-name:
+        | some(mod) =>
+          cases(Option<ModuleType>) info.modules.get-now(mod):
+            | some(t-mod) =>
+              t-mod.types.get(tostring(name))
+            | none =>
+              raise("No module available with the name `" + mod + "'")
+          end
+        | none =>
+          key = typ.key()
+          info.data-exprs.get-now(key)
       end
     | t-app(base-typ, args) =>
-      key = base-typ.key()
-      if info.data-exprs.has-key-now(key):
-        data-type = info.data-exprs.get-value-now(key).introduce(args)
-        cases(Option<DataType>) data-type:
-          | some(dt) => data-type
-          | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
-        end
-      else:
-        none
+      cases(Option<DataType>) get-data-type(base-typ, info):
+        | some(new-base-typ) =>
+          data-type = new-base-typ.introduce(args)
+          cases(Option<DataType>) data-type:
+            | some(dt) => data-type
+            | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
+          end
+        | none => none
       end
     | else =>
       none

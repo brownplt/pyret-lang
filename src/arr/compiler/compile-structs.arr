@@ -178,9 +178,19 @@ data CompileError:
       "There is not enough information to instantiate the type at " + tostring(self.loc)
          + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
     end
+  | cant-typecheck(reason :: String) with:
+    tostring(self, shadow tostring):
+      "This program cannot be type-checked. Please send it to the developers. " +
+        "The reason that it cannot be type-checked is: " + self.reason
+    end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     tostring(self, shadow tostring):
       self.message + " (found at " + tostring(self.blame-loc) + ")"
+    end
+  | no-module(loc :: A.Loc, mod-name :: String) with:
+    tostring(self, shadow tostring):
+      "There is no module imported with the name " + self.mod-name
+        + " (used at " + tostring(self.loc) + ")"
     end
 end
 

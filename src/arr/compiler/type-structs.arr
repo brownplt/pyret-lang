@@ -12,6 +12,14 @@ fold2-strict = LA.fold2-strict
 
 type Name = A.Name
 
+fun dict-to-string(dict :: SD.StringDict) -> String:
+  "{"
+    + for map(key from dict.keys().to-list()):
+        key + " => " + torepr(dict.get(key))
+      end.join-str(", ")
+    + "}"
+end
+
 data Pair<L,R>:
   | pair(left :: L, right :: R)
 sharing:
@@ -219,8 +227,20 @@ data DataType:
     end
 end
 
+data ModuleType:
+  | t-module(name :: String, provides :: Type, types :: SD.StringDict<DataType>, aliases :: SD.StringDict<Type>)
+sharing:
+  tostring(self, shadow tostring):
+    "t-module(" +
+      torepr(self.name)          + ", " +
+      torepr(self.provides)      + ", " +
+      dict-to-string(self.types) + ", " +
+      dict-to-string(self.aliases) + ")"
+  end
+end
+
 data Type:
-  | t-name(module-name :: Option<Name>, id :: Name)
+  | t-name(module-name :: Option<String>, id :: Name)
   | t-var(id :: Name)
   | t-arrow(args :: List<Type>, ret :: Type)
   | t-app(onto :: Type % (is-t-name), args :: List<Type> % (is-link))
@@ -232,9 +252,10 @@ data Type:
 sharing:
   tostring(self, shadow tostring) -> String:
     cases(Type) self:
-      | t-name(module-name, id) => cases(Option<String>) module-name:
+      | t-name(module-name, id) =>
+        cases(Option<String>) module-name:
           | none    => id.toname()
-          | some(m) => m.toname() + "." + id.toname()
+          | some(m) => m + "." + id.toname()
         end
       | t-var(id) => id.toname()
       | t-arrow(args, ret) =>
@@ -243,7 +264,7 @@ sharing:
           + " -> " + tostring(ret) + ")"
       | t-app(onto, args) =>
         tostring(onto) + "<" + args.map(tostring).join-str(", ") + ">"
-      | t-top => "Top"
+      | t-top => "Any"
       | t-bot => "Bot"
       | t-record(fields) =>
         "{"
@@ -257,9 +278,10 @@ sharing:
   end,
   key(self) -> String:
     cases(Type) self:
-      | t-name(module-name, id) => cases(Option<String>) module-name:
+      | t-name(module-name, id) =>
+        cases(Option<String>) module-name:
           | none    => id.key()
-          | some(m) => m.key() + "." + id.key()
+          | some(m) => m + "." + id.key()
         end
       | t-var(id) => id.key()
       | t-arrow(args, ret) =>
