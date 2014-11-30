@@ -432,7 +432,11 @@ sharing:
   end
 end
 
+t-array-name = t-name(none, A.s-type-global("RawArray"))
+
 t-number  = t-name(none, A.s-type-global("Number"))
 t-string  = t-name(none, A.s-type-global("String"))
 t-boolean = t-name(none, A.s-type-global("Boolean"))
+t-nothing = t-name(none, A.s-type-global("Nothing"))
 t-srcloc  = t-name(none, A.s-global("Loc"))
+t-array   = lam(v): t-app(t-array-name, [list: v]);

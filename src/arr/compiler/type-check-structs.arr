@@ -21,9 +21,10 @@ t-forall                  = TS.t-forall
 t-number                  = TS.t-number
 t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
+t-array                   = TS.t-array
+t-nothing                 = TS.t-nothing
 t-srcloc                  = TS.t-srcloc
 
-t-member                  = TS.t-member
 
 type Variance             = TS.Variance
 constant                  = TS.constant
@@ -34,7 +35,16 @@ contravariant             = TS.contravariant
 type TypeVariable         = TS.TypeVariable
 t-variable                = TS.t-variable
 
-type DataType              = TS.DataType
+type TypeMember           = TS.TypeMember
+t-member                  = TS.t-member
+
+type DataType             = TS.DataType
+t-datatype                = TS.t-datatype
+
+type TypeVariant          = TS.TypeVariant
+t-variant                 = TS.t-variant
+t-singleton-variant       = TS.t-singleton-variant
+
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.make-string-dict()
 
@@ -173,6 +183,24 @@ print-variable = A.s-atom(gensym("A"), 1)
 default-typs.set-now(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
 default-typs.set-now(A.s-global("display").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
 
+s-atom = A.s-atom
+
+fun make-default-data-exprs():
+  default-data-exprs = SD.make-mutable-string-dict()
+  default-data-exprs.set-now(A.s-type-global("RawArray").key(),
+    # RawArray is invariant because it can be mutated
+    t-datatype("RawArray", [list: t-variable(A.dummy-loc, s-atom("A", 10), t-top, invariant)], empty, empty))
+  default-data-exprs.set-now(A.s-type-global("Number").key(),
+    t-datatype("Number", empty, empty, empty))
+  default-data-exprs.set-now(A.s-type-global("String").key(),
+    t-datatype("String", empty, empty, empty))
+  default-data-exprs.set-now(A.s-type-global("Boolean").key(),
+    t-datatype("Boolean", empty, empty, empty))
+  default-data-exprs.set-now(A.s-type-global("Nothing").key(),
+    t-datatype("Nothing", empty, empty, empty))
+  default-data-exprs
+end
+
 fun empty-tc-info() -> TCInfo:
   errors = block:
     var err-list = empty
@@ -185,7 +213,7 @@ fun empty-tc-info() -> TCInfo:
       end
     }
   end
-  tc-info(default-typs, SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), empty-bindings, errors)
+  tc-info(default-typs, SD.make-mutable-string-dict(), make-default-data-exprs(), SD.make-mutable-string-dict(), empty-bindings, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:

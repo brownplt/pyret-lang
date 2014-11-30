@@ -55,6 +55,7 @@ pair                      = TS.pair
 t-number                  = TS.t-number
 t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
+t-array                   = TS.t-array
 t-srcloc                  = TS.t-srcloc
 
 type TypeConstraint       = TC.TypeConstraint
@@ -867,7 +868,19 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
         synthesis-result(new-obj, l, obj-typ)
       end
     | s-array(l, values) =>
-      synthesis-err([list: C.unsupported("Arrays are currently unsupported by the type checker", l)])
+      fun process(value :: A.Expr) -> FoldResult<Pair<A.Expr,Type>>:
+        synthesis(value, info).fold-bind(lam(expr, _, typ):
+          fold-result(pair(expr, typ))
+        end)
+      end
+      for synth-bind(result from map-result(process, values)):
+        split-result = split(result)
+        new-values   = split-result.left
+        value-typs   = split-result.right
+        array-typ    = meet-branch-typs(value-typs, info)
+        new-array    = A.s-array(l, new-values)
+        synthesis-result(new-array, l, t-array(array-typ))
+      end
     | s-construct(l, modifier, constructor, values) =>
       synthesis-err([list: C.unsupported("s-construct is currently unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
@@ -1267,7 +1280,26 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
         check-and-return(l, obj-typ, expect-loc, expect-typ, new-obj, info)
       end
     | s-array(l, values) =>
-      checking-err([list: C.unsupported("s-array is currently unsupported by the type checker", l)])
+      wrapped = cases(Type) expect-typ:
+        | t-app(rarray, args) =>
+          if TS.t-array-name == rarray:
+            param-typ = args.first
+            for map-checking(value from values):
+              checking(value, expect-loc, param-typ, info)
+            end
+          else:
+            checking-err([list: C.incorrect-type("a raw array", l, tostring(expect-typ), expect-loc)])
+          end
+        | t-top =>
+          for map-checking(value from values):
+            checking(value, l, t-top, info)
+          end
+        | else =>
+          checking-err([list: C.incorrect-type("a raw array", l, tostring(expect-typ), expect-loc)])
+      end
+      for check-bind(new-values from wrapped):
+        checking-result(A.s-array(l, new-values))
+      end
     | s-construct(l, modifier, constructor, values) =>
       checking-err([list: C.unsupported("s-construct is unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
