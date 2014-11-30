@@ -1,9 +1,11 @@
 #lang pyret
 
+import ast as A
 import exec as X
 import filelib as FL
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
+import "compiler/type-defaults.arr" as TD
 
 exec-result = lam(result):
   str = result.code.pyret-to-js-runnable()
@@ -75,6 +77,17 @@ check "These should all be bad programs":
           end
       end
       FL.close-output-file(prog-file)
+    end
+  end
+end
+
+check "All builtins should have a type":
+  covered = TD.make-default-typs()
+  for each(builtin from CS.runtime-builtins):
+    builtin-typ = covered.get-now(A.s-global(builtin.id).key())
+    builtin-typ satisfies is-some
+    when is-none(builtin-typ):
+      "Should have a type: " is builtin
     end
   end
 end

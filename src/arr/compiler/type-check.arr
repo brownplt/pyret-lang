@@ -458,7 +458,12 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
     | a-any =>
       fold-result(some(t-top))
     | a-name(l, id) =>
-      fold-result(some(t-name(none, id)))
+      cases(Option<Type>) info.aliases.get-now(id.key()):
+        | some(typ) =>
+          fold-result(some(typ))
+        | none =>
+          fold-result(some(t-name(none, id)))
+      end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id)))
     | a-arrow(l, args, ret, use-parens) =>
