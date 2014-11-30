@@ -247,19 +247,19 @@ fun to-type-variant(variant :: A.Variant, info :: TCInfo) -> FoldResult<Pair<A.V
 end
 
 fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type,
-                handle :: (A.Expr, Loc, List<TypeMember> -> SynthesisResult),
+                handle :: (A.Expr, Loc, Option<List<TypeMember>> -> SynthesisResult),
                 info :: TCInfo
 ) -> SynthesisResult:
   non-obj-err = synthesis-err([list: C.incorrect-type(tostring(obj-typ), obj-typ-loc, "an object type", access-loc)])
   cases(Type) obj-typ:
     | t-record(members) =>
-      handle(obj, obj-typ-loc, members)
+      handle(obj, obj-typ-loc, some(members))
     | t-bot =>
-      raise("NYI(record-view): Cannot currently handle record views of the bottom type")
+      handle(obj, obj-typ-loc, none)
     | else =>
       cases(Option<DataType>) TCS.get-data-type(obj-typ, info):
         | some(data-type) =>
-          handle(obj, obj-typ-loc, data-type.fields)
+          handle(obj, obj-typ-loc, some(data-type.fields))
         | none =>
           non-obj-err
       end
@@ -268,12 +268,17 @@ end
 
 fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type, field-name :: String, recreate :: (A.Loc, A.Expr, String -> A.Expr), info :: TCInfo) -> SynthesisResult:
   record-view(access-loc, obj, obj-typ-loc, obj-typ,
-  lam(new-obj, l, obj-fields):
-    cases(Option<TypeMember>) TS.type-members-lookup(obj-fields, field-name):
-      | some(tm) =>
-        synthesis-result(recreate(l, new-obj, field-name), l, tm.typ)
+  lam(new-obj, l, maybe-obj-fields):
+    cases(Option<List<TypeMember>>) maybe-obj-fields:
+      | some(obj-fields) =>
+        cases(Option<TypeMember>) TS.type-members-lookup(obj-fields, field-name):
+          | some(tm) =>
+            synthesis-result(recreate(l, new-obj, field-name), l, tm.typ)
+          | none =>
+            synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(tostring).join-str(", ") + "}", l, access-loc)])
+        end
       | none =>
-        synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(tostring).join-str(", ") + "}", l, access-loc)])
+        synthesis-result(recreate(l, new-obj, field-name), l, t-bot)
     end
   end, info)
 end
