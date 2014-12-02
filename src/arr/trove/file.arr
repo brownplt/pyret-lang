@@ -26,7 +26,7 @@ fun input-file(path :: String):
 end
 
 fun file-exists(path :: String):
-  F.file-exists(path)
+  F.exists(path)
 end
 
 fun file-to-string(path):
