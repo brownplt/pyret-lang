@@ -3,8 +3,11 @@
 provide *
 import srcloc as S
 import "compiler/compile-structs.arr" as C
+import "compiler/compile-lib.arr" as CL
 import ast as A
 import error as E
+import parse-pyret as P
+import string-dict as SD
 
 fun drop-module-bindings(env :: C.CompileEnvironment):
   fun negate(f): lam(x): not(f(x));;
@@ -186,5 +189,36 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
           defined-ids.imports,
           body)
   end
+end
+
+fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
+  fun get-ast():
+    initial-definitions = get-definitions()
+    parsed = P.surface-parse(initial-definitions, name)
+    make-provide-for-repl-main(parsed, compile-env)
+  end
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+    get-compile-env(self): compile-env end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
+fun make-definitions-finder(import-types :: SD.StringDict):
+  fun definitions-finder(context, dep):
+    cases(Option) import-types.get(dep.protocol):
+      | none => raise("Cannot find module: " + torepr(dep))
+      | some(handler) => handler(context, dep.arguments)
+    end
+  end
+  definitions-finder
 end
 

@@ -148,7 +148,6 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
         | pyret-ast(module-ast) =>
           CM.compile-js-ast(
             CM.start,
-            "Pyret",
             module-ast,
             locator.name(),
             locator.get-compile-env(),
@@ -186,7 +185,7 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader) -> PyretAnswer
       depvals = for map(d from depnames.sort()):
         { modval: modvals.get-value(dependencies.get-value-now(d).uri()), key: d }
       end
-      cases(CM.CompileResult) load-info.compiled-mod:
+      cases(CS.CompileResult) load-info.compiled-mod:
         | err(problems) => raise(problems)
         | ok(cp) => 
           ans = loader.load(cp, depvals)
