@@ -32,10 +32,6 @@ type Locator = {
   get-provides :: ( -> Provides),
   get-compile-env :: ( -> CS.CompileEnv),
 
-  # e.g. create a new CompileContext that is at the base of the directory
-  # this Locator is in.  The CC holds the current working directory
-  update-compile-context :: (CompileContext -> CompileContext),
-
   uri :: (-> URI),
   name :: (-> String),
 
@@ -90,7 +86,7 @@ end
 fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
 
   fun compile-worklist(locator :: Locator, context :: CompileContext) -> List<ToCompile>:
-    fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: CompileContext, curr-path :: List<ToCompile>) -> List<ToCompile>:
+    fun add-preds-to-worklist(shadow locator :: Locator, curr-path :: List<ToCompile>) -> List<ToCompile>:
       when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
         raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
@@ -103,11 +99,11 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
       end
       tocomp = {locator: locator, dependency-map: pmap, path: curr-path}
       for fold(ret from [list: tocomp], dloc from dlocs):
-        pret = add-preds-to-worklist(dloc, dloc.update-compile-context(context), curr-path + [list: tocomp])
+        pret = add-preds-to-worklist(dloc, curr-path + [list: tocomp])
         pret + ret
       end
     end
-    add-preds-to-worklist(locator, context, empty)
+    add-preds-to-worklist(locator, empty)
   end
 
   fun compile-program(worklist :: List<ToCompile>) -> List<CS.CompileResult>:
