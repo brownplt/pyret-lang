@@ -15,6 +15,15 @@
     (fun-spec
       (name "set")
       (arity 1))
+    (fun-spec
+      (name "list-to-set")
+      (arity 1))
+    (fun-spec
+      (name "list-to-list-set")
+      (arity 1))
+    (fun-spec
+      (name "list-to-tree-set")
+      (arity 1))
     (data-spec
       (name "Set")
       (type-vars (a-id "a"))
@@ -31,6 +40,12 @@
               ,s-of-a
               (a-arrow "b" "a" "b")
               "b"))
+        )
+        (method-spec
+          (name "size")
+          (arity 1)
+          (params)
+          (args ("self"))
         )
         (method-spec
           (name "pick")
@@ -206,10 +221,63 @@ An empty set backed by a tree.
 
 Another name for @pyret-id{list-set}.
 
+@function["list-to-list-set"
+  #:contract (a-arrow (L-of "a") (S-of "a"))
+  #:args (list (list "lst" #f))
+  #:return (S-of "a")
+]
+
+Turn a list into a list-set.
+
+@examples{
+check:
+  s1 = sets.list-to-list-set([list: 1, 2, 3, 3, 3])
+  s1 is [list-set: 1, 2, 3]
+end
+}
+
+
+@function["list-to-tree-set"
+  #:contract (a-arrow (L-of "a") (S-of "a"))
+  #:args (list (list "lst" #f))
+  #:return (S-of "a")
+]
+
+Turn a list into a tree-set.
+
+@examples{
+check:
+  s1 = sets.list-to-tree-set([list: 1, 2, 3, 3, 3])
+  s1 is [tree-set: 1, 2, 3]
+end
+}
+
+
+@function["list-to-set"
+  #:contract (a-arrow (L-of "a") (S-of "a"))
+  #:args (list (list "lst" #f))
+  #:return (S-of "a")
+]
+
+Another name for @pyret-id["list-to-list-set"].
+
 @section{Set Methods}
 
 @set-method["add"]
 @set-method["remove"]
+
+@(method-doc "Set" "set" "size" #:alt-docstrings "" #:contract (a-arrow (S-of "a") N) #:return N)
+
+Get the number of elements in the set.
+
+@examples{
+check:
+  [set: 1, 2, 3].size() is 3
+  [tree-set: 1, 2, 3].size() is 3
+  [list-set: 1, 2, 3].size() is 3
+end
+}
+
 @set-method["member"]
 
 Checks if @pyret{elt} is contained within this set (checking membership with

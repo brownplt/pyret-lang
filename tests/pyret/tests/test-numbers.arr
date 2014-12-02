@@ -136,3 +136,27 @@ check:
   randoms satisfies lists.all(lam(v): (v < 100) and (v >= 0) end, _)
   randoms violates lists.all(lam(v): v == randoms.first end, _)
 end
+
+check "random seed":
+  num-random-seed(0)
+  s = num-random(10000)
+
+  num-random-seed(1)
+  s2 = num-random(10000)
+
+  num-random-seed(0)
+  num-random(10000) is s
+  num-random-seed(1)
+  num-random(10000) is s2
+end
+
+check:
+  num-to-string-digits(5432.1234, 2) is "5432.12"
+  num-to-string-digits(0.123456789, 2) is "0.12"
+  num-to-string-digits(5, 2) is "5.00"
+  num-to-string-digits(555, -2) is "600."
+  # NOTE(joe): This test is awaiting a fixed numeric library for rounding
+  # num-to-string-digits(100000000000000000000000000000000000000001234 / 10000, 2) is 
+  #  "10000000000000000000000000000000000000000.12"
+end
+

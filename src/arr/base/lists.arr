@@ -265,18 +265,6 @@ sharing:
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set(self, n, e)
   end
-where:
-  [list: 1].push(0) is [list: 0, 1]
-
-  [list: 1, 2, 3, 4, 5, 6].take(3) is [list: 1, 2, 3]
-
-  [list: 1, 2, 3, 4, 5, 6].drop(3) is [list: 4, 5, 6]
-
-  [list: 1, 2, 3].get(0) is 1
-  [list: ].get(0) raises ""
-
-  [list: 1, 2, 3].set(0, 5) is [list: 5, 2, 3]
-  [list: ].set(0, 5) raises ""
 end
 
 fun<a> get(lst :: List<a>, n :: Number) -> a:
@@ -290,9 +278,6 @@ fun<a> get(lst :: List<a>, n :: Number) -> a:
   if n < 0: raise("get: invalid argument: " + tostring(n))
   else: help(lst, n)
   end
-where:
-  get([list: 1, 2, 3], 0) is 1
-  get([list: ], 0) raises ""
 end
 
 fun<a> set(lst :: List<a>, n :: Number, v) -> a:
@@ -307,9 +292,6 @@ fun<a> set(lst :: List<a>, n :: Number, v) -> a:
   if n < 0: raise("set: invalid argument: " + tostring(n))
   else: help(lst, n)
   end
-where:
-  set([list: 1, 2, 3], 0, 5) is [list: 5, 2, 3]
-  set([list: 1, 2, 3], 5, 5) raises ""
 end
 
 fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
@@ -318,10 +300,9 @@ fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
     | empty => acc
     | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
   end
-where:
-  reverse([list: ], [list: ]) is [list: ]
-  reverse([list: 1, 3], [list: ]) is [list: 3, 1]
 end
+
+fun<a> reverse(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -333,10 +314,24 @@ fun range(start :: Number, stop :: Number) -> List<Number>:
                                  + tostring(stop)
                                  + ")")
   end
-where:
-  range(0,0) is [list: ]
-  range(0,1) is [list: 0]
-  range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+end
+
+fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
+  doc: ```Creates a list of numbers, starting with start, in intervals of delta,
+          until reaching (but not including) stop```
+  if delta == 0:
+    if start == stop: empty
+    else: raise("range-by: an interval of 0 would produce an infinite list")
+    end
+  else if delta < 0:
+    if start <= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  else:
+    if start >= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  end
 end
 
 fun<a> repeat(n :: Number, e :: a) -> List<a>:
@@ -345,10 +340,6 @@ fun<a> repeat(n :: Number, e :: a) -> List<a>:
   else if n == 0: empty
   else:           raise("repeat: can't have a negative argument'")
   end
-where:
-  repeat(0, 10) is empty
-  repeat(3, -1) is [list: -1, -1, -1]
-  repeat(1, "foo") is link("foo", empty)
 end
 
 fun<a> filter(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
@@ -362,9 +353,6 @@ fun<a> filter(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
       filter(f, lst.rest)
     end
   end
-where:
-  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
 end
 
 fun<a> partition(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-false: List<a>}:
@@ -384,11 +372,21 @@ fun<a> partition(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-f
   end
   help(lst)
   { is-true: is-true, is-false: is-false }
-where:
-  partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
-  partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
-  partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
+
+fun<a> remove(lst :: List<a>, elt :: a) -> List<a>:
+  doc: ```Returns the list without the element if found, or the whole list if it is not```
+  if is-empty(lst):
+    empty
+  else:
+    if elt == lst.first:
+      remove(lst.rest, elt)
+    else:
+      link(lst.first, remove(lst.rest, elt))
+    end
+  end
+end
+
 
 fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
@@ -402,13 +400,6 @@ fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
       find(f, lst.rest)
     end
   end
-where:
-  find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
-  find(lam(elt): elt > 4 end, [list: 1, 2, 3]) is none
-  find(lam(elt): true end, [list: "find-me", "miss-me"]) is some("find-me")
-  find(lam(elt): true end, empty) is none
-  find(lam(elt): false end, [list: "miss-me"]) is none
-  find(lam(elt): false end, empty) is none
 end
 
 fun<a> split-at(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<a> }:
@@ -431,24 +422,11 @@ fun<a> split-at(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<
   end
   help(n, lst)
   { prefix: prefix, suffix: suffix }
-where:
-  one-four = link(1, link(2, link(3, link(4, empty))))
-
-  split-at(0, one-four) is { prefix: empty, suffix: one-four }
-  split-at(4, one-four) is { prefix: one-four, suffix: empty }
-  split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
-  split-at(-1, one-four) raises "Invalid index"
-  split-at(5, one-four) raises "Index too large"
 end
 
 fun<a> any(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
-where:
-  any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
-  any(lam(n): n > 3 end, [list: 1, 2, 3]) is false
-  any(lam(x): true  end, empty) is false
-  any(lam(x): false end, empty) is false
 end
 
 fun<a> all(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
@@ -459,11 +437,6 @@ fun<a> all(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
     end
   end
   help(lst)
-where:
-  all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
-  all(lam(n): n <= 3 end, [list: 1, 2, 3]) is true
-  all(lam(x): true  end, empty) is true
-  all(lam(x): false end, empty) is true
 end
 
 fun<a, b> all2(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
@@ -475,14 +448,6 @@ fun<a, b> all2(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
     end
   end
   help(lst1, lst2)
-where:
-  all2(lam(n, m): false end, [list: 1, 2, 3], empty) is false
-  all2(lam(n, m): true  end, [list: 1, 2, 3], empty) is false
-  all2(lam(n, m): n > m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is true
-  all2(lam(n, m): (n + m) == 3 end, [list: 1, 2, 3], [list: 2, 1, 0]) is true
-  all2(lam(n, m): n < m end,        [list: 1, 2, 3], [list: 0, 1, 2]) is false
-  all2(lam(_, _): true  end, empty, empty) is true
-  all2(lam(_, _): false end, empty, empty) is true
 end
 
 
@@ -493,10 +458,6 @@ fun<a, b> map(f :: (a -> b), lst :: List<a>) -> List<b>:
   else:
     f(lst.first) ^ link(_, map(f, lst.rest))
   end
-where:
-  map(lam(_): raise("shipwrecked!");, [list: ]) is [list: ]
-  map(lam(_): 2;, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
-  map(lam(x): x + 1;, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
 end
 
 fun<a, b, c> map2(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
@@ -506,9 +467,6 @@ fun<a, b, c> map2(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   else:
     f(l1.first, l2.first) ^ link(_, map2(f, l1.rest, l2.rest))
   end
-where:
-  map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
-  map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 fun<a, b, c, d> map3(f :: (a, b, c -> d), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
@@ -536,8 +494,6 @@ fun<a, b> map_n(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> List<b>:
   else:
     f(n, lst.first) ^ link(_, map_n(f, n + 1, lst.rest))
   end
-where:
-  map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 fun<a, b, c> map2_n(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: List<b>) -> List<c>:
@@ -578,20 +534,6 @@ fun<a> each(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
     end
   end
   help(lst)
-where:
-  one-four = link(1, link(2, link(3, link(4, empty))))
-
-  let var counter = 0:
-    each(lam(n): counter := counter + n end, one-four)
-    counter is 1 + 2 + 3 + 4
-    counter is 10
-  end
-
-  let var counter = 1:
-    each(lam(n): counter := counter * n end, one-four)
-    counter is 1 * 2 * 3 * 4
-    counter is 24
-  end
 end
 
 fun<a, b> each2(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
@@ -707,10 +649,6 @@ fun<a, b> fold(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   else:
     fold(f, f(base, lst.first), lst.rest)
   end
-where:
-  fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
-  fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
-  fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
 fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:
@@ -721,8 +659,6 @@ fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>)
   else:
     fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
   end
-where:
-  fold2(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
 end
 
 fun<a, b, c, d> fold3(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>) -> a:
@@ -756,18 +692,6 @@ fun<a, b> fold_n(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
     end
   end
   help(num, base, lst)
-where:
-  fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
-  fold_n(lam(n, acc, cur):
-                  tostring(n) + " " + cur + ", " + acc
-               end,
-               95, "and so forth...", repeat(5, "jugs o' grog in the hold"))
-    is "99 jugs o' grog in the hold, 98 jugs o' grog in the hold, "
-    + "97 jugs o' grog in the hold, 96 jugs o' grog in the hold, "
-    + "95 jugs o' grog in the hold, and so forth..."
-  fold_n(lam(n, acc, cur): ((num-modulo(n, 2) == 0) or cur) and acc end,
-               0, true, [list: false, true, false])
-    is true
 end
 
 fun<a> member-with(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
@@ -809,6 +733,15 @@ end
 
 fun<a> member-identical(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-identical3(lst, elt))
+end
+
+fun<a> shuffle(lst :: List<a>) -> List<a>:
+  if is-empty(lst): empty
+  else:
+    ix = random(lst.length())
+    elt = lst.get(ix)
+    link(elt, shuffle(remove(lst, elt)))
+  end
 end
 
 index = get

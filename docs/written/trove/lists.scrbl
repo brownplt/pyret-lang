@@ -490,4 +490,26 @@ end
   @function[
     "member-with"
   ]
+  @function[
+    "reverse"
+  ]
+
+
+  @function[
+    "shuffle"
+  ]
+
+  Returns a new list with all the elements of the original list in random
+  order.
+
+@examples{
+check "shuffle":
+  l = [list: 1, 2, 3, 4]                                                                         
+  l-mixed = lists.shuffle(l)
+  sets.list-to-set(l-mixed) is sets.list-to-set(l)                                               
+  l-mixed.length() is l.length()  
+end
 }
+
+}
+
