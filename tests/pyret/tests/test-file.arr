@@ -9,4 +9,7 @@ check:
   l = string-split(p, "/tests/pyret/tests/test-file.arr")
   l.length() is 2
   l.get(1) is ""
+  F.exists(p) is true
+  p2 = "./non-existing-file"
+  F.exists(p2) is false
 end

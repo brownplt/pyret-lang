@@ -77,6 +77,13 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                   var newpath = fs.realpathSync(s);
                   return RUNTIME.makeString(newpath);
                 }),
+              "exists": RUNTIME.makeFunction(function(path) {
+                  ffi.checkArity(1, arguments, "exists");
+                  RUNTIME.checkString(path);
+                  var s = RUNTIME.unwrap(path);
+                  var e = fs.existsSync(s);
+                  return RUNTIME.makeBoolean(e);
+                }),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   ffi.checkArity(1, arguments, "close-output-file");
                 }),
