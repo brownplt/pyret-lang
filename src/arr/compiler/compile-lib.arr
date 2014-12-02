@@ -8,6 +8,7 @@ import sets as S
 import string-dict as SD
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
+import "compiler/js-of-pyret.arr" as JSP
 
 type URI = String
 
@@ -40,8 +41,8 @@ type Locator = {
 
   # Note that CompileResults can contain both errors and successful
   # compilations
-  set-compiled :: (CS.CompileResult, SD.MutableStringDict<Provides> -> Nothing),
-  get-compiled :: ( -> Option<CS.CompileResult>),
+  set-compiled :: (CS.CompileResult<JSP.CompiledCodePrinter>, SD.MutableStringDict<Provides> -> Nothing),
+  get-compiled :: ( -> Option<CS.CompileResult<JSP.CompiledCodePrinter>>),
 
   # _equals should compare uris for locators
   _equals :: Method
