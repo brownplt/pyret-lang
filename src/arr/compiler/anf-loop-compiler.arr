@@ -2,7 +2,6 @@
 
 provide *
 import ast as A
-import sets as Sets
 import "compiler/ast-anf.arr" as N
 import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
@@ -236,53 +235,55 @@ fun arity-check(loc-expr, arity :: Number):
             [list: loc-expr, j-num(arity), j-id("arguments")]))]))
 end
 
+empty-string-dict = D.make-string-dict()
+
 local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
   j-parens(self, exp): exp.visit(self) end,
   j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right): left.visit(self).union(right.visit(self)) end,
-  j-fun(self, args, body): sets.empty-tree-set end,
-  j-app(self, func, args): args.foldl(lam(arg, base): base.union(arg.visit(self)) end, func.visit(self)) end,
-  j-method(self, obj, meth, args): sets.empty-tree-set end,
-  j-ternary(self, test, consq, alt): test.visit(self).union(consq.visit(self)).union(alt.visit(self)) end,
+  j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
+  j-fun(self, args, body): empty-string-dict end,
+  j-app(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
+  j-method(self, obj, meth, args): empty-string-dict end,
+  j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
   j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs): obj.visit(self).union(field.visit(self)).union(rhs.visit(self)) end,
-  j-dot-assign(self, obj, name, rhs): obj.visit(self).union(rhs.visit(self)) end,
+  j-bracket-assign(self, obj, field, rhs): obj.visit(self).merge(field.visit(self)).merge(rhs.visit(self)) end,
+  j-dot-assign(self, obj, name, rhs): obj.visit(self).merge(rhs.visit(self)) end,
   j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field): obj.visit(self).union(field.visit(self)) end,
+  j-bracket(self, obj, field): obj.visit(self).merge(field.visit(self)) end,
   j-list(self, multi-line, elts):
-    elts.foldl(lam(arg, base): base.union(arg.visit(self)) end, sets.empty-tree-set)
+    elts.foldl(lam(arg, base): base.merge(arg.visit(self)) end, empty-string-dict)
   end,
-  j-obj(self, fields): fields.foldl(lam(f, base): base.union(f.visit(self)) end, sets.empty-tree-set) end,
-  j-id(self, id): sets.empty-tree-set end,
-  j-str(self, s): sets.empty-tree-set end,
-  j-num(self, n): sets.empty-tree-set end,
-  j-true(self): sets.empty-tree-set end,
-  j-false(self): sets.empty-tree-set end,
-  j-null(self): sets.empty-tree-set end,
-  j-undefined(self): sets.empty-tree-set end,
-  j-label(self, label): sets.empty-tree-set end,
-  j-case(self, exp, body): exp.visit(self).union(body.visit(self)) end,
+  j-obj(self, fields): fields.foldl(lam(f, base): base.merge(f.visit(self)) end, empty-string-dict) end,
+  j-id(self, id): empty-string-dict end,
+  j-str(self, s): empty-string-dict end,
+  j-num(self, n): empty-string-dict end,
+  j-true(self): empty-string-dict end,
+  j-false(self): empty-string-dict end,
+  j-null(self): empty-string-dict end,
+  j-undefined(self): empty-string-dict end,
+  j-label(self, label): empty-string-dict end,
+  j-case(self, exp, body): exp.visit(self).merge(body.visit(self)) end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts): stmts.foldl(lam(s, base): base.union(s.visit(self)) end, sets.empty-tree-set) end,
+  j-block(self, stmts): stmts.foldl(lam(s, base): base.merge(s.visit(self)) end, empty-string-dict) end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
     if string-contains(name, "$underscore"): rhs.visit(self)
-    else: [tree-set: name].union(rhs.visit(self))
+    else: [D.string-dict: name, true].merge(rhs.visit(self))
     end
   end,
-  j-if1(self, cond, consq): cond.visit(self).union(consq.visit(self)) end,
-  j-if(self, cond, consq, alt): cond.visit(self).union(consq.visit(self)).union(alt.visit(self)) end,
+  j-if1(self, cond, consq): cond.visit(self).merge(consq.visit(self)) end,
+  j-if(self, cond, consq, alt): cond.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
   j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch): body.visit(self).union(catch.visit(self)) end,
+  j-try-catch(self, body, exn, catch): body.visit(self).merge(catch.visit(self)) end,
   j-throw(self, exp): exp.visit(self) end,
   j-expr(self, exp): exp.visit(self) end,
-  j-break(self): sets.empty-tree-set end,
-  j-continue(self): sets.empty-tree-set end,
+  j-break(self): empty-string-dict end,
+  j-continue(self): empty-string-dict end,
   j-switch(self, exp, branches):
-    branches.foldl(lam(b, base): base.union(b.visit(self)) end, exp.visit(self))
+    branches.foldl(lam(b, base): base.merge(b.visit(self)) end, exp.visit(self))
   end,
-  j-while(self, cond, body): cond.visit(self).union(body.visit(self)) end
+  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end
 }
 
 
@@ -300,9 +301,9 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   ^ concat-append(_, ann-cases.new-cases)
   ^ concat-snoc(_, j-case(ann-cases.new-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
-  vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from main-body-cases):
-      base.union(case-expr.visit(local-bound-vars-visitor))
-    end).to-list()
+  vars = (for concat-foldl(base from empty-string-dict, case-expr from main-body-cases):
+      base.merge(case-expr.visit(local-bound-vars-visitor))
+    end).keys-list()
   switch-cases =
     main-body-cases
   ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -327,7 +328,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   #       check-no-dups(seen.add(lbl), tl)
   #   end
   # end        
-  # check-no-dups(Sets.empty-tree-set, switch-cases.to-list())
+  # check-no-dups(sets.empty-tree-set, switch-cases.to-list())
   # Initialize the case numbers, for more legible output...
   switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
   act-record = rt-method("makeActivationRecord", [list:
