@@ -31,7 +31,27 @@ define(["js/runtime-util", "path", "js/ffi-helpers"], function(util, path, ffiLi
                   var sfrom = RUNTIME.unwrap(from);
                   var sto = RUNTIME.unwrap(to);
                   return RUNTIME.makeString(path.relative(sfrom, sto));
-                })
+              }),
+              "dirname": RUNTIME.makeFunction(function(p) {
+                  ffi.checkArity(1, arguments, "dirname");
+                  RUNTIME.checkString(p);
+                  var s = RUNTIME.unwrap(p);
+                  return RUNTIME.makeString(path.dirname(s));
+              }),
+              "extname": RUNTIME.makeFunction(function(p) {
+                  ffi.checkArity(1, arguments, "extname");
+                  RUNTIME.checkString(p);
+                  var s = RUNTIME.unwrap(p);
+                  return RUNTIME.makeString(path.extname(s));
+              }),
+              "basename": RUNTIME.makeFunction(function(p, ext) {
+                  ffi.checkArity(2, arguments, "basename");
+                  RUNTIME.checkString(p);
+                  RUNTIME.checkString(ext);
+                  var s = RUNTIME.unwrap(p);
+                  var sext = RUNTIME.unwrap(ext);
+                  return RUNTIME.makeString(path.basename(s, sext));
+              })
             }),
           answer: NAMESPACE.get("nothing")
         });
