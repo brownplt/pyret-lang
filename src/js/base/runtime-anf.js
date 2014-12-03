@@ -3299,9 +3299,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_truncate = function(n) {
       thisRuntime.checkArity(1, arguments, "num-truncate");
       thisRuntime.checkNumber(n);
-      if (isNaN(n)) {
-        return n;
-      } else if (jsnums.greaterThanOrEqual(n, 0)) {
+      if (jsnums.greaterThanOrEqual(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n));
       } else {
         return thisRuntime.makeNumberBig(jsnums.ceiling(n));
