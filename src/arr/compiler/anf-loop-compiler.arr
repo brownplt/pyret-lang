@@ -1216,9 +1216,14 @@ end
 
 fun compile-program(self, l, imports, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
-  shadow freevars = sets.list-to-tree-set(freevars.keys().to-list().map(lam(k): freevars.get-value(k) end))
-  free-ids = freevars.difference(sets.list-to-tree-set(imports.map(get-name))).difference(sets.list-to-tree-set(imports.map(_.types)))
-  namespace-binds = for map(n from free-ids.to-list()):
+  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
+    freevars.remove(elt.key())
+  end
+  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types)):
+    freevars.remove(elt.key())
+  end
+  free-ids = remove-types.keys-list().map(remove-types.get-value(_))
+  namespace-binds = for map(n from free-ids):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
       | s-type-global(s) => type-name(n.toname())
