@@ -874,6 +874,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         throw ffi.throwArityErrorC([source], expected, args);
       }
     }
+    var checkArityC = function(cloc, expected, args) {
+      if (expected !== args.length) {
+        throw ffi.throwArityErrorC(cloc, expected, args);
+      }
+    }
 
 
     var makeCheckType = function(test, typeName) {
@@ -3934,6 +3939,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkOpaque' : checkOpaque,
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
+        'checkArityC': checkArityC,
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,

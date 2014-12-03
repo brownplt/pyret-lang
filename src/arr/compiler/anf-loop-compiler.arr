@@ -229,10 +229,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
 end
 
 fun arity-check(loc-expr, arity :: Number):
-  j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-    j-block([list:
-        j-expr(j-method(rt-field("ffi"), "throwArityErrorC",
-            [list: loc-expr, j-num(arity), j-id("arguments")]))]))
+  j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-id("arguments")]))
 end
 
 empty-string-dict = D.make-string-dict()
@@ -760,7 +757,10 @@ compiler-visitor = {
     c-block(
       j-block(
         j-var(js-id-of(tostring(b.id)),
-          j-obj([list: j-field("$var", compiled-e.exp), j-field("$name", j-str(b.id.toname()))]))
+          j-obj([list: j-field("$var", compiled-e.exp)
+# NOTE(joe): This can be useful to turn on for debugging
+#                     , j-field("$name", j-str(b.id.toname()))
+                ]))
         ^ link(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
