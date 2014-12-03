@@ -3922,7 +3922,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'wrap' : wrap,
         'unwrap' : unwrap,
 
-        'checkWrapBoolean' : checkBoolean,
+        'checkWrapBoolean' : checkWrapBoolean,
 
         'checkString' : checkString,
         'checkNumber' : checkNumber,
