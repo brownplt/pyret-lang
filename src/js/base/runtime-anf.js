@@ -896,6 +896,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
+    var checkWrapBoolean = function(val) {
+      checkBoolean(val);
+      return val;
+    };
 
     var NumberC = makePrimitiveAnn("Number", isNumber);
     var StringC = makePrimitiveAnn("String", isString);
@@ -3917,6 +3921,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         'wrap' : wrap,
         'unwrap' : unwrap,
+
+        'checkWrapBoolean' : checkBoolean,
 
         'checkString' : checkString,
         'checkNumber' : checkNumber,
