@@ -236,10 +236,6 @@ function getFieldLocInternal(val, field, loc, isBang) {
     }
     else if(isMethod(fieldVal)){
       var curried = fieldVal['meth'](val);
-      if(field === "_plus") {
-      //  console.log("Curried: ", curried);
-      //  console.log("Arity: ", fieldVal.arity);
-      }
       return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
