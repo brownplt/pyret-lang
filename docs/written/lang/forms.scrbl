@@ -815,47 +815,44 @@ inspect (before the colon), and a number of branches.  It is intended to be
 used in a structure parallel to a data definition.
 
 @justcode{
-cases-expr: "cases" (PARENSPACE|PARENNOSPACE) expr-check ")" expr-target ":"
+cases-expr: "cases" (PARENSPACE|PARENNOSPACE) check-ann ")" expr-target ":"
     cases-branch*
     ["|" "else" "=>" block]
   "end"
 cases-branch: "|" NAME [args] "=>" block
 }
 
-A @tt{cases} expression first evaluates @tt{expr-check} to get a checker for
-the type of the value to branch on.  Typically, this should be the name of a
-datatype like @tt{list.List}.  The expression then evaluates @tt{expr-target},
-and checks if it matches the given annotation.  If it does not, an exception is
-raise, otherwise it proceeds to match it against the given cases.
+The @pyret{check-ann} must be a type, like @pyret-id["List" "lists"].  Then
+@pyret{expr-target} is evaluated and checked against the given annotation.  If
+it has the right type, the cases are then checked.
 
 Cases should use the names of the variants of the given data type as the
-@tt{NAME}s of each branch.  The branches will be tried, in order, checking if
-the given value is an instance of that variant.  If it matches, the fields of
-the variant are bound, in order, to the provided @tt{args}, and the right-hand
-side of the @tt{=>} is evaluated in that extended environment.  An exception
-results if the wrong number of arguments are given.
+@tt{NAME}s of each branch.  In the branch that matches, the fields of the
+variant are bound, in order, to the provided @tt{args}, and the right-hand side
+of the @tt{=>} is evaluated in that extended environment.  An exception results
+if the wrong number of arguments are given.
 
 An optional @tt{else} clause can be provided, which is evaluated if no cases
 match.  If no @tt{else} clause is provided, a default is used that raises an
 exception.
 
-For example, a cases expression on lists looks like:
+For example, some cases expression on lists looks like:
 
 @justcode{
 check:
-  result = cases(list.List) [list: 1,2,3]:
+  result = cases(List) [list: 1,2,3]:
     | empty => "empty"
     | link(f, r) => "link"
   end
   result is "link"
 
-  result2 = cases(list.List) [list: 1,2,3]:
+  result2 = cases(List) [list: 1,2,3]:
     | empty => "empty"
     | else => "else"
   end
   result2 is else
 
-  result3 = cases(list.List) empty:
+  result3 = cases(List) empty:
     | empty => "empty"
     | else => "else"
   end

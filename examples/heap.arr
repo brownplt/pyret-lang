@@ -32,8 +32,8 @@ sharing:
 
   to-list(self): heap-to-list(self) end,
   tostring(self): "heap(" + tostring(heap-to-list(self)) + ")" end,
-  _torepr(self): "heap(" + torepr(heap-to-list(self)) + ")" end,
-  _equals(self, other): heap-to-list(self) == heap-to-list(other) end,
+  _torepr(self, shadow torepr): "heap(" + torepr(heap-to-list(self)) + ")" end,
+  _equals(self, other, eq): eq(heap-to-list(self), heap-to-list(other)) end,
   _plus(self, other): merge(self, other) end
 end
 
@@ -95,38 +95,38 @@ fun<a> merge(lbh :: BinomialHeap<a>, rbh :: BinomialHeap<a>) -> BinomialHeap<a>:
   merge-without-carry(lbh, rbh)
 where:
   merge(bh-empty, bh-empty) is bh-empty
-  merge(bh-empty, bh-link(0, bt-node(10, []), bh-empty))
-    is bh-link(0, bt-node(10, []), bh-empty)
-  merge(bh-link(0, bt-node(10, []), bh-empty), bh-empty)
-    is bh-link(0, bt-node(10, []), bh-empty)
-  merge(bh-link(0, bt-node(10, []), bh-empty),
-        bh-link(0, bt-node(20, []), bh-empty))
-    is bh-link(1, bt-node(10, [bt-node(20, [])]), bh-empty)
-  merge(bh-link(0, bt-node(20, []), bh-empty),
-        bh-link(0, bt-node(10, []), bh-empty))
-    is bh-link(1, bt-node(10, [bt-node(20, [])]), bh-empty)
-  merge(bh-link(0, bt-node(10, []), bh-empty),
-        bh-link(1, bt-node(20, [bt-node(30, [])]), bh-empty))
-    is bh-link(0, bt-node(10, []),
-               bh-link(1, bt-node(20, [bt-node(30, [])]), bh-empty))
-  merge(bh-link(1, bt-node(10, [bt-node(40, [])]), bh-empty),
-        bh-link(1, bt-node(20, [bt-node(30, [])]), bh-empty))
-    is bh-link(2, bt-node(10, [bt-node(20, [bt-node(30, [])]),
-                               bt-node(40, [])]), bh-empty)
+  merge(bh-empty, bh-link(0, bt-node(10, [list: ]), bh-empty))
+    is bh-link(0, bt-node(10, [list: ]), bh-empty)
+  merge(bh-link(0, bt-node(10, [list: ]), bh-empty), bh-empty)
+    is bh-link(0, bt-node(10, [list: ]), bh-empty)
+  merge(bh-link(0, bt-node(10, [list: ]), bh-empty),
+        bh-link(0, bt-node(20, [list: ]), bh-empty))
+    is bh-link(1, bt-node(10, [list: bt-node(20, [list: ])]), bh-empty)
+  merge(bh-link(0, bt-node(20, [list: ]), bh-empty),
+        bh-link(0, bt-node(10, [list: ]), bh-empty))
+    is bh-link(1, bt-node(10, [list: bt-node(20, [list: ])]), bh-empty)
+  merge(bh-link(0, bt-node(10, [list: ]), bh-empty),
+        bh-link(1, bt-node(20, [list: bt-node(30, [list: ])]), bh-empty))
+    is bh-link(0, bt-node(10, [list: ]),
+               bh-link(1, bt-node(20, [list: bt-node(30, [list: ])]), bh-empty))
+  merge(bh-link(1, bt-node(10, [list: bt-node(40, [list: ])]), bh-empty),
+        bh-link(1, bt-node(20, [list: bt-node(30, [list: ])]), bh-empty))
+    is bh-link(2, bt-node(10, [list: bt-node(20, [list: bt-node(30, [list: ])]),
+                               bt-node(40, [list: ])]), bh-empty)
 end
 
 fun<a> insert(bh :: BinomialHeap<a>, val :: a) -> BinomialHeap<a>:
-  merge(bh, bh-link(0, bt-node(val, []), bh-empty))
+  merge(bh, bh-link(0, bt-node(val, [list: ]), bh-empty))
 where:
-  bh-empty^insert(10) is bh-link(0, bt-node(10, []), bh-empty)
-  bh-empty^insert(10)^insert(20)^insert(15)
-    is bh-link(0, bt-node(15, []),
-               bh-link(1, bt-node(10, [bt-node(20, [])]), bh-empty))
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-    is bh-link(1, bt-node(25, [bt-node(30, [])]),
-               bh-link(2, bt-node(10, [bt-node(15, [bt-node(40, [])]),
-                                       bt-node(20, [])]),
+  bh-empty ^ insert(_, 10) is bh-link(0, bt-node(10, [list: ]), bh-empty)
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+    is bh-link(0, bt-node(15, [list: ]),
+               bh-link(1, bt-node(10, [list: bt-node(20, [list: ])]), bh-empty))
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+    is bh-link(1, bt-node(25, [list: bt-node(30, [list: ])]),
+               bh-link(2, bt-node(10, [list: bt-node(15, [list: bt-node(40, [list: ])]),
+                                       bt-node(20, [list: ])]),
                        bh-empty))
 end
 
@@ -143,15 +143,15 @@ fun<a> peek(bh :: BinomialHeap<a>):
     | bh-link(_, tree, next) => peek-tree(next, tree.val)
   end
 where:
-  bh-empty^peek() raises "peek"
-  bh-empty^insert(10)^peek() is 10
-  bh-empty^insert(10)^insert(20)^insert(15)^peek() is 10
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)^peek()
+  bh-empty ^ peek(_) raises "peek"
+  bh-empty ^ insert(_, 10) ^ peek(_) is 10
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15) ^ peek(_) is 10
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25) ^ peek(_)
     is 10
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-          ^insert(-5)^insert(45)^insert(0)^peek()
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ insert(_, -5) ^ insert(_, 45) ^ insert(_, 0) ^ peek(_)
     is -5
 end
 
@@ -191,29 +191,29 @@ fun<a> remove-min(bh :: BinomialHeap<a>) -> BinomialHeap<a>:
       end
   end
 where:
-  bh-empty^remove-min() raises "remove-min"
-  bh-empty^insert(10)^remove-min()^peek() raises "peek"
-  bh-empty^insert(10)^insert(20)^insert(15)^remove-min()^peek() is 15
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^peek()
+  bh-empty ^ remove-min(_) raises "remove-min"
+  bh-empty ^ insert(_, 10) ^ remove-min(_) ^ peek(_) raises "peek"
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15) ^ remove-min(_) ^ peek(_) is 15
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ peek(_)
     is 15
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-          ^insert(-5)^insert(45)^insert(0)
-          ^remove-min()^peek()
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ insert(_, -5) ^ insert(_, 45) ^ insert(_, 0)
+           ^ remove-min(_) ^ peek(_)
     is 0
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^remove-min()^remove-min()
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^peek()
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ remove-min(_) ^ remove-min(_)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ peek(_)
     is 25
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^remove-min()
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^remove-min()
-          ^insert(-5)^insert(45)^insert(0)
-          ^remove-min()^remove-min()^peek()
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ remove-min(_)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ remove-min(_)
+           ^ insert(_, -5) ^ insert(_, 45) ^ insert(_, 0)
+           ^ remove-min(_) ^ remove-min(_) ^ peek(_)
     is 25
 end
 
@@ -223,47 +223,47 @@ fun<a> heap-to-list(bh :: BinomialHeap<a>) -> List<a>:
     | bh-link(_, _, _) => link(peek(bh), heap-to-list(remove-min(bh)))
   end
 where:
-  bh-empty^heap-to-list() is []
-  bh-empty^insert(10)^heap-to-list() is [10]
-  bh-empty^insert(10)^insert(20)^insert(15)^heap-to-list()
-    is [10, 15, 20]
-  bh-empty^insert(10)^remove-min()^heap-to-list() is []
-  bh-empty^insert(10)^insert(20)^insert(15)^remove-min()^heap-to-list()
-    is [15, 20]
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^heap-to-list()
-    is [15, 20, 25, 30, 40]
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^insert(40)^insert(30)^insert(25)
-          ^insert(-5)^insert(45)^insert(0)
-          ^remove-min()^heap-to-list()
-    is [0, 10, 15, 20, 25, 30, 40, 45]
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^remove-min()^remove-min()
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^heap-to-list()
-    is [25, 30, 40]
-  bh-empty^insert(10)^insert(20)^insert(15)
-          ^remove-min()
-          ^insert(40)^insert(30)^insert(25)
-          ^remove-min()^remove-min()
-          ^insert(-5)^insert(45)^insert(0)
-          ^remove-min()^remove-min()^heap-to-list()
-    is [25, 30, 40, 45]
+  bh-empty ^ heap-to-list(_) is [list: ]
+  bh-empty ^ insert(_, 10) ^ heap-to-list(_) is [list: 10]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15) ^ heap-to-list(_)
+    is [list: 10, 15, 20]
+  bh-empty ^ insert(_, 10) ^ remove-min(_) ^ heap-to-list(_) is [list: ]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15) ^ remove-min(_) ^ heap-to-list(_)
+    is [list: 15, 20]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ heap-to-list(_)
+    is [list: 15, 20, 25, 30, 40]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ insert(_, -5) ^ insert(_, 45) ^ insert(_, 0)
+           ^ remove-min(_) ^ heap-to-list(_)
+    is [list: 0, 10, 15, 20, 25, 30, 40, 45]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ remove-min(_) ^ remove-min(_)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ heap-to-list(_)
+    is [list: 25, 30, 40]
+  bh-empty ^ insert(_, 10) ^ insert(_, 20) ^ insert(_, 15)
+           ^ remove-min(_)
+           ^ insert(_, 40) ^ insert(_, 30) ^ insert(_, 25)
+           ^ remove-min(_) ^ remove-min(_)
+           ^ insert(_, -5) ^ insert(_, 45) ^ insert(_, 0)
+           ^ remove-min(_) ^ remove-min(_) ^ heap-to-list(_)
+    is [list: 25, 30, 40, 45]
 end
 
 fun<a> list-to-heap(lst :: List<a>) -> BinomialHeap<a>:
   fold(insert, bh-empty, lst)
 where:
   fun check-compose(l):
-    l.sort() == l^list-to-heap()^heap-to-list()
+    l.sort() == (l ^ list-to-heap(_) ^ heap-to-list(_))
   end
 
-  [] satisfies check-compose
-  [1] satisfies check-compose
-  [1,2] satisfies check-compose
-  [2,1] satisfies check-compose
-  [4,2,3,1] satisfies check-compose
-  [1,5,1,3,4] satisfies check-compose
+  [list: ] satisfies check-compose
+  [list: 1] satisfies check-compose
+  [list: 1,2] satisfies check-compose
+  [list: 2,1] satisfies check-compose
+  [list: 4,2,3,1] satisfies check-compose
+  [list: 1,5,1,3,4] satisfies check-compose
 end

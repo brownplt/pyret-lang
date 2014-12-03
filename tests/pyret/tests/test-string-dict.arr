@@ -117,3 +117,27 @@ check "cyclic":
   s1.set-now("a", s1)
   torepr(s1) is "[mutable-string-dict: \"a\", <cyclic-object-1>]"
 end
+
+fun one-of(ans, elts):
+  is-some(for find(elt from elts):
+    ans == elt
+  end)
+end
+
+check "merge":
+  s1 = [SD.string-dict: "a", 5, "c", 4]
+  s2 = [SD.string-dict: "a", 10, "b", 6]
+  s3 = s1.merge(s2)
+  s3 is [SD.string-dict: "a", 10, "b", 6, "c", 4]
+  s2.merge(s1) is [SD.string-dict: "a", 5, "b", 6, "c", 4]
+  s2.merge(s1).merge(s1) is s2.merge(s1)
+
+  s1.keys-list() is%(one-of) [list: [list: "a", "c"], [list: "c", "a"]]
+  s2.keys-list() is%(one-of) [list: [list: "a", "b"], [list: "c", "a"]]
+
+  s4 = [SD.string-dict: "a", 5]
+  s5 = [SD.string-dict:]
+  s4.merge(s5) is s4
+  s5.merge(s4) is s4
+end
+
