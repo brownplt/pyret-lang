@@ -1726,16 +1726,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "equal-always3");
       return equal3(left, right, true);
     };
-    // JS function from Pyret values to JS booleans (or throws)
-    function equalAlways(v1, v2) {
-      thisRuntime.checkArity(2, arguments, "equal-always");
-      return safeCall(function() {
-        return equal3(v1, v2, true);
-      }, function(ans) {
+    var eqAlwaysAns = function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
         else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
-      });
+      };
+    // JS function from Pyret values to JS booleans (or throws)
+    function equalAlways(v1, v2) {
+      thisRuntime.checkArity(2, arguments, "equal-always");
+      if(typeof v1 === "number" || typeof v1 === "string" || typeof v1 === "boolean") {
+        return v1 === v2;
+      }
+      return safeCall(function() {
+        return equal3(v1, v2, true);
+      }, eqAlwaysAns);
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalAlwaysPy = makeFunction(function(left, right) {
