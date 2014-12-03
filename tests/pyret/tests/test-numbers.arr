@@ -83,7 +83,8 @@ check:
 
   num-log(0) raises "expected a number greater than 0"
   num-log(1) is 0
-  num-log(num-exp(1)) is 1
+  # num-log(num-exp(1)) is 1  # can't compare rough with exact!
+  num-log(num-exp(1)) satisfies around(1, 0.0001)
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
@@ -99,7 +100,8 @@ check:
 
   num-expt(3, 2) is 9
   num-expt(2, -1) is 1 / 2
-  num-expt(4, 1 / 2) is 2
+  # num-expt(4, 1 / 2) is 2 # sadly this is rough
+  num-expt(4, 1 / 2) satisfies around(2, 0.00001)
 
   num-sqrt(9) is 3
   num-sqrt("nan") raises "Number"
@@ -119,13 +121,12 @@ check:
   3 satisfies num-is-fixnum
   3.22222 satisfies negate(num-is-fixnum)
   3.22222222222222222222222222222222222222222 satisfies negate(num-is-fixnum)
-  
 
   # Test currying of binops
   (_ * 4)(2) is 8
   (3 + _)(12) is 15
   (_ / _)(6, 3) is 2
-  
+
 end
 
 check:
