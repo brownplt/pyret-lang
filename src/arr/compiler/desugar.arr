@@ -24,8 +24,7 @@ fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
 fun <T> check-bool(l, e, cont :: (A.Expr -> T)) -> T:
-  bool-id = mk-id-ann(l, "must-be-bool-", A.a-name(l, A.s-type-global("Boolean")))
-  A.s-let-expr(l, [list: A.s-let-bind(l, bool-id.id-b, e)], cont(bool-id.id-e))
+  cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
 end
 
 fun no-branches-exn(l, typ):

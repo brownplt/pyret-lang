@@ -2,7 +2,6 @@
 
 provide *
 import ast as A
-import sets as Sets
 import "compiler/ast-anf.arr" as N
 import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
@@ -230,59 +229,58 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
 end
 
 fun arity-check(loc-expr, arity :: Number):
-  j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
-    j-block([list:
-        j-expr(j-method(rt-field("ffi"), "throwArityErrorC",
-            [list: loc-expr, j-num(arity), j-id("arguments")]))]))
+  j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-id("arguments")]))
 end
+
+empty-string-dict = D.make-string-dict()
 
 local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
   j-parens(self, exp): exp.visit(self) end,
   j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right): left.visit(self).union(right.visit(self)) end,
-  j-fun(self, args, body): sets.empty-tree-set end,
-  j-app(self, func, args): args.foldl(lam(arg, base): base.union(arg.visit(self)) end, func.visit(self)) end,
-  j-method(self, obj, meth, args): sets.empty-tree-set end,
-  j-ternary(self, test, consq, alt): test.visit(self).union(consq.visit(self)).union(alt.visit(self)) end,
+  j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
+  j-fun(self, args, body): empty-string-dict end,
+  j-app(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
+  j-method(self, obj, meth, args): empty-string-dict end,
+  j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
   j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs): obj.visit(self).union(field.visit(self)).union(rhs.visit(self)) end,
-  j-dot-assign(self, obj, name, rhs): obj.visit(self).union(rhs.visit(self)) end,
+  j-bracket-assign(self, obj, field, rhs): obj.visit(self).merge(field.visit(self)).merge(rhs.visit(self)) end,
+  j-dot-assign(self, obj, name, rhs): obj.visit(self).merge(rhs.visit(self)) end,
   j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field): obj.visit(self).union(field.visit(self)) end,
+  j-bracket(self, obj, field): obj.visit(self).merge(field.visit(self)) end,
   j-list(self, multi-line, elts):
-    elts.foldl(lam(arg, base): base.union(arg.visit(self)) end, sets.empty-tree-set)
+    elts.foldl(lam(arg, base): base.merge(arg.visit(self)) end, empty-string-dict)
   end,
-  j-obj(self, fields): fields.foldl(lam(f, base): base.union(f.visit(self)) end, sets.empty-tree-set) end,
-  j-id(self, id): sets.empty-tree-set end,
-  j-str(self, s): sets.empty-tree-set end,
-  j-num(self, n): sets.empty-tree-set end,
-  j-true(self): sets.empty-tree-set end,
-  j-false(self): sets.empty-tree-set end,
-  j-null(self): sets.empty-tree-set end,
-  j-undefined(self): sets.empty-tree-set end,
-  j-label(self, label): sets.empty-tree-set end,
-  j-case(self, exp, body): exp.visit(self).union(body.visit(self)) end,
+  j-obj(self, fields): fields.foldl(lam(f, base): base.merge(f.visit(self)) end, empty-string-dict) end,
+  j-id(self, id): empty-string-dict end,
+  j-str(self, s): empty-string-dict end,
+  j-num(self, n): empty-string-dict end,
+  j-true(self): empty-string-dict end,
+  j-false(self): empty-string-dict end,
+  j-null(self): empty-string-dict end,
+  j-undefined(self): empty-string-dict end,
+  j-label(self, label): empty-string-dict end,
+  j-case(self, exp, body): exp.visit(self).merge(body.visit(self)) end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts): stmts.foldl(lam(s, base): base.union(s.visit(self)) end, sets.empty-tree-set) end,
+  j-block(self, stmts): stmts.foldl(lam(s, base): base.merge(s.visit(self)) end, empty-string-dict) end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
     if string-contains(name, "$underscore"): rhs.visit(self)
-    else: [tree-set: name].union(rhs.visit(self))
+    else: [D.string-dict: name, true].merge(rhs.visit(self))
     end
   end,
-  j-if1(self, cond, consq): cond.visit(self).union(consq.visit(self)) end,
-  j-if(self, cond, consq, alt): cond.visit(self).union(consq.visit(self)).union(alt.visit(self)) end,
+  j-if1(self, cond, consq): cond.visit(self).merge(consq.visit(self)) end,
+  j-if(self, cond, consq, alt): cond.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
   j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch): body.visit(self).union(catch.visit(self)) end,
+  j-try-catch(self, body, exn, catch): body.visit(self).merge(catch.visit(self)) end,
   j-throw(self, exp): exp.visit(self) end,
   j-expr(self, exp): exp.visit(self) end,
-  j-break(self): sets.empty-tree-set end,
-  j-continue(self): sets.empty-tree-set end,
+  j-break(self): empty-string-dict end,
+  j-continue(self): empty-string-dict end,
   j-switch(self, exp, branches):
-    branches.foldl(lam(b, base): base.union(b.visit(self)) end, exp.visit(self))
+    branches.foldl(lam(b, base): base.merge(b.visit(self)) end, exp.visit(self))
   end,
-  j-while(self, cond, body): cond.visit(self).union(body.visit(self)) end
+  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end
 }
 
 
@@ -300,9 +298,9 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   ^ concat-append(_, ann-cases.new-cases)
   ^ concat-snoc(_, j-case(ann-cases.new-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
-  vars = (for concat-foldl(base from Sets.empty-tree-set, case-expr from main-body-cases):
-      base.union(case-expr.visit(local-bound-vars-visitor))
-    end).to-list()
+  vars = (for concat-foldl(base from empty-string-dict, case-expr from main-body-cases):
+      base.merge(case-expr.visit(local-bound-vars-visitor))
+    end).keys-list()
   switch-cases =
     main-body-cases
   ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -327,7 +325,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   #       check-no-dups(seen.add(lbl), tl)
   #   end
   # end        
-  # check-no-dups(Sets.empty-tree-set, switch-cases.to-list())
+  # check-no-dups(sets.empty-tree-set, switch-cases.to-list())
   # Initialize the case numbers, for more legible output...
   switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
   act-record = rt-method("makeActivationRecord", [list:
@@ -504,6 +502,36 @@ fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
         | none => concat-empty
       end
   end
+end
+
+fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-obj = obj.visit(compiler).exp
+  compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  obj-id = mk-id("obj")
+
+  colon-field = rt-method("getColonField", [list: obj-id.id-j, j-str(methname)])
+  colon-field-id = mk-id("field")
+  check-method = rt-method("isMethod", [list: colon-field-id.id-j])
+  after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+  c-block(
+    j-block([list:
+        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+        j-expr(j-assign(step,  after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+        j-var(obj-id.id-s, compiled-obj),
+        j-var(colon-field-id.id-s, colon-field),
+        j-if(check-method, j-block([list: 
+            j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"), link(obj-id.id-j, compiled-args))))
+          ]),
+          j-block([list:
+            check-fun(compiler.get-loc(l), colon-field-id.id-j),
+            j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
+          ])),
+        j-break]),
+    new-cases)
 end
 
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
@@ -708,6 +736,8 @@ compiler-visitor = {
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         compile-split-app(l2, self, some(b), f, args, some(body))
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, some(b), obj, m, args, some(body))
       | a-if(l2, cond, then, els) =>
         compile-split-if(self, some(b), cond, then, els, some(body))
       | a-cases(l2, typ, val, branches, _else) =>
@@ -727,7 +757,10 @@ compiler-visitor = {
     c-block(
       j-block(
         j-var(js-id-of(tostring(b.id)),
-          j-obj([list: j-field("$var", compiled-e.exp), j-field("$name", j-str(b.id.toname()))]))
+          j-obj([list: j-field("$var", compiled-e.exp)
+# NOTE(joe): This can be useful to turn on for debugging
+#                     , j-field("$name", j-str(b.id.toname()))
+                ]))
         ^ link(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
@@ -735,6 +768,8 @@ compiler-visitor = {
     cases(N.ALettable) e1:
       | a-app(l2, f, args) =>
         compile-split-app(l2, self, none, f, args, some(e2))
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, some(e2))
       | a-if(l2, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, some(e2))
       | a-cases(l2, typ, val, branches, _else) =>
@@ -764,6 +799,8 @@ compiler-visitor = {
     cases(N.ALettable) e:
       | a-app(l, f, args) =>
         compile-split-app(l, self, none, f, args, none)
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, none)
       | a-if(l, cond, consq, alt) =>
         compile-split-if(self, none, cond, consq, alt, none)
       | a-cases(l, typ, val, branches, _else) =>
@@ -844,28 +881,29 @@ compiler-visitor = {
                 compile-fun-body(l, new-step, temp, self, effective-args, some(args.length()), body, true)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
-    # step-method = js-id-of(compiler-name("step"))
-    # temp-method = compiler-name("temp_method")
-    # compiled-body-method = compile-fun-body(l, step-method, temp-method, self, args, args.length() - 1, body)
-    # method-var = j-var(temp-method,
-    #   j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-method))
     step-curry = js-id-of(compiler-name("step"))
     temp-curry = js-id-of(compiler-name("temp_curry"))
+    temp-full = js-id-of(compiler-name("temp_full"))
+    len = args.length()
     # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-curry-args =
-      if args.length() > 1: args.rest
+      if len > 1: args.rest
       else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
-    compiled-body-curry =
-      compile-fun-body(l, step-curry, temp-curry, self, effective-curry-args, some(args.length() - 1), body, true)
+    compiled-body-curry = j-block([list: j-return(j-app(j-id(temp-full), args.map(lam(a): j-id(js-id-of(tostring(a.id))) end)))])
     curry-var = j-var(temp-curry,
       j-fun(effective-curry-args.map(lam(a): js-id-of(tostring(a.id)) end), compiled-body-curry))
-    #### TODO!
-    c-exp(
-      rt-method("makeMethod", [list: j-fun([list: js-id-of(tostring(args.first.id))],
-            j-block([list: curry-var, j-return(j-id(temp-curry))])),
-          j-obj([list: j-field("length", j-num(args.length()))])]),
-      empty)
+    full-var = 
+      j-var(temp-full,
+        j-fun(args.map(lam(a): js-id-of(tostring(a.id)) end),
+          compile-fun-body(l, step-curry, temp-full, self, args, some(args.length()), body, true)
+        ))
+    method-expr = if len < 9:
+      rt-method("makeMethod" + tostring(len - 1), [list: j-id(temp-full)])
+    else:
+      rt-method("makeMethodN", [list: j-id(temp-full)])
+    end
+    c-exp(method-expr, [list: full-var])
   end,
   a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)
@@ -1178,8 +1216,14 @@ end
 
 fun compile-program(self, l, imports, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
-  free-ids = freevars.difference(sets.list-to-tree-set(imports.map(get-name))).difference(sets.list-to-tree-set(imports.map(_.types)))
-  namespace-binds = for map(n from free-ids.to-list()):
+  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
+    freevars.remove(elt.key())
+  end
+  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types)):
+    freevars.remove(elt.key())
+  end
+  free-ids = remove-types.keys-list().map(remove-types.get-value(_))
+  namespace-binds = for map(n from free-ids):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
       | s-type-global(s) => type-name(n.toname())
