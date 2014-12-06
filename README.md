@@ -7,9 +7,12 @@ A scripting language.
 
 To program in Pyret, visit [code.pyret.org](https://code.pyret.org).
 
+To see an overview of the language, visit [the tour](http://www.pyret.org/docs/latest/A_Tour_of_Pyret.html).
+
 To learn about the language, visit [pyret.org](http://pyret.org).
 
 To read the documentation, visit [pyret.org/docs/](http://pyret.org/docs/).
+
 
 The use of vocabulary from
 http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
@@ -18,14 +21,11 @@ commenting and reporting issues.
 All Aboard
 ----------
 
-First, make sure ye've installed [Node >= 0.10](http://nodejs.org).  Then run:
+First, make sure you've installed [Node >= 0.10](http://nodejs.org).  Then run:
 
     $ make install && make && make test
 
-It'll build the Pyret compiler, run the tests, and hoist the anchor.
-
-When yer ready to brave the sea, visit [the tour](http://pyret.org/tour/).
-
+It'll build the Pyret compiler and run the tests.
 
 Running Pyret
 -------------
