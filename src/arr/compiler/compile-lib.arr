@@ -62,7 +62,7 @@ end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
-  cases (A.Provides) parsed._provide:
+  cases (A.Provide) parsed._provide:
     | s-provide-none(l) => S.empty-list-set
     | s-provide-all(l) => S.list-to-list-set(A.toplevel-ids(parsed).map(_.toname()))
     | s-provide(l, e) =>
