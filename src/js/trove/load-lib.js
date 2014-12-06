@@ -11,14 +11,83 @@ define(["trove/arrays",
 
   var modValFlag = {};
   return function(runtime, namespace) {
+    var brandModule = runtime.namedBrander("module");
+    var brandModuleResult = runtime.namedBrander("module-result");
+
+    var annModule = runtime.makeBranderAnn(brandModule, "Module");
+    var annModuleResult = runtime.makeBranderAnn(brandModuleResult, "ModuleResult");
+    function applyBrand(brand, val) {
+      return runtime.getField(brand, "brand").app(val);
+    }
+
+    function makeModule(runtimeForModule, moduleFun) {
+      var m = runtime.makeOpaque({
+        runtime: runtimeForModule,
+        moduleFun: moduleFun
+      });
+      return m;
+    }
+
+    function makeModuleResult(runtimeForModule, result) {
+      return runtime.makeOpaque({
+        runtime: runtimeForModule,
+        result: result
+      });
+    }
+
+    function checkSuccess(mr, field) {
+      if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
+        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
+      }
+    }
+    function isSuccessResult(mr) {
+      return mr.val.runtime.isSuccessResult(mr.val.result);
+    }
+    function isFailureResult(mr) {
+      return mr.val.runtime.isFailureResult(mr.val.result);
+    }
+    function isPrimitive(rt, ans) {
+      return rt.isNumber(ans) || rt.isString(ans) || rt.isBoolean(ans);
+    }
+    function getAnswerForPyret(mr) {
+      var a = getModuleResultAnswer(mr);
+      if(isPrimitive(mr.val.runtime, a)) { return mr.val.runtime.ffi.makeSome(a); }
+      else {
+        return mr.val.runtime.ffi.makeNone();
+      }
+    }
+    function getModuleResultRuntime(mr) {
+      return mr.val.runtime;
+    }
+    function getModuleResultResult(mr) {
+      return mr.val.result;
+    }
+    function getModuleResultValues(mr) {
+      checkSuccess(mr, "values");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "values").dict;
+    }
+    function getModuleResultTypes(mr) {
+      checkSuccess(mr, "types");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types");
+    }
+    function getModuleResultChecks(mr) {
+      checkSuccess(mr, "checks");
+      return mr.val.runtime.getField(mr.val.result.result, "checks");
+    }
+    function getModuleResultAnswer(mr) {
+      checkSuccess(mr, "answer");
+      return mr.val.runtime.getField(mr.val.result.result, "answer");
+    }
     function createLoader() {
+
+
       var loadRuntime = rtLib.makeRuntime({});
       return loadRuntime.loadModulesNew(loadRuntime.namespace, [checkerLib], function(checkerLib) {
         function load(compileResult, listOfMods) {
           // TODO(joe): check for compileResult annotation
           runtime.checkList(listOfMods);
           var modArr = runtime.ffi.toArray(listOfMods);
-          var dependencies = modArr.map(function(m) { return runtime.getField(m, "modval").val.module; });
+          var dependencies = modArr.map(function(m) { return runtime.getField(m, "modval").val.moduleFun; });
           return runtime.safeCall(function() {
             return runtime.getField(compileResult, "pyret-to-js-runnable").app();
           }, function(toExec) {
@@ -26,10 +95,12 @@ define(["trove/arrays",
               var fullDeps = [arrays, errors, lists, option, sets].concat(dependencies);
               var loaded = loader.loadSingle(loadRuntime, toExec, fullDeps);
               loaded.fail(function(err) {
+                console.log("Failed to load: ", err);
                 restart.error(runtime.ffi.makeMessageException(String(err)));
               });
               loaded.then(function(modVal) {
-                restart.resume(runtime.makeOpaque({ module: modVal }));
+                console.log("Loaded");
+                restart.resume(makeModule(loadRuntime, modVal));
               });
             });
           });
@@ -103,13 +174,8 @@ define(["trove/arrays",
           var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
           loadRuntime.setParam("current-checker", currentChecker);
           runtime.pauseStack(function(restarter) {
-            loadRuntime.run(modval.val.module, loadRuntime.namespace, {}, function(result) {
-              if(loadRuntime.isSuccessResult(result)) {
-                restarter.resume(wrapResult(loadRuntime, runtime, result));
-              }
-              else {
-                restarter.resume(wrapResult(runtime, loadRuntime, result));
-              }
+            loadRuntime.run(modval.val.moduleFun, loadRuntime.namespace, {}, function(result) {
+              restarter.resume(makeModuleResult(loadRuntime, result));
             });
           });
         }
@@ -120,8 +186,25 @@ define(["trove/arrays",
       });
     }
     return runtime.makeObject({
-      provide: runtime.makeObject({
-        "make-loader": runtime.makeFunction(createLoader)
+      "provide-plus-types": runtime.makeObject({
+        values: runtime.makeObject({
+          "make-loader": runtime.makeFunction(createLoader),
+          "is-success-result": runtime.makeFunction(isSuccessResult),
+          "is-failure-result": runtime.makeFunction(isFailureResult),
+          "get-result-answer": runtime.makeFunction(getAnswerForPyret)
+        }),
+        types: {
+          Module: annModule,
+          ModuleResult: annModuleResult
+        },
+        internal: {
+          getModuleResultAnswer: getModuleResultAnswer,
+          getModuleResultChecks: getModuleResultChecks,
+          getModuleResultTypes: getModuleResultTypes,
+          getModuleResultValues: getModuleResultValues,
+          getModuleResultRuntime: getModuleResultRuntime,
+          getModuleResultResult: getModuleResultResult
+        }
       })
     });
   };
