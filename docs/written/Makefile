@@ -2,7 +2,7 @@ all:
 	scribble \
     ++style styles.css \
     ++style ../../lib/CodeMirror/lib/codemirror.css \
-    ++style ../../src/web/editor.css \
+    ++style editor.css \
     --prefix myprefix.html \
     ++extra ../../lib/CodeMirror/mode/pyret/pyret.js \
     ++extra ../../lib/CodeMirror/lib/codemirror.js \
