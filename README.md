@@ -40,12 +40,6 @@ The easiest way to *run* a Pyret program from the command-line is:
 
 Where X is a number from 0-3, indicating a phase (described below).
 
-You can also see a simple REPL by opening the file
-
-    ./src/web/repl.html
-
-in a browser; this only depends on `make phase1`.
-
 Phases
 ------
 
