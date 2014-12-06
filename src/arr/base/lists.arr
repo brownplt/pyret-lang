@@ -505,7 +505,7 @@ fun<a, b, c> map2_n(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: 
   end
 end
 
-fun<a, b, c, d> map3_n(f :: (a, b, c -> d), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
+fun<a, b, c, d> map3_n(f :: (Number, a, b, c -> d), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
   doc: "Returns a list made up of f(i, e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3, and i counting up from n"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
@@ -514,12 +514,12 @@ fun<a, b, c, d> map3_n(f :: (a, b, c -> d), n :: Number, l1 :: List<a>, l2 :: Li
   end
 end
 
-fun<a, b, c, d, e> map4_n(f :: (a, b, c, d -> e), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
+fun<a, b, c, d, e> map4_n(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
   doc: "Returns a list made up of f(i, e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4, and i counting up from n"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
-    f(n, l1.first, l2.first, l3.first, l4.first) ^ link(_, map4(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
+    f(n, l1.first, l2.first, l3.first, l4.first) ^ link(_, map4_n(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
   end
 end
 
