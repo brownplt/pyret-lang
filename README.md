@@ -5,20 +5,28 @@
 
 A scripting language.
 
-To program in Pyret, visit [code.pyret.org](https://code.pyret.org).
-
-To see an overview of the language, visit [the tour](http://www.pyret.org/docs/latest/A_Tour_of_Pyret.html).
-
 To learn about the language, visit [pyret.org](http://pyret.org).
+
+To read an introduction of the language, visit [the tour](http://www.pyret.org/docs/latest/A_Tour_of_Pyret.html).
 
 To read the documentation, visit [pyret.org/docs/](http://pyret.org/docs/).
 
+There are two main ways to use Pyret:
+
+1.  If all you want to do is program in Pyret, there is a web-based environment
+at [code.pyret.org](https://code.pyret.org) that lets you run and save programs
+that should be all you need.  If you're a student using Pyret, this is probably
+where you will do your assignments, for example.
+
+2.  If you want to develop Pyret, or install it for use at the command line,
+the README starting below is for you.
 
 The use of vocabulary from
 http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
 commenting and reporting issues.
 
-All Aboard
+
+Installing
 ----------
 
 First, make sure you've installed [Node >= 0.10](http://nodejs.org).  Then run:
