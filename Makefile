@@ -12,7 +12,6 @@ PHASE0           = build/phase0
 PHASE1           = build/phase1
 PHASE2           = build/phase2
 PHASE3           = build/phase3
-WEB              = build/web
 RELEASE_DIR      = build/release
 DOCS             = docs
 
@@ -80,16 +79,7 @@ else
 	VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{ print $$1 "r" $$2 }')
 endif
 
-WEB_DEPS = \
- node_modules/requirejs/require.js \
- src/web/playground.html \
- lib/CodeMirror/lib/codemirror.css \
- lib/CodeMirror/lib/codemirror.js \
- lib/CodeMirror/mode/pyret.js \
- img/pyret-banner.png
 
-
-WEB_TARGETS = $(addprefix build/web/,$(notdir $(WEB_DEPS)))
 
 -include config.mk
 
@@ -132,23 +122,6 @@ standalone2: phase2 $(PHASE2)/pyret.js
 .PHONY : standalone3
 standalone3: phase3 $(PHASE3)/pyret.js
 
-.PHONY : web
-web: $(WEB_TARGETS) $(WEB)/web-compile.js
-
-$(WEB_TARGETS): | $(WEB)
-
-$(WEB):
-	@$(call MKDIR,$(WEB))
-$(WEB)/%: lib/CodeMirror/%
-	cp $< $@
-$(WEB)/%: src/web/%
-	cp $< $@
-$(WEB)/%: img/%
-	cp $< $@
-
-$(WEB)/web-compile.js: $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS))
-	cd $(PHASE2) && \
-	$(NODE) ../../node_modules/requirejs/bin/r.js -o optimize=none baseUrl=. name=arr/compiler/web-compile.arr out=../web/web-compile.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
 
 $(PHASE1):
 	@$(call MKDIR,$(PHASE1_DIRS))
