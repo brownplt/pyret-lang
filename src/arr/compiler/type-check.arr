@@ -247,20 +247,20 @@ fun to-type-variant(variant :: A.Variant, info :: TCInfo) -> FoldResult<Pair<A.V
   end
 end
 
-fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type,
-                handle :: (A.Expr, Loc, Option<List<TypeMember>> -> SynthesisResult),
+fun record-view(access-loc :: Loc, obj-typ-loc :: A.Loc, obj-typ :: Type,
+                handle :: (Loc, Option<List<TypeMember>> -> SynthesisResult),
                 info :: TCInfo
 ) -> SynthesisResult:
   non-obj-err = synthesis-err([list: C.incorrect-type(tostring(obj-typ), obj-typ-loc, "an object type", access-loc)])
   cases(Type) obj-typ:
     | t-record(members) =>
-      handle(obj, obj-typ-loc, some(members))
+      handle(obj-typ-loc, some(members))
     | t-bot =>
-      handle(obj, obj-typ-loc, none)
+      handle(obj-typ-loc, none)
     | else =>
       cases(Option<DataType>) TCS.get-data-type(obj-typ, info):
         | some(data-type) =>
-          handle(obj, obj-typ-loc, some(data-type.fields))
+          handle(obj-typ-loc, some(data-type.fields))
         | none =>
           non-obj-err
       end
@@ -268,20 +268,55 @@ fun record-view(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ 
 end
 
 fun synthesis-field(access-loc :: Loc, obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type, field-name :: String, recreate :: (A.Loc, A.Expr, String -> A.Expr), info :: TCInfo) -> SynthesisResult:
-  record-view(access-loc, obj, obj-typ-loc, obj-typ,
-  lam(new-obj, l, maybe-obj-fields):
+  record-view(access-loc, obj-typ-loc, obj-typ,
+  lam(l, maybe-obj-fields):
     cases(Option<List<TypeMember>>) maybe-obj-fields:
       | some(obj-fields) =>
         cases(Option<TypeMember>) TS.type-members-lookup(obj-fields, field-name):
           | some(tm) =>
-            synthesis-result(recreate(l, new-obj, field-name), l, tm.typ)
+            synthesis-result(recreate(l, obj, field-name), l, tm.typ)
           | none =>
             synthesis-err([list: C.object-missing-field(field-name, "{" + obj-fields.map(tostring).join-str(", ") + "}", l, access-loc)])
         end
       | none =>
-        synthesis-result(recreate(l, new-obj, field-name), l, t-bot)
+        synthesis-result(recreate(l, obj, field-name), l, t-bot)
     end
   end, info)
+end
+
+fun synthesis-update(update-loc :: Loc, new-obj :: A.Expr, obj-typ-loc :: A.Loc, obj-typ :: Type, fields :: List<A.Member>, info :: TCInfo) -> SynthesisResult:
+  fun process-field(member, obj-fields):
+    cases(Option<TypeMember>) TS.type-members-lookup(obj-fields, member.right.field-name):
+      | some(btm) =>
+        cases(Type) btm.typ:
+          | t-ref(onto) =>
+            if satisfies-type(member.right.typ, onto, info):
+              fold-result(member.left)
+            else:
+              fold-errors([list: C.incorrect-type(tostring(member.right.typ), update-loc, tostring(onto), obj-typ-loc)])
+            end
+          | else =>
+            fold-errors([list: C.incorrect-type(tostring(btm.typ), obj-typ-loc, tostring(t-ref(btm.typ)), update-loc)])
+        end
+      | none =>
+        fold-errors([list: C.object-missing-field(member.right.field-name, "{" + obj-fields.map(tostring).join-str(", ") + "}", obj-typ-loc, update-loc)])
+    end
+  end
+  fun process-fields(l, maybe-obj-fields, atms):
+    cases(Option<List<TypeMember>>) maybe-obj-fields:
+      | some(obj-fields) =>
+        for synth-bind(new-fields from map-result(process-field(_, obj-fields), atms)):
+          synthesis-result(A.s-update(l, new-obj, new-fields), obj-typ-loc, obj-typ)
+        end
+      | none =>
+        split-fields = split(atms)
+        new-fields   = split-fields.left
+        synthesis-result(A.s-update(l, new-obj, new-fields), obj-typ-loc, obj-typ)
+    end
+  end
+  for synth-bind(atms from map-result(to-type-member(_, info), fields)):
+    record-view(update-loc, obj-typ-loc, obj-typ, process-fields(_, _, atms), info)
+  end
 end
 
 fun mk-variant-constructor(variant :: A.Variant, brander-typ :: Type, params :: List<TypeVariable>, info :: TCInfo) -> Type:
@@ -856,8 +891,8 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-fun(l, body, empty, args, ann, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
       synthesis-err([list: C.unsupported("Object extension is currently unsupported by the type checker", l)])
-    | s-update(l, supe, fields) =>
-      synthesis-err([list: C.unsupported("Updating object fields is currently unsupported by the type checker", l)])
+    | s-update(l, obj, fields) =>
+      synthesis(obj, info).bind(synthesis-update(l, _, _, _, fields, info))
     | s-obj(l, fields) =>
       for synth-bind(result from map-result(to-type-member(_, info), fields)):
         split-fields = split(result)
@@ -1268,8 +1303,12 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       check-fun(l, body, empty, args, ann, expect-loc, expect-typ, A.s-method(l, _, _, doc, _, _check), info)
     | s-extend(l, supe, fields) =>
       checking-err([list: C.unsupported("Object extension is currently unsupported by the type checker", l)])
-    | s-update(l, supe, fields) =>
-      checking-err([list: C.unsupported("Object updates are currently unsupported by the type checker", l)])
+    | s-update(l, obj, fields) =>
+      synthesis(obj, info)
+        .bind(synthesis-update(l, _, _, _, fields, info))
+        .check-bind(lam(new-update, new-update-typ-loc, new-update-typ):
+          check-and-return(new-update-typ-loc, new-update-typ, expect-loc, expect-typ, new-update, info)
+        end)
     | s-obj(l, fields) =>
       for check-bind(result from map-result(to-type-member(_, info), fields)):
         split-fields = split(result)
