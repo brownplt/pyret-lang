@@ -13,13 +13,11 @@ console.log("Starting repl tests");
 
 r([
     "../repl",
-    "../locator-repl",
     ], function (
       repl,
       locRepl
     ) {
-//  repl.performTest();
-  locRepl.performTest();
+  repl.performTest();
 }, function(err) {
   console.log("Require failed! ", err);
 });
