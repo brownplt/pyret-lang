@@ -42,9 +42,21 @@ data FileLocator:
       end
     end,
     get-compiled(self):
-      cpath = P.join(self.cenv, self.path) + ".js"
-      if F.file-exists(cpath):
-        some(JSP.ccp-string(F.file-to-string(cpath)))
+      spath = P.join(self.cenv, self.path)
+      cpath = spath + ".js"
+      if F.file-exists(spath) and F.file-exists(cpath):
+        stimes = F.file-times(spath)
+        # open cpath and use methods on it to try to avoid the obvious race
+        # conditions (though others surely remain)
+        cfp = F.input-file(cpath)
+        ctimes = cfp.file-times(cpath)
+        if ctimes.mtime > stimes.mtime:
+          ret = some(JSP.ccp-string(cfp.read-file(cfp)))
+          cfp.close-file()
+          ret
+        else:
+          none
+        end
       else:
         none
       end
