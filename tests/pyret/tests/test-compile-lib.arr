@@ -1,5 +1,7 @@
 import string-dict as SD
 import load-lib as L
+import namespace-lib as N
+import runtime-lib as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 
@@ -33,6 +35,7 @@ check "Worklist generation (simple)":
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-compile-env(self): CM.standard-builtins end,
+      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -52,7 +55,7 @@ check "Worklist generation (simple)":
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = CL.compile-and-run-worklist(clib, wlist)
+  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime())
   ans satisfies L.is-success-result
 end
 
@@ -100,6 +103,7 @@ check "Worklist generation (DAG)":
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-compile-env(self): CM.standard-builtins end,
+      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
@@ -161,6 +165,7 @@ check "Worklist generation (Cycle)":
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-compile-env(self): CM.standard-builtins end,
+      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,

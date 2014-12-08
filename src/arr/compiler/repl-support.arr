@@ -8,6 +8,7 @@ import ast as A
 import error as E
 import parse-pyret as P
 import string-dict as SD
+import namespace-lib as N
 
 fun drop-module-bindings(env :: C.CompileEnvironment):
   fun negate(f): lam(x): not(f(x));;
@@ -203,6 +204,29 @@ fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
     get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-compile-env(self): compile-env end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
+fun make-repl-interaction-locator(name, uri, get-interactions, repl):
+  fun get-ast():
+    interactions = get-interactions()
+    parsed = P.surface-parse(interactions, name)
+    make-provide-for-repl(parsed)
+  end
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+    get-compile-env(self): repl.get-current-compile-env() end,
+    get-namespace(self, runtime): repl.get-current-namespace() end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
     name(self): name end,

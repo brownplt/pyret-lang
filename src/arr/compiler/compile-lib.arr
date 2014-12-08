@@ -4,6 +4,8 @@ provide-types *
 import parse-pyret as P
 import ast as A
 import load-lib as L
+import namespace-lib as N
+import runtime-lib as R
 import sets as S
 import string-dict as SD
 import "compiler/compile.arr" as CM
@@ -31,6 +33,7 @@ type Locator = {
   get-dependencies :: ( -> Set<CS.Dependency>),
   get-provides :: ( -> Provides),
   get-compile-env :: ( -> CS.CompileEnv),
+  get-namespace :: (R.Runtime -> N.Namespace),
 
   uri :: (-> URI),
   name :: (-> String),
@@ -164,15 +167,15 @@ end
 type PyretAnswer = Any
 type PyretMod = Any
 
-fun compile-and-run-worklist(cl, ws :: List<ToCompile>):
+fun compile-and-run-worklist(cl, ws :: List<ToCompile>, runtime :: R.Runtime):
   compiled-mods = cl.compile-program(ws)
   load-infos = for map2(tc from ws, cm from compiled-mods):
     { to-compile: tc, compiled-mod: cm }
   end
-  load-worklist(load-infos, SD.make-string-dict(), L.make-loader())
+  load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime)
 end
 
-fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader) -> PyretAnswer:
+fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
   cases(List) ws:
     | empty =>
       raise("Didn't get anything to run in run-worklist")
@@ -185,12 +188,12 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader) -> PyretAnswer
       cases(CS.CompileResult) load-info.compiled-mod:
         | err(problems) => raise(problems)
         | ok(cp) => 
-          ans = loader.load(cp, depvals)
+          ans = loader.load(cp, depvals, load-info.to-compile.locator.get-namespace(runtime))
           modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
           answer = loader.run(ans, load-info.to-compile.locator.uri())
           cases(List) r:
             | empty => answer
-            | link(_, _) => load-worklist(r, modvals-new, loader)
+            | link(_, _) => load-worklist(r, modvals-new, loader, runtime)
           end
       end
   end

@@ -4,9 +4,10 @@ define(["trove/arrays",
 "trove/option",
 "trove/sets",
 "trove/checker",
+"trove/runtime-lib",
 "js/secure-loader",
 "js/runtime-anf"
-], function(arrays, errors, lists, option, sets, checkerLib, loader, rtLib) {
+], function(arrays, errors, lists, option, sets, checkerLib, runtimeLib, loader, rtLib) {
   
 
   var modValFlag = {};
@@ -20,10 +21,11 @@ define(["trove/arrays",
       return runtime.getField(brand, "brand").app(val);
     }
 
-    function makeModule(runtimeForModule, moduleFun) {
+    function makeModule(runtimeForModule, moduleFun, namespace) {
       var m = runtime.makeOpaque({
         runtime: runtimeForModule,
-        moduleFun: moduleFun
+        moduleFun: moduleFun,
+        namespace: namespace
       });
       return m;
     }
@@ -51,9 +53,9 @@ define(["trove/arrays",
     }
     function getAnswerForPyret(mr) {
       var a = getModuleResultAnswer(mr);
-      if(isPrimitive(mr.val.runtime, a)) { return mr.val.runtime.ffi.makeSome(a); }
+      if(isPrimitive(mr.val.runtime, a)) { return runtime.ffi.makeSome(a); }
       else {
-        return mr.val.runtime.ffi.makeNone();
+        return runtime.ffi.makeNone();
       }
     }
     function getModuleResultRuntime(mr) {
@@ -78,12 +80,14 @@ define(["trove/arrays",
       checkSuccess(mr, "answer");
       return mr.val.runtime.getField(mr.val.result.result, "answer");
     }
-    function createLoader() {
-
-
-      var loadRuntime = rtLib.makeRuntime({});
-      return loadRuntime.loadModulesNew(loadRuntime.namespace, [checkerLib], function(checkerLib) {
-        function load(compileResult, listOfMods) {
+    function makeLoader(loadRuntimePyret) {
+      runtime.checkArity(1, arguments, "make-loader");
+      runtime.loadModulesNew(runtime.namespace, [runtimeLib], function(runtimeLib) {
+        runtime.getField(runtimeLib, "internal").checkRuntime(loadRuntimePyret);
+      });
+      var loadRuntime = runtime.getField(loadRuntimePyret, "runtime").val;
+      return loadRuntime.loadModulesNew(loadRuntime.namespace, [checkerLib, runtimeLib], function(checkerLib, runtimeLib) {
+        function load(compileResult, listOfMods, namespace) {
           // TODO(joe): check for compileResult annotation
           runtime.checkList(listOfMods);
           var modArr = runtime.ffi.toArray(listOfMods);
@@ -95,12 +99,10 @@ define(["trove/arrays",
               var fullDeps = [arrays, errors, lists, option, sets].concat(dependencies);
               var loaded = loader.loadSingle(loadRuntime, toExec, fullDeps);
               loaded.fail(function(err) {
-                console.log("Failed to load: ", err);
                 restart.error(runtime.ffi.makeMessageException(String(err)));
               });
               loaded.then(function(modVal) {
-                console.log("Loaded");
-                restart.resume(makeModule(loadRuntime, modVal));
+                restart.resume(makeModule(loadRuntime, modVal, runtime.getField(namespace, "namespace").val));
               });
             });
           });
@@ -113,68 +115,13 @@ define(["trove/arrays",
         function setCheckAll(newCheckAll) {
           checkAll = newCheckAll;
         }
-        function wrapResult(execRt, callingRt, r) {
-          if(execRt.isSuccessResult(r)) {
-            var pyretResult = r.result;
-            return callingRt.makeObject({
-                "result": callingRt.makeOpaque(r),
-                "success": callingRt.makeBoolean(true),
-                "render-check-results": callingRt.makeFunction(function() {
-                  var toCall = execRt.getField(checker, "render-check-results");
-                  var checks = execRt.getField(pyretResult, "checks");
-                  callingRt.pauseStack(function(restarter) {
-                      execRt.run(function(rt, ns) {
-                          return toCall.app(checks);
-                        }, execRt.namespace, {sync: true},
-                        function(printedCheckResult) {
-                          if(execRt.isSuccessResult(printedCheckResult)) {
-                            if(execRt.isString(printedCheckResult.result)) {
-                              restarter.resume(callingRt.makeString(execRt.unwrap(printedCheckResult.result)));
-                            }
-                          }
-                          else if(execRt.isFailureResult(printedCheckResult)) {
-                            restarter.resume(callingRt.makeString("There was an exception while formatting the check results"));
-                          }
-                        });
-                    });
-                })
-              });
-          }
-          else if(execRt.isFailureResult(r)) {
-            return callingRt.makeObject({
-                "result": callingRt.makeOpaque(r),
-                "success": callingRt.makeBoolean(false),
-                "failure": r.exn.exn,
-                "render-error-message": callingRt.makeFunction(function() {
-                  callingRt.pauseStack(function(restarter) {
-                    execRt.runThunk(function() {
-                      if(execRt.isPyretVal(r.exn.exn)) {
-                        return execRt.string_append(
-                          execRt.toReprJS(r.exn.exn, "tostring"),
-                          execRt.makeString("\n" +
-                                            execRt.printPyretStack(r.exn.pyretStack)));
-                      } else {
-                        return String(r.exn + "\n" + r.exn.stack);
-                      }
-                    }, function(v) {
-                      if(execRt.isSuccessResult(v)) {
-                        return restarter.resume(v.result)
-                      } else {
-                        console.error("There was an exception while rendering the exception: ", r.exn, v.exn);
-                      }
-                    })
-                  });
-                })
-              });
-          }
-        }
         function run(modval, modname) {
           loadRuntime.setParam("command-line-arguments", cca);
           var checker = loadRuntime.getField(checkerLib, "values");
           var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
           loadRuntime.setParam("current-checker", currentChecker);
           runtime.pauseStack(function(restarter) {
-            loadRuntime.run(modval.val.moduleFun, loadRuntime.namespace, {}, function(result) {
+            loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
               restarter.resume(makeModuleResult(loadRuntime, result));
             });
           });
@@ -188,7 +135,7 @@ define(["trove/arrays",
     return runtime.makeObject({
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject({
-          "make-loader": runtime.makeFunction(createLoader),
+          "make-loader": runtime.makeFunction(makeLoader),
           "is-success-result": runtime.makeFunction(isSuccessResult),
           "is-failure-result": runtime.makeFunction(isFailureResult),
           "get-result-answer": runtime.makeFunction(getAnswerForPyret)

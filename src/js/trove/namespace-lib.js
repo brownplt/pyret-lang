@@ -1,5 +1,6 @@
-define(["js/namespace", "trove/load-lib"], function(namespace, loadLib) {
+define(["js/runtime-util", "js/namespace", "trove/load-lib"], function(util, namespace, loadLib) {
   return util.memoModule("namespace-lib.js", function(runtime, ns) {
+    var get = runtime.getField;
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
     }
@@ -9,13 +10,13 @@ define(["js/namespace", "trove/load-lib"], function(namespace, loadLib) {
     var checkNamespace = runtime.makePrimitiveAnn(annNamespace);
 
     return runtime.loadModulesNew(ns, [loadLib], function(load) {
-      var checkModuleResult = runtime.makePrimitiveAnn(runtime.getField(load, "types").ModuleResult);
+//      var checkModuleResult = function(v) { return runtime._checkAnn(["namespace"], runtime.getField(load, "types").ModuleResult, v); };
       var loadInternalAPI = runtime.getField(load, "internal");
 
       function makeNamespace(runtimeNamespaceIsFor, ns) {
         
         function mergeAll(self, answer) {
-          checkModuleResult(answer);
+//          checkModuleResult(answer);
           var runtimeOfAnswer = loadInternalAPI.getModuleResultRuntime(answer);
           if(runtimeOfAnswer !== runtimeNamespaceIsFor) {
             runtime.ffi.throwMessageException("Namespace got values from different runtimes.");
@@ -32,21 +33,27 @@ define(["js/namespace", "trove/load-lib"], function(namespace, loadLib) {
           return makeNamespace(runtimeNamespaceIsFor, newNamespace);
         }
 
-        var obj = rt.makeObject({
-          "merge-all": rt.makeMethodFromFun(mergeAll)
+        var obj = runtime.makeObject({
+          "merge-all": runtime.makeMethodFromFun(mergeAll),
+          "namespace": runtime.makeOpaque(ns)
         });
         return applyBrand(brandNamespace, obj);
       }
 
-      return rt.makeObject({
-        "provide-plus-types": rt.makeObject({
+      return runtime.makeObject({
+        "provide-plus-types": runtime.makeObject({
           types: {
             Namespace: annNamespace
           },
-          values: {
-            "empty-namespace": makeNamespace(runtime, namespace.namespace({})),
-            "base-namespace": makeNamespace(runtime, runtime.namespace)
-          },
+          values: runtime.makeObject({
+            "make-empty-namespace": runtime.makeFunction(function(nsRuntime) {
+              return makeNamespace(get(nsRuntime, "runtime").val, namespace.namespace({}));
+            }),
+            "make-base-namespace": runtime.makeFunction(function(nsRuntime) {
+              var r = get(nsRuntime, "runtime").val;
+              return makeNamespace(r, r.namespace);
+            })
+          }),
           internal: {
             makeNamespace: makeNamespace
           }
