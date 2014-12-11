@@ -1,20 +1,22 @@
+provide *
+
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 import file as F
-import pathlib as P
 
-# Still unsure if just a path is the right input for this, especially
-# given the use of compile contexts to basically mean "all but the base
-# file", but we'll see.
-data FileLocator:
-  | file-locator(path :: String, cenv :: CS.CompileEnv)
-    with:
+# Still unsure if just a path is the right input for this.
+#data FileLocator:
+#  | file-locator(path :: String, cenv :: CS.CompileEnv)
+#    with:
+
+fun mockable-file-locator(file-ops):
+  lam(path, cenv): {
     get-module(self):
-      when not(F.file-exists(self.path)):
+      when not(file-ops.file-exists(self.path)):
         raise("File " + self.path + " does not exist")
       end
-      f = F.input-file(self.path)
+      f = file-ops.input-file(self.path)
       str = CL.pyret-string(f.read-file())
       f.close-file()
       str
@@ -30,7 +32,7 @@ data FileLocator:
       cases(CS.CompileResult) cr:
         | ok(ccp) =>
           cpath = self.path + ".js"
-          f = F.output-file(cpath)
+          f = file-ops.output-file(cpath)
           f.display(ccp.pyret-to-js-runnable())
           f.close-file()
         | err(_) => nothing
@@ -38,11 +40,11 @@ data FileLocator:
     end,
     get-compiled(self):
       cpath = self.path + ".js"
-      if F.file-exists(self.path) and F.file-exists(cpath):
-        stimes = F.file-times(self.path)
+      if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
+        stimes = file-ops.file-times(self.path)
         # open cpath and use methods on it to try to avoid the obvious race
         # conditions (though others surely remain)
-        cfp = F.input-file(cpath)
+        cfp = file-ops.input-file(cpath)
         ctimes = cfp.file-times(cpath)
         if ctimes.mtime > stimes.mtime:
           ret = some(JSP.ccp-string(cfp.read-file(cfp)))
@@ -58,4 +60,12 @@ data FileLocator:
     uri(self): "file://" + self.path end,
     name(self): self.path end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end
+  } end
 end
+
+file-locator = mockable-file-locator({
+    input-file: F.input-file,
+    output-file: F.output-file,
+    file-exists: F.file-exists,
+    file-times: F.file-times,
+})
