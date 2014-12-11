@@ -11,11 +11,10 @@ data FileLocator:
   | file-locator(path :: String, cenv :: CS.CompileEnv)
     with:
     get-module(self):
-      fpath = P.join(self.cenv, self.path)
-      when not(F.file-exists(fpath)):
-        raise("File " + fpath + " does not exist")
+      when not(F.file-exists(self.path)):
+        raise("File " + self.path + " does not exist")
       end
-      f = F.input-file(fpath)
+      f = F.input-file(self.path)
       str = CL.pyret-string(f.read-file())
       f.close-file()
       str
@@ -27,14 +26,10 @@ data FileLocator:
       CL.get-provides(self.get-module(), self.uri())
     end,
     get-compile-env(self): self.cenv end,
-    update-compile-context(self, oenv):
-      dir = P.dirname(P.join(self.cenv, self.path))
-      P.normalize(P.join(dir, oenv))
-    end,
     set-compiled(self, cr, deps):
       cases(CS.CompileResult) cr:
         | ok(ccp) =>
-          cpath = P.join(self.cenv, self.path) + ".js"
+          cpath = self.path + ".js"
           f = F.output-file(cpath)
           f.display(ccp.pyret-to-js-runnable())
           f.close-file()
@@ -42,10 +37,9 @@ data FileLocator:
       end
     end,
     get-compiled(self):
-      spath = P.join(self.cenv, self.path)
-      cpath = spath + ".js"
-      if F.file-exists(spath) and F.file-exists(cpath):
-        stimes = F.file-times(spath)
+      cpath = self.path + ".js"
+      if F.file-exists(self.path) and F.file-exists(cpath):
+        stimes = F.file-times(self.path)
         # open cpath and use methods on it to try to avoid the obvious race
         # conditions (though others surely remain)
         cfp = F.input-file(cpath)
@@ -61,7 +55,7 @@ data FileLocator:
         none
       end
     end,
-    uri(self): "file://" + P.join(self.cenv, self.path) end,
+    uri(self): "file://" + self.path end,
     name(self): self.path end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end
 end
