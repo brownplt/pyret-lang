@@ -74,7 +74,7 @@ check "within":
    1  is%(num-within(0.1))      ~1
   ~3  is%(num-within(0.1))      ~3
   ~2  is-not%(num-within(0.1))  ~3
-  ~2  is%(num-within(1.0))      ~3
+  ~2  is%(num-within(1.1))      ~3
   ~2  is-not%(num-within(~1))   ~3
    2  is-not%(num-within(1))    ~3
    5  is%(num-within(4))         3
