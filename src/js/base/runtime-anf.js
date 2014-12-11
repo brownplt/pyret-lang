@@ -3239,6 +3239,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(r);
       return thisRuntime.makeBoolean(jsnums.equals(l, r));
     }
+
+    var num_within = function(delta) {
+      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkNumber(delta);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within");
+        thisRuntime.checkNumber(l);
+        thisRuntime.checkNumber(r);
+        return makeBoolean(jsnums.roughlyEquals(l, r, delta));
+      });
+    }
+
     var num_max = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-max");
       thisRuntime.checkNumber(l);
@@ -3562,6 +3574,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
           'nums-equal': makeFunction(num_equals),
+          'num-within': makeFunction(num_within),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
