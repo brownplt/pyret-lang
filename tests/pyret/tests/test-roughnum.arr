@@ -68,3 +68,14 @@ check "long decimals should behave exactly":
   2.99999999999999999999999999999999999999999999 is-not
     2.999999999999999999999999999999999999999999999
 end
+
+check "within":
+   1  is%(num-within(0.1))       1
+   1  is%(num-within(0.1))      ~1
+  ~3  is%(num-within(0.1))      ~3
+  ~2  is-not%(num-within(0.1))  ~3
+  ~2  is%(num-within(1.0))      ~3
+  ~2  is-not%(num-within(~1))   ~3
+   2  is-not%(num-within(1))    ~3
+   5  is%(num-within(4))         3
+end
