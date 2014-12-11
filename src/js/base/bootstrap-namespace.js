@@ -96,6 +96,7 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
         'num-max': rt.namespace.get("num-max"),
         'num-min': rt.namespace.get("num-min"),
         'nums-equal': rt.namespace.get("nums-equal"),
+        'num-within': rt.namespace.get("num-within"),
         'num-abs': rt.namespace.get("num-abs"),
         'num-sin': rt.namespace.get("num-sin"),
         'num-cos': rt.namespace.get("num-cos"),
