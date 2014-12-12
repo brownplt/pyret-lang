@@ -137,3 +137,30 @@ check:
   randoms satisfies lists.all(lam(v): (v < 100) and (v >= 0) end, _)
   randoms violates lists.all(lam(v): v == randoms.first end, _)
 end
+
+check "evangielis #337":
+  nums-equal(1.11 + 1, 2.11) is true
+end
+
+check "sk #345":
+  fun square(n): n * n end
+  fun f(x, y):
+    (333.75 * num-expt(y, 6))
+    +
+    (square(x)
+      *
+      ((11 * square(x) * square(y))
+       -
+       num-expt(y, 6)
+       -
+       (121 * num-expt(y, 4))
+       -
+       2))
+    +
+    (5.5 * num-expt(y, 8))
+    +
+    (x / (2 * y))
+  end
+  v = f(77617, 33096)
+  v is -54767 / 66192
+end
