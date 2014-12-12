@@ -422,6 +422,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var key = array[i];
           var val = array[i + 1];
           runtime.checkString(key);
+          var ikey = internalKey(key);
+          if (dict[ikey] !== undefined) {
+            runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + key);
+          }
           dict[internalKey(key)] = val;
         }
         return makeImmutableStringDict(dict);
