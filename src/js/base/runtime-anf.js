@@ -1422,14 +1422,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else if (ffi.isUnknown(e1)) { return e1; }
     }
     // JS function from Pyret values to Pyret equality answers
-    function equal3(left, right, alwaysFlag) {
+    function equal3(left, right, alwaysFlag, tol) {
       var isIdentical = identical3(left, right);
       if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
 
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: ffi.equal };
-      var current, curLeft, curRight, cache;
-      cache = {left: [], right: []};
+      var cache = {left: [], right: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
@@ -1442,6 +1441,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         cache.right.push(obj2);
       }
       function equalHelp() {
+        var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
           curLeft = current.left;
@@ -1450,7 +1450,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
           if (ffi.isEqual(identical3(curLeft, curRight))) {
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
-            if (jsnums.equals(curLeft, curRight)) {
+            if (tol) {
+              if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
+                continue;
+              } else {
+              toCompare.curAns = ffi.notEqual.app(current.path);
+              }
+            } else if (jsnums.equals(curLeft, curRight)) {
               continue;
             } else {
               toCompare.curAns = ffi.notEqual.app(current.path);
@@ -1636,6 +1642,27 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var equalFunPy = makeFunction(reenterEqualFun);
       return reenterEqualFun(left, right);
     }
+
+    function equalWithin(tol) {
+      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within");
+        return safeCall(function () {
+          return equal3(l, r, true, tol);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else { ffi.throwMessageException("Attempted to compare functions or methods with within"); }
+        });
+      });
+    };
+
+    var equalWithinPy = makeFunction(function(tol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithin(tol).app(l, r));
+      });
+    });
 
     // JS function from Pyret values to Pyret equality answers
     function equalAlways3(left, right) {
@@ -3649,6 +3676,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-now': equalNowPy,
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
+          'within': equalWithinPy,
 
           'exn-unwrap': makeFunction(getExnValue)
 
@@ -3832,6 +3860,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'equal_always3': equalAlways3,
         'equal_always': equalAlways,
         'combineEquality': combineEquality,
+
+        'within': equalWithin,
 
         'raise': raiseJSJS,
 
