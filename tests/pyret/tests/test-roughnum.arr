@@ -1,18 +1,18 @@
 check "roughnum":
-  within = lam(delta):
+  localwithin = lam(delta):
             lam(a, b):
               num-abs(a - b) < delta
             end
           end
   1 + 2 is 3
-  1 + ~2 is%(within(~0.005)) ~3
+  1 + ~2 is%(localwithin(~0.005)) ~3
   num-sin(0) is 0
-  num-sin(1) is%(within(~0.01)) ~0.84
+  num-sin(1) is%(localwithin(~0.01)) ~0.84
   1 < 2 is true
   ~1 < ~2 is true
   2 == (1 + 1) is true
   ~2 == (~1 + ~1) raises "roughnums cannot be compared for equality"
-  ~2 is%(within(~0.01)) (~1 + ~1)
+  ~2 is%(localwithin(~0.01)) (~1 + ~1)
   1.5 is 3/2
   num-sqrt(-1) raises "sqrt of negative number"
   num-is-integer(2) is true
