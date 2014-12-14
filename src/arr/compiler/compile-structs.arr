@@ -303,6 +303,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "equal-always3",
   "equal-now",
   "equal-now3",
+  "within",
   "identical",
   "identical3",
   "exn-unwrap"
