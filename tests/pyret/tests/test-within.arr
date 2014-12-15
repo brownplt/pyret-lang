@@ -7,6 +7,8 @@ check "num-within":
   ~2  is-not%(num-within(~1))   ~3
    2  is-not%(num-within(1))    ~3
    5  is%(num-within(4))         3
+
+   num-within(-0.1)(1, 1.05) raises "negative tolerance"
 end
 
 check "within":
@@ -18,6 +20,8 @@ check "within":
   ~2  is-not%(within(~1))   ~3
    2  is-not%(within(1))    ~3
    5  is%(within(4))         3
+
+   within(-0.1)(1, 1.05) raises "negative tolerance"
 
    l1 = [list: 1]
    l2 = [list: 1.2]
