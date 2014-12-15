@@ -51,3 +51,14 @@ check "within":
    l7 is%(within(~0.5))  l8
    l7 is-not%(within(~0.1)) l8
 end
+
+check "within-relative-error":
+  num-within-rel = lam(rel-tol):
+                     lam(a, b):
+                       abs-tol = ((a + b) / 2) * rel-tol
+                       (num-within(abs-tol))(a, b)
+                     end
+                    end
+  100000 is%(num-within-rel(0.1)) 95000
+  100000 is-not%(num-within-rel(0.1)) 85000
+end
