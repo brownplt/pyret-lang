@@ -101,7 +101,7 @@ string-explode
 string-index-of
 num-max
 num-min
-nums-equal
+num-equal
 num-abs
 num-sin
 num-cos

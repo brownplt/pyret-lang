@@ -3357,7 +3357,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return thisRuntime.makeBoolean(!l);
     }
 
-    var num_equals = function(l, r) {
+    var num_equal = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
@@ -3697,7 +3697,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
-          'nums-equal': makeFunction(num_equals),
+          'num-equal': makeFunction(num_equal),
           'num-within': makeFunction(num_within),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),

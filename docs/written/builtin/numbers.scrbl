@@ -9,7 +9,7 @@
       (variants)
       (shared))
   (fun-spec
-    (name "nums-equal")
+    (name "num-equal")
     (arity 2)
     (args ("n1" "n2"))
     (doc ""))
@@ -136,7 +136,7 @@
        The type of number values
      }
      @section{Number Functions}
-  @function["nums-equal" #:contract (a-arrow N N B)]{
+  @function["num-equal" #:contract (a-arrow N N B)]{
 
   }
   @function["num-max" #:contract (a-arrow N N N)]{

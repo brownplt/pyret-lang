@@ -139,7 +139,7 @@ check:
 end
 
 check "evangielis #337":
-  nums-equal(1.11 + 1, 2.11) is true
+  num-equal(1.11 + 1, 2.11) is true
 end
 
 check "sk #345":
