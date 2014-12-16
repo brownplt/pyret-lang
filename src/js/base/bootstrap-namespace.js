@@ -93,6 +93,8 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
 
         'random': rt.namespace.get("random"),
 
+        'within-now': rt.namespace.get("within-now"),
+        'within-rel-now': rt.namespace.get("within-rel-now"),
         'within': rt.namespace.get("within"),
         'within-rel': rt.namespace.get("within-rel"),
 

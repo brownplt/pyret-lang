@@ -1645,6 +1645,27 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return reenterEqualFun(left, right);
     }
 
+    function equalWithinNow(tol) {
+      thisRuntime.checkArity(1, arguments, "within-now");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-now");
+        return safeCall(function () {
+          return equal3(l, r, false, tol);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else { ffi.throwMessageException("Attempted to compare functions or methods with within-now"); }
+        });
+      });
+    };
+
+    var equalWithinNowPy = makeFunction(function(tol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinNow(tol).app(l, r));
+      });
+    });
+
     function equalWithin(tol) {
       thisRuntime.checkArity(1, arguments, "within");
       thisRuntime.checkNumber(tol);
@@ -1663,6 +1684,27 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinPy = makeFunction(function(tol) {
       return makeFunction(function(l, r) {
         return makeBoolean(equalWithin(tol).app(l, r));
+      });
+    });
+
+    function equalWithinRelNow(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel");
+      thisRuntime.checkNumber(relTol);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-rel");
+        return safeCall(function () {
+          return equal3(l, r, false, relTol, true);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel"); }
+        });
+      });
+    };
+
+    var equalWithinRelNowPy = makeFunction(function(relTol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinRelNow(relTol).app(l, r));
       });
     });
 
@@ -3699,6 +3741,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-now': equalNowPy,
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
+          'within-now': equalWithinNowPy,
+          'within-rel-now': equalWithinRelNowPy,
           'within': equalWithinPy,
           'within-rel': equalWithinRelPy,
 
