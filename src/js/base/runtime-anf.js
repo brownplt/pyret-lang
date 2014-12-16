@@ -1645,6 +1645,38 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return reenterEqualFun(left, right);
     }
 
+    function equalWithinNow3(tol) {
+      thisRuntime.checkArity(1, arguments, "within-now3");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        return equal3(l, r, false, tol);
+      });
+    };
+
+    function equalWithinRelNow3(tol) {
+      thisRuntime.checkArity(1, arguments, "within-rel-now3");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        return equal3(l, r, false, tol, true);
+      });
+    };
+
+    function equalWithin3(tol) {
+      thisRuntime.checkArity(1, arguments, "within3");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        return equal3(l, r, true, tol);
+      });
+    };
+
+    function equalWithinRel3(tol) {
+      thisRuntime.checkArity(1, arguments, "within-rel3");
+      thisRuntime.checkNumber(tol);
+      return makeFunction(function(l, r) {
+        return equal3(l, r, true, tol);
+      });
+    };
+
     function equalWithinNow(tol) {
       thisRuntime.checkArity(1, arguments, "within-now");
       thisRuntime.checkNumber(tol);
@@ -3741,6 +3773,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-now': equalNowPy,
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
+
+          'within-now3' : makeFunction(equalWithinNow3),
+          'within-rel-now3' : makeFunction(equalWithinRelNow3),
+          'within3' : makeFunction(equalWithin3),
+          'within-rel3' : makeFunction(equalWithinRel3),
           'within-now': equalWithinNowPy,
           'within-rel-now': equalWithinRelNowPy,
           'within': equalWithinPy,
