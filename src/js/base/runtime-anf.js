@@ -1676,12 +1676,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel-err"); }
+          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel"); }
         });
       });
     };
 
-    var equalWithinRelErrPy = makeFunction(function(relTol) {
+    var equalWithinRelPy = makeFunction(function(relTol) {
       return makeFunction(function(l, r) {
         return makeBoolean(equalWithinRelErr(relTol).app(l, r));
       });
@@ -3700,7 +3700,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
           'within': equalWithinPy,
-          'within-rel-err': equalWithinRelErrPy,
+          'within-rel': equalWithinRelPy,
 
           'exn-unwrap': makeFunction(getExnValue)
 
