@@ -93,6 +93,28 @@ check "within-rel":
    l7 is-not%(within-rel(~0.1)) l8
 end
 
+data Box:
+  | box(ref v)
+end
+
+check "within-now":
+  b1 = box(5)
+  b2 = box(5)
+  l1 = [list: 2, b1]
+  l2 = [list: 2.1, b2]
+
+  2 is%(within(0.3)) 2.1
+  l1 is%(within-now(0.3)) l2
+  l1 is%(within-rel-now(0.5)) l2
+  l1 is-not%(within(0.3)) l2
+  l1 is-not%(within-rel(0.5)) l2
+
+  b1!{v: 10}
+
+  l1 is-not%(within-now(0.3)) l2
+  l1 is-not%(within-rel-now(0.5)) l2
+end
+
 check "user-def-num-within-rel":
   num-within-rel = lam(rel-tol):
                      lam(a, b):
