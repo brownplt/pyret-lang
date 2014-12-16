@@ -94,6 +94,7 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
         'random': rt.namespace.get("random"),
 
         'within': rt.namespace.get("within"),
+        'within-rel-err': rt.namespace.get("within-rel-err"),
 
         'num-max': rt.namespace.get("num-max"),
         'num-min': rt.namespace.get("num-min"),

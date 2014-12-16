@@ -1422,7 +1422,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else if (ffi.isUnknown(e1)) { return e1; }
     }
     // JS function from Pyret values to Pyret equality answers
-    function equal3(left, right, alwaysFlag, tol) {
+    function equal3(left, right, alwaysFlag, tol, rel) {
       var isIdentical = identical3(left, right);
       if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
 
@@ -1451,16 +1451,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (tol) {
-              if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
+              if (rel) {
+                var absTol = jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol);
+                if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
+                  continue;
+                }
+              } else if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
                 continue;
-              } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
               }
             } else if (jsnums.equals(curLeft, curRight)) {
               continue;
-            } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
             }
+            toCompare.curAns = ffi.notEqual.app(current.path);
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
@@ -1661,6 +1663,27 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinPy = makeFunction(function(tol) {
       return makeFunction(function(l, r) {
         return makeBoolean(equalWithin(tol).app(l, r));
+      });
+    });
+
+    function equalWithinRelErr(relTol) {
+      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkNumber(relTol);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within");
+        return safeCall(function () {
+          return equal3(l, r, true, relTol, true);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel-err"); }
+        });
+      });
+    };
+
+    var equalWithinRelErrPy = makeFunction(function(relTol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinRelErr(relTol).app(l, r));
       });
     });
 
@@ -3677,6 +3700,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
           'within': equalWithinPy,
+          'within-rel-err': equalWithinRelErrPy,
 
           'exn-unwrap': makeFunction(getExnValue)
 
