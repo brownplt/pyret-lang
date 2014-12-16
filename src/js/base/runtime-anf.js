@@ -1666,7 +1666,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     });
 
-    function equalWithinErr(relTol) {
+    function equalWithinRel(relTol) {
       thisRuntime.checkArity(1, arguments, "within");
       thisRuntime.checkNumber(relTol);
       return makeFunction(function(l, r) {
@@ -1683,7 +1683,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var equalWithinRelPy = makeFunction(function(relTol) {
       return makeFunction(function(l, r) {
-        return makeBoolean(equalWithinErr(relTol).app(l, r));
+        return makeBoolean(equalWithinRel(relTol).app(l, r));
       });
     });
 
