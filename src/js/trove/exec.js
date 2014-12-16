@@ -1,6 +1,6 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib", "js/runtime-util"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib, util) {
 
-  if(requirejs.isBrowser) {
+  if(util.isBrowser()) {
     var rjs = requirejs;
     var define = window.define;
   }
