@@ -1667,10 +1667,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
     });
 
     function equalWithinRel(relTol) {
-      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
       return makeFunction(function(l, r) {
-        thisRuntime.checkArity(2, arguments, "from within");
+        thisRuntime.checkArity(2, arguments, "from within-rel");
         return safeCall(function () {
           return equal3(l, r, true, relTol, true);
         }, function(ans) {
