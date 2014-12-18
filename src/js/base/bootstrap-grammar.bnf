@@ -95,7 +95,7 @@ expr: paren-expr | id-expr | prim-expr
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr
-    | for-expr | try-expr
+    | for-expr
     | user-block-expr | inst-expr
     | multi-let-expr | letrec-expr
     | construct-expr
@@ -165,8 +165,6 @@ cases-branch: BAR NAME [args] THICKARROW block
 for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
 for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
-
-try-expr: TRY  block EXCEPT (PARENSPACE|PARENNOSPACE) binding RPAREN COLON block end
 
 user-block-expr: BLOCK block end
 

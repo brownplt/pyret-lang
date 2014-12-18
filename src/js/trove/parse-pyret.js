@@ -844,11 +844,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               // (for-bind-elt b COMMA)
               return tr(node.kids[0]);
             },
-            'try-expr': function(node) {
-              // (try-expr TRY body EXCEPT LPAREN arg RPAREN COLON except END)
-              return RUNTIME.getField(ast, 's-try')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]), tr(node.kids[7]));
-            },
             'user-block-expr': function(node) {
               // (user-block-expr BLOCK body END)
               return RUNTIME.getField(ast, 's-user-block')

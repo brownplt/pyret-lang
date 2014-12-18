@@ -666,9 +666,6 @@ top-level-visitor = A.default-iter-visitor.{
   s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else)
   end,
-  s-try(_, l :: Loc, body :: A.Expr, id :: A.Bind, _except :: A.Expr):
-    well-formed-visitor.s-try(l, body, id, _except)
-  end,
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)
   end,

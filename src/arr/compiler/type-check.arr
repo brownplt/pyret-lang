@@ -920,8 +920,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-cases(l, typ, val, branches, none, info)
     | s-cases-else(l, typ, val, branches, _else) =>
       synthesis-cases(l, typ, val, branches, some(_else), info)
-    | s-try(l, body, id, _except) =>
-      synthesis-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,
@@ -1346,8 +1344,6 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       checking-cases(l, typ, val, branches, none, expect-loc, expect-typ, info)
     | s-cases-else(l, typ, val, branches, _else) =>
       checking-cases(l, typ, val, branches, some(_else), expect-loc, expect-typ, info)
-    | s-try(l, body, id, _except) =>
-      checking-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,

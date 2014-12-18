@@ -20,10 +20,5 @@ where:
   todo3 = todo2.seal(["done", "complete"])
   checkers.check-equals("done is present after seal", todo3.done, false)
   checkers.check-equals("complete is present after seal", todo3.complete().done, true)
-  try:
-    todo3.task # should error
-  except(e):
-    checkers.check-true("should not have a task field visible",
-                        error.is-field-not-found(e))
-  end
+  todo2.task raises-satisfies error.is-field-not-found
 end

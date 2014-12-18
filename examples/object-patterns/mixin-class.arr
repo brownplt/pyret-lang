@@ -40,11 +40,5 @@ where:
   todo2 = todo-class.instantiate({ due: "today", task: "implement classes" })
   checkers.check-equals("due was instantiated", todo2.due, "today")
   checkers.check-equals("done used default", todo2.done, false)
-  try:
-    todo2.constructor() # should err
-  except(e):
-    checkers.check-equals("constructor not present on instance",
-                          error.is-field-not-found(e),
-                          true)
-  end
+  todo2.constructor() raises-satisfies error.is-field-not-found
 end

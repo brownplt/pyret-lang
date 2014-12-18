@@ -67,7 +67,6 @@ str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
 str-thencolon = PP.str("then:")
 str-thickarrow = PP.str("=>")
-str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
 str-rec = PP.str("rec ")
@@ -568,15 +567,6 @@ data Expr:
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
-    end
-  | s-try(l :: Loc, body :: Expr, id :: Bind, _except :: Expr) with:
-    label(self): "s-try" end,
-    tosource(self):
-      _try = str-try + break-one
-        + PP.nest(INDENT, self.body.tosource()) + break-one
-      _except = str-except + PP.parens(self.id.tosource()) + str-colon + break-one
-        + PP.nest(INDENT, self._except.tosource()) + break-one
-      PP.group(_try + _except + str-end)
     end
   | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
@@ -1518,10 +1508,6 @@ default-map-visitor = {
     s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s-try(l, body.visit(self), id.visit(self), _except.visit(self))
-  end,
-
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     s-op(l, op, left.visit(self), right.visit(self))
   end,
@@ -2001,10 +1987,6 @@ default-iter-visitor = {
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    body.visit(self) and id.visit(self) and _except.visit(self)
-  end,
-  
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
@@ -2473,10 +2455,6 @@ dummy-loc-visitor = {
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s-try(dummy-loc, body.visit(self), id.visit(self), _except.visit(self))
   end,
 
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
