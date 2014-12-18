@@ -65,10 +65,6 @@ data CompileError:
     tostring(self, shadow tostring):
       "The anonymous recursive identifier at " + tostring(self.loc) + " can never be re-used"
     end
-  | pointless-graph-id(loc :: Loc) with:
-    tostring(self, shadow tostring):
-      "Anonymous bindings (such as the one at " + tostring(self.loc) + ") are not permitted in graphs, as they cannot be used"
-    end
   | pointless-shadow(loc :: Loc) with:
     tostring(self, shadow tostring):
       "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"

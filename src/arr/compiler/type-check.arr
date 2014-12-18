@@ -890,8 +890,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-err([list: C.unsupported("Synthesizing type aliases is currently unsupported by the type checker", l)])
     | s-newtype(l, name, namet) =>
       synthesis-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
-    | s-graph(l, bindings) =>
-      synthesis-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
       synthesis-err([list: C.unsupported("s-contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>
@@ -1316,8 +1314,6 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       end
     | s-newtype(l, name, namet) =>
       checking-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
-    | s-graph(l, bindings) =>
-      checking-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
       checking-err([list: C.unsupported("Contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>

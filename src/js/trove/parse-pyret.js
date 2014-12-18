@@ -333,16 +333,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return RUNTIME.getField(ast, 's-contract')
                 .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
             },
-            'graph-expr': function(node) {
-              // (graph-expr GRAPH bind ... END)
-              return RUNTIME.getField(ast, 's-graph')
-                .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
-            },
-            'mgraph-expr': function(node) {
-              // (graph-expr GRAPH bind ... END)
-              return RUNTIME.getField(ast, 's-m-graph')
-                .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
-            },
             'fun-expr': function(node) {
               // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
               return RUNTIME.getField(ast, 's-fun')

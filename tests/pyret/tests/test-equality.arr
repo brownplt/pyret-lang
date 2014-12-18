@@ -53,109 +53,9 @@ check "datatypes (with ref)":
   equal-now(x, y) is true
 end
 
-data NLink:
-  | nlink(n, ref l)
-  | nempty
-end
-
-ref-graph:
-  ones = nlink(1, ones)
-  other-ones = nlink(1, other-ones)
-  third-ones = nlink(1, ones)
-end
-ref-freeze(ones)
-ref-freeze(other-ones)
-ref-freeze(third-ones)
-
-check "immutable cyclic lists":
-  identical(ones, ones) is true
-  identical(ones, other-ones) is false
-  identical(ones, third-ones) is false
-  equal-always(ones, ones) is true
-  equal-always(ones, other-ones) is true
-  equal-always(ones, third-ones) is true
-  equal-now(ones, ones) is true
-  equal-now(ones, other-ones) is true
-  equal-now(ones, third-ones) is true
-end
-
 data MLink:
   | mlink(ref n, ref l)
   | mempty
-end
-
-block:
-  ref-graph:
-    mt1 = mempty
-    BOS = mlink(PRO, rest1)
-    rest1 = mlink(WOR, mt1)
-    PRO = mlink(BOS, mt1)
-    WOR = mlink(BOS, mt1)
-  end
-  ref-freeze(mt1)
-  ref-freeze(BOS)
-  ref-freeze(rest1)
-  ref-freeze(PRO)
-  ref-freeze(WOR)
-
-  ref-graph:
-    mt2 = mempty
-    CHI = mlink(CLE, mt2)
-    DEN = mlink(CLE, mt2)
-    CLE = mlink(CHI, rest2)
-    rest2 = mlink(DEN, mt2)
-  end
-  ref-freeze(mt2)
-  ref-freeze(CHI)
-  ref-freeze(DEN)
-  ref-freeze(CLE)
-  ref-freeze(rest2)
-
-  check "general immutable graphs":
-    identical(BOS, CLE) is false
-    identical(PRO, CHI) is false
-    identical(WOR, DEN) is false
-    equal-always(BOS, CLE) is true
-    equal-always(PRO, CHI) is true
-    equal-always(WOR, DEN) is true
-    equal-now(BOS, CLE) is true
-    equal-now(PRO, CHI) is true
-    equal-now(WOR, DEN) is true
-  end
-end
-
-block:
-  ref-graph:
-    mt1 = mempty
-    BOS = mlink(PRO, rest1)
-    rest1 = mlink(WOR, mt1)
-    PRO = mlink(BOS, mt1)
-    WOR = mlink(BOS, mt1)
-  end
-
-  ref-graph:
-    mt2 = mempty
-    CHI = mlink(CLE, mt2)
-    DEN = mlink(CLE, mt2)
-    CLE = mlink(CHI, rest2)
-    rest2 = mlink(DEN, mempty)
-  end
-
-  check "general mutable graphs":
-    identical(BOS, CLE) is false
-    identical(PRO, CHI) is false
-    identical(WOR, DEN) is false
-
-    equal-always(ref-get(PRO), ref-get(WOR)) is true
-    equal-always(ref-get(DEN), ref-get(CHI)) is true
-
-    equal-always(BOS, CLE) is false
-    equal-always(PRO, CHI) is false
-    equal-always(WOR, DEN) is false
-    equal-now(BOS, CLE) is true
-    equal-now(PRO, CHI) is true
-    equal-now(WOR, DEN) is true
-  end
 end
 
 # Sets
@@ -281,44 +181,6 @@ check "error (and non-error) on nested fun and meth":
   equal-now(o5, o4) raises f-err
 end
 
-block:
-  ref-graph:
-    mt1 = mempty
-    BOS = mlink(PRO, rest1)
-    rest1 = mlink(WOR, mt1)
-    PRO = mlink(BOS, mt1)
-    WOR = mlink(BOS, mt1)
-  end
-
-  ref-graph:
-    mt2 = mempty
-    CHI = mlink(CLE, mt2)
-    DEN = mlink(CLE, mt2)
-    CLE = mlink(CHI, rest2)
-    rest2 = mlink(DEN, mt2)
-  end
-
-  check "nesting cyclic within user-defined":
-    [list-set: PRO, WOR] is=~ [list-set: PRO, WOR]
-    [list-set: PRO, DEN] is=~ [list-set: CHI, WOR]
-    [list-set: CHI, DEN] is=~ [list-set: PRO, WOR]
-    [list-set: CHI, DEN] is=~ [list-set: PRO, WOR]
-
-    [list-set: PRO, WOR] is== [list-set: PRO, WOR]
-    [list-set: PRO, DEN] is-not== [list-set: CHI, WOR]
-    [list-set: CHI, DEN] is-not== [list-set: PRO, WOR]
-    [list-set: CHI, DEN] is-not== [list-set: PRO, WOR]
-
-    for each(r from [list: mt1, BOS, rest1, PRO, WOR, mt2, CHI, DEN, CLE, rest2]):
-      ref-freeze(r)
-    end
-
-    [list-set: PRO, WOR] is== [list-set: PRO, WOR]
-    [list-set: PRO, DEN] is== [list-set: CHI, WOR]
-    [list-set: CHI, DEN] is== [list-set: PRO, WOR]
-    [list-set: CHI, DEN] is== [list-set: PRO, WOR]
-  end
-end
 
 check:
   h = lam(): "no-op" end
@@ -343,30 +205,6 @@ check:
   s2 = [list: 1, {}, 3, 4]
   
   equal-always(s1, s2) raises "functions"
-end
-
-check "uninitialized refs should be different":
-  fun test-uninit-refs(x, y):
-    x is x
-    y is y
-    x is<=> x
-    y is<=> y
-    x is=~ x
-    y is=~ y
-
-    x is-not=~ y
-    x is-not y
-
-    [list: x] is-not [list: y]
-    [list-set: x] is-not [list-set: y]
-    nothing
-  end
-  ref-graph:
-  x = x
-  y = y
-  foo = test-uninit-refs(x, y)
-  end
-  ref-get(x) is ref-get(ref-get(x))
 end
 
 check "non-equality result from equals":

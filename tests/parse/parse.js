@@ -57,7 +57,7 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       "import", "provide-types", "provide", "as", "newtype", "type-let", "type", "lazy",
       "var", "letrec", "let", "fun", "lam", "true", "false", "method", "doc:", "check:", "check",
       "try:", "except", "cases", "when", "ask:", "otherwise:", "if", "then:", "else:", "else if", "else",
-      "data", "with:", "sharing:", "shadow", "mutable", "cyclic", "graph:", "block:", "for", "from", "end",
+      "data", "with:", "sharing:", "shadow", "mutable", "cyclic", "block:", "for", "from", "end",
       "4/5", "-123/456", "01823.1225426", "-1.2", "1", "-2", "and", "or", "is", "satisfies", "raises",
       "```a one line string```", "```a two\nline string```", "\"a string\"", "'a string'",
     ];
@@ -439,12 +439,6 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("{x :: Number: 5}")).toBe(false);
       expect(parse("{ ref ref y :: String: 5 }")).toBe(false); 
       expect(parse("{ ref ref: 5 }")).toBe(false); 
-    });
-
-    it("should parse mutable graph exprs", function() {
-      expect(parse("ref-graph: WOR = 5 end")).not.toBe(false);
-      expect(parse("ref-graph: WOR = [list: 1] BOS = [list: 3] end")).not.toBe(false);
-      expect(parse("ref-graph: WOR = [list: 1] BOS = [list: 3] PVD = [list: BOS] end")).not.toBe(false);
     });
 
     it("should parse imports", function() {

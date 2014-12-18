@@ -20,7 +20,7 @@ block: stmt*
 
 stmt: let-expr | fun-expr | data-expr | datatype-expr | when-expr
     | var-expr | assign-expr | check-test | check-expr
-    | graph-expr | contract-stmt
+    | contract-stmt
 
 let-expr: toplevel-binding EQUALS binop-expr
 # NEW IN BOOTSTRAP
@@ -76,8 +76,6 @@ constructor-clause: WITHCONSTRUCTOR (PARENSPACE|PARENNOSPACE) NAME RPAREN COLON 
 
 var-expr: VAR toplevel-binding EQUALS binop-expr
 assign-expr: NAME COLONEQUALS binop-expr
-
-graph-expr: GRAPH let-expr* end
 
 when-expr: WHEN binop-expr COLON block end
 

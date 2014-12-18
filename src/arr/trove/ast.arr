@@ -47,8 +47,6 @@ str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
-str-graph = PP.str("graph:")
-str-m-graph = PP.str("ref-graph:")
 str-if = PP.str("if ")
 str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
@@ -470,38 +468,6 @@ data Expr:
         | some(ann) =>
           PP.group(PP.str("ref ") + ann.tosource())
       end
-    end
-  | s-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
-    label(self): "s-graph" end,
-    tosource(self):
-      PP.surround(0, 1, # NOTE: Not indented
-        str-graph,
-        PP.flow-map(PP.hardline, _.tosource(), self.binds),
-        str-end)
-    end
-  | s-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s-graph-expr" end,
-    tosource(self):
-      header = PP.surround-separate(2 * INDENT, 1, str-graph, str-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
-          self.binds.map(_.tosource()))
-          + str-colon
-      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
-  | s-m-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
-    label(self): "s-ref-graph" end,
-    tosource(self):
-      PP.surround(0, 1, # NOTE: Not indented
-        str-m-graph,
-        PP.flow-map(PP.hardline, _.tosource(), self.binds),
-        str-end)
-    end
-  | s-m-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s-m-graph-expr" end,
-    tosource(self):
-      header = PP.surround-separate(2 * INDENT, 1, str-m-graph, str-m-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
-          self.binds.map(_.tosource()))
-          + str-colon
-      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-contract" end,
@@ -1266,8 +1232,6 @@ fun binding-ids(stmt) -> List<Name>:
     | s-var(_, b, _) => [list: b.id]
     | s-rec(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
-    | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
-    | s-m-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
     | else => [list: ]
@@ -1438,22 +1402,6 @@ default-map-visitor = {
 
   s-ref(self, l :: Loc, ann :: Option<Ann>):
     s-ref(l, self.option(ann))
-  end,
-
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-graph(l, bindings.map(_.visit(self)))
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-graph-expr(l, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-m-graph(l, bindings.map(_.visit(self)))
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-m-graph-expr(l, bindings.map(_.visit(self)), body.visit(self))
   end,
 
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
@@ -1919,22 +1867,6 @@ default-iter-visitor = {
     self.option(ann)
   end,
 
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    lists.all(_.visit(self), bindings)
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    lists.all(_.visit(self), bindings) and body.visit(self)
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    lists.all(_.visit(self), bindings)
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    lists.all(_.visit(self), bindings) and body.visit(self)
-  end,
-
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     test.visit(self) and block.visit(self)
   end,
@@ -2387,22 +2319,6 @@ dummy-loc-visitor = {
 
   s-ref(self, l :: Loc, ann :: Option<Ann>):
     s-ref(self, dummy-loc, self.option(ann))
-  end,
-
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-graph(dummy-loc, bindings.map(_.visit(self)))
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-graph-expr(dummy-loc, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-m-graph(dummy-loc, bindings.map(_.visit(self)))
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-m-graph-expr(dummy-loc, bindings.map(_.visit(self)), body.visit(self))
   end,
 
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
