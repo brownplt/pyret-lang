@@ -285,10 +285,11 @@ well-formed-visitor = A.default-iter-visitor.{
       when args.length() <> 2:
         wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
       end
+    else if kind == "js-http":
+      true
     else:
       wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
-    true
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     wf-error("Cannot define a data expression except at the top level of a file", l)

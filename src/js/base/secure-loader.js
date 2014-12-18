@@ -55,26 +55,31 @@ define(["require", "q"], function(rjs, Q) {
   function goodIdea(runtime, name, src) {
     var deferred = Q.defer();
     require.undef(name);
-    safeEval(src, { define: function(deps, body) {
-        define(name, deps, body);
-        function success(val) {
-          deferred.resolve(val);
-        }
-        // Since requirejs seems to not call our errback, use its global
-        // error handler.
-        var oldOnError = require.onError;
-        require.onError = function(err) {
-          require.onError = oldOnError;
-          var names = [];
-          for(var i = 0; i < err.requireModules.length; i++) {
-            require.undef(err.requireModules[i]);
-            names.push(err.requireModules[i]);
+    try {
+      safeEval(src, { define: function(deps, body) {
+          define(name, deps, body);
+          function success(val) {
+            deferred.resolve(val);
           }
-          deferred.reject(runtime.makePyretFailException(runtime.ffi.makeModuleLoadFailureL(names)));
-        };
-        require([name], success);
-      }
-    });
+          // Since requirejs seems to not call our errback, use its global
+          // error handler.
+          var oldOnError = require.onError;
+          require.onError = function(err) {
+            require.onError = oldOnError;
+            var names = [];
+            for(var i = 0; i < err.requireModules.length; i++) {
+              require.undef(err.requireModules[i]);
+              names.push(err.requireModules[i]);
+            }
+            deferred.reject(runtime.makePyretFailException(runtime.ffi.makeModuleLoadFailureL(names)));
+          };
+          require([name], success);
+        }
+      });
+    }
+    catch(e) {
+      deferred.reject(e);
+    }
     return deferred.promise;
   }
 

@@ -27,7 +27,16 @@ define([], function() {
       }
     };
   }
+  function makeModuleReturn(runtime, types, values) {
+    return runtime.makeObject({
+      "provide-plus-types": runtime.makeObject({
+        types: types,
+        values: runtime.makeObject(values)
+      })
+    });
+  }
   return {
-      memoModule: memoModule
+      memoModule: memoModule,
+      makeModuleReturn: makeModuleReturn
     };
 });
