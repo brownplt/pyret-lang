@@ -348,13 +348,13 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     });
 
     it("should not care about whitespace and angle brackets in declarations", function() {
-      expect(parse("fun<A>print(): end")).not.toBe(false);
-      expect(parse("fun< A>print(): end")).not.toBe(false);
-      expect(parse("fun <A>print(): end")).not.toBe(false);
-      expect(parse("fun < A>print(): end")).not.toBe(false);
-      expect(parse("fun<A >print(): end")).not.toBe(false);
-      expect(parse("fun<A> print(): end")).not.toBe(false);
-      expect(parse("fun<A > print(): end")).not.toBe(false);
+      expect(parse("fun print<A>(): end")).not.toBe(false);
+      expect(parse("fun print< A>(): end")).not.toBe(false);
+      expect(parse("fun print <A>(): end")).not.toBe(false);
+      expect(parse("fun print < A>(): end")).not.toBe(false);
+      expect(parse("fun print<A >(): end")).not.toBe(false);
+      expect(parse("fun print< A >(): end")).not.toBe(false);
+      expect(parse("fun print <A >(): end")).not.toBe(false);
     });
 
     it("should not treat (...) after operators as application", function() {
@@ -368,7 +368,7 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     });
 
     it("should not mind ; at EOL, and then another statement", function() {
-      var a = "  fun<T> x(x :: T) -> T: x;";
+      var a = "  fun x<T>(x :: T) -> T: x;";
       expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
       expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
     });

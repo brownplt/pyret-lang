@@ -333,16 +333,37 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return RUNTIME.getField(ast, 's-contract')
                 .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
             },
+            'fun-header': function(node) {
+              // (fun-header ty-params args return-ann)
+              return {
+                tyParams: tr(node.kids[0]),
+                args: tr(node.kids[1]),
+                returnAnn: tr(node.kids[2])
+              };
+            },
             'fun-expr': function(node) {
-              // (fun-expr FUN (fun-header params fun-name args return) COLON doc body check END)
-              return RUNTIME.getField(ast, 's-fun')
-                .app(pos(node.pos), symbol(node.kids[1].kids[1]),
-                     tr(node.kids[1].kids[0]),
-                     tr(node.kids[1].kids[2]),
-                     tr(node.kids[1].kids[3]),
-                     tr(node.kids[3]),
-                     tr(node.kids[4]),
-                     tr(node.kids[5]));
+              if (node.kids.length === 10) {
+                // (fun-expr FUN params fun-name args return COLON doc body check END)
+                return RUNTIME.getField(ast, 's-fun')
+                  .app(pos(node.pos), symbol(node.kids[2]),
+                       tr(node.kids[1]),
+                       tr(node.kids[3]),
+                       tr(node.kids[4]),
+                       tr(node.kids[6]),
+                       tr(node.kids[7]),
+                       tr(node.kids[8]));
+              } else {
+                // (fun-expr FUN fun-name fun-header COLON doc body check END)
+                var header = tr(node.kids[2]);
+                return RUNTIME.getField(ast, 's-fun')
+                  .app(pos(node.pos), symbol(node.kids[1]),
+                       header.tyParams,
+                       header.args,
+                       header.returnAnn,
+                       tr(node.kids[4]),
+                       tr(node.kids[5]),
+                       tr(node.kids[6]));
+              }
             },
             'data-expr': function(node) {
               // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
@@ -583,10 +604,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 return RUNTIME.getField(ast, 's-data-field')
                   .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
               } else {
-                // (obj-field key params args ret COLON doc body check END)
+                // (obj-field key fun-header COLON doc body check END)
+                var header = tr(node.kids[1]);
                 return RUNTIME.getField(ast, 's-method-field')
-                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                       tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
+                  .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
+                       tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
               }
             },
             'obj-fields': function(node) {
@@ -608,10 +630,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 return RUNTIME.getField(ast, "s-data-field")
                   .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
               } else {
-                // (field key params args ret COLON doc body check END)
+                // (field key fun-header COLON doc body check END)
+                var header = tr(node.kids[1]);
                 return RUNTIME.getField(ast, "s-method-field")
-                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                       tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
+                  .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
+                       tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
               }
             },
             'fields': function(node) {
@@ -706,6 +729,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               // (else ELSECOLON body)
               return RUNTIME.getField(ast, 's-else')
                 .app(pos(node.pos), tr(node.kids[1]));
+            },
+            'req-ty-params': function(node) {
+              // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
+              return makeList(node.kids.slice(1, -2).map(tr).concat([name(node.kids[node.kids.length - 2])]));
             },
             'ty-params': function(node) {
               if (node.kids.length === 0) {
@@ -840,16 +867,18 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
                 .app(pos(node.pos), tr(node.kids[1]));
             },
             'lambda-expr': function(node) {
-              // (lambda-expr LAM ty-params args return-ann COLON doc body check END)
+              // (lambda-expr LAM fun-header COLON doc body check END)
+              var header = tr(node.kids[1]);
               return RUNTIME.getField(ast, 's-lam')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                     tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
+                .app(pos(node.pos), header.tyParams, header.args, header.returnAnn,
+                     tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
             },
             'method-expr': function(node) {
-              // (method-expr METHOD params args return-ann COLON doc body check END)
+              // (method-expr METHOD fun-header COLON doc body check END)
+              var header = tr(node.kids[1]);
               return RUNTIME.getField(ast, 's-method')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                     tr(node.kids[5]), tr(node.kids[6]), tr(node.kids[7]));
+                .app(pos(node.pos), header.tyParams, header.args, header.returnAnn,
+                     tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
             },
             'extend-expr': function(node) {
               // (extend-expr e PERIOD LBRACE fields RBRACE)
