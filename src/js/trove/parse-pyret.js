@@ -342,28 +342,16 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               };
             },
             'fun-expr': function(node) {
-              if (node.kids.length === 10) {
-                // (fun-expr FUN params fun-name args return COLON doc body check END)
-                return RUNTIME.getField(ast, 's-fun')
-                  .app(pos(node.pos), symbol(node.kids[2]),
-                       tr(node.kids[1]),
-                       tr(node.kids[3]),
-                       tr(node.kids[4]),
-                       tr(node.kids[6]),
-                       tr(node.kids[7]),
-                       tr(node.kids[8]));
-              } else {
-                // (fun-expr FUN fun-name fun-header COLON doc body check END)
-                var header = tr(node.kids[2]);
-                return RUNTIME.getField(ast, 's-fun')
-                  .app(pos(node.pos), symbol(node.kids[1]),
-                       header.tyParams,
-                       header.args,
-                       header.returnAnn,
-                       tr(node.kids[4]),
-                       tr(node.kids[5]),
-                       tr(node.kids[6]));
-              }
+              // (fun-expr FUN fun-name fun-header COLON doc body check END)
+              var header = tr(node.kids[2]);
+              return RUNTIME.getField(ast, 's-fun')
+                .app(pos(node.pos), symbol(node.kids[1]),
+                     header.tyParams,
+                     header.args,
+                     header.returnAnn,
+                     tr(node.kids[4]),
+                     tr(node.kids[5]),
+                     tr(node.kids[6]));
             },
             'data-expr': function(node) {
               // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
@@ -729,10 +717,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               // (else ELSECOLON body)
               return RUNTIME.getField(ast, 's-else')
                 .app(pos(node.pos), tr(node.kids[1]));
-            },
-            'req-ty-params': function(node) {
-              // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-              return makeList(node.kids.slice(1, -2).map(tr).concat([name(node.kids[node.kids.length - 2])]));
             },
             'ty-params': function(node) {
               if (node.kids.length === 0) {

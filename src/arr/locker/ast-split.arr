@@ -63,7 +63,7 @@ data SplitResultInt:
     )
 end
 
-fun <a> unions(ss :: List<Set<a>>) -> Set<a>:
+fun unions<a>(ss :: List<Set<a>>) -> Set<a>:
   for fold(unioned from sets.empty-tree-set, s from ss):
     unioned.union(s)
   end

@@ -61,7 +61,7 @@ fun std-compare(a, b) -> Comparison:
   else: equal;
 end
 
-fun <T> list-compare(a :: List<T>, b :: List<T>) -> Comparison:
+fun list-compare<T>(a :: List<T>, b :: List<T>) -> Comparison:
   cases(List<T>) a:
     | empty => cases(List<T>) b:
         | empty   => equal

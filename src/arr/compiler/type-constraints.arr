@@ -513,7 +513,7 @@ fun greatest-lower-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
 end
 
 
-fun <B> union(a :: Set<B>, b :: Set<B>) -> Set<B>:
+fun union<B>(a :: Set<B>, b :: Set<B>) -> Set<B>:
   a.union(b)
 end
 

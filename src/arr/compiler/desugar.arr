@@ -23,7 +23,7 @@ mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
-fun <T> check-bool(l, e, cont :: (A.Expr -> T)) -> T:
+fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
 end
 
@@ -293,7 +293,7 @@ where:
 
 end
 
-fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
+fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):
   cases(Option) opt:
     | none => none
     | some(e) => some(f(e))

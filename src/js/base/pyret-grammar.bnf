@@ -48,8 +48,6 @@ type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind COLON block end
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN NAME fun-header COLON doc-string block where-clause end
-        | FUN req-ty-params NAME args return-ann COLON doc-string block where-clause end
-req-ty-params: (LANGLE|LT) list-ty-param* NAME (RANGLE|GT)
 fun-header: ty-params args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]

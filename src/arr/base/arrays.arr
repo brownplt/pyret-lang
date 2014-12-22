@@ -48,7 +48,7 @@ end
 
 is-array = ArrayT.test
 
-fun <a> build-array(f :: (Number -> a), len :: Number):
+fun build-array<a>(f :: (Number -> a), len :: Number):
   arr = raw-array-of(nothing, len)
   fun loop(i):
     when i < len:
@@ -68,23 +68,23 @@ fun array-from-list(l):
   make(arr)
 end
 
-fun<a> array-of(elt :: a, count :: Number) -> Array<a>:
+fun array-of<a>(elt :: a, count :: Number) -> Array<a>:
   arr = raw-array-of(elt, count)
   make(arr)
 end
 
-fun<a> array-set-now(arr :: Array<a>, index :: Number, val :: a) -> Nothing:
+fun array-set-now<a>(arr :: Array<a>, index :: Number, val :: a) -> Nothing:
   arr.set-now(index, val)
 end
 
-fun<a> array-get-now(arr :: Array<a>, index :: Number) -> a:
+fun array-get-now<a>(arr :: Array<a>, index :: Number) -> a:
   arr.get-now(index)
 end
 
-fun<a> array-length(arr :: Array<a>) -> Number:
+fun array-length<a>(arr :: Array<a>) -> Number:
   arr.length()
 end
 
-fun<a> array-to-list-now(arr :: Array<a>) -> List<a>:
+fun array-to-list-now<a>(arr :: Array<a>) -> List<a>:
   arr.to-list-now()
 end

@@ -161,11 +161,11 @@ t-lte-method    = t-method-binop("_lessequal")
 t-gt-method     = t-method-binop("_greaterthan")
 t-gte-method    = t-method-binop("_greaterequal")
 
-fun <B> identity(b :: B) -> B:
+fun identity<B>(b :: B) -> B:
   b
 end
 
-fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
+fun split<B,D>(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
   fun step(p, curr):
     pair(link(p.left, curr.left), link(p.right, curr.right))
   end
@@ -701,10 +701,10 @@ fun track-branches(data-type :: DataType) ->
   }
 end
 
-fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
-                     maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, maybe-expect :: Option<Type>,
-                     info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
-                     has-else, no-else) -> B:
+fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
+                    maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, maybe-expect :: Option<Type>,
+                    info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
+                    has-else, no-else) -> B:
   for bind-direction(typ from to-type-std(ann, info)):
     cases(Option<DataType>) TCS.get-data-type(typ, info):
       | some(data-type) =>
@@ -1224,7 +1224,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
   end
 end
 
-fun <V> check-and-log(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
+fun check-and-log<V>(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
   when not(satisfies-type(typ, expect-typ, info)):
     info.errors.insert(C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc))
   end
