@@ -211,6 +211,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function throwParseErrorEOF(loc) {
         raise(err("parse-error-eof")(loc));
       }
+      function throwParseErrorUnterminatedString(loc) {
+        raise(err("parse-error-unterminated-string")(loc));
+      }
 
       function throwModuleLoadFailureL(names) {
         raise(makeModuleLoadFailureL(names));
@@ -297,6 +300,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
+        throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
 
         makeRecordFieldsFail: makeRecordFieldsFail,
         makeFieldFailure: makeFieldFailure,

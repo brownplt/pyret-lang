@@ -103,6 +103,10 @@ data ParseError:
     tostring(self, shadow tostring):
       "parse error at end of file at " + self.loc.format(true)
     end
+  | parse-error-unterminated-string(loc) with:
+    tostring(self, shadow tostring):
+      "parse error with an incomplete string literal, starting around " + self.loc.format(true)
+    end
   | empty-block(loc) with:
     tostring(self, shadow tostring):
       "Empty block at " + self.loc.format(true)
