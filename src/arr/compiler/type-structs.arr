@@ -328,11 +328,11 @@ sharing:
       end
     end
   end,
-  _lessthan     (self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
-  _lessequal    (self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
-  _greaterthan  (self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
-  _greaterequal (self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
-  _equals       (self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
+  _lessthan(self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
+  _lessequal(self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
+  _greaterthan(self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
+  _greaterequal(self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
+  _equals(self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
   _comp(self, other :: Type) -> Comparison:
     cases(Type) self:
       | t-bot =>

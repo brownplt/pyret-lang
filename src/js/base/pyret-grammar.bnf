@@ -52,7 +52,7 @@ fun-header: ty-params args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
 list-ty-param: NAME COMMA
-args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
+args: PARENNOSPACE [list-arg-elt* binding] RPAREN
 list-arg-elt: binding COMMA
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
@@ -70,7 +70,7 @@ data-mixins: [DERIVING mixins]
 variant-constructor: NAME variant-members
 first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
-variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] RPAREN
+variant-members: PARENNOSPACE [list-variant-member* variant-member] RPAREN
 list-variant-member: variant-member COMMA
 variant-member: [REF] binding
 data-with: [WITH fields]
@@ -178,7 +178,7 @@ if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-binding: [REF] binding
 list-cases-arg-elt: cases-binding COMMA
-cases-args: (PARENSPACE|PARENNOSPACE) [list-cases-arg-elt* cases-binding] RPAREN
+cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 
