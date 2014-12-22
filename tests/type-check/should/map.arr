@@ -4,7 +4,7 @@ data MyList<A>:
   | my-link(first :: A, rest :: MyList<A>)
 end
 
-fun <A,B> map(lst :: MyList<A>, f :: (A -> B)):
+fun map<A,B>(lst :: MyList<A>, f :: (A -> B)):
   cases(MyList<A>) lst:
     | my-empty =>
       my-empty

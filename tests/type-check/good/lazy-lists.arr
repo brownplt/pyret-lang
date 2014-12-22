@@ -28,10 +28,10 @@ fun nats-from(n :: Number):
 end
 rec nats = nats-from(0)
 
-fun<T> lz-first(s :: Stream<T>) -> T: s.h end
-fun<T> lz-rest(s :: Stream<T>) -> Stream<T>: s.t() end
+fun lz-first<T>(s :: Stream<T>) -> T: s.h end
+fun lz-rest<T>(s :: Stream<T>) -> Stream<T>: s.t() end
 
-fun<T> take(n :: Number, s :: Stream<T>) -> List<T>:
+fun take<T>(n :: Number, s :: Stream<T>) -> List<T>:
   if n == 0:
     empty
   else:
@@ -39,7 +39,7 @@ fun<T> take(n :: Number, s :: Stream<T>) -> List<T>:
   end
 end
 
-fun<T,U> lz-map(f :: (T -> U), s :: Stream<T>): 
+fun lz-map<T,U>(f :: (T -> U), s :: Stream<T>): 
   lz-link(f(lz-first(s)), lam(): lz-map(f, lz-rest(s)) end)
 end
 

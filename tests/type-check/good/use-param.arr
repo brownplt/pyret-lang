@@ -1,5 +1,5 @@
 
-fun <A> id(a :: A) -> A:
+fun id<A>(a :: A) -> A:
   a
 end
 
