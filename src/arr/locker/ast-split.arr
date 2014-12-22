@@ -27,7 +27,7 @@ data Helper:
     tosource(self):
       arg-list = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen,
           PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
-      header = PP.group(PP.str("helper " + self.name.tostring()) + arg-list + PP.str(" {"))
+      header = PP.group(PP.str("helper " + tostring(self.name)) + arg-list + PP.str(" {"))
       PP.surround(INDENT, 1, header, self.body.tosource(), PP.str("}"))
     end
 end

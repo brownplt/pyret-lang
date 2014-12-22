@@ -1017,7 +1017,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
           | t-ref(typ) =>
             synthesis-result(new-get-bang, field-typ-loc, typ)
           | else =>
-            synthesis-err([list: C.incorrect-type(field-typ.tostring(), field-typ-loc, "a ref type", l)])
+            synthesis-err([list: C.incorrect-type(tostring(field-typ), field-typ-loc, "a ref type", l)])
         end
       end)
     | s-bracket(l, obj, field) =>
@@ -1453,7 +1453,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
           | t-ref(typ) =>
             check-and-return(field-typ-loc, typ, expect-loc, expect-typ, e, info)
           | else =>
-            checking-err([list: C.incorrect-type(field-typ.tostring(), field-typ-loc, t-ref(expect-typ).tostring(), l)])
+            checking-err([list: C.incorrect-type(tostring(field-typ), field-typ-loc, tostring(t-ref(expect-typ)), l)])
         end
       end)
     | s-bracket(l, obj, field) =>

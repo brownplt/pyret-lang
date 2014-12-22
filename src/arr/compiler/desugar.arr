@@ -554,7 +554,7 @@ where:
 
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
-  # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
+  # cases-name = tostring(dsed5.stmts.first.binds.first.b.id)
   # compare = (cases-name + " = l " +
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")

@@ -32,8 +32,8 @@ end
 data FailureReason:
   | ref-init(loc, reason :: FailureReason) with:
     tostring(self, shadow tostring):
-      "The annotation at " + self.loc.format(true) + " failed while initializing a reference because: " + 
-        self.reason.tostring()
+      "The annotation at " + self.loc.format(true) + " failed while initializing a reference because: "
+        + tostring(self.reason)
     end
   | type-mismatch(val, name :: String) with:
     tostring(self, shadow tostring):
