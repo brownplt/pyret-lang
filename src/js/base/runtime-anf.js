@@ -1114,22 +1114,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s))
               }
-              else if(method === "_tostring" && next.dict["tostring"]) { // TEMPORARY!
-                stack.push({
-                  arrays: top.arrays,
-                  objects: addNewObject(top.objects, next),
-                  refs: top.refs,
-                  todo: ["dummy"],
-                  done: [],
-                  type: "method-call",
-                });
-                top = stack[stack.length - 1];
-
-                var m = getColonField(next, "tostring");
-                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + "tostring"); }
-                var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
-                finishVal(thisRuntime.unwrap(s))
-              }
               else if(isDataValue(next)) {
                 var vals = next.$app_fields_raw(function(/* varargs */) {
                   return Array.prototype.slice.call(arguments);
