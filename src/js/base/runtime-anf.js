@@ -1114,6 +1114,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s))
               }
+              else if(method === "_tostring" && next.dict["tostring"]) { // TEMPORARY!
+                stack.push({
+                  arrays: top.arrays,
+                  objects: addNewObject(top.objects, next),
+                  refs: top.refs,
+                  todo: ["dummy"],
+                  done: [],
+                  type: "method-call",
+                });
+                top = stack[stack.length - 1];
+
+                var m = getColonField(next, "tostring");
+                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + "tostring"); }
+                var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
+                finishVal(thisRuntime.unwrap(s))
+              }
               else if(isDataValue(next)) {
                 var vals = next.$app_fields_raw(function(/* varargs */) {
                   return Array.prototype.slice.call(arguments);
@@ -1328,7 +1344,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return makeString(val);
         }
         else {
-          return makeString(toReprJS(val, "tostring"));
+          return makeString(toReprJS(val, "_tostring"));
         }
       });
 
@@ -1359,7 +1375,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "tostring");
+          var repr = toReprJS(val, "_tostring");
         }
         theOutsideWorld.stdout(repr);
         return val;
@@ -1392,7 +1408,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "tostring");
+          var repr = toReprJS(val, "_tostring");
         }
         theOutsideWorld.stderr(repr);
         return val;
@@ -1432,7 +1448,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               : "<builtin>";
           }).join("\n") :
         "<no stack trace>";
-      return toReprJS(this.exn, "tostring") + "\n" + stackStr;
+      return toReprJS(this.exn, "_tostring") + "\n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);

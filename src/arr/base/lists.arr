@@ -83,7 +83,7 @@ data List<a>:
       self
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
 
     _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
 
@@ -177,7 +177,7 @@ data List<a>:
       reverse-help(self, empty)
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
       "[list: " +
         for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)

@@ -297,7 +297,7 @@ module-const-arrays = t-module("const:arrays",
             t-member("to-list-now", t-arrow(empty, mk-list(tv))),
             t-member("length", t-arrow(empty, t-number)),
             t-member("_torepr", t-torepr),
-            t-member("tostring", t-tostring)
+            t-member("_tostring", t-tostring)
         ])
       )
   end,
@@ -422,7 +422,7 @@ module-const-lists = t-module("const:lists",
           t-member("join-str", t-arrow([list: t-string], t-string)),
           t-member("sort", t-arrow(empty, lotv)),
           t-member("sort-by", t-arrow([list: t-arrow([list: tv, tv], t-boolean), t-arrow([list: tv, tv], t-boolean)], lotv)),
-          t-member("tostring", t-tostring),
+          t-member("_tostring", t-tostring),
           t-member("reverse", t-arrow(empty, lotv)),
           t-member("last", t-arrow(empty, tv)),
           t-member("append", t-arrow([list: lotv], lotv)),
@@ -612,7 +612,7 @@ module-const-error = t-module("const:error",
         ],
         [list:
           t-member("_torepr", t-torepr),
-          t-member("tostring", t-tostring),
+          t-member("_tostring", t-tostring),
           t-member("_match", t-top)
         ]))
     .set("ParseError", t-datatype("ParseError",
@@ -633,7 +633,7 @@ module-const-error = t-module("const:error",
       ],
       [list:
         t-member("loc", t-top),
-        t-member("tostring", t-tostring),
+        t-member("_tostring", t-tostring),
         t-member("_torepr", t-torepr),
         t-member("_match", t-top)
       ])

@@ -23,129 +23,129 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
+    _tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
+    _tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
   | reserved-name(loc :: Loc, id :: String) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
   | zero-fraction(loc, numerator) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
     end
   | underscore-as-expr(l :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Underscore used as an expression at " + tostring(self.l) + ", which is not allowed."
     end
   | underscore-as-ann(l :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Underscore used as an annotation at " + tostring(self.l) + ", which is not allowed."
     end
   | unbound-id(id :: A.Expr) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
     end
   | unbound-type-id(ann :: A.Ann) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.ann.l) + ", but is not defined as a type."
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable"
     end
   | pointless-var(loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
     end
   | pointless-rec(loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The anonymous recursive identifier at " + tostring(self.loc) + " can never be re-used"
     end
   | pointless-shadow(loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + self.id + " is assigned at " + tostring(self.loc)
         + ", but its definition at " + self.prev-loc.format(not(self.loc.same-file(self.prev-loc)))
         + " is not assignable.  (Only names declared with var are assignable.)"
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
         + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")"
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
         + ", but is already declared at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The field " + self.id + " is declared twice, at " + tostring(self.new-loc)
         + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
         + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + "."
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
         + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + "."
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Incorrect number of arguments given to function at line " + tostring(self.loc) + "."
     end
   | apply-non-function(loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "You tried to apply something that is not a function at line " + tostring(self.loc) + "."
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The object type " + self.obj
         + " (defined at " + tostring(self.obj-loc)
         + ") does not have the field \"" + self.field-name
         + "\" (accessed at line " + tostring(self.access-loc) + ")."
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The branch " + self.branch-name
         + " (defined at " + tostring(self.branch-loc)
         + ") is not a variant of " + self.type-name
         + " (declared at " + tostring(self.type-loc) + ")"
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted."
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + "."
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The type specified " + self.type-name
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression."
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "Incorrect number of bindings given to "
         + "the variant " + self.variant-name
         + " at " + tostring(self.loc) + ". "
@@ -154,7 +154,7 @@ data CompileError:
         + "."
     end
   | cases-singleton-mismatch(branch-name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       if self.should-be-singleton:
         "The cases branch " + self.branch-name
           + " at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
@@ -163,28 +163,28 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "The data type " + self.data-type
         + " does not take any parameters,"
         + " but is given some at " + tostring(self.loc)
         + "."
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "There is not enough information to instantiate the type at " + tostring(self.loc)
          + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
     end
   | cant-typecheck(reason :: String) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       self.message + " (found at " + tostring(self.blame-loc) + ")"
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "There is no module imported with the name " + self.mod-name
         + " (used at " + tostring(self.loc) + ")"
     end

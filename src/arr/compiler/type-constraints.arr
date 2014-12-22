@@ -961,7 +961,7 @@ sharing:
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
-  tostring(self, shadow tostring) -> String:
+  _tostring(self, shadow tostring) -> String:
     "type-constraints("
       + dict-to-string(self.dict)
       + ")"

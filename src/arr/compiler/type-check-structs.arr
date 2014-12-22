@@ -38,7 +38,7 @@ data TCInfo:
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
 sharing:
-  tostring(self, shadow tostring):
+  _tostring(self, shadow tostring):
     "tc-info(" +
       dict-to-string(self.typs) + ", " +
       dict-to-string(self.aliases) + ", " +
@@ -229,7 +229,7 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-result(" + tostring(self.v) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -245,7 +245,7 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-errors(" + tostring(self.errors) + ")"
     end,
     bind(self, f) -> FoldResult<V>:

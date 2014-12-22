@@ -40,7 +40,7 @@ fun make(arr :: RawArray) -> Array:
     _torepr(self, shadow torepr):
       "[array: " + self.to-list-now().map(torepr).join-str(", ") + "]"
     end,
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "[array: " + self.to-list-now().map(tostring).join-str(", ") + "]"
     end
   })
