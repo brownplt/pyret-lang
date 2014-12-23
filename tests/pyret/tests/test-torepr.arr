@@ -119,3 +119,9 @@ check "Shared but not cyclic values":
   torepr(o3) is "{x: [raw-array: ], y: [raw-array: ]}"
 
 end
+
+check "run-task printing should be internal":
+  torepr(run-task(lam(): 1 / 0 end)) is "right(<internal value>)"
+  torepr(run-task(lam(): 1 / 1 end)) is "left(1)"
+end
+
