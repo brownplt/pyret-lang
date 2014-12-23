@@ -22,7 +22,7 @@
         @members{@member-spec["loc"] @member-spec["reason"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ContractResult -> Any)
             
           ]
@@ -32,7 +32,7 @@
         @members{@member-spec["loc"] @member-spec["reason"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ContractResult -> Any)
             
           ]
@@ -52,7 +52,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FieldFailure -> Any)
             
           ]
@@ -62,7 +62,7 @@
         @members{@member-spec["loc"] @member-spec["field"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FieldFailure -> Any)
             
           ]
@@ -78,7 +78,7 @@
         @members{@member-spec["val"] @member-spec["name"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FailureReason -> Any)
             
           ]
@@ -88,7 +88,7 @@
         @members{@member-spec["val"] @member-spec["pred-name"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FailureReason -> Any)
             
           ]
@@ -98,7 +98,7 @@
         @members{@member-spec["val"] @member-spec["field-failures"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FailureReason -> Any)
             
           ]
@@ -108,7 +108,7 @@
         @members{@member-spec["name"] @member-spec["field"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (FailureReason -> Any)
             
           ]

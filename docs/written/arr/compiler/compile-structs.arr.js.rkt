@@ -72,7 +72,7 @@
         @members{@member-spec["msg"] @member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -82,7 +82,7 @@
         @members{@member-spec["msg"] @member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -92,7 +92,7 @@
         @members{@member-spec["loc"] @member-spec["id"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -102,7 +102,7 @@
         @members{@member-spec["loc"] @member-spec["numerator"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -112,7 +112,7 @@
         @members{@member-spec["id"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -122,7 +122,7 @@
         @members{@member-spec["id"] @member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -132,7 +132,7 @@
         @members{@member-spec["ann"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -142,7 +142,7 @@
         @members{@member-spec["loc"] @member-spec["name"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -152,7 +152,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -162,7 +162,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -176,7 +176,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -190,7 +190,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -204,7 +204,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]
@@ -218,7 +218,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (CompileError -> Any)
             
           ]

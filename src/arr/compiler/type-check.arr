@@ -165,7 +165,7 @@ fun identity<B>(b :: B) -> B:
   b
 end
 
-fun split<B,D>(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
+fun split<X,Y>(ps :: List<Pair<X,Y>>) -> Pair<List<X>,List<Y>>:
   fun step(p, curr):
     pair(link(p.left, curr.left), link(p.right, curr.right))
   end
