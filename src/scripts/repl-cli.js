@@ -32,18 +32,20 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./erro
     var repl = replLib.create(runtime, runtime.namespace, sb, { name: "repl-cli", dialect: "Pyret"});
     var res = repl.restartInteractions("");
     var interactionsNo = 1;
+    var lineNo = 1;
     var cmdQueue = [];
     var nestStack = [];
 
-    readline.setPrompt("1 :: >> ", 0);
+    readline.setPrompt("1::1 >> ", 0);
 
     readline.on("line", function(cmd) {
       readline.pause();
+      readline.setPrompt(interactionsNo + "::" + (++lineNo) + " >> ", 0);
 
       var cmdTrimmed = cmd.trim();
       var cmdLen = cmdTrimmed.length;
       var newCmd = cmdTrimmed;
-      //Have to account for then, otherwise, and else
+
       if(cmdLen > 2) {
 	if(cmdTrimmed == "end") {
 	  if(nestStack.length === 1) {
@@ -85,10 +87,11 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./erro
       }
 
       cmdQueue = [];
+      lineNo = 1;
 
       res = res.then(function(_) {
 	//Note(ben) add a name to increase interactions count
-	readline.setPrompt((interactionsNo + 1) + " :: >> ", 0);
+	readline.setPrompt((interactionsNo + 1) + "::1 >> ", 0);
         return repl.run(newCmd, "interactions::" + interactionsNo++);
       });
 
