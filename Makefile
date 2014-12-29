@@ -276,7 +276,7 @@ install:
 test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test
 
 .PHONY : test-all
-test-all: test bootstrap-test docs-test
+test-all: test docs-test
 
 .PHONY : runtime-test
 runtime-test : $(PHASE1)/phase1.built
