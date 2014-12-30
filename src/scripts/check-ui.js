@@ -1,5 +1,5 @@
 /*global define */
-/*jslint unparam: true, todo: true, node: true*/
+/*jslint unparam: true, node: true*/
 
 define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], function(ffiLib, optionLib, srclocLib, errorUI) {
   function drawCheckResults(runtime, checkResults) {

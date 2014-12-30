@@ -1,5 +1,5 @@
 /*global define */
-/*jslint unparam: true, todo: true, node: true*/
+/*jslint unparam: true, node: true*/
 
 define([], function() {
   function renderValue(runtime, val) {

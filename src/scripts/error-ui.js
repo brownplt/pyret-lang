@@ -1,5 +1,5 @@
 /*global define */
-/*jslint unparam: true, todo: true, node: true*/
+/*jslint unparam: true, node: true*/
 
 /*TODO:
  * Make sure that the renderer has a type for errors, and that they are rendered accordingly, stack traces, etc.
