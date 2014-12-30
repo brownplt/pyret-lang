@@ -4,7 +4,7 @@
 /*TODO:
  * Make sure that the renderer has a type for errors, and that they are rendered accordingly, stack traces, etc.
  */
-define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "compiler/compile-structs.arr"], function(ffiLib, srclocLib, errorLib, contractsLib, csLib) {
+define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "compiler/compile-structs.arr", "./output-ui"], function(ffiLib, srclocLib, errorLib, contractsLib, csLib, outputUI) {
   function drawError(runtime, exception) {
     var ffi = ffiLib(runtime, runtime.namespace);
     var cases = ffi.cases;
@@ -13,14 +13,6 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
     return runtime.loadModules(runtime.namespace, [srclocLib, errorLib, contractsLib, csLib], function(srcloc, error, contracts, cs) {
       function makePred(ns, funName) {
 	return get(ns, funName).app;
-      }
-
-      //TODO: move to output-ui
-      function renderValue(val) {
-	if(runtime.isPyretVal(val)) {
-	  return runtime.toReprJS(val, "_torepr");
-	}
-	return String(val);
       }
 
       var isSrcloc = function(s) {
@@ -244,7 +236,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
       function drawPyretException(e) {
 	function drawRuntimeError(e) {
 	  return function() {
-	    renderValue(e.exn);
+	    outputUI.renderValue(runtime, e.exn);
 	  };
 	}
 
@@ -254,7 +246,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return "Expected to get a "
 	    + type
 	    + " as an argument, but got this instead:\n"
-	    + renderValue(value)
+	    + outputUI.renderValue(runtime, value)
 	    + "\nat\n"
 	    + drawSrcloc(probablyErrorLocation);
         }
@@ -282,7 +274,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
           var probablyErrorLocation = getLastUserLocation(e, 0);
 	  var argsText = "";
 	  argsList.forEach(function(a) {
-	    argsText += "\n" + renderValue(a);
+	    argsText += "\n" + outputUI.renderValue(runtime, a);
 	  });
           return cases(get(srcloc, "Srcloc"), "Srcloc", funLoc, {
             "srcloc": function() {
@@ -343,7 +335,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return "No cases matched in the cases expression at \n"
 	    + drawSrcloc(loc)
 	    + "\nfor the value:\n"
-	    + renderValue(value) + "\n\n"
+	    + outputUI.renderValue(runtime, value) + "\n\n"
 	    + drawStackTrace(e);
         }
 
@@ -352,7 +344,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return "Expected true for false for the test in an "
 	    + type
 	    + " expression, but got:\n"
-	    + renderValue(value)
+	    + outputUI.renderValue(runtime, value)
 	    + "\nat\n"
 	    + drawSrcloc(loc);
         }
@@ -363,14 +355,14 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	    + " argument in "
 	    + type
 	    + " expression, but got:\n"
-	    + renderValue(value)
+	    + outputUI.renderValue(runtime, value)
 	    + "\nat\n"
 	    + drawSrcloc(loc);
         }
 
 	function drawNonFunctionApp(loc, nonFunVal) {
 	  return "Expected a function in application but got:\n"
-	    + renderValue(nonFunVal)
+	    + outputUI.renderValue(runtime, nonFunVal)
 	    + "\nat\n"
 	    + drawSrcloc(loc);
         }
@@ -386,7 +378,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	    + "' not found in the lookup expression at\n"
 	    + drawSrcloc(loc)
 	    + "\nThe object was:\n"
-	    + renderValue(obj) + "\n\n"
+	    + outputUI.renderValue(runtime, obj) + "\n\n"
 	    + drawStackTrace(e);
         }
 
@@ -396,7 +388,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	    + "' on a non-object in the lookup expression at\n"
 	    + drawSrcloc(loc)
 	    + "\nThe non-object was:\n"
-	    + renderValue(nonObj) + "\n\n"
+	    + outputUI.renderValue(runtime, nonObj) + "\n\n"
 	    + drawStackTrace(e);
         }
 
@@ -404,7 +396,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return "Tried to extend a non-object in the expression at\n"
 	    + drawSrcloc(loc)
 	    + "\nThe non-object was:\n"
-	    + renderValue(nonObj) + "\n\n"
+	    + outputUI.renderValue(runtime, nonObj) + "\n\n"
 	    + drawStackTrace(e);
         }
 
@@ -428,8 +420,8 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	//Note(ben) why is this different from the one below?
 	function drawPlusError(val1, val2) {
 	  return "Invalid use of + for these values:\n"
-	    + renderValue(val1) + "\n"
-	    + renderValue(val2) + "\n"
+	    + outputUI.renderValue(runtime, val1) + "\n"
+	    + outputUI.renderValue(runtime, val2) + "\n"
 	    + "Plus takes one of:\n"
 	    + "  - Two strings\n"
 	    + "  - Two numbers\n"
@@ -441,8 +433,8 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return "Invalid use of "
 	    + opname
 	    + " for these values:\n"
-	    + renderValue(val1) + "\n"
-	    + renderValue(val2) + "\n"
+	    + outputUI.renderValue(runtime, val1) + "\n"
+	    + outputUI.renderValue(runtime, val2) + "\n"
 	    + "Either:\n"
 	    + "  - Both arguments must be numbers, or\n"
 	    + "  - The left-hand side must have a "
@@ -528,7 +520,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	      + "' because of the annotation at\n"
 	      + drawSrcloc(loc)
 	      + "\nbut got:\n"
-	      + renderValue(val)
+	      + outputUI.renderValue(runtime, val)
 	      + "\ncalled from around\n"
 	      + drawSrcloc(probablyErrorLocation) + "\n\n"
 	      + drawStackTrace(e);
@@ -543,7 +535,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	      + "' in the annotation at\n"
 	      + drawSrcloc(loc)
 	      + "\nreturned false for this value:\n"
-	      + renderValue(val)
+	      + outputUI.renderValue(runtime, val)
 	      + "\ncalled from around\n"
 	      + drawSrcloc(probablyErrorLocation) + "\n\n"
 	      + drawStackTrace(e);
@@ -555,7 +547,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	    return "The record annation at\n"
 	      + drawSrcloc(loc)
 	      + "\nfailed on this value:\n"
-	      + renderValue(val);
+	      + outputUI.renderValue(runtime, val);
           };
         }
 
