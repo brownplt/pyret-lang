@@ -23,7 +23,7 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./inpu
 
     inputUI.on("command", function(cmd) {
       res = res.then(function(_) {
-        return repl.run(cmd, "interactions:" + inputUI.getLineNumber());
+        return repl.run(cmd, "interactions:" + inputUI.getInteractionsNumber());
       });
 
       res.then(function(new_res) {

@@ -444,8 +444,8 @@ define([], function() {
     return new Array(this.nestStack.length + 1).join(this.indent);
   };
 
-  InputUI.prototype.getLineNumber = function() {
-    return this.lineNumber
+  InputUI.prototype.getInteractionsNumber = function() {
+    return this.interactionsNumber
   };
 
   InputUI.prototype.keyRight = function() {
