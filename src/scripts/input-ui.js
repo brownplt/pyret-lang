@@ -12,22 +12,31 @@ define([], function() {
 
   var pyret_indent_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
   var pyret_keywords =
-    wordRegexp(["fun", "method", "var", "when", "import", "provide",
-                "data", "end", "except", "for", "from",
-                "and", "or", "not", "as", "if", "else", "cases"]);
+    wordRegexp(["fun", "method", "var", "when",
+      "import", "provide", "data", "end",
+      "except", "for", "from", "and",
+      "or", "not", "as", "if",
+      "else", "cases"]);
   var pyret_keywords_colon =
     wordRegexp(["doc", "try", "ask", "otherwise",
       "then", "with", "sharing", "where",
       "check", "graph", "block"]);
   var pyret_single_punctuation =
-    new RegExp("^([" + ["\\:", "\\.", "<", ">", ",", "^",
-                        ";", "|", "=", "+", "*", "/", "\\", // NOTE: No minus
-                        "\\(", "\\)", "{", "}", "\\[", "\\]"].join('') + "])");
+    new RegExp("^(["
+      + ["\\:", "\\.", "<", ">",
+	  ",", "^", ";", "|",
+	  "=", "+", "*", "/",
+	  "\\", "\\(", "\\)", "{",
+	  "}", "\\[", "\\]"].join('')
+      + "])");
   var pyret_double_punctuation =
-    new RegExp("^((" + ["::", "==", ">=", "<=", "=>", "->", ":=", "<>"].join(")|(") + "))");
-  var initial_operators = { "-": true, "+": true, "*": true, "/": true, "<": true, "<=": true,
-                              ">": true, ">=": true, "==": true, "<>": true, ".": true, "^": true,
-                              "is": true, "raises": true, "satisfies": true };
+    new RegExp("^(("
+      + ["::", "==", ">=", "<=", "=>", "->", ":=", "<>"].join(")|(")
+      + "))");
+  var initial_operators = { "-": true, "+": true, "*": true, "/": true,
+    "<": true, "<=": true, ">": true, ">=": true,
+    "==": true, "<>": true, ".": true, "^": true,
+    "is": true, "raises": true, "satisfies": true };
 
   var styleMap = {
     'number': chalk.green,
@@ -208,12 +217,11 @@ define([], function() {
       var cmdLen = cmdTrimmed.length;
       var newCmd = cmdTrimmed;
 
-      this.syncHistory();
-      this.history.unshift(this.curLine);
-      this.curLine = "";
-      this.cursorPosition = 0;
+      this.syncHistory(true);
+      this.resetLine();
 
       if(cmdLen > 2) {
+	//TODO: remove arrows from nesting, and use |s to change indents
 	if(cmdTrimmed.substring(cmdLen - 2, cmdLen) == "=>") {
 	  this.commandQueue.push(cmdTrimmed);
 
@@ -238,11 +246,6 @@ define([], function() {
 	  if(this.nestStack.length === 1) {
 	    this.commandQueue.push(cmdTrimmed);
 
-	    /*
-	    this.commandQueue.forEach(function(cmd) {
-	      this.history.shift();
-	    });
-	    */
 	    newCmd = this.commandQueue.join("\n");
 	    this.commandQueue = [];
 	  }
@@ -271,16 +274,18 @@ define([], function() {
       this.emit('command', newCmd);
     }
     else if(key && key.name === "up") {
-      if(this.history.length > 0) {
-	this.future.unshift(this.curLine);
-	this.curLine = this.history.shift();
+      if(this.history.length > 1) {
+	this.future.unshift(this.history.shift());
+	this.curLine = this.history[0].cur;
+	this.historyMarker -= 1;
 	this.syncLine(true);
       }
     }
     else if(key && key.name === "down") {
       if(this.future.length > 0) {
-	this.history.unshift(this.curLine);
-	this.curLine = this.future.shift();
+	this.history.unshift(this.future.shift());
+	this.curLine = this.history[0].cur;
+	this.historyMarker += 1;
 	this.syncLine(true);
       }
     }
@@ -291,11 +296,11 @@ define([], function() {
       this.keyLeft();
     }
     else if(key && key.name === "backspace") {
-      this.syncHistory();
-
       if(this.cursorPosition > 0) {
 	this.curLine = this.curLine.substring(0, this.cursorPosition - 1)
 	  + this.curLine.substring(this.cursorPosition, this.curLine.length);
+
+	this.syncHistory(false);
       }
 
       this.syncLine();
@@ -306,7 +311,8 @@ define([], function() {
 	//Note(ben) abstract these resets further
 	this.nestStack = [];
 	this.commandQueue = [];
-	this.curLine = "";
+	this.syncHistory();
+	this.resetLine();
 	this.prompt();
       }
       else {
@@ -315,9 +321,6 @@ define([], function() {
     }
     //TODO: how to decide what keys pass through?
     else {
-      //Note(ben) should call all syncs on edits
-      this.syncHistory();
-
       if(this.cursorPosition < this.curLine.length) {
 	this.curLine = this.curLine.substring(0, this.cursorPosition)
 	  + ch
@@ -327,6 +330,7 @@ define([], function() {
 	this.curLine += ch;
       }
 
+      this.syncHistory(false);
       this.syncLine();
       this.keyRight();
     }
@@ -401,7 +405,7 @@ define([], function() {
     this.output = output;
     keypress(this.input);
 
-    this.history = [];
+    this.history = [{"old": "", "cur": ""}];
     this.future = [];
     this.curLine = "";
     this.promptSymbol = ">>";
@@ -410,6 +414,7 @@ define([], function() {
     this.interactionsNumber = 0;
     this.lineNumber = 1;
     this.cursorPosition = 0;
+    this.historyMarker = 0;
 
     this.commandQueue = [];
     this.nestStack = [];
@@ -425,15 +430,13 @@ define([], function() {
   };
 
   InputUI.prototype.prompt = function() {
-    this.output.write("\n");
-
     if(this.nestStack.length === 0) {
       this.interactionsNumber += 1;
     }
 
     this.promptString = this.interactionsNumber + "::" + this.lineNumber++ + " " + this.promptSymbol + " ";
 
-    this.output.write(this.promptString + this.getIndent());
+    this.output.write("\n" + this.promptString + this.getIndent());
   };
 
   InputUI.prototype.getIndent = function() {
@@ -447,6 +450,82 @@ define([], function() {
   InputUI.prototype.getInteractionsNumber = function() {
     return this.interactionsNumber
   };
+
+  InputUI.prototype.resetLine = function() {
+    this.curLine = "";
+    this.cursorPosition = 0;
+  }
+
+  InputUI.prototype.syncCursor = function() {
+    this.output.cursorTo(this.cursorPosition
+	+ this.promptString.length
+	+ this.getIndent().length);
+  };
+
+  InputUI.prototype.syncLine = function(gotoEol) {
+    var hl = highlightLine(this.curLine);
+
+    this.output.clearLine();
+    this.output.cursorTo(0);
+    this.output.write(this.promptString + this.getIndent());
+    this.output.write(hl);
+
+    if(gotoEol) {
+      this.cursorPosition = this.curLine.length;
+    }
+  };
+
+  InputUI.prototype.syncHistory = function(isNewline) {
+    var spaceRegex = /^\s*$/g;
+
+    if(!(this.curLine.match(spaceRegex))) {
+      this.history[0] = {"old": this.history[0].old, "cur": this.curLine};
+    }
+
+    if(isNewline) {
+      if(this.historyMarker >= 0) {
+	this.history = this.history.slice(0, this.historyMarker).map(function(l) {
+	  return {"old": l.old, "cur": l.old};
+	}).concat(this.history.slice(this.historyMarker, this.history.length));
+      }
+
+      if(this.future.length > 0) {
+	if(this.historyMarker < 0) {
+	  this.future = this.future.slice(0, -this.historyMarker).map(function(l) {
+	    return {"old": l.old, "cur": l.old};
+	  }).concat(this.future.slice(-this.historyMarker, this.future.length));
+	}
+
+	this.future.filter(function(l) {
+	  return !(l.old.match(spaceRegex));
+	});
+
+	while(this.future.length > 0) {
+	  this.history.unshift(this.future.shift());
+	}
+      }
+
+      this.historyMarker = 0;
+
+      if(!(this.curLine.match(spaceRegex) || (this.history.length > 1
+	      && this.history[1].old === this.curLine))) {
+	var oldLine = this.history[0].old;
+
+	if(!(oldLine.match(spaceRegex) || oldLine === this.curLine)) {
+	  this.history.unshift({"old": "", "cur": ""});
+	  this.history[0] = {"old": this.curLine, "cur": this.curLine};
+	  this.history.unshift({"old": "", "cur": ""});
+	}
+	else if(oldLine !== this.curLine) {
+	  this.history[0] = {"old": this.curLine, "cur": this.curLine};
+	  this.history.unshift({"old": "", "cur": ""});
+	}
+      }
+    }
+    else if(this.historyMarker <= 0) {
+      this.historyMarker = 1;
+    }
+  }
 
   InputUI.prototype.keyRight = function() {
     if(this.cursorPosition < this.curLine.length) {
@@ -462,37 +541,6 @@ define([], function() {
     }
 
     this.syncCursor();
-  };
-
-  InputUI.prototype.syncCursor = function() {
-    this.output.cursorTo(this.cursorPosition + this.promptString.length + this.getIndent().length);
-  };
-
-  InputUI.prototype.syncLine = function(gotoEol) {
-    var hl = highlightLine(this.curLine);
-
-    this.output.clearLine();
-    this.output.cursorTo(0);
-    this.output.write(this.promptString + this.getIndent() + hl);
-
-    if(gotoEol) {
-      this.cursorPosition = this.curLine.length;
-    }
-  };
-
-  InputUI.prototype.syncHistory = function() {
-    //get rid of other empties
-    if(this.future.length > 0) {
-      this.history.unshift(this.curLine);
-
-      this.future = this.future.filter(function(l) {
-	return l !== "";
-      });
-
-      while(this.future.length > 0) {
-	this.history.unshift(this.future.shift());
-      }
-    }
   };
 
   InputUI.prototype.__proto__ = events.EventEmitter.prototype;
