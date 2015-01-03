@@ -42,6 +42,8 @@ fun main(args):
       C.flag(C.once, "Run without checking for shadowed variables"),
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
+    "show-steps",
+      C.flag(C.once, "Show evaluation steps as the program runs"),
     "dialect",
         C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
           "Pyret", some("d"), C.once, "Dialect of Pyret to use when compiling")
@@ -67,6 +69,7 @@ fun main(args):
       module-dir = r.get-value("module-load-dir")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
+      show-steps = r.has-key("show-steps")
       if not(is-empty(rest)):
         program-name = rest.first
         result = CM.compile-js(
@@ -80,6 +83,7 @@ fun main(args):
             allow-shadowed : allow-shadowed,
             collect-all: false,
             type-check: type-check,
+            show-steps: show-steps,
             ignore-unbound: false
           }
           ).result
@@ -114,6 +118,7 @@ fun main(args):
             {
               check-mode : check-mode,
               type-check : type-check,
+              show-steps : show-steps,
               allow-shadowed : allow-shadowed
             }
             )
@@ -127,6 +132,7 @@ fun main(args):
             {
               check-mode : check-mode,
               type-check : type-check,
+              show-steps : show-steps,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false

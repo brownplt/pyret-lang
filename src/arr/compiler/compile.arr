@@ -14,6 +14,7 @@ import "compiler/desugar.arr" as D
 import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
 import "compiler/desugar-check.arr" as CH
+import "compiler/stepper.arr" as ST
 
 data CompilationPhase:
   | start
@@ -57,7 +58,10 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
         if options.type-check: T.type-check(desugared, libs)
         else: C.ok(desugared);
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-      cases(C.CompileResult) type-checked:
+      stepped =
+        if options.show-steps: ST.stepify(type-checked)
+        else: type-checked;
+      cases(C.CompileResult) stepped:
         | ok(tc-ast) =>
           dp-ast = DP.desugar-post-tc(tc-ast, libs)
           cleaned = dp-ast.visit(U.merge-nested-blocks)
