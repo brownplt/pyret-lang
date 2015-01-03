@@ -20,7 +20,7 @@ define([], function() {
   var pyret_keywords_colon =
     wordRegexp(["doc", "try", "ask", "otherwise",
       "then", "with", "sharing", "where",
-      "check", "graph", "block"]);
+      "check", "block"]);
   var pyret_single_punctuation =
     new RegExp("^(["
       + ["\\:", "\\.", "<", ">",
@@ -37,6 +37,13 @@ define([], function() {
     "<": true, "<=": true, ">": true, ">=": true,
     "==": true, "<>": true, ".": true, "^": true,
     "is": true, "raises": true, "satisfies": true };
+  var pyret_keywords_nested =
+    new RegExp("(("
+	+ ["otherwise", "then", "with", "sharing", "where"].join(")|(")
+	+ "))");
+  var pyret_unindent_single = /^(\||else|where)/g;
+  var pyret_unindent_double = /^sharing/g;
+  var pyret_indent_double = /^(data|ask|cases)/g;
 
   var styleMap = {
     'number': chalk.green,
@@ -220,49 +227,51 @@ define([], function() {
       this.syncHistory(true);
       this.resetLine();
 
-      if(cmdLen > 2) {
-	//TODO: remove arrows from nesting, and use |s to change indents
-	if(cmdTrimmed.substring(cmdLen - 2, cmdLen) == "=>") {
-	  this.commandQueue.push(cmdTrimmed);
+      if(cmdTrimmed.match(pyret_unindent_single)) {
+	this.nestStack.unshift("us");
+      }
+      else if(cmdTrimmed.match(pyret_unindent_double)) {
+	this.nestStack.unshift("ud");
+      }
 
-	  if(cmdTrimmed.substring(0, 1) != "|") {
-	    this.nestStack.unshift("=>");
-	  }
+      if(cmdTrimmed == "end") {
+	this.commandQueue.push(cmdTrimmed);
 
-	  this.prompt();
-	  return;
+	var lastNest = this.nestStack.shift();
+
+	while(lastNest !== "is" && lastNest !== "id") {
+	  lastNest = this.nestStack.shift();
 	}
-	else if (cmdTrimmed.substring(cmdLen - 1, cmdLen) == ":") {
-	  this.commandQueue.push(cmdTrimmed);
 
-	  if(cmdTrimmed.substring(0, 1) != "|" && cmdTrimmed.substring(0, 4) != "else") {
-	    this.nestStack.unshift(":");
-	  }
-
-	  this.prompt();
-	  return;
+	if(this.nestStack.length === 0) {
+	  newCmd = this.commandQueue.join("\n");
+	  this.commandQueue = [];
 	}
-	else if(cmdTrimmed == "end") {
-	  if(this.nestStack.length === 1) {
-	    this.commandQueue.push(cmdTrimmed);
-
-	    newCmd = this.commandQueue.join("\n");
-	    this.commandQueue = [];
-	  }
-	  else if (this.nestStack.length > 1) {
-	    this.commandQueue.push(cmdTrimmed);
-	    this.nestStack.shift();
-	    this.prompt();
-	    return;
-	  }
-	}
-	else if(this.nestStack.length > 0) {
-	  this.commandQueue.push(cmdTrimmed);
+	else {
 	  this.prompt();
 	  return;
 	}
       }
-      else if(this.nestStack.length > 0) {
+      else if(cmdTrimmed.match(pyret_keywords_nested)) {
+	this.commandQueue.push(cmdTrimmed);
+	this.prompt();
+	return;
+      }
+      else if(cmdTrimmed.match(/:$/g)) {
+	this.commandQueue.push(cmdTrimmed);
+
+	if(cmdTrimmed.match(pyret_indent_double)) {
+	  this.nestStack.unshift("id");
+	}
+	else {
+	  this.nestStack.unshift("is");
+	}
+
+	this.prompt();
+	return;
+      }
+
+      if(this.nestStack.length > 0) {
 	this.commandQueue.push(cmdTrimmed);
 	this.prompt();
 	return;
@@ -286,6 +295,7 @@ define([], function() {
 	this.history.unshift(this.future.shift());
 	this.curLine = this.history[0].cur;
 	this.historyMarker += 1;
+
 	this.syncLine(true);
       }
     }
@@ -308,9 +318,9 @@ define([], function() {
     }
     else if(key && key.ctrl && key.name === "c") {
       if(this.nestStack.length > 0) {
-	//Note(ben) abstract these resets further
 	this.nestStack = [];
 	this.commandQueue = [];
+
 	this.syncHistory();
 	this.resetLine();
 	this.prompt();
@@ -440,11 +450,46 @@ define([], function() {
   };
 
   InputUI.prototype.getIndent = function() {
-    if(this.curLine.trim() === "end") {
-      return new Array(this.nestStack.length).join(this.indent);
+    var indentSize = this.nestStack.reduce(function(prev, cur, i, a) {
+      if(cur === "id") {
+	return prev + 2;
+      }
+      else if(cur === "is") {
+	return prev + 1;
+      }
+      else if(cur === "ud") {
+	return prev - 1;
+      }
+      else {
+	return prev;
+      }
+    }, 0);
+    var trimmed = this.curLine.trim();
+
+    if(trimmed == "end") {
+      iStack = this.nestStack.filter(function(n) {
+	return n === "is" || n === "id";
+      });
+      var f = iStack[0];
+
+      if(f === "is") {
+	return new Array(indentSize).join(this.indent);
+      }
+      else if (f === "id" && indentSize > 0) {
+	return new Array(indentSize - 1).join(this.indent);
+      }
+      else {
+	return new Array(indentSize + 1).join(this.indent);
+      }
+    }
+    else if(trimmed.match(pyret_unindent_single)) {
+      return new Array(indentSize).join(this.indent);
+    }
+    else if(trimmed.match(pyret_unindent_double) && indentSize > 0) {
+      return new Array(indentSize - 1).join(this.indent);
     }
 
-    return new Array(this.nestStack.length + 1).join(this.indent);
+    return new Array(indentSize + 1).join(this.indent);
   };
 
   InputUI.prototype.getInteractionsNumber = function() {
