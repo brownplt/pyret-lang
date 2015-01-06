@@ -291,6 +291,7 @@ define([], function() {
     regex : {
       'PYRET_UNINDENT_SINGLE': pyret_unindent_single,
       'PYRET_UNINDENT_DOUBLE': pyret_unindent_double,
+      'PYRET_INDENT_DOUBLE': pyret_indent_double,
       'PYRET_KEYWORDS_NESTED': pyret_keywords_nested
     }
   };

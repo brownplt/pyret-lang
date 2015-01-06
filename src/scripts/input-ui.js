@@ -71,6 +71,11 @@ define(["./output-ui"], function(outputUI) {
     return false;
   }
 
+  function numLines(str) {
+    var matches = str.match(/.*\n|.+$/g);
+    return matches ? matches.length : 1;
+  }
+
   function onKeypress(ch, key) {
     //TODO: add a shift return and a tab keypress
     if(key && key.name === "return") {
@@ -111,9 +116,9 @@ define(["./output-ui"], function(outputUI) {
 	this.curLine += ch;
       }
 
-      this.cursorPosition += 1;
+      this.addIndent();
       this.syncHistory(false);
-      this.syncLine();
+      this.keyRight();
     }
   }
 
@@ -123,8 +128,9 @@ define(["./output-ui"], function(outputUI) {
     this.output = output;
     keypress(this.input);
 
-    this.history = [{"old": "", "cur": ""}];
-    this.future = [];
+    this.history = [{"old": "", "cur": "", "block": ""}];
+    this.historyIndex = 0;
+    this.historyUpdate = 0;
     this.curLine = "";
     this.promptSymbol = ">>";
     this.promptString = "";
@@ -132,7 +138,6 @@ define(["./output-ui"], function(outputUI) {
     this.interactionsNumber = 0;
     this.lineNumber = 1;
     this.cursorPosition = 0;
-    this.historyMarker = 0;
 
     this.commandQueue = [];
     this.nestStack = [];
@@ -152,9 +157,15 @@ define(["./output-ui"], function(outputUI) {
       this.interactionsNumber += 1;
     }
 
-    this.promptString = this.interactionsNumber + "::" + this.lineNumber++ + " " + this.promptSymbol + " ";
+    this.resetLine();
+    this.addIndent();
 
-    this.output.write("\n" + this.promptString + this.getIndent());
+    this.promptString = this.interactionsNumber
+      + "::"
+      + this.lineNumber++
+      + " "
+      + this.promptSymbol + " ";
+    this.output.write("\n" + this.promptString + this.curLine);
   };
 
   InputUI.prototype.getIndent = function() {
@@ -198,6 +209,14 @@ define(["./output-ui"], function(outputUI) {
     return new Array(indentSize + 1).join(this.indent);
   };
 
+  InputUI.prototype.addIndent = function() {
+    var lineNoIndent = this.curLine.replace(/^(\s*)/, "");
+    var lineIndent = this.getIndent() + lineNoIndent;
+
+    this.cursorPosition += lineIndent.length - this.curLine.length;
+    this.curLine = lineIndent;
+  };
+
   InputUI.prototype.getInteractionsNumber = function() {
     return this.interactionsNumber;
   };
@@ -211,7 +230,6 @@ define(["./output-ui"], function(outputUI) {
   InputUI.prototype.getCursorPos = function() {
     return this.getDisplayPos(
 	this.promptString
-	+ this.getIndent()
 	+ this.curLine.slice(0, this.cursorPosition));
   };
 
@@ -222,8 +240,6 @@ define(["./output-ui"], function(outputUI) {
     var code, i;
     str = stripVTControlCharacters(str);
 
-    //Question(ben) how does this deal with multiline strings whose components
-    //are longer than the width of the terminal?
     for (i = 0; i < str.length; i++) {
       code = codePointAt(str, i);
 
@@ -232,7 +248,10 @@ define(["./output-ui"], function(outputUI) {
       }
 
       if (code === 0x0a) {
-	row += 1 + (offset - (offset % col)) / col;
+	//Note(ben) accounts for lines within multiline strings that are longer
+	//than the width of the terminal
+	row += 1 + (offset % col === 0 && offset > 0 ? (offset / col) - 1
+	 : (offset - (offset % col)) / col);
 	offset = 0;
 	continue;
       }
@@ -259,7 +278,7 @@ define(["./output-ui"], function(outputUI) {
   //TODO: add indents
   InputUI.prototype.syncLine = function(gotoEol) {
     // line length
-    var line = this.promptString + this.getIndent() + this.curLine;
+    var line = this.promptString + this.curLine;
     var dispPos = this.getDisplayPos(line);
     var lineCols = dispPos.cols;
     var lineRows = dispPos.rows;
@@ -285,7 +304,6 @@ define(["./output-ui"], function(outputUI) {
 
     // Write the prompt and the current buffer content.
     this.output.write(this.promptString);
-    this.output.write(this.getIndent());
     this.output.write(outputUI.highlightLine(this.curLine));
 
     // Force terminal to allocate a new line
@@ -308,81 +326,70 @@ define(["./output-ui"], function(outputUI) {
   InputUI.prototype.syncHistory = function(isNewline) {
     var spaceRegex = /^\s*$/g;
 
-    if(!(this.curLine.match(spaceRegex))) {
-      this.history[0] = {"old": this.history[0].old, "cur": this.curLine,
-	"block": this.history[0].block};
+    if(!(this.curLine.match(spaceRegex)) || this.curLine === "") {
+      this.history[this.historyIndex] = {
+	"old": this.history[this.historyIndex].old,
+	"cur": this.curLine,
+	"block": this.history[this.historyIndex].block};
     }
 
     if(isNewline) {
-      if(this.historyMarker >= 0) {
-	this.history = this.history.slice(0, this.historyMarker).map(function(l) {
+      if(this.historyUpdate >= 0) {
+	this.history = this.history.slice(0, this.historyUpdate).map(function(l) {
 	  return {"old": l.old, "cur": l.old, "block": l.block};
-	}).concat(this.history.slice(this.historyMarker, this.history.length));
+	}).concat(this.history.slice(this.historyUpdate, this.history.length));
       }
-
-      if(this.future.length > 0) {
-	if(this.historyMarker < 0) {
-	  this.future = this.future.slice(0, -this.historyMarker).map(function(l) {
-	    return {"old": l.old, "cur": l.old, "block": l.block};
-	  }).concat(this.future.slice(-this.historyMarker, this.future.length));
-	}
-
-	this.future.filter(function(l) {
-	  return !(l.old.match(spaceRegex));
-	});
-
-	while(this.future.length > 0) {
-	  this.history.unshift(this.future.shift());
-	}
-      }
-
-      this.historyMarker = 0;
 
       if(!(this.curLine.match(spaceRegex) || (this.history.length > 1
 	      && this.history[1].old === this.curLine))) {
 	var oldLine = this.history[0].old;
 
 	if(!(oldLine.match(spaceRegex) || oldLine === this.curLine)) {
-	  this.history.unshift({"old": "", "cur": ""});
-	  this.history[0] = {"old": this.curLine, "cur": this.curLine};
-	  this.history.unshift({"old": "", "cur": ""});
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
+	  this.history[0] = {
+	    "old": this.curLine,
+	    "cur": this.curLine,
+	    "block": this.curLine};
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
 	else if(oldLine !== this.curLine) {
-	  this.history[0] = {"old": this.curLine, "cur": this.curLine};
-	  this.history.unshift({"old": "", "cur": ""});
+	  this.history[0] = {
+	    "old": this.curLine,
+	    "cur": this.curLine,
+	    "block": this.curLine};
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
       }
+
+      this.historyIndex = 0;
+      this.historyUpdate = 0;
     }
-    else if(this.historyMarker <= 0) {
-      this.historyMarker = 1;
+    else {
+      this.historyUpdate = Math.max(this.historyIndex + 1, this.historyUpdate);
     }
   };
 
   InputUI.prototype.historyPrev = function() {
-    if(this.history.length > 1) {
-      this.future.unshift(this.history.shift());
-      this.curLine = this.history[0].cur;
-      this.historyMarker -= 1;
+    if(this.historyIndex < this.history.length - 1) {
+      this.historyIndex += 1;
+      this.curLine = this.history[this.historyIndex].cur;
       this.syncLine(true);
     }
   };
 
   InputUI.prototype.historyNext = function() {
-    if(this.future.length > 0) {
-      this.history.unshift(this.future.shift());
-      this.curLine = this.history[0].cur;
-      this.historyMarker += 1;
-
+    if(this.historyIndex > 0) {
+      this.historyIndex -= 1;
+      this.curLine = this.history[this.historyIndex].cur;
       this.syncLine(true);
     }
   };
 
   InputUI.prototype.newline = function() {
-    var cmdTrimmed = this.curLine.trim();
+    var cmdTrimmed = this.curLine.replace(/(\s*)$/, "");
     var newCmd = cmdTrimmed;
 
     this.syncHistory(true);
-    this.resetLine();
 
     if(cmdTrimmed.match(outputUI.regex.PYRET_UNINDENT_SINGLE)) {
       this.nestStack.unshift("us");
@@ -392,7 +399,7 @@ define(["./output-ui"], function(outputUI) {
     }
 
     //TODO: accomodate not single line ends
-    if(cmdTrimmed === "end") {
+    if(cmdTrimmed.match(/end$/g)) {
       this.commandQueue.push(cmdTrimmed);
 
       var lastNest = this.nestStack.shift();
@@ -403,8 +410,9 @@ define(["./output-ui"], function(outputUI) {
 
       if(this.nestStack.length === 0) {
 	newCmd = this.commandQueue.join("\n");
-	this.history[1].block = newCmd;
 	this.commandQueue = [];
+	this.history[1].block = newCmd;
+	this.history[numLines(newCmd)].block = newCmd;
       }
       else {
 	this.prompt();
@@ -419,7 +427,7 @@ define(["./output-ui"], function(outputUI) {
     else if(cmdTrimmed.match(/:$/g)) {
       this.commandQueue.push(cmdTrimmed);
 
-      if(cmdTrimmed.match(outputUI.regex.PYRET_UNINDENT_DOUBLE)) {
+      if(cmdTrimmed.match(outputUI.regex.PYRET_INDENT_DOUBLE)) {
 	this.nestStack.unshift("id");
       }
       else {
@@ -439,25 +447,18 @@ define(["./output-ui"], function(outputUI) {
     this.lineNumber = 1;
     this.nestStack = [];
 
+    this.syncLine(true);
     this.emit('command', newCmd);
   };
 
   InputUI.prototype.keyShiftUp = function() {
-    this.historyPrev();
-    var lastEntry = this.history[0];
+    this.historyIndex += numLines(this.history[this.historyIndex].block);
 
-    while(this.history.length > 1 && lastEntry.block === undefined) {
-      this.historyPrev();
-      lastEntry = this.history[0];
+    if(this.historyIndex >= this.history.length - 1) {
+      this.historyIndex = this.history.length - 1;
     }
 
-    if(lastEntry.block) {
-      this.curLine = lastEntry.block;
-    }
-    else {
-      this.curLine = lastEntry.cur;
-    }
-
+    this.curLine = this.history[this.historyIndex].block;
     this.syncLine(true);
   };
 
@@ -475,21 +476,13 @@ define(["./output-ui"], function(outputUI) {
   };
 
   InputUI.prototype.keyShiftDown = function() {
-    this.historyNext();
-    var lastEntry = this.history[0];
+    this.historyIndex -= numLines(this.history[this.historyIndex].block);
 
-    while(this.future.length > 1 && lastEntry.block === undefined) {
-      this.historyNext();
-      lastEntry = this.history[0];
+    if(this.historyIndex <= 0) {
+      this.historyIndex = 0;
     }
 
-    if(lastEntry.block) {
-      this.curLine = lastEntry.block;
-    }
-    else {
-      this.curLine = lastEntry.cur;
-    }
-
+    this.curLine = this.history[this.historyIndex].block;
     this.syncLine(true);
   };
 
@@ -527,17 +520,18 @@ define(["./output-ui"], function(outputUI) {
       this.curLine = this.curLine.substring(0, this.cursorPosition - 1)
 	+ this.curLine.substring(this.cursorPosition, this.curLine.length);
 
-      this.cursorPosition -= 1;
       this.syncHistory(false);
     }
 
-    this.syncLine();
+    this.addIndent();
+    this.keyLeft();
   };
 
   InputUI.prototype.keyboardInterrupt = function() {
     if(this.nestStack.length > 0) {
       this.nestStack = [];
       this.commandQueue = [];
+      this.lineNumber = 1;
 
       this.syncHistory();
       this.resetLine();
