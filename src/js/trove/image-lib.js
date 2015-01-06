@@ -376,7 +376,6 @@ define([
           ctx.beginPath();
           ctx.rect(x, y, this.width, this.height);
           ctx.clip();
-          ctx.clearRect(x, y, this.width, this.height);
           // Ask every object to render itself inside the region
           for(i = 0; i < this.children.length; i++) {
             // then, render the child images
