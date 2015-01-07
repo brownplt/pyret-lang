@@ -68,6 +68,14 @@ check "long decimals should behave exactly":
   2.99999999999999999999999999999999999999999999 is-not
     2.999999999999999999999999999999999999999999999
 
-  # this is just to test that num-sin doesn't blow on bigints
+  # this is just to test that num-sin, &c don't blow on bigints
   num-sin(10000000000000000) * 0 is 0
+  num-cos(10000000000000000) * 0 is 0
+  num-tan(10000000000000000) * 0 is 0
+  num-asin(10000000000000000) * 0 is 0
+  num-acos(10000000000000000) * 0 is 0
+  num-atan(10000000000000000) * 0 is 0
+  num-log(10000000000000000) * 0 is 0
+  num-exp(10000000000000000) * 0 is 0
+  num-round(10000000000000000) * 0 is 0
 end
