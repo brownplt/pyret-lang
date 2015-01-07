@@ -6,8 +6,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
   var path = require('path');
   var addPyretMatchers = matchers.addPyretMatchers;
 
-
-
   function performTest(useCompiled){
 
     var R = require("js/runtime-anf");
@@ -40,7 +38,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         rt = R.makeRuntime({'stdout' : stdout});
         addPyretMatchers(this, rt);
 
-
         //Make Some numbers
         five = rt.makeNumber(5);
         nfive = rt.makeNumber(-5);
@@ -57,25 +54,23 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         big = rt.makeNumber(9000000000000000);
     });
 
-
     describe("Number Dictionary", function() {
       it("should have correct _plus", function() {
           expect(five.dict).toBeUndefined();
 
-          
           var plus = rt.plus;
-          
+
           //Basic
           expect(plus(zero, zero)).toBigEqual(0);
           expect(plus(one, zero)).toBigEqual(1);
           expect(plus(two, two)).toBigEqual(4);
           expect(plus(two, four)).toBigEqual(6);
           expect(plus(four, two)).toBigEqual(6);
-          
+
           //Negative Numbers
           expect(plus(nfive, two)).toBigEqual(-3);
           expect(plus(two, nfive)).toBigEqual(-3);
-         
+
           //Fractions
           expect(plus(two, half)).toBigEqual(2.5);
 
@@ -87,7 +82,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(plus(big, big)).toBeBig(jsnums.fromString("18000000000000000"));
       });
 
-
       it("should have correct _minus", function() {
           var minus = rt.minus;
 
@@ -97,11 +91,11 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(minus(two, two)).toBigEqual(0);
           expect(minus(two, four)).toBigEqual(-2);
           expect(minus(four, two)).toBigEqual(2);
-          
+
           //Negative Numbers
           expect(minus(nfive, two)).toBigEqual(-7);
           expect(minus(two, nfive)).toBigEqual(7);
-         
+
           //Fractions
           expect(minus(two, half)).toBigEqual(1.5);
 
@@ -120,11 +114,11 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(times(two, two)).toBigEqual(4);
           expect(times(two, four)).toBigEqual(8);
           expect(times(four, two)).toBigEqual(8);
-          
+
           //Negative Numbers
           expect(times(nfive, two)).toBigEqual(-10);
           expect(times(two, nfive)).toBigEqual(-10);
-         
+
           //Fractions
           expect(times(two, half)).toBigEqual(1);
 
@@ -164,11 +158,11 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(divide(two, two)).toBigEqual(1);
           expect(divide(two, four)).toBigEqual(.5);
           expect(divide(four, two)).toBigEqual(2);
-          
+
           //Negative Numbers
           expect(divide(nfive, two)).toBigEqual(-2.5);
           expect(divide(two, nfive)).toBigEqual(-2/5);
-         
+
           //Fractions
           expect(divide(two, half)).toBigEqual(4);
 
@@ -332,7 +326,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(tostring(two)).toEqual("2");
           expect(tostring(seven)).toEqual("7");
           expect(tostring(twty)).toEqual("20");
-          expect(tostring(half)).toEqual("0.5");
+          expect(tostring(half)).toEqual("1/2");
       });
 
       });
