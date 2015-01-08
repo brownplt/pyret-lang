@@ -269,6 +269,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 	  return msg;
         }
 
+	//TODO: make a distinction between callee and caller
         function drawArityMismatch(funLoc, arity, args) {
           var argsList = ffi.toArray(args);
           var probablyErrorLocation = getLastUserLocation(e, 0);

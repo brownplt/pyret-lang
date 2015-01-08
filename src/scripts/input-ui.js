@@ -79,7 +79,7 @@ define(["./output-ui"], function(outputUI) {
   function onKeypress(ch, key) {
     //TODO: add a shift return and a tab keypress
     if(key && key.name === "return") {
-      this.newline();
+      this.enter();
     }
     else if(key && key.shift && key.name === "up") {
       this.keyShiftUp();
@@ -128,9 +128,10 @@ define(["./output-ui"], function(outputUI) {
     this.output = output;
     keypress(this.input);
 
-    this.history = [{"old": "", "cur": "", "block": ""}];
+    this.history = [{"old": "", "cur": "", "block": "", "blockSize": 1}];
     this.historyIndex = 0;
     this.historyUpdate = 0;
+    this.blockSize = 0;
     this.curLine = "";
     this.promptSymbol = ">>";
     this.promptString = "";
@@ -330,34 +331,41 @@ define(["./output-ui"], function(outputUI) {
       this.history[this.historyIndex] = {
 	"old": this.history[this.historyIndex].old,
 	"cur": this.curLine,
-	"block": this.history[this.historyIndex].block};
+	"block": this.history[this.historyIndex].block,
+	"blockSize": this.history[this.historyIndex].blockSize};
     }
 
     if(isNewline) {
       if(this.historyUpdate >= 0) {
 	this.history = this.history.slice(0, this.historyUpdate).map(function(l) {
-	  return {"old": l.old, "cur": l.old, "block": l.block};
+	  return {"old": l.old, "cur": l.old, "block": l.block, "blockSize": l.blockSize};
 	}).concat(this.history.slice(this.historyUpdate, this.history.length));
       }
 
-      if(!(this.curLine.match(spaceRegex) || (this.history.length > 1
-	      && this.history[1].old === this.curLine))) {
-	var oldLine = this.history[0].old;
+      var oldLine = this.history[0].old;
+      var oldBlock = this.history[0].block;
 
+      if(!(this.curLine.match(spaceRegex) || (this.history.length > 1
+	      && this.history[1].old === oldLine
+	      && this.history[1].block === oldBlock))) {
+
+	//TODO: will this cause problems?
 	if(!(oldLine.match(spaceRegex) || oldLine === this.curLine)) {
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
+	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine};
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
+	    "block": this.curLine,
+	    "blockSize": 1};
+	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
 	}
 	else if(oldLine !== this.curLine) {
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine};
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
+	    "block": this.curLine,
+	    "blockSize": 1};
+	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
 	}
       }
 
@@ -385,22 +393,40 @@ define(["./output-ui"], function(outputUI) {
     }
   };
 
-  InputUI.prototype.newline = function() {
-    var cmdTrimmed = this.curLine.replace(/(\s*)$/, "");
-    var newCmd = cmdTrimmed;
+  InputUI.prototype.enter = function() {
+    var matches = this.curLine.match(/.*\n|.+$/g);
+    var cmdTrimmed;
 
     this.syncHistory(true);
+    this.syncLine(true);
+    this.blockSize += 1;
 
-    if(cmdTrimmed.match(outputUI.regex.PYRET_UNINDENT_SINGLE)) {
+    if(matches && matches.length > 1) {
+      matches.slice(0, matches.length - 1).forEach(function(m) {
+	cmdTrimmed = m.replace(/(\s*)$/, "");
+	this.newline(cmdTrimmed, false);
+      }, this);
+
+      cmdTrimmed = matches.pop().replace(/(\s*)$/, "");
+      this.newline(cmdTrimmed, true);
+    }
+    else {
+      this.newline(this.curLine, true);
+    }
+  };
+
+  InputUI.prototype.newline = function(cmd, printPrompt) {
+    var newCmd = cmd;
+
+    if(cmd.match(outputUI.regex.PYRET_UNINDENT_SINGLE)) {
       this.nestStack.unshift("us");
     }
-    else if(cmdTrimmed.match(outputUI.regex.PYRET_UNINDENT_DOUBLE)) {
+    else if(cmd.match(outputUI.regex.PYRET_UNINDENT_DOUBLE)) {
       this.nestStack.unshift("ud");
     }
 
-    //TODO: accomodate not single line ends
-    if(cmdTrimmed.match(/end$/g)) {
-      this.commandQueue.push(cmdTrimmed);
+    if(cmd.match(/end$/g)) {
+      this.commandQueue.push(cmd);
 
       var lastNest = this.nestStack.shift();
 
@@ -410,49 +436,59 @@ define(["./output-ui"], function(outputUI) {
 
       if(this.nestStack.length === 0) {
 	newCmd = this.commandQueue.join("\n");
-	this.commandQueue = [];
 	this.history[1].block = newCmd;
-	this.history[numLines(newCmd)].block = newCmd;
+	this.history[1].blockSize = this.blockSize;
+	this.history[this.blockSize].block = newCmd;
+	this.history[this.blockSize].blockSize = this.blockSize;
       }
       else {
-	this.prompt();
+	if(printPrompt) {
+	  this.prompt();
+	}
 	return;
       }
     }
-    else if(cmdTrimmed.match(outputUI.regex.PYRET_KEYWORDS_NESTED)) {
-      this.commandQueue.push(cmdTrimmed);
-      this.prompt();
+    else if(cmd.match(outputUI.regex.PYRET_KEYWORDS_NESTED)) {
+      this.commandQueue.push(cmd);
+      if(printPrompt) {
+	this.prompt();
+      }
       return;
     }
-    else if(cmdTrimmed.match(/:$/g)) {
-      this.commandQueue.push(cmdTrimmed);
+    else if(cmd.match(/:$/g)) {
+      this.commandQueue.push(cmd);
 
-      if(cmdTrimmed.match(outputUI.regex.PYRET_INDENT_DOUBLE)) {
+      if(cmd.match(outputUI.regex.PYRET_INDENT_DOUBLE)) {
 	this.nestStack.unshift("id");
       }
       else {
 	this.nestStack.unshift("is");
       }
 
-      this.prompt();
+      if(printPrompt) {
+	this.prompt();
+      }
       return;
     }
 
     if(this.nestStack.length > 0) {
-      this.commandQueue.push(cmdTrimmed);
-      this.prompt();
+      this.commandQueue.push(cmd);
+      if(printPrompt) {
+	this.prompt();
+      }
       return;
     }
 
-    this.lineNumber = 1;
     this.nestStack = [];
+    this.commandQueue = [];
+    this.lineNumber = 1;
+    this.blockSize = 0;
 
-    this.syncLine(true);
     this.emit('command', newCmd);
   };
 
   InputUI.prototype.keyShiftUp = function() {
-    this.historyIndex += numLines(this.history[this.historyIndex].block);
+    this.historyIndex += this.history[this.historyIndex].blockSize;
 
     if(this.historyIndex >= this.history.length - 1) {
       this.historyIndex = this.history.length - 1;
@@ -476,7 +512,7 @@ define(["./output-ui"], function(outputUI) {
   };
 
   InputUI.prototype.keyShiftDown = function() {
-    this.historyIndex -= numLines(this.history[this.historyIndex].block);
+    this.historyIndex -= this.history[this.historyIndex].blockSize;
 
     if(this.historyIndex <= 0) {
       this.historyIndex = 0;
@@ -523,15 +559,18 @@ define(["./output-ui"], function(outputUI) {
       this.syncHistory(false);
     }
 
-    this.addIndent();
     this.keyLeft();
   };
 
   InputUI.prototype.keyboardInterrupt = function() {
-    if(this.nestStack.length > 0) {
+    this.syncLine(true);
+
+    if(this.nestStack.length > 0 || this.curLine !== "") {
+      //TODO: abstract this
       this.nestStack = [];
       this.commandQueue = [];
       this.lineNumber = 1;
+      this.blockSize = 0;
 
       this.syncHistory();
       this.resetLine();
