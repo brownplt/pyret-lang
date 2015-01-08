@@ -358,14 +358,14 @@ define(["./output-ui"], function(outputUI) {
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine};
+	    "block": this.nestStack.length > 0 ? "" : this.curLine};
 	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
 	else if(oldLine !== this.curLine) {
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine};
+	    "block": this.nestStack.length > 0 ? "" : this.curLine};
 	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
       }
@@ -436,7 +436,7 @@ define(["./output-ui"], function(outputUI) {
 
       if(this.nestStack.length === 0) {
 	newCmd = this.commandQueue.join("\n");
-	this.history[1].block = newCmd;
+	this.history[numLines(newCmd)].block = newCmd;
       }
       else {
 	if(printPrompt) {
@@ -484,10 +484,25 @@ define(["./output-ui"], function(outputUI) {
     this.emit('command', newCmd);
   };
 
+  //TODO: only have some history items have block content (end of blocks and single lines)
   InputUI.prototype.keyShiftUp = function() {
     if(this.historyIndex < this.history.length - 1) {
       this.historyIndex += 1;
-      this.curLine = this.history[this.historyIndex].block;
+
+      var lastEntry = this.history[this.historyIndex];
+
+      while(this.historyIndex < this.history.length - 1 && lastEntry.block === "") {
+	this.historyIndex++;
+	lastEntry = this.history[this.historyIndex];
+      }
+
+      if(lastEntry.block === "") {
+	this.curLine = lastEntry.cur;
+      }
+      else {
+	this.curLine = lastEntry.block;
+      }
+
       this.syncLine(true);
     }
   };
@@ -508,7 +523,21 @@ define(["./output-ui"], function(outputUI) {
   InputUI.prototype.keyShiftDown = function() {
     if(this.historyIndex > 0) {
       this.historyIndex -= 1;
-      this.curLine = this.history[this.historyIndex].block;
+
+      var lastEntry = this.history[this.historyIndex];
+
+      while(this.historyIndex > 0 && lastEntry.block === "") {
+	this.historyIndex--;
+	lastEntry = this.history[this.historyIndex];
+      }
+
+      if(lastEntry.block === "") {
+	this.curLine = lastEntry.cur;
+      }
+      else {
+	this.curLine = lastEntry.block;
+      }
+
       this.syncLine(true);
     }
   };
