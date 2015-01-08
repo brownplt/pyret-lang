@@ -71,11 +71,6 @@ define(["./output-ui"], function(outputUI) {
     return false;
   }
 
-  function numLines(str) {
-    var matches = str.match(/.*\n|.+$/g);
-    return matches ? matches.length : 1;
-  }
-
   function onKeypress(ch, key) {
     //TODO: add a shift return and a tab keypress
     if(key && !(key.shift) && key.name === "return") {
@@ -436,7 +431,7 @@ define(["./output-ui"], function(outputUI) {
 
       if(this.nestStack.length === 0) {
 	newCmd = this.commandQueue.join("\n");
-	this.history[numLines(newCmd)].block = newCmd;
+	this.history[this.commandQueue.length].block = newCmd;
       }
       else {
 	if(printPrompt) {
