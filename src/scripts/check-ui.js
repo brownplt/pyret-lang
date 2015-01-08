@@ -11,7 +11,11 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
       return s ? get(s, "format").app(true) : "";
     }
 
-    return runtime.loadModules(runtime.namespace, [optionLib, srclocLib], function(option, srcloc) {
+    if(checkArray.length === 0) {
+      return;
+    }
+
+    var output = runtime.loadModules(runtime.namespace, [optionLib, srclocLib], function(option, srcloc) {
       var checkTotalAll = 0;
       var checkPassedAll = 0;
       var checkBlockCount = checkArray.length;
@@ -73,15 +77,14 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
 	  if(checkTotal > 1) {
 	    msg += "  " + checkPassed + "/" + checkTotal
 	      + " tests passed in check block: "
-	      + name
-	      + "\n\n";
+	      + name;
 	  }
 	  else if(checkTotal === 1) {
 	    if(checkPassed === 1) {
-	      msg += "The test passed.\n\n";
+	      msg += "The test passed.";
 	    }
 	    else {
-	      msg += "The test failed.\n\n";
+	      msg += "The test failed.";
 	    }
 	  }
 	}
@@ -120,6 +123,8 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
 
       return msg;
     });
+
+    console.log(output);
   }
 
   return {

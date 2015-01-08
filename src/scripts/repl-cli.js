@@ -28,13 +28,15 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./inpu
 
       res.then(function(new_res) {
         if(runtime.isSuccessResult(new_res)) {
-          //TODO: turn this into a handler
-	  console.log("\n" + outputUI.renderValue(runtime, get(new_res.result, "answer")));
-	  console.log(checkUI.drawCheckResults(runtime, get(new_res.result, "checks")));
+          //TODO: have outputUI renderValue color strings, and have drawCheckResults
+	  //call outputUI methods to colors strings
+	  outputUI.renderValue(runtime, get(new_res.result, "answer"));
+	  checkUI.drawCheckResults(runtime, get(new_res.result, "checks"));
         }
         else {
 	  var exception = new_res.exn;
-	  console.log("\n" + errorUI.drawError(runtime, exception));
+	  //TODO: have drawError call outputUI methods to color strings
+	  errorUI.drawError(runtime, exception);
         }
 
         inputUI.prompt();

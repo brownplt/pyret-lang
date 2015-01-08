@@ -78,7 +78,7 @@ define(["./output-ui"], function(outputUI) {
 
   function onKeypress(ch, key) {
     //TODO: add a shift return and a tab keypress
-    if(key && key.name === "return") {
+    if(key && !(key.shift) && key.name === "return") {
       this.enter();
     }
     else if(key && key.shift && key.name === "up") {
@@ -107,18 +107,7 @@ define(["./output-ui"], function(outputUI) {
     }
     //TODO: how to decide what keys pass through?
     else {
-      if(this.cursorPosition < this.curLine.length) {
-	this.curLine = this.curLine.substring(0, this.cursorPosition)
-	  + ch
-	  + this.curLine.substring(this.cursorPosition, this.curLine.length);
-      }
-      else {
-	this.curLine += ch;
-      }
-
-      this.addIndent();
-      this.syncHistory(false);
-      this.keyRight();
+      this.addChar(ch);
     }
   }
 
@@ -167,6 +156,21 @@ define(["./output-ui"], function(outputUI) {
       + " "
       + this.promptSymbol + " ";
     this.output.write("\n" + this.promptString + this.curLine);
+  };
+
+  InputUI.prototype.addChar = function(ch) {
+    if(this.cursorPosition < this.curLine.length) {
+      this.curLine = this.curLine.substring(0, this.cursorPosition)
+	+ ch
+	+ this.curLine.substring(this.cursorPosition, this.curLine.length);
+    }
+    else {
+      this.curLine += ch;
+    }
+
+    this.addIndent();
+    this.syncHistory(false);
+    this.keyRight();
   };
 
   InputUI.prototype.getIndent = function() {
@@ -461,7 +465,7 @@ define(["./output-ui"], function(outputUI) {
       if(cmd.match(outputUI.regex.PYRET_INDENT_DOUBLE)) {
 	this.nestStack.unshift("id");
       }
-      else {
+      else if(!cmd.match(outputUI.regex.PYRET_UNINDENT_SINGLE)) {
 	this.nestStack.unshift("is");
       }
 
@@ -484,6 +488,7 @@ define(["./output-ui"], function(outputUI) {
     this.lineNumber = 1;
     this.blockSize = 0;
 
+    this.output.write("\n");
     this.emit('command', newCmd);
   };
 

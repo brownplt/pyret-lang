@@ -6,9 +6,13 @@ var chalk = require("chalk");
 define([], function() {
   function renderValue(runtime, val) {
     if(runtime.isPyretVal(val)) {
-      return runtime.toReprJS(val, "_torepr");
+      if(!runtime.isNothing(val)) {
+	console.log(runtime.toReprJS(val, "_torepr"));
+      }
     }
-    return String(val);
+    else {
+      console.log(String(val));
+    }
   }
 
   function wordRegexp(words) {
@@ -21,11 +25,11 @@ define([], function() {
       "import", "provide", "data", "end",
       "except", "for", "from", "and",
       "or", "not", "as", "if",
-      "else", "cases"]);
+      "else", "cases", "check"]);
   var pyret_keywords_colon =
     wordRegexp(["doc", "try", "ask", "otherwise",
       "then", "with", "sharing", "where",
-      "check", "block"]);
+      "block"]);
   var pyret_single_punctuation =
     new RegExp("^(["
       + ["\\:", "\\.", "<", ">",

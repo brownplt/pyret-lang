@@ -10,7 +10,7 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
     var cases = ffi.cases;
     var get = runtime.getField;
 
-    return runtime.loadModules(runtime.namespace, [srclocLib, errorLib, contractsLib, csLib], function(srcloc, error, contracts, cs) {
+    var output = runtime.loadModules(runtime.namespace, [srclocLib, errorLib, contractsLib, csLib], function(srcloc, error, contracts, cs) {
       function makePred(ns, funName) {
 	return get(ns, funName).app;
       }
@@ -624,6 +624,8 @@ define(["js/ffi-helpers", "trove/srcloc", "trove/error", "trove/contracts", "com
 
       return drawUnknownException(exception);
     });
+
+    console.log(output);
   }
 
   return {
