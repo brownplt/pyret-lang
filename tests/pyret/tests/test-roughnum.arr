@@ -58,6 +58,12 @@ check "roughnum":
   num-is-non-positive(-2) is true
   num-modulo(10,3) is 1
   num-modulo(10,0) raises "second argument is zero"
+  num-expt(2, 3)   is                    8
+  num-expt(2, 3)   is%(num-within(0.1))  8
+  num-expt(2, 3)   is%(num-within(0.1)) ~8
+  num-expt(~2, 3)  is%(num-within(0.1)) ~8
+  num-expt(2, ~3)  is%(num-within(0.1)) ~8
+  num-expt(~2, ~3) is%(num-within(0.1)) ~8
 end
 
 check "long decimals should behave exactly":
