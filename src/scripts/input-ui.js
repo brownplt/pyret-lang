@@ -117,10 +117,10 @@ define(["./output-ui"], function(outputUI) {
     this.output = output;
     keypress(this.input);
 
-    this.history = [{"old": "", "cur": "", "block": "", "blockSize": 1}];
+    this.history = [{"old": "", "cur": "", "block": ""}];
     this.historyIndex = 0;
     this.historyUpdate = 0;
-    this.blockSize = 0;
+    this.upLast = false;
     this.curLine = "";
     this.promptSymbol = ">>";
     this.promptString = "";
@@ -335,14 +335,13 @@ define(["./output-ui"], function(outputUI) {
       this.history[this.historyIndex] = {
 	"old": this.history[this.historyIndex].old,
 	"cur": this.curLine,
-	"block": this.history[this.historyIndex].block,
-	"blockSize": this.history[this.historyIndex].blockSize};
+	"block": this.history[this.historyIndex].block};
     }
 
     if(isNewline) {
       if(this.historyUpdate >= 0) {
 	this.history = this.history.slice(0, this.historyUpdate).map(function(l) {
-	  return {"old": l.old, "cur": l.old, "block": l.block, "blockSize": l.blockSize};
+	  return {"old": l.old, "cur": l.old, "block": l.block};
 	}).concat(this.history.slice(this.historyUpdate, this.history.length));
       }
 
@@ -355,21 +354,19 @@ define(["./output-ui"], function(outputUI) {
 
 	//TODO: will this cause problems?
 	if(!(oldLine.match(spaceRegex) || oldLine === this.curLine)) {
-	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine,
-	    "blockSize": 1};
-	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
+	    "block": this.curLine};
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
 	else if(oldLine !== this.curLine) {
 	  this.history[0] = {
 	    "old": this.curLine,
 	    "cur": this.curLine,
-	    "block": this.curLine,
-	    "blockSize": 1};
-	  this.history.unshift({"old": "", "cur": "", "block": "", "blockSize": 1});
+	    "block": this.curLine};
+	  this.history.unshift({"old": "", "cur": "", "block": ""});
 	}
       }
 
@@ -403,7 +400,6 @@ define(["./output-ui"], function(outputUI) {
 
     this.syncHistory(true);
     this.syncLine(true);
-    this.blockSize += 1;
 
     if(matches && matches.length > 1) {
       matches.slice(0, matches.length - 1).forEach(function(m) {
@@ -441,9 +437,6 @@ define(["./output-ui"], function(outputUI) {
       if(this.nestStack.length === 0) {
 	newCmd = this.commandQueue.join("\n");
 	this.history[1].block = newCmd;
-	this.history[1].blockSize = this.blockSize;
-	this.history[this.blockSize].block = newCmd;
-	this.history[this.blockSize].blockSize = this.blockSize;
       }
       else {
 	if(printPrompt) {
@@ -486,21 +479,17 @@ define(["./output-ui"], function(outputUI) {
     this.nestStack = [];
     this.commandQueue = [];
     this.lineNumber = 1;
-    this.blockSize = 0;
 
     this.output.write("\n");
     this.emit('command', newCmd);
   };
 
   InputUI.prototype.keyShiftUp = function() {
-    this.historyIndex += this.history[this.historyIndex].blockSize;
-
-    if(this.historyIndex >= this.history.length - 1) {
-      this.historyIndex = this.history.length - 1;
+    if(this.historyIndex < this.history.length - 1) {
+      this.historyIndex += 1;
+      this.curLine = this.history[this.historyIndex].block;
+      this.syncLine(true);
     }
-
-    this.curLine = this.history[this.historyIndex].block;
-    this.syncLine(true);
   };
 
   InputUI.prototype.keyUp = function() {
@@ -517,14 +506,11 @@ define(["./output-ui"], function(outputUI) {
   };
 
   InputUI.prototype.keyShiftDown = function() {
-    this.historyIndex -= this.history[this.historyIndex].blockSize;
-
-    if(this.historyIndex <= 0) {
-      this.historyIndex = 0;
+    if(this.historyIndex > 0) {
+      this.historyIndex -= 1;
+      this.curLine = this.history[this.historyIndex].block;
+      this.syncLine(true);
     }
-
-    this.curLine = this.history[this.historyIndex].block;
-    this.syncLine(true);
   };
 
   InputUI.prototype.keyDown = function() {
@@ -575,7 +561,6 @@ define(["./output-ui"], function(outputUI) {
       this.nestStack = [];
       this.commandQueue = [];
       this.lineNumber = 1;
-      this.blockSize = 0;
 
       this.syncHistory();
       this.resetLine();
