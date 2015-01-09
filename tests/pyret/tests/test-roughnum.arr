@@ -82,6 +82,7 @@ check "roughnum":
   num-expt(~0, ~-3) raises "division by zero"
   num-exp(710)          raises "overflow"
   num-exp(~710)         raises "overflow"
+  num-exp(1000000000000000000000000) raises "overflow" # this tests for arg known to be bigint
   num-expt(2.718,~710)  raises "overflow"
   num-expt(~2.718,710)  raises "overflow"
   num-expt(~2.718,~710) raises "overflow"
