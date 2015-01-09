@@ -577,16 +577,15 @@ define(["./output-ui"], function(outputLib) {
 	this.lastKey = "";
 	clearTimeout(this.upVar);
 
-	this.historyIndex -= 1;
 	this.blockHistoryPrev();
       }
       else {
 	this.lastKey = "up";
-	this.keyUpBase();
 
 	this.upVar = setTimeout(function() {
 	  this.lastKey = "";
-	}.bind(this), 175);
+	  this.keyUpBase();
+	}.bind(this), 160);
       }
     }
     else {
@@ -602,16 +601,15 @@ define(["./output-ui"], function(outputLib) {
 	this.lastKey = "";
 	clearTimeout(this.downVar);
 
-	this.historyIndex += 1;
 	this.blockHistoryNext();
       }
       else {
 	this.lastKey = "down";
-	this.keyDownBase();
 
 	this.downVar = setTimeout(function() {
 	  this.lastKey = "";
-	}.bind(this), 175);
+	  this.keyDownBase();
+	}.bind(this), 160);
       }
     }
     else {
