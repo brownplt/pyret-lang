@@ -2965,7 +2965,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "_divide");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
-        if (jsnums.equals(0, r)) {
+        if (jsnums.equalsAnyZero(r)) {
           throw makeMessageException("Division by zero");
         }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
