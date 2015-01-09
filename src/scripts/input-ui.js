@@ -97,16 +97,23 @@ define(["./output-ui"], function(outputLib) {
   function onKeypress(ch, key) {
     //TODO: add a shift return and a tab keypress
     if(key && key.name === "return") {
-      this.enter();
-    }
-    else if(key && key.shift && key.name === "up") {
-      this.blockHistoryPrev();
+      if(this.lastKey === "return") {
+	this.lastKey = "";
+	clearTimeout(this.enterVar);
+
+	this.addChar("\n");
+      }
+      else {
+	this.lastKey = "return";
+
+	this.enterVar = setTimeout(function() {
+	  this.lastKey = "";
+	  this.enter();
+	}.bind(this), 200);
+      }
     }
     else if(key && key.name === "up") {
       this.keyUp();
-    }
-    else if(key && key.shift && key.name === "down") {
-      this.blockHistoryNext();
     }
     else if(key && key.name === "down") {
       this.keyDown();
@@ -135,15 +142,15 @@ define(["./output-ui"], function(outputLib) {
     this.output = output;
     keypress(this.input);
 
-    this.history = [{"old": "", "cur": "", "block": ""}];
+    this.history = [{"old": "", "cur": ""}];
     this.historyIndex = 0;
     this.historyUpdate = 0;
-    this.curLine = "";
+    this.line = "";
     this.promptSymbol = ">>";
     this.promptString = "";
     this.indent = "  ";
     this.interactionsNumber = 0;
-    this.lineNumber = 0;
+    //this.lineNumber = 0;
     this.cursorPosition = 0;
 
     this.lastKey = "";
@@ -170,26 +177,55 @@ define(["./output-ui"], function(outputLib) {
     this.addIndent();
 
     this.promptString = this.interactionsNumber
-      + "::"
-      + (++this.lineNumber)
-      + " "
+      + "::1 "
       + this.promptSymbol + " ";
-    this.output.write("\n" + this.promptString + this.curLine);
+    this.output.write("\n" + this.promptString + this.line);
+  };
+
+  InputUI.prototype.resetLine = function() {
+    this.line = "";
+    this.cursorPosition = 0;
+    this.rowOffset = 0;
+  };
+
+  InputUI.prototype.resetNest = function(cmd) {
+    this.nestStack = [];
+    this.commandQueue = [];
+    //this.lineNumber = 0;
+
+    this.output.write("\n");
+    this.emit('command', cmd);
   };
 
   InputUI.prototype.addChar = function(ch) {
-    if(this.cursorPosition < this.curLine.length) {
-      this.curLine = this.curLine.substring(0, this.cursorPosition)
+    if(this.cursorPosition < this.line.length) {
+      this.line = this.line.substring(0, this.cursorPosition)
 	+ ch
-	+ this.curLine.substring(this.cursorPosition, this.curLine.length);
+	+ this.line.substring(this.cursorPosition, this.line.length);
     }
     else {
-      this.curLine += ch;
+      this.line += ch;
     }
 
     this.addIndent();
     this.syncHistory(false);
     this.keyRight();
+  };
+
+  InputUI.prototype.getLine = function(offset) {
+    var matches = this.line.match(/.*\n|.+$/g);
+    var cursorPos = this.getCursorPos();
+    var lineIndex = cursorPos.rows + offset;
+
+    lineIndex = lineIndex < 0 ? 0 : lineIndex;
+    lineIndex = lineIndex > matches.length - 1? matches.length - 1 : lineIndex;
+
+    if(matches) {
+      return matches[lineIndex];
+    }
+    else {
+      return this.line;
+    }
   };
 
   InputUI.prototype.prettify = function(line) {
@@ -198,15 +234,19 @@ define(["./output-ui"], function(outputLib) {
     if(matches) {
       var lastMatch = matches[matches.length - 1];
       var s = matches.shift();
-      var startLine =
-	new Array(this.interactionsNumber.toString().length + 1).join(" ")
+      var lineNumber = 2;
+      var startLine = lineNumber++
 	+ "  "
-	+ new Array(this.lineNumber.toString().length + 1).join(" ")
+	+ new Array(this.interactionsNumber.toString().length + 1).join(" ")
 	+ "... ";
 
       matches.forEach(function(m) {
 	s += startLine + m;
-      });
+	startLine = lineNumber
+	  + new Array(3 - (lineNumber++).toString().length + 1).join(" ")
+	  + new Array(this.interactionsNumber.toString().length + 1).join(" ")
+	  + "... ";
+      }, this);
 
       if(lastMatch.charAt(lastMatch.length - 1) === "\n") {
 	s += startLine;
@@ -220,37 +260,22 @@ define(["./output-ui"], function(outputLib) {
   }
 
   InputUI.prototype.addIndent = function() {
-    var lineNoIndent = this.curLine.replace(/^(\s*)/, "");
-    var lineIndent = indenter.getIndent(this.curLine, this.nestStack, this.indent)
+    var lineNoIndent = this.line.replace(/^(\s*)/, "");
+    var lineIndent = indenter.getIndent(this.line, this.nestStack, this.indent)
       + lineNoIndent;
 
-    this.cursorPosition += lineIndent.length - this.curLine.length;
-    this.curLine = lineIndent;
+    this.cursorPosition += lineIndent.length - this.line.length;
+    this.line = lineIndent;
   };
 
   InputUI.prototype.getInteractionsNumber = function() {
     return this.interactionsNumber;
   };
 
-  InputUI.prototype.resetLine = function() {
-    this.curLine = "";
-    this.cursorPosition = 0;
-    this.rowOffset = 0;
-  };
-
-  InputUI.prototype.resetNest = function(cmd) {
-    this.nestStack = [];
-    this.commandQueue = [];
-    this.lineNumber = 0;
-
-    this.output.write("\n");
-    this.emit('command', cmd);
-  };
-
   InputUI.prototype.getCursorPos = function() {
     return this.getDisplayPos(
 	this.promptString
-	+ this.prettify(this.curLine.slice(0, this.cursorPosition)));
+	+ this.prettify(this.line.slice(0, this.cursorPosition)));
   };
 
   InputUI.prototype.getDisplayPos = function(str) {
@@ -298,15 +323,18 @@ define(["./output-ui"], function(outputLib) {
   //TODO: add indents
   InputUI.prototype.syncLine = function(gotoEol) {
     // line length
-    var prettified = this.prettify(this.curLine);
+    var prettified = this.prettify(this.line);
     var line = this.promptString + prettified;
     var dispPos = this.getDisplayPos(line);
     var lineCols = dispPos.cols;
     var lineRows = dispPos.rows;
 
     // cursor position
-    if(gotoEol) {
-      this.cursorPosition = this.curLine.length;
+    if(gotoEol || this.cursorPosition > this.line.length) {
+      this.cursorPosition = this.line.length;
+    }
+    else if(this.cursorPosition < 0) {
+      this.cursorPosition = 0;
     }
 
     var cursorPos = this.getCursorPos();
@@ -347,43 +375,25 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.syncHistory = function(isNewline) {
     var spaceRegex = /^\s*$/g;
 
-    if(!(this.curLine.match(spaceRegex)) || this.curLine === "") {
+    if(!(this.line.match(spaceRegex)) || this.line === "") {
       this.history[this.historyIndex] = {
 	"old": this.history[this.historyIndex].old,
-	"cur": this.curLine,
-	"block": this.history[this.historyIndex].block};
+	"cur": this.line};
     }
 
     if(isNewline) {
       if(this.historyUpdate >= 0) {
 	this.history = this.history.slice(0, this.historyUpdate).map(function(l) {
-	  return {"old": l.old, "cur": l.old, "block": l.block};
+	  return {"old": l.old, "cur": l.old};
 	}).concat(this.history.slice(this.historyUpdate, this.history.length));
       }
 
-      var oldLine = this.history[0].old;
-      var oldBlock = this.history[0].block;
-
-      if(!(this.curLine.match(spaceRegex) || (this.history.length > 1
-	      && this.history[1].old === oldLine
-	      && this.history[1].block === oldBlock))) {
-
-	//TODO: will this cause problems?
-	if(!(oldLine.match(spaceRegex) || oldLine === this.curLine)) {
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
-	  this.history[0] = {
-	    "old": this.curLine,
-	    "cur": this.curLine,
-	    "block": this.nestStack.length > 0 ? "" : this.curLine};
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
-	}
-	else if(oldLine !== this.curLine) {
-	  this.history[0] = {
-	    "old": this.curLine,
-	    "cur": this.curLine,
-	    "block": this.nestStack.length > 0 ? "" : this.curLine};
-	  this.history.unshift({"old": "", "cur": "", "block": ""});
-	}
+      if(!(this.line.match(spaceRegex) || (this.history.length > 1 &&
+	      this.history[1].old === this.line))) {
+	this.history[0] = {
+	  "old": this.line,
+	  "cur": this.line};
+	this.history.unshift({"old": "", "cur": ""});
       }
 
       this.historyIndex = 0;
@@ -395,7 +405,15 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.enter = function() {
-    var matches = this.curLine.match(/.*\n|.+$/g);
+    this.syncHistory(true);
+    this.syncLine(true);
+    this.output.write("\n");
+    this.emit('command', this.line);
+  };
+
+  /*
+  InputUI.prototype.enter = function() {
+    var matches = this.line.match(/.*\n|.+$/g);
     var cmdTrimmed;
 
     this.syncHistory(true);
@@ -413,9 +431,10 @@ define(["./output-ui"], function(outputLib) {
       this.newline(cmdTrimmed, true);
     }
     else {
-      this.newline(this.curLine, true);
+      this.newline(this.line, true);
     }
   };
+  */
 
   InputUI.prototype.newline = function(cmd, printPrompt) {
     var newCmd = cmd;
@@ -462,7 +481,6 @@ define(["./output-ui"], function(outputLib) {
       }
       else {
 	var newCmd = this.commandQueue.join("\n");
-	this.history[this.lineNumber].block = newCmd;
 	this.resetNest(newCmd);
       }
     }
@@ -481,24 +499,20 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.historyPrev = function() {
     if(this.historyIndex < this.history.length - 1) {
       this.historyIndex += 1;
-      this.curLine = this.history[this.historyIndex].cur;
+      this.line = this.history[this.historyIndex].cur;
       this.syncLine(true);
     }
   };
 
   InputUI.prototype.historyNext = function() {
     if(this.historyIndex > 0) {
-      /*
-      if(numLines(this.curLine) > 1) {
-	this.blockHistoryNext();
-      }
-      */
       this.historyIndex -= 1;
-      this.curLine = this.history[this.historyIndex].cur;
+      this.line = this.history[this.historyIndex].cur;
       this.syncLine(true);
     }
   };
 
+  /*
   InputUI.prototype.blockHistoryPrev = function() {
     if(this.historyIndex < this.history.length - 1) {
       this.historyIndex += 1;
@@ -511,10 +525,10 @@ define(["./output-ui"], function(outputLib) {
       }
 
       if(lastEntry.block === "") {
-	this.curLine = lastEntry.cur;
+	this.line = lastEntry.cur;
       }
       else {
-	this.curLine = lastEntry.block;
+	this.line = lastEntry.block;
       }
 
       this.syncLine(true);
@@ -533,22 +547,28 @@ define(["./output-ui"], function(outputLib) {
       }
 
       if(lastEntry.block === "") {
-	this.curLine = lastEntry.cur;
+	this.line = lastEntry.cur;
       }
       else {
-	this.curLine = lastEntry.block;
+	this.line = lastEntry.block;
       }
 
       this.syncLine(true);
     }
   };
+  */
 
   InputUI.prototype.keyUpBase = function() {
-    var matches = this.curLine.slice(0, this.cursorPosition).match(/.*\n/g);
+    if(numLines(this.line.slice(0, this.cursorPosition)) > 1) {
+      var curLine = this.getLine(-1);
 
-    if(matches) {
-      var lastMatch = matches.pop();
-      this.cursorPosition -= lastMatch.length;
+      if(curLine[curLine.length - 1] !== "\n") {
+	this.cursorPosition -= curLine.length + 1;
+      }
+      else {
+	this.cursorPosition -= curLine.length;
+      }
+
       this.syncLine();
     }
     else {
@@ -557,11 +577,16 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.keyDownBase = function() {
-    var matches = this.curLine.slice(this.cursorPosition, this.curLine.length).match(/.*\n/g);
+    if(numLines(this.line.slice(this.cursorPosition, this.line.length)) > 1) {
+      var curLine = this.getLine(0);
 
-    if(matches) {
-      var firstMatch = matches.shift();
-      this.cursorPosition += firstMatch.length;
+      if(curLine[curLine.length - 1] !== "\n") {
+	this.cursorPosition += curLine.length + 1;
+      }
+      else {
+	this.cursorPosition += curLine.length;
+      }
+
       this.syncLine();
     }
     else {
@@ -572,20 +597,20 @@ define(["./output-ui"], function(outputLib) {
   //TODO: make including this functionality command line options
   InputUI.prototype.keyUp = function() {
     if(this.historyIndex < this.history.length - 1 &&
-	numLines(this.curLine.slice(0, this.cursorPosition)) === 1) {
+	numLines(this.line) > 1 &&
+	numLines(this.line.slice(0, this.cursorPosition)) === 1) {
       if(this.lastKey === "up") {
 	this.lastKey = "";
 	clearTimeout(this.upVar);
 
-	this.blockHistoryPrev();
+	this.keyUpBase();
       }
       else {
 	this.lastKey = "up";
 
 	this.upVar = setTimeout(function() {
 	  this.lastKey = "";
-	  this.keyUpBase();
-	}.bind(this), 160);
+	}.bind(this), 200);
       }
     }
     else {
@@ -595,21 +620,21 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.keyDown = function() {
     if(this.historyIndex > 0 &&
-	numLines(this.curLine.slice(0, this.cursorPosition))
-	=== numLines(this.curLine)) {
+	numLines(this.line) > 1 &&
+	numLines(this.line.slice(0, this.cursorPosition))
+	=== numLines(this.line)) {
       if(this.lastKey === "down") {
 	this.lastKey = "";
 	clearTimeout(this.downVar);
 
-	this.blockHistoryNext();
+	this.keyDownBase();
       }
       else {
 	this.lastKey = "down";
 
 	this.downVar = setTimeout(function() {
 	  this.lastKey = "";
-	  this.keyDownBase();
-	}.bind(this), 160);
+	}.bind(this), 200);
       }
     }
     else {
@@ -618,7 +643,7 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.keyRight = function() {
-    if(this.cursorPosition < this.curLine.length) {
+    if(this.cursorPosition < this.line.length) {
       this.cursorPosition += 1;
     }
 
@@ -635,8 +660,8 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.backspace = function() {
     if(this.cursorPosition > 0) {
-      this.curLine = this.curLine.substring(0, this.cursorPosition - 1)
-	+ this.curLine.substring(this.cursorPosition, this.curLine.length);
+      this.line = this.line.substring(0, this.cursorPosition - 1)
+	+ this.line.substring(this.cursorPosition, this.line.length);
 
       this.syncHistory(false);
     }
@@ -647,11 +672,10 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.keyboardInterrupt = function() {
     this.syncLine(true);
 
-    if(this.nestStack.length > 0 || this.curLine !== "") {
-      //TODO: abstract this
+    if(this.nestStack.length > 0 || this.line !== "") {
       this.nestStack = [];
       this.commandQueue = [];
-      this.lineNumber = 0;
+      //this.lineNumber = 0;
 
       this.syncHistory();
       this.resetLine();
