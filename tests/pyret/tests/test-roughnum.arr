@@ -64,6 +64,7 @@ check "roughnum":
   num-expt(~2, 3)    is%(num-within(0.001)) 8
   num-expt(2, ~3)    is%(num-within(0.001)) 8
   num-expt(~2, ~3)   is%(num-within(0.001)) 8
+  num-expt(2,-3)     is                     0.125
   num-expt(2,-3)     is%(num-within(0.001)) 0.125
   num-expt(2,~-3)    is%(num-within(0.001)) 0.125
   num-expt(~2,-3)    is%(num-within(0.001)) 0.125
@@ -76,6 +77,10 @@ check "roughnum":
   num-expt(234,~-0)  is%(num-within(0.001)) 1
   num-expt(~234,-0)  is%(num-within(0.001)) 1
   num-expt(~234,~-0) is%(num-within(0.001)) 1
+  num-expt(0, -3)   raises "division by zero"
+  num-expt(0, ~-3)  raises "division by zero"
+  num-expt(~0, -3)  raises "division by zero"
+  num-expt(~0, ~-3) raises "division by zero"
 end
 
 check "long decimals should behave exactly":
