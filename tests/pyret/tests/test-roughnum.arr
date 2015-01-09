@@ -60,7 +60,6 @@ check "roughnum":
   num-modulo(10,0) raises "second argument is zero"
   num-expt(2, 3)     is                     8
   num-expt(2, 3)     is%(num-within(0.001)) 8
-  num-expt(2, 3)     is%(num-within(0.001)) 8
   num-expt(~2, 3)    is%(num-within(0.001)) 8
   num-expt(2, ~3)    is%(num-within(0.001)) 8
   num-expt(~2, ~3)   is%(num-within(0.001)) 8
@@ -81,6 +80,12 @@ check "roughnum":
   num-expt(0, ~-3)  raises "division by zero"
   num-expt(~0, -3)  raises "division by zero"
   num-expt(~0, ~-3) raises "division by zero"
+  num-exp(710)          raises "overflow"
+  num-exp(~710)         raises "overflow"
+  num-expt(2.718,~710)  raises "overflow"
+  num-expt(~2.718,710)  raises "overflow"
+  num-expt(~2.718,~710) raises "overflow"
+  # note: num-expt(2.718,710) will NOT overflow, but will produce a large number
 end
 
 check "long decimals should behave exactly":
