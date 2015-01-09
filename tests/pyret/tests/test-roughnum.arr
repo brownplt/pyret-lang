@@ -13,6 +13,16 @@ check "roughnum":
   2 == (1 + 1) is true
   ~2 == (~1 + ~1) raises "roughnums cannot be compared for equality"
   ~2 is%(localwithin(~0.01)) (~1 + ~1)
+  #
+  # but we can also use builtin num-within, within
+  1 + ~2 is%(num-within(~0.005)) ~3
+  1 + ~2 is%(within(~0.005)) ~3
+  num-sin(1) is%(num-within(~0.01)) ~0.84
+  num-sin(1) is%(within(~0.01)) ~0.84
+  ~2 is%(num-within(~0.01)) (~1 + ~1)
+  ~2 is%(within(~0.01)) (~1 + ~1)
+  # see test-within.arr for more builtin-within--related tests
+  #
   1.5 is 3/2
   num-sqrt(-1) raises "sqrt of negative number"
   num-is-integer(2) is true
@@ -58,6 +68,9 @@ check "roughnum":
   num-is-non-positive(-2) is true
   num-modulo(10,3) is 1
   num-modulo(10,0) raises "second argument is zero"
+end
+
+check "num-expt on roughs, zeroes, negs":
   num-expt(2, 3)     is                     8
   num-expt(2, 3)     is%(num-within(0.001)) 8
   num-expt(~2, 3)    is%(num-within(0.001)) 8
@@ -76,13 +89,14 @@ check "roughnum":
   num-expt(234,~-0)  is%(num-within(0.001)) 1
   num-expt(~234,-0)  is%(num-within(0.001)) 1
   num-expt(~234,~-0) is%(num-within(0.001)) 1
-  num-expt(0, -3)   raises "division by zero"
-  num-expt(0, ~-3)  raises "division by zero"
-  num-expt(~0, -3)  raises "division by zero"
-  num-expt(~0, ~-3) raises "division by zero"
+  num-expt(0, -3)    raises "division by zero"
+  num-expt(0, ~-3)   raises "division by zero"
+  num-expt(~0, -3)   raises "division by zero"
+  num-expt(~0, ~-3)  raises "division by zero"
 end
 
 check "overflow rather than infinity":
+  # in JS, e^709 converges, e^710 doesn't
   num-exp(710)          raises "overflow"
   num-exp(~710)         raises "overflow"
   num-exp(1000000000000000000000000) raises "overflow" # this tests for arg known to be bigint
@@ -93,22 +107,23 @@ check "overflow rather than infinity":
   99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999 * ~9 raises "overflow"
 end
 
-check "long decimals should behave exactly":
+check "long decimals (incl bigints) should behave exactly":
   3.000000000000000000000000000000000001 is-not 3
-  0.000000000000000000000001 * 1000000000000000000000000 is 1
-  1000000000000000000000000000000000000000000000000000000001
-    is-not 1000000000000000000000000000000000000000000000000000000000
+  0.000000000000000000000001 *
+   1000000000000000000000000 is 1
+  1000000000000000000000000000000000000000000000000000000001 is-not
+  1000000000000000000000000000000000000000000000000000000000
   2.99999999999999999999999999999999999999999999 is-not
-    2.999999999999999999999999999999999999999999999
+  2.999999999999999999999999999999999999999999999
+end
 
-  # this is just to test that num-sin, &c don't blow on bigints
-  num-sin(10000000000000000) * 0 is 0
-  num-cos(10000000000000000) * 0 is 0
-  num-tan(10000000000000000) * 0 is 0
-  num-asin(10000000000000000) * 0 is 0
-  num-acos(10000000000000000) * 0 is 0
-  num-atan(10000000000000000) * 0 is 0
-  num-log(10000000000000000) * 0 is 0
-  #num-exp(10000000000000000) * 0 is 0  # should error? JS gives +inf for Math.exp(710)
+check "trig-type functions on bigints should converge":
+  num-sin(10000000000000000)   * 0 is 0
+  num-cos(10000000000000000)   * 0 is 0
+  num-tan(10000000000000000)   * 0 is 0
+  num-asin(10000000000000000)  * 0 is 0
+  num-acos(10000000000000000)  * 0 is 0
+  num-atan(10000000000000000)  * 0 is 0
+  num-log(10000000000000000)   * 0 is 0
   num-round(10000000000000000) * 0 is 0
 end
