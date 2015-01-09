@@ -11,9 +11,11 @@ r.config({
   }
 });
 
-r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./input-ui", "./output-ui", "./error-ui", "./check-ui"], function(Q, replLib, runtimeLib, csLib, inputLib, outputUI, errorUI, checkUI) {
+r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./input-ui", "./output-ui", "./error-ui", "./check-ui"], function(Q, replLib, runtimeLib, csLib, inputLib, outputLib, errorUI, checkUI) {
   var runtime = runtimeLib.makeRuntime({});
   var inputUI = inputLib(runtime);
+  var outputUI = outputLib('default');
+  var renderer = new outputUI.Renderer();
   var get = runtime.getField;
 
   runtime.loadModules(runtime.namespace, [csLib], function(cs) {
@@ -30,13 +32,13 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./inpu
         if(runtime.isSuccessResult(new_res)) {
           //TODO: have outputUI renderValue color strings, and have drawCheckResults
 	  //call outputUI methods to colors strings
-	  outputUI.renderValue(runtime, get(new_res.result, "answer"));
-	  checkUI.drawCheckResults(runtime, get(new_res.result, "checks"));
+	  renderer.drawAndPrintAnswer(runtime, get(new_res.result, "answer"));
+	  checkUI.drawAndPrintCheckResults(runtime, get(new_res.result, "checks"));
         }
         else {
 	  var exception = new_res.exn;
 	  //TODO: have drawError call outputUI methods to color strings
-	  errorUI.drawError(runtime, exception);
+	  errorUI.drawAndPrintError(runtime, exception);
         }
 
         inputUI.prompt();

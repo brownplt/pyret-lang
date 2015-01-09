@@ -1,18 +1,16 @@
 /*global define */
 /*jslint unparam: true, node: true*/
 
-define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], function(ffiLib, optionLib, srclocLib, errorUI) {
+define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./output-ui", "./error-ui"], function(ffiLib, optionLib, srclocLib, outputLib, errorUI) {
   function drawCheckResults(runtime, checkResults) {
     var ffi = ffiLib(runtime, runtime.namespace);
+    var outputUI = outputLib('default');
+    var renderer = new outputUI.Renderer();
     var get = runtime.getField;
     var checkArray = ffi.toArray(checkResults);
 
-    function drawSrcloc(s) {
-      return s ? get(s, "format").app(true) : "";
-    }
-
     if(checkArray.length === 0) {
-      return;
+      return "";
     }
 
     var output = runtime.loadModules(runtime.namespace, [optionLib, srclocLib], function(option, srcloc) {
@@ -36,23 +34,26 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
 	    runtime.runThunk(function() {
 	      return get(tr, "reason").app();
 	    }, function(result) {
-	      msg += "test at "
-		+ drawSrcloc(get(tr, "loc"))
-		+ " (" + get(tr, "code")
+	      msg += renderer.renderCheckFailure(
+		"test at "
+		+ renderer.drawSrcloc(runtime, get(tr, "loc"))
+		+ " ("
+		+ get(tr, "code")
 		+ "): failed, reason:\n"
-		//Note(ben) indent this
 		+ result.result
-		+ "\n";
+		+ "\n");
 	    });
 	  }
 	  else {
 	    checkPassedAll += 1;
 	    checkPassed += 1;
-	    msg += "test at "
-	      + drawSrcloc(get(tr, "loc"))
-	      + " (" + get(tr, "code")
+	    msg += renderer.renderCheckSuccess(
+	      "test at "
+	      + renderer.drawSrcloc(runtime, get(tr, "loc"))
+	      + " ("
+	      + get(tr, "code")
 	      + "): ok"
-	      + "\n";
+	      + "\n");
 	  }
 	});
 
@@ -63,19 +64,20 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
 	  if(get(option, "is-some").app(error)) {
 	    thisBlockErrored = true;
 	    checkBlocksErrored += 1;
-	    msg += "Check block at "
-	      + name
+	    msg += renderer.renderCheckFailure(
+	      "Check block "
+	      + renderer.renderName(name)
 	      + " at "
-	      + drawSrcloc(get(cr, "loc"))
+	      + renderer.drawSrcloc(runtime, get(cr, "loc"))
 	      + " ended in error (all tests may not have run)\n\n"
 	      + errorUI.drawError(runtime, get(error, "value").val)
-	      + "\n\n";
+	      + "\n\n");
 	  }
 	}
 
 	if(!thisBlockErrored) {
 	  if(checkTotal > 1) {
-	    msg += "  " + checkPassed + "/" + checkTotal
+	    msg += checkPassed + "/" + checkTotal
 	      + " tests passed in check block: "
 	      + name;
 	  }
@@ -109,10 +111,11 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
 	  + " tests passed and "
 	  + (checkTotalAll - checkPassedAll)
 	  + " failed in all check blocks.\n"
+	  + renderer.renderCheckFailure(
 	  + "HOWEVER "
 	  + checkBlocksErrored
 	  + " check block(s) ended in error, so some tests may not have run.\n"
-	  + "Check the output above to see what errors occured.";
+	  + "Check the output above to see what errors occured.");
       }
 
       if(checkBlockCount > 1) {
@@ -124,10 +127,19 @@ define(["js/ffi-helpers", "trove/option", "trove/srcloc", "./error-ui"], functio
       return msg;
     });
 
-    console.log(output);
+    return renderer.renderCheckNeutral(output);
+  }
+
+  function drawAndPrintCheckResults(runtime, checkResults) {
+    var result = drawCheckResults(runtime, checkResults);
+
+    if(result !== "") {
+      console.log(result);
+    }
   }
 
   return {
-    drawCheckResults : drawCheckResults
+    drawCheckResults : drawCheckResults,
+    drawAndPrintCheckResults : drawAndPrintCheckResults
   };
 });
