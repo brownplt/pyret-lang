@@ -1,0 +1,85 @@
+CURRENT BENCHMARK: "1 + true" [this should error out]
+Ensuring program runs successfully...
+...done.
+Program did not run successfully. Moving on to next benchmark.
+
+CURRENT BENCHMARK: "" (empty)
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 325 ops/sec +/- 89.09% (47 runs sampled)
+Compile  (ast -> js)  x 3.71 ops/sec +/- 16.22% (24 runs sampled)
+Evaluate (ast -> res) x 2.66 ops/sec +/- 3.75% (18 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: "1"
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 507 ops/sec +/- 1.20% (65 runs sampled)
+Compile  (ast -> js)  x 3.79 ops/sec +/- 0.40% (23 runs sampled)
+Evaluate (ast -> res) x 2.35 ops/sec +/- 17.52% (16 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: "print("Ahoy, world!")"
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 358 ops/sec +/- 4.09% (78 runs sampled)
+Compile  (ast -> js)  x 4.57 ops/sec +/- 0.70% (27 runs sampled)
+Evaluate (ast -> res) x 2.44 ops/sec +/- 16.33% (16 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: "lam(x): x end"
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 297 ops/sec +/- 0.85% (57 runs sampled)
+Compile  (ast -> js)  x 4.08 ops/sec +/- 10.39% (24 runs sampled)
+Evaluate (ast -> res) x 2.78 ops/sec +/- 0.62% (18 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: insertion-sort.arr
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 36.72 ops/sec +/- 2.31% (62 runs sampled)
+Compile  (ast -> js)  x 1.52 ops/sec +/- 3.54% (12 runs sampled)
+Evaluate (ast -> res) x 1.09 ops/sec +/- 15.71% (10 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: "range(0,100).map(lam(x): x + 1 end)"
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 144 ops/sec +/- 21.32% (69 runs sampled)
+Compile  (ast -> js)  x 4.30 ops/sec +/- 1.20% (25 runs sampled)
+Evaluate (ast -> res) x 2.28 ops/sec +/- 17.72% (15 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res)
+
+
+CURRENT BENCHMARK: "1+1+...+1" (542 times)
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 5.40 ops/sec +/- 21.72% (17 runs sampled)
+Compile  (ast -> js)  x 0.21 ops/sec +/- 14.03% (6 runs sampled)
+Evaluate (ast -> res) x 0.20 ops/sec +/- 15.02% (5 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res),Compile  (ast -> js) 
+
+
+CURRENT BENCHMARK: "1+1+...+1 "(1084 times)
+Ensuring program runs successfully...
+...done.
+Parse    (src -> ast) x 2.45 ops/sec +/- 26.91% (11 runs sampled)
+Compile  (ast -> js)  x 0.11 ops/sec +/- 8.96% (5 runs sampled)
+Evaluate (ast -> res) x 0.11 ops/sec +/- 8.74% (5 runs sampled)
+Fastest is Parse    (src -> ast)
+Slowest is Evaluate (ast -> res),Compile  (ast -> js) 
+
+

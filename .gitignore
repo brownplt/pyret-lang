@@ -5,6 +5,8 @@
 *.err
 *.bak
 
+awstlaur_sandbox/*
+
 # docs
 docs/written/*.html
 docs/written/*/compiled
