@@ -1,7 +1,7 @@
 {
-  "name": "pyret-lang",
+  "name": "pyret-lang-benchmark",
   "version": "0.0.0",
-  "description": "The Pyret programming language",
+  "description": "Fork of Pyret with benchmarking tool.",
   "main": "build/phase0/main-wrapper.js",
   "directories": {
     "doc": "docs",
@@ -17,27 +17,8 @@
     "q": "~1.0.1",
     "lodash": "~2.4.1",
     "s-expression": "~2.2.0",
-    "seedrandom": "~2.3.10"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "make test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/brownplt/pyret-lang"
-  },
-  "keywords": [
-    "programming",
-    "language",
-    "education",
-    "scripting",
-    "functional"
-  ],
-  "author": "Joe Gibbs Politz",
-  "license": "Apache2",
-  "bugs": {
-    "url": "https://github.com/brownplt/pyret-lang/issues"
-  },
-  "homepage": "https://github.com/brownplt/pyret-lang"
+    "seedrandom": "~2.3.10",
+    "benchmark": "1.0.0",
+    "platform": "1.3.0"
+  }
 }

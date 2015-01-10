@@ -1,9 +1,9 @@
 Before using, ensure phase1 is built.
 
 
-Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Pyret performance. To get benchmark, run
+Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Pyret performance, which in turn also depends on platform.js (and lodash.js, but you need that for Pyret anyway). To get platform and benchmark, run
 
-`npm install benchmark`
+`npm install platform && npm install benchmark`
 
 To measure the performance of Pyret programs which are in *.arr files, simply run
 
