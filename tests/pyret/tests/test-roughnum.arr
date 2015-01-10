@@ -121,8 +121,6 @@ check "trig-type functions on bigints should converge":
   num-sin(10000000000000000)   * 0 is 0
   num-cos(10000000000000000)   * 0 is 0
   num-tan(10000000000000000)   * 0 is 0
-  num-asin(10000000000000000)  * 0 is 0
-  num-acos(10000000000000000)  * 0 is 0
   num-atan(10000000000000000)  * 0 is 0
   num-log(10000000000000000)   * 0 is 0
   num-round(10000000000000000) * 0 is 0
