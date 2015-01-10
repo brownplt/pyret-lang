@@ -3,11 +3,11 @@ Before using, ensure phase1 is built.
 
 Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Pyret performance. To get benchmark, run
 
-$ npm install benchmark
+`npm install benchmark`
 
 To measure the performance of Pyret programs which are in *.arr files, simply run
 
-$ node measure-program-wrapper <filename1> <filename2> ... <filenameN>
+`node measure-program-wrapper <filename1> <filename2> ... <filenameN>`
 
 To measure the performance of programs which are Javascript strings, copy examples.js and examples-wrapper.js, running the latter in node. The data directory contains the output of these examples.
 
