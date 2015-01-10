@@ -9,7 +9,7 @@ To measure the performance of Pyret programs which are in *.arr files, simply ru
 
 `node measure-program-wrapper <filename1> <filename2> ... <filenameN>`
 
-To measure the performance of programs which are Javascript strings, copy examples.js and examples-wrapper.js, running the latter in node. The data directory contains the output of these examples.
+To measure the performance of programs which are Javascript strings, it may be easiest to copy examples.js and examples-wrapper.js, editing, then running examples-wrapper in node. The data directory contains the output of these examples.
 
 -----------------------------------------------------------------
 
@@ -26,4 +26,4 @@ Evaluate (ast -> res) x 1.18 ops/sec +/- 13.15% (11 runs sampled)
 Fastest is Parse    (src -> ast)  
 Slowest is Evaluate (ast -> res)
 
-The number immediately preceding 'ops/sec' is the main thing to focus on. The higher this number, the faster that function ran. In order to be as accurate, benchmark.js runs the given function as many times as it can within some elapsed time, and measures each run indivudually. Then it samples some subset of the measurements and gives back a mean with a percentage uncertainty.
+The number immediately preceding 'ops/sec' is the main thing to focus on. The higher this number, the faster that function ran. In order to be as accurate, benchmark.js runs the given function as many times as it can within some elapsed time, measuring each run indivudually. Then it samples some subset of the measurements and gives back a mean with a percentage uncertainty.
