@@ -513,7 +513,7 @@ fun greatest-lower-bound(s :: Type, t :: Type, info :: TCInfo) -> Type:
 end
 
 
-fun <B> union(a :: Set<B>, b :: Set<B>) -> Set<B>:
+fun union<B>(a :: Set<B>, b :: Set<B>) -> Set<B>:
   a.union(b)
 end
 
@@ -961,7 +961,7 @@ sharing:
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
-  tostring(self, shadow tostring) -> String:
+  _tostring(self, shadow tostring) -> String:
     "type-constraints("
       + dict-to-string(self.dict)
       + ")"

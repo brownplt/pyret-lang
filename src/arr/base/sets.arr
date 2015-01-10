@@ -217,7 +217,7 @@ data Set:
           end
       end 
     end,
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "[set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
@@ -306,7 +306,7 @@ data Set:
           pick-some(v, tree-set(t.remove(v)))
       end
     end,
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": tostring(elem)

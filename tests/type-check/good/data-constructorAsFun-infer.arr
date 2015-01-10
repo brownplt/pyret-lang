@@ -8,14 +8,14 @@ data My-List<C>:
   | my-link(first :: C, rest :: My-List<C>)
 end
 
-fun<A, B> my-map(f :: (A -> B), l :: My-List<A>) -> My-List<B>:
+fun my-map<A, B>(f :: (A -> B), l :: My-List<A>) -> My-List<B>:
   cases(My-List<A>) l:
     | my-empty()    => my-empty()
     | my-link(a, r) => my-link(f(a), my-map(f, r))
   end
 end
 
-fun<A> my-singleton(v :: A) -> My-List<A>:
+fun my-singleton<A>(v :: A) -> My-List<A>:
   my-link(v, my-empty())
 end
 

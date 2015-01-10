@@ -47,12 +47,12 @@ type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind COLON block end
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
-fun-expr: FUN fun-header COLON doc-string block where-clause end
-fun-header: ty-params NAME args return-ann
+fun-expr: FUN NAME fun-header COLON doc-string block where-clause end
+fun-header: ty-params args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
 list-ty-param: NAME COMMA
-args: (PARENSPACE|PARENNOSPACE) [list-arg-elt* binding] RPAREN
+args: PARENNOSPACE [list-arg-elt* binding] RPAREN
 list-arg-elt: binding COMMA
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
@@ -70,7 +70,7 @@ data-mixins: [DERIVING mixins]
 variant-constructor: NAME variant-members
 first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
-variant-members: (PARENSPACE|PARENNOSPACE) [list-variant-member* variant-member] RPAREN
+variant-members: PARENNOSPACE [list-variant-member* variant-member] RPAREN
 list-variant-member: variant-member COMMA
 variant-member: [REF] binding
 data-with: [WITH fields]
@@ -132,9 +132,9 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: LAM ty-params args return-ann COLON doc-string block where-clause end
+lambda-expr: LAM fun-header COLON doc-string block where-clause end
 
-method-expr: METHOD ty-params args return-ann COLON doc-string block where-clause end
+method-expr: METHOD fun-header COLON doc-string block where-clause end
 
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
@@ -151,12 +151,12 @@ obj-fields: list-obj-field* obj-field [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
-     | key ty-params args return-ann COLON doc-string block where-clause end
+     | key fun-header COLON doc-string block where-clause end
 
 fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
-     | key ty-params args return-ann COLON doc-string block where-clause end
+     | key fun-header COLON doc-string block where-clause end
 key: STRING | NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
@@ -178,7 +178,7 @@ if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-binding: [REF] binding
 list-cases-arg-elt: cases-binding COMMA
-cases-args: (PARENSPACE|PARENNOSPACE) [list-cases-arg-elt* cases-binding] RPAREN
+cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 

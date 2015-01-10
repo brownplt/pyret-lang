@@ -1054,6 +1054,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 finishVal(next);
               }
             }
+            else if (isOpaque(next)) { finishVal("<internal value>"); }
             else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
               // Baffling bugs will result if next is passed directly
@@ -1148,7 +1149,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 });
               }
             }
-
           }
           else {
             // Done with object, array, or ref, so pop the todo list, and pop
@@ -1328,7 +1328,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return makeString(val);
         }
         else {
-          return makeString(toReprJS(val, "tostring"));
+          return makeString(toReprJS(val, "_tostring"));
         }
       });
 
@@ -1359,7 +1359,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "tostring");
+          var repr = toReprJS(val, "_tostring");
         }
         theOutsideWorld.stdout(repr);
         return val;
@@ -1392,7 +1392,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "tostring");
+          var repr = toReprJS(val, "_tostring");
         }
         theOutsideWorld.stderr(repr);
         return val;
@@ -1432,7 +1432,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               : "<builtin>";
           }).join("\n") :
         "<no stack trace>";
-      return toReprJS(this.exn, "tostring") + "\n" + stackStr;
+      return toReprJS(this.exn, "_tostring") + "\n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);

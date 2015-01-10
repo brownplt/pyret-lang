@@ -297,7 +297,7 @@ module-const-arrays = t-module("const:arrays",
             t-member("to-list-now", t-arrow(empty, mk-list(tv))),
             t-member("length", t-arrow(empty, t-number)),
             t-member("_torepr", t-torepr),
-            t-member("tostring", t-tostring)
+            t-member("_tostring", t-tostring)
         ])
       )
   end,
@@ -422,7 +422,7 @@ module-const-lists = t-module("const:lists",
           t-member("join-str", t-arrow([list: t-string], t-string)),
           t-member("sort", t-arrow(empty, lotv)),
           t-member("sort-by", t-arrow([list: t-arrow([list: tv, tv], t-boolean), t-arrow([list: tv, tv], t-boolean)], lotv)),
-          t-member("tostring", t-tostring),
+          t-member("_tostring", t-tostring),
           t-member("reverse", t-arrow(empty, lotv)),
           t-member("last", t-arrow(empty, tv)),
           t-member("append", t-arrow([list: lotv], lotv)),
@@ -562,6 +562,8 @@ module-const-error = t-module("const:error",
     t-member("is-parse-error-next-token", t-arrow([list: t-top], t-boolean)),
     t-member("parse-error-eof", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
     t-member("is-parse-error-eof", t-arrow([list: t-top], t-boolean)),
+    t-member("parse-error-unterminated-string", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("is-parse-error-unterminated-string", t-arrow([list: t-top], t-boolean)),
     t-member("empty-block", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
     t-member("is-empty-block", t-arrow([list: t-top], t-boolean)),
     t-member("bad-block-stmt", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
@@ -610,27 +612,28 @@ module-const-error = t-module("const:error",
         ],
         [list:
           t-member("_torepr", t-torepr),
-          t-member("tostring", t-tostring),
+          t-member("_tostring", t-tostring),
           t-member("_match", t-top)
         ]))
     .set("ParseError", t-datatype("ParseError",
       [list: ],
       [list:
-        t-variant(SL.srcloc("src/arr/base/error.arr", 94, 4, 4467, 94, 53, 4516), "parse-error-next-token", [list: t-member("loc", t-top), t-member("next-token", t-string)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 98, 4, 4647, 98, 24, 4667), "parse-error-eof", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 102, 4, 4769, 102, 20, 4785), "empty-block", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 106, 4, 4872, 106, 23, 4891), "bad-block-stmt", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 110, 4, 5027, 110, 29, 5052), "bad-check-block-stmt", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 114, 4, 5188, 114, 26, 5210), "fun-missing-colon", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 116, 4, 5291, 116, 24, 5311), "fun-missing-end", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 118, 4, 5390, 118, 27, 5413), "args-missing-comma", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 120, 4, 5495, 120, 31, 5522), "app-args-missing-comma", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 122, 4, 5608, 122, 20, 5624), "missing-end", [list: t-member("loc", t-top)], empty),
-        t-variant(SL.srcloc("src/arr/base/error.arr", 123, 4, 5629, 123, 22, 5647), "missing-comma", [list: t-member("loc", t-top)], empty)
+        t-variant(SL.srcloc("src/arr/base/error.arr", 98, 4, 4990, 98, 53, 5039), "parse-error-next-token", [list: t-member("loc", t-top), t-member("next-token", t-string)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 102, 4, 5187, 102, 24, 5207), "parse-error-eof", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 106, 4, 5326, 106, 24, 5362), "parse-error-unterminated-string", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 110, 4, 5510, 110, 20, 5526), "empty-block", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 114, 4, 5630, 114, 23, 5649), "bad-block-stmt", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 118, 4, 5785, 118, 29, 5810), "bad-check-block-stmt", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 122, 4, 5946, 122, 26, 5968), "fun-missing-colon", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 124, 4, 6049, 124, 24, 6069), "fun-missing-end", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 126, 4, 6148, 126, 27, 6171), "args-missing-comma", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 128, 4, 6253, 128, 31, 6280), "app-args-missing-comma", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 130, 4, 6366, 130, 20, 6382), "missing-end", [list: t-member("loc", t-top)], empty),
+        t-variant(SL.srcloc("src/arr/base/error.arr", 131, 4, 6387, 131, 22, 6405), "missing-comma", [list: t-member("loc", t-top)], empty)
       ],
       [list:
         t-member("loc", t-top),
-        t-member("tostring", t-tostring),
+        t-member("_tostring", t-tostring),
         t-member("_torepr", t-torepr),
         t-member("_match", t-top)
       ])

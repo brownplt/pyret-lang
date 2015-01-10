@@ -83,7 +83,7 @@ data List<a>:
       self
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
 
     _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
 
@@ -177,7 +177,7 @@ data List<a>:
       reverse-help(self, empty)
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
       "[list: " +
         for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
@@ -267,7 +267,7 @@ sharing:
   end
 end
 
-fun<a> get(lst :: List<a>, n :: Number) -> a:
+fun get<a>(lst :: List<a>, n :: Number) -> a:
   doc: "Returns the nth element of the given list, or raises an error if n is out of range"
   fun help(l, cur):
     if is-empty(l): raise("get: n too large " + tostring(n))
@@ -280,7 +280,7 @@ fun<a> get(lst :: List<a>, n :: Number) -> a:
   end
 end
 
-fun<a> set(lst :: List<a>, n :: Number, v) -> a:
+fun set<a>(lst :: List<a>, n :: Number, v) -> a:
   doc: ```Returns a new list with the same values as the given list but with the nth element
         set to the given value, or raises an error if n is out of range```
   fun help(l, cur):
@@ -294,7 +294,7 @@ fun<a> set(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
-fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
+fun reverse-help<a>(lst :: List<a>, acc :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   cases(List) lst:
     | empty => acc
@@ -302,7 +302,7 @@ fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
   end
 end
 
-fun<a> reverse(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
+fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -334,7 +334,7 @@ fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
   end
 end
 
-fun<a> repeat(n :: Number, e :: a) -> List<a>:
+fun repeat<a>(n :: Number, e :: a) -> List<a>:
   doc: "Creates a list with n copies of e"
   if n > 0:       link(e, repeat(n - 1, e))
   else if n == 0: empty
@@ -342,7 +342,7 @@ fun<a> repeat(n :: Number, e :: a) -> List<a>:
   end
 end
 
-fun<a> filter(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
+fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
   if is-empty(lst):
     empty
@@ -355,7 +355,7 @@ fun<a> filter(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   end
 end
 
-fun<a> partition(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-false: List<a>}:
+fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-false: List<a>}:
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
   var is-false = empty
@@ -374,7 +374,7 @@ fun<a> partition(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-f
   { is-true: is-true, is-false: is-false }
 end
 
-fun<a> remove(lst :: List<a>, elt :: a) -> List<a>:
+fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   doc: ```Returns the list without the element if found, or the whole list if it is not```
   if is-empty(lst):
     empty
@@ -388,7 +388,7 @@ fun<a> remove(lst :: List<a>, elt :: a) -> List<a>:
 end
 
 
-fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
+fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -402,7 +402,7 @@ fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   end
 end
 
-fun<a> split-at(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<a> }:
+fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<a> }:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
   when n < 0:
     raise("Invalid index")
@@ -424,12 +424,12 @@ fun<a> split-at(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<
   { prefix: prefix, suffix: suffix }
 end
 
-fun<a> any(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
+fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   is-some(find(f, lst))
 end
 
-fun<a> all(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
+fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
   fun help(l):
     if is-empty(l): true
@@ -439,7 +439,7 @@ fun<a> all(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   help(lst)
 end
 
-fun<a, b> all2(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
+fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
   doc: ```Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2.
         Returns true when either list is empty```
   fun help(l1, l2):
@@ -451,7 +451,7 @@ fun<a, b> all2(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
 end
 
 
-fun<a, b> map(f :: (a -> b), lst :: List<a>) -> List<b>:
+fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
     empty
@@ -460,7 +460,7 @@ fun<a, b> map(f :: (a -> b), lst :: List<a>) -> List<b>:
   end
 end
 
-fun<a, b, c> map2(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
+fun map2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   doc: "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
   if is-empty(l1) or is-empty(l2):
     empty
@@ -469,7 +469,7 @@ fun<a, b, c> map2(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   end
 end
 
-fun<a, b, c, d> map3(f :: (a, b, c -> d), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
+fun map3<a, b, c, d>(f :: (a, b, c -> d), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
   doc: "Returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
@@ -478,7 +478,7 @@ fun<a, b, c, d> map3(f :: (a, b, c -> d), l1 :: List<a>, l2 :: List<b>, l3 :: Li
   end
 end
 
-fun<a, b, c, d, e> map4(f :: (a, b, c, d -> e), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
+fun map4<a, b, c, d, e>(f :: (a, b, c, d -> e), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
   doc: "Returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
@@ -487,7 +487,7 @@ fun<a, b, c, d, e> map4(f :: (a, b, c, d -> e), l1 :: List<a>, l2 :: List<b>, l3
   end
 end
 
-fun<a, b> map_n(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> List<b>:
+fun map_n<a, b>(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"
   if is-empty(lst):
     empty
@@ -496,7 +496,7 @@ fun<a, b> map_n(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> List<b>:
   end
 end
 
-fun<a, b, c> map2_n(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: List<b>) -> List<c>:
+fun map2_n<a, b, c>(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: List<b>) -> List<c>:
   doc: "Returns a list made up of f(i, e1, e2) for each e1 in l1, e2 in l2, and i counting up from n"
   if is-empty(l1) or is-empty(l2):
     empty
@@ -505,7 +505,7 @@ fun<a, b, c> map2_n(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: 
   end
 end
 
-fun<a, b, c, d> map3_n(f :: (Number, a, b, c -> d), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
+fun map3_n<a, b, c, d>(f :: (Number, a, b, c -> d), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>) -> List<d>:
   doc: "Returns a list made up of f(i, e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3, and i counting up from n"
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
@@ -514,7 +514,7 @@ fun<a, b, c, d> map3_n(f :: (Number, a, b, c -> d), n :: Number, l1 :: List<a>, 
   end
 end
 
-fun<a, b, c, d, e> map4_n(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
+fun map4_n<a, b, c, d, e>(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>) -> List<e>:
   doc: "Returns a list made up of f(i, e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4, and i counting up from n"
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
@@ -523,7 +523,7 @@ fun<a, b, c, d, e> map4_n(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: Lis
   end
 end
 
-fun<a> each(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
+fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
   doc: "Calls f for each elem in lst, and returns nothing"
   fun help(l):
     if is-empty(l):
@@ -536,7 +536,7 @@ fun<a> each(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
   help(lst)
 end
 
-fun<a, b> each2(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
+fun each2<a, b>(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2):
@@ -549,7 +549,7 @@ fun<a, b> each2(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Not
   help(lst1, lst2)
 end
 
-fun<a, b, c> each3(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
+fun each3<a, b, c>(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3):
     if is-empty(l1) or is-empty(l2) or is-empty(l3):
@@ -562,7 +562,7 @@ fun<a, b, c> each3(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, 
   help(lst1, lst2, lst3)
 end
 
-fun<a, b, c, d> each4(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>):
+fun each4<a, b, c, d>(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>):
   doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3, l4):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
@@ -575,7 +575,7 @@ fun<a, b, c, d> each4(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: Lis
   help(lst1, lst2, lst3, lst4)
 end
 
-fun<a> each_n(f :: (Number, a -> Nothing), num :: Number, lst:: List<a>) -> Nothing:
+fun each_n<a>(f :: (Number, a -> Nothing), num :: Number, lst:: List<a>) -> Nothing:
   doc: "Calls f(i, e) for each e in lst and with i counting up from num, and returns nothing"
   fun help(n, l):
     if is-empty(l):
@@ -588,7 +588,7 @@ fun<a> each_n(f :: (Number, a -> Nothing), num :: Number, lst:: List<a>) -> Noth
   help(num, lst)
 end
 
-fun<a, b> each2_n(f :: (Number, a, b -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
+fun each2_n<a, b>(f :: (Number, a, b -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f(i, e1, e2) for each e1 in lst1, e2 in lst2 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2):
     if is-empty(l1) or is-empty(l2):
@@ -601,7 +601,7 @@ fun<a, b> each2_n(f :: (Number, a, b -> Nothing), num :: Number, lst1 :: List<a>
   help(num, lst1, lst2)
 end
 
-fun<a, b, c> each3_n(f :: (Number, a, b, c -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
+fun each3_n<a, b, c>(f :: (Number, a, b, c -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3) for each e1 in lst1, e2 in lst2, e3 in lst3 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2, l3):
     if is-empty(l1) or is-empty(l2) or is-empty(l3):
@@ -614,7 +614,7 @@ fun<a, b, c> each3_n(f :: (Number, a, b, c -> Nothing), num :: Number, lst1 :: L
   help(num, lst1, lst2, lst3)
 end
 
-fun<a, b, c, d> each4_n(f :: (a, b, c, d -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
+fun each4_n<a, b, c, d>(f :: (a, b, c, d -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3, e4) for each e1 in lst1, e2 in lst2, e3 in lst3, e4 in lst4 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2, l3, l4):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
@@ -627,7 +627,7 @@ fun<a, b, c, d> each4_n(f :: (a, b, c, d -> Nothing), num :: Number, lst1 :: Lis
   help(num, lst1, lst2, lst3, lst4)
 end
 
-fun<a, b> fold-while(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> a:
+fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function that takes two arguments and returns an Either, and also a base value, and folds
         over the given list from the left as long as the function returns a left() value, and returns either
         the final value or the right() value```
@@ -641,7 +641,7 @@ fun<a, b> fold-while(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   end
 end
 
-fun<a, b> fold(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
+fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
   if is-empty(lst):
@@ -651,7 +651,7 @@ fun<a, b> fold(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   end
 end
 
-fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:
+fun fold2<a, b, c>(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:
   doc: ```Takes a function, an initial value and two lists, and folds the function over the lists in parallel
         from the left, starting with the initial value and ending when either list is empty```
   if is-empty(l1) or is-empty(l2):
@@ -661,7 +661,7 @@ fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>)
   end
 end
 
-fun<a, b, c, d> fold3(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>) -> a:
+fun fold3<a, b, c, d>(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>) -> a:
   doc: ```Takes a function, an initial value and three lists, and folds the function over the lists in parallel
         from the left, starting with the initial value and ending when any list is empty```
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
@@ -671,7 +671,7 @@ fun<a, b, c, d> fold3(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: Li
   end
 end
 
-fun<a, b, c, d, e> fold4(f :: (a, b, c, d, e -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>, l4 :: List<e>) -> a:
+fun fold4<a, b, c, d, e>(f :: (a, b, c, d, e -> a), base :: a, l1 :: List<b>, l2 :: List<c>, l3 :: List<d>, l4 :: List<e>) -> a:
   doc: ```Takes a function, an initial value and four lists, and folds the function over the lists in parallel
         from the left, starting with the initial value and ending when any list is empty```
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
@@ -681,7 +681,7 @@ fun<a, b, c, d, e> fold4(f :: (a, b, c, d, e -> a), base :: a, l1 :: List<b>, l2
   end
 end
 
-fun<a, b> fold_n(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List<b>) -> a:
+fun fold_n<a, b>(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value and passing along the index (starting with the given num)```
   fun help(n, acc, partial-list):
@@ -694,7 +694,7 @@ fun<a, b> fold_n(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
   help(num, base, lst)
 end
 
-fun<a> member-with(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
+fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
   ask:
     | is-empty(lst) then: equality.NotEqual("list")
     | is-link(lst) then:
@@ -708,34 +708,34 @@ fun<a> member-with(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityRes
   end
 end
 
-fun<a> member3(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
   member-with(lst, elt, equal-always3)
 end
 
-fun<a> member(lst :: List<a>, elt :: a) -> Boolean:
+fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member3(lst, elt))
 end
 
 member-always3 = member3
 member-always = member
 
-fun<a> member-now3(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
   member-with(lst, elt, equal-now3)
 end
 
-fun<a> member-now(lst :: List<a>, elt :: a) -> Boolean:
+fun member-now<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-now3(lst, elt))
 end
 
-fun<a> member-identical3(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member-identical3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
   member-with(lst, elt, identical3)
 end
 
-fun<a> member-identical(lst :: List<a>, elt :: a) -> Boolean:
+fun member-identical<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-identical3(lst, elt))
 end
 
-fun<a> shuffle(lst :: List<a>) -> List<a>:
+fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
     ix = random(lst.length())

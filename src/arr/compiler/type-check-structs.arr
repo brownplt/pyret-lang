@@ -38,7 +38,7 @@ data TCInfo:
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
 sharing:
-  tostring(self, shadow tostring):
+  _tostring(self, shadow tostring):
     "tc-info(" +
       dict-to-string(self.typs) + ", " +
       dict-to-string(self.aliases) + ", " +
@@ -169,7 +169,7 @@ data SynthesisResult:
     end
 end
 
-fun <B> map-synthesis(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<List>:
+fun map-synthesis<B>(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<List>:
   cases(List<A>) lst:
     | link(first, rest) =>
       cases(SynthesisResult) f(first):
@@ -229,7 +229,7 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-result(" + tostring(self.v) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -245,7 +245,7 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-errors(" + tostring(self.errors) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -263,7 +263,7 @@ data FoldResult<V>:
 end
 
 fun foldl2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -288,7 +288,7 @@ fun foldl2-result(not-equal :: C.CompileError):
 end
 
 fun foldl3-result(not-equal :: C.CompileError):
-  fun <E,B,F,D> helper(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,F,D>(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<F>) lst-2:
@@ -323,7 +323,7 @@ fun foldl3-result(not-equal :: C.CompileError):
 end
 
 fun foldr2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -348,7 +348,7 @@ end
 
 
 fun map2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
+  fun helper<E,B,D>(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
     fun process-and-prepend(lst :: List<E>, b :: B, d :: D) -> FoldResult<List<E>>:
       for bind(result from f(b, d)):
         fold-result(link(result, lst))
@@ -359,7 +359,7 @@ fun map2-result(not-equal :: C.CompileError):
   helper
 end
 
-fun <E,B,D> foldl-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
+fun foldl-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
     | link(first, rest) =>
       for bind(v from base):
@@ -371,7 +371,7 @@ fun <E,B,D> foldl-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, ls
   end
 end
 
-fun <E,B,D> foldr-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
+fun foldr-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
     | link(first, rest) =>
       for bind(v from foldr-result(f, base, rest)):
@@ -416,7 +416,7 @@ end
 
 
 fun map2-checking(not-equal :: C.CompileError):
-  fun <B,D> helper(f :: (B, D -> CheckingResult), lst-1 :: List<B>, lst-2 :: List<D>) -> CheckingMapResult:
+  fun helper<B,D>(f :: (B, D -> CheckingResult), lst-1 :: List<B>, lst-2 :: List<D>) -> CheckingMapResult:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -443,7 +443,7 @@ fun map2-checking(not-equal :: C.CompileError):
   helper
 end
 
-fun <B> map-checking(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
+fun map-checking<B>(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
   cases(List<B>) lst:
     | link(first, rest) =>
       cases(CheckingResult) f(first):
@@ -461,7 +461,7 @@ end
 
 
 
-fun <B,D> map-result(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
+fun map-result<B,D>(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
   cases(List<B>) lst:
     | link(first, rest) =>
       cases(FoldResult<D>) f(first):

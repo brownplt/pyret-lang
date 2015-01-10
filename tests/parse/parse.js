@@ -348,13 +348,13 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     });
 
     it("should not care about whitespace and angle brackets in declarations", function() {
-      expect(parse("fun<A>print(): end")).not.toBe(false);
-      expect(parse("fun< A>print(): end")).not.toBe(false);
-      expect(parse("fun <A>print(): end")).not.toBe(false);
-      expect(parse("fun < A>print(): end")).not.toBe(false);
-      expect(parse("fun<A >print(): end")).not.toBe(false);
-      expect(parse("fun<A> print(): end")).not.toBe(false);
-      expect(parse("fun<A > print(): end")).not.toBe(false);
+      expect(parse("fun print<A>(): end")).not.toBe(false);
+      expect(parse("fun print< A>(): end")).not.toBe(false);
+      expect(parse("fun print <A>(): end")).not.toBe(false);
+      expect(parse("fun print < A>(): end")).not.toBe(false);
+      expect(parse("fun print<A >(): end")).not.toBe(false);
+      expect(parse("fun print< A >(): end")).not.toBe(false);
+      expect(parse("fun print <A >(): end")).not.toBe(false);
     });
 
     it("should not treat (...) after operators as application", function() {
@@ -368,7 +368,7 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     });
 
     it("should not mind ; at EOL, and then another statement", function() {
-      var a = "  fun<T> x(x :: T) -> T: x;";
+      var a = "  fun x<T>(x :: T) -> T: x;";
       expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
       expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
     });
@@ -391,6 +391,13 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("{ asdf:(asdf) }")).not.toBe(false);
       expect(parse("{ asdf : (asdf) }")).not.toBe(false);
       expect(parse("{ asdf :\n(asdf) }")).not.toBe(false);
+      expect(parse("fun f(x):\nx\nwhere:(f(5)) is 5\nend")).not.toBe(false);
+      expect(parse("check:(5) is 5 end")).not.toBe(false);
+      expect(parse("ask:\n  | false then: 1\n  | otherwise:(true)\nend")).not.toBe(false);
+      expect(parse("ask:\n  | true then:(1)\nend")).not.toBe(false);
+      expect(parse("if true: 1 else:(1) end")).not.toBe(false);
+      expect(parse("block:(5) end")).not.toBe(false);
+      expect(parse("ask:\n  |(true) then: 1\nend")).not.toBe(false);
     });
 
     it("should treat (...) as grouping after =", function() {

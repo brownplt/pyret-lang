@@ -41,7 +41,7 @@
         @members{@member-spec["message"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -51,7 +51,7 @@
         @members{@member-spec["loc"] @member-spec["expression"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -61,7 +61,7 @@
         @members{@member-spec["message"] @member-spec["info-args"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -71,7 +71,7 @@
         @members{@member-spec["loc"] @member-spec["obj"] @member-spec["field"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -85,7 +85,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -95,7 +95,7 @@
         @members{@member-spec["loc"] @member-spec["typ"] @member-spec["value"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -110,7 +110,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -120,7 +120,7 @@
         @members{@member-spec["val"] @member-spec["typ"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -130,7 +130,7 @@
         @members{@member-spec["val"] @member-spec["low"] @member-spec["high"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -140,7 +140,7 @@
         @members{@member-spec["val1"] @member-spec["val2"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -155,7 +155,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -169,7 +169,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -183,7 +183,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -203,7 +203,7 @@
         @members{@member-spec["loc"] @member-spec["name"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -213,7 +213,7 @@
         @members{@member-spec["names"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -228,7 +228,7 @@
         }
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (RuntimeError -> Any)
             
           ]
@@ -245,7 +245,7 @@
         @members{@member-spec["loc"] @member-spec["next-token"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -255,7 +255,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -265,7 +265,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -275,7 +275,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -285,7 +285,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -295,7 +295,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -305,7 +305,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -315,7 +315,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]
@@ -325,7 +325,7 @@
         @members{@member-spec["loc"]}
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParseError -> Any)
             
           ]

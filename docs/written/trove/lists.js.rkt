@@ -104,7 +104,7 @@
             
           ]
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (List -> Any)
             
           ]
@@ -194,7 +194,7 @@
             
           ]
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (List -> Any)
             
           ]
