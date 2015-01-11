@@ -7,9 +7,11 @@ Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Py
 
 To measure the performance of Pyret programs which are in *.arr files, simply run
 
-`node measure-program-wrapper <filename1> <filename2> ... <filenameN>`
+`node measure-program-wrapper <filename>`
 
 To measure the performance of programs which are Javascript strings, it may be easiest to copy examples.js and examples-wrapper.js, editing, then running examples-wrapper in node. The data directory contains the output of these examples.
+
+For an example of something with options passed in, check out type-check-compare.js and type-check-compare-wrapper.js (run the latter, as usual).
 
 -----------------------------------------------------------------
 
