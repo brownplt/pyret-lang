@@ -13,5 +13,5 @@ if(process.argv.length <= 2){
 			name: filenames[i]
 		}
 	}
-	b.runBenchmarks(benchmarks);
+	b.runBenchmarks(benchmarks, {}, function(){});
 }

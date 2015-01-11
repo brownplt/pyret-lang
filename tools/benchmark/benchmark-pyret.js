@@ -6,30 +6,30 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
     global.evalLib = evalLib;
 
     function parsePyret(deferred){
-      global.evalLib.runParsePyret(global.rt,global.programSrc,{},function(parsed){
+      global.evalLib.runParsePyret(global.rt,global.programSrc,global.pyretOptions,function(parsed){
         deferred.resolve();
       });   
     }
 
     function parsePyretSetup(){ 
-      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,{});
+      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
     }
 
     function evaluatePyret(deferred){
-      global.evalLib.runEvalParsedPyret(global.rt,global.ast,{},function(result){
+      global.evalLib.runEvalParsedPyret(global.rt,global.ast,global.pyretOptions,function(result){
         deferred.resolve();
       });
     }
 
 
     function compilePyret(deferred){  
-      global.evalLib.runCompilePyret(global.rt,global.ast,{},function(compiled){
+      global.evalLib.runCompilePyret(global.rt,global.ast,global.pyretOptions,function(compiled){
         deferred.resolve();
       });  
     }
 
     function loadPyretSetup(){
-      //global.mod = global.evalLib.loadParsedPyret(global.rt,global.ast,{});
+      //global.mod = global.evalLib.loadParsedPyret(global.rt,global.ast,global.pyretOptions);
       throw new Error('unimplemented');
     }
 
@@ -46,7 +46,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
       }
     }
 
-    var runBenchmarks = function(tests){      
+    var runBenchmarks = function(tests, options, onDone){      
       global.rt = RT.makeRuntime({
         initialGas: 500,
         stdout: function(str) {},
@@ -55,7 +55,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
 
       global.ast = undefined;
       global.mod = undefined;
-      //console.log('Setting up benchmark suite...');
+      global.pyretOptions = options;
 
       var suite = new Benchmark.Suite();
 
@@ -111,28 +111,28 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
               },
               function(v){}
             );        
+          }else{
+            onDone();
           }
       });
       suiteRunDefer.notify(true);
     }
 
-    function evaluateProgram(src){  
+    function evaluateProgram(src, options){  
       console.log('Evaluating...');
       var newRT = RT.makeRuntime({
         initialGas: 500,
         stdout: function(str) {process.stdout.write(str); },
         stderr: function(str) {process.stderr.write(str); }
       })
-      global.evalLib.runEvalPyret(newRT, src, {}, function(result){         
-        //debugger;  
-        var s = newRT.getField(result.result,'checks');
-        debugger;
+      global.evalLib.runEvalPyret(newRT, src, options, function(result){         
+        //debugger;          
         console.log('done.');
       });  
     }
 
     function compileProgram(src){
-      global.evalLib.runCompileSrcPyret(global.rt,src,{},function(compiled){    
+      global.evalLib.runCompileSrcPyret(global.rt,src,global.pyretOptions,function(compiled){    
       });
     }
 
@@ -143,7 +143,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
         stdout: function(str) {},
         stderr: function(str) {}
       })
-      global.evalLib.runEvalPyret(newRT, src, {}, function(result){ 
+      global.evalLib.runEvalPyret(newRT, src, global.pyretOptions, function(result){ 
         console.log('...done.');
         var check = checkResult(newRT, result);
         if(check){
@@ -156,6 +156,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
 
     return {
       runBenchmarks: runBenchmarks
+      //evaluateProgram: evaluateProgram
     };
 
   });
