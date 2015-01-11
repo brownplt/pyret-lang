@@ -5,7 +5,8 @@
 *.err
 *.bak
 
-awstlaur_sandbox/*
+sandbox/*
+tools/benchmark/TODO
 
 # docs
 docs/written/*.html

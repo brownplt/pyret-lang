@@ -1,8 +1,10 @@
-define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
+define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
 
-  function(RT, evalLib, Benchmark, Q){
+  function(RT, evalLib, Benchmark, Q, fs){
 
-
+    //DO NOT REMOVE
+    // needed for benchmarked functions to 
+    // have access to evalLib
     global.evalLib = evalLib;
 
     function parsePyret(deferred){
@@ -21,23 +23,24 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
       });
     }
 
-
     function compilePyret(deferred){  
       global.evalLib.runCompilePyret(global.rt,global.ast,global.pyretOptions,function(compiled){
         deferred.resolve();
       });  
     }
 
+    //TODO
+    // figure out if we can easily separate out the portion of
+    //  evaluation that happens after compliation
     function loadPyretSetup(){
       //global.mod = global.evalLib.loadParsedPyret(global.rt,global.ast,global.pyretOptions);
       throw new Error('unimplemented');
     }
-
     function evaluateLoadedPyret(deferred){
-      //todo?
       throw new Error('unimplemented');
     }
 
+    //used by ensureSuccess
     function checkResult(runtime, result){
       if(runtime.isSuccessResult(result)) {
         return true;
@@ -46,7 +49,26 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
       }
     }
 
-    var runBenchmarks = function(tests, options, onDone){      
+    //run internall before each benchmark        
+    function ensureSuccess(src, deferred){
+      console.log('Ensuring program runs successfully...');
+      var newRT = RT.makeRuntime({
+        initialGas: 500,
+        stdout: function(str) {},
+        stderr: function(str) {}
+      })
+      global.evalLib.runEvalPyret(newRT, src, global.pyretOptions, function(result){ 
+        console.log('...done.');
+        var check = checkResult(newRT, result);
+        if(check){
+          deferred.resolve(check);
+        }else{          
+          deferred.reject(check);
+        }
+      }); 
+    }
+
+    function runBenchmarks(tests, options, onDone){      
       global.rt = RT.makeRuntime({
         initialGas: 500,
         stdout: function(str) {},
@@ -118,6 +140,10 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
       suiteRunDefer.notify(true);
     }
 
+    // doesn't benchmark anything,
+    // just for development/testing purposes
+    //TODO:
+    // output results of checker
     function evaluateProgram(src, options){  
       console.log('Evaluating...');
       var newRT = RT.makeRuntime({
@@ -126,37 +152,23 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q'],
         stderr: function(str) {process.stderr.write(str); }
       })
       global.evalLib.runEvalPyret(newRT, src, options, function(result){         
-        //debugger;          
         console.log('done.');
       });  
     }
 
-    function compileProgram(src){
-      global.evalLib.runCompileSrcPyret(global.rt,src,global.pyretOptions,function(compiled){    
-      });
-    }
-
-    function ensureSuccess(src, deferred){
-      console.log('Ensuring program runs successfully...');
-      var newRT = RT.makeRuntime({
-        initialGas: 500,
-        stdout: function(str) {},
-        stderr: function(str) {}
-      })
-      global.evalLib.runEvalPyret(newRT, src, global.pyretOptions, function(result){ 
-        console.log('...done.');
-        var check = checkResult(newRT, result);
-        if(check){
-          deferred.resolve(check);
-        }else{          
-          deferred.reject(check);
-        }
-      }); 
+    function runFile(filename, options, onDone){
+      var programSrc = fs.readFileSync(filename, {'encoding': 'utf8'});
+      benchmarks = [{
+        program: programSrc,
+        name: filename
+      }];
+      runBenchmarks(benchmarks, options, onDone);
     }
 
     return {
-      runBenchmarks: runBenchmarks
-      //evaluateProgram: evaluateProgram
+      runBenchmarks: runBenchmarks,
+      evaluateProgram: evaluateProgram,
+      runFile: runFile
     };
 
   });
