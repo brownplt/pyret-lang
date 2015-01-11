@@ -78,7 +78,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
                                     "<", ">", "is", "raises"]);
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
   const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
-  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
+  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const opparen = new RegExp("^" + operator_regex_str + "(?=\\()", STICKY_REGEXP); // NOTE: likewise
