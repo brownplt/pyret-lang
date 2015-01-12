@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
+define(["./matchers"], function (matchers) {
 
 _ = require('jasmine-node');
 var path = require('path');
@@ -39,7 +39,6 @@ beforeEach(function(){
     rt = R.makeRuntime({'stdout' : stdout});
     addPyretMatchers(this, rt);
 
-
     //Make Some Strings
     empty = rt.makeString("");
     a = rt.makeString("a");
@@ -58,11 +57,10 @@ beforeEach(function(){
     half = rt.makeString("0.5");
 });
 
-
   describe("String Dictionary", function() {
     it("should have correct _plus method", function() {
         expect(empty.dict).toBeUndefined();
-      
+
         var plus = rt.plus;
 
         expect(plus(empty,empty)).toEqual("");
@@ -121,7 +119,7 @@ beforeEach(function(){
 
         //Not numbers
         expect(rt.isNothing(tonumber(hello))).toBe(true);
-        expect(rt.isNothing(tonumber(world))).toBe(true); 
+        expect(rt.isNothing(tonumber(world))).toBe(true);
         expect(rt.isNothing(tonumber(empty))).toBe(true); //Special case as Number("") = 0
     });
 

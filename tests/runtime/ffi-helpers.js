@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-helpers", "trove/srcloc"], function (matchers, e, jsnums, ffiLib, srclocLib) {
+define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/srcloc"], function (matchers, e, ffiLib, srclocLib) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -21,7 +21,6 @@ define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-help
         output += str;
     }
 
-
     beforeEach(function(){
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
@@ -31,7 +30,6 @@ define(["./matchers", "../evaluator/eval-matchers","js/js-numbers", "js/ffi-help
         ffi = ffiLib(rt, rt.namespace);
         addPyretMatchers(this, rt);
     });
-
 
     describe("FFI", function() {
       it("should make lists and come back", function() {

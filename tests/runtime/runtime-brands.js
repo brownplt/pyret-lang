@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
+define(["./matchers"], function (matchers) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -29,7 +29,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         thunkFalse,
         thunkNum;
 
-
     beforeEach(function(){
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
@@ -43,7 +42,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
     });
 
     function checkForPyretError(thunk) {
-      try{ 
+      try{
           thunk();
       }
       catch(e) {
