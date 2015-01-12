@@ -503,11 +503,25 @@ define(["./output-ui"], function(outputLib) {
 
   /*Keypress and related functions*/
   InputUI.prototype.return = function(cmd) {
-    if(this.canRun()) {
-      this.run();
+    if(this.lastKey === "enter") {
+      this.lastKey = "";
+      clearTimeout(this.enterVar);
+
+      this.addChar("\n");
     }
     else {
-      this.addChar("\n");
+      this.lastKey = "enter";
+
+      this.enterVar = setTimeout(function() {
+	this.lastKey = "";
+
+	if(this.canRun()) {
+	  this.run();
+	}
+	else {
+	  this.addChar("\n");
+	}
+      }.bind(this), 200);
     }
   };
 
