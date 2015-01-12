@@ -167,7 +167,6 @@ define(["./output-ui"], function(outputLib) {
     this.output.write("\n" + this.promptString + this.line);
   };
 
-
   /*Getters*/
   InputUI.prototype.getInteractionsNumber = function() {
     return this.interactionsNumber;
@@ -601,7 +600,7 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.keyDownBase = function(noHistory) {
     if(numLines(this.line.slice(this.cursorPosition, this.line.length)) > 1) {
       var curLine = this.getLine(0, true);
-      var nextLine = this.getLine(1, false);
+      var nextLine = this.getLine(1, true);
       var oldCursorPos = this.getCursorPos();
       this.cursorPosition += curLine.length;
       var newCursorPos = this.getCursorPos();
