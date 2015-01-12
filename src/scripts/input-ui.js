@@ -359,36 +359,12 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.syncIndentArray = function(offset) {
     var matches = this.getLinesBefore(offset);
-    var unindent, indent, lastIndent;
-
     this.indentArray = [];
 
     if(matches) {
       matches.forEach(function(cmd) {
 	cmd = cmd.trim();
-	unindent = indenter.unindent(cmd);
-
-	if(unindent) {
-	  this.indentArray.unshift(unindent);
-	}
-
-	if(indenter.matchNested(cmd)) {
-	}
-	else if(indenter.matchColon(cmd)) {
-	  indent = indenter.indent(cmd);
-
-	  if(indent) {
-	    this.indentArray.unshift(indent);
-	  }
-	}
-	else if(indenter.matchEnd(cmd)) {
-	  lastIndent = this.indentArray.shift();
-
-	  while(lastIndent && lastIndent !== Indenter.INDENT_SINGLE
-	      && lastIndent !== Indenter.INDENT_DOUBLE) {
-	    lastIndent = this.indentArray.shift();
-	  }
-	}
+	this.indentArray = indenter.indent(cmd, this.indentArray);
       }, this);
     }
   };
@@ -503,25 +479,11 @@ define(["./output-ui"], function(outputLib) {
 
   /*Keypress and related functions*/
   InputUI.prototype.return = function(cmd) {
-    if(this.lastKey === "enter") {
-      this.lastKey = "";
-      clearTimeout(this.enterVar);
-
-      this.addChar("\n");
+    if(this.canRun()) {
+      this.run();
     }
     else {
-      this.lastKey = "enter";
-
-      this.enterVar = setTimeout(function() {
-	this.lastKey = "";
-
-	if(this.canRun()) {
-	  this.run();
-	}
-	else {
-	  this.addChar("\n");
-	}
-      }.bind(this), 200);
+      this.addChar("\n");
     }
   };
 

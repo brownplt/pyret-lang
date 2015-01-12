@@ -3,6 +3,24 @@
 
 var chalk = require("chalk");
 
+Array.prototype.exclude = function(arr) {
+  return this.filter(function(a) {
+    return arr.indexOf(a) === -1;
+  });
+};
+
+String.prototype.repeat = function(num) {
+  return new Array(num + 1).join(this);
+};
+
+String.prototype.eat = function(reg) {
+  return this.replace(reg, "");
+};
+
+String.prototype.eatNext = function(reg) {
+  return this.slice(1, this.length);
+};
+
 define([], function() {
   var pyret_indent_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
   var pyret_keywords =
@@ -10,7 +28,7 @@ define([], function() {
       "import", "provide", "data", "end",
       "except", "for", "from", "and",
       "or", "not", "as", "if",
-      "else", "cases", "check"]);
+      "else", "cases", "check", "lam"]);
   var pyret_keywords_colon =
     wordRegexp(["doc", "try", "ask", "otherwise",
       "then", "with", "sharing", "where",
@@ -27,17 +45,24 @@ define([], function() {
     new RegExp("^(("
       + ["::", "==", ">=", "<=", "=>", "->", ":=", "<>"].join(")|(")
       + "))");
-  var initial_operators = { "-": true, "+": true, "*": true, "/": true,
-    "<": true, "<=": true, ">": true, ">=": true,
-    "==": true, "<>": true, ".": true, "^": true,
-    "is": true, "raises": true, "satisfies": true };
-  var pyret_keywords_nested =
+  var pyret_initial_operators =
+    new RegExp("^("
+      + [ "\\-", "\\+", "\\*", "/", "<",
+	  "<=", ">", ">=", "==", "<>",
+	  "\\.", "\\^", "is", "raises", "satisfies"].join("|")
+      + ")");
+  var pyret_no_indent =
     new RegExp("(("
 	+ ["otherwise", "then", "with", "sharing", "where"].join(")|(")
 	+ "))");
-  var pyret_unindent_single = /(^|\s+)(\||else|where)($|\b|\s+)/g;
-  var pyret_unindent_double = /(^|\s+)sharing($|\b|\s+)/g;
-  var pyret_indent_double = /(^|\s+)(data|ask|cases)($|\b|\s+)/g;
+  var pyret_unindent_single_soft = /^\s*\|($|\b|\s+)/;
+  var pyret_unindent_single_hard = /^\s*(else|where)($|\b|\s+)/;
+  var pyret_unindent_double = /^\s*sharing($|\b|\s+)/;
+  var pyret_indent_double = /^\s*(data|ask|cases)($|\b|\s+)/;
+  var pyret_colon = /^\s*:($|\b|\s+)/;
+  var pyret_end = /^\s*end($|\b|\s+)/;
+  var pyret_open_braces = /^\s*(\(|\[|\{)($|\b|\s+)/;
+  var pyret_close_braces = /^\s*(\)|\]|\})($|\b|\s+)/;
 
   var STYLE_MAP = {
     'default': {
@@ -409,34 +434,80 @@ define([], function() {
     }
 
     function Indenter() {
-      this.unindent = function(cmd) {
-	if(cmd.match(pyret_unindent_single)) {
-	  return Indenter.UNINDENT_SINGLE;
+      this.unindent = function(indentArray) {
+	var lastIndent = indentArray.shift();
+
+	while(lastIndent && lastIndent !== Indenter.INDENT_SINGLE
+	    && lastIndent !== Indenter.INDENT_DOUBLE) {
+	  lastIndent = indentArray.shift();
 	}
-	else if(cmd.match(pyret_unindent_double)) {
-	  return Indenter.UNINDENT_DOUBLE;
-	}
+
+	return indentArray;
       };
 
-      this.indent = function(cmd) {
-	if(cmd.match(pyret_indent_double)) {
-	  return Indenter.INDENT_DOUBLE;
+      this.indent = function(cmd, indentArray) {
+	var lastCmd = "";
+	var addColon = true;
+
+	while(cmd.length > 0 && cmd !== lastCmd) {
+	  lastCmd = cmd;
+
+	  if(cmd.match(pyret_no_indent)) {
+	    cmd = cmd.eat(pyret_no_indent);
+	    addColon = false;
+	  }
+	  else if(cmd.match(pyret_unindent_single_soft)) {
+	    cmd = cmd.eat(pyret_unindent_single_soft);
+	  }
+	  else if(cmd.match(pyret_unindent_single_hard)) {
+	    cmd = cmd.eat(pyret_unindent_single_hard);
+	    indentArray = this.unindent(indentArray);
+	  }
+	  else if(cmd.match(pyret_unindent_double)) {
+	    cmd = cmd.eat(pyret_unindent_double);
+	    indentArray.unshift(Indenter.UNINDENT);
+	  }
+	  else if(cmd.match(pyret_indent_double)) {
+	    cmd = cmd.eat(pyret_indent_double);
+	    indentArray.unshift(Indenter.INDENT_DOUBLE);
+	    addColon = false;
+	  }
+	  else if(cmd.match(pyret_colon)) {
+	    cmd = cmd.eat(pyret_colon);
+
+	    if(!addColon) {
+	      addColon = true;
+	    }
+	    else {
+	      indentArray.unshift(Indenter.INDENT_SINGLE);
+	    }
+	  }
+	  else if(cmd.match(pyret_open_braces)) {
+	    cmd = cmd.eat(pyret_open_braces);
+	    indentArray.unshift(Indenter.INDENT_SINGLE);
+	    addColon = false;
+	  }
+	  else if(cmd.match(pyret_close_braces)) {
+	    cmd = cmd.eat(pyret_close_braces);
+	    indentArray = this.unindent(indentArray);
+	  }
+	  else if(cmd.match(pyret_end)) {
+	    cmd = cmd.eat(pyret_end);
+	    indentArray = this.unindent(indentArray);
+	  }
+	  else if(cmd.match(pyret_keywords)) {
+	    cmd = cmd.eat(pyret_keywords);
+	    addColon = true;
+	  }
+	  else if(cmd.match(pyret_indent_regex)) {
+	    cmd = cmd.eat(pyret_indent_regex).eat(/^\s*/);
+	  }
+	  else {
+	    cmd = cmd.eatNext();
+	  }
 	}
-	else if(!cmd.match(pyret_unindent_single)) {
-	  return Indenter.INDENT_SINGLE;
-	}
-      };
 
-      this.matchNested = function(cmd) {
-	return !!cmd.match(pyret_keywords_nested);
-      };
-
-      this.matchColon = function(cmd) {
-	return !!cmd.match(/:$/g);
-      };
-
-      this.matchEnd = function(cmd) {
-	return !!cmd.match(/end$/g);
+	return indentArray;
       };
 
       this.getIndent = function(line, indentArray, indent) {
@@ -445,51 +516,49 @@ define([], function() {
 	  if(cur === Indenter.INDENT_DOUBLE) {
 	    return prev + 2;
 	  }
-	  if(cur === Indenter.INDENT_SINGLE) {
+	  else if(cur === Indenter.INDENT_SINGLE) {
 	    return prev + 1;
 	  }
-	  if(cur === Indenter.UNINDENT_DOUBLE) {
+	  else if(cur === Indenter.UNINDENT) {
 	    return prev - 1;
 	  }
 
 	  return prev;
 	}, 0);
 
-	if(trimmed === Indenter.END) {
+	if(trimmed.match(pyret_end)) {
 	  var iStack = indentArray.filter(function(n) {
 	    return n === Indenter.INDENT_SINGLE || n === Indenter.INDENT_DOUBLE;
 	  });
 	  var f = iStack[0];
 
 	  if(f === Indenter.INDENT_SINGLE) {
-	    return new Array(indentSize).join(indent);
+	    return indent.repeat(indentSize - 1);
 	  }
 
 	  if (f === Indenter.INDENT_DOUBLE && indentSize > 0) {
-	    return new Array(indentSize - 1).join(indent);
+	    return indent.repeat(indentSize - 2);
 	  }
-
-	  return new Array(indentSize + 1).join(indent);
+	}
+	else if(trimmed.match(pyret_initial_operators)) {
+	  return indent.repeat(indentSize + 1);
+	}
+	else if(trimmed.match(pyret_unindent_single_soft) ||
+	    trimmed.match(pyret_unindent_single_hard)) {
+	  return indent.repeat(indentSize - 1);
+	}
+	else if(trimmed.match(pyret_unindent_double) && indentSize > 0) {
+	  return indent.repeat(indentSize - 2);
 	}
 
-	if(trimmed.match(pyret_unindent_single)) {
-	  return new Array(indentSize).join(indent);
-	}
-
-	if(trimmed.match(pyret_unindent_double) && indentSize > 0) {
-	  return new Array(indentSize - 1).join(indent);
-	}
-
-	return new Array(indentSize + 1).join(indent);
+	return indent.repeat(indentSize);
       };
     }
 
     Indenter.INDENT_SINGLE = "is";
     Indenter.INDENT_SINGLE = "is";
     Indenter.INDENT_DOUBLE = "id";
-    Indenter.UNINDENT_SINGLE = "us";
-    Indenter.UNINDENT_DOUBLE = "ud";
-    Indenter.END = "end";
+    Indenter.UNINDENT = "u";
 
     return {
       Renderer : Renderer,
