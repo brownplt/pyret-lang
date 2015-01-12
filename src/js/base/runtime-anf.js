@@ -1455,7 +1455,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 throw makeMessageException('negative tolerance ' + tol);
               }
               if (rel) {
-                var absTol = jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol);
+                var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
                 if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
                   continue;
                 }
@@ -3391,7 +3391,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         thisRuntime.checkArity(2, arguments, "from within-rel");
         thisRuntime.checkNumber(l);
         thisRuntime.checkNumber(r);
-        var absTol = jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol);
+        var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol));
         return makeBoolean(jsnums.roughlyEquals(l, r, absTol));
       });
     }
