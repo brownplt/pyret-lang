@@ -164,6 +164,11 @@
     (args ("tol"))
     (doc ""))
   (fun-spec
+    (name "num-within-rel")
+    (arity 1)
+    (args ("tol"))
+    (doc ""))
+  (fun-spec
     (name "within")
     (arity 1)
     (args ("tol"))
@@ -678,6 +683,18 @@ check:
 end
 }
 
+  }
+  @function["num-within-rel" #:contract (a-arrow N A)]{
+
+Returns a predicate that checks if the relative difference of its two
+number arguments is less than @pyret{tol}.
+
+@examples{
+check:
+  100000 is%(num-within-rel(0.1)) 95000
+  100000 is-not%(num-within-rel(0.1)) 85000
+end
+}
   }
   @function["within" #:contract (a-arrow N A)]{
 

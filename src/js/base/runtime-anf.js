@@ -3375,6 +3375,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
+    var num_within_rel = function(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel");
+      thisRuntime.checkNumber(relTol);
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-rel");
+        thisRuntime.checkNumber(l);
+        thisRuntime.checkNumber(r);
+        var absTol = jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol);
+        return makeBoolean(jsnums.roughlyEquals(l, r, absTol));
+      });
+    }
+
     var num_max = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-max");
       thisRuntime.checkNumber(l);
@@ -3699,6 +3711,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-min': makeFunction(num_min),
           'num-equal': makeFunction(num_equal),
           'num-within': makeFunction(num_within),
+          'num-within-rel': makeFunction(num_within_rel),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
