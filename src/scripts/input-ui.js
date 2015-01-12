@@ -173,7 +173,7 @@ define(["./output-ui"], function(outputLib) {
     return this.interactionsNumber;
   };
 
-  InputUI.prototype.getLine = function(offset) {
+  InputUI.prototype.getLine = function(offset, ignoreNl) {
     var matches = this.line.match(/.*\n|.+$/g);
     var cursorPos = this.getCursorPos();
     var lineIndex = cursorPos.rows + offset;
@@ -184,8 +184,9 @@ define(["./output-ui"], function(outputLib) {
 
       var lastMatch = matches[matches.length - 1];
 
-      if(lineIndex === matches.length - 1
-	  && lastMatch.charAt(lastMatch.length - 1) === "\n") {
+      if(lineIndex === matches.length - 1 &&
+	  lastMatch.charAt(lastMatch.length - 1) === "\n" &&
+	  offset >= 0 && !ignoreNl) {
 	return "";
       }
       else {
@@ -307,9 +308,9 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.addIndent = function() {
-    this.syncIndentArray();
+    this.syncIndentArray(0);
 
-    var curLine = this.getLine(0);
+    var curLine = this.getLine(0, false);
     var indent = indenter.getIndent(curLine, this.indentArray, this.indent);
     var lineNoIndent = curLine.replace(/^([^\S\n]+)/, "");
     var lineIndent = indent + lineNoIndent;
@@ -357,8 +358,8 @@ define(["./output-ui"], function(outputLib) {
     this.historyUpdate = Math.max(this.historyIndex + 1, this.historyUpdate);
   };
 
-  InputUI.prototype.syncIndentArray = function() {
-    var matches = this.getLinesBefore(0);
+  InputUI.prototype.syncIndentArray = function(offset) {
+    var matches = this.getLinesBefore(offset);
     var unindent, indent, lastIndent;
 
     this.indentArray = [];
@@ -501,22 +502,28 @@ define(["./output-ui"], function(outputLib) {
     this.rowOffset = cursorPos.rows;
   };
 
-  /*Keypress functions*/
+  /*Keypress and related functions functions*/
   InputUI.prototype.return = function(cmd) {
-    var curLine = this.getLine(0);
-    var savePos = this.cursorPosition;
-    var cursorPos = this.getCursorPos();
-
-    this.cursorPosition = this.line.length;
-    var displayPos = this.getCursorPos();
-    this.cursorPosition = savePos;
-
-    if(curLine === "" && cursorPos.rows === displayPos.rows) {
+    if(this.canRun()) {
       this.run();
     }
     else {
       this.addChar("\n");
     }
+  };
+
+  InputUI.prototype.canRun = function() {
+    var curLine = this.getLine(0, false);
+    var cursorPos = this.getCursorPos();
+    var savePos = this.cursorPosition;
+
+    this.cursorPosition = this.line.length;
+    var displayPos = this.getCursorPos();
+    this.cursorPosition = savePos;
+    this.syncIndentArray(1);
+
+    return (this.indentArray.length === 0 && displayPos.rows === 0)
+      || (curLine === "" && cursorPos.rows === displayPos.rows);
   };
 
   InputUI.prototype.run = function() {
@@ -572,7 +579,7 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.keyUpBase = function(noHistory) {
     if(numLines(this.line.slice(0, this.cursorPosition)) > 1) {
-      var nextLine = this.getLine(-1);
+      var nextLine = this.getLine(-1, true);
       var oldCursorPos = this.getCursorPos();
       this.cursorPosition -= nextLine.length;
       var newCursorPos = this.getCursorPos();
@@ -581,8 +588,10 @@ define(["./output-ui"], function(outputLib) {
 	this.cursorPosition += nextLine.length;
 	this.cursorPosition -= (oldCursorPos.cols - this.promptString.length) + 1;
       }
+      else {
+	this.refreshLine();
+      }
 
-      this.refreshLine();
     }
     else if(!noHistory) {
       this.historyPrev();
@@ -591,8 +600,8 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.keyDownBase = function(noHistory) {
     if(numLines(this.line.slice(this.cursorPosition, this.line.length)) > 1) {
-      var curLine = this.getLine(0);
-      var nextLine = this.getLine(1);
+      var curLine = this.getLine(0, true);
+      var nextLine = this.getLine(1, false);
       var oldCursorPos = this.getCursorPos();
       this.cursorPosition += curLine.length;
       var newCursorPos = this.getCursorPos();
