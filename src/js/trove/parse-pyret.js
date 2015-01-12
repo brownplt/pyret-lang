@@ -1051,7 +1051,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return translate(ast, fileName);
             }
           } catch(e) {
-            console.error("Fatal error in parsing: ", e);
+            //console.error("Fatal error in parsing: ", e);
             throw e;
           }
         }
