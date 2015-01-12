@@ -9,7 +9,7 @@
       (variants)
       (shared))
     (fun-spec
-      (name "strings-equal")
+      (name "string-equal")
       (arity 2)
       (args ("s1" "s2"))
       (doc ""))
@@ -105,7 +105,6 @@
       (doc ""))
       ))
 
-
 @docmodule["strings" #:noimport #t #:friendly-title "Strings"]{
 
 @type-spec["String" (list)]
@@ -114,13 +113,13 @@ The type of string values
 
 @section{String Functions}
 
-  @function["strings-equal" #:contract (a-arrow S S B) #:return B]
+  @function["string-equal" #:contract (a-arrow S S B) #:return B]
 
 @examples{
 check:
-  strings-equal("abc", "abc") is true
-  "abc" is%(strings-equal) "abc"
-  strings-equal("ab", "abc") is false
+  string-equal("abc", "abc") is true
+  "abc" is%(string-equal) "abc"
+  string-equal("ab", "abc") is false
 end
 }
 
@@ -178,7 +177,6 @@ check:
   string-to-number("not-a-number") is none
 end
 }
-
 
   @function["string-repeat" #:contract (a-arrow S N S) #:return S]
 
@@ -380,7 +378,6 @@ check:
   string-from-code-point(955) is "λ"
 end
 }
-
 
   @function["string-from-code-points" #:contract (a-arrow (L-of N) S) #:return S]
 

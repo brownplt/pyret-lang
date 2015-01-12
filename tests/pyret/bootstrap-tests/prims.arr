@@ -27,13 +27,13 @@ examples:
   num-tostring(5) is "5"
   num-tostring(1/2) is "1/2"
 
-  strings-equal("abcd", "abcd") is true
-  strings-equal("", "") is true
-  strings-equal("a", "") is false
-  strings-equal("", "b") is false
-  strings-equal("abcd efgh", "abcdefgh") is false
-  strings-equal(42, "a") raises "String"
-  strings-equal("a", 55) raises "String"
+  string-equal("abcd", "abcd") is true
+  string-equal("", "") is true
+  string-equal("a", "") is false
+  string-equal("", "b") is false
+  string-equal("abcd efgh", "abcdefgh") is false
+  string-equal(42, "a") raises "String"
+  string-equal("a", 55) raises "String"
 
   either(true, true) is true
   either(true, false) is true

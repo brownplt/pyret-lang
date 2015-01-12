@@ -237,7 +237,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "_lessequal",
   "_greaterthan",
   "_greaterequal",
-  "strings-equal",
+  "string-equal",
   "string-contains",
   "string-append",
   "string-length",

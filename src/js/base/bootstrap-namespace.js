@@ -152,7 +152,7 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
         'is-fixnum': rt.namespace.get("num-is-fixnum"),
         'expt': rt.namespace.get("num-expt"),
 
-        'strings-equal': rt.namespace.get("strings-equal"),
+        'string-equal': rt.namespace.get("string-equal"),
         'string-contains': rt.namespace.get("string-contains"),
         'string-append': rt.namespace.get("string-append"),
         'string-length': rt.namespace.get("string-length"),
