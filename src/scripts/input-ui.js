@@ -295,7 +295,14 @@ define(["./output-ui"], function(outputLib) {
     }
 
     this.cursorPosition += 1;
-    this.addIndent();
+
+    if(ch === " ") {
+      this.refreshLine();
+    }
+    else {
+      this.addIndent();
+    }
+
     this.syncHistory();
   };
 
@@ -496,19 +503,19 @@ define(["./output-ui"], function(outputLib) {
 
   /*Keypress functions*/
   InputUI.prototype.return = function(cmd) {
-    if(this.lastKey === "return") {
-      this.lastKey = "";
-      clearTimeout(this.enterVar);
+    var curLine = this.getLine(0);
+    var savePos = this.cursorPosition;
+    var cursorPos = this.getCursorPos();
 
-      this.addChar("\n");
+    this.cursorPosition = this.line.length;
+    var displayPos = this.getCursorPos();
+    this.cursorPosition = savePos;
+
+    if(curLine === "" && cursorPos.rows === displayPos.rows) {
+      this.run();
     }
     else {
-      this.lastKey = "return";
-
-      this.enterVar = setTimeout(function() {
-	this.lastKey = "";
-	this.run();
-      }.bind(this), 200);
+      this.addChar("\n");
     }
   };
 
