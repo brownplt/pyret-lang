@@ -28,16 +28,14 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./inpu
         return repl.run(cmd, "interactions:" + inputUI.getInteractionsNumber());
       });
 
+      //Note(ben), executes when the previous res is "ready"
       res.then(function(new_res) {
         if(runtime.isSuccessResult(new_res)) {
-          //TODO: have outputUI renderValue color strings, and have drawCheckResults
-	  //call outputUI methods to colors strings
 	  renderer.drawAndPrintAnswer(runtime, get(new_res.result, "answer"));
 	  checkUI.drawAndPrintCheckResults(runtime, get(new_res.result, "checks"));
         }
         else {
 	  var exception = new_res.exn;
-	  //TODO: have drawError call outputUI methods to color strings
 	  errorUI.drawAndPrintError(runtime, exception);
         }
 

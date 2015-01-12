@@ -440,6 +440,7 @@ define([], function() {
       };
 
       this.getIndent = function(line, indentArray, indent) {
+	var trimmed = line.trim();
 	var indentSize = indentArray.reduce(function(prev, cur, i, a) {
 	  if(cur === Indenter.INDENT_DOUBLE) {
 	    return prev + 2;
@@ -453,7 +454,6 @@ define([], function() {
 
 	  return prev;
 	}, 0);
-	var trimmed = line.trim();
 
 	if(trimmed === Indenter.END) {
 	  var iStack = indentArray.filter(function(n) {
@@ -484,6 +484,7 @@ define([], function() {
       };
     }
 
+    Indenter.INDENT_SINGLE = "is";
     Indenter.INDENT_SINGLE = "is";
     Indenter.INDENT_DOUBLE = "id";
     Indenter.UNINDENT_SINGLE = "us";
