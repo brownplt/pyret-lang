@@ -358,7 +358,8 @@ end
 }
   }
   @function["num-modulo" #:contract (a-arrow N N N)]{
-Returns the modulo of `n1` w.r.t. `n2`.
+Returns the modulo of the first argument with respect to the
+second.
 
 @examples{
 check:
@@ -371,7 +372,7 @@ end
   }
   @function["num-truncate" #:contract (a-arrow N N)]{
 
-Returns an integer part of `n`.
+Returns the integer part of its argument.
 
 @examples{
 check:
@@ -385,7 +386,7 @@ end
   }
   @function["num-sqrt" #:contract (a-arrow N N)]{
 
-Returns the square root  If the argument is exact and perfect
+Returns the square root.  If the argument is exact and perfect
 square, the result is exact.
 
 @examples{
@@ -415,7 +416,8 @@ end
   }
   @function["num-ceiling" #:contract (a-arrow N N)]{
 
-Returns the smallest integer greater than or equal to `n`.
+Returns the smallest integer greater than or equal to the
+argument.
 The result is exact only if
 the argument is.
 
@@ -429,7 +431,7 @@ end
   }
   @function["num-floor" #:contract (a-arrow N N)]{
 
-Returns the largest integer less than or equal to `n`.
+Returns the largest integer less than or equal to the argument.
 The result is exact only if
 the argument is.
 
@@ -442,7 +444,7 @@ end
   }
   @function["num-round" #:contract (a-arrow N N)]{
 
-Returns the closest integer to `n`. The result is exact only if
+Returns the closest integer to the argument. The result is exact only if
 the argument is.
 
 @examples{
@@ -457,15 +459,16 @@ end
   }
   @function["num-log" #:contract (a-arrow N N)]{
 
-Returns the natural logarithm of `n`, as a roughnum. However, if `n` is exact 1, the
-result is exact 0. If `n` is non-positive, an exception is
+Returns the natural logarithm of the argument, as a roughnum.
+However, if the argument is exact 1, the
+result is exact 0. If the argument is non-positive, an exception is
 raised.
 
 @examples{
 check:
   num-log(1) is 0
-  num-log(0) raises “but got”
-  num-log(-1) raises “but got”
+  num-log(0) raises "expected a number greater than 0"
+  num-log(-1) raises "expected a number greater than 0"
   num-log(2.718281828) is%(within(0.01)) 1
 end
 }
@@ -473,7 +476,8 @@ end
   }
   @function["num-exp" #:contract (a-arrow N N)]{
 
-Returns e raised to the `n`, as a roughnum.  However, if `n` is exact 0, the result is
+Returns e raised to the argument, as a roughnum.  However, if the
+argument is exact 0, the result is
 exact 1.
 
 @examples{
@@ -482,17 +486,18 @@ check:
   num-exp(0) is 1
   num-exp(1) is%(within(0.0001)) 2.718281828
   num-exp(3) is%(within(0.0001)) num-expt(2.718281828, 3)
-  num-exp(710) raises “overflow”
+  num-exp(710) raises "overflow"
 end
 }
 
   }
   @function["num-expt" #:contract (a-arrow N N N)]{
 
-Returns the `n1` raised to the `n2`th power. The result is exact
-if both arguments are exact, except for an exception when `n1` is
-zero and `n2` is negative. Furthermore, if `n1` is exact 0 or 1,
-or `n2` is exact 0, then the result is exact even if the other
+Returns the first argument raised to the second argument. The result is exact
+if both arguments are exact, except for an exception when the
+first argumetn is zero and the second is negative.
+Furthermore, if the first argument is exact 0 or 1,
+or the second argument is exact 0, then the result is exact even if the other
 argument is rough.
 
 @examples{
@@ -501,7 +506,7 @@ check:
   num-expt(1, 3) is 1
   num-expt(0, 0) is 1
   num-expt(0, 3) is 0
-  num-expt(0, -3) raises “division by zero”
+  num-expt(0, -3) raises "division by zero"
   num-expt(2, 3) is 8
   num-expt(2, -3) is 1/8
 end
@@ -631,6 +636,7 @@ check:
   num-is-fixnum(~10) is false
   num-is-fixnum(1000000000000000) is true
   num-is-fixnum(10000000000000000) is false
+  num-is-fixnum(1.5) is false
 end
 }
 
@@ -655,7 +661,7 @@ end
   @function["num-within" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if the difference of its two
-arguments (`n1` and `n2`) is less than `tol`.
+arguments is less than @pyret{tol}.
 
 @examples{
 check:
@@ -668,17 +674,17 @@ check:
    2  is-not%(num-within(1))    ~3
    5  is%(num-within(4))         3
 
-   num-within(-0.1)(1, 1.05) raises “negative tolerance”
+   num-within(-0.1)(1, 1.05) raises "negative tolerance"
 end
 }
 
   }
-  @function["within" #:contract (a-arrow A A)]{
+  @function["within" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are guaranteed
 to be structurally
 equivalent and any numbers in corresponding positions are such
-that their difference is less than `tol`.
+that their difference is less than @pyret{tol}.
 Notably,
 this predicate will fail if either argument contains mutable
 objects.
@@ -688,7 +694,7 @@ check:
   ~2  is-not%(within(0.1))  ~3
   ~2  is%(within(1.1))      ~3
 
-   within(-0.1)(1, 1.05) raises “negative tolerance”
+   within(-0.1)(1, 1.05) raises "negative tolerance"
 
    l3 = [list: ~1]
    l4 = [list: 1.2]
@@ -700,15 +706,15 @@ end
 }
 
   }
-  @function["within-now" #:contract (a-arrow A A)]{
+  @function["within-now" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are currently
 structurally
 equivalent and any numbers in corresponding positions are such
-that their difference is less than `tol`.
+that their current difference is less than @pyret{tol}.
 Notably,
-if the arguments contain mutable structures, the predicate could
-fail if they are mutated.
+if the arguments contain mutable objects, the predicate could
+return false if those objects are mutated.
 
 @examples{
 check:
@@ -727,14 +733,14 @@ end
 }
 
   }
-  @function["within-rel" #:contract (a-arrow A A)]{
+  @function["within-rel" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are guaranteed
 to be structurally
 equivalent and any numbers in corresponding positions are such
-that their relative difference is less than `tol`.
+that their relative difference is currently less than @pyret{tol}.
 Notably,
-this predicate will fail if either argument contains mutable
+this predicate will return false if either argument contains mutable
 objects.
 
 @examples{
@@ -749,15 +755,15 @@ end
 }
 
   }
-  @function["within-rel-now" #:contract (a-arrow A A)]{
+  @function["within-rel-now" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are currently
 structurally
 equivalent and any numbers in corresponding positions are such
-that their relative difference is less than `tol`.
+that their relative difference is currently less than @pyret{tol}.
 Notably,
-if the arguments contain mutable structures, the predicate could
-fail if they are mutated.
+if the arguments contain mutable objects, the predicate could
+return false if those objects are mutated.
 
 @examples{
 check:
