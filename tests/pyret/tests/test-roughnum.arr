@@ -24,7 +24,7 @@ check "roughnum":
   # see test-within.arr for more builtin-within--related tests
   #
   1.5 is 3/2
-  num-sqrt(-1) raises "sqrt of negative number"
+  num-sqrt(-1) raises "negative argument"
   num-is-integer(2) is true
   num-is-integer(2.0) is true
   num-is-integer(2.1) is false
