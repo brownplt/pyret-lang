@@ -401,6 +401,7 @@ check:
   num-sqrt(~4) is ~2
   num-sqrt(~5) is%(within(0.001)) ~2.236
   num-sqrt(0.04) is 1/5
+  num-sqrt(-1) raises "negative argument"
 end
 }
   }
@@ -472,8 +473,8 @@ raised.
 @examples{
 check:
   num-log(1) is 0
-  num-log(0) raises "expected a number greater than 0"
-  num-log(-1) raises "expected a number greater than 0"
+  num-log(0) raises "non-positive argument"
+  num-log(-1) raises "non-positive argument"
   num-log(2.718281828) is%(within(0.01)) 1
 end
 }
