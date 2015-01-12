@@ -119,6 +119,36 @@
     (args ("n"))
     (doc ""))
   (fun-spec
+    (name "num-is-rational")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-roughnum")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-positive")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-negative")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-non-positive")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-non-negative")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
     (name "num-is-fixnum")
     (arity 1)
     (args ("n"))
@@ -127,6 +157,31 @@
     (name "num-tostring")
     (arity 1)
     (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-within")
+    (arity 1)
+    (args ("tol"))
+    (doc ""))
+  (fun-spec
+    (name "within")
+    (arity 1)
+    (args ("tol"))
+    (doc ""))
+  (fun-spec
+    (name "within-now")
+    (arity 1)
+    (args ("tol"))
+    (doc ""))
+  (fun-spec
+    (name "within-rel")
+    (arity 1)
+    (args ("tol"))
+    (doc ""))
+  (fun-spec
+    (name "within-rel-now")
+    (arity 1)
+    (args ("tol"))
     (doc ""))
 ))
 
@@ -478,6 +533,93 @@ end
 }
 
   }
+  @function["num-is-rational" #:contract (a-arrow N B)]{
+
+Returns true if argument is an exact rational.
+
+@examples{
+check:
+  num-is-rational(2) is true
+  num-is-rational(1/2) is true
+  num-is-rational(1.609) is true
+  num-is-rational(~2) is false
+end
+}
+
+  }
+  @function["num-is-roughnum" #:contract (a-arrow N B)]{
+Returns true if argument is a roughnum.
+@examples{
+check:
+  num-is-roughnum(2) is false
+  num-is-roughnum(1/2) is false
+  num-is-roughnum(1.609) is false
+  num-is-roughnum(~2) is true
+end
+}
+
+  }
+  @function["num-is-positive" #:contract (a-arrow N B)]{
+
+Returns true if argument is greater than zero.
+
+@examples{
+check:
+  num-is-positive(~-2) is false
+  num-is-positive(-2) is false
+  num-is-positive(0) is false
+  num-is-positive(-0) is false
+  num-is-positive(2) is true
+  num-is-positive(~2) is true
+end
+}
+  }
+  @function["num-is-negative" #:contract (a-arrow N B)]{
+
+Returns true if argument is less than zero.
+
+@examples{
+check:
+  num-is-negative(~-2) is true
+  num-is-negative(-2) is true
+  num-is-negative(0) is false
+  num-is-negative(-0) is false
+  num-is-negative(2) is false
+  num-is-negative(~2) is false
+end
+}
+
+  }
+  @function["num-is-non-positive" #:contract (a-arrow N B)]{
+
+Returns true if argument is less than or equal to zero.
+@examples{
+check:
+  num-is-non-positive(~-2) is true
+  num-is-non-positive(-2) is true
+  num-is-non-positive(0) is true
+  num-is-non-positive(-0) is true
+  num-is-non-positive(2) is false
+  num-is-non-positive(~2) is false
+end
+}
+
+  }
+  @function["num-is-non-negative" #:contract (a-arrow N B)]{
+
+Returns true if argument is greater than or equal to zero.
+
+@examples{
+check:
+  num-is-non-negative(~-2) is false
+  num-is-non-negative(-2) is false
+  num-is-non-negative(0) is true
+  num-is-non-negative(-0) is true
+  num-is-non-negative(2) is true
+  num-is-non-negative(~2) is true
+end
+}
+  }
   @function["num-is-fixnum" #:contract (a-arrow N B)]{
 
 Returns true if the argument is represented directly as a JS
@@ -510,5 +652,128 @@ check:
 end
 }
   }
+  @function["num-within" #:contract (a-arrow N A)]{
 
+Returns a predicate that checks if the difference of its two
+arguments (`n1` and `n2`) is less than `tol`.
+
+@examples{
+check:
+   1  is%(num-within(0.1))       1
+   1  is%(num-within(0.1))      ~1
+  ~3  is%(num-within(0.1))      ~3
+  ~2  is-not%(num-within(0.1))  ~3
+  ~2  is%(num-within(1.1))      ~3
+  ~2  is-not%(num-within(~1))   ~3
+   2  is-not%(num-within(1))    ~3
+   5  is%(num-within(4))         3
+
+   num-within(-0.1)(1, 1.05) raises “negative tolerance”
+end
+}
+
+  }
+  @function["within" #:contract (a-arrow A A)]{
+
+Returns a predicate that checks if its arguments are guaranteed
+to be structurally
+equivalent and any numbers in corresponding positions are such
+that their difference is less than `tol`.
+Notably,
+this predicate will fail if either argument contains mutable
+objects.
+
+@examples{
+check:
+  ~2  is-not%(within(0.1))  ~3
+  ~2  is%(within(1.1))      ~3
+
+   within(-0.1)(1, 1.05) raises “negative tolerance”
+
+   l3 = [list: ~1]
+   l4 = [list: 1.2]
+   l3 is%(within(0.5))  l4
+   l3 is-not%(within(0.1)) l4
+   l3 is%(within(~0.5))  l4
+   l3 is-not%(within(~0.1)) l4
+end
+}
+
+  }
+  @function["within-now" #:contract (a-arrow A A)]{
+
+Returns a predicate that checks if its arguments are currently
+structurally
+equivalent and any numbers in corresponding positions are such
+that their difference is less than `tol`.
+Notably,
+if the arguments contain mutable structures, the predicate could
+fail if they are mutated.
+
+@examples{
+check:
+  b1 = box(5)
+  b2 = box(5)
+  l1 = [list: 2, b1]
+  l2 = [list: 2.1, b2]
+
+  l1 is-not%(within(0.3)) l2
+  l1 is%(within-now(0.3)) l2
+
+  b1!{v: 10}
+
+  l1 is-not%(within-now(0.3)) l2
+end
+}
+
+  }
+  @function["within-rel" #:contract (a-arrow A A)]{
+
+Returns a predicate that checks if its arguments are guaranteed
+to be structurally
+equivalent and any numbers in corresponding positions are such
+that their relative difference is less than `tol`.
+Notably,
+this predicate will fail if either argument contains mutable
+objects.
+
+@examples{
+check:
+  l7 = [list: 1]
+  l8 = [list: ~1.2]
+  l7 is%(within-rel(0.5))  l8
+  l7 is-not%(within-rel(0.1)) l8
+  l7 is%(within-rel(~0.5))  l8
+  l7 is-not%(within-rel(~0.1)) l8
+end
+}
+
+  }
+  @function["within-rel-now" #:contract (a-arrow A A)]{
+
+Returns a predicate that checks if its arguments are currently
+structurally
+equivalent and any numbers in corresponding positions are such
+that their relative difference is less than `tol`.
+Notably,
+if the arguments contain mutable structures, the predicate could
+fail if they are mutated.
+
+@examples{
+check:
+  b1 = box(5)
+  b2 = box(5)
+  l1 = [list: 2, b1]
+  l2 = [list: 2.1, b2]
+
+  l1 is%(within-rel-now(0.5)) l2
+  l1 is-not%(within-rel(0.5)) l2
+
+  b1!{v: 10}
+
+  l1 is-not%(within-rel-now(0.5)) l2
+end
+}
+
+  }
 }
