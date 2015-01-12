@@ -95,7 +95,7 @@ define(["./output-ui"], function(outputLib) {
   }
 
   function onKeypress(ch, key) {
-    if(key && key.name === "return") {
+    if(key && (key.name === "return" || key.name === "enter")) {
       this.return();
     }
     else if(key && key.name === "tab") {
@@ -502,7 +502,7 @@ define(["./output-ui"], function(outputLib) {
     this.rowOffset = cursorPos.rows;
   };
 
-  /*Keypress and related functions functions*/
+  /*Keypress and related functions*/
   InputUI.prototype.return = function(cmd) {
     if(this.canRun()) {
       this.run();
