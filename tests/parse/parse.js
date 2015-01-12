@@ -513,6 +513,48 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
     it("should not parse bracket exprs", function() {
       expect(parse('o.[x]')).toBe(false);
     });
+
+    it("should parse block comments", function() {
+      expect(parse('#| anything |#')).not.toBe(false);
+      expect(parse('#| even with  | pipes |#')).not.toBe(false);
+      expect(parse('#|||#')).not.toBe(false);
+      expect(parse('#||||||#')).not.toBe(false);
+      expect(parse('#| | # | # | # | # |#')).not.toBe(false);
+      expect(parse('#|#|#')).not.toBe(false);
+      expect(parse('#| back to |##| back |#')).not.toBe(false);
+      expect(parse('#||##||#')).not.toBe(false);
+      expect(parse('#|\n|#')).not.toBe(false);
+      expect(parse('#||#')).not.toBe(false);
+      expect(parse(' #||#')).not.toBe(false);
+      expect(parse('\n#||#')).not.toBe(false);
+      expect(parse('\r\n#||#')).not.toBe(false);
+      // No nesting yet
+      expect(parse('#| #| |#')).not.toBe(false);
+      expect(parse('#|#||#')).not.toBe(false);
+
+      expect(parse('#| |# # extra hash for line comment')).not.toBe(false);
+      expect(parse('#| |# closing hash doesn\'t count as line comment')).toBe(false);
+
+      expect(parse('#| |#\nfun f():\n  5\nend\n#| |#')).not.toBe(false);
+
+      // mid-expression
+      expect(parse('#| |#\nfun f():\n  5 + #| |#\n    5\nend\n#| |#')).not.toBe(false);
+      expect(parse('lam(x #| stuff |#, y): x + y end')).not.toBe(false);
+      expect(parse('lam(x #| two |##| comments|#, y): x + y end')).not.toBe(false);
+
+      // PyretDoc style?
+      expect(parse('#|\n' +
+                   '# Things\n' +
+                   '# about \n' +
+                   '# the \n' +
+                   '# program \n' +
+                   '|#')).not.toBe(false);
+
+      // notices the _first_ close comment
+      expect(parse('#| |# |#')).toBe(false);
+
+
+    });
   });
 
 
