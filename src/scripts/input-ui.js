@@ -117,13 +117,13 @@ define(["./output-ui"], function(outputLib) {
     else if(key && key.name === "backspace") {
       this.backspace();
     }
-    else if(key && key.ctrl && key.name === "c") {
+    else if(key && key.ctrl && key.name === "d") {
       this.keyboardInterrupt();
     }
-    else if(key && key.ctrl && key.name === "p") {
+    else if(key && key.ctrl && key.name === "v") {
       this.pasteToRepl();
     }
-    else if(key && key.ctrl && key.name === "v") {
+    else if(key && key.ctrl && key.name === "c") {
       this.copy();
     }
     //TODO: how to decide what keys pass through?
