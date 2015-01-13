@@ -113,8 +113,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
 
       var i = 0;
       suiteRunDefer.promise.then(
-        function(v){},
-        function(v){},
+        function(v){throw new Error('resolve should not happen');},
+        function(v){throw new Error('reject should not happen');},
         function(notifyValue){
           if(!notifyValue){
             console.log('There was an error in the benchmark.')
@@ -135,7 +135,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
                 i++;
                 suiteRunDefer.notify(true);
               },
-              function(v){}
+              function(v){throw new Error('notify should not happen');}
             );        
           }else{
             onDone();
@@ -171,7 +171,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
 
     function testDeferredFunction(src, options, funName, onDone){
       var d = Q.defer();
-      d.promise.then(function(result){
+      d.promise.then(
+        function(result){
         console.log('Current test: ' + funName);
         if(checkResult(global.rt, result)){
           console.log('PASSED');
@@ -180,8 +181,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         }
         onDone();
       },
-      function(v){},
-      function(v){});
+      function(v){throw new Error('reject should not happen');},
+      function(v){throw new Error('notify should not happen');});
 
       initializeGlobalRuntime()      
       global.programSrc = src;
@@ -204,11 +205,41 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       }
     }
 
+    function testEnsureSuccessTrue(src, onDone){
+      global.pyretOptions = {};
+      var d = Q.defer();
+      console.log('Current test: ensureSuccess returns true');
+      d.promise.then(
+        function(resolveValue){console.log('PASSED'); onDone();},
+        function(rejectValue){console.log('FAILED'); onDone();},
+        function(v){throw new Error('notify should not happen');}
+      )
+      ensureSuccess(src, d);
+    }
+
+    function testEnsureSuccessFalse(src, onDone){
+      global.pyretOptions = {};
+      var d = Q.defer();
+      console.log('Current test: ensureSuccess returns false');
+      d.promise.then(
+        function(resolveValue){console.log('FAILED'); onDone();},
+        function(rejectValue){console.log('PASSED'); onDone();},
+        function(v){throw new Error('notify should not happen');}
+      )
+      ensureSuccess(src, d);
+    }
+
     function testInternalFramework(){      
       var src = '1';
+      var badSrc = '1 + true';
+
       testDeferredFunction(src,{},'parsePyret', function(){
       testDeferredFunction(src,{},'evaluatePyret', function(){
-      testDeferredFunction(src,{},'compilePyret', function(){});
+      testDeferredFunction(src,{},'compilePyret', function(){
+      testEnsureSuccessTrue(src, function(){
+      testEnsureSuccessFalse(badSrc, function(){})  
+      });
+      });
       });
       });
     }
