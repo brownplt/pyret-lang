@@ -809,6 +809,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
+    var checkExactnum = makeCheckType(jsnums.isExact, "Exactnum");
+    var checkRoughnum = makeCheckType(jsnums.isRoughnum, "Roughnum");
+    var checkNumInteger = makeCheckType(jsnums.isInteger, "NumInteger");
+    var checkNumRational = makeCheckType(jsnums.isRational, "NumRational");
+    var checkNumPositive = makeCheckType(jsnums.isPositive, "NumPositive");
+    var checkNumNegative = makeCheckType(jsnums.isNegative, "NumNegative");
+    var checkNumNonPositive = makeCheckType(jsnums.isNonPositive, "NumNonPositive");
+    var checkNumNonNegative = makeCheckType(jsnums.isNonNegative, "NumNonNegative");
     var checkArray = makeCheckType(isArray, "Array");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
@@ -818,6 +826,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
     var NumberC = makePrimitiveAnn("Number", isNumber);
+    var ExactnumC = makePrimitiveAnn("Exactnum", jsnums.isExact);
+    var RoughnumC = makePrimitiveAnn("Roughnum", jsnums.isRoughnum);
+    var NumIntegerC = makePrimitiveAnn("NumInteger", jsnums.isInteger);
+    var NumRationalC = makePrimitiveAnn("NumRational", jsnums.isRational);
+    var NumPositiveC = makePrimitiveAnn("NumPositive", jsnums.isPositive);
+    var NumNegativeC = makePrimitiveAnn("NumNegative", jsnums.isNegative);
+    var NumNonPositiveC = makePrimitiveAnn("NumNonPositive", jsnums.isNonPositive);
+    var NumNonNegativeC = makePrimitiveAnn("NumNonNegative", jsnums.isNonNegative);
     var StringC = makePrimitiveAnn("String", isString);
     var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
     var RawArrayC = makePrimitiveAnn("RawArray", isArray);
@@ -3690,6 +3706,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
           // NOTE(joe): the $type$ sadness is because we only have one dynamic
           // namespace
           '$type$Number': NumberC,
+          '$type$Exactnum': ExactnumC,
+          '$type$Roughnum': RoughnumC,
+          '$type$NumInteger': NumIntegerC,
+          '$type$NumRational': NumRationalC,
+          '$type$NumPositive': NumPositiveC,
+          '$type$NumNegative': NumNegativeC,
+          '$type$NumNonPositive': NumNonPositiveC,
+          '$type$NumNonNegative': NumNonNegativeC,
           '$type$String': StringC,
           '$type$Boolean': BooleanC,
           '$type$Nothing': NothingC,
@@ -3700,6 +3724,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
           '$type$Any': AnyC,
 
           'Number': NumberC,
+          'Exactnum': ExactnumC,
+          'Roughnum': RoughnumC,
+          'NumInteger': NumIntegerC,
+          'NumRational': NumRationalC,
+          'NumPositive': NumPositiveC,
+          'NumNegative': NumNegativeC,
+          'NumNonPositive': NumNonPositiveC,
+          'NumNonNegative': NumNonNegativeC,
           'String': StringC,
           'Boolean': BooleanC,
           'Nothing': NothingC,
@@ -3845,6 +3877,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeRecordAnn': makeRecordAnn,
 
         'Number': NumberC,
+        'Exactnum': ExactnumC,
+        'Roughnum': RoughnumC,
+        'NumInteger': NumIntegerC,
+        'NumRational': NumRationalC,
+        'NumPositive': NumPositiveC,
+        'NumNegative': NumNegativeC,
+        'NumNonPositive': NumNonPositiveC,
+        'NumNonNegative': NumNonNegativeC,
         'String': StringC,
         'Boolean': BooleanC,
         'RawArray': RawArrayC,

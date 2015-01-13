@@ -183,6 +183,14 @@ end
 
 runtime-types = lists.map(type-id, [list:
   "Number",
+  "Exactnum",
+  "Roughnum",
+  "NumInteger",
+  "NumRational",
+  "NumPositive",
+  "NumNegative",
+  "NumNonPositive",
+  "NumNonNegative",
   "String",
   "Function",
   "Boolean",
