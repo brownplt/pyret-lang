@@ -21,6 +21,16 @@ String.prototype.eatNext = function(reg) {
   return this.slice(1, this.length);
 };
 
+String.prototype.eatUntil = function(reg) {
+  var str = this;
+
+  while(str && !str.match(reg)) {
+    str = str.eatNext();
+  }
+
+  return str.eat(reg);
+};
+
 define([], function() {
   var pyret_indent_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
   var pyret_keywords =
@@ -61,8 +71,8 @@ define([], function() {
   var pyret_indent_double = /^\s*(data|ask|cases)($|\b|\s+)/;
   var pyret_colon = /^\s*:($|\b|\s+)/;
   var pyret_end = /^\s*end($|\b|\s+)/;
-  var pyret_open_braces = /^\s*(\(|\[|\{)($|\b|\s+)/;
-  var pyret_close_braces = /^\s*(\)|\]|\})($|\b|\s+)/;
+  var pyret_open_braces = /^\s*(\(|\[|\{)/;
+  var pyret_close_braces = /^\s*(\)|\]|\})/;
 
   var STYLE_MAP = {
     'default': {
@@ -453,8 +463,7 @@ define([], function() {
 	  lastCmd = cmd;
 
 	  if(cmd.match(pyret_no_indent)) {
-	    cmd = cmd.eat(pyret_no_indent);
-	    addColon = false;
+	    cmd = cmd.eat(pyret_no_indent).eatUntil(pyret_colon);
 	  }
 	  else if(cmd.match(pyret_unindent_single_soft)) {
 	    cmd = cmd.eat(pyret_unindent_single_soft);
@@ -468,9 +477,11 @@ define([], function() {
 	    indentArray.unshift(Indenter.UNINDENT);
 	  }
 	  else if(cmd.match(pyret_indent_double)) {
-	    cmd = cmd.eat(pyret_indent_double);
+	    cmd = cmd.eat(pyret_indent_double).eatUntil(pyret_colon);
 	    indentArray.unshift(Indenter.INDENT_DOUBLE);
-	    addColon = false;
+	  }
+	  else if(cmd.match(pyret_double_punctuation)) {
+	    cmd = cmd.eat(pyret_double_punctuation);
 	  }
 	  else if(cmd.match(pyret_colon)) {
 	    cmd = cmd.eat(pyret_colon);
@@ -490,6 +501,7 @@ define([], function() {
 	  else if(cmd.match(pyret_close_braces)) {
 	    cmd = cmd.eat(pyret_close_braces);
 	    indentArray = this.unindent(indentArray);
+	    addColon = true;
 	  }
 	  else if(cmd.match(pyret_end)) {
 	    cmd = cmd.eat(pyret_end);
@@ -499,6 +511,13 @@ define([], function() {
 	    cmd = cmd.eat(pyret_keywords);
 	    addColon = true;
 	  }
+	  else if(cmd.match(pyret_keywords_colon)) {
+	    cmd = cmd.eat(pyret_keywords_colon);
+
+	    if(cmd.match(pyret_colon)) {
+	      cmd = cmd.eat(pyret_colon);
+	    }
+	  }
 	  else if(cmd.match(pyret_indent_regex)) {
 	    cmd = cmd.eat(pyret_indent_regex).eat(/^\s*/);
 	  }
@@ -506,7 +525,6 @@ define([], function() {
 	    cmd = cmd.eatNext();
 	  }
 	}
-
 	return indentArray;
       };
 

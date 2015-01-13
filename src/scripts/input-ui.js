@@ -174,8 +174,8 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.getLine = function(offset, ignoreNl) {
     var matches = this.line.match(/.*\n|.+$/g);
-    var cursorPos = this.getCursorPos();
-    var lineIndex = cursorPos.rows + offset;
+    var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
+      + offset;
 
     if(matches) {
       lineIndex = lineIndex < 0 ? 0 : lineIndex;
@@ -199,8 +199,8 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.getLinesBefore = function(offset) {
     var matches = this.line.match(/.*\n|.+$/g);
-    var cursorPos = this.getCursorPos();
-    var lineIndex = cursorPos.rows + offset;
+    var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
+      + offset;
 
     if(matches) {
       lineIndex = lineIndex < 0 ? 0 : lineIndex;
@@ -372,8 +372,8 @@ define(["./output-ui"], function(outputLib) {
   /*Display functions*/
   InputUI.prototype.replaceLine = function(offset, str) {
     var matches = this.line.match(/.*\n|.+$/g);
-    var cursorPos = this.getCursorPos();
-    var lineIndex = cursorPos.rows + offset;
+    var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
+      + offset;
 
     if(matches) {
       lineIndex = lineIndex < 0 ? 0 : lineIndex;
