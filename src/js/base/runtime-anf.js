@@ -337,9 +337,9 @@ var nothing = makeNothing();
     @param {Object} obj the item to test
     @return {boolean} true if object is a PNumber
 */
-function isNumber(obj) {
-  return jsnums.isSchemeNumber(obj);
-}
+
+var isNumber = jsnums.isSchemeNumber;
+
 function isJSNumber(obj) {
   return typeof obj === "number";
 }
