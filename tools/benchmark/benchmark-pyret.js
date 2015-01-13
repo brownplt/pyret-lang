@@ -7,6 +7,13 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     // have access to evalLib
     global.evalLib = evalLib;
 
+    function initializeGlobalRuntime(){
+      global.rt = RT.makeRuntime({
+        initialGas: 500,
+        stdout: function(str) {},
+        stderr: function(str) {}
+      });
+    }
     function parsePyret(deferred){
       global.evalLib.runParsePyret(global.rt,global.programSrc,global.pyretOptions,function(parsed){
         deferred.resolve(parsed);
@@ -33,9 +40,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     // figure out if we can easily separate out the portion of
     //  evaluation that happens after compliation
     function loadPyretSetup(){
-      //global.mod = global.evalLib.loadParsedPyret(global.rt,global.ast,global.pyretOptions);
       throw new Error('unimplemented');
     }
+
     function evaluateLoadedPyret(deferred){
       throw new Error('unimplemented');
     }
@@ -70,11 +77,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     }
 
     function runBenchmarks(tests, options, onDone){      
-      global.rt = RT.makeRuntime({
-        initialGas: 500,
-        stdout: function(str) {},
-        stderr: function(str) {}
-      });
+      initializeGlobalRuntime();
 
       global.ast = undefined;
       global.mod = undefined;
@@ -179,13 +182,11 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       },
       function(v){},
       function(v){});
-      global.rt = RT.makeRuntime({
-        initialGas: 500,
-        stdout: function(str) {},
-        stderr: function(str) {}
-      });
+
+      initializeGlobalRuntime()      
       global.programSrc = src;
       global.pyretOptions = options;
+
       switch(funName){
         case 'parsePyret': 
           parsePyret(d);
