@@ -192,9 +192,25 @@
 
 @docmodule["numbers" #:noimport #t #:friendly-title "Numbers"]{
    @type-spec["Number" (list)]
-     @para{
        The type of number values
-     }
+
+@type-spec["Exactnum" (list)]
+The type of exact number values
+@type-spec["Roughnum" (list)]
+The type of roughnum values
+@type-spec["NumInteger" (list)]
+The type of exact integer values
+@type-spec["NumRational" (list)]
+The type of exact rational number values
+@type-spec["NumPositive" (list)]
+The type of number values that are greater than zero
+@type-spec["NumNegative" (list)]
+The type of number values that are less than zero
+@type-spec["NumNonPositive" (list)]
+The type of number values that are less than or equal to zero
+@type-spec["NumNonNegative" (list)]
+The type of number values that are equal to or greater than zero
+
      @section{Number Literals}
 
 Literal exact rationals can be integers,  fractions represented
