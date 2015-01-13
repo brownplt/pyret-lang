@@ -4,6 +4,7 @@
 var events = require("events");
 var chalk = require("chalk");
 var keypress = require("keypress");
+var copy_paste = require("copy-paste");
 
 define(["./output-ui"], function(outputLib) {
   var outputUI = outputLib('default');
@@ -119,10 +120,16 @@ define(["./output-ui"], function(outputLib) {
     else if(key && key.ctrl && key.name === "c") {
       this.keyboardInterrupt();
     }
+    else if(key && key.ctrl && key.name === "p") {
+      this.pasteToRepl();
+    }
+    else if(key && key.ctrl && key.name === "v") {
+      this.copy();
+    }
     //TODO: how to decide what keys pass through?
     else {
       if(ch) {
-	this.addChar(ch);
+	this.addStr(ch);
       }
     }
   }
@@ -303,19 +310,19 @@ define(["./output-ui"], function(outputLib) {
   };
 
   /*Modifying state functions*/
-  InputUI.prototype.addChar = function(ch) {
+  InputUI.prototype.addStr = function(str) {
     if(this.cursorPosition < this.line.length) {
       this.line = this.line.substring(0, this.cursorPosition)
-	+ ch
+	+ str
 	+ this.line.substring(this.cursorPosition, this.line.length);
     }
     else {
-      this.line += ch;
+      this.line += str;
     }
 
-    this.cursorPosition += 1;
+    this.cursorPosition += str.length;
 
-    if(ch === " ") {
+    if(str === " ") {
       this.refreshLine();
     }
     else {
@@ -497,13 +504,33 @@ define(["./output-ui"], function(outputLib) {
   };
 
   /*Keypress and related functions*/
-  InputUI.prototype.return = function(cmd) {
-    if(this.canRun()) {
-      this.run();
+  InputUI.prototype.doublePress = function(key, success, failure, timeout) {
+    if(this.lastKey === key) {
+      this.lastKey = "";
+      clearTimeout(this[key + 'Var']);
+      success();
     }
     else {
-      this.addChar("\n");
+      this.lastKey = key;
+
+      this[key + 'Var'] = setTimeout(function() {
+	this.lastKey = "";
+	failure();
+      }.bind(this), timeout);
     }
+  };
+
+  InputUI.prototype.return = function(cmd) {
+    this.doublePress("enter", function() {
+      this.addStr("\n");
+    }.bind(this), function() {
+	if(this.canRun()) {
+	  this.run();
+	}
+	else {
+	  this.addStr("\n");
+	}
+    }.bind(this), 200);
   };
 
   InputUI.prototype.canRun = function() {
@@ -525,10 +552,14 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.tab = function() {
-    if(this.lastKey === "tab") {
-      this.lastKey = "";
-      clearTimeout(this.tabVar);
+    this.doublePress("tab", function() {
+      this.indentAll();
+    }.bind(this), function() {
+	this.addIndent();
+    }.bind(this), 200);
+  };
 
+  InputUI.prototype.indentAll = function() {
       var oldCursorPos = this.cursorPosition;
       var lastCursorPos = -1;
       this.cursorPosition = 0;
@@ -541,15 +572,6 @@ define(["./output-ui"], function(outputLib) {
 
       this.cursorPosition = oldCursorPos;
       this.refreshLine();
-    }
-    else {
-      this.lastKey = "tab";
-
-      this.tabVar = setTimeout(function() {
-	this.lastKey = "";
-	this.addIndent();
-      }.bind(this), 200);
-    }
   };
 
   InputUI.prototype.historyPrev = function() {
@@ -616,19 +638,10 @@ define(["./output-ui"], function(outputLib) {
     if(this.historyIndex < this.history.length - 1 &&
 	numLines(this.line) > 1 &&
 	numLines(this.line.slice(0, this.cursorPosition)) === 1) {
-      if(this.lastKey === "up") {
-	this.lastKey = "";
-	clearTimeout(this.upVar);
 
+      this.doublePress("up", function() {
 	this.keyUpBase();
-      }
-      else {
-	this.lastKey = "up";
-
-	this.upVar = setTimeout(function() {
-	  this.lastKey = "";
-	}.bind(this), 200);
-      }
+      }.bind(this), function() {}, 250)
     }
     else {
       this.keyUpBase();
@@ -640,19 +653,10 @@ define(["./output-ui"], function(outputLib) {
 	numLines(this.line) > 1 &&
 	numLines(this.line.slice(0, this.cursorPosition))
 	=== numLines(this.line)) {
-      if(this.lastKey === "down") {
-	this.lastKey = "";
-	clearTimeout(this.downVar);
 
+      this.doublePress("down", function() {
 	this.keyDownBase();
-      }
-      else {
-	this.lastKey = "down";
-
-	this.downVar = setTimeout(function() {
-	  this.lastKey = "";
-	}.bind(this), 200);
-      }
+      }.bind(this), function() {}, 250)
     }
     else {
       this.keyDownBase();
@@ -699,6 +703,29 @@ define(["./output-ui"], function(outputLib) {
     else {
       process.exit();
     }
+  };
+
+  InputUI.prototype.pasteToRepl = function() {
+    copy_paste.paste(function(_, text) {
+      text = text.replace(/\r/g, "\n");
+      this.addStr(text);
+    }.bind(this));
+  };
+
+  InputUI.prototype.copy = function() {
+    this.doublePress("ctrl-v", function() {
+      this.copyBlock();
+    }.bind(this), function() {
+      this.copyLine();
+    }.bind(this), 300);
+  };
+
+  InputUI.prototype.copyBlock = function() {
+    copy_paste.copy(this.line);
+  };
+
+  InputUI.prototype.copyLine = function() {
+    copy_paste.copy(this.getLine(0, true));
   };
 
   InputUI.prototype.__proto__ = events.EventEmitter.prototype;
