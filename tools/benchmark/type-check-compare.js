@@ -1,18 +1,11 @@
-var b = require('benchmark-pyret');
+r = require("requirejs");
 
-
-var benchmarks = 
-[
-{program: '', name: '"" (empty)'},
-{program: '1', name: '"1"'},
-{program: 'lam(x): x end', name: '"lam(x): x end"'}
-];
-
-console.log('WITH TYPE CHECKING');
-b.runBenchmarks(benchmarks, {'typeCheck': true}, function(){
-	console.log('WITHOUT TYPE CHECKING');
-	b.runBenchmarks(benchmarks, {'typeCheck': false}, function(){});
+r.config({
+  paths: {
+    trove: "../../build/phase1/trove",
+    js: "../../build/phase1/js",
+    compiler: "../../build/phase1/arr/compiler"
+  }
 });
 
-
-
+r(["type-check-compare-code"], function(p) { });

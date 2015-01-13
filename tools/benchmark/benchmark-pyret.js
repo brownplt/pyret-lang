@@ -9,23 +9,23 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
 
     function parsePyret(deferred){
       global.evalLib.runParsePyret(global.rt,global.programSrc,global.pyretOptions,function(parsed){
-        deferred.resolve();
+        deferred.resolve(parsed);
       });   
     }
 
     function parsePyretSetup(){ 
-      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
+      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);      
     }
 
     function evaluatePyret(deferred){
-      global.evalLib.runEvalParsedPyret(global.rt,global.ast,global.pyretOptions,function(result){
-        deferred.resolve();
+      global.evalLib.runEvalParsedPyret(global.rt,global.ast,global.pyretOptions,function(result){        
+        deferred.resolve(result);
       });
     }
 
     function compilePyret(deferred){  
-      global.evalLib.runCompilePyret(global.rt,global.ast,global.pyretOptions,function(compiled){
-        deferred.resolve();
+      global.evalLib.runCompilePyret(global.rt,global.ast,global.pyretOptions,function(compiled){        
+        deferred.resolve(compiled);
       });  
     }
 
@@ -40,7 +40,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       throw new Error('unimplemented');
     }
 
-    //used by ensureSuccess
+
+
     function checkResult(runtime, result){
       if(runtime.isSuccessResult(result)) {
         return true;
@@ -49,7 +50,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       }
     }
 
-    //run internall before each benchmark        
+    //run internally before each benchmark        
     function ensureSuccess(src, deferred){
       console.log('Ensuring program runs successfully...');
       var newRT = RT.makeRuntime({
@@ -165,10 +166,57 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       runBenchmarks(benchmarks, options, onDone);
     }
 
+    function testDeferredFunction(src, options, funName, onDone){
+      var d = Q.defer();
+      d.promise.then(function(result){
+        console.log('Current test: ' + funName);
+        if(checkResult(global.rt, result)){
+          console.log('PASSED');
+        } else {
+          console.log('FAILED');
+        }
+        onDone();
+      },
+      function(v){},
+      function(v){});
+      global.rt = RT.makeRuntime({
+        initialGas: 500,
+        stdout: function(str) {},
+        stderr: function(str) {}
+      });
+      global.programSrc = src;
+      global.pyretOptions = options;
+      switch(funName){
+        case 'parsePyret': 
+          parsePyret(d);
+        break;
+        case 'evaluatePyret':
+          parsePyretSetup();
+          evaluatePyret(d);
+        break;
+        case 'compilePyret':
+          parsePyretSetup();
+          compilePyret(d);
+        break;
+        default:
+          throw new Error('Invalid Function Name: ' + funName);
+      }
+    }
+
+    function testInternalFramework(){      
+      var src = '1';
+      testDeferredFunction(src,{},'parsePyret', function(){
+      testDeferredFunction(src,{},'evaluatePyret', function(){
+      testDeferredFunction(src,{},'compilePyret', function(){});
+      });
+      });
+    }
+
     return {
       runBenchmarks: runBenchmarks,
       evaluateProgram: evaluateProgram,
-      runFile: runFile
+      runFile: runFile,
+      testInternalFramework: testInternalFramework
     };
 
   });
