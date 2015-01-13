@@ -197,6 +197,25 @@ define(["./output-ui"], function(outputLib) {
     }
   };
 
+  InputUI.prototype.getLineUntilCursor = function() {
+    var matches = this.line.match(/.*\n|.+$/g);
+    var cursorPos = this.cursorPosition;
+
+    if(matches && matches.length > 1) {
+      var curMatch = matches.shift();
+
+      while(curMatch && cursorPos > curMatch.length) {
+	cursorPos -= curMatch.length;
+	curMatch = matches.shift();
+      }
+
+      return curMatch.slice(0, cursorPos);
+    }
+    else {
+      return this.line.slice(0, cursorPos);
+    }
+  };
+
   InputUI.prototype.getLinesBefore = function(offset) {
     var matches = this.line.match(/.*\n|.+$/g);
     var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
@@ -489,16 +508,13 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.canRun = function() {
     var curLine = this.getLine(0, false);
-    var cursorPos = this.getCursorPos();
-    var savePos = this.cursorPosition;
+    var displayLines = numLines(this.line);
+    var cursorLines = numLines(this.line.slice(0, this.cursorPosition));
 
-    this.cursorPosition = this.line.length;
-    var displayPos = this.getCursorPos();
-    this.cursorPosition = savePos;
     this.syncIndentArray(1);
 
-    return (this.indentArray.length === 0 && displayPos.rows === 0)
-      || (curLine === "" && cursorPos.rows === displayPos.rows);
+    return (this.indentArray.length === 0 && displayLines === 1)
+      || (curLine === "" && cursorLines === displayLines);
   };
 
   InputUI.prototype.run = function() {
@@ -554,18 +570,19 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.keyUpBase = function(noHistory) {
     if(numLines(this.line.slice(0, this.cursorPosition)) > 1) {
+      var curLineSlice = this.getLineUntilCursor();
       var nextLine = this.getLine(-1, true);
-      var oldCursorPos = this.getCursorPos();
-      this.cursorPosition -= nextLine.length;
-      var newCursorPos = this.getCursorPos();
 
-      if(newCursorPos.rows !== oldCursorPos.rows - 1 && oldCursorPos.rows > 0) {
+      var oldCursorLines = numLines(this.line.slice(0, this.cursorPosition));
+      this.cursorPosition -= nextLine.length;
+      var newCursorLines = numLines(this.line.slice(0, this.cursorPosition));
+
+      if(newCursorLines !== oldCursorLines - 1 && oldCursorLines > 1) {
 	this.cursorPosition += nextLine.length;
-	this.cursorPosition -= (oldCursorPos.cols - this.promptString.length) + 1;
+	this.cursorPosition -= curLineSlice.length + 1;
       }
-      else {
-	this.refreshLine();
-      }
+
+      this.refreshLine();
 
     }
     else if(!noHistory) {
@@ -576,13 +593,15 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.keyDownBase = function(noHistory) {
     if(numLines(this.line.slice(this.cursorPosition, this.line.length)) > 1) {
       var curLine = this.getLine(0, true);
+      var curLineSlice = this.getLineUntilCursor();
       var nextLine = this.getLine(1, true);
-      var oldCursorPos = this.getCursorPos();
-      this.cursorPosition += curLine.length;
-      var newCursorPos = this.getCursorPos();
 
-      if(newCursorPos.rows !== oldCursorPos.rows + 1) {
-	this.cursorPosition -= (oldCursorPos.cols - this.promptString.length);
+      var oldCursorLines = numLines(this.line.slice(0, this.cursorPosition));
+      this.cursorPosition += curLine.length;
+      var newCursorLines = numLines(this.line.slice(0, this.cursorPosition));
+
+      if(newCursorLines !== oldCursorLines + 1) {
+	this.cursorPosition -= curLineSlice.length;
 	this.cursorPosition += nextLine.length - 1;
       }
 
