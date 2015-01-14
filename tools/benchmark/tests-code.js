@@ -15,7 +15,7 @@ describe('ensureSuccess', function() {
   	runs(function(){
   		passed = false;
   		flag = false;
-  		b.test.testEnsureSuccess(validProgram,function(result){
+  		b.test.testEnsureSuccess(validProgram, {}, function(result){
   			passed = result;
   			flag = true;
   		})
@@ -36,7 +36,7 @@ describe('ensureSuccess', function() {
   	runs(function(){
   		passed = false;
   		flag = false;
-  		b.test.testEnsureSuccess(invalidProgram,function(result){
+  		b.test.testEnsureSuccess(invalidProgram,{},function(result){
   			passed = result;
   			flag = true;
   		})
@@ -57,7 +57,7 @@ describe('ensureSuccess', function() {
   	runs(function(){
   		passed = false;
   		flag = false;
-  		b.test.testEnsureSuccess(nonParsableProgram,function(result){
+  		b.test.testEnsureSuccess(nonParsableProgram,{},function(result){
   			passed = result;
   			flag = true;
   		})
@@ -71,7 +71,6 @@ describe('ensureSuccess', function() {
   		expect(passed).toBe(false);
   	});
   });
-
 });
 
 describe('parsePyret', function(){
@@ -116,7 +115,6 @@ describe('parsePyret', function(){
   		expect(passed).toBe(false);
   	});
   });
-
 });
 
 describe('compilePyret', function(){
@@ -184,7 +182,18 @@ describe('evaluatePyret', function(){
   		expect(passed).toBe(false);
   	});
   });
-
 });
+
+describe('initializeGlobalRuntime', function(){
+	it('sets a runtime to global.rt', function(){
+		expect(b.test.testInitializeGlobalRuntime()).toBe(true);
+	})
+})
+
+describe('parsePyretSetup', function(){
+	it('sets the result of a valid program to global.ast', function(){
+		expect(b.test.testParsePyretSetup(validProgram, {})).toBe(true);
+	})
+})
 
 jasmine.getEnv().execute();

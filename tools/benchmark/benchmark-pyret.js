@@ -203,10 +203,10 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         default:
           throw new Error('Invalid Function Name: ' + funName);
       }
-    }
+    }    
 
-    function testEnsureSuccess(src, onDone){
-      global.pyretOptions = {};
+    function testEnsureSuccess(src, options, onDone){
+      global.pyretOptions = options;
       var d = Q.defer();
       d.promise.then(
         function(resolveValue){onDone(true);},
@@ -216,13 +216,32 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       ensureSuccess(src, d);
     }
 
+    function testInitializeGlobalRuntime(){
+      global.rt = undefined;
+      initializeGlobalRuntime();
+      return (typeof global.rt !== 'undefined');
+    }
+
+    function testParsePyretSetup(src, options){
+      global.ast = undefined;
+      
+      global.pyretOptions = options;      
+      global.programSrc = src;
+      initializeGlobalRuntime();
+
+      parsePyretSetup();
+      return (typeof global.ast !== 'undefined');
+    }
+
     return {
       runBenchmarks: runBenchmarks,      
       runFile: runFile,
       evaluateProgram: evaluateProgram,
       test: {
         testDeferredFunction: testDeferredFunction,
-        testEnsureSuccess: testEnsureSuccess
+        testEnsureSuccess: testEnsureSuccess,
+        testInitializeGlobalRuntime: testInitializeGlobalRuntime,
+        testParsePyretSetup: testParsePyretSetup
       }
     };
 
