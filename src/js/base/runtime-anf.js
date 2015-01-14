@@ -825,25 +825,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var checkOpaque = makeCheckType(isOpaque, "Opaque");
     var checkPyretVal = makeCheckType(isPyretVal, "Pyret Value");
 
-    var NumberC = makePrimitiveAnn("Number", isNumber);
-    var ExactnumC = makePrimitiveAnn("Exactnum", jsnums.isExact);
-    var RoughnumC = makePrimitiveAnn("Roughnum", jsnums.isRoughnum);
-    var NumIntegerC = makePrimitiveAnn("NumInteger", jsnums.isInteger);
-    var NumRationalC = makePrimitiveAnn("NumRational", jsnums.isRational);
-    var NumPositiveC = makePrimitiveAnn("NumPositive", jsnums.isPositive);
-    var NumNegativeC = makePrimitiveAnn("NumNegative", jsnums.isNegative);
-    var NumNonPositiveC = makePrimitiveAnn("NumNonPositive", jsnums.isNonPositive);
-    var NumNonNegativeC = makePrimitiveAnn("NumNonNegative", jsnums.isNonNegative);
-    var StringC = makePrimitiveAnn("String", isString);
-    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
-    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
-    var FunctionC = makePrimitiveAnn("Function",
-      function(v) { return isFunction(v) || isMethod(v) });
-    var MethodC = makePrimitiveAnn("Method", isMethod);
-    var NothingC = makePrimitiveAnn("Nothing", isNothing);
-    var ObjectC = makePrimitiveAnn("Object", isObject);
-    var AnyC = makePrimitiveAnn("Any", function() { return true; });
-
     function confirm(val, test) {
       thisRuntime.checkArity(2, arguments, "runtime");
       if(!test(val)) {
@@ -2198,6 +2179,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     function makePrimitiveAnn(name, jsPred) {
       return new PPrimAnn(name, jsPred);
+    }
+
+    function makePrimAnn(name, jsPred) {
+      var nameC = new PPrimAnn(name, jsPred);
+          // NOTE(joe): the $type$ sadness is because we only have one dynamic
+          // namespace
+      runtimeNamespaceBindings['$type$' + name] = nameC;
+      runtimeNamespaceBindings[name] = nameC;
+      thisRuntime[name] = nameC;
     }
 
     function PAnnList(anns) {
@@ -3680,10 +3670,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
-    //Export the runtime
-    //String keys should be used to prevent renaming
-    var thisRuntime = {
-        'namespace': Namespace.namespace({
+    var runtimeNamespaceBindings = {
           'torepr': torepr,
           'tostring': tostring,
           'test-print': print,
@@ -3702,44 +3689,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
-
-          // NOTE(joe): the $type$ sadness is because we only have one dynamic
-          // namespace
-          '$type$Number': NumberC,
-          '$type$Exactnum': ExactnumC,
-          '$type$Roughnum': RoughnumC,
-          '$type$NumInteger': NumIntegerC,
-          '$type$NumRational': NumRationalC,
-          '$type$NumPositive': NumPositiveC,
-          '$type$NumNegative': NumNegativeC,
-          '$type$NumNonPositive': NumNonPositiveC,
-          '$type$NumNonNegative': NumNonNegativeC,
-          '$type$String': StringC,
-          '$type$Boolean': BooleanC,
-          '$type$Nothing': NothingC,
-          '$type$Function': FunctionC,
-          '$type$RawArray': RawArrayC,
-          '$type$Method': MethodC,
-          '$type$Object': ObjectC,
-          '$type$Any': AnyC,
-
-          'Number': NumberC,
-          'Exactnum': ExactnumC,
-          'Roughnum': RoughnumC,
-          'NumInteger': NumIntegerC,
-          'NumRational': NumRationalC,
-          'NumPositive': NumPositiveC,
-          'NumNegative': NumNegativeC,
-          'NumNonPositive': NumNonPositiveC,
-          'NumNonNegative': NumNonNegativeC,
-          'String': StringC,
-          'Boolean': BooleanC,
-          'Nothing': NothingC,
-          'Function': FunctionC,
-          'RawArray': RawArrayC,
-          'Method': MethodC,
-          'Object': ObjectC,
-          'Any': AnyC,
 
           'run-task': makeFunction(execThunk),
 
@@ -3846,7 +3795,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
           'exn-unwrap': makeFunction(getExnValue)
 
-        }),
+        };
+
+    //Export the runtime
+    //String keys should be used to prevent renaming
+    var thisRuntime = {
         'run': run,
         'runThunk': runThunk,
         'safeCall': safeCall,
@@ -3875,24 +3828,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makePrimitiveAnn': makePrimitiveAnn,
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
-
-        'Number': NumberC,
-        'Exactnum': ExactnumC,
-        'Roughnum': RoughnumC,
-        'NumInteger': NumIntegerC,
-        'NumRational': NumRationalC,
-        'NumPositive': NumPositiveC,
-        'NumNegative': NumNegativeC,
-        'NumNonPositive': NumNonPositiveC,
-        'NumNonNegative': NumNonNegativeC,
-        'String': StringC,
-        'Boolean': BooleanC,
-        'RawArray': RawArrayC,
-        'Any': AnyC,
-        'Function': FunctionC,
-        'Method': MethodC,
-        'Object': ObjectC,
-        'Nothing': NothingC,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,
@@ -4086,6 +4021,26 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'setParam' : setParam,
         'hasParam' : hasParam
     };
+
+    makePrimAnn("Number", isNumber);
+    makePrimAnn("Exactnum", jsnums.isExact);
+    makePrimAnn("Roughnum", jsnums.isRoughnum);
+    makePrimAnn("NumInteger", jsnums.isInteger);
+    makePrimAnn("NumRational", jsnums.isRational);
+    makePrimAnn("NumPositive", jsnums.isPositive);
+    makePrimAnn("NumNegative", jsnums.isNegative);
+    makePrimAnn("NumNonPositive", jsnums.isNonPositive);
+    makePrimAnn("NumNonNegative", jsnums.isNonNegative);
+    makePrimAnn("String", isString);
+    makePrimAnn("Boolean", isBoolean);
+    makePrimAnn("RawArray", isArray);
+    makePrimAnn("Function", function(v) { return isFunction(v) || isMethod(v) });
+    makePrimAnn("Method", isMethod);
+    makePrimAnn("Nothing", isNothing);
+    makePrimAnn("Object", isObject);
+    makePrimAnn("Any", function() { return true; });
+
+    thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);
 
     var ffi = {
       contractOk: true,
