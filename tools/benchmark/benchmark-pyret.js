@@ -58,15 +58,13 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     }
 
     //run internally before each benchmark        
-    function ensureSuccess(src, deferred){
-      console.log('Ensuring program runs successfully...');
+    function ensureSuccess(src, deferred){      
       var newRT = RT.makeRuntime({
         initialGas: 500,
         stdout: function(str) {},
         stderr: function(str) {}
       })
       global.evalLib.runEvalPyret(newRT, src, global.pyretOptions, function(result){ 
-        console.log('...done.');
         var check = checkResult(newRT, result);
         if(check){
           deferred.resolve(check);
@@ -122,16 +120,18 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
           if(i < tests.length){
             console.log('CURRENT BENCHMARK: ' + tests[i].name);
             var ensureSuccessDefer = Q.defer();
+            console.log('Ensuring program runs successfully...');
             ensureSuccess(tests[i].program, ensureSuccessDefer);
             ensureSuccessDefer.promise.then(
               function(v){
+                console.log('...done.');
                 global.programSrc = tests[i].program;
                 suite.run({'async': false});
                 i++;
                 //suite.run will notify suiteRunDefer
               },
               function(v){
-                console.log('Program did not run successfully. Moving on to next benchmark.\n');
+                console.log('...program did not run successfully. Moving on to next benchmark.\n');
                 i++;
                 suiteRunDefer.notify(true);
               },
@@ -170,16 +170,16 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     }
 
     function testDeferredFunction(src, options, funName, onDone){
+      initializeGlobalRuntime();
       var d = Q.defer();
       d.promise.then(
         function(result){
-        console.log('Current test: ' + funName);
         if(checkResult(global.rt, result)){
-          console.log('PASSED');
+          onDone(true);
         } else {
-          console.log('FAILED');
+          onDone(false);
         }
-        onDone();
+        //onDone();
       },
       function(v){throw new Error('reject should not happen');},
       function(v){throw new Error('notify should not happen');});
@@ -192,63 +192,38 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         case 'parsePyret': 
           parsePyret(d);
         break;
-        case 'evaluatePyret':
-          parsePyretSetup();
-          evaluatePyret(d);
-        break;
         case 'compilePyret':
           parsePyretSetup();
           compilePyret(d);
+        break;
+        case 'evaluatePyret':
+          parsePyretSetup();
+          evaluatePyret(d);
         break;
         default:
           throw new Error('Invalid Function Name: ' + funName);
       }
     }
 
-    function testEnsureSuccessTrue(src, onDone){
+    function testEnsureSuccess(src, onDone){
       global.pyretOptions = {};
       var d = Q.defer();
-      console.log('Current test: ensureSuccess returns true');
       d.promise.then(
-        function(resolveValue){console.log('PASSED'); onDone();},
-        function(rejectValue){console.log('FAILED'); onDone();},
+        function(resolveValue){onDone(true);},
+        function(rejectValue){onDone(false);},
         function(v){throw new Error('notify should not happen');}
       )
       ensureSuccess(src, d);
-    }
-
-    function testEnsureSuccessFalse(src, onDone){
-      global.pyretOptions = {};
-      var d = Q.defer();
-      console.log('Current test: ensureSuccess returns false');
-      d.promise.then(
-        function(resolveValue){console.log('FAILED'); onDone();},
-        function(rejectValue){console.log('PASSED'); onDone();},
-        function(v){throw new Error('notify should not happen');}
-      )
-      ensureSuccess(src, d);
-    }
-
-    function testInternalFramework(){      
-      var src = '1';
-      var badSrc = '1 + true';
-
-      testDeferredFunction(src,{},'parsePyret', function(){
-      testDeferredFunction(src,{},'evaluatePyret', function(){
-      testDeferredFunction(src,{},'compilePyret', function(){
-      testEnsureSuccessTrue(src, function(){
-      testEnsureSuccessFalse(badSrc, function(){})  
-      });
-      });
-      });
-      });
     }
 
     return {
-      runBenchmarks: runBenchmarks,
-      evaluateProgram: evaluateProgram,
+      runBenchmarks: runBenchmarks,      
       runFile: runFile,
-      testInternalFramework: testInternalFramework
+      evaluateProgram: evaluateProgram,
+      test: {
+        testDeferredFunction: testDeferredFunction,
+        testEnsureSuccess: testEnsureSuccess
+      }
     };
 
   });
