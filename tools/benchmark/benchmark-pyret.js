@@ -74,6 +74,21 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       }); 
     }
 
+    function createSuite(){
+      var suite = new Benchmark.Suite();
+
+      suite.add('Parse    (src -> ast)', parsePyret, {'defer': true});
+      suite.add('Compile  (ast -> js) ', compilePyret, {'setup': parsePyretSetup, 'defer': true});
+      suite.add('Evaluate (ast -> res)', evaluatePyret, {'setup': parsePyretSetup, 'defer': true});     
+
+
+      suite.on('cycle', function(event) {
+        console.log(String(event.target).replace('\xb1', '+/- ')); 
+      });      
+
+      return suite;      
+    }
+
     function runBenchmarks(tests, options, onDone){      
       initializeGlobalRuntime();
 
@@ -81,18 +96,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       global.mod = undefined;
       global.pyretOptions = options;
 
-      var suite = new Benchmark.Suite();
-
-      //suite.add('Just Resolve Deffered Object', function(deferred){deferred.resolve();}, {'defer': true});
-      suite.add('Parse    (src -> ast)', parsePyret, {'defer': true});
-      suite.add('Compile  (ast -> js) ', compilePyret, {'setup': parsePyretSetup, 'defer': true});
-      suite.add('Evaluate (ast -> res)', evaluatePyret, {'setup': parsePyretSetup, 'defer': true});
-      //suite.add('Evaluate (js -> res)', evaluateLoadedPyret, {'setup': loadPyretSetup, 'defer': true});
-
-
-      suite.on('cycle', function(event) {
-        console.log(String(event.target).replace('\xb1', '+/- ')); 
-      });
+      var suite = createSuite();
+      var suiteRunDefer = Q.defer();
 
       suite.on('complete', function() {
         console.log('Fastest is ' + this.filter('fastest').pluck('name'));
@@ -105,10 +110,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         console.log(event.target.error); 
         suiteRunDefer.notify(false);
       });
-
-      var suiteRunDefer = Q.defer();
       
-
       var i = 0;
       suiteRunDefer.promise.then(
         function(v){throw new Error('resolve should not happen');},
@@ -242,7 +244,12 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         var result = global.rt.makeFailureResult(undefined);
         return checkResult(global.rt, result);
       }
+    }
 
+    function testCreateSuite(){
+      var SUITE_LENGTH = 3;
+      var suite = createSuite();
+      return (suite instanceof Benchmark.Suite && suite.length == SUITE_LENGTH);
     }
 
     return {
@@ -254,7 +261,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         testEnsureSuccess: testEnsureSuccess,
         testInitializeGlobalRuntime: testInitializeGlobalRuntime,
         testParsePyretSetup: testParsePyretSetup,
-        testCheckResult: testCheckResult
+        testCheckResult: testCheckResult,
+        testCreateSuite: testCreateSuite
       }
     };
 
