@@ -77,15 +77,10 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     function createSuite(){
       var suite = new Benchmark.Suite();
 
-      suite.add('Parse    (src -> ast)', parsePyret, {'defer': true});
-      suite.add('Compile  (ast -> js) ', compilePyret, {'setup': parsePyretSetup, 'defer': true});
-      suite.add('Evaluate (ast -> res)', evaluatePyret, {'setup': parsePyretSetup, 'defer': true});     
-
-
-      suite.on('cycle', function(event) {
-        console.log(String(event.target).replace('\xb1', '+/- ')); 
-      });      
-
+      suite.add('parse', parsePyret, {'defer': true});
+      suite.add('compile', compilePyret, {'setup': parsePyretSetup, 'defer': true});
+      suite.add('evaluate', evaluatePyret, {'setup': parsePyretSetup, 'defer': true});     
+          
       return suite;      
     }
 
@@ -95,9 +90,10 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     of the form {program: str, name: str}, where program is
     the source code to test, and name is just a label (e.g. the program's name)
     @param options {Object} are the options passed directly into eval-lib
+    @param log {boolean} log data to the console
     @param onDone {Function} is the continuation
     */
-    function runBenchmarks(tests, options, onDone){      
+    function runBenchmarks(tests, options, log, onDone){      
       initializeGlobalRuntime();
 
       global.ast = undefined;
@@ -107,15 +103,27 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       var suite = createSuite();
       var suiteRunDefer = Q.defer();
 
+      suite.on('cycle', function(event) {        
+        var hz = event.target.hz;
+        var rme = event.target.stats.rme;
+        var samples = event.target.stats.sample.length;
+        var name = event.target.name;
+        
+        //i was increased already
+        tests[i-1].results;
+        tests[i-1].results[name] = {hz: hz, rme: rme, samples: samples};
+        if(log) console.log(String(event.target).replace('\xb1', '+/- ')); 
+      }); 
+
       suite.on('complete', function() {
-        console.log('Fastest is ' + this.filter('fastest').pluck('name'));
-        console.log('Slowest is ' + this.filter('slowest').pluck('name'));
-        console.log('\n');
+        if(log) console.log('Fastest is ' + this.filter('fastest').pluck('name'));
+        if(log) console.log('Slowest is ' + this.filter('slowest').pluck('name'));
+        if(log) console.log('\n');
         suiteRunDefer.notify(true);
       });
 
       suite.on('error', function(event) {  
-        console.log(event.target.error); 
+        if(log) console.log(event.target.error); 
         suiteRunDefer.notify(false);
       });
       
@@ -125,30 +133,34 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         function(v){throw new Error('reject should not happen');},
         function(notifyValue){
           if(!notifyValue){
-            console.log('There was an error in the benchmark.')
+            if(log) console.log('There was an error in the benchmark.')
           }
           if(i < tests.length){
-            console.log('CURRENT BENCHMARK: ' + tests[i].name);
+            tests[i].results = {};
+            if(log) console.log('CURRENT BENCHMARK: ' + tests[i].name);
             var ensureSuccessDefer = Q.defer();
-            console.log('Ensuring program runs successfully...');
+            if(log) console.log('Ensuring program runs successfully...');
             ensureSuccess(tests[i].program, ensureSuccessDefer);
             ensureSuccessDefer.promise.then(
               function(v){
-                console.log('...done.');
+                if(log) console.log('...done.');
+                tests[i].success = true;
                 global.programSrc = tests[i].program;
-                suite.run({'async': false});
+                //suite.onCycle assumes i was increased already
                 i++;
+                suite.run({'async': false});                
                 //suite.run will notify suiteRunDefer
               },
               function(v){
-                console.log('...program did not run successfully. Moving on to next benchmark.\n');
+                if(log) console.log('...program did not run successfully. Moving on to next benchmark.\n');
+                tests[i].success = false;
                 i++;
                 suiteRunDefer.notify(true);
               },
               function(v){throw new Error('notify should not happen');}
             );        
           }else{
-            onDone();
+            onDone(tests);
           }
       });
       suiteRunDefer.notify(true);
@@ -170,13 +182,13 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       });  
     }
 
-    function runFile(filename, options, onDone){
+    function runFile(filename, options, log, onDone){
       var programSrc = fs.readFileSync(filename, {'encoding': 'utf8'});
       benchmarks = [{
         program: programSrc,
         name: filename
       }];
-      runBenchmarks(benchmarks, options, onDone);
+      runBenchmarks(benchmarks, options, log, onDone);
     }
 
     function testDeferredFunction(src, options, funName, onDone){

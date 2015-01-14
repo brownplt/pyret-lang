@@ -44,5 +44,5 @@ var benchmarks =
 ];
 
 var b = require('benchmark-pyret');
-b.runBenchmarks(benchmarks, {});
+b.runBenchmarks(benchmarks, {}, true, function(){});
 //b.evaluateProgram(sortListProgram);

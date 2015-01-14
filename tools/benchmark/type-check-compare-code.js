@@ -9,9 +9,9 @@ var benchmarks =
 ];
 
 console.log('WITH TYPE CHECKING');
-b.runBenchmarks(benchmarks, {'typeCheck': true}, function(){
+b.runBenchmarks(benchmarks, {'typeCheck': true}, true, function(){
 	console.log('WITHOUT TYPE CHECKING');
-	b.runBenchmarks(benchmarks, {'typeCheck': false}, function(){});
+	b.runBenchmarks(benchmarks, {'typeCheck': false}, true, function(){});
 });
 
 
