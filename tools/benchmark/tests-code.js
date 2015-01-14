@@ -7,7 +7,18 @@ var validProgram = '1';
 var invalidProgram = '1 + true';
 var nonParsableProgram = '...';
 
-describe('ensureSuccess', function() {
+
+xdescribe('checkResult', function(){
+  it('returns true given a SuccessResult', function(){
+    expect(b.test.testCheckResult(true)).toBe(true);
+  });
+
+  it('returns false given a FailureResult', function(){
+    expect(b.test.testCheckResult(false)).toBe(false);
+  });
+});
+
+xdescribe('ensureSuccess', function() {
 
   it('passes on a valid program', function() {
   	var passed, flag;  	
@@ -73,7 +84,7 @@ describe('ensureSuccess', function() {
   });
 });
 
-describe('parsePyret', function(){
+xdescribe('parsePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -117,7 +128,7 @@ describe('parsePyret', function(){
   });
 });
 
-describe('compilePyret', function(){
+xdescribe('compilePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -140,7 +151,7 @@ describe('compilePyret', function(){
   });
 });
 
-describe('evaluatePyret', function(){
+xdescribe('evaluatePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -184,13 +195,13 @@ describe('evaluatePyret', function(){
   });
 });
 
-describe('initializeGlobalRuntime', function(){
+xdescribe('initializeGlobalRuntime', function(){
 	it('sets a runtime to global.rt', function(){
 		expect(b.test.testInitializeGlobalRuntime()).toBe(true);
 	})
 })
 
-describe('parsePyretSetup', function(){
+xdescribe('parsePyretSetup', function(){
 	it('sets the result of a valid program to global.ast', function(){
 		expect(b.test.testParsePyretSetup(validProgram, {})).toBe(true);
 	})

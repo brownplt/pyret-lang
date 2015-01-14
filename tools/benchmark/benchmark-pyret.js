@@ -233,6 +233,18 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       return (typeof global.ast !== 'undefined');
     }
 
+    function testCheckResult(testSuccessResult){
+      initializeGlobalRuntime();
+      if(testSuccessResult){
+        var result = global.rt.makeSuccessResult(undefined);
+        return checkResult(global.rt, result);
+      }else{
+        var result = global.rt.makeFailureResult(undefined);
+        return checkResult(global.rt, result);
+      }
+
+    }
+
     return {
       runBenchmarks: runBenchmarks,      
       runFile: runFile,
@@ -241,7 +253,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         testDeferredFunction: testDeferredFunction,
         testEnsureSuccess: testEnsureSuccess,
         testInitializeGlobalRuntime: testInitializeGlobalRuntime,
-        testParsePyretSetup: testParsePyretSetup
+        testParsePyretSetup: testParsePyretSetup,
+        testCheckResult: testCheckResult
       }
     };
 
