@@ -89,6 +89,14 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       return suite;      
     }
 
+    /**
+    Runs the actual benchmarks
+    @param {Array<Object>} tests is an array of objects
+    of the form {program: str, name: str}, where program is
+    the source code to test, and name is just a label (e.g. the program's name)
+    @param options {Object} are the options passed directly into eval-lib
+    @param onDone {Function} is the continuation
+    */
     function runBenchmarks(tests, options, onDone){      
       initializeGlobalRuntime();
 
