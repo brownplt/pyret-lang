@@ -3160,7 +3160,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(min);
       thisRuntime.checkNumber(max);
       function exactCheck(name, val) {
-        if(!jsnums.isExactInteger(val)) {
+        if(!jsnums.isInteger(val)) {
           ffi.throwMessageException("substring: expected a positive integer for " + name + " index, but got " + String(val));
         }
       }
@@ -3272,7 +3272,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "string-char-at");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(n);
-      if(!jsnums.isExactInteger(n) || n < 0) {
+      if(!jsnums.isInteger(n) || n < 0) {
         ffi.throwMessageException("string-char-at: expected a positive integer for the index, but got " + n);
       }
       if(n > (s.length - 1)) { ffi.throwMessageException("string-char-at: index " + n + " is greater than the largest index the string " + s); }
@@ -3316,7 +3316,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
     var checkNatural = makeCheckType(function(val) {
-        return thisRuntime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
+        return thisRuntime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
       }, "Natural Number");
     var string_from_code_point = function(c) {
       thisRuntime.checkArity(1, arguments, "string-from-code-point");
