@@ -15,6 +15,19 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       var toRun = [];
       var somethingRunning = false;
       function get(obj, fld) { return runtime.getField(obj, fld); }
+      
+      // adding `exit` function into the environment
+      var exitFunction = runtime.makeFunction(function(exitcode) {
+        if (typeof exitcode === "undefined") {
+          process.exit();
+        }
+        process.exit(exitcode);
+      })
+      namespace = namespace.set('exit', exitFunction)
+      namespace = namespace.set('quit', exitFunction)
+      initialCompileEnv = get(replSupport, "add-global-binding").app(initialCompileEnv, "exit");
+      initialCompileEnv = get(replSupport, "add-global-binding").app(initialCompileEnv, "quit");
+      
       var mainCompileEnv = initialCompileEnv;
       var initialReplCompileEnv = get(replSupport, "drop-module-bindings").app(mainCompileEnv);
       var replCompileEnv = initialReplCompileEnv;
