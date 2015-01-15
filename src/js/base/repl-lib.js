@@ -18,15 +18,20 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       
       // adding `exit` function into the environment
       var exitFunction = runtime.makeFunction(function(exitcode) {
-        if (typeof exitcode === "undefined") {
-          process.exit();
-        }
+        runtime.checkArity(0, arguments, 'exit');
+        process.exit();
+      })
+      var exitCodeFunction = runtime.makeFunction(function(exitcode) {
+        runtime.checkArity(1, arguments, 'exit-code');
+        runtime.checkNumber(exitcode);
         process.exit(exitcode);
       })
       namespace = namespace.set('exit', exitFunction)
       namespace = namespace.set('quit', exitFunction)
+      namespace = namespace.set('exit-code', exitCodeFunction)
       initialCompileEnv = get(replSupport, "add-global-binding").app(initialCompileEnv, "exit");
       initialCompileEnv = get(replSupport, "add-global-binding").app(initialCompileEnv, "quit");
+      initialCompileEnv = get(replSupport, "add-global-binding").app(initialCompileEnv, "exit-code");
       
       var mainCompileEnv = initialCompileEnv;
       var initialReplCompileEnv = get(replSupport, "drop-module-bindings").app(mainCompileEnv);
