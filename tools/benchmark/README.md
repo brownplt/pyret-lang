@@ -9,7 +9,7 @@ To measure the performance of a Pyret program from a file, simply run
 
 `node measure-program <filename>`
 
-To measure the performance of programs which are Javascript strings, it may be easiest to copy examples.js and examples-code.js, editing the latter, then running examples.js in node. The data directory contains the output of these examples.
+To measure the performance of programs which are Javascript strings, it may be easiest to copy examples.js and examples-code.js, editing the latter, then running examples.js in node.
 
 To run the tests, ensuring that the individual components run successfully, run tests.js in node.
 
