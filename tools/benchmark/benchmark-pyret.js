@@ -30,7 +30,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions, function(loaded){
           debugger; //loaded shouldn't be erroneous      
           global.loadedResult = loaded.result;
-          deferred.resolve(true);
+          deferred.resolve(checkResult(global.rt, loaded));
         });
       })      
     }
@@ -309,6 +309,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     function testSetup(src, options, ondone){
+      debugger;
       global.astResult = undefined;
       global.loadedResult = undefined;
       
@@ -320,7 +321,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function(resolveValue){
-          var passed = (typeof global.astResult != 'undefined') && (typeof global.loadedResult != 'undefined');            
+          debugger;
+          var passed = resolveValue && (typeof global.astResult != 'undefined') && (typeof global.loadedResult != 'undefined');
           ondone(passed);
         },
         function(v){throw new Error('reject should not happen');},                

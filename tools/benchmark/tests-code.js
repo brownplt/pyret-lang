@@ -7,11 +7,14 @@ var validProgram = '1';
 var invalidProgram = '1 + true';
 var nonParsableProgram = '...';
 var longProgram = '';
-for(var i = 0; i < 10000; i++){
+for(var i = 0; i < 1000; i++){
   longProgram += '1 + ';
 }
 longProgram += '1';
 
+
+///SKIP ALL TESTS INVOLVING longProgram FOR NOW
+// problem with async waiting.
 describe('checkResult', function(){
   it('returns true given a SuccessResult', function(){
     expect(b.test.testCheckResult(true)).toBe(true);
@@ -23,7 +26,6 @@ describe('checkResult', function(){
 });
 
 describe('ensureSuccess', function() {
-
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -43,6 +45,27 @@ describe('ensureSuccess', function() {
   	runs(function(){
   		expect(passed).toBe(true);
   	});
+  });
+
+  xit('passes on a valid (long) program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testEnsureSuccess(longProgram, {}, function(result){
+        passed = result;
+        flag = true;
+      })
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
   });
 
   it('fails on an invalid program', function() {
@@ -111,6 +134,28 @@ describe('parsePyret', function(){
   	});
   });
 
+  xit('passes on a valid (long) program', function() {
+    debugger;
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(longProgram, {}, 'parsePyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
   it('fails on a nonparsable program', function() {
   	var passed, flag;  	
 
@@ -154,6 +199,48 @@ describe('compilePyret', function(){
   		expect(passed).toBe(true);
   	});
   });
+
+  xit('passes on a valid (long) program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(longProgram, {}, 'compilePyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
+  it('fails on a nonparsable program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(nonParsableProgram, {}, 'compilePyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(false);
+    });
+  });
 });
 
 describe('evaluatePyret', function(){
@@ -178,6 +265,27 @@ describe('evaluatePyret', function(){
   	});
   });
 
+  xit('passes on a valid (long) program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(longProgram, {}, 'evaluatePyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
   it('fails on an invalid program', function() {
   	var passed, flag;  	
 
@@ -198,6 +306,27 @@ describe('evaluatePyret', function(){
   		expect(passed).toBe(false);
   	});
   });
+
+  it('fails on a nonparsable program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(nonParsableProgram, {}, 'evaluatePyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(false);
+    });
+  });
 });
 
 describe('initializeGlobalRuntime', function(){
@@ -214,6 +343,27 @@ describe('loadParsedPyret', function(){
       passed = false;
       flag = false;
       b.test.testDeferredFunction(validProgram, {}, 'loadParsedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
+  xit('passes on a valid (long) program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(longProgram, {}, 'loadParsedPyret',function(result){
         passed = result;
         flag = true;
       });
@@ -255,6 +405,7 @@ describe('setup', function(){
     var passed, flag;   
 
     runs(function(){
+      debugger;
       passed = false;
       flag = false;
       b.test.testSetup(validProgram, {}, function(result){
@@ -271,8 +422,6 @@ describe('setup', function(){
       expect(passed).toBe(true);
     });
   });
-
-
 });
 
 describe('evalLoadedPyret', function(){
@@ -283,6 +432,27 @@ describe('evalLoadedPyret', function(){
       passed = false;
       flag = false;
       b.test.testDeferredFunction(validProgram, {}, 'evalLoadedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
+  xit('passes on a valid (long) program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(longProgram, {}, 'evalLoadedPyret',function(result){
         passed = result;
         flag = true;
       });
@@ -316,7 +486,28 @@ describe('evalLoadedPyret', function(){
     runs(function(){
       expect(passed).toBe(false);
     });
-  });  
+  }); 
+
+  it('fails on a nonparsable program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(nonParsableProgram, {}, 'evalLoadedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(false);
+    });
+  });
 });
 
 describe('createSuite', function(){
