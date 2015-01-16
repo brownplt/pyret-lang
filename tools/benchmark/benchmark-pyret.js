@@ -24,11 +24,17 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function setup(deferred){
       global.loaded = undefined;
       global.ast = undefined;
-      parsePyretSetup();
-      global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
-        global.loaded = loaded;
-        deferred.resolve(true);
-      });
+      global.evalLib.runParsePyret(global.rt, global.programSrc, global.pyretOptions, function(ast){
+        debugger; //ast should pass global.rt.isSuccessResult
+        global.ast = ast;
+        global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
+          console.log(loaded.exn.pyretStack);
+          console.log(loaded.exn.stack);
+          debugger; //loaded shouldn't be erroneous      
+          global.loaded = loaded;
+          deferred.resolve(true);
+        });
+      })      
     }
 
     function parsePyret(deferred){
@@ -38,7 +44,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     function parsePyretSetup(){ 
-      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
+      //global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
+      console.log('Deprecated');
     }
 
     function evaluatePyret(deferred){
@@ -59,26 +66,28 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       });     
     }
 
-    function loadParsedPyretSetup(){
-      throw new('Deprecated');
-    }
-
-    function evalLoadedPyret(deferred){      
-      global.rt.loadModules(global.rt.namespace, [global.checkerLib], function(checker) {
-        var currentChecker = global.rt.getField(checker, "make-check-context").app(global.rt.makeString(global.pyretOptions.name), global.rt.makeBoolean(false));
-        global.rt.setParam("current-checker", currentChecker);
-        var sync = false;
-        var namespace = global.pyretOptions.namespace || global.rt.namespace;
-        debugger;
-        global.rt.run(global.loaded, namespace, {}, function(result) {
-          debugger;
-          if(global.rt.isSuccessResult(result)) { 
-            deferred.resolve(result); 
-          } else {
-            deferred.resolve(result);
-          }
+    function evalLoadedPyret(deferred){ 
+      global.rt.runThunk(function(){     
+        global.rt.loadModules(global.rt.namespace, [global.checkerLib], function(checker) {
+          var currentChecker = global.rt.getField(checker, "make-check-context").app(global.rt.makeString(global.pyretOptions.name), global.rt.makeBoolean(false));
+          global.rt.setParam("current-checker", currentChecker);
+          var sync = false;
+          var namespace = global.pyretOptions.namespace || global.rt.namespace;     
+          global.rt.pauseStack(function(restarter) {
+            global.rt.run(global.loaded, namespace, {}, function(result) {
+              debugger;
+              if(global.rt.isSuccessResult(result)) { 
+                restarter.resume(result.result); 
+                deferred.resolve(true);
+              }
+              else {
+                restarter.error(result.exn);
+                deferred.resolve(false);
+              }
+            });
+          });
         });
-      });
+      }, function(){});
     }
 
     function checkResult(runtime, result){
@@ -95,7 +104,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         initialGas: 500,
         stdout: function(str) {},
         stderr: function(str) {}
-      })
+      });
       global.evalLib.runEvalPyret(newRT, src, global.pyretOptions, function(result){ 
         var check = checkResult(newRT, result);
         if(check){
@@ -262,15 +271,15 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           parsePyret(d);
         break;
         case 'compilePyret':
-          parsePyretSetup();
+          setup();
           compilePyret(d);
         break;
         case 'evaluatePyret':
-          parsePyretSetup();
+          setup();
           evaluatePyret(d);
         break;
         case 'loadParsedPyret':
-          parsePyretSetup();
+          setup();
           loadParsedPyret(d);
         break;
         case 'evalLoadedPyret':
@@ -320,8 +329,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function(resolveValue){
-          var passed = (typeof global.ast != 'undefined')
-            && (typeof global.loaded != 'undefined');            
+          var passed = (typeof global.ast != 'undefined') && (typeof global.loaded != 'undefined');            
           ondone(passed);
         },
         function(v){throw new Error('reject should not happen');},                
@@ -332,11 +340,12 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
 
     function testCheckResult(testSuccessResult){
       initializeGlobalRuntime();
+      var result;
       if(testSuccessResult){
-        var result = global.rt.makeSuccessResult(undefined);
+        result = global.rt.makeSuccessResult(undefined);
         return checkResult(global.rt, result);
       }else{
-        var result = global.rt.makeFailureResult(undefined);
+        result = global.rt.makeFailureResult(undefined);
         return checkResult(global.rt, result);
       }
     }

@@ -90,6 +90,7 @@ xdescribe('ensureSuccess', function() {
 
 xdescribe('parsePyret', function(){
   it('passes on a valid program', function() {
+    debugger;
   	var passed, flag;  	
 
   	runs(function(){
@@ -249,7 +250,7 @@ xdescribe('loadParsedPyret', function(){
   });
 });
 
-xdescribe('setup', function(){
+describe('setup', function(){
   it('sets the result of a valid program to global.ast and global.loaded', function(){
     var passed, flag;   
 
@@ -272,7 +273,7 @@ xdescribe('setup', function(){
   });
 });
 
-describe('evalLoadedPyret', function(){
+xdescribe('evalLoadedPyret', function(){
   it('passes on a valid program', function() {
     var passed, flag;   
 

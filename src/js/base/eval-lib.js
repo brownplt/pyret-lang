@@ -207,6 +207,10 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     });
   }
 
+  function runLoadParsedPyret(runtime, ast, options, ondone) {
+    runtime.runThunk(function() { return loadParsedPyret(runtime, ast, options); }, ondone);
+  }
+  
   function loadParsedPyret(runtime, ast, options) {
     if (!options.hasOwnProperty("name")) { options.name = randomName(); }
     var modname = options.name;
@@ -269,7 +273,9 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     runCompileSrcPyret: runCompileSrcPyret,
     compileSrcPyret: compileSrcPyret,
     runEvalParsedPyret: runEvalParsedPyret,
-    evalParsedPyret: evalParsedPyret
+    evalParsedPyret: evalParsedPyret,
+    loadParsedPyret: loadParsedPyret,
+    runLoadParsedPyret: runLoadParsedPyret
   };
   
 });
