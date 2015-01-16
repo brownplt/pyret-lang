@@ -20,18 +20,16 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       });
     }
 
-    //sets up global.ast and global.loaded
+    //sets up global.astResult and global.loadedResult
     function setup(deferred){
-      global.loaded = undefined;
-      global.ast = undefined;
+      global.loadedResult = undefined;
+      global.astResult = undefined;
       global.evalLib.runParsePyret(global.rt, global.programSrc, global.pyretOptions, function(ast){
         debugger; //ast should pass global.rt.isSuccessResult
-        global.ast = ast;
-        global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
-          console.log(loaded.exn.pyretStack);
-          console.log(loaded.exn.stack);
+        global.astResult = ast.result;
+        global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions, function(loaded){
           debugger; //loaded shouldn't be erroneous      
-          global.loaded = loaded;
+          global.loadedResult = loaded.result;
           deferred.resolve(true);
         });
       })      
@@ -43,25 +41,20 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       });   
     }
 
-    function parsePyretSetup(){ 
-      //global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
-      console.log('Deprecated');
-    }
-
     function evaluatePyret(deferred){
-      global.evalLib.runEvalParsedPyret(global.rt,global.ast,global.pyretOptions,function(result){        
+      global.evalLib.runEvalParsedPyret(global.rt,global.astResult,global.pyretOptions,function(result){        
         deferred.resolve(result);
       });
     }
 
     function compilePyret(deferred){  
-      global.evalLib.runCompilePyret(global.rt,global.ast,global.pyretOptions,function(compiled){        
+      global.evalLib.runCompilePyret(global.rt,global.astResult,global.pyretOptions,function(compiled){        
         deferred.resolve(compiled);
       });  
     }
 
     function loadParsedPyret(deferred){
-      global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
+      global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions, function(loaded){
         deferred.resolve(loaded);
       });     
     }
@@ -74,16 +67,15 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           var sync = false;
           var namespace = global.pyretOptions.namespace || global.rt.namespace;     
           global.rt.pauseStack(function(restarter) {
-            global.rt.run(global.loaded, namespace, {}, function(result) {
+            global.rt.run(global.loadedResult, namespace, {}, function(result) {
               debugger;
               if(global.rt.isSuccessResult(result)) { 
-                restarter.resume(result.result); 
-                deferred.resolve(true);
+                restarter.resume(result.result);                 
               }
               else {
-                restarter.error(result.exn);
-                deferred.resolve(false);
+                restarter.error(result.exn);                
               }
+              deferred.resolve(result);
             });
           });
         });
@@ -141,7 +133,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function runBenchmarks(tests, options, log, onDone){      
       initializeGlobalRuntime();
 
-      global.ast = undefined;
+      global.astResult = undefined;
       global.mod = undefined;
       global.pyretOptions = options;
 
@@ -270,33 +262,32 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         case 'parsePyret': 
           parsePyret(d);
         break;
-        case 'compilePyret':
-          setup();
-          compilePyret(d);
-        break;
-        case 'evaluatePyret':
-          setup();
-          evaluatePyret(d);
-        break;
-        case 'loadParsedPyret':
-          setup();
-          loadParsedPyret(d);
-        break;
-        case 'evalLoadedPyret':
+        default:
           var setupDefer = Q.defer();          
           setup(setupDefer);
           setupDefer.promise.then(
             function(resolveValue){
               debugger;
-              evalLoadedPyret(d);
+              switch(funName){
+                case 'compilePyret':
+                  compilePyret(d);
+                break;
+                case 'evaluatePyret':
+                  evaluatePyret(d);
+                break;
+                case 'loadParsedPyret':
+                  loadParsedPyret(d);
+                break;
+                case 'evalLoadedPyret':
+                  evalLoadedPyret(d);
+                default:
+                  throw new Error('Invalid Function Name: ' + funName);
+              }              
             },
             function(v){throw new Error('reject should not happen');},                
             function(v){throw new Error('notify should not happen');}
-          );      
-          
-        break;
-        default:
-          throw new Error('Invalid Function Name: ' + funName);
+          );                
+        break;        
       }
     }    
 
@@ -318,8 +309,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     function testSetup(src, options, ondone){
-      global.ast = undefined;
-      global.loaded = undefined;
+      global.astResult = undefined;
+      global.loadedResult = undefined;
       
       global.pyretOptions = options;      
       global.programSrc = src;
@@ -329,7 +320,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function(resolveValue){
-          var passed = (typeof global.ast != 'undefined') && (typeof global.loaded != 'undefined');            
+          var passed = (typeof global.astResult != 'undefined') && (typeof global.loadedResult != 'undefined');            
           ondone(passed);
         },
         function(v){throw new Error('reject should not happen');},                

@@ -12,7 +12,7 @@ for(var i = 0; i < 10000; i++){
 }
 longProgram += '1';
 
-xdescribe('checkResult', function(){
+describe('checkResult', function(){
   it('returns true given a SuccessResult', function(){
     expect(b.test.testCheckResult(true)).toBe(true);
   });
@@ -22,7 +22,7 @@ xdescribe('checkResult', function(){
   });
 });
 
-xdescribe('ensureSuccess', function() {
+describe('ensureSuccess', function() {
 
   it('passes on a valid program', function() {
   	var passed, flag;  	
@@ -88,7 +88,7 @@ xdescribe('ensureSuccess', function() {
   });
 });
 
-xdescribe('parsePyret', function(){
+describe('parsePyret', function(){
   it('passes on a valid program', function() {
     debugger;
   	var passed, flag;  	
@@ -133,7 +133,7 @@ xdescribe('parsePyret', function(){
   });
 });
 
-xdescribe('compilePyret', function(){
+describe('compilePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -156,7 +156,7 @@ xdescribe('compilePyret', function(){
   });
 });
 
-xdescribe('evaluatePyret', function(){
+describe('evaluatePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -200,13 +200,13 @@ xdescribe('evaluatePyret', function(){
   });
 });
 
-xdescribe('initializeGlobalRuntime', function(){
+describe('initializeGlobalRuntime', function(){
 	it('sets a runtime to global.rt', function(){
 		expect(b.test.testInitializeGlobalRuntime()).toBe(true);
 	})
 });
 
-xdescribe('loadParsedPyret', function(){
+describe('loadParsedPyret', function(){
   it('passes on a valid program', function() {
     var passed, flag;   
 
@@ -251,7 +251,7 @@ xdescribe('loadParsedPyret', function(){
 });
 
 describe('setup', function(){
-  it('sets the result of a valid program to global.ast and global.loaded', function(){
+  it('sets up parsed ast and loaded js module', function(){
     var passed, flag;   
 
     runs(function(){
@@ -271,9 +271,11 @@ describe('setup', function(){
       expect(passed).toBe(true);
     });
   });
+
+
 });
 
-xdescribe('evalLoadedPyret', function(){
+describe('evalLoadedPyret', function(){
   it('passes on a valid program', function() {
     var passed, flag;   
 
@@ -295,13 +297,13 @@ xdescribe('evalLoadedPyret', function(){
     });
   });
 
-  it('fails on a nonparsable program', function() {
+  it('fails on an invalid program', function() {
     var passed, flag;   
 
     runs(function(){
       passed = false;
       flag = false;
-      b.test.testDeferredFunction(nonParsableProgram, {}, 'evalLoadedPyret',function(result){
+      b.test.testDeferredFunction(invalidProgram, {}, 'evalLoadedPyret',function(result){
         passed = result;
         flag = true;
       });
@@ -314,16 +316,16 @@ xdescribe('evalLoadedPyret', function(){
     runs(function(){
       expect(passed).toBe(false);
     });
-  });
+  });  
 });
 
-xdescribe('createSuite', function(){
+describe('createSuite', function(){
   it('creates an instance of Benchmark.Suite with the correct number of benchmarks', function(){
     expect(b.test.testCreateSuite()).toBe(true);
   });
 });
 
-xdescribe('runBenchmarks', function(){
+describe('runBenchmarks', function(){
   it('returns array of objects with correct field types', function() {
     debugger;
     var isArray = (benchmarkResults instanceof Array);
@@ -357,16 +359,16 @@ xdescribe('runBenchmarks', function(){
   })
 });
 
-// var benchmarks = 
-// [
-// {program: validProgram, name: 'validProgram'},
-// {program: invalidProgram, name: 'invalidProgram'}
-// ];
+var benchmarks = 
+[
+{program: validProgram, name: 'validProgram'},
+{program: invalidProgram, name: 'invalidProgram'}
+];
 
-// var benchmarkResults = undefined;
-// b.runBenchmarks(benchmarks, {}, false, function(r){
-//   benchmarkResults = r;
-//  jasmine.getEnv().execute();
-// });
+var benchmarkResults = undefined;
+b.runBenchmarks(benchmarks, {}, false, function(r){
+  benchmarkResults = r;
+ jasmine.getEnv().execute();
+});
 
-jasmine.getEnv().execute();
+//jasmine.getEnv().execute();
