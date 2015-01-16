@@ -1,7 +1,10 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt"
+          "../abbrevs.rkt"
           scribble/manual)
 @(define Image (a-id "Image" (xref "image" "Image")))
+@(define XPlace (a-pred S (a-id "is-x-place" (xref "image" "is-x-place"))))
+@(define YPlace (a-pred S (a-id "is-y-place" (xref "image" "is-y-place"))))
 @docmodule["image"]{
   The Pyret images library is based on the images teachpack in HtDP, and borrows much of the language for documentation. You can find documentation for the teachpack here:
 
@@ -405,8 +408,8 @@
   }
   @function[
     "overlay-align"
-            #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
-                                (a-id "is-x-place" (xref "image" "is-x-place"))
+            #:contract (a-arrow XPlace
+                                YPlace
                                 Image
                                 Image
                                 Image)
@@ -445,8 +448,8 @@
   }
   @function[
     "underlay-align"
-            #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
-                                (a-id "is-y-place" (xref "image" "is-y-place"))
+            #:contract (a-arrow XPlace
+                                YPlace
                                 Image
                                 Image
                                 Image)
@@ -486,7 +489,7 @@
   }
   @function[
     "beside-align"
-            #:contract (a-arrow (a-id "is-y-place" (xref "image" "is-y-place"))
+            #:contract (a-arrow YPlace
                                 Image
                                 Image
                                 Image)
@@ -507,7 +510,7 @@
   }
   @function[
     "above-align"
-            #:contract (a-arrow (a-id "is-x-place" (xref "image" "is-x-place"))
+            #:contract (a-arrow XPlace
                                 Image
                                 Image
                                 Image)
@@ -564,8 +567,8 @@
             #:contract (a-arrow Image
                                 (a-id "Number" (xref "<global>" "Number"))
                                 (a-id "Number" (xref "<global>" "Number"))
-                                (a-id "is-x-place" (xref "image" "is-x-place"))
-                                (a-id "is-y-place" (xref "image" "is-y-place"))
+                                XPlace
+                                YPlace
                                 (a-id "Scene"  (xref "image" "Scene"))
                                 (a-id "Scene"  (xref "image" "Scene")))
             #:args (list '("img" "") 
