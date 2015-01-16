@@ -1,11 +1,16 @@
-define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
+define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'],
 
-  function(RT, evalLib, Benchmark, Q, fs){
+  function(RT, evalLib, Benchmark, Q, fs, checkerLib){
 
     //DO NOT REMOVE
     // needed for benchmarked functions to 
     // have access to evalLib
     global.evalLib = evalLib;
+    global.checkerLib = checkerLib;
+
+    //used for testing
+    // set in createSuite
+    var SUITE_LENGTH;    
 
     function initializeGlobalRuntime(){
       global.rt = RT.makeRuntime({
@@ -14,6 +19,18 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         stderr: function(str) {}
       });
     }
+
+    //sets up global.ast and global.loaded
+    function setup(deferred){
+      global.loaded = undefined;
+      global.ast = undefined;
+      parsePyretSetup();
+      global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
+        global.loaded = loaded;
+        deferred.resolve(true);
+      });
+    }
+
     function parsePyret(deferred){
       global.evalLib.runParsePyret(global.rt,global.programSrc,global.pyretOptions,function(parsed){
         deferred.resolve(parsed);
@@ -21,7 +38,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     }
 
     function parsePyretSetup(){ 
-      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);      
+      global.ast = global.evalLib.parsePyret(global.rt,global.programSrc,global.pyretOptions);
     }
 
     function evaluatePyret(deferred){
@@ -36,18 +53,33 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       });  
     }
 
-    //TODO
-    // figure out if we can easily separate out the portion of
-    //  evaluation that happens after compliation
-    function loadPyretSetup(){
-      throw new Error('unimplemented');
+    function loadParsedPyret(deferred){
+      global.evalLib.runLoadParsedPyret(global.rt, global.ast, global.pyretOptions, function(loaded){
+        deferred.resolve(loaded);
+      });     
     }
 
-    function evaluateLoadedPyret(deferred){
-      throw new Error('unimplemented');
+    function loadParsedPyretSetup(){
+      throw new('Deprecated');
     }
 
-
+    function evalLoadedPyret(deferred){      
+      global.rt.loadModules(global.rt.namespace, [global.checkerLib], function(checker) {
+        var currentChecker = global.rt.getField(checker, "make-check-context").app(global.rt.makeString(global.pyretOptions.name), global.rt.makeBoolean(false));
+        global.rt.setParam("current-checker", currentChecker);
+        var sync = false;
+        var namespace = global.pyretOptions.namespace || global.rt.namespace;
+        debugger;
+        global.rt.run(global.loaded, namespace, {}, function(result) {
+          debugger;
+          if(global.rt.isSuccessResult(result)) { 
+            deferred.resolve(result); 
+          } else {
+            deferred.resolve(result);
+          }
+        });
+      });
+    }
 
     function checkResult(runtime, result){
       if(runtime.isSuccessResult(result)) {
@@ -77,9 +109,13 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
     function createSuite(){
       var suite = new Benchmark.Suite();
 
+      SUITE_LENGTH = 5;
+
       suite.add('parse', parsePyret, {'defer': true});
-      suite.add('compile', compilePyret, {'setup': parsePyretSetup, 'defer': true});
-      suite.add('evaluate', evaluatePyret, {'setup': parsePyretSetup, 'defer': true});     
+      suite.add('compile', compilePyret, {'defer': true});
+      suite.add('evaluate', evaluatePyret, {'defer': true});
+      suite.add('load', loadParsedPyret, {'defer': true});
+      suite.add('eval_loaded', evalLoadedPyret, {'defer': true});
           
       return suite;      
     }
@@ -148,8 +184,18 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
                 global.programSrc = tests[i].program;
                 //suite.onCycle assumes i was increased already
                 i++;
-                suite.run({'async': false});                
-                //suite.run will notify suiteRunDefer
+
+                var setupDefer = Q.defer();
+                setup(setupDefer);
+                setupDefer.promise.then(
+                  function(resolveValue){
+                    //suite.run will notify suiteRunDefer
+                    suite.run({'async': false});                                                    
+                  },
+                  function(v){throw new Error('reject should not happen');},                
+                  function(v){throw new Error('notify should not happen');}
+                );
+
               },
               function(v){
                 if(log) console.log('...program did not run successfully. Moving on to next benchmark.\n');
@@ -196,6 +242,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       var d = Q.defer();
       d.promise.then(
         function(result){
+          debugger;
         if(checkResult(global.rt, result)){
           onDone(true);
         } else {
@@ -222,6 +269,23 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
           parsePyretSetup();
           evaluatePyret(d);
         break;
+        case 'loadParsedPyret':
+          parsePyretSetup();
+          loadParsedPyret(d);
+        break;
+        case 'evalLoadedPyret':
+          var setupDefer = Q.defer();          
+          setup(setupDefer);
+          setupDefer.promise.then(
+            function(resolveValue){
+              debugger;
+              evalLoadedPyret(d);
+            },
+            function(v){throw new Error('reject should not happen');},                
+            function(v){throw new Error('notify should not happen');}
+          );      
+          
+        break;
         default:
           throw new Error('Invalid Function Name: ' + funName);
       }
@@ -244,15 +308,26 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       return (typeof global.rt !== 'undefined');
     }
 
-    function testParsePyretSetup(src, options){
+    function testSetup(src, options, ondone){
       global.ast = undefined;
+      global.loaded = undefined;
       
       global.pyretOptions = options;      
       global.programSrc = src;
       initializeGlobalRuntime();
 
-      parsePyretSetup();
-      return (typeof global.ast !== 'undefined');
+      var setupDefer = Q.defer();
+      setup(setupDefer);
+      setupDefer.promise.then(
+        function(resolveValue){
+          var passed = (typeof global.ast != 'undefined')
+            && (typeof global.loaded != 'undefined');            
+          ondone(passed);
+        },
+        function(v){throw new Error('reject should not happen');},                
+        function(v){throw new Error('notify should not happen');}
+      );
+      
     }
 
     function testCheckResult(testSuccessResult){
@@ -266,8 +341,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
       }
     }
 
-    function testCreateSuite(){
-      var SUITE_LENGTH = 3;
+    function testCreateSuite(){      
       var suite = createSuite();
       return (suite instanceof Benchmark.Suite && suite.length == SUITE_LENGTH);
     }
@@ -280,7 +354,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs'],
         testDeferredFunction: testDeferredFunction,
         testEnsureSuccess: testEnsureSuccess,
         testInitializeGlobalRuntime: testInitializeGlobalRuntime,
-        testParsePyretSetup: testParsePyretSetup,
+        testSetup: testSetup,
         testCheckResult: testCheckResult,
         testCreateSuite: testCreateSuite
       }

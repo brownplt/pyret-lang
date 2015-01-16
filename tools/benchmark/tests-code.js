@@ -6,8 +6,13 @@ jasmine.getEnv().addReporter(new jasmine.ConsoleReporter(console.log));
 var validProgram = '1';
 var invalidProgram = '1 + true';
 var nonParsableProgram = '...';
+var longProgram = '';
+for(var i = 0; i < 10000; i++){
+  longProgram += '1 + ';
+}
+longProgram += '1';
 
-describe('checkResult', function(){
+xdescribe('checkResult', function(){
   it('returns true given a SuccessResult', function(){
     expect(b.test.testCheckResult(true)).toBe(true);
   });
@@ -17,7 +22,7 @@ describe('checkResult', function(){
   });
 });
 
-describe('ensureSuccess', function() {
+xdescribe('ensureSuccess', function() {
 
   it('passes on a valid program', function() {
   	var passed, flag;  	
@@ -83,7 +88,7 @@ describe('ensureSuccess', function() {
   });
 });
 
-describe('parsePyret', function(){
+xdescribe('parsePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -127,7 +132,7 @@ describe('parsePyret', function(){
   });
 });
 
-describe('compilePyret', function(){
+xdescribe('compilePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -150,7 +155,7 @@ describe('compilePyret', function(){
   });
 });
 
-describe('evaluatePyret', function(){
+xdescribe('evaluatePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -194,25 +199,130 @@ describe('evaluatePyret', function(){
   });
 });
 
-describe('initializeGlobalRuntime', function(){
+xdescribe('initializeGlobalRuntime', function(){
 	it('sets a runtime to global.rt', function(){
 		expect(b.test.testInitializeGlobalRuntime()).toBe(true);
 	})
-})
+});
 
-describe('parsePyretSetup', function(){
-	it('sets the result of a valid program to global.ast', function(){
-		expect(b.test.testParsePyretSetup(validProgram, {})).toBe(true);
-	})
-})
+xdescribe('loadParsedPyret', function(){
+  it('passes on a valid program', function() {
+    var passed, flag;   
 
-describe('createSuite', function(){
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(validProgram, {}, 'loadParsedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
+  it('fails on a nonparsable program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(nonParsableProgram, {}, 'loadParsedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(false);
+    });
+  });
+});
+
+xdescribe('setup', function(){
+  it('sets the result of a valid program to global.ast and global.loaded', function(){
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testSetup(validProgram, {}, function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+});
+
+describe('evalLoadedPyret', function(){
+  it('passes on a valid program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(validProgram, {}, 'evalLoadedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(true);
+    });
+  });
+
+  it('fails on a nonparsable program', function() {
+    var passed, flag;   
+
+    runs(function(){
+      passed = false;
+      flag = false;
+      b.test.testDeferredFunction(nonParsableProgram, {}, 'evalLoadedPyret',function(result){
+        passed = result;
+        flag = true;
+      });
+    });
+
+    waitsFor(function(){
+      return flag;
+    }, 'failure',5000);
+
+    runs(function(){
+      expect(passed).toBe(false);
+    });
+  });
+});
+
+xdescribe('createSuite', function(){
   it('creates an instance of Benchmark.Suite with the correct number of benchmarks', function(){
     expect(b.test.testCreateSuite()).toBe(true);
   });
-})
+});
 
-describe('runBenchmarks', function(){
+xdescribe('runBenchmarks', function(){
   it('returns array of objects with correct field types', function() {
     debugger;
     var isArray = (benchmarkResults instanceof Array);
@@ -244,16 +354,18 @@ describe('runBenchmarks', function(){
     }
     expect(passed).toBe(true);
   })
-})
-
-var benchmarks = 
-[
-{program: validProgram, name: 'validProgram'},
-{program: invalidProgram, name: 'invalidProgram'}
-];
-
-var benchmarkResults = undefined;
-b.runBenchmarks(benchmarks, {}, false, function(r){
-  benchmarkResults = r;
-  jasmine.getEnv().execute();
 });
+
+// var benchmarks = 
+// [
+// {program: validProgram, name: 'validProgram'},
+// {program: invalidProgram, name: 'invalidProgram'}
+// ];
+
+// var benchmarkResults = undefined;
+// b.runBenchmarks(benchmarks, {}, false, function(r){
+//   benchmarkResults = r;
+//  jasmine.getEnv().execute();
+// });
+
+jasmine.getEnv().execute();
