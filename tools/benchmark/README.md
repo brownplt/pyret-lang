@@ -20,13 +20,21 @@ For an example of something with options passed in, check out type-check-compare
 At the moment, we are measuring parsing (source -> ast), loading (ast -> js), and evaluating (js -> result) programs with eval-lib.js.
 
 When a program is benchmarked, you'll see something like this:
+
 CURRENT BENCHMARK: longmap2.arr
+
 Ensuring program runs successfully...
+
 ...done.
+
 parse x 127 ops/sec +/- 6.48% (72 runs sampled)
+
 load x 2.38 ops/sec +/- 1.25% (16 runs sampled)
+
 eval_loaded x 39.38 ops/sec +/- 184.01% (33 runs sampled)
+
 Fastest is parse
+
 Slowest is load
 
 (This was from measuring the program 'range(0,10000).map(lam(x): x + 1 end)')
