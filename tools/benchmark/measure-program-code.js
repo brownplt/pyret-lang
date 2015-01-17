@@ -4,5 +4,5 @@ if(process.argv.length == 2){
 	var b = require('benchmark-pyret');
 	
 	var filename = process.argv.slice(2)[0];
-	b.runFile(filename, {}, true, function(){});
+	b.runFile(filename, {}, true, function(data){});
 }

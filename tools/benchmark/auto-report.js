@@ -1,5 +1,4 @@
 //run from ./tools/benchmarks
-
 r = require("requirejs");
 
 r.config({
@@ -10,4 +9,4 @@ r.config({
   }
 });
 
-r(["tests-code"], function(p) { });
+r(["auto-report-code"], function(p) { });

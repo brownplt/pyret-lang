@@ -56,7 +56,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           var namespace = global.pyretOptions.namespace || global.rt.namespace;     
           global.rt.pauseStack(function(restarter) {
             global.rt.run(global.loadedResult, namespace, {}, function(result) {
-              debugger;
+              debugger; // we can check result in the node debugger repl
               if(global.rt.isSuccessResult(result)) { 
                 restarter.resume(result.result);                 
               }
@@ -118,7 +118,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     @param log {boolean} log data to the console
     @param onDone {Function} is the continuation
     */
-    function runBenchmarks(tests, options, log, onDone){      
+    function runBenchmarks(tests, options, log, onDone){ 
+      debugger;
       initializeGlobalRuntime();
 
       global.astResult = undefined;
@@ -223,7 +224,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         program: programSrc,
         name: filename
       }];
-      runBenchmarks(benchmarks, options, log, onDone);
+      runBenchmarks(benchmarks, options, log, onDone);      
     }
 
     function testDeferredFunction(src, options, funName, onDone){
@@ -231,7 +232,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       var d = Q.defer();
       d.promise.then(
         function(result){
-          debugger;
         if(checkResult(global.rt, result)){
           onDone(true);
         } else {
@@ -255,7 +255,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           setup(setupDefer);
           setupDefer.promise.then(
             function(resolveValue){
-              debugger;
               switch(funName){
                 case 'compilePyret':
                   compilePyret(d);
@@ -297,7 +296,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     function testSetup(src, options, ondone){
-      debugger;
       global.astResult = undefined;
       global.loadedResult = undefined;
       
@@ -309,7 +307,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function(resolveValue){
-          debugger;
           var passed = resolveValue && (typeof global.astResult != 'undefined') && (typeof global.loadedResult != 'undefined');
           ondone(passed);
         },

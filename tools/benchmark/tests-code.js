@@ -552,16 +552,55 @@ describe('runBenchmarks', function(){
   })
 });
 
+describe('runFile', function(){
+  it('returns array of objects with correct field types', function() {
+    debugger;
+    var isArray = (runFileResults instanceof Array);
+    var fields = true;
+    for(var i = 0; i <runFileResults.length; i++){
+      fields = fields 
+      && (typeof runFileResults[i].program == 'string')
+      && (typeof runFileResults[i].name == 'string')
+      && (typeof runFileResults[i].results == 'object')
+      && (typeof runFileResults[i].success == 'boolean');
+    }
+    var passed = isArray && fields;
+
+    expect(passed).toBe(true);
+  });
+
+  it('reports proper results for a valid program', function(){
+    var results = runFileResults[0].results;
+    var passed = true;
+    for(var name in results){
+      passed = passed
+      && (typeof results[name].hz == 'number')
+      && (typeof results[name].rme == 'number')
+      && (typeof results[name].samples == 'number');
+    }
+    expect(passed).toBe(true);
+  })
+});
+
+
+
 var benchmarks = 
 [
 {program: validProgram, name: 'validProgram'},
 {program: invalidProgram, name: 'invalidProgram'}
 ];
 
+var filename = 'auto-report-programs/empty.arr';
+
 var benchmarkResults = undefined;
+var runFileResults = undefined;
+
 b.runBenchmarks(benchmarks, {}, false, function(r){
   benchmarkResults = r;
- jasmine.getEnv().execute();
+  b.runFile(filename, {}, false, function(f){
+    runFileResults = f;
+    jasmine.getEnv().execute();
+  });
 });
 
 //jasmine.getEnv().execute();
