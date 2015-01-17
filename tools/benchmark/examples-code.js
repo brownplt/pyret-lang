@@ -32,13 +32,13 @@ var oneThousandEightyFour = fiveHundredFortyTwo + ' + ' + fiveHundredFortyTwo;
 
 var benchmarks = 
 [
-// {program: '1 + true', name: '"1 + true" [this should error out]'},
-// {program: '', name: '"" (empty)'},
-// {program: '1', name: '"1"'},
-// {program: 'print("Ahoy, world!")', name:'"print("Ahoy, world!")"'},
-// {program: 'lam(x): x end', name: '"lam(x): x end"'},
-// {program: sortListProgram, name: 'insertion-sort.arr'},
-// {program: 'range(0,100).map(lam(x): x + 1 end)', name: '"range(0,100).map(lam(x): x + 1 end)"'},
+{program: '1 + true', name: '"1 + true" [this should error out]'},
+{program: '', name: '"" (empty)'},
+{program: '1', name: '"1"'},
+{program: 'print("Ahoy, world!")', name:'"print("Ahoy, world!")"'},
+{program: 'lam(x): x end', name: '"lam(x): x end"'},
+{program: sortListProgram, name: 'insertion-sort.arr'},
+{program: 'range(0,100).map(lam(x): x + 1 end)', name: '"range(0,100).map(lam(x): x + 1 end)"'},
 {program: fiveHundredFortyTwo, name: '"1+1+...+1" (542 times)'},
 {program: oneThousandEightyFour, name: '"1+1+...+1 "(1084 times)'}
 ];

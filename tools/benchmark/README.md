@@ -17,18 +17,18 @@ For an example of something with options passed in, check out type-check-compare
 
 -----------------------------------------------------------------
 
-At the moment, we are measuring parsing, compiling, and evaluating programs with eval-lib.js (specifically, we are using runParsePyret, runEvalParsedPyret, and runCompilePyret). The latter two functions use parsePyret as part of a setup phase, so the parsing won't be double-counted there.
+At the moment, we are measuring parsing (source -> ast), loading (ast -> js), and evaluating (js -> result) programs with eval-lib.js.
 
 When a program is benchmarked, you'll see something like this:
+CURRENT BENCHMARK: longmap2.arr
+Ensuring program runs successfully...
+...done.
+parse x 127 ops/sec +/- 6.48% (72 runs sampled)
+load x 2.38 ops/sec +/- 1.25% (16 runs sampled)
+eval_loaded x 39.38 ops/sec +/- 184.01% (33 runs sampled)
+Fastest is parse
+Slowest is load
 
-CURRENT BENCHMARK: insertion-sort.arr  
-Ensuring program runs successfully...  
-...done.  
-Parse    (src -> ast) x 35.87 ops/sec +/- 0.77% (61 runs sampled)  
-Compile  (ast -> js)  x 1.48 ops/sec +/- 6.25% (12 runs sampled)  
-Evaluate (ast -> res) x 1.18 ops/sec +/- 13.15% (11 runs sampled)  
-Fastest is Parse    (src -> ast)  
-Slowest is Evaluate (ast -> res)
-
+(This was from measuring the program 'range(0,10000).map(lam(x): x + 1 end)')
 
 The number immediately preceding 'ops/sec' is the main thing to focus on. The higher this number, the faster that function ran. In order to be as accurate, benchmark.js runs the given function as many times as it can within some elapsed time, measuring each run indivudually. Then it samples some subset of the measurements and gives back a mean with a percentage uncertainty. For information, see this StackOverflow post: [http://stackoverflow.com/a/4996963](http://stackoverflow.com/a/4996963)

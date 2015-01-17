@@ -6,11 +6,11 @@ jasmine.getEnv().addReporter(new jasmine.ConsoleReporter(console.log));
 var validProgram = '1';
 var invalidProgram = '1 + true';
 var nonParsableProgram = '...';
-var longProgram = '';
-for(var i = 0; i < 1000; i++){
-  longProgram += '1 + ';
-}
-longProgram += '1';
+// var longProgram = '';
+// for(var i = 0; i < 1000; i++){
+//   longProgram += '1 + ';
+// }
+// longProgram += '1';
 
 
 ///SKIP ALL TESTS INVOLVING longProgram FOR NOW
@@ -178,7 +178,8 @@ describe('parsePyret', function(){
   });
 });
 
-describe('compilePyret', function(){
+//no longer used
+xdescribe('compilePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 
@@ -243,7 +244,8 @@ describe('compilePyret', function(){
   });
 });
 
-describe('evaluatePyret', function(){
+//no longer used
+xdescribe('evaluatePyret', function(){
   it('passes on a valid program', function() {
   	var passed, flag;  	
 

@@ -42,12 +42,14 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     function evaluatePyret(deferred){
+      throw new Error('deprecated');
       global.evalLib.runEvalParsedPyret(global.rt,global.astResult,global.pyretOptions,function(result){        
         deferred.resolve(result);
       });
     }
 
-    function compilePyret(deferred){  
+    function compilePyret(deferred){ 
+      throw new Error('deprecated');
       global.evalLib.runCompilePyret(global.rt,global.astResult,global.pyretOptions,function(compiled){        
         deferred.resolve(compiled);
       });  
@@ -110,11 +112,11 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function createSuite(){
       var suite = new Benchmark.Suite();
 
-      SUITE_LENGTH = 5;
+      SUITE_LENGTH = 3;
 
       suite.add('parse', parsePyret, {'defer': true});
-      suite.add('compile', compilePyret, {'defer': true});
-      suite.add('evaluate', evaluatePyret, {'defer': true});
+      //suite.add('compile', compilePyret, {'defer': true});
+      //suite.add('evaluate', evaluatePyret, {'defer': true});
       suite.add('load', loadParsedPyret, {'defer': true});
       suite.add('eval_loaded', evalLoadedPyret, {'defer': true});
           
