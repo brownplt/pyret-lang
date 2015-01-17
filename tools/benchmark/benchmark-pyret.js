@@ -41,20 +41,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       });   
     }
 
-    function evaluatePyret(deferred){
-      throw new Error('deprecated');
-      global.evalLib.runEvalParsedPyret(global.rt,global.astResult,global.pyretOptions,function(result){        
-        deferred.resolve(result);
-      });
-    }
-
-    function compilePyret(deferred){ 
-      throw new Error('deprecated');
-      global.evalLib.runCompilePyret(global.rt,global.astResult,global.pyretOptions,function(compiled){        
-        deferred.resolve(compiled);
-      });  
-    }
-
     function loadParsedPyret(deferred){
       global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions, function(loaded){
         deferred.resolve(loaded);
