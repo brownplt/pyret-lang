@@ -117,13 +117,13 @@ define(["./output-ui"], function(outputLib) {
     else if(key && key.name === "backspace") {
       this.backspace();
     }
-    else if(key && key.ctrl && key.name === "d") {
+    else if(key && key.ctrl && key.name === "c") {
       this.keyboardInterrupt();
     }
     else if(key && key.ctrl && key.name === "v") {
       this.pasteToRepl();
     }
-    else if(key && key.ctrl && key.name === "c") {
+    else if(key && key.ctrl && key.name === "y") {
       this.copy();
     }
     //TODO: how to decide what keys pass through?
@@ -192,7 +192,7 @@ define(["./output-ui"], function(outputLib) {
 
       if(lineIndex === matches.length - 1 &&
 	  lastMatch.charAt(lastMatch.length - 1) === "\n" &&
-	  offset >= 0 && !ignoreNl) {
+	  !ignoreNl) {
 	return "";
       }
       else {
@@ -201,6 +201,52 @@ define(["./output-ui"], function(outputLib) {
     }
     else {
       return this.line;
+    }
+  };
+
+  InputUI.prototype.getLinesBefore = function(str, startRow, ignoreNl) {
+    var matches = str.match(/.*\n|.+$/g);
+
+    if(matches) {
+      startRow = startRow < 0 ? 0 : startRow;
+      startRow = startRow > matches.length ? matches.length : startRow;
+
+      var lastMatch = matches[matches.length - 1];
+
+      if(startRow === matches.length - 1
+	  && lastMatch.charAt(lastMatch.length - 1) === "\n"
+	  && !ignoreNl) {
+	return matches;
+      }
+      else {
+	return matches.slice(0, startRow);
+      }
+    }
+    else {
+      return [];
+    }
+  };
+
+  InputUI.prototype.getLinesAfter = function(str, startRow, ignoreNl) {
+    var matches = str.match(/.*\n|.+$/g);
+
+    if(matches) {
+      startRow = startRow < 0 ? 0 : startRow;
+      startRow = startRow > matches.length - 1 ? matches.length - 1 : startRow;
+
+      var lastMatch = matches[matches.length - 1];
+
+      if(startRow === matches.length - 1
+	  && lastMatch.charAt(lastMatch.length - 1) === "\n"
+	  && !ignoreNl) {
+	return "";
+      }
+      else {
+	return matches.slice(startRow, matches.length).join("");
+      }
+    }
+    else {
+      return "";
     }
   };
 
@@ -223,35 +269,61 @@ define(["./output-ui"], function(outputLib) {
     }
   };
 
-  InputUI.prototype.getLinesBefore = function(offset) {
-    var matches = this.line.match(/.*\n|.+$/g);
-    var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
-      + offset;
-
-    if(matches) {
-      lineIndex = lineIndex < 0 ? 0 : lineIndex;
-      lineIndex = lineIndex > matches.length ? matches.length : lineIndex;
-
-      var lastMatch = matches[matches.length - 1];
-
-      if(lineIndex === matches.length - 1
-	  && lastMatch.charAt(lastMatch.length - 1) === "\n") {
-	return matches;
-      }
-      else {
-	return matches.slice(0, lineIndex);
-      }
-    }
-    else {
-      return [];
-    }
-  };
-
   InputUI.prototype.getCursorPos = function() {
     return this.getDisplayPos(
 	this.promptString
 	+ this.prettify(this.line.slice(0, this.cursorPosition)));
   };
+
+  /*
+  InputUI.prototype.cutString = function(str, startRow, startCol, endRow, endCol, fun) {
+    var offset = 0;
+    var col = this.output.columns;
+    var row = 0;
+    var code, start, i;
+    str = stripVTControlCharacters(str);
+
+    for (i = 0; i < str.length; i++) {
+      if(row >= startRow && offset === startCol) {
+	start = i;
+      }
+
+      if(row > endRow || (row === endRow && offset === endCol)) {
+	break;
+      }
+
+      code = codePointAt(str, i);
+
+      if (code >= 0x10000) {
+	i++;
+      }
+
+      if (code === 0x0a) {
+	//Note(ben) accounts for lines within multiline strings that are longer
+	//than the width of the terminal
+	row += 1 + (offset % col === 0 && offset > 0 ? (offset / col) - 1
+	 : (offset - (offset % col)) / col);
+	offset = 0;
+	continue;
+      }
+
+      if (isFullWidthCodePoint(code)) {
+	//Note(ben) full width code points will start on the next line if 1 away
+	//from the end of the current line
+	if ((offset + 1) % col === 0) {
+	  offset++;
+	}
+
+	offset += 2;
+      }
+      else {
+	offset++;
+      }
+    }
+
+    return fun(str.substring(start, i), row, offset);
+  };
+  */
 
   InputUI.prototype.getDisplayPos = function(str) {
     var offset = 0;
@@ -384,7 +456,8 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.syncIndentArray = function(offset) {
-    var matches = this.getLinesBefore(offset);
+    var cursorPos = this.getCursorPos();
+    var matches = this.getLinesBefore(this.line, cursorPos.rows + offset);
     this.indentArray = [];
 
     if(matches) {
@@ -396,6 +469,7 @@ define(["./output-ui"], function(outputLib) {
   };
 
   /*Display functions*/
+  //TODO: keep this the same, as opposed to other Line functions, add argument for string
   InputUI.prototype.replaceLine = function(offset, str) {
     var matches = this.line.match(/.*\n|.+$/g);
     var lineIndex = numLines(this.line.slice(0, this.cursorPosition)) - 1
@@ -453,13 +527,12 @@ define(["./output-ui"], function(outputLib) {
     }
   };
 
+  //TODO: if the displayPos rows are longer than the screen, print getLinesAfter() of the prettified string starting at the top of the screen
   InputUI.prototype.refreshLine = function(gotoEol) {
     // line length
     var prettified = this.prettify(this.line);
     var line = this.promptString + prettified;
     var dispPos = this.getDisplayPos(line);
-    var lineCols = dispPos.cols;
-    var lineRows = dispPos.rows;
 
     // cursor position
     if(gotoEol || this.cursorPosition > this.line.length) {
@@ -471,12 +544,33 @@ define(["./output-ui"], function(outputLib) {
 
     var cursorPos = this.getCursorPos();
 
+    //Note(perhaps) experiment with other ways to scroll
+    if(dispPos.rows >= this.output.rows) {
+      while(cursorPos.rows >= this.output.rows) {
+	line = this.getLinesAfter(line, this.output.rows, true);
+	cursorPos.rows -= this.output.rows;
+	dispPos.rows -= this.output.rows;
+      }
+
+      line = this.getLinesBefore(line, this.output.rows, true).join("");
+      line = line.slice(0, line.length - 1);
+
+      //Note(ben): so that the cursor does not move backwards
+      if(dispPos.rows >= this.output.rows) {
+	dispPos.rows = this.output.rows - 1;
+      }
+
+      this.output.cursorTo(0, 0);
+    }
+
     // first move to the bottom of the current line, based on cursor pos
     var rowOffset = this.rowOffset || 0;
 
     if (rowOffset > 0) {
       this.output.moveCursor(0, -rowOffset);
     }
+
+    this.rowOffset = cursorPos.rows;
 
     // Cursor to left edge.
     this.output.cursorTo(0);
@@ -487,20 +581,18 @@ define(["./output-ui"], function(outputLib) {
     this.output.write(line);
 
     // Force terminal to allocate a new line
-    if (lineCols === 0) {
+    if (dispPos.cols === 0) {
       this.output.write(' ');
     }
 
     // Move cursor to original position.
     this.output.cursorTo(cursorPos.cols);
 
-    var diff = lineRows - cursorPos.rows;
+    var diff = dispPos.rows - cursorPos.rows;
 
     if (diff > 0) {
       this.output.moveCursor(0, -diff);
     }
-
-    this.rowOffset = cursorPos.rows;
   };
 
   /*Keypress and related functions*/
