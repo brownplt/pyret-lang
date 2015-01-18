@@ -17,7 +17,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function get(obj, fld) { return runtime.getField(obj, fld); }
       
       // adding `exit` function into the environment
-      var exitFunction = runtime.makeFunction(function(exitcode) {
+      var exitFunction = runtime.makeFunction(function() {
         runtime.checkArity(0, arguments, 'exit');
         process.exit();
       })
