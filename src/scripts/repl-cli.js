@@ -24,6 +24,8 @@ r(["q", "js/repl-lib", "js/runtime-anf", "compiler/compile-structs.arr", "./inpu
     var res = repl.restartInteractions("");
 
     inputUI.on("command", function(cmd) {
+      inputUI.setListen(false);
+
       res = res.then(function(_) {
         return repl.run(cmd, "interactions:" + inputUI.getInteractionsNumber());
       });

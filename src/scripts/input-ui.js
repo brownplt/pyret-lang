@@ -6,7 +6,7 @@ var chalk = require("chalk");
 var keypress = require("keypress");
 var copy_paste = require("copy-paste");
 
-define(["./output-ui"], function(outputLib) {
+define(["q", "./output-ui"], function(Q, outputLib) {
   var outputUI = outputLib('default');
   var renderer = new outputUI.Renderer();
   var Indenter = outputUI.Indenter;
@@ -96,6 +96,10 @@ define(["./output-ui"], function(outputLib) {
   }
 
   function onKeypress(ch, key) {
+    if(!this.canListen()) {
+      return;
+    }
+
     if(key && (key.name === "return" || key.name === "enter")) {
       this.return();
     }
@@ -147,6 +151,7 @@ define(["./output-ui"], function(outputLib) {
 
     this.promptSymbol = ">>";
     this.promptString = "";
+    this.listenKeys = true;
 
     this.indentArray = [];
     this.indent = "  ";
@@ -155,6 +160,7 @@ define(["./output-ui"], function(outputLib) {
     this.cursorPosition = 0;
     this.screenPosition = this.output.rows - 1;
     this.lastKey = "";
+    this.deferred = Q.defer();
 
     this.input.setRawMode(true);
     this.input.setEncoding("utf8");
@@ -169,12 +175,21 @@ define(["./output-ui"], function(outputLib) {
     }
 
     this.resetLine();
-
     this.promptString = this.interactionsNumber
       + "::1 "
       + this.promptSymbol + " ";
     this.output.write("\n");
     this.refreshLine();
+
+    this.setListen(true);
+  };
+
+  InputUI.prototype.canListen = function() {
+    return this.listenKeys;
+  };
+
+  InputUI.prototype.setListen = function(bool) {
+    this.listenKeys = !!bool;
   };
 
   /*Getters*/
@@ -216,13 +231,35 @@ define(["./output-ui"], function(outputLib) {
 
       var lastMatch = matches[matches.length - 1];
 
-      if(startRow === matches.length - 1
+      if(startRow === matches.length
 	  && lastMatch.charAt(lastMatch.length - 1) === "\n"
 	  && !ignoreNl) {
 	return matches;
       }
       else {
-	return matches.slice(0, startRow);
+	var newMatches = matches;
+	var curMatch = newMatches.shift();
+	var row = startRow;
+	matches = [];
+
+	while(curMatch && row > 0) {
+	  matches.push(curMatch);
+
+	  if(curMatch.charAt(curMatch.length - 1) === "\n") {
+	    row -= (numLines(curMatch) - 1);
+	  }
+	  else {
+	    row -= numLines(curMatch);
+	  }
+
+	  curMatch = newMatches.shift();
+	}
+
+	if(row < 0) {
+	  matches = matches.slice(0, matches.length - 1);
+	}
+
+	return matches;
       }
     }
     else {
@@ -242,14 +279,36 @@ define(["./output-ui"], function(outputLib) {
       if(startRow === matches.length - 1
 	  && lastMatch.charAt(lastMatch.length - 1) === "\n"
 	  && !ignoreNl) {
-	return "";
+	return [];
       }
       else {
-	return matches.slice(startRow, matches.length).join("");
+	var newMatches = matches.slice(startRow, matches.length);
+	var curMatch = newMatches.shift();
+	var row = matches.length - startRow;
+	matches = [];
+
+	while(curMatch && row > 0) {
+	  matches.push(curMatch);
+
+	  if(curMatch.charAt(curMatch.length - 1) === "\n") {
+	    row -= (numLines(curMatch) - 1);
+	  }
+	  else {
+	    row -= numLines(curMatch);
+	  }
+
+	  curMatch = newMatches.shift();
+	}
+
+	if(row < 0) {
+	  matches = matches.slice(0, matches.length - 1);
+	}
+
+	return matches;
       }
     }
     else {
-      return "";
+      return [];
     }
   };
 
@@ -460,8 +519,8 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.syncIndentArray = function(offset) {
-    var cursorPos = this.getCursorPos();
-    var matches = this.getLinesBefore(this.line, cursorPos.rows + offset);
+    var rows = numLines(this.line.slice(0, this.cursorPosition)) - 1;
+    var matches = this.getLinesBefore(this.line, rows + offset);
     this.indentArray = [];
 
     if(matches) {
@@ -531,7 +590,6 @@ define(["./output-ui"], function(outputLib) {
     }
   };
 
-  //TODO: if the displayPos rows are longer than the screen, print getLinesAfter() of the prettified string starting at the top of the screen
   InputUI.prototype.refreshLine = function(gotoEol) {
     // line length
     var prettified = this.prettify(this.line);
@@ -557,7 +615,7 @@ define(["./output-ui"], function(outputLib) {
     var cursorPos = this.getCursorPos();
 
     if(dispPos.rows >= this.output.rows) {
-      line = this.getLinesAfter(line, cursorPos.rows - this.screenPosition, true);
+      line = this.getLinesAfter(line, cursorPos.rows - this.screenPosition, true).join("");
       line = this.getLinesBefore(line, this.output.rows, true).join("");
 
       if(line.charAt(line.length - 1) === "\n") {
@@ -691,6 +749,7 @@ define(["./output-ui"], function(outputLib) {
 
   InputUI.prototype.keyUpBase = function(noHistory) {
     if(numLines(this.line.slice(0, this.cursorPosition)) > 1) {
+      var curLine = this.getLine(0, true);
       var curLineSlice = this.getLineUntilCursor();
       var nextLine = this.getLine(-1, true);
 
@@ -703,6 +762,11 @@ define(["./output-ui"], function(outputLib) {
 	this.cursorPosition -= curLineSlice.length + 1;
       }
 
+      /*
+      var screenOffset = Math.floor(curLine.length / this.output.columns);
+      screenOffset = screenOffset === 0 ? 1 : screenOffset;
+      this.screenPosition += screenOffset;
+      */
       this.screenPosition -= 1;
 
       this.refreshLine();
@@ -727,6 +791,11 @@ define(["./output-ui"], function(outputLib) {
 	this.cursorPosition += nextLine.length - 1;
       }
 
+      /*
+      var screenOffset = Math.floor(curLine.length / this.output.columns);
+      screenOffset = screenOffset === 0 ? 1 : screenOffset;
+      this.screenPosition += screenOffset;
+      */
       this.screenPosition += 1;
 
       this.refreshLine();
@@ -815,7 +884,7 @@ define(["./output-ui"], function(outputLib) {
   };
 
   InputUI.prototype.copy = function() {
-    this.doublePress("ctrl-v", function() {
+    this.doublePress("ctrl-y", function() {
       this.copyBlock();
     }.bind(this), function() {
       this.copyLine();
