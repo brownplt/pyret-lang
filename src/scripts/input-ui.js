@@ -140,19 +140,21 @@ define(["./output-ui"], function(outputLib) {
     this.output = output;
     keypress(this.input);
 
+    this.line = "";
     this.history = [{"old": "", "cur": ""}];
     this.historyIndex = 0;
     this.historyUpdate = 0;
-    this.line = "";
+
     this.promptSymbol = ">>";
     this.promptString = "";
-    this.indent = "  ";
-    this.interactionsNumber = 0;
-    this.cursorPosition = 0;
-
-    this.lastKey = "";
 
     this.indentArray = [];
+    this.indent = "  ";
+
+    this.interactionsNumber = 0;
+    this.cursorPosition = 0;
+    this.screenPosition = this.output.rows - 1;
+    this.lastKey = "";
 
     this.input.setRawMode(true);
     this.input.setEncoding("utf8");
@@ -171,7 +173,8 @@ define(["./output-ui"], function(outputLib) {
     this.promptString = this.interactionsNumber
       + "::1 "
       + this.promptSymbol + " ";
-    this.output.write("\n" + this.promptString + this.line);
+    this.output.write("\n");
+    this.refreshLine();
   };
 
   /*Getters*/
@@ -371,6 +374,7 @@ define(["./output-ui"], function(outputLib) {
   InputUI.prototype.resetLine = function() {
     this.line = "";
     this.cursorPosition = 0;
+    this.screenPosition = this.output.rows - 1;
     this.rowOffset = 0;
   };
 
@@ -537,28 +541,31 @@ define(["./output-ui"], function(outputLib) {
     // cursor position
     if(gotoEol || this.cursorPosition > this.line.length) {
       this.cursorPosition = this.line.length;
+      this.screenPosition = this.output.rows - 1;
     }
     else if(this.cursorPosition < 0) {
       this.cursorPosition = 0;
     }
 
+    if(this.screenPosition < 0) {
+      this.screenPosition = 0;
+    }
+    else if(this.screenPosition > this.output.rows - 1) {
+      this.screenPosition = this.output.rows - 1;
+    }
+
     var cursorPos = this.getCursorPos();
 
-    //Note(perhaps) experiment with other ways to scroll
     if(dispPos.rows >= this.output.rows) {
-      while(cursorPos.rows >= this.output.rows) {
-	line = this.getLinesAfter(line, this.output.rows, true);
-	cursorPos.rows -= this.output.rows;
-	dispPos.rows -= this.output.rows;
-      }
-
+      line = this.getLinesAfter(line, cursorPos.rows - this.screenPosition, true);
       line = this.getLinesBefore(line, this.output.rows, true).join("");
-      line = line.slice(0, line.length - 1);
 
-      //Note(ben): so that the cursor does not move backwards
-      if(dispPos.rows >= this.output.rows) {
-	dispPos.rows = this.output.rows - 1;
+      if(line.charAt(line.length - 1) === "\n") {
+	line = line.slice(0, line.length - 1);
       }
+
+      cursorPos.rows = this.screenPosition;
+      dispPos.rows = this.output.rows - 1;
 
       this.output.cursorTo(0, 0);
     }
@@ -696,8 +703,9 @@ define(["./output-ui"], function(outputLib) {
 	this.cursorPosition -= curLineSlice.length + 1;
       }
 
-      this.refreshLine();
+      this.screenPosition -= 1;
 
+      this.refreshLine();
     }
     else if(!noHistory) {
       this.historyPrev();
@@ -718,6 +726,8 @@ define(["./output-ui"], function(outputLib) {
 	this.cursorPosition -= curLineSlice.length;
 	this.cursorPosition += nextLine.length - 1;
       }
+
+      this.screenPosition += 1;
 
       this.refreshLine();
     }
