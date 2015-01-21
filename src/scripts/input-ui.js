@@ -318,10 +318,12 @@ define(["q", "./output-ui"], function(Q, outputLib) {
 
     if(matches && matches.length > 1) {
       var curMatch = matches.shift();
+      var lastMatch = curMatch;
 
-      while(curMatch && cursorPos > curMatch.length) {
+      while(lastMatch && cursorPos > lastMatch.length) {
 	cursorPos -= curMatch.length;
-	curMatch = matches.shift();
+	lastMatch = matches.shift();
+	curMatch = lastMatch || curMatch;
       }
 
       return curMatch.slice(0, cursorPos);
@@ -334,7 +336,30 @@ define(["q", "./output-ui"], function(Q, outputLib) {
   InputUI.prototype.getCursorPos = function() {
     return this.getDisplayPos(
 	this.promptString
-	+ this.prettify(this.line.slice(0, this.cursorPosition)));
+	+ this.prettify(this.line.slice(0, this.cursorPosition)),
+	this.output.columns);
+  };
+
+  InputUI.prototype.moveCursor = function(offset) {
+    var diff = 0;
+    var screenWidth = this.output.columns - this.promptString.length;
+
+    if(offset < 0) {
+      diff -= this.getDisplayPos(
+	  this.line.slice(this.cursorPosition + offset,
+	    this.cursorPosition), screenWidth).rows;
+    }
+    else {
+      var cursorPos = this.getDisplayPos(this.line.slice(0, this.cursorPosition),
+	  screenWidth);
+
+      diff += this.getDisplayPos(
+	  this.line.slice(this.cursorPosition - cursorPos.cols,
+	    this.cursorPosition + offset), screenWidth).rows;
+    }
+
+    this.screenPosition += diff;
+    this.cursorPosition += offset;
   };
 
   /*
@@ -387,9 +412,8 @@ define(["q", "./output-ui"], function(Q, outputLib) {
   };
   */
 
-  InputUI.prototype.getDisplayPos = function(str) {
+  InputUI.prototype.getDisplayPos = function(str, col) {
     var offset = 0;
-    var col = this.output.columns;
     var row = 0;
     var code, i;
     str = stripVTControlCharacters(str);
@@ -425,7 +449,8 @@ define(["q", "./output-ui"], function(Q, outputLib) {
     }
 
     var cols = offset % col;
-    var rows = row + (offset - cols) / col;
+    var lineLength = offset - cols;
+    var rows = row + lineLength / col;
     return {cols: cols, rows: rows};
   };
 
@@ -456,6 +481,7 @@ define(["q", "./output-ui"], function(Q, outputLib) {
     }
 
     this.cursorPosition += str.length;
+    //this.moveCursor(str.length);
 
     if(str === " ") {
       this.refreshLine();
@@ -478,12 +504,12 @@ define(["q", "./output-ui"], function(Q, outputLib) {
 
     var oldCursorPos = this.getCursorPos();
     this.line = this.replaceLine(0, lineIndent);
-    this.cursorPosition += diff;
+    this.moveCursor(diff);
     var newCursorPos = this.getCursorPos();
 
     if(oldCursorPos.rows !== newCursorPos.rows) {
-      this.cursorPosition -= diff;
-      this.cursorPosition -= (oldCursorPos.cols - this.promptString.length);
+      this.moveCursor(-diff);
+      this.moveCursor(-(oldCursorPos.cols - this.promptString.length));
     }
 
     this.refreshLine();
@@ -594,7 +620,7 @@ define(["q", "./output-ui"], function(Q, outputLib) {
     // line length
     var prettified = this.prettify(this.line);
     var line = this.promptString + prettified;
-    var dispPos = this.getDisplayPos(line);
+    var dispPos = this.getDisplayPos(line, this.output.columns);
 
     // cursor position
     if(gotoEol || this.cursorPosition > this.line.length) {
@@ -605,6 +631,8 @@ define(["q", "./output-ui"], function(Q, outputLib) {
       this.cursorPosition = 0;
     }
 
+    var cursorPos = this.getCursorPos();
+
     if(this.screenPosition < 0) {
       this.screenPosition = 0;
     }
@@ -612,11 +640,12 @@ define(["q", "./output-ui"], function(Q, outputLib) {
       this.screenPosition = this.output.rows - 1;
     }
 
-    var cursorPos = this.getCursorPos();
 
     if(dispPos.rows >= this.output.rows) {
-      line = this.getLinesAfter(line, cursorPos.rows - this.screenPosition, true).join("");
-      line = this.getLinesBefore(line, this.output.rows, true).join("");
+      var startRow = cursorPos.rows - this.screenPosition;
+      var endRow = this.output.rows;
+      line = this.getLinesAfter(line, startRow, true).join("");
+      line = this.getLinesBefore(line, endRow, true).join("");
 
       if(line.charAt(line.length - 1) === "\n") {
 	line = line.slice(0, line.length - 1);
@@ -749,25 +778,16 @@ define(["q", "./output-ui"], function(Q, outputLib) {
 
   InputUI.prototype.keyUpBase = function(noHistory) {
     if(numLines(this.line.slice(0, this.cursorPosition)) > 1) {
-      var curLine = this.getLine(0, true);
       var curLineSlice = this.getLineUntilCursor();
       var nextLine = this.getLine(-1, true);
 
       var oldCursorLines = numLines(this.line.slice(0, this.cursorPosition));
-      this.cursorPosition -= nextLine.length;
+      this.moveCursor(-nextLine.length);
       var newCursorLines = numLines(this.line.slice(0, this.cursorPosition));
 
       if(newCursorLines !== oldCursorLines - 1 && oldCursorLines > 1) {
-	this.cursorPosition += nextLine.length;
-	this.cursorPosition -= curLineSlice.length + 1;
+	this.moveCursor(nextLine.length - (curLineSlice.length + 1));
       }
-
-      /*
-      var screenOffset = Math.floor(curLine.length / this.output.columns);
-      screenOffset = screenOffset === 0 ? 1 : screenOffset;
-      this.screenPosition += screenOffset;
-      */
-      this.screenPosition -= 1;
 
       this.refreshLine();
     }
@@ -783,20 +803,13 @@ define(["q", "./output-ui"], function(Q, outputLib) {
       var nextLine = this.getLine(1, true);
 
       var oldCursorLines = numLines(this.line.slice(0, this.cursorPosition));
-      this.cursorPosition += curLine.length;
+      this.moveCursor(curLine.length);
       var newCursorLines = numLines(this.line.slice(0, this.cursorPosition));
 
       if(newCursorLines !== oldCursorLines + 1) {
-	this.cursorPosition -= curLineSlice.length;
-	this.cursorPosition += nextLine.length - 1;
+	this.moveCursor(-curLineSlice.length);
+	this.moveCursor(nextLine.length - 1);
       }
-
-      /*
-      var screenOffset = Math.floor(curLine.length / this.output.columns);
-      screenOffset = screenOffset === 0 ? 1 : screenOffset;
-      this.screenPosition += screenOffset;
-      */
-      this.screenPosition += 1;
 
       this.refreshLine();
     }
@@ -836,7 +849,7 @@ define(["q", "./output-ui"], function(Q, outputLib) {
 
   InputUI.prototype.keyRight = function() {
     if(this.cursorPosition < this.line.length) {
-      this.cursorPosition += 1;
+      this.moveCursor(1);
     }
 
     this.refreshLine();
@@ -844,7 +857,7 @@ define(["q", "./output-ui"], function(Q, outputLib) {
 
   InputUI.prototype.keyLeft = function() {
     if(this.cursorPosition > 0) {
-      this.cursorPosition -= 1;
+      this.moveCursor(-1);
     }
 
     this.refreshLine();
