@@ -11,7 +11,7 @@ check "roughnum":
   1 < 2 is true
   ~1 < ~2 is true
   2 == (1 + 1) is true
-  ~2 == (~1 + ~1) raises "roughnums cannot be compared for equality"
+  ~2 == (~1 + ~1) raises "roughnum equality not allowed"
   ~2 is%(localwithin(~0.01)) (~1 + ~1)
   #
   # but we can also use builtin num-within, within
