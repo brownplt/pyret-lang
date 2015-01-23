@@ -1459,6 +1459,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               } else if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
                 continue;
               }
+            } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
+              throw makeMessageException('roughnum equality not allowed on ' + curLeft + ', ' + curRight);
             } else if (jsnums.equals(curLeft, curRight)) {
               continue;
             }
