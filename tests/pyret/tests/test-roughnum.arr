@@ -125,3 +125,9 @@ check "trig-type functions on bigints should converge":
   num-log(10000000000000000)   * 0 is 0
   num-round(10000000000000000) * 0 is 0
 end
+
+check "comparing MAX_VALUEs":
+   1.7976931348623157e+308 -  1.7976931348623157e+308 is                  0
+  ~1.7976931348623157e+308 - ~1.7976931348623157e+308 is%(within(0.001)) ~0
+   1.7976931348623157e+308 - ~1.7976931348623157e+308 is%(within(0.001)) ~0
+end
