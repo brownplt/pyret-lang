@@ -348,7 +348,6 @@ end
     "map"
     #:examples
     '@{
-      map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
       map(lam(_): 2 end, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
       map(lam(x): x + 1 end, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
     }
@@ -357,10 +356,6 @@ end
     "map2"
     #:examples
     '@{
-      map2(lam(_, _): raise("shipwrecked!") end,
-        [list: ],
-        [list: ]) is
-        [list: ]
       map2(lam(x, y): x or y end, [list: true, false], [list: false, false]) is
         [list: true, false]
     }
