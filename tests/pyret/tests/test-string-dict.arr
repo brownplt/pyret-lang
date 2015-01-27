@@ -51,6 +51,8 @@ check "basics":
   sd2 is-not sd5
   sd2 is-not 2
 
+  [SD.mutable-string-dict: "a", 5] is-not [SD.mutable-string-dict: "b", 5]
+
   isd2 = [SD.string-dict: "a", 15, "b", 10]
 
   isd2.keys() is [tree-set: "a", "b"]
@@ -71,6 +73,8 @@ check "basics":
   isd2 is-not isd4
   isd2 is-not isd5
   isd2 is-not 2
+
+  [SD.string-dict: "a", 5] is-not [SD.string-dict: "b", 5]
 
   isd6 = isd5.set("a", 7)
 
