@@ -422,6 +422,7 @@ end
       fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
       fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
       fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+      fold(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 3, 2, 1]
     end
     }
     #:alt-docstrings '()
@@ -437,6 +438,17 @@ end
     application is the result of the last application of @pyret{f}. If the list is empty,
     base is returned.
   }
+  @function["foldl"]
+  Another name for @pyret-id["fold"].
+  @function["foldr"]
+  Like @pyret-id["foldl"], but right-associative:
+@examples{
+check:
+  foldr(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+  foldr(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 1, 2, 3]
+end
+}
+
   @function["fold2"]
   @function["fold3"]
   @function["fold4"]
