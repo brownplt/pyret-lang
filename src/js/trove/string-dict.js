@@ -160,17 +160,21 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 return runtime.ffi.equal;
               } else {
                 var thisKey = keys.pop();
-                return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get-value').app(userKey(thisKey)));
-                },
-                function (result) {
-                  if (runtime.ffi.isNotEqual(result)) {
-                    return result;
-                  } else {
-                    return equalsHelp();
-                  }
-                });
+                if (!get(other, 'has-key').app(userKey(thisKey))) {
+                  return runtime.ffi.notEqual.app('');
+                } else {
+                  return runtime.safeCall(function() {
+                    return recursiveEquality.app(underlyingDict[thisKey],
+                        get(other, 'get-value').app(userKey(thisKey)));
+                  },
+                  function (result) {
+                    if (runtime.ffi.isNotEqual(result)) {
+                      return result;
+                    } else {
+                      return equalsHelp();
+                    }
+                  });
+                }
               }
             }
             if (keys.length !== otherKeysLength) {
@@ -321,21 +325,21 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 return runtime.ffi.equal;
               } else {
                 var thisKey = keys.pop();
-                return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get-value-now').app(userKey(thisKey)));
-                },
-                function (result) {
-                  if (runtime.ffi.isNotEqual(result)) {
-                    return result;
-                  } else {
-                    return eqElts();
-                  }
-                  /*
-                     return runtime.combineEquality(result,
-                     eqElts());
-                   */
-                });
+                if (!get(other, 'has-key-now').app(userKey(thisKey))) {
+                  return runtime.ffi.notEqual.app('');
+                } else {
+                  return runtime.safeCall(function() {
+                    return recursiveEquality.app(underlyingDict[thisKey],
+                        get(other, 'get-value-now').app(userKey(thisKey)));
+                  },
+                  function (result) {
+                    if (runtime.ffi.isNotEqual(result)) {
+                      return result;
+                    } else {
+                      return eqElts();
+                    }
+                  });
+                }
               }
             }
             if (keys.length !== otherKeysLength) {
