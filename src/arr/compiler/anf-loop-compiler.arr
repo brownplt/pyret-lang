@@ -1254,6 +1254,8 @@ fun compile-program(self, l, imports, prog, freevars, env):
             "@my-gdrive/" + args.first
           else if typ == "shared-gdrive":
             "@shared-gdrive/" + args.first + "/" + args.rest.first
+          else if typ == "gdrive-js":
+            "@gdrive-js/" + args.first + "/" + args.rest.first
           else:
             raise("Should have been caught earlier: unhandled import-special-type")
           end
