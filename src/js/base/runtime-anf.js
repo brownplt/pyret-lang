@@ -1452,16 +1452,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
                 if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
                   continue;
+                } else {
+                  toCompare.curAns = ffi.notEqual.app(current.path);
                 }
               } else if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
                 continue;
+              } else {
+                toCompare.curAns = ffi.notEqual.app(current.path);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              throw makeMessageException('roughnum equality not allowed on ' + curLeft + ', ' + curRight);
+              toCompare.curAns = ffi.unknown;
             } else if (jsnums.equals(curLeft, curRight)) {
               continue;
+            } else {
+              toCompare.curAns = ffi.notEqual.app(current.path);
             }
-            toCompare.curAns = ffi.notEqual.app(current.path);
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
@@ -1701,7 +1706,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods with within-now"); }
+          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-now"); }
         });
       });
     };
@@ -1725,7 +1730,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods with within"); }
+          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within"); }
         });
       });
     };
@@ -1749,7 +1754,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel"); }
+          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-rel"); }
         });
       });
     };
@@ -1773,7 +1778,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods with within-rel"); }
+          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-rel"); }
         });
       });
     };
@@ -1797,7 +1802,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }, function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
+        else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with equal-always"); }
       });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
@@ -1817,7 +1822,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }, function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+        else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with equal-now"); }
       });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
