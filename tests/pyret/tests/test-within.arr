@@ -65,12 +65,12 @@ check "within-rel":
    1  is%(within-rel(0.1))      ~1
   ~3  is%(within-rel(0.1))      ~3
   ~2  is-not%(within-rel(0.1))  ~3
-  ~2  is%(within-rel(1.1))      ~3  # but should we allow RE > 1?
+  ~2  is%(within-rel(0.4))      ~3
   ~20  is-not%(within-rel(~0.3))   ~30
    2  is-not%(within-rel(0.1))    ~3
-   5  is%(within-rel(4))         3
+   5  is%(within-rel(0.5))         3
 
-   within-rel(-0.1)(1, 1.05) raises "negative tolerance"
+   within-rel(-0.1)(1, 1.05) raises "tolerance"
 
    l1 = [list: 1]
    l2 = [list: 1.2]
