@@ -71,6 +71,8 @@ check "within-rel":
    5  is%(within-rel(0.5))         3
 
    within-rel(-0.1)(1, 1.05) raises "tolerance"
+   within-rel(1.1)(~2, ~3)   raises "relative tolerance"
+   within-rel(4)(5, 3)       raises "relative tolerance"
 
    l1 = [list: 1]
    l2 = [list: 1.2]
