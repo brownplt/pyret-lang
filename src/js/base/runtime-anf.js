@@ -1664,7 +1664,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "within-rel-now3");
       thisRuntime.checkNumber(relTol);
       if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         return equal3(l, r, false, relTol, true);
@@ -1686,7 +1686,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "within-rel3");
       thisRuntime.checkNumber(relTol);
       if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         return equal3(l, r, true, relTol);
@@ -1745,7 +1745,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
       if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
@@ -1769,7 +1769,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
       if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
