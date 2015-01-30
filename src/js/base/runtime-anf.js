@@ -1448,9 +1448,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (tol) {
-              if (jsnums.lessThan(tol, 0)) {
-                throw makeMessageException('negative tolerance ' + tol);
-              }
               if (rel) {
                 var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
                 if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
@@ -1650,38 +1647,53 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinNow3(tol) {
       thisRuntime.checkArity(1, arguments, "within-now3");
       thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
       return makeFunction(function(l, r) {
         return equal3(l, r, false, tol);
       });
     };
 
-    function equalWithinRelNow3(tol) {
+    function equalWithinRelNow3(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel-now3");
-      thisRuntime.checkNumber(tol);
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+      }
       return makeFunction(function(l, r) {
-        return equal3(l, r, false, tol, true);
+        return equal3(l, r, false, relTol, true);
       });
     };
 
     function equalWithin3(tol) {
       thisRuntime.checkArity(1, arguments, "within3");
       thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
       return makeFunction(function(l, r) {
         return equal3(l, r, true, tol);
       });
     };
 
-    function equalWithinRel3(tol) {
+    function equalWithinRel3(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel3");
-      thisRuntime.checkNumber(tol);
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+      }
       return makeFunction(function(l, r) {
-        return equal3(l, r, true, tol);
+        return equal3(l, r, true, relTol);
       });
     };
 
     function equalWithinNow(tol) {
       thisRuntime.checkArity(1, arguments, "within-now");
       thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-now");
         return safeCall(function () {
@@ -1703,6 +1715,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithin(tol) {
       thisRuntime.checkArity(1, arguments, "within");
       thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within");
         return safeCall(function () {
@@ -1724,6 +1739,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRelNow(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+      }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
         return safeCall(function () {
@@ -1745,6 +1763,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRel(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('tolerance ' + relTol + ' outside [0,1]');
+      }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
         return safeCall(function () {
