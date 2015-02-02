@@ -92,7 +92,7 @@ data Name:
     tosource(self): PP.str("_") end,
     _tostring(self, shadow tostring): "_" end,
     toname(self): "_" end,
-    key(self): "underscore#" end
+    key(self): "underscore#" end,
 
   | s-name(l :: Loc, s :: String) with:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
@@ -198,6 +198,9 @@ end
 data Program:
   | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
     label(self): "s-program" end,
+    children(self):
+      [list: self._provide, self.provided-types, self.imports, self.block]
+    end,
     tosource(self):
       PP.group(
         PP.vert(
@@ -217,16 +220,19 @@ end
 data Import:
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s-import" end,
+    children(self): [list: self.file, self.name] end,
     tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
   | s-import-types(l :: Loc, file :: ImportType, name :: Name, types :: Name) with:
     label(self): "s-import-types" end,
+    children(self): [list: self.file, self.name, self.types] end,
     tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource(), PP.comma, self.types.tosource()])
     end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     label(self): "s-import-fields" end,
+    children(self): [list: self.fields, self.file] end,
     tosource(self):
       PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
@@ -241,15 +247,18 @@ end
 data Provide:
   | s-provide(l :: Loc, block :: Expr) with:
     label(self): "s-provide" end,
+    children(self): [list: self.block] end,
     tosource(self):
       PP.soft-surround(INDENT, 1, str-provide,
         self.block.tosource(), str-end)
     end
   | s-provide-all(l :: Loc) with:
     label(self): "s-provide-all" end,
+    children(self): [list:] end,
     tosource(self): str-provide-star end
   | s-provide-none(l :: Loc) with:
     label(self): "s-provide-none" end,
+    children(self): [list:] end,
     tosource(self): PP.mt-doc end
 sharing:
   visit(self, visitor):
@@ -260,6 +269,7 @@ end
 data ProvideTypes:
   | s-provide-types(l :: Loc, ann :: List<AField>) with:
     label(self): "a-provide-type" end,
+    children(self): [list: self.ann] end,
     tosource(self):
       PP.surround-separate(INDENT, 1, str-provide-types + break-one + PP.lbrace + PP.rbrace,
         str-provide-types + break-one + PP.lbrace, PP.commabreak, PP.rbrace,
@@ -267,9 +277,11 @@ data ProvideTypes:
     end
   | s-provide-types-all(l :: Loc) with:
     label(self): "s-provide-types-all" end,
+    children(self): [list:] end,
     tosource(self): str-provide-types-star end
   | s-provide-types-none(l :: Loc) with:
     label(self): "s-provide-types-none" end,
+    children(self): [list:] end,
     tosource(self): PP.mt-doc end
 sharing:
   visit(self, visitor):
@@ -281,12 +293,15 @@ end
 data ImportType:
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
+    children(self): [list: self.file] end,
     tosource(self): PP.str(torepr(self.file)) end
   | s-const-import(l :: Loc, mod :: String) with:
     label(self): "s-const-import" end,
+    children(self): [list: self.mod] end,
     tosource(self): PP.str(self.mod) end
   | s-special-import(l :: Loc, kind :: String, args :: List<String>) with:
     label(self): "s-special-import" end,
+    children(self): [list: self.kind, self.args] end,
     tosource(self): 
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
