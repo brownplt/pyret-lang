@@ -1461,7 +1461,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 toCompare.curAns = ffi.notEqual.app(current.path);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              toCompare.curAns = ffi.unknown;
+              toCompare.curAns = ffi.unknown.app("Attempted to compare roughnums: " + curLeft + ", " + curRight);
             } else if (jsnums.equals(curLeft, curRight)) {
               continue;
             } else {
@@ -1470,9 +1470,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
-            toCompare.curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown.app("Attempted to compare functions: " + curLeft + ", " + curRight);
           } else if (isMethod(curLeft) && isMethod(curRight)) {
-            toCompare.curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown.app("Attempted to compare methods: " + curLeft + ", " + curRight);
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
@@ -1706,7 +1706,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-now"); }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwMessageException(getField(ans, "reason"));
+          }
         });
       });
     };
@@ -1730,7 +1732,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within"); }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwMessageException(getField(ans, "reason"));
+          }
         });
       });
     };
@@ -1754,7 +1758,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-rel"); }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwMessageException(getField(ans, "reason"));
+          }
         });
       });
     };
@@ -1778,7 +1784,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(ans) {
           if (ffi.isEqual(ans)) { return true; }
           else if (ffi.isNotEqual(ans)) { return false; }
-          else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with within-rel"); }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwMessageException(getField(ans, "reason"));
+          }
         });
       });
     };
@@ -1802,7 +1810,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }, function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with equal-always"); }
+        else if (ffi.isUnknown(ans)) {
+          ffi.throwMessageException(getField(ans, "reason"));
+        }
       });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
@@ -1822,7 +1832,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }, function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods or roughnums with equal-now"); }
+        else if (ffi.isUnknown(ans)) {
+          ffi.throwMessageException(getField(ans, "reason"));
+        }
       });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
@@ -1929,9 +1941,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // JS function from Pyret values to Pyret equality answers
     function identical3(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
-        return ffi.unknown;
+        return ffi.unknown.app("Attempted to compare functions: " + v1 + ", " + v2);
       } else if (isMethod(v1) && isMethod(v2)) {
-        return ffi.unknown;
+        return ffi.unknown.app('Attempted to compare methods: ' + v1 + ', ' + v2);
       } else if (v1 === v2) {
         return ffi.equal;
       } else {
@@ -1949,7 +1961,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var ans = identical3(v1, v2);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with identical"); }
+      else if (ffi.isUnknown(ans)) {
+        ffi.throwMessageException(getField(ans, "reason"));
+      }
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var identicalPy = makeFunction(function(v1, v2) {
