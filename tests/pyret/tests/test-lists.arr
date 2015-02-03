@@ -1,6 +1,5 @@
 import equality as E
 
-
 data Box:
   | box(ref v)
 end
@@ -19,10 +18,9 @@ check "member":
   traditional-member(l, f) raises "function"
   traditional-member(l, 5) is false
 
-
   lists.member3(l, 1) is E.Equal
   lists.member3(l, 3) is E.Equal
-  lists.member3(l, f) is E.Unknown
+  lists.member3(l, f) satisfies E.is-Unknown
   lists.member3(l, 5) satisfies E.is-NotEqual
 
   lists.member(l, 1) is true
@@ -47,7 +45,7 @@ check "member":
   lists.member-identical(l1, b1) is true
   lists.member-identical(l1, b2) is false
   lists.member-identical3(l1, b1) is E.Equal
-  lists.member-identical3(l1, b2) satisfies E.is-NotEqual  
+  lists.member-identical3(l1, b2) satisfies E.is-NotEqual
 
   b1!{v: 10}
 
@@ -56,7 +54,4 @@ check "member":
   lists.member-now3(l1, b1) is E.Equal
   lists.member-now3(l1, b2) satisfies E.is-NotEqual
 
-
-
 end
-
