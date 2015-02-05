@@ -190,7 +190,7 @@ check "lists":
 end
 
 eq-all = { _equals(_, _, _): E.Equal end }
-eq-none = { _equals(_, _, _): E.NotEqual("just because") end }
+eq-none = { _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
 
 check "identical pre-check overrides method in true case, but not in false case":
   identical(eq-none, eq-none) is true

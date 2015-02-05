@@ -5,7 +5,7 @@ provide-types *
 
 data EqualityResult:
   | Equal
-  | NotEqual(reason :: String)
+  | NotEqual(reason :: String, value1, value2)
   | Unknown(reason :: String, value1, value2)
 end
 
@@ -31,10 +31,10 @@ fun to-boolean(er :: EqualityResult):
   cases(EqualityResult) er:
     | Unknown(_, _, _) => raise("Equality check on functions or methods or roughnums")
     | Equal => true
-    | NotEqual(_) => false
+    | NotEqual(_,_,_) => false
   end
 end
 
 fun from-boolean(b :: Boolean):
-  if b: Equal else: NotEqual("false") end
+  if b: Equal else: NotEqual("false", "value1", "value2") end
 end

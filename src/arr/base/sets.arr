@@ -37,7 +37,6 @@ pick-some = pick.pick-some
 
 # SETS
 
-
 data AVLTree:
   | leaf with:
     height(self) -> Number: 0 end,
@@ -48,7 +47,7 @@ data AVLTree:
     inorder(self) -> lists.List: empty end,
     postorder(self) -> lists.List: empty end,
     fold(self, f, base): base end
-    
+
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
     height(self) -> Number:
       doc: "Returns the depth of the tree"
@@ -103,7 +102,7 @@ sharing:
   end,
   _equals(self, other, eq):
     if not(AVLTree(other)):
-      equality.NotEqual("Non-AVLTree")
+      equality.NotEqual("Non-AVLTree", self, other)
     else:
       eq(self.inorder(), other.inorder())
     end
@@ -111,7 +110,6 @@ sharing:
 end
 
 fun tree-fold(f, base, tree): tree.fold(f, base) end
-
 
 fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
@@ -211,7 +209,7 @@ data Set:
                 pick-some(f2, list-set(link(f, r2)))
               end
           end
-      end 
+      end
     end,
     tostring(self, shadow tostring):
       "[set: " +
@@ -223,7 +221,7 @@ data Set:
       "]"
     end,
     _torepr(self, shadow torepr):
-      "[list-set: " + 
+      "[list-set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": torepr(elem)
           else: torepr(elem) + ", " + acc
@@ -235,12 +233,12 @@ data Set:
     fold(self, f :: (Any, Any -> Any), base :: Any):
       fold(f, base, self.elems)
     end,
-    
+
     member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.member(elem)
     end,
-    
+
     add(self, elem :: Any) -> Set:
       doc: "Add an element to the set if it is not already present."
       if (self.elems.member(elem)):
@@ -249,12 +247,12 @@ data Set:
         list-set(link(elem, self.elems))
       end
     end,
-    
+
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       list-set(self.elems.filter(lam(x): x <> elem end))
     end,
-    
+
     to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems
@@ -266,7 +264,7 @@ data Set:
         u.add(elem)
       end, self)
     end,
-    
+
     intersect(self :: Set, other :: Set) -> Set:
       doc: 'Compute the intersection of this set and another set.'
       for fold(u from self, elem from self.elems):
@@ -277,7 +275,7 @@ data Set:
         end
       end
     end,
-    
+
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
       for fold(u from self, elem from self.elems):
@@ -288,8 +286,7 @@ data Set:
         end
       end
     end
-    
-    
+
   | tree-set(elems :: AVLTree) with:
     pick(self):
       t = self.elems
@@ -309,7 +306,7 @@ data Set:
       "]"
     end,
     _torepr(self, shadow torepr):
-      "[tree-set: " + 
+      "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": torepr(elem)
           else: acc + ", " + torepr(elem)
@@ -321,27 +318,27 @@ data Set:
     fold(self, f :: (Any -> Any), base :: Any):
       tree-fold(f, base, self.elems)
     end,
-    
+
     member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.contains(elem)
     end,
-    
+
     add(self, elem :: Any) -> Set:
       doc: "Add an element to the set if it is not already present."
       tree-set(self.elems.insert(elem))
     end,
-    
+
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       tree-set(self.elems.remove(elem))
     end,
-    
+
     to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems.inorder()
     end,
-    
+
     union(self, other):
       new-elems =
         other.fold(lam(elems, elem):
@@ -349,19 +346,19 @@ data Set:
         end, self.elems)
       tree-set(new-elems)
     end,
-    
+
     intersect(self, other):
       new-elems =
         for tree-fold(elems from self.elems, elem from self.elems):
           if other.member(elem):
             elems
-          else: 
+          else:
             elems.remove(elem)
           end
         end
       tree-set(new-elems)
     end,
-    
+
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
       new-elems = other.fold(lam(elems, elem):
@@ -375,20 +372,20 @@ data Set:
     end
 
 sharing:
-  
+
   symmetric_difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'
     self.union(other).difference(self.intersect(other))
   end,
-  
+
   _equals(self, other, eq):
     if not(Set(other)):
-      equality.NotEqual("Non-Set")
+      equality.NotEqual("Non-Set", self, other)
     else:
       self-list = self.to-list()
       other-list = other.to-list()
       if not(other-list.length() == self-list.length()):
-        equality.NotEqual("set size")
+        equality.NotEqual("set size", self, other)
       else:
         for fold(result from equality.Equal, elt from self-list):
           result-for-elt = lists.member-with(other-list, elt, eq)
@@ -424,7 +421,7 @@ end
 
 fun arr-to-list-set(arr :: RawArray) -> Set:
   for raw-array-fold(ls from list-set(empty), elt from arr, _ from 0):
-    ls.add(elt) 
+    ls.add(elt)
   end
 end
 
@@ -434,5 +431,3 @@ fun arr-to-tree-set(arr :: RawArray) -> Set:
   end
   tree-set(tree)
 end
-
-

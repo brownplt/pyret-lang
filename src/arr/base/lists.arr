@@ -234,7 +234,6 @@ data List<a>:
       end
     end,
 
-
 sharing:
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
@@ -484,7 +483,6 @@ where:
   all2(lam(_, _): true  end, empty, empty) is true
   all2(lam(_, _): false end, empty, empty) is true
 end
-
 
 fun<a, b> map(f :: (a -> b), lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(elem) for each elem in lst"
@@ -772,7 +770,7 @@ end
 
 fun<a> member-with(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
   ask:
-    | is-empty(lst) then: equality.NotEqual("list")
+    | is-empty(lst) then: equality.NotEqual("list", elt, lst)
     | is-link(lst) then:
       f = lst.first
       r = lst.rest

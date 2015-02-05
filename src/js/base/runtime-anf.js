@@ -1453,19 +1453,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
                   continue;
                 } else {
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 }
               } else if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
                 continue;
               } else {
-                toCompare.curAns = ffi.notEqual.app(current.path);
+                toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
               toCompare.curAns = ffi.unknown.app("Attempted to compare roughnums", curLeft, curRight);
             } else if (jsnums.equals(curLeft, curRight)) {
               continue;
             } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
@@ -1477,7 +1477,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
             } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
             if (findPair(curLeft, curRight)) {
@@ -1486,9 +1486,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
               cachePair(curLeft, curRight);
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
-                  toCompare.curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
                 } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
@@ -1506,7 +1506,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
                     toCompare.stack.push({
@@ -1519,7 +1519,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                   /* Two objects with brands that differ */
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
@@ -1555,7 +1555,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
                   if(fieldsLeft.length !== fieldsRight.length) {
-                    toCompare.curAns = ffi.notEqual.app(current.path);
+                    toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                   }
                   for(var k = 0; k < fieldsLeft.length; k++) {
                     toCompare.stack.push({
@@ -1566,7 +1566,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   }
                 }
               } else {
-                toCompare.curAns = ffi.notEqual.app(current.path);
+                toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
               }
             }
           }
@@ -1947,7 +1947,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       } else if (v1 === v2) {
         return ffi.equal;
       } else {
-        return ffi.notEqual.app("");
+        return ffi.notEqual.app("", v1, v2);
       }
     };
     // Pyret function from Pyret values to Pyret equality answers
