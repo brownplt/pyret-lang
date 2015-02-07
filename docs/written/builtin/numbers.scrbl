@@ -159,7 +159,7 @@
     (args ("n"))
     (doc ""))
   (fun-spec
-    (name "num-within")
+    (name "num-within-abs")
     (arity 1)
     (args ("tol"))
     (doc ""))
@@ -169,12 +169,12 @@
     (args ("tol"))
     (doc ""))
   (fun-spec
-    (name "within")
+    (name "within-abs")
     (arity 1)
     (args ("tol"))
     (doc ""))
   (fun-spec
-    (name "within-now")
+    (name "within-abs-now")
     (arity 1)
     (args ("tol"))
     (doc ""))
@@ -314,7 +314,7 @@ Returns the sine of the argument  as a roughnum. If the argument is exact 0, the
 @examples{
 check:
   num-sin(0) is 0
-  num-sin(1) is%(within(0.01)) 0.84
+  num-sin(1) is%(within-abs(0.01)) 0.84
 end
 }
   }
@@ -326,7 +326,7 @@ the argument is exact 0, the result is exact 1.
 @examples{
 check:
   num-cos(0) is 1
-  num-cos(1) is%(within(0.01)) 0.54
+  num-cos(1) is%(within-abs(0.01)) 0.54
 end
 }
   }
@@ -337,7 +337,7 @@ the argument is exact 0, the result is exact 1.
 @examples{
 check:
   num-tan(0) is 0
-  num-tan(1) is%(within(0.01)) 1.56
+  num-tan(1) is%(within-abs(0.01)) 1.56
 end
 }
 
@@ -349,7 +349,7 @@ the argument is exact 0, the result is exact 0.
 @examples{
 check:
   num-asin(0) is 0
-  num-asin(0.84) is%(within(0.01)) 1
+  num-asin(0.84) is%(within-abs(0.01)) 1
 end
 }
 
@@ -362,7 +362,7 @@ the argumet is exact 1, the result is exact 0.
 @examples{
 check:
   num-acos(1) is 0
-  num-acos(0.54) is%(within(0.01)) 1
+  num-acos(0.54) is%(within-abs(0.01)) 1
 end
 }
   }
@@ -374,7 +374,7 @@ the argumet is exact 0, the result is exact 0.
 @examples{
 check:
   num-atan(0) is 0
-  num-atan(1.56) is%(within(0.01)) 1
+  num-atan(1.56) is%(within-abs(0.01)) 1
 end
 }
   }
@@ -413,9 +413,9 @@ square, the result is exact.
 @examples{
 check:
   num-sqrt(4) is 2
-  num-sqrt(5) is%(within(0.001)) ~2.236
+  num-sqrt(5) is%(within-abs(0.001)) ~2.236
   num-sqrt(~4) is ~2
-  num-sqrt(~5) is%(within(0.001)) ~2.236
+  num-sqrt(~5) is%(within-abs(0.001)) ~2.236
   num-sqrt(0.04) is 1/5
   num-sqrt(-1) raises "negative argument"
 end
@@ -491,7 +491,7 @@ check:
   num-log(1) is 0
   num-log(0) raises "non-positive argument"
   num-log(-1) raises "non-positive argument"
-  num-log(2.718281828) is%(within(0.01)) 1
+  num-log(2.718281828) is%(within-abs(0.01)) 1
 end
 }
 
@@ -504,10 +504,10 @@ exact 1.
 
 @examples{
 check:
-  num-exp(-1) is%(within(0.0001)) (1 / num-exp(1))
+  num-exp(-1) is%(within-abs(0.0001)) (1 / num-exp(1))
   num-exp(0) is 1
-  num-exp(1) is%(within(0.0001)) 2.718281828
-  num-exp(3) is%(within(0.0001)) num-expt(2.718281828, 3)
+  num-exp(1) is%(within-abs(0.0001)) 2.718281828
+  num-exp(3) is%(within-abs(0.0001)) num-expt(2.718281828, 3)
   num-exp(710) raises "overflow"
 end
 }
@@ -542,7 +542,7 @@ roughnum.
 
 @examples{
 check:
-  num-sqrt(2) is%(within(0.000001)) ~1.4142135623730951
+  num-sqrt(2) is%(within-abs(0.000001)) ~1.4142135623730951
   num-exact(num-sqrt(2)) is 1767766952966369/1250000000000000
 end
 }
@@ -680,23 +680,23 @@ check:
 end
 }
   }
-  @function["num-within" #:contract (a-arrow N A)]{
+  @function["num-within-abs" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if the difference of its two
 arguments is less than @pyret{tol}.
 
 @examples{
 check:
-   1  is%(num-within(0.1))       1
-   1  is%(num-within(0.1))      ~1
-  ~3  is%(num-within(0.1))      ~3
-  ~2  is-not%(num-within(0.1))  ~3
-  ~2  is%(num-within(1.1))      ~3
-  ~2  is-not%(num-within(~1))   ~3
-   2  is-not%(num-within(1))    ~3
-   5  is%(num-within(4))         3
+   1  is%(num-within-abs(0.1))       1
+   1  is%(num-within-abs(0.1))      ~1
+  ~3  is%(num-within-abs(0.1))      ~3
+  ~2  is-not%(num-within-abs(0.1))  ~3
+  ~2  is%(num-within-abs(1.1))      ~3
+  ~2  is-not%(num-within-abs(~1))   ~3
+   2  is-not%(num-within-abs(1))    ~3
+   5  is%(num-within-abs(4))         3
 
-   num-within(-0.1)(1, 1.05) raises "negative tolerance"
+   num-within-abs(-0.1)(1, 1.05) raises "negative tolerance"
 end
 }
 
@@ -706,6 +706,8 @@ end
 Returns a predicate that checks if the relative difference of its two
 number arguments is less than @pyret{tol}.
 
+This function is aka @pyret{num-within}.
+
 @examples{
 check:
   100000 is%(num-within-rel(0.1)) 95000
@@ -713,7 +715,7 @@ check:
 end
 }
   }
-  @function["within" #:contract (a-arrow N A)]{
+  @function["within-abs" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are guaranteed
 to be structurally
@@ -725,22 +727,22 @@ objects.
 
 @examples{
 check:
-  ~2  is-not%(within(0.1))  ~3
-  ~2  is%(within(1.1))      ~3
+  ~2  is-not%(within-abs(0.1))  ~3
+  ~2  is%(within-abs(1.1))      ~3
 
-   within(-0.1)(1, 1.05) raises "negative tolerance"
+   within-abs(-0.1)(1, 1.05) raises "negative tolerance"
 
    l3 = [list: ~1]
    l4 = [list: 1.2]
-   l3 is%(within(0.5))  l4
-   l3 is-not%(within(0.1)) l4
-   l3 is%(within(~0.5))  l4
-   l3 is-not%(within(~0.1)) l4
+   l3 is%(within-abs(0.5))  l4
+   l3 is-not%(within-abs(0.1)) l4
+   l3 is%(within-abs(~0.5))  l4
+   l3 is-not%(within-abs(~0.1)) l4
 end
 }
 
   }
-  @function["within-now" #:contract (a-arrow N A)]{
+  @function["within-abs-now" #:contract (a-arrow N A)]{
 
 Returns a predicate that checks if its arguments are currently
 structurally
@@ -757,12 +759,12 @@ check:
   l1 = [list: 2, b1]
   l2 = [list: 2.1, b2]
 
-  l1 is-not%(within(0.3)) l2
-  l1 is%(within-now(0.3)) l2
+  l1 is-not%(within-abs(0.3)) l2
+  l1 is%(within-abs-now(0.3)) l2
 
   b1!{v: 10}
 
-  l1 is-not%(within-now(0.3)) l2
+  l1 is-not%(within-abs-now(0.3)) l2
 end
 }
 
@@ -776,6 +778,8 @@ that their relative difference is currently less than @pyret{tol}.
 Notably,
 this predicate will return false if either argument contains mutable
 objects.
+
+This function is aka @pyret{within}.
 
 @examples{
 check:
@@ -798,6 +802,8 @@ that their relative difference is currently less than @pyret{tol}.
 Notably,
 if the arguments contain mutable objects, the predicate could
 return false if those objects are mutated.
+
+This function is aka @pyret{within-now}.
 
 @examples{
 check:

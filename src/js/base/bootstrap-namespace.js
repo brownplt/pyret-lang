@@ -93,15 +93,19 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
 
         'random': rt.namespace.get("random"),
 
-        'within-now': rt.namespace.get("within-now"),
+        'within-abs-now': rt.namespace.get("within-abs-now"),
         'within-rel-now': rt.namespace.get("within-rel-now"),
-        'within': rt.namespace.get("within"),
+        'within-abs': rt.namespace.get("within-abs"),
         'within-rel': rt.namespace.get("within-rel"),
+
+        'within': rt.namespace.get('within'),
+        'within-now': rt.namespace.get('within-now'),
+        'num-within': rt.namespace.get('num-within'),
 
         'num-max': rt.namespace.get("num-max"),
         'num-min': rt.namespace.get("num-min"),
         'num-equal': rt.namespace.get("num-equal"),
-        'num-within': rt.namespace.get("num-within"),
+        'num-within-abs': rt.namespace.get("num-within-abs"),
         'num-within-rel': rt.namespace.get("num-within-rel"),
         'num-abs': rt.namespace.get("num-abs"),
         'num-sin': rt.namespace.get("num-sin"),
