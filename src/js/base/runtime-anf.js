@@ -3969,11 +3969,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var list;
     var srcloc;
     var ffi;
+    var resugar;
     loadModulesNew(thisRuntime.namespace,
-      [require("trove/lists"), require("trove/srcloc")],
-      function(listsLib, srclocLib) {
+      [require("trove/lists"),
+       require("trove/srcloc"),
+       require("trove/resugar")],
+      function(listsLib, srclocLib, resugarLib) {
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
+        resugar = getField(resugarLib, "values");
       });
     loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
       ffi = f;
@@ -3988,8 +3992,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
     var ns = thisRuntime.namespace;
-    var nsWithList = ns.set("_link", getField(list, "link"))
-                       .set("_empty", getField(list, "empty"));
+    var nsWithList = ns.set("_link",  getField(list, "link"))
+                       .set("_empty", getField(list, "empty"))
+                       .set("_node",  getField(resugar, "node"))
+                       .set("_value", getField(resugar, "value"));
+
     thisRuntime.namespace = nsWithList;
 
     var checkList = makeCheckType(ffi.isList, "List");

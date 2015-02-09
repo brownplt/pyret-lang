@@ -490,6 +490,8 @@ standard-builtins = compile-env(
     runtime-builtins + [list: 
       builtin-id("_link"),
       builtin-id("_empty"),
+      builtin-id("_node"),
+      builtin-id("_value"),
       module-bindings("arrays", [list: 
           "array",
           "build-array",

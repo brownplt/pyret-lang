@@ -85,5 +85,6 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   l = expr.l
   A.s-block(l, [list:
       A.s-app(l, gid(l, "print"), [list: A.s-str(l, "Gonna step")]),
+      A.s-app(l, gid(l, "print"), [list: gid(l, "_node")]),
       stepify(expr)])
 end

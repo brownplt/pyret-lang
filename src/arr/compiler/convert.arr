@@ -1,6 +1,15 @@
 #lang pyret
 
+import string-dict as D
+import srcloc as S
 import AST as A
+import "compiler/resugar.arr" as R
+
+dummy-loc = S.builtin("dummy location")
+
+fun is-List(x):
+  is-empty(x) or is-link(x)
+end
 
 fun apply(func, args):
   len = args.length()
@@ -32,31 +41,56 @@ fun apply(func, args):
   end
 end
 
+
+fun nt(constr):
+  { constructor: constr }
+end
+
+node-types = [D.string-dict:
+  "s-program", nt(A.s-program)
+]
+
+
 fun from-ast(ast):
   ask:
-    | is-Name(ast): "NYI"
-    | is-List(ast):
+    | A.is-Name(ast) then:
+      "NYI"
+    | is-List(ast) then:
       cases(List) ast:
         | empty             =>
-          node("Empty", no-loc, [list:])
+          R.node("Empty", dummy-loc, [list:])
         | link(first, rest) =>
-          node("Link:" + first.label(), first.l,
+          R.node("Link:" + first.label(), first.l,
             [list: from-ast(first), from-ast(rest)])
       end
     | otherwise:
       name = ast.label()
       children = ast.children()
-      node(name, ast.l, map(from-ast, children))
+      R.node(name, ast.l, map(from-ast, children))
   end
 end
 
-fun to-ast(node):
-  ask:
-    | node.name == "Empty" then:
-      [list:]
-    | string-contains(node.name, "Link:") then:
-      link(to-ast(node.get(0)), to-ast(node.get(1)))
-    | otherwise:
-      "NYI"
+fun to-ast(node :: R.Node):
+  cases(R.Node) node:
+    | t-decl(v)  => "NYI"
+    | t-refn(v)  => "NYI"
+    | t-val(_)   => raise("to-ast: cannot store values in an AST")
+    | t-hole(_)  => raise("to-ast: cannot convert context hole")
+    | t-tag(_, _, term) => raise("to-ast: cannot conver tag")
+    | t-node(name, id, l, ts) =>
+      ask:
+        | name == "Empty" then:
+          [list:]
+        | string-contains(name, "Link:") then:
+          link(to-ast(node.get(0)), to-ast(node.get(1)))
+        | otherwise:
+          children = map(to-ast, ts)
+          constructor = node-types.get(name).constructor
+          apply(constructor, link(l, children))
+      end
   end
+end
+
+check:
+  2 is 2
 end
