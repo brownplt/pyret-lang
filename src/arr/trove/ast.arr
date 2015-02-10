@@ -315,6 +315,8 @@ end
 
 data Hint:
   | h-use-loc(l :: Loc) with:
+    label(self): "s-hint" end,
+    children(self): [list:] end,
     tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
   visit(self, visitor):
@@ -324,10 +326,14 @@ end
 
 data LetBind:
   | s-let-bind(l :: Loc, b :: Bind, value :: Expr) with:
+    label(self): "s-let-bind" end,
+    children(self): [list: self.b, self.value] end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-var-bind(l :: Loc, b :: Bind, value :: Expr) with:
+    label(self): "s-var-bind" end,
+    children(self): [list: self.b, self.value] end,
     tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -339,6 +345,8 @@ end
 
 data LetrecBind:
   | s-letrec-bind(l :: Loc, b :: Bind, value :: Expr) with:
+    label(self): "s-letrec-bind" end,
+    children(self): [list: self.b, self.value] end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
@@ -351,11 +359,13 @@ end
 data TypeLetBind:
   | s-type-bind(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-type-bind" end,
+    children(self): [list: self.name, self.ann] end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype-bind(l :: Loc, name :: Name, namet :: Name) with:
     label(self): "s-newtype-bind" end,
+    children(self): [list: self.name, self.namet] end,
     tosource(self):
       PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
           + break-one + str-as
@@ -371,6 +381,7 @@ end
 data Expr:
   | s-module(l :: Loc, answer :: Expr, provides :: Expr, types :: List<AField>, checks :: Expr) with:
     label(self): "s-module" end,
+    children(self): [list: self.answer, self.provides, self.types, self.checks] end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
@@ -381,6 +392,7 @@ data Expr:
     end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
     label(self): "s-type-let" end,
+    children(self): [list: self.binds, self.body] end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-type-let, str-type-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
@@ -388,7 +400,8 @@ data Expr:
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
-    label(self): "s-let" end,
+    label(self): "s-let-expr" end,
+    children(self): [list: self.binds, self.body] end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-let, str-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
@@ -397,6 +410,7 @@ data Expr:
     end
   | s-letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
     label(self): "s-letrec" end,
+    children(self): [list: self.binds, self.body] end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-letrec, str-letrec + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
@@ -405,12 +419,14 @@ data Expr:
     end
   | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
     label(self): "s-hint-exp" end,
+    children(self): [list: self.hints, self.exp] end,
     tosource(self):
       PP.flow-map(PP.hardline, lam(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
   | s-instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
     label(self): "s-instantiate" end,
+    children(self): [list: self.expr, self.params] end,
     tosource(self):
       PP.group(self.expr.tosource() +
         PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
@@ -418,11 +434,13 @@ data Expr:
     end
   | s-block(l :: Loc, stmts :: List<Expr>) with:
     label(self): "s-block" end,
+    children(self): [list: self.stmts] end,
     tosource(self):
       PP.flow-map(PP.hardline, _.tosource(), self.stmts)
     end
   | s-user-block(l :: Loc, body :: Expr) with:
     label(self): "s-user-block" end,
+    children(self): [list: self.body] end,
     tosource(self):
       PP.surround(INDENT, 1, str-block, self.body.tosource(), str-end)
     end
@@ -436,19 +454,24 @@ data Expr:
       body :: Expr,
       _check :: Option<Expr>
     ) with:
-      label(self): "s-fun" end,
+    label(self): "s-fun" end,
+    children(self): [list:
+        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check]
+    end,
     tosource(self):
       funlam-tosource(str-fun,
         self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s-type(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-type" end,
+    children(self): [list: self.name, self.ann] end,
     tosource(self):
       PP.group(PP.nest(INDENT,
           str-type + self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype(l :: Loc, name :: Name, namet :: Name) with:
     label(self): "s-newtype" end,
+    children(self): [list: self.name, self.namet] end,
     tosource(self):
       PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
           + break-one + str-as
@@ -456,6 +479,7 @@ data Expr:
     end
   | s-var(l :: Loc, name :: Bind, value :: Expr) with:
     label(self): "s-var" end,
+    children(self): [list: self.name, self.value] end,
     tosource(self):
       str-var
         + PP.group(PP.nest(INDENT, self.name.tosource()
@@ -463,6 +487,7 @@ data Expr:
     end
   | s-rec(l :: Loc, name :: Bind, value :: Expr) with:
     label(self): "s-rec" end,
+    children(self): [list: self.name, self.value] end,
     tosource(self):
       str-rec
         + PP.group(PP.nest(INDENT, self.name.tosource()
@@ -470,6 +495,7 @@ data Expr:
     end
   | s-let(l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean) with:
     label(self): "s-let" end,
+    children(self): [list: self.name, self.value, self.keyword-val] end,
     tosource(self):
       PP.group(PP.nest(INDENT,
           if self.keyword-val: str-val else: PP.mt-doc end
@@ -477,6 +503,7 @@ data Expr:
     end
   | s-ref(l :: Loc, ann :: Option<Ann>) with:
     label(self): "s-ref" end,
+    children(self): [list: self.ann] end,
     tosource(self):
       cases(Option) self.ann:
         | none => PP.str("bare-ref")
@@ -486,11 +513,13 @@ data Expr:
     end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-contract" end,
+    children(self): [list: self.name, self.ann] end,
     tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource())
     end
   | s-when(l :: Loc, test :: Expr, block :: Expr) with:
     label(self): "s-when" end,
+    children(self): [list: self.test, self.block] end,
     tosource(self):
       PP.soft-surround(INDENT, 1,
         str-when + PP.parens(self.test.tosource()) + str-colon,
@@ -499,11 +528,13 @@ data Expr:
     end
   | s-assign(l :: Loc, id :: Name, value :: Expr) with:
     label(self): "s-assign" end,
+    children(self): [list: self.id, self.value] end,
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | s-if-pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
     label(self): "s-if-pipe" end,
+    children(self): [list: self.branches] end,
     tosource(self):
       PP.surround-separate(INDENT, 1, str-askcolon + str-space + str-end,
         PP.group(str-askcolon), break-one, str-end,
@@ -511,6 +542,7 @@ data Expr:
     end
   | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
     label(self): "s-if-pipe-else" end,
+    children(self): [list: self.branches, self._else] end,
     tosource(self):
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-pipespace + str-otherwisecolon + break-one + self._else.tosource())
@@ -518,6 +550,7 @@ data Expr:
     end
   | s-if(l :: Loc, branches :: List<IfBranch>) with:
     label(self): "s-if" end,
+    children(self): [list: self.branches] end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
         self.branches.map(lam(b): b.tosource() end))
@@ -525,6 +558,7 @@ data Expr:
     end
   | s-if-else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
     label(self): "s-if-else" end,
+    children(self): [list: self.branches, self._else] end,
     tosource(self):
       branches = PP.separate(break-one + str-elsespace,
         self.branches.map(lam(b): b.tosource() end))
@@ -533,6 +567,7 @@ data Expr:
     end
   | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
     label(self): "s-cases" end,
+    children(self): [list: self.typ, self.val, self.branches] end,
     tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -542,6 +577,7 @@ data Expr:
     end
   | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
     label(self): "s-cases-else" end,
+    children(self): [list: self.typ, self.val, self.branches, self._else] end,
     tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -552,6 +588,7 @@ data Expr:
   | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
     label(self): "s-op" end,
+    children(self): [list: self.op, self.left, self.right] end,
     tosource(self):
       fun collect-same-operands(exp):
         if is-s-op(exp) and (exp.op == self.op):
@@ -579,6 +616,7 @@ data Expr:
     # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
     # Only 's-op-raises-not' can lack a RHS. (Guaranteed by parsing; maintain this invariant!)
     label(self): "s-check-test" end,
+    children(self): [list: self.op, self.refinement, self.left, self.right] end,
     tosource(self):
       fun option-tosource(opt):
         cases(Option) opt:
@@ -597,11 +635,13 @@ data Expr:
     end
   | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
     label(self): "s-check-expr" end,
+    children(self): [list: self.expr, self.ann] end,
     tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, self.expr.tosource(), self.ann.tosource())
     end
   | s-paren(l :: Loc, expr :: Expr) with:
     label(self): "s-paren" end,
+    children(self): [list: self.expr] end,
     tosource(self): PP.parens(self.expr.tosource()) end
   | s-lam(
       l :: Loc,
@@ -613,6 +653,9 @@ data Expr:
       _check :: Option<Expr>
     ) with:
     label(self): "s-lam" end,
+    children(self): [list:
+        self.params, self.args, self.ann, self.doc, self.body, self._check]
+    end,
     tosource(self):
       funlam-tosource(str-lam,
         nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
@@ -627,12 +670,16 @@ data Expr:
       _check :: Option<Expr>
     ) with:
     label(self): "s-method" end,
+    children(self): [list:
+        self.params, self.args, self.ann, self.doc, self.body, self._check]
+    end,
     tosource(self):
       funlam-tosource(str-method,
         nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-extend" end,
+    children(self): [list: self.supe, self.fields] end,
     tosource(self):
       PP.group(self.supe.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -640,6 +687,7 @@ data Expr:
     end
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
+    children(self): [list: self.supe, self.fields] end,
     tosource(self):
       PP.group(self.supe.tosource() + str-bang
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -647,18 +695,21 @@ data Expr:
     end
   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
+    children(self): [list: self.fields] end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s-array(l :: Loc, values :: List<Expr>) with:
     label(self): "s-array" end,
+    children(self): [list: self.values] end,
     tosource(self):
       PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
         self.values.map(_.tosource()))
     end
   | s-construct(l :: Loc, modifier :: ConstructModifier, constructor :: Expr, values :: List<Expr>) with:
     label(self): "s-construct" end,
+    children(self): [list: self.modifier, self.constructor, self.values] end,
     tosource(self):
       prefix = PP.lbrack
         + PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
@@ -670,6 +721,7 @@ data Expr:
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
+    children(self): [list: self._fun, self.args] end,
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
@@ -677,6 +729,7 @@ data Expr:
     end
   | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
     label(self): "s-prim-app" end,
+    children(self): [list: self._fun, self.args] end,
     tosource(self):
       PP.group(PP.str(self._fun)
           + PP.parens(PP.nest(INDENT,
@@ -684,42 +737,55 @@ data Expr:
     end
   | s-prim-val(l :: Loc, name :: String) with:
     label(self): "s-prim-val" end,
+    children(self): [list: self.name] end,
     tosource(self): PP.str(self.name) end
   | s-id(l :: Loc, id :: Name) with:
     label(self): "s-id" end,
+    children(self): [list: self.id] end,
     tosource(self): self.id.tosource() end
   | s-id-var(l :: Loc, id :: Name) with:
     label(self): "s-id-var" end,
+    children(self): [list: self.id] end,
     tosource(self): PP.str("!") + self.id.tosource() end
   | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     label(self): "s-id-letrec" end,
+    children(self): [list: self.id, self.safe] end,
     tosource(self): PP.str("~") + self.id.tosource() end
   | s-undefined(l :: Loc) with:
     label(self): "s-undefined" end,
+    childlren(self): [list:] end,
     tosource(self): PP.str("undefined") end
   | s-srcloc(l :: Loc, loc :: Loc) with:
     label(self): "s-srcloc" end,
+    children(self): [list: self.loc] end,
     tosource(self): PP.str(torepr(self.loc)) end
   | s-num(l :: Loc, n :: Number) with:
     label(self): "s-num" end,
+    children(self): [list: self.n] end,
     tosource(self): PP.number(self.n) end
   | s-frac(l :: Loc, num :: Number, den :: Number) with:
     label(self): "s-frac" end,
+    children(self): [list: self.num, self.den] end,
     tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
     label(self): "s-bool" end,
+    children(self): [list: self.b] end,
     tosource(self): PP.str(tostring(self.b)) end
   | s-str(l :: Loc, s :: String) with:
     label(self): "s-str" end,
+    children(self): [list: self.s] end,
     tosource(self): PP.str(torepr(self.s)) end
   | s-dot(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-dot" end,
+    children(self): [list: self.obj, self.field] end,
     tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-get-bang" end,
+    children(self): [list: self.obj, self.field] end,
     tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
   | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
     label(self): "s-bracket" end,
+    children(self): [list: self.obj, self.field] end,
     tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
@@ -733,6 +799,9 @@ data Expr:
       _check :: Option<Expr>
       ) with:
     label(self): "s-data" end,
+    children(self): [list:
+        self.name, self.params, self.mixins, self.variants, self.shared-members, self._check]
+    end,
     tosource(self):
       fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
@@ -765,7 +834,10 @@ data Expr:
       shared-members :: List<Member>,
       _check :: Option<Expr>
     ) with:
-      label(self): "s-data-expr" end,
+    label(self): "s-data-expr" end,
+    children(self): [list:
+        self.name, self.namet, self.params, self.mixins, self.variants, self.shared-members, self._check]
+    end,
     tosource(self):
       fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
@@ -795,7 +867,8 @@ data Expr:
       ann :: Ann,
       body :: Expr
     ) with:
-      label(self): "s-for" end,
+    label(self): "s-for" end,
+    children(self): [list: self.iterator, self.bindings, self.ann, self.body] end,
     tosource(self):
       header = PP.group(str-for
           + self.iterator.tosource()
@@ -811,7 +884,8 @@ data Expr:
       body :: Expr,
       keyword-check :: Boolean
     ) with:
-      label(self): "s-check" end,
+    label(self): "s-check" end,
+    children(self): [list: self.name, self.body, self.keyword-check] end,
     tosource(self):
       cases(Option) self.name:
         | none => PP.surround(INDENT, 1,
@@ -832,9 +906,11 @@ end
 data ConstructModifier:
   | s-construct-normal with:
     label(self): "s-construct-normal" end,
+    children(self): [list:] end,
     tosource(self): PP.mt-doc end
   | s-construct-lazy with:
     label(self): "s-construct-lazy" end,
+    children(self): [list:] end,
     tosource(self): PP.str("lazy") end
 sharing:
   visit(self, visitor):
@@ -845,6 +921,7 @@ end
 
 data Bind:
   | s-bind(l :: Loc, shadows :: Boolean, id :: Name, ann :: Ann) with:
+    children(self): [list: self.shadows, self.id, self.ann] end,
     tosource(self):
       if is-a-blank(self.ann):
         if self.shadows: PP.str("shadow ") + self.id.tosource()
@@ -867,12 +944,14 @@ end
 data Member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) with:
     label(self): "s-data-field" end,
+    children(self): [list: self.name, self.valule] end,
     tosource(self):
       name-part = PP.str(self.name)
       PP.nest(INDENT, name-part + str-colonspace + self.value.tosource())
     end,
   | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
     label(self): "s-mutable-field" end,
+    children(self): [list: self.name, self.ann, self.value] end,
     tosource(self):
       name-part = PP.str(self.name)
       PP.nest(INDENT, str-mutable + name-part + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource())
@@ -888,6 +967,9 @@ data Member:
       _check :: Option<Expr>
     ) with:
       label(self): "s-method-field" end,
+    children(self): [list:
+        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check]
+    end,
     tosource(self):
       name-part = PP.str(self.name)
       funlam-tosource(name-part,
@@ -902,6 +984,7 @@ end
 data ForBind:
   | s-for-bind(l :: Loc, bind :: Bind, value :: Expr) with:
     label(self): "s-for-bind" end,
+    children(self): [list: self.bind, self.value] end,
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
@@ -914,9 +997,11 @@ end
 data VariantMemberType:
   | s-normal with:
     label(self): "s-normal" end,
+    children(self): [list:] end,
     tosource(self): PP.mt-doc end
   | s-mutable with:
     label(self): "s-mutable" end,
+    children(self): [list:] end,
     tosource(self): PP.str("mutable ") end
 sharing:
   visit(self, visitor):
@@ -927,6 +1012,7 @@ end
 data VariantMember:
   | s-variant-member(l :: Loc, member-type :: VariantMemberType, bind :: Bind) with:
     label(self): "s-variant-member" end,
+    children(self): [list: self.member-type, self.bind] end,
     tosource(self):
       self.member-type.tosource() + self.bind.tosource()
     end
@@ -945,6 +1031,7 @@ data Variant:
       with-members :: List<Member>
     ) with:
     label(self): "s-variant" end,
+    children(self): [list: self.constr-loc, self.name, self.members, self.with-members] end,
     tosource(self):
       header-nowith =
         PP.str(self.name)
@@ -962,6 +1049,7 @@ data Variant:
       with-members :: List<Member>
     ) with:
     label(self): "s-singleton-variant" end,
+    children(self): [list: self.name, self.with-members] end,
     tosource(self):
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
@@ -984,6 +1072,7 @@ data DatatypeVariant:
       constructor :: Constructor
     ) with:
     label(self): "s-datatype-variant" end,
+    children(self): [list: self.name, self.members, self.constructor] end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
@@ -993,6 +1082,7 @@ data DatatypeVariant:
       constructor :: Constructor
     ) with:
     label(self): "s-datatype-singleton-variant" end,
+    children(self): [list: self.name, self.constructor] end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
@@ -1009,6 +1099,7 @@ data Constructor:
       body :: Expr
       ) with:
     label(self): "s-datatype-constructor" end,
+    children(self): [list: self.self, self.body] end,
     tosource(self):
       PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
     end
@@ -1021,6 +1112,7 @@ end
 data IfBranch:
   | s-if-branch(l :: Loc, test :: Expr, body :: Expr) with:
     label(self): "s-if-branch" end,
+    children(self): [list: self.test, self.body] end,
     tosource(self):
       str-if
         + PP.nest(2 * INDENT, self.test.tosource() + str-colon)
@@ -1035,6 +1127,7 @@ end
 data IfPipeBranch:
   | s-if-pipe-branch(l :: Loc, test :: Expr, body :: Expr) with:
     label(self): "s-if-pipe-branch" end,
+    children(self): [list: self.test, self.body] end,
     tosource(self):
       str-pipespace
         + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-thencolon)
@@ -1049,15 +1142,18 @@ end
 data CasesBindType:
   | s-cases-bind-ref with:
     label(self): "s-cases-bind-ref" end,
+    children(self): [list:] end,
     tosource(self): PP.str("ref") end
   | s-cases-bind-normal with:
     label(self): "s-cases-bind-normal" end,
+    children(self): [list:] end,
     tosource(self): PP.str("") end
 end
 
 data CasesBind:
   | s-cases-bind(l :: Loc, field-type :: CasesBindType, bind :: Bind) with:
     label(self): "s-cases-bind" end,
+    children(self): [list: self.field-type, self.bind] end,
     tosource(self):
       self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
     end
@@ -1070,6 +1166,7 @@ end
 data CasesBranch:
   | s-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr) with:
     label(self): "s-cases-branch" end,
+    children(self): [list: self.pat-loc, self.name, self.args, self.body] end,
     tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name)
@@ -1079,6 +1176,7 @@ data CasesBranch:
     end
   | s-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: Expr) with:
     label(self): "s-singleton-cases-branch" end,
+    children(self): [list: self.pat-loc, self.name, self.body] end,
     tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
@@ -1107,36 +1205,47 @@ end
 data CheckOp:
   | s-op-is with:
     label(self): "s-op-is" end,
+    children(self): [list:] end,
     tosource(self): str-is end
   | s-op-is-op(op :: String) with:
     label(self): "s-op-is-op" end,
+    children(self): [list: self.op] end,
     tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
   | s-op-is-not with:
     label(self): "s-op-is-not" end,
+    children(self): [list:] end,
     tosource(self): str-is-not end
   | s-op-is-not-op(op :: String) with:
     label(self): "s-op-is-not-op" end,
+    children(self): [list: self.op] end,
     tosource(self): str-is-not + PP.str(string-substring(self.op, 2, string-length(self.op))) end
   | s-op-satisfies with:
     label(self): "s-op-satisfies" end,
+    children(self): [list:] end,
     tosource(self): str-satisfies end
   | s-op-satisfies-not with:
     label(self): "s-op-satisfies-not" end,
+    children(self): [list:] end,
     tosource(self): str-satisfies-not end
   | s-op-raises with:
     label(self): "s-op-raises" end,
+    children(self): [list:] end,
     tosource(self): str-raises end
   | s-op-raises-other with:
     label(self): "s-op-raises-other" end,
+    children(self): [list:] end,
     tosource(self): str-raises-other end
   | s-op-raises-not with:
     label(self): "s-op-raises-not" end,
+    children(self): [list:] end,
     tosource(self): str-raises-not end
   | s-op-raises-satisfies with:
     label(self): "s-op-raises-satisfies" end,
+    children(self): [list:] end,
     tosource(self): str-raises-satisfies end
   | s-op-raises-violates with:
     label(self): "s-op-raises-violates" end,
+    children(self): [list:] end,
     tosource(self): str-raises-violates end
 sharing:
   visit(self, visitor):
@@ -1147,18 +1256,23 @@ end
 data Ann:
   | a-blank with:
     label(self): "a-blank" end,
+    children(self): [list:] end,
     tosource(self): str-any end,
   | a-any with:
     label(self): "a-any" end,
+    children(self): [list:] end,
     tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
     label(self): "a-name" end,
+    children(self): [list: self.id] end,
     tosource(self): self.id.tosource() end,
   | a-type-var(l :: Loc, id :: Name) with:
     label(self): "a-type-var" end,
+    children(self): [list: self.id] end,
     tosource(self): self.id.tosource() end,
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:
     label(self): "a-arrow" end,
+    children(self): [list: self.args, self.ret, self.use-parens] end,
     tosource(self):
       ann = PP.separate(str-space,
         [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
@@ -1168,15 +1282,18 @@ data Ann:
     end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a-method" end,
+    children(self): [list: self.args, self.ret] end,
     tosource(self): PP.str("NYI: A-method") end,
   | a-record(l :: Loc, fields :: List<AField>) with:
     label(self): "a-record" end,
+    children(self): [list: self.fields] end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a-app" end,
+    children(self): [list: self.ann, self.args] end,
     tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
@@ -1184,12 +1301,15 @@ data Ann:
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     label(self): "a-pred" end,
+    children(self): [list: self.ann, self.exp] end,
     tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     label(self): "a-dot" end,
+    children(self): [list: self.obj, self.field] end,
     tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
   | a-checked(checked :: Ann, residual :: Ann) with:
     label(self): "a-checked" end,
+    children(self): [list: self.checked, self.residual] end,
     tosource(self): self.residual.tosource() end
 sharing:
   visit(self, visitor):
@@ -1200,6 +1320,7 @@ end
 data AField:
   | a-field(l :: Loc, name :: String, ann :: Ann) with:
     label(self): "a-field" end,
+    children(self): [list: self.name, self.ann] end,
     tosource(self):
       if is-a-blank(self.ann): PP.str(self.name)
       else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())

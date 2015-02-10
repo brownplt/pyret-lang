@@ -18,7 +18,7 @@ end
 
 fun constant(l, name :: String):
   #R.node(name, [list:])
-  A.s-app(l, A.s-dot(l, gid(l, "R"), "node"),
+  A.s-app(l, gid(l, "_node"),
       [list: A.s-str(l, name), gid(l, "_empty")])
 end
 

@@ -1,14 +1,27 @@
 #lang pyret
 
 import string-dict as D
-import srcloc as S
+import srcloc as SL
 import AST as A
-import "compiler/resugar.arr" as R
+import resugar as R
 
-dummy-loc = S.builtin("dummy location")
+dummy-loc = SL.builtin("dummy location")
 
 fun is-List(x):
   is-empty(x) or is-link(x)
+end
+
+fun is-Option(x):
+  Option(x)
+end
+
+fun loc(ast):
+  if A.is-ConstructModifier(ast) or A.is-VariantMemberType(ast) or A.is-CasesBindType
+    or A.is-a-blank(ast) or A.is-a-any or A.is-a-checked:
+    dummy-loc
+  else:
+    ast.l
+  end
 end
 
 fun apply(func, args):
@@ -51,22 +64,159 @@ node-types = [D.string-dict:
 ]
 
 
+constructors = {
+  "s-program": A.s-program,
+  "s-import": A.s-import,
+  "s-import-types": A.s-import-types,
+  "s-import-fields": A.s-import-fields,
+  "s-provide": A.s-provide,
+  "s-provide-all": A.s-provide-all,
+  "s-provide-none": A.s-provide-none,
+  "a-provide-type": A.a-provide-type,
+  "s-provide-types-all": A.s-provide-types-all,
+  "s-provide-types-none": A.s-provide-types-none,
+  "s-file-import": A.s-file-import,
+  "s-const-import": A.s-const-import,
+  "s-special-import": A.s-special-import,
+  "s-hint": A.s-hint,
+  "s-let-bind": A.s-let-bind,
+  "s-var-bind": A.s-var-bind,
+  "s-letrec-bind": A.s-letrec-bind,
+  "s-type-bind": A.s-type-bind,
+  "s-newtype-bind": A.s-newtype-bind,
+  "s-module": A.s-module,
+  "s-type-let": A.s-type-let,
+  "s-let-expr": A.s-let-expr,
+  "s-letrec": A.s-letrec,
+  "s-hint-exp": A.s-hint-exp,
+  "s-instantiate": A.s-instantiate,
+  "s-block": A.s-block,
+  "s-user-block": A.s-user-block,
+  "s-fun": A.s-fun,
+  "s-type": A.s-type,
+  "s-newtype": A.s-newtype,
+  "s-var": A.s-var,
+  "s-rec": A.s-rec,
+  "s-let": A.s-let,
+  "s-ref": A.s-ref,
+  "s-contract": A.s-contract,
+  "s-when": A.s-when,
+  "s-assign": A.s-assign,
+  "s-if-pipe": A.s-if-pipe,
+  "s-if-pipe-else": A.s-if-pipe-else,
+  "s-if": A.s-if,
+  "s-if-else": A.s-if-else,
+  "s-cases": A.s-cases,
+  "s-cases-else": A.s-cases-else,
+  "s-op": A.s-op,
+  "s-check-test": A.s-check-test,
+  "s-check-expr": A.s-check-expr,
+  "s-paren": A.s-paren,
+  "s-lam": A.s-lam,
+  "s-method": A.s-method,
+  "s-extend": A.s-extend,
+  "s-update": A.s-update,
+  "s-obj": A.s-obj,
+  "s-array": A.s-array,
+  "s-construct": A.s-construct,
+  "s-app": A.s-app,
+  "s-prim-app": A.s-prim-app,
+  "s-prim-val": A.s-prim-val,
+  "s-id": A.s-id,
+  "s-id-var": A.s-id-var,
+  "s-id-letrec": A.s-id-letrec,
+  "s-undefined": A.s-undefined,
+  "s-srcloc": A.s-srcloc,
+  "s-num": A.s-num,
+  "s-frac": A.s-frac,
+  "s-bool": A.s-bool,
+  "s-str": A.s-str,
+  "s-dot": A.s-dot,
+  "s-get-bang": A.s-get-bang,
+  "s-bracket": A.s-bracket,
+  "s-data": A.s-data,
+  "s-data-expr": A.s-data-expr,
+  "s-for": A.s-for,
+  "s-check": A.s-check,
+  "s-construct-normal": A.s-construct-normal,
+  "s-construct-lazy": A.s-construct-lazy,
+  "s_bind": A.s_bind,
+  "s-data-field": A.s-data-field,
+  "s-mutable-field": A.s-mutable-field,
+  "s-method-field": A.s-method-field,
+  "s-for-bind": A.s-for-bind,
+  "s-normal": A.s-normal,
+  "s-mutable": A.s-mutable,
+  "s-variant-member": A.s-variant-member,
+  "s-variant": A.s-variant,
+  "s-singleton-variant": A.s-singleton-variant,
+  "s-datatype-variant": A.s-datatype-variant,
+  "s-datatype-singleton-variant": A.s-datatype-singleton-variant,
+  "s-datatype-constructor": A.s-datatype-constructor,
+  "s-if-branch": A.s-if-branch,
+  "s-if-pipe-branch": A.s-if-pipe-branch,
+  "s-cases-bind-ref": A.s-cases-bind-ref,
+  "s-cases-bind-normal": A.s-cases-bind-normal,
+  "s-cases-bind": A.s-cases-bind,
+  "s-cases-branch": A.s-cases-branch,
+  "s-singleton-cases-branch": A.s-singleton-cases-branch,
+  "s-op-is": A.s-op-is,
+  "s-op-is-op": A.s-op-is-op,
+  "s-op-is-not": A.s-op-is-not,
+  "s-op-is-not-op": A.s-op-is-not-op,
+  "s-op-satisfies": A.s-op-satisfies,
+  "s-op-satisfies-not": A.s-op-satisfies-not,
+  "s-op-raises": A.s-op-raises,
+  "s-op-raises-other": A.s-op-raises-other,
+  "s-op-raises-not": A.s-op-raises-not,
+  "s-op-raises-satisfies": A.s-op-raises-satisfies,
+  "s-op-raises-violates": A.s-op-raises-violates,
+  "a-blank": A.a-blank,
+  "a-any": A.a-any,
+  "a-name": A.a-name,
+  "a-type-var": A.a-type-var,
+  "a-arrow": A.a-arrow,
+  "a-method": A.a-method,
+  "a-record": A.a-record,
+  "a-app": A.a-app,
+  "a-pred": A.a-pred,
+  "a-dot": A.a-dot,
+  "a-checked": A.a-checked,
+  "a-field": A.a-field
+}
+
 fun from-ast(ast):
   ask:
     | A.is-Name(ast) then:
       "NYI"
+    | SL.is-Srcloc(ast) then:
+      raise("from-ast: Srclocs not yet implemented")
+    | is-boolean(ast) then:
+      R.node("Bool", ast.l, [list: R.value(ast)])
+    | is-string(ast) then:
+      R.node("Str", ast.l, [list: R.value(ast)])
+    | is-Option(ast) then:
+      cases(Option) ast:
+        | none =>
+          R.node("None", dummy-loc, [list:])
+        | some(shadow ast) =>
+          R.node("Some:" + ast.label(),
+            loc(ast),
+            [list: from-ast(ast)])
+      end
     | is-List(ast) then:
       cases(List) ast:
         | empty             =>
           R.node("Empty", dummy-loc, [list:])
         | link(first, rest) =>
-          R.node("Link:" + first.label(), first.l,
+          R.node("Link:" + first.label(),
+            loc(first),
             [list: from-ast(first), from-ast(rest)])
       end
     | otherwise:
       name = ast.label()
       children = ast.children()
-      R.node(name, ast.l, map(from-ast, children))
+      R.node(name, loc(ast), map(from-ast, children))
   end
 end
 
@@ -79,18 +229,22 @@ fun to-ast(node :: R.Node):
     | t-tag(_, _, term) => raise("to-ast: cannot conver tag")
     | t-node(name, id, l, ts) =>
       ask:
+        | name == "Bool" then:
+          node.get(0).val
+        | name == "Str" then:
+          node.get(0).val
         | name == "Empty" then:
           [list:]
         | string-contains(name, "Link:") then:
           link(to-ast(node.get(0)), to-ast(node.get(1)))
+        | name == "None" then:
+          none
+        | string-contains(name, "Some:") then:
+          some(to-ast(node.get(0)))
         | otherwise:
           children = map(to-ast, ts)
-          constructor = node-types.get(name).constructor
+          constructor = constructors.get(name)
           apply(constructor, link(l, children))
       end
   end
-end
-
-check:
-  2 is 2
 end
