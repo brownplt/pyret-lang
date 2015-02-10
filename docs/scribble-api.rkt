@@ -107,8 +107,8 @@
 ;; print a warning message, optionally with name of issuing function
 (define (warning funname msg)
   (if funname
-      (eprintf "WARNING in ~a: ~s~n" funname msg)
-      (eprintf "WARNING: ~s~n" msg)))
+      (eprintf "WARNING in ~a: ~a~n" funname msg)
+      (eprintf "WARNING: ~a~n" msg)))
 
 (define (read-mod mod)
   (list (mod-name mod)
@@ -137,7 +137,7 @@
          (second mod)
          (lambda (key val)
            (unless val (warning 'report-undocumented
-                                (format "Undocumented export ~s from module ~s~n"
+                                (format "Undocumented export ~s from module ~s"
                                         key modname)))))
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
@@ -173,7 +173,8 @@
   (if (or (empty? indefns) (not indefns))
       #f
       (let ([d (findf (lambda (d)
-        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+                        (and (list? (spec-fields d))
+                             (equal? for-val (field-val (assoc by-field (spec-fields d)))))) indefns)])
         d)))
 
 
@@ -183,9 +184,10 @@
   (if (or (empty? indefns) (not indefns))
       #f
       (let ([d (findf (lambda (d)
-        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+                        (and (list? (spec-fields d))
+                             (equal? for-val (field-val (assoc by-field (spec-fields d)))))) indefns)])
         (unless d
-          (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
+          (warning 'find-defn (format "No definition for field '~a = \"~a\" in module ~s" by-field for-val indefns)))
         d)))
 
 ;; defn-spec is '(fun-spec <assoc>)
@@ -199,6 +201,9 @@
 (define (find-doc mname fname)
   (let ([mdoc (find-module mname)])
     (find-defn 'name fname (drop mdoc 3))))
+(define (find-doc/nowarn mname fname)
+  (let ([mdoc (find-module mname)])
+    (find-defn/nowarn 'name fname (drop mdoc 3))))
 
 ;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -423,14 +428,22 @@
                       #:alt-docstrings (alt-docstrings #f)
                       #:examples (examples '())
                       . body)
-  (let* ([methods (get-defn-field 'with-members (find-doc (curr-module-name) var-name))]
-         [spec (find-defn/nowarn 'name name methods)]
-         [methods2 (if spec methods (get-defn-field 'shared (find-doc (curr-module-name) data-name)))]
-         [spec (find-defn 'name name methods2)])
-    (render-fun-helper
-     spec name
-     (list 'part (tag-name (curr-module-name) data-name name))
-     contract return args alt-docstrings examples body)))
+  (let* ([spec (or (find-defn/nowarn 'name name
+                      (get-defn-field 'with-members (find-doc/nowarn (curr-module-name) var-name)))
+                   (find-defn/nowarn 'name name
+                      (get-defn-field 'shared (find-doc/nowarn (curr-module-name) data-name)))
+                   (find-defn/nowarn 'name name
+                      (get-defn-field 'with-members
+                         (find-defn/nowarn 'name var-name
+                            (drop (find-doc/nowarn (curr-module-name) data-name) 3)))))])
+      (unless spec
+        (warning 'method-doc
+          (format "No definition for method ~a for data ~a and variant ~a in module ~s"
+                  name data-name var-name (curr-module-name))))
+      (render-fun-helper
+        spec name
+        (list 'part (tag-name (curr-module-name) data-name name))
+        contract return args alt-docstrings examples body)))
 @(define (method-spec name
                       #:params (params #f)
                       #:contract (contract #f)
