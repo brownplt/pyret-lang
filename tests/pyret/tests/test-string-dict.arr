@@ -178,3 +178,8 @@ check "merge":
   s5.merge(s4) is s4
 end
 
+check "duplicate":
+  [SD.string-dict: "x", 5, "x", 10] raises "duplicate key x"
+  [SD.string-dict: "x", 6, "y", 10, "x", 22] raises "duplicate key x"
+  [SD.string-dict: "x", 6, "y", 10, "z", 22] does-not-raise
+end
