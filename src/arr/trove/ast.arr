@@ -268,7 +268,7 @@ end
 
 data ProvideTypes:
   | s-provide-types(l :: Loc, ann :: List<AField>) with:
-    label(self): "a-provide-type" end,
+    label(self): "s-provide-types" end,
     children(self): [list: self.ann] end,
     tosource(self):
       PP.surround-separate(INDENT, 1, str-provide-types + break-one + PP.lbrace + PP.rbrace,
@@ -391,7 +391,7 @@ data Expr:
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
-    label(self): "s-type-let" end,
+    label(self): "s-type-let-expr" end,
     children(self): [list: self.binds, self.body] end,
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-type-let, str-type-let + PP.str(" "), PP.commabreak, PP.mt-doc,
@@ -934,7 +934,7 @@ data Bind:
         end
       end
     end,
-    label(self): "s_bind" end
+    label(self): "s-bind" end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

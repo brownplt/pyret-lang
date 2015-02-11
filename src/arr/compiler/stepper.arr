@@ -7,6 +7,10 @@ provide {
 
 import ast as A
 import "compiler/compile-structs.arr" as C
+import convert as CV
+import srcloc as SL
+
+dummy-loc = SL.builtin("dummy location")
 
 fun gid(l, id):
   A.s-id(l, A.s-global(id))
@@ -16,19 +20,44 @@ fun nid(l, id):
   A.s-id(l, A.s-name(l, id))
 end
 
-fun constant(l, name :: String):
-  #R.node(name, [list:])
+fun ast-srcloc(l):
+  A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+end
+
+fun ast-list(lst):
+  cases(List) lst:
+    | empty =>
+      gid(dummy-loc, "_empty")
+    | link(first, rest) =>
+      A.s-app(first.l, gid(first.l, "_link"), [list: first, ast-list(rest)])
+  end
+end
+
+fun bool-value(l, bool):
+  A.s-app(l, gid(l, "_value"), [list: A.s-bool(l, bool)])
+end
+
+fun str-value(l, str):
+  A.s-app(l, gid(l, "_value"), [list: A.s-str(l, str)])
+end
+
+fun num-value(l, num):
+  A.s-app(l, gid(l, "_value"), [list: A.s-num(l, num)])
+end
+
+fun node(l, name, childs):
   A.s-app(l, gid(l, "_node"),
-      [list: A.s-str(l, name), gid(l, "_empty")])
+    [list: A.s-str(l, name), ast-srcloc(l), ast-list(childs)])
+end
+
+fun constant(l :: SL.Srcloc, name :: String):
+  A.s-app(l, gid(l, "_node"),
+      [list: A.s-str(l, name), ast-srcloc(l), gid(l, "_empty")])
 end
 
 adorn-visitor = A.default-map-visitor.{
   s-bool(self, l, bool):
-    if bool:
-      constant(l, "true")
-    else:
-      constant(l, "false")
-    end
+    node(l, "s-bool", [list: bool-value(l, bool)])
   end
 }
 
@@ -36,9 +65,24 @@ fun adorn(expr):
   expr.visit(adorn-visitor)
 end
 
+fun BLOCK(l, stmts):     A.s-block(l, stmts) end
+fun APP0(l, func):       A.s-app(l, func, [list:]) end
+fun APP1(l, func, arg):  A.s-app(l, func, [list: arg]) end
+fun DOT(l, expr, field): A.s-dot(l, expr, field) end
+
+fun CALL0(l, expr, field):      APP0(l, DOT(l, expr, field)) end
+fun CALL1(l, expr, field, arg): APP1(l, DOT(l, expr, field), arg) end
+fun PRINT(l, arg):              APP1(l, gid(l, "print"), arg) end
+fun TO_AST(l, arg):             APP1(l, gid(l, "_to-ast"), arg) end
+
+fun PRETTY_AST(l, ast):
+  lines = CALL1(l, CALL0(l, ast, "tosource"), "pretty", A.s-num(l, 80))
+  CALL1(l, lines, "join-str", A.s-str(l, "\n"))
+end
+
 fun step(l, adorned, ast):
-  A.s-block(l, [list:
-      A.s-app(l, gid(l, "print"), [list: adorned]),
+  BLOCK(l, [list:
+      PRINT(l, PRETTY_AST(l, TO_AST(l, adorned))),
       ast])
 end
 
@@ -85,6 +129,5 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   l = expr.l
   A.s-block(l, [list:
       A.s-app(l, gid(l, "print"), [list: A.s-str(l, "Gonna step")]),
-      A.s-app(l, gid(l, "print"), [list: gid(l, "_node")]),
       stepify(expr)])
 end

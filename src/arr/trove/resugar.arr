@@ -1,15 +1,18 @@
 #lang pyret
 
-provide *
+provide {
+  node: lam(con, l, ts): t-node(con, 0, l, ts) end,
+  value: t-val
+} end
+provide-types {
+  Term: Term
+}
 
 import string-dict as D
 import equality as E
 import srcloc as S
 
-node = "communication"
-value = 4
-
-no-loc = S.builtin("dummy location")
+dummy-loc = S.builtin("dummy location")
 
 
 ### Utility ###
@@ -645,7 +648,7 @@ end
 #   Y = free-var("y")
   
 #   fun lam-node(param, body):
-#     t-node("lam", 0, no-loc, [list: t-decl(param), body])
+#     t-node("lam", 0, dummy-loc, [list: t-decl(param), body])
 #   end
 #   term1 = resolve(sigs, lam-node(X, lam-node(X, t-refn(X))))
 #   term2 = resolve(sigs, lam-node(Y, lam-node(Y, t-refn(Y))))
@@ -671,11 +674,11 @@ end
 #   Y = free-var("y")
   
 #   fun lam-node(param, body):
-#     t-node("lam", 0, no-loc, [list: param, body])
+#     t-node("lam", 0, dummy-loc, [list: param, body])
 #   end
   
 #   fun lam2-node(param1, param2, body):
-#     t-node("lam2", 0, no-loc, [list: param1, param2, body])
+#     t-node("lam2", 0, dummy-loc, [list: param1, param2, body])
 #   end
   
 #   term1 = resolve(sigs, lam-node(t-decl(X), lam-node(t-decl(Y), t-refn(X))))
@@ -764,22 +767,22 @@ end
 #   Y = free-var("y")
   
 #   fun num-node(n):
-#     t-node("num", 0, no-loc, [list: t-val(n)])
+#     t-node("num", 0, dummy-loc, [list: t-val(n)])
 #   end
 #   fun lam-node(param, body):
-#     t-node("lam", 0, no-loc, [list: param, body])
+#     t-node("lam", 0, dummy-loc, [list: param, body])
 #   end
 #   fun app-node(func, arg):
-#     t-node("app", 0, no-loc, [list: func, arg])
+#     t-node("app", 0, dummy-loc, [list: func, arg])
 #   end
 #   fun plus-node(left, right):
-#     t-node("plus", 0, no-loc, [list: left, right])
+#     t-node("plus", 0, dummy-loc, [list: left, right])
 #   end
 #   fun if-node(cond, consq, altern):
-#     t-node("if", 0, no-loc, [list: cond, consq, altern])
+#     t-node("if", 0, dummy-loc, [list: cond, consq, altern])
 #   end
 #   fun let-node(param, val, body):
-#     t-node("let", 0, no-loc, [list: param, val, body])
+#     t-node("let", 0, dummy-loc, [list: param, val, body])
 #   end
   
 #   fun desugar-let(ctx):

@@ -3969,15 +3969,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var list;
     var srcloc;
     var ffi;
-    var resugar;
     loadModulesNew(thisRuntime.namespace,
       [require("trove/lists"),
-       require("trove/srcloc"),
-       require("trove/resugar")],
-      function(listsLib, srclocLib, resugarLib) {
+       require("trove/srcloc")],
+      function(listsLib, srclocLib, resugarLib, convertLib) {
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
-        resugar = getField(resugarLib, "values");
       });
     loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
       ffi = f;
@@ -3993,11 +3990,31 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link",  getField(list, "link"))
-                       .set("_empty", getField(list, "empty"))
-                       .set("_node",  getField(resugar, "node"))
-                       .set("_value", getField(resugar, "value"));
+                       .set("_empty", getField(list, "empty"));
 
     thisRuntime.namespace = nsWithList;
+
+
+
+    function addToNamespace(req, bindings) {
+      var module;
+      loadModulesNew(thisRuntime.namespace,
+                     [req],
+                     function(lib) { module = getField(lib, "values"); });
+      var ns = thisRuntime.namespace;
+      for(var i in bindings) {
+        var binding = bindings[i];
+        ns = ns.set(binding[0], getField(module, binding[1]));
+      }
+      thisRuntime.namespace = ns;
+    }
+
+    addToNamespace(require("trove/resugar"),
+                   [["_node", "node"],
+                    ["_value", "value"]]);
+    addToNamespace(require("trove/convert"),
+                 [["_to-ast", "to-ast"],
+                  ["_from-ast", "from-ast"]]);
 
     var checkList = makeCheckType(ffi.isList, "List");
     thisRuntime["checkList"] = checkList;
