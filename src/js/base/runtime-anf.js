@@ -6,10 +6,10 @@ This is the runtime for the ANF'd version of pyret
 var Bignum;
 
 
-define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom"],
-       function (Namespace, jsnums, codePoint, seedrandom) {
+define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util"],
+       function (Namespace, jsnums, codePoint, seedrandom, util) {
 
-  if(requirejs.isBrowser) {
+  if(util.isBrowser()) {
     var require = requirejs;
   }
   else {
