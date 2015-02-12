@@ -1,6 +1,0 @@
-[submodule "examples/pyret-lang-private"]
-	path = examples/pyret-lang-private
-	url = git@github.com:brownplt/pyret-lang-private
-[submodule "lib/CodeMirror"]
-	path = lib/CodeMirror
-	url = https://github.com/jpolitz/CodeMirror

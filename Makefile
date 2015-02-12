@@ -268,8 +268,6 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 install:
 	@$(call MKDIR,node_modules)
 	npm install
-	git submodule init
-	git submodule update lib/CodeMirror
 
 
 .PHONY : test
