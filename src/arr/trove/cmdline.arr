@@ -116,9 +116,9 @@ fun usage-info(options-raw) -> List<String>:
         | equals-val-default(parser, default, short-name, repeated, desc) =>
           cases(Option<String>) short-name:
             | none =>
-              format("  --~a[list: =~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
+              format("  --~a [~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
-              format("  --~a[list: =~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
+              format("  --~a [~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
                 [list: key, parser.parse-string(), desc, repeated, default, short, desc, repeated])
           end
         | next-val(parser, repeated, desc) =>
@@ -126,9 +126,9 @@ fun usage-info(options-raw) -> List<String>:
         | next-val-default(parser, default, short-name, repeated, desc) =>
           cases(Option<String>) short-name:
             | none =>
-              format("  --~a [list: ~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
+              format("  --~a [~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
-              format("  --~a [list: ~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
+              format("  --~a [~a]: ~a (~a, default: ~a)\n  -~a: Defaults for ~a (~a)",
                 [list: key, parser.parse-string(), desc, repeated, default, short, desc, repeated])
           end
       end
