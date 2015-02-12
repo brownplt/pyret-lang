@@ -32,7 +32,7 @@
 
 @section{The @pyret{list} Constructor}
 
-@collection-doc["list" (list (cons "elt" "a")) (L-of "a")]
+@collection-doc["list" #:contract `(a-arrow ("elt" "a") ,(L-of "a"))]
 
 Constructs a list out of the @pyret{elt}s by chaining @pyret-id{link}s,
 ending in a single @pyret-id{empty}.

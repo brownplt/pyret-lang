@@ -59,7 +59,7 @@
 
      @section{RawArray Functions}
 
-@collection-doc["raw-array" (list (cons "elt" "a")) (RA-of "a")]
+@collection-doc["raw-array" #:contract `(a-arrow ("elt" "a") ,(RA-of "a"))]
 
 Creates a @pyret-id{RawArray} with the given elements.  Note that
 @pyret-id{RawArray}s are mutable, so comparisons using @pyret["=="]

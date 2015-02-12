@@ -60,7 +60,7 @@
 
 @section{Array Constructor}
 
-@collection-doc["array" (list (cons "elt" "a")) (A-of "a")]
+@collection-doc["array" #:contract `(a-arrow ("elt" "a") ,(A-of "a"))]
 
 Creates an @pyret-id{Array} with the given @pyret{elt}s.
 

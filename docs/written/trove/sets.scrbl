@@ -183,7 +183,7 @@ the result will be a @pyret{list-set}.
 
 @section{Set Constructors}
 
-@collection-doc["list-set" (list (cons "elt" "a")) (S-of "a")]
+@collection-doc["list-set" #:contract `(a-arrow ("elt" "a") ,(S-of "a"))]
 
 Constructs a set out of the @pyret{elt}s.
 
@@ -200,7 +200,7 @@ end
 
 An empty set.
 
-@collection-doc["tree-set" (list (cons "elt" "a")) (S-of "a")]
+@collection-doc["tree-set" #:contract `(a-arrow ("elt" "a") ,(S-of "a"))]
 
 Constructs a set out of the @pyret{elt}s backed by a tree.  Raises an exception
 if the elements don't support the @pyret{<} operator via @pyret["_lessthan"].
@@ -217,7 +217,7 @@ end
 
 An empty set backed by a tree.
 
-@collection-doc["set" (list (cons "elt" "a")) (S-of "a")]
+@collection-doc["set" #:contract `(a-arrow ("elt" "a") ,(S-of "a"))]
 
 Another name for @pyret-id{list-set}.
 
