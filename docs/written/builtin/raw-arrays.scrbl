@@ -124,7 +124,7 @@ end
     Converts a @pyret-id{RawArray} to a @pyret-id["List" "lists"] containing
     the same elements in the same order.
 
-    Note that it doesn @emph{not} recursively convert @pyret-id{RawArray}s;
+    Note that it does @emph{not} recursively convert @pyret-id{RawArray}s;
     only the top-level is converted.
 
     @examples{
