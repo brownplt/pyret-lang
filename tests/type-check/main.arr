@@ -23,6 +23,7 @@ compile-str = lam(filename, str):
             allow-shadowed : false,
             collect-all: false,
             type-check: true,
+            show-steps: false,
             ignore-unbound: false
           }
           ).result

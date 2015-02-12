@@ -54,6 +54,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                     "allow-shadowed": runtime.pyretFalse,
                     "collect-all": runtime.pyretFalse,
                     "type-check": runtime.makeBoolean(options.typeCheck || false),
+                    "show-steps": runtime.pyretFalse,
                     "ignore-unbound": runtime.pyretFalse
                   })
                 );
