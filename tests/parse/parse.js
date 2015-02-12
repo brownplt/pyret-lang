@@ -514,6 +514,11 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('o.[x]')).toBe(false);
     });
 
+    it("should not parse string keys", function() {
+      expect(parse('{"x x": true}')).toBe(false);
+      expect(parse("{'x x': true}")).toBe(false);
+    });
+
     it("should parse block comments", function() {
       expect(parse('#| anything |#')).not.toBe(false);
       expect(parse('#| even with  | pipes |#')).not.toBe(false);
