@@ -46,6 +46,10 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
         ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
           checked, ret)
       end
+      shadow checked =
+        # Tell the stepper where the actionable part of the program is.
+        if options.show-steps: ST.wrap-body(checked)
+        else: checked;
       scoped = R.desugar-scope(checked, libs)
       when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
       named-result = R.resolve-names(scoped, libs)

@@ -318,6 +318,12 @@ data Hint:
     label(self): "s-hint" end,
     children(self): [list:] end,
     tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
+  | h-stepper-body with:
+    # Tells the stepper where the body of the program is.
+    # Only inserted when the '-trace' option is present, and removed after.
+    label(self): "h-stepper-body" end,
+    children(self): [list:] end,
+    tosource(self): PP.str("[[Hint: program body]]") end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

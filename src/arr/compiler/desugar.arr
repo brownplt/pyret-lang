@@ -516,7 +516,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-check(l, name, body, keyword-check) =>
       A.s-check(l, name, desugar-expr(body), keyword-check)
     | s-check-test(l, op, refinement, left, right) =>
-      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement),
+      desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-hint-exp(l, hints, exp) =>
+      A.s-hint-exp(l, hints, desugar-expr(exp))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

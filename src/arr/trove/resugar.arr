@@ -2,13 +2,6 @@
 
 provide *
 provide-types *
-# provide {
-#   node: lam(con, l, ts): t-node(con, 0, l, ts) end,
-#   value: t-val
-# } end
-# provide-types {
-#   Term: Term
-# }
 
 import string-dict as D
 import equality as E
@@ -256,9 +249,6 @@ sharing:
     end
   end
 end
-
-fun node(con, l, ts): t-node(con, 0, l, ts) end
-fun value(val): t-val(val) end
 
 
 fun permute-term(bij :: Permutation, t :: Term) -> Term:
@@ -636,6 +626,12 @@ fun resugar(sugar :: Sugar, t :: Term) -> Option<Term>:
       end
   end
 end
+
+
+### Exports ###
+
+fun node(con, l, ts): t-node(con, 0, l, ts) end
+fun value(val): t-val(val) end
 
 
 # QUESTION:

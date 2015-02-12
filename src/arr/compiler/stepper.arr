@@ -2,7 +2,8 @@
 
 provide {
   stepify: stepify-compile-result,
-  stepify-prog: stepify-prog
+  stepify-prog: stepify-prog,
+  wrap-body: wrap-body
 } end
 
 import ast as A
@@ -50,25 +51,12 @@ fun node(l, name, childs):
     [list: A.s-str(l, name), ast-srcloc(l), ast-list(childs)])
 end
 
-fun constant(l :: SL.Srcloc, name :: String):
-  A.s-app(l, gid(l, "_node"),
-      [list: A.s-str(l, name), ast-srcloc(l), gid(l, "_empty")])
-end
-
-adorn-visitor = A.default-map-visitor.{
-  s-bool(self, l, bool):
-    node(l, "s-bool", [list: bool-value(l, bool)])
-  end
-}
-
-fun adorn(expr):
-  expr.visit(adorn-visitor)
-end
-
 fun BLOCK(l, stmts):     A.s-block(l, stmts) end
 fun APP0(l, func):       A.s-app(l, func, [list:]) end
 fun APP1(l, func, arg):  A.s-app(l, func, [list: arg]) end
 fun DOT(l, expr, field): A.s-dot(l, expr, field) end
+
+fun NODE1(l, name, child): node(l, name, [list: child]) end
 
 fun CALL0(l, expr, field):      APP0(l, DOT(l, expr, field)) end
 fun CALL1(l, expr, field, arg): APP1(l, DOT(l, expr, field), arg) end
@@ -86,9 +74,27 @@ fun step(l, adorned, ast):
       ast])
 end
 
+adorn-visitor = A.default-map-visitor.{
+  s-bool(self, l, bool): NODE1(l, "s-bool", bool-value(l, bool)) end,
+  s-num(self, l, num):   NODE1(l, "s-num", num-value(l, num))    end,
+  s-str(self, l, str):   NODE1(l, "s-str", str-value(l, str))    end
+}
+
+fun adorn(expr):
+  expr.visit(adorn-visitor)
+end
+
 stepify-visitor = A.default-map-visitor.{
   s-bool(self, l, bool):
     t = A.s-bool(l, bool)
+    step(l, adorn(t), t)
+  end,
+  s-num(self, l, num):
+    t = A.s-num(l, num)
+    step(l, adorn(t), t)
+  end,
+  s-str(self, l, str):
+    t = A.s-str(l, str)
     step(l, adorn(t), t)
   end
 }
@@ -105,10 +111,50 @@ fun stepify-compile-result(res :: C.CompileResult<A.Program, Any>)
   end
 end
 
+fun wrap-body(prog :: A.Program) -> A.Program:
+  cases(A.Program) prog:
+    | s-program(l, prov, provt, imp, body) =>
+      A.s-program(l, prov, provt, imp, A.s-hint-exp(l, [list: A.h-stepper-body], body))
+  end
+end
+
 fun stepify-prog(prog :: A.Program) -> A.Program:
+  fun find-body(expr):
+    var body = none
+    expr.visit(A.default-iter-visitor.{
+        s-hint-exp(self, _, hints, shadow expr):
+          if hints == [list: A.h-stepper-body]:
+            body := some(expr)
+            true
+          else:
+            expr.visit(self)
+          end
+        end
+      })
+    cases(Option) body:
+      | some(shadow body) => body
+      | none              =>
+        raise(```stepify-prog: expected to find a h-prog-body tag around the
+          part of the program that needs to be traced.```)
+    end
+  end
+  fun replace-body(expr, replacement):
+    # Assumes there is exactly one body tag.
+    expr.visit(A.default-map-visitor.{
+        s-hint-exp(self, l, hints, shadow expr):
+          if hints == [list: A.h-stepper-body]:
+            replacement
+          else:
+            A.s-hint-exp(l, hints, expr.visit(self))
+          end
+        end
+      })
+  end
   cases(A.Program) prog:
     | s-program(l, prov, prov-ty, imp, block) =>
-      A.s-program(l, prov, prov-ty, imp, stepify-expr(block))
+      body = find-body(block)
+      shadow body = replace-body(block, stepify-expr(body))
+      A.s-program(l, prov, prov-ty, imp, body)
   end
 end
 
@@ -125,7 +171,9 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   #               s-not, s-when, s-if-pipe, s-paren
   # - contains no s-underscore in expression position (but it may
   #   appear in binding positions as in s-let-bind, s-letrec-bind)
-  
+
+  print("[stepper] Desugared program:")
+  print(expr.tosource().pretty(80).join-str("\n"))
   l = expr.l
   A.s-block(l, [list:
       A.s-app(l, gid(l, "print"), [list: A.s-str(l, "Gonna step")]),

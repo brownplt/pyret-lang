@@ -62,8 +62,18 @@ fun apply(func, args):
   end
 end
 
+  # After desugaring:
+  # - contains no s-var, s-fun, s-data, s-check, or s-check-test
+  # - contains no s-provide in headers
+  # - all where blocks are none
+  # - contains no s-name (e.g. call resolve-names first)
+  # - contains no s-for, s-if, s-op, s-method-field,
+  #               s-not, s-when, s-if-pipe, s-paren
+  # - contains no s-underscore in expression position (but it may
+  #   appear in binding positions as in s-let-bind, s-letrec-bind)
 
 constructors = [D.string-dict:
+  # Not handled (because they are outside the main program body)
   "s-program", A.s-program,
   "s-import", A.s-import,
   "s-import-types", A.s-import-types,
@@ -78,6 +88,19 @@ constructors = [D.string-dict:
   "s-const-import", A.s-const-import,
   "s-special-import", A.s-special-import,
   "s-hint", A.h-use-loc,
+  # Desugared:
+  "s-var", A.s-var,
+  "s-fun", A.s-fun,
+  "s-data", A.s-data,
+  "s-variant-member", A.s-variant-member,
+  "s-variant", A.s-variant,
+  "s-singleton-variant", A.s-singleton-variant,
+  "s-datatype-constructor", A.s-datatype-constructor,
+  # Dead code?:
+  "s-datatype-variant", A.s-datatype-variant,
+  "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
+  
+  # TODO:
   "s-let-bind", A.s-let-bind,
   "s-var-bind", A.s-var-bind,
   "s-letrec-bind", A.s-letrec-bind,
@@ -91,10 +114,8 @@ constructors = [D.string-dict:
   "s-instantiate", A.s-instantiate,
   "s-block", A.s-block,
   "s-user-block", A.s-user-block,
-  "s-fun", A.s-fun,
   "s-type", A.s-type,
   "s-newtype", A.s-newtype,
-  "s-var", A.s-var,
   "s-rec", A.s-rec,
   "s-let", A.s-let,
   "s-ref", A.s-ref,
@@ -133,7 +154,6 @@ constructors = [D.string-dict:
   "s-dot", A.s-dot,
   "s-get-bang", A.s-get-bang,
   "s-bracket", A.s-bracket,
-  "s-data", A.s-data,
   "s-data-expr", A.s-data-expr,
   "s-for", A.s-for,
   "s-check", A.s-check,
@@ -146,12 +166,6 @@ constructors = [D.string-dict:
   "s-for-bind", A.s-for-bind,
   "s-normal", A.s-normal,
   "s-mutable", A.s-mutable,
-  "s-variant-member", A.s-variant-member,
-  "s-variant", A.s-variant,
-  "s-singleton-variant", A.s-singleton-variant,
-  "s-datatype-variant", A.s-datatype-variant,
-  "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
-  "s-datatype-constructor", A.s-datatype-constructor,
   "s-if-branch", A.s-if-branch,
   "s-if-pipe-branch", A.s-if-pipe-branch,
   "s-cases-bind-ref", A.s-cases-bind-ref,
@@ -181,7 +195,8 @@ constructors = [D.string-dict:
   "a-pred", A.a-pred,
   "a-dot", A.a-dot,
   "a-checked", A.a-checked,
-  "a-field", A.a-field]
+  "a-field", A.a-field
+]
 
 fun from-ast(ast):
   ask:
