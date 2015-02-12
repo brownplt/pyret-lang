@@ -9,17 +9,18 @@
     "test": "tests"
   },
   "dependencies": {
+    "chalk": "~0.5.1",
+    "copy-paste": "^1.0.1",
     "jasmine-node": "1.14.2",
-    "sweet.js": "~0.4.2",
     "jquery": "~2.1.0",
-    "ses": "~0.0.0",
-    "requirejs": "~2.1.15",
-    "q": "~1.0.1",
+    "keypress": "~0.2.1",
     "lodash": "~2.4.1",
+    "q": "~1.0.1",
+    "requirejs": "~2.1.15",
     "s-expression": "~2.2.0",
     "seedrandom": "~2.3.10",
-    "keypress": "~0.2.1",
-    "chalk": "~0.5.1"
+    "ses": "~0.0.0",
+    "sweet.js": "~0.4.2"
   },
   "devDependencies": {},
   "scripts": {
