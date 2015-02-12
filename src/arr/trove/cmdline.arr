@@ -458,7 +458,7 @@ check:
     "bar", next-val-default(read-number, 42, some("b"), many, "Bar"),
     "4", flag(many, "Flag-4")
   ]
-  parse-args(many-optional-flag, [list: "-foo", "-foo", "-foo"]) is success(dict([list: "foo", [list: true, true, true]]), [list: ])
+  parse-args(many-optional-flag, [list: "-foo", "-foo", "-foo"]) is success(dict([list: "foo", [list: true, true, true], "bar", 42]), [list: ])
   parse-args(many-optional-flag, [list: "-b", "-foo", "--bar", "3", "--bar", "-foo"])
     is success(dict([list: "foo", [list: true, true], "bar", [list: 42, 3, 42]]), [list: ])
   # NOTE(joe): More disagreement based on the STOP comment, changed to is-not
