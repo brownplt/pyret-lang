@@ -1029,10 +1029,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             var countParses = grammar.countAllParses(parsed);
             if (countParses == 0) {
               var nextTok = toks.curTok; 
-              console.error("There were " + countParses + " potential parses.\n" +
-                            "Parse failed, next token is " + nextTok.toString(true) +
-                            " at " + nextTok.pos.toString(true));
-              console.log(nextTok);
               if (toks.isEOF(nextTok))
                 RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
               else if (nextTok.name === "UNTERMINATED-STRING")
@@ -1055,7 +1051,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
               return translate(ast, fileName);
             }
           } catch(e) {
-            console.error("Fatal error in parsing: ", e);
+            //console.error("Fatal error in parsing: ", e);
             throw e;
           }
         }
