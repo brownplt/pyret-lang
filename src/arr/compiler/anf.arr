@@ -394,7 +394,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
         end)
 
-    | s-let(_, _, _) => raise("s-let should be handled by anf-block: " + torepr(e))
+    | s-let(_, _, _, _) => raise("s-let should be handled by anf-block: " + torepr(e))
     | s-var(_, _, _) => raise("s-var should be handled by anf-block: " + torepr(e))
     | else => raise("Missed case in anf: " + torepr(e))
   end
