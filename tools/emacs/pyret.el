@@ -509,14 +509,16 @@
                 (> (pyret-indent-block-comment-depth defered-opened) 0)
                 (> (pyret-indent-block-comment-depth open) 0))
             (cond
-             ((looking-at "[ \t]*|#")
+             ((looking-at ".*|#")
               (cond
                ((> (pyret-indent-block-comment-depth cur-opened) 0) 
                 (decf (pyret-indent-block-comment-depth cur-opened)))
                ((> (pyret-indent-block-comment-depth defered-opened) 0)
                 (decf (pyret-indent-block-comment-depth defered-opened)))
+               ((looking-at "[ \t]*|#")
+                (incf (pyret-indent-block-comment-depth cur-closed)))
                (t 
-                (incf (pyret-indent-block-comment-depth cur-closed))))
+                (incf (pyret-indent-block-comment-depth defered-closed))))
               (goto-char (match-end 0)))
              ((pyret-BLOCK-COMMENT)
               (incf (pyret-indent-block-comment-depth defered-opened))
