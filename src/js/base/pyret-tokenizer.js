@@ -61,7 +61,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     }
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
   }
-  Tokenizer.prototype.postProcessMatch = function(tok, match) {
+  Tokenizer.prototype.postProcessMatch = function(tok, match, str) {
     var tok_type = tok.name;
     if (tok_type === "PAREN?") {
       for (var j = 0; j < this.Tokens.length; j++) {
@@ -80,11 +80,29 @@ define(["../../../lib/jglr/jglr"], function(E) {
           break;
         }
       }
-    } else if (tok_type == "LPAREN?") {
+    } else if (tok_type === "LPAREN?") {
       tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
+    } else if (tok_type === "BLOCKCOMMENT") {
+      return this.tokenizeBlockComment(match, str, 1, 2);
     }
     this.parenIsForExp = !!tok.parenIsForExp;
     return tok_type;
+  }
+  Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
+    var strLen = str.length;
+    while (nestingDepth > 0 && commentLen < strLen) {
+      if (str.substr(commentLen, 2) === "#|") { 
+        nestingDepth++;
+        commentLen += 2;
+      } else if (str.substr(commentLen, 2) === "|#") {
+        nestingDepth--;
+        commentLen += 2;
+      } else {
+        commentLen++;
+      }
+    }
+    match[0] = str.substr(0, commentLen);
+    return nestingDepth == 0 ? "COMMENT" : "UNTERMINATED-BLOCK-COMMENT";
   }
 
 
@@ -101,7 +119,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
-  const comment = new RegExp("^(#\\|([^\\|]|\\|[^#])*\\|#|#.*(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
+  const comment = new RegExp("^(#([^|].*)?(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
+  const blockcommentstart = new RegExp("^(#\\|)", STICKY_REGEXP);
   const bar = new RegExp("^\\|", STICKY_REGEXP);
   const langle = new RegExp("^<", STICKY_REGEXP);
   const rangle = new RegExp("^>", STICKY_REGEXP);
@@ -289,6 +308,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "EQUALS", val: equals, parenIsForExp: true},
 
+    {name: "BLOCKCOMMENT", val: blockcommentstart},
     {name: "COMMENT", val: comment},
     {name: "WS", val: ws, parenIsForExp: true},
 
@@ -300,6 +320,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "UNTERMINATED-STRING", val: unterminated_string},
     {name: "UNKNOWN", val: anychar},
   ];
+  Tokens.forEach(function(tok) {
+    if (!tok.hasOwnProperty("parenIsForExp")) tok.parenIsForExp = false;
+  });
 
 
   return {
