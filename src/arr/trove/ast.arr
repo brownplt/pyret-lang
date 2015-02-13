@@ -903,6 +903,14 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
+  | s-value(val :: Any) with:
+    # s-value is used internally by the stepper.
+    # You should never encounter in most ASTs.
+    label(self): "s-value" end,
+    children(self): [list:] end,
+    tosource(self):
+      PP.str("<" + tostring(self.val) + ">")
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

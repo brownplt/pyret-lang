@@ -4011,7 +4011,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     addToNamespace(require("trove/resugar"),
                    [["_node", "node"],
-                    ["_value", "value"]]);
+                    ["_value", "value"],
+                    ["_push", "push"],
+                    ["_pop", "pop"],
+                    ["_wrap", "wrap"]]);
     addToNamespace(require("trove/convert"),
                  [["_to-ast", "to-ast"],
                   ["_from-ast", "from-ast"]]);

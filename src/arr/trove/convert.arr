@@ -87,15 +87,48 @@ constructors = [D.string-dict:
   "s-file-import", A.s-file-import,
   "s-const-import", A.s-const-import,
   "s-special-import", A.s-special-import,
+  "s-hint-exp", A.s-hint-exp,
   "s-hint", A.h-use-loc,
   # Desugared:
   "s-var", A.s-var,
   "s-fun", A.s-fun,
+  "s-op", A.s-op,
+  "s-method-field", A.s-method-field,
+  "s-paren", A.s-paren,
+
   "s-data", A.s-data,
   "s-variant-member", A.s-variant-member,
   "s-variant", A.s-variant,
   "s-singleton-variant", A.s-singleton-variant,
   "s-datatype-constructor", A.s-datatype-constructor,
+  "s-normal", A.s-normal,
+  "s-mutable", A.s-mutable,
+
+  "s-check", A.s-check,
+  "s-check-test", A.s-check-test,
+  "s-check-expr", A.s-check-expr, #?
+
+  "s-for", A.s-for,
+  "s-for-bind", A.s-for-bind,
+
+  "s-if", A.s-if,
+  "s-if-pipe", A.s-if-pipe,
+  "s-when", A.s-when,
+
+  "s-op-is", A.s-op-is,
+  "s-op-is-op", A.s-op-is-op,
+  "s-op-is-not", A.s-op-is-not,
+  "s-op-is-not-op", A.s-op-is-not-op,
+  "s-op-satisfies", A.s-op-satisfies,
+  "s-op-satisfies-not", A.s-op-satisfies-not,
+  "s-op-raises", A.s-op-raises,
+  "s-op-raises-other", A.s-op-raises-other,
+  "s-op-raises-not", A.s-op-raises-not,
+  "s-op-raises-satisfies", A.s-op-raises-satisfies,
+  "s-op-raises-violates", A.s-op-raises-violates,
+
+  "s-let", A.s-let,
+
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
   "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
@@ -110,28 +143,19 @@ constructors = [D.string-dict:
   "s-type-let-expr", A.s-type-let-expr,
   "s-let-expr", A.s-let-expr,
   "s-letrec", A.s-letrec,
-  "s-hint-exp", A.s-hint-exp,
   "s-instantiate", A.s-instantiate,
   "s-block", A.s-block,
   "s-user-block", A.s-user-block,
   "s-type", A.s-type,
   "s-newtype", A.s-newtype,
   "s-rec", A.s-rec,
-  "s-let", A.s-let,
   "s-ref", A.s-ref,
   "s-contract", A.s-contract,
-  "s-when", A.s-when,
   "s-assign", A.s-assign,
-  "s-if-pipe", A.s-if-pipe,
   "s-if-pipe-else", A.s-if-pipe-else,
-  "s-if", A.s-if,
   "s-if-else", A.s-if-else,
   "s-cases", A.s-cases,
   "s-cases-else", A.s-cases-else,
-  "s-op", A.s-op,
-  "s-check-test", A.s-check-test,
-  "s-check-expr", A.s-check-expr,
-  "s-paren", A.s-paren,
   "s-lam", A.s-lam,
   "s-method", A.s-method,
   "s-extend", A.s-extend,
@@ -155,17 +179,11 @@ constructors = [D.string-dict:
   "s-get-bang", A.s-get-bang,
   "s-bracket", A.s-bracket,
   "s-data-expr", A.s-data-expr,
-  "s-for", A.s-for,
-  "s-check", A.s-check,
   "s-construct-normal", A.s-construct-normal,
   "s-construct-lazy", A.s-construct-lazy,
   "s-bind", A.s-bind,
   "s-data-field", A.s-data-field,
   "s-mutable-field", A.s-mutable-field,
-  "s-method-field", A.s-method-field,
-  "s-for-bind", A.s-for-bind,
-  "s-normal", A.s-normal,
-  "s-mutable", A.s-mutable,
   "s-if-branch", A.s-if-branch,
   "s-if-pipe-branch", A.s-if-pipe-branch,
   "s-cases-bind-ref", A.s-cases-bind-ref,
@@ -173,17 +191,6 @@ constructors = [D.string-dict:
   "s-cases-bind", A.s-cases-bind,
   "s-cases-branch", A.s-cases-branch,
   "s-singleton-cases-branch", A.s-singleton-cases-branch,
-  "s-op-is", A.s-op-is,
-  "s-op-is-op", A.s-op-is-op,
-  "s-op-is-not", A.s-op-is-not,
-  "s-op-is-not-op", A.s-op-is-not-op,
-  "s-op-satisfies", A.s-op-satisfies,
-  "s-op-satisfies-not", A.s-op-satisfies-not,
-  "s-op-raises", A.s-op-raises,
-  "s-op-raises-other", A.s-op-raises-other,
-  "s-op-raises-not", A.s-op-raises-not,
-  "s-op-raises-satisfies", A.s-op-raises-satisfies,
-  "s-op-raises-violates", A.s-op-raises-violates,
   "a-blank", A.a-blank,
   "a-any", A.a-any,
   "a-name", A.a-name,
@@ -202,6 +209,8 @@ fun from-ast(ast):
   ask:
     | A.is-Name(ast) then:
       "NYI"
+    | A.is-s-value(ast) then:
+      R.t-val(ast.val)
     | SL.is-Srcloc(ast) then:
       raise("from-ast: Srclocs not yet implemented")
     | is-boolean(ast) then:
@@ -213,7 +222,7 @@ fun from-ast(ast):
         | none =>
           R.node("None", dummy-loc, [list:])
         | some(shadow ast) =>
-          R.node("Some:" + ast.label(),
+          R.node("Some",
             loc(ast),
             [list: from-ast(ast)])
       end
@@ -222,7 +231,7 @@ fun from-ast(ast):
         | empty             =>
           R.node("Empty", dummy-loc, [list:])
         | link(first, rest) =>
-          R.node("Link:" + first.label(),
+          R.node("Link",
             loc(first),
             [list: from-ast(first), from-ast(rest)])
       end
@@ -237,7 +246,8 @@ fun to-ast(node :: R.Term):
   cases(R.Term) node:
     | t-decl(v)  => "NYI"
     | t-refn(v)  => "NYI"
-    | t-val(_)   => raise("to-ast: cannot store values in an AST")
+    | t-val(val)   =>
+      A.s-value(val)
     | t-hole(_)  => raise("to-ast: cannot convert context hole")
     | t-tag(_, _, term) => raise("to-ast: cannot conver tag")
     | t-node(name, id, l, ts) =>
@@ -254,11 +264,11 @@ fun to-ast(node :: R.Term):
           A.s-num(l, ts.get(0).val)
         | name == "s-str" then:
           A.s-str(l, ts.get(0).val)
-        | string-contains(name, "Link:") then:
+        | name == "Link" then:
           link(to-ast(node.get(0)), to-ast(node.get(1)))
         | name == "None" then:
           none
-        | string-contains(name, "Some:") then:
+        | name == "Some" then:
           some(to-ast(node.get(0)))
         | otherwise:
           children = map(to-ast, ts)

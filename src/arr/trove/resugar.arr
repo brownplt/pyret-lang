@@ -630,8 +630,22 @@ end
 
 ### Exports ###
 
+var global-stack = [list:]
+fun push(frame):
+  global-stack := link(frame, global-stack)
+end
+fun pop():
+  global-stack := global-stack.rest
+end
+fun wrap(expr):
+  for fold(e from expr, frame from global-stack):
+    frame(e)
+  end
+end
+
 fun node(con, l, ts): t-node(con, 0, l, ts) end
 fun value(val): t-val(val) end
+
 
 
 # QUESTION:

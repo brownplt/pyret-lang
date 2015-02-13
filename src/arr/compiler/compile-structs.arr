@@ -492,6 +492,9 @@ standard-builtins = compile-env(
       builtin-id("_empty"),
       builtin-id("_node"),
       builtin-id("_value"),
+      builtin-id("_push"),
+      builtin-id("_pop"),
+      builtin-id("_wrap"),
       builtin-id("_to-ast"),
       builtin-id("_from-ast"),
       module-bindings("arrays", [list: 

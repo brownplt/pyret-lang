@@ -13,12 +13,10 @@ import srcloc as SL
 
 dummy-loc = SL.builtin("dummy location")
 
+var global-stack = [list:]
+
 fun gid(l, id):
   A.s-id(l, A.s-global(id))
-end
-
-fun nid(l, id):
-  A.s-id(l, A.s-name(l, id))
 end
 
 fun ast-srcloc(l):
@@ -34,68 +32,143 @@ fun ast-list(lst):
   end
 end
 
-fun bool-value(l, bool):
-  A.s-app(l, gid(l, "_value"), [list: A.s-bool(l, bool)])
-end
-
-fun str-value(l, str):
-  A.s-app(l, gid(l, "_value"), [list: A.s-str(l, str)])
-end
-
-fun num-value(l, num):
-  A.s-app(l, gid(l, "_value"), [list: A.s-num(l, num)])
-end
-
-fun node(l, name, childs):
+fun NODE(l, name, childs):
   A.s-app(l, gid(l, "_node"),
     [list: A.s-str(l, name), ast-srcloc(l), ast-list(childs)])
 end
 
+fun VALUE(l, val):
+  A.s-app(l, gid(l, "_value"), [list: val])
+end
+
+fun BOOL_VALUE(l, bool): VALUE(l, A.s-bool(l, bool)) end
+fun NUM_VALUE(l, num):   VALUE(l, A.s-num(l, num))   end
+fun STR_VALUE(l, str):   VALUE(l, A.s-str(l, str))   end
+fun FRAC_VALUE(l, numer, denom): VALUE(l, A.s-frac(l, numer, denom)) end
+
 fun BLOCK(l, stmts):     A.s-block(l, stmts) end
 fun APP0(l, func):       A.s-app(l, func, [list:]) end
 fun APP1(l, func, arg):  A.s-app(l, func, [list: arg]) end
+fun APP2(l, f, x, y):    A.s-app(l, f, [list: x, y]) end
 fun DOT(l, expr, field): A.s-dot(l, expr, field) end
 
-fun NODE1(l, name, child): node(l, name, [list: child]) end
+fun NODE0(l, name):        NODE(l, name, [list:]) end
+fun NODE1(l, name, child): NODE(l, name, [list: child]) end
+fun NODE2(l, name, x, y):  NODE(l, name, [list: x, y]) end
 
 fun CALL0(l, expr, field):      APP0(l, DOT(l, expr, field)) end
 fun CALL1(l, expr, field, arg): APP1(l, DOT(l, expr, field), arg) end
 fun PRINT(l, arg):              APP1(l, gid(l, "print"), arg) end
 fun TO_AST(l, arg):             APP1(l, gid(l, "_to-ast"), arg) end
+fun PLUS(l, x, y):              APP2(l, gid(l, "_plus"), x, y) end
+
+fun ID(l, v):
+  A.s-id(l, v)
+end
+
+fun BIND(l, v):
+  A.s-bind(l, false, v, A.a-blank)
+end
+
+fun LET(l, v, arg, body):
+  binding = A.s-let-bind(l, BIND(l, v), arg)
+  A.s-let-expr(l, [list: binding], body)
+end
+
+fun LAM(l, v, body):
+  A.s-lam(l, [list:], [list: BIND(l, v)], A.a-blank, "", body, none)
+end
+
+fun LIST(l, lst):
+  cases(List) lst:
+    | empty =>
+      NODE0(l, "Empty")
+    | link(first, rest) =>
+      NODE2(l, "Link", first, LIST(l, rest))
+  end
+end
 
 fun PRETTY_AST(l, ast):
   lines = CALL1(l, CALL0(l, ast, "tosource"), "pretty", A.s-num(l, 80))
-  CALL1(l, lines, "join-str", A.s-str(l, "\n"))
+  PLUS(l, A.s-str(l, "    "), CALL1(l, lines, "join-str", A.s-str(l, "\n    ")))
 end
 
-fun step(l, adorned, ast):
-  BLOCK(l, [list:
-      PRINT(l, PRETTY_AST(l, TO_AST(l, adorned))),
-      ast])
+fun PRINT_AST(l,  ast):
+  PRINT(l, PRETTY_AST(l, TO_AST(l, ast)))
 end
+
+fun PUSH(l, frame): APP1(l, gid(l, "_push"), frame) end
+fun POP(l):         APP0(l, gid(l, "_pop")) end
+fun WRAP(l, expr):  APP1(l, gid(l, "_wrap"), expr) end
 
 adorn-visitor = A.default-map-visitor.{
-  s-bool(self, l, bool): NODE1(l, "s-bool", bool-value(l, bool)) end,
-  s-num(self, l, num):   NODE1(l, "s-num", num-value(l, num))    end,
-  s-str(self, l, str):   NODE1(l, "s-str", str-value(l, str))    end
+  s-block(self, l, stmts):
+    NODE1(l, "s-block", LIST(l, map(_.visit(self), stmts)))
+  end,
+  s-bool(self, l, bool): NODE1(l, "s-bool", BOOL_VALUE(l, bool)) end,
+  s-num(self, l, num):   NODE1(l, "s-num", NUM_VALUE(l, num))    end,
+  s-str(self, l, str):   NODE1(l, "s-str", STR_VALUE(l, str))    end,
+  s-frac(self, l, numer, denom): NODE1(l, "s-frac", FRAC_VALUE(l, numer, denom)) end,
+  s-atom(self, base, serial): A.s-atom(base, serial) end
 }
 
-fun adorn(expr):
+fun ADORN(expr):
   expr.visit(adorn-visitor)
+end
+
+fun STEP(l, ast, cont):
+  BLOCK(l, [list:
+      PRINT(l, A.s-str(l, "->")),
+      PRINT_AST(l, WRAP(l, ast)),
+      cont])
+end
+
+fun FRAME(l):
+  lam(frame-wrapper, ast):
+    v = A.global-names.make-atom("v-frame")
+    h = A.global-names.make-atom("h-frame")
+    frame = LAM(l, h, ADORN(frame-wrapper(A.s-id(l, h))))
+    BLOCK(l, [list:
+        PUSH(l, frame),
+        LET(l, v, ast, BLOCK(l, [list:
+              POP(l),
+              ID(l, v)
+            ]))
+      ])
+  end
 end
 
 stepify-visitor = A.default-map-visitor.{
   s-bool(self, l, bool):
     t = A.s-bool(l, bool)
-    step(l, adorn(t), t)
+    STEP(l, BOOL_VALUE(l, bool), t)
   end,
   s-num(self, l, num):
     t = A.s-num(l, num)
-    step(l, adorn(t), t)
+    STEP(l, NUM_VALUE(l, num), t)
   end,
   s-str(self, l, str):
     t = A.s-str(l, str)
-    step(l, adorn(t), t)
+    STEP(l, STR_VALUE(l, str), t)
+  end,
+  s-frac(self, l, numer, denom):
+    t = A.s-frac(l, numer, denom)
+    STEP(l, FRAC_VALUE(l, numer, denom), t)
+  end,
+  s-block(self, l, stmts):
+    if stmts.length() <= 1:
+      A.s-block(l, map(_.visit(self), stmts))
+    else:
+      head = stmts.first
+      tail = stmts.rest
+      t = A.s-block(l, tail)
+      BLOCK(l, [list:
+          for FRAME(l)(h from head.visit(self)):
+            A.s-block(l, link(h, tail))
+          end,
+          STEP(l, ADORN(t), t.visit(self))
+        ])
+    end
   end
 }
 
@@ -172,10 +245,9 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   # - contains no s-underscore in expression position (but it may
   #   appear in binding positions as in s-let-bind, s-letrec-bind)
 
-  print("[stepper] Desugared program:")
-  print(expr.tosource().pretty(80).join-str("\n"))
   l = expr.l
   A.s-block(l, [list:
-      A.s-app(l, gid(l, "print"), [list: A.s-str(l, "Gonna step")]),
+      PRINT(l, A.s-str(l, "Gonna step")),
+      PRINT_AST(l, ADORN(expr)),
       stepify(expr)])
 end
