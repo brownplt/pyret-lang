@@ -286,6 +286,11 @@
 
 (defsubst pyret-in-string ()
   (equal (get-text-property (point) 'face) 'font-lock-string-face))
+(defun pyret-in-long-string ()
+  (and (pyret-in-string)
+       (save-excursion
+         (goto-char (previous-single-property-change (point) 'face))
+         (pyret-in-string))))
 (defsubst pyret-in-comment ()
   (equal (get-text-property (point) 'face) 'font-lock-comment-face))
 (defsubst pyret-keyword (s) 
@@ -997,7 +1002,7 @@
     (save-excursion
       (beginning-of-line)
       (cond
-       ((pyret-in-string)
+       ((pyret-in-long-string)
         (if (= 0 (current-indentation))
             (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
               (indent-line-to col-start))))
@@ -1028,7 +1033,7 @@
         (let* ((indents (aref pyret-nestings-at-line-start (min (- n 1) (length pyret-nestings-at-line-start))))
                (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
           (cond
-           ((pyret-in-string)
+           ((pyret-in-long-string)
             (if (= 0 (current-indentation))
                 (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
                   (aset indent-widths (- n line-min) col-start))
