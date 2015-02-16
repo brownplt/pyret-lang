@@ -6,6 +6,7 @@ provide-types *
 import string-dict as D
 import equality as E
 import srcloc as S
+import ast as AST
 
 dummy-loc = S.builtin("dummy location")
 
@@ -646,6 +647,7 @@ end
 fun node(con, l, ts): t-node(con, 0, l, ts) end
 fun value(val): t-val(val) end
 
+ast-module = AST
 
 
 # QUESTION:

@@ -36,31 +36,6 @@ fun ast-list(lst):
   end
 end
 
-fun _node(l, name, childs):
-  A.s-app(l, gid(l, "_node"),
-    [list: A.s-str(l, name), ast-srcloc(l), ast-list(childs)])
-end
-fun NODE0(l, name):        _node(l, name, [list:]);
-fun NODE1(l, name, child): _node(l, name, [list: child]);
-fun NODE2(l, name, x, y):  _node(l, name, [list: x, y]);
-
-fun _value(l, val): A.s-app(l, gid(l, "_value"), [list: val]);
-fun BOOL(l, bool):  _value(l, A.s-bool(l, bool));
-fun STR(l,  str):   _value(l, A.s-str(l, str));
-fun NUM(l,  num):   _value(l, A.s-num(l, num));
-fun FRAC(l,  n, d): _value(l, A.s-num(l, n), A.s-num(l, d));
-
-fun VALUE(l, val):       NODE1(l, "Value", _value(l, val));
-fun BOOL_VALUE(l, bool): VALUE(l, A.s-bool(l, bool));
-fun STR_VALUE(l, str):   VALUE(l, A.s-str(l, str));
-fun NUM_VALUE(l, num):   VALUE(l, A.s-str(l, num));
-fun FRAC_VALUE(l, n, d): VALUE(l, A.s-frac(l, n, d));
-
-fun BOOL_EXPR(l, bool):  NODE1(l, "s-bool", BOOL(l, bool));
-fun STR_EXPR(l, str):    NODE1(l, "s-str", STR(l, str));
-fun NUM_EXPR(l, num):    NODE1(l, "s-num", NUM(l, num));
-fun FRAC_EXPR(l, n, d):  NODE1(l, "s-frac", FRAC(l, n, d));
-
 fun BLOCK(l, stmts):     A.s-block(l, stmts);
 fun APP0(l, func):       A.s-app(l, func, [list:]);
 fun APP1(l, func, arg):  A.s-app(l, func, [list: arg]);
@@ -95,70 +70,44 @@ fun IF(l, _cond, _then, _else):
   A.s-if-else(l, [list: A.s-if-branch(l, _cond, _then)], _else)
 end
 
-fun LIST(l, lst):
-  cases(List) lst:
-    | empty =>
-      NODE0(l, "Empty")
-    | link(first, rest) =>
-      NODE2(l, "Link", first, LIST(l, rest))
-  end
-end
-
 fun PRETTY_AST(l, ast):
   lines = CALL1(l, CALL0(l, ast, "tosource"), "pretty", A.s-num(l, 80))
   PLUS(l, A.s-str(l, "    "), CALL1(l, lines, "join-str", A.s-str(l, "\n    ")))
 end
 
 fun PRINT_AST(l,  ast):
-  PRINT(l, PRETTY_AST(l, TO_AST(l, ast)))
+  PRINT(l, PRETTY_AST(l, ast))
+end
+
+fun PRINT_AST2(l, ast):
+  PRINT(l, PRETTY_AST(l, ast))
 end
 
 fun PUSH(l, frame): APP1(l, gid(l, "_push"), frame) end
 fun POP(l):         APP0(l, gid(l, "_pop")) end
 fun WRAP(l, expr):  APP1(l, gid(l, "_wrap"), expr) end
 
-adorn-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
-    NODE1(l, "s-block", LIST(l, map(_.visit(self), stmts)))
-  end,
-  s-if-else(self, l, branches, _else):
-    NODE2(l, "s-if-else", LIST(l, map(_.visit(self), branches)), _else.visit(self))
-  end,
-  s-if-branch(self, l, test, body):
-    NODE2(l, "s-if-branch", test.visit(self), body.visit(self))
-  end,
-  s-prim-app(self, l, _fun, args):
-    NODE2(l, "s-prim-app", STR(l, _fun), LIST(l, map(_.visit(self), args)))
-  end,
-  s-bool(self, l, bool): BOOL_EXPR(l, bool) end,
-  s-str(self, l, str):   STR_EXPR(l, str) end,
-  s-num(self, l, num):   NUM_EXPR(l, num) end,
-  s-frac(self, l, n, d): FRAC_EXPR(l, n, d) end,
-  s-atom(self, base, serial): A.s-atom(base, serial) end
-}
-
-fun ADORN(expr):
-  expr.visit(adorn-visitor)
-end
-
-fun STEP_TO_VALUE(l, val, ast):
+fun STEP_TO_VALUE(l, ast):
+  VAL = A.s-app(l,
+    A.s-dot(l, gid(l, "_ast"), "s-value"),
+    [list: ast])
   BLOCK(l, [list:
       PRINT(l, A.s-str(l, "->")),
-      PRINT_AST(l, WRAP(l, val)),
+      PRINT_AST(l, WRAP(l, VAL)),
       ast])
 end
 
 fun STEP(l, self, ast):
   BLOCK(l, [list:
       PRINT(l, A.s-str(l, "->")),
-      PRINT_AST(l, WRAP(l, ADORN(ast))),
+      PRINT_AST(l, WRAP(l, CV.ast-to-constr(ast))),
       ast.visit(self)])
 end
 
 fun FRAME(l, self):
   lam(frame-wrapper, ast):
     frame = for LAM(l)(H from nothing):
-      ADORN(frame-wrapper(A.s-id(l, H)))
+      CV.ast-to-constr(frame-wrapper(A.s-escape(A.s-id(l, H))))
     end
     BLOCK(l, [list:
         PUSH(l, frame),
@@ -193,20 +142,16 @@ end
 
 stepify-visitor = A.default-map-visitor.{
   s-bool(self, l, bool):
-    t = A.s-bool(l, bool)
-    STEP_TO_VALUE(l, BOOL_VALUE(l, bool), t)
+    STEP_TO_VALUE(l, A.s-bool(l, bool))
   end,
   s-num(self, l, num):
-    t = A.s-num(l, num)
-    STEP_TO_VALUE(l, NUM_VALUE(l, num), t)
+    STEP_TO_VALUE(l, A.s-num(l, num))
   end,
   s-str(self, l, str):
-    t = A.s-str(l, str)
-    STEP_TO_VALUE(l, STR_VALUE(l, str), t)
+    STEP_TO_VALUE(l, A.s-str(l, str))
   end,
   s-frac(self, l, numer, denom):
-    t = A.s-frac(l, numer, denom)
-    STEP_TO_VALUE(l, FRAC_VALUE(l, numer, denom), t)
+    STEP_TO_VALUE(l, A.s-frac(l, numer, denom))
   end,
   s-block(self, l, stmts):
     if stmts.length() <= 1:
@@ -239,7 +184,19 @@ stepify-visitor = A.default-map-visitor.{
   s-prim-app(self, l, _fun, args):
     for FRAMES(l, self, A.s-prim-app(l, _fun, _))(ARGS from args):
       for LET(l)(V from A.s-prim-app(l, _fun, ARGS)):
-        STEP_TO_VALUE(l, VALUE(l, ID(l, V)), ID(l, V))
+        STEP_TO_VALUE(l, ID(l, V))
+      end
+    end
+  end,
+  s-app(self, l, _fun, args):
+    for LET(l)(F from
+        for FRAME(l, self)(F from _fun):
+          A.s-app(l, F, args)
+        end):
+      for FRAMES(l, self, A.s-app(l, F, _))(ARGS from args):
+        for LET(l)(V from A.s-app(l, F, ARGS)):
+          STEP_TO_VALUE(l, ID(l, V))
+        end
       end
     end
   end
@@ -324,7 +281,7 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   print("end")
   print("")
   stepified = A.s-block(l, [list:
-      PRINT_AST(l, ADORN(expr)),
+      PRINT_AST2(l, CV.ast-to-constr(expr)),
       stepify(expr)])
   print("-------")
   stepified

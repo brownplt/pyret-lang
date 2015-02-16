@@ -2,7 +2,8 @@
 
 provide {
   to-ast: to-ast,
-  from-ast: from-ast
+  from-ast: from-ast,
+  ast-to-constr: ast-to-constr
 } end
 
 import string-dict as D
@@ -11,7 +12,7 @@ import resugar as R
 import ast as A
 
 
-dummy-loc = SL.builtin("dummy location")
+dummy-loc= SL.builtin("dummy location")
 
 fun is-List(x):
   is-empty(x) or is-link(x)
@@ -132,6 +133,15 @@ constructors = [D.string-dict:
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
   "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
+
+  # Done:
+  "s-num", A.s-num,
+  "s-frac", A.s-frac,
+  "s-bool", A.s-bool,
+  "s-str", A.s-str,
+  "s-if-else", A.s-if-else,
+  "s-prim-app", A.s-prim-app,
+  "s-block", A.s-block,
   
   # TODO:
   "s-let-bind", A.s-let-bind,
@@ -144,7 +154,6 @@ constructors = [D.string-dict:
   "s-let-expr", A.s-let-expr,
   "s-letrec", A.s-letrec,
   "s-instantiate", A.s-instantiate,
-  "s-block", A.s-block,
   "s-user-block", A.s-user-block,
   "s-type", A.s-type,
   "s-newtype", A.s-newtype,
@@ -153,7 +162,6 @@ constructors = [D.string-dict:
   "s-contract", A.s-contract,
   "s-assign", A.s-assign,
   "s-if-pipe-else", A.s-if-pipe-else,
-  "s-if-else", A.s-if-else,
   "s-cases", A.s-cases,
   "s-cases-else", A.s-cases-else,
   "s-lam", A.s-lam,
@@ -164,17 +172,12 @@ constructors = [D.string-dict:
   "s-array", A.s-array,
   "s-construct", A.s-construct,
   "s-app", A.s-app,
-  "s-prim-app", A.s-prim-app,
   "s-prim-val", A.s-prim-val,
   "s-id", A.s-id,
   "s-id-var", A.s-id-var,
   "s-id-letrec", A.s-id-letrec,
   "s-undefined", A.s-undefined,
   "s-srcloc", A.s-srcloc,
-  "s-num", A.s-num,
-  "s-frac", A.s-frac,
-  "s-bool", A.s-bool,
-  "s-str", A.s-str,
   "s-dot", A.s-dot,
   "s-get-bang", A.s-get-bang,
   "s-bracket", A.s-bracket,
@@ -211,12 +214,12 @@ fun from-ast(ast):
       "NYI"
     | A.is-s-value(ast) then:
       R.t-val(ast.val)
-    | SL.is-Srcloc(ast) then:
-      raise("from-ast: Srclocs not yet implemented")
     | is-boolean(ast) then:
       R.node("Bool", ast.l, [list: R.value(ast)])
     | is-string(ast) then:
       R.node("Str", ast.l, [list: R.value(ast)])
+    | is-number(ast) then:
+      R.node("Num", ast.l, [list: R.value(ast)])
     | is-Option(ast) then:
       cases(Option) ast:
         | none =>
@@ -280,5 +283,52 @@ fun to-ast(node :: R.Term):
               raise("to-ast: Unrecognized AST node: " + name)
           end
       end
+  end
+end
+
+
+fun gid(id):
+  A.s-id(dummy-loc, A.s-global(id))
+end
+      
+fun ast-srcloc(l):
+  A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+end
+
+fun ast-list(lst):
+  cases(List) lst:
+    | empty =>
+      gid("_empty")
+    | link(first, rest) =>
+      A.s-app(dummy-loc, gid("_link"), [list: first, ast-list(rest)])
+  end
+end
+
+fun ast-to-constr(ast):
+  doc: "Given an AST, construct an AST that, when executed, produces the first."
+  recur = ast-to-constr
+  ask:
+    | is-boolean(ast) then:  A.s-bool(dummy-loc, ast)
+    | is-string(ast) then:   A.s-str(dummy-loc, ast)
+    | is-number(ast) then:   A.s-num(dummy-loc, ast)
+    | is-Option(ast) then:
+      cases(Option) ast:
+        | none      => gid("_none")
+        | some(val) => A.s-app(dummy-loc, gid("_some"), [list: recur(val)])
+      end
+    | is-List(ast) then:     ast-list(map(recur, ast))
+    | A.is-Name(ast) then:
+      l = dummy-loc
+      A.s-app(l,
+        A.s-dot(l, gid("_ast"), "s-atom"),
+        [list: A.s-str(l, ast.base), A.s-num(l, ast.serial)])
+    | A.is-s-escape(ast) then:
+      ast.ast
+    | otherwise:
+      l = ast.l
+      srcloc = ast-srcloc(l)
+      A.s-app(l,
+        A.s-dot(l, gid("_ast"), ast.label()),
+        link(srcloc, map(recur, ast.children())))
   end
 end

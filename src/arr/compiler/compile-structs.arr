@@ -497,6 +497,7 @@ standard-builtins = compile-env(
       builtin-id("_wrap"),
       builtin-id("_to-ast"),
       builtin-id("_from-ast"),
+      builtin-id("_ast"),
       module-bindings("arrays", [list: 
           "array",
           "build-array",

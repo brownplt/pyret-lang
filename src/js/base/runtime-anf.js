@@ -4009,12 +4009,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.namespace = ns;
     }
 
+    addToNamespace(require("trove/option"),
+                   [["_none", "none"],
+                    ["_some", "some"]]);
     addToNamespace(require("trove/resugar"),
                    [["_node", "node"],
                     ["_value", "value"],
                     ["_push", "push"],
                     ["_pop", "pop"],
-                    ["_wrap", "wrap"]]);
+                    ["_wrap", "wrap"],
+                    ["_ast", "ast-module"]]);
     addToNamespace(require("trove/convert"),
                  [["_to-ast", "to-ast"],
                   ["_from-ast", "from-ast"]]);

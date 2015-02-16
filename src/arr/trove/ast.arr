@@ -911,6 +911,12 @@ data Expr:
     tosource(self):
       PP.str("<" + torepr(self.val) + ">")
     end
+  | s-escape(ast) with:
+    # s-escape is used internally by the stepper.
+    # You should never encounter in most ASTs.
+    label(self): "s-escape" end,
+    children(self): [list: self.ast] end,
+    tosource(self): self.ast.tosource() end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
