@@ -205,7 +205,7 @@ end
 data Term:
   | t-decl(v :: Var)
   | t-refn(v :: Var)
-  | t-val(val :: Any)
+  | t-val(val :: Any) # values in Expr position
   | t-node(con :: String, id :: Id, loc :: S.Srcloc, subterms :: List<Term>)
     with:
     get(self, n):
@@ -218,7 +218,7 @@ sharing:
     cases(Term) self:
       | t-decl(v)       => "$" + tostr(v)
       | t-refn(v)       => tostr(v)
-      | t-val(val)      => "<" + tostr(val) + ">"
+      | t-val(val)      => "<" + torepr(val) + ">"
       | t-hole(i)       => "@" + tostr(i)
       | t-node(con, _, _, ts) =>
         con + "(" + map(tostr, ts).join-str(", ") + ")"
@@ -230,7 +230,7 @@ sharing:
     cases(Term) self:
       | t-decl(v)       => "$" + torepr(v)
       | t-refn(v)       => torepr(v)
-      | t-val(val)      => "<" + tostring(val) + ">"
+      | t-val(val)      => "<" + torepr(val) + ">"
       | t-hole(i)       => "@" + tostring(i)
       | t-node(con, id, _, ts) =>
         con + ":" + tostring(id) + "(" + map(torepr, ts).join-str(",") + ")"

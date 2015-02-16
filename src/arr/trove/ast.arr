@@ -909,7 +909,7 @@ data Expr:
     label(self): "s-value" end,
     children(self): [list:] end,
     tosource(self):
-      PP.str("<" + tostring(self.val) + ">")
+      PP.str("<" + torepr(self.val) + ">")
     end
 sharing:
   visit(self, visitor):

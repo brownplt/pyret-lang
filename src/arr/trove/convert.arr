@@ -246,12 +246,13 @@ fun to-ast(node :: R.Term):
   cases(R.Term) node:
     | t-decl(v)  => "NYI"
     | t-refn(v)  => "NYI"
-    | t-val(val)   =>
-      A.s-value(val)
+    | t-val(val) => val
     | t-hole(_)  => raise("to-ast: cannot convert context hole")
     | t-tag(_, _, term) => raise("to-ast: cannot conver tag")
     | t-node(name, id, l, ts) =>
       ask:
+        | name == "Value" then:
+          A.s-value(ts.get(0).val)
         | name == "Bool" then:
           node.get(0).val
         | name == "Str" then:
