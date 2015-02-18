@@ -114,6 +114,16 @@
     (args ("n"))
     (doc ""))
   (fun-spec
+    (name "num-to-rational")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-to-roughnum")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
     (name "num-is-integer")
     (arity 1)
     (args ("n"))
@@ -201,7 +211,7 @@ The type of roughnum values
 @type-spec["NumInteger" (list)]
 The type of exact integer values
 @type-spec["NumRational" (list)]
-The type of exact rational number values
+The type of exact rational number values. Same as @pyret{Exactnum}.
 @type-spec["NumPositive" (list)]
 The type of number values that are greater than zero
 @type-spec["NumNegative" (list)]
@@ -440,8 +450,7 @@ end
 
 Returns the smallest integer greater than or equal to the
 argument.
-The result is exact only if
-the argument is.
+The result is exact even if the argument is rough.
 
 @examples{
 check:
@@ -454,8 +463,7 @@ end
   @function["num-floor" #:contract (a-arrow N N)]{
 
 Returns the largest integer less than or equal to the argument.
-The result is exact only if
-the argument is.
+The result is exact even if the argument is rough.
 
 @examples{
 check:
@@ -466,8 +474,9 @@ end
   }
   @function["num-round" #:contract (a-arrow N N)]{
 
-Returns the closest integer to the argument. The result is exact only if
-the argument is.
+Returns the closest integer to the argument. The result is exact
+even if
+the argument is rough.
 
 @examples{
 check:
@@ -537,13 +546,29 @@ end
   }
   @function["num-exact" #:contract (a-arrow N N)]{
 
-Returns the exact number equal to the number suggested by the
-roughnum.
+Given a roughnum, returns an exact number most equal to it. Given
+an exact num, returns it directly.
 
 @examples{
 check:
   num-sqrt(2) is%(within-abs(0.000001)) ~1.4142135623730951
   num-exact(num-sqrt(2)) is 1767766952966369/1250000000000000
+end
+}
+  }
+  @function["num-to-rational" #:contract (a-arrow N N)]{
+
+Same as @pyret{num-exact}.
+  }
+  @function["num-to-roughnum" #:contract (a-arrow N N)]{
+
+Given an exact num, returns the roughnum version of it. Given ar
+roughnum, returns it directly.
+
+@examples{
+check:
+  num-is-roughnum(num-to-roughnum(3.14)) is true
+  num-is-roughnum(num-to-roughnum(~3.14)) is true
 end
 }
   }
