@@ -70,6 +70,11 @@ check "roughnum":
   num-modulo(10,0) raises "second argument is zero"
 end
 
+check "number casting":
+  num-to-rational(~3.14) is 3.14
+  num-is-roughnum(num-to-roughnum(3.14)) is true
+end
+
 check "num-expt on roughs, zeroes, negs":
   num-expt(2, 3)     is                     8
   num-expt(2, 3)     is%(num-within-abs(0.001)) 8
