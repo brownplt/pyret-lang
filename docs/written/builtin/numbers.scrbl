@@ -278,7 +278,7 @@ end
 }
 
   }
-  @function["num-max" #:contract (a-arrow N N N)]{
+  @function["num-max" #:contract (a-arrow N N N) #:return N]{
 Returns the larger of the two arguments.
 
 @examples{
@@ -291,7 +291,7 @@ end
 }
 
   }
-  @function["num-min" #:contract (a-arrow N N N)]{
+  @function["num-min" #:contract (a-arrow N N N) #:return N]{
 Returns the smaller of the two arguments.
 
 @examples{
@@ -304,7 +304,7 @@ end
 }
 
   }
-  @function["num-abs" #:contract (a-arrow N N)]{
+  @function["num-abs" #:contract (a-arrow N N) #:return N]{
 Returns the absolute value of the argument. The result is exact only if the argument is.
 
 @examples{
@@ -317,7 +317,7 @@ end
 }
 
   }
-  @function["num-sin" #:contract (a-arrow N N)]{
+  @function["num-sin" #:contract (a-arrow N N) #:return N]{
 
 Returns the sine of the argument  as a roughnum. If the argument is exact 0, the result is exact 0 too.
 
@@ -328,7 +328,7 @@ check:
 end
 }
   }
-  @function["num-cos" #:contract (a-arrow N N)]{
+  @function["num-cos" #:contract (a-arrow N N) #:return N]{
 
 Returns the cosine of the argument  as a roughnum. If
 the argument is exact 0, the result is exact 1.
@@ -340,7 +340,7 @@ check:
 end
 }
   }
-  @function["num-tan" #:contract (a-arrow N N)]{
+  @function["num-tan" #:contract (a-arrow N N) #:return N]{
 Returns the tangent of the argument as a roughnum. However, if
 the argument is exact 0, the result is exact 1.
 
@@ -352,7 +352,7 @@ end
 }
 
   }
-  @function["num-asin" #:contract (a-arrow N N)]{
+  @function["num-asin" #:contract (a-arrow N N) #:return N]{
 Returns the arc sine of the argument as a roughnum. However, if
 the argument is exact 0, the result is exact 0.
 
@@ -376,7 +376,7 @@ check:
 end
 }
   }
-  @function["num-atan" #:contract (a-arrow N N)]{
+  @function["num-atan" #:contract (a-arrow N N) #:return N]{
 
 Returns the arc tangent of the argument as a roughnum. However, if
 the argumet is exact 0, the result is exact 0.
@@ -388,7 +388,7 @@ check:
 end
 }
   }
-  @function["num-modulo" #:contract (a-arrow N N N)]{
+  @function["num-modulo" #:contract (a-arrow N N N) #:return N]{
 Returns the modulo of the first argument with respect to the
 second.
 
@@ -401,7 +401,7 @@ end
 }
 
   }
-  @function["num-truncate" #:contract (a-arrow N N)]{
+  @function["num-truncate" #:contract (a-arrow N N) #:return N]{
 
 Returns the integer part of its argument.
 
@@ -415,7 +415,7 @@ end
 }
 
   }
-  @function["num-sqrt" #:contract (a-arrow N N)]{
+  @function["num-sqrt" #:contract (a-arrow N N) #:return N]{
 
 Returns the square root.  If the argument is exact and perfect
 square, the result is exact.
@@ -431,7 +431,7 @@ check:
 end
 }
   }
-  @function["num-sqr" #:contract (a-arrow N N)]{
+  @function["num-sqr" #:contract (a-arrow N N) #:return N]{
 
 Returns the square.
 
@@ -446,7 +446,7 @@ end
 }
 
   }
-  @function["num-ceiling" #:contract (a-arrow N N)]{
+  @function["num-ceiling" #:contract (a-arrow N N) #:return N]{
 
 Returns the smallest integer greater than or equal to the
 argument.
@@ -460,7 +460,7 @@ end
 }
 
   }
-  @function["num-floor" #:contract (a-arrow N N)]{
+  @function["num-floor" #:contract (a-arrow N N) #:return N]{
 
 Returns the largest integer less than or equal to the argument.
 The result is exact even if the argument is rough.
@@ -472,7 +472,7 @@ check:
 end
 }
   }
-  @function["num-round" #:contract (a-arrow N N)]{
+  @function["num-round" #:contract (a-arrow N N) #:return N]{
 
 Returns the closest integer to the argument. The result is exact
 even if
@@ -488,7 +488,7 @@ end
 }
 
   }
-  @function["num-log" #:contract (a-arrow N N)]{
+  @function["num-log" #:contract (a-arrow N N) #:return N]{
 
 Returns the natural logarithm of the argument, as a roughnum.
 However, if the argument is exact 1, the
@@ -505,7 +505,7 @@ end
 }
 
   }
-  @function["num-exp" #:contract (a-arrow N N)]{
+  @function["num-exp" #:contract (a-arrow N N) #:return N]{
 
 Returns e raised to the argument, as a roughnum.  However, if the
 argument is exact 0, the result is
@@ -522,7 +522,7 @@ end
 }
 
   }
-  @function["num-expt" #:contract (a-arrow N N N)]{
+  @function["num-expt" #:contract (a-arrow N N N) #:return N]{
 
 Returns the first argument raised to the second argument. The result is exact
 if both arguments are exact, except for an exception when the
@@ -544,7 +544,7 @@ end
 }
 
   }
-  @function["num-exact" #:contract (a-arrow N N)]{
+  @function["num-exact" #:contract (a-arrow N N) #:return N]{
 
 Given a roughnum, returns an exact number most equal to it. Given
 an exact num, returns it directly.
@@ -556,11 +556,11 @@ check:
 end
 }
   }
-  @function["num-to-rational" #:contract (a-arrow N N)]{
+  @function["num-to-rational" #:contract (a-arrow N N) #:return N]{
 
 Same as @pyret{num-exact}.
   }
-  @function["num-to-roughnum" #:contract (a-arrow N N)]{
+  @function["num-to-roughnum" #:contract (a-arrow N N) #:return N]{
 
 Given an exact num, returns the roughnum version of it. Given ar
 roughnum, returns it directly.
@@ -572,7 +572,7 @@ check:
 end
 }
   }
-  @function["num-is-integer" #:contract (a-arrow N B)]{
+  @function["num-is-integer" #:contract (a-arrow N B) #:return B]{
 Returns true if argument is an exact integer.
 
 @examples{
@@ -585,7 +585,7 @@ end
 }
 
   }
-  @function["num-is-rational" #:contract (a-arrow N B)]{
+  @function["num-is-rational" #:contract (a-arrow N B) #:return B]{
 
 Returns true if argument is an exact rational.
 
@@ -599,7 +599,7 @@ end
 }
 
   }
-  @function["num-is-roughnum" #:contract (a-arrow N B)]{
+  @function["num-is-roughnum" #:contract (a-arrow N B) #:return B]{
 Returns true if argument is a roughnum.
 @examples{
 check:
@@ -611,7 +611,7 @@ end
 }
 
   }
-  @function["num-is-positive" #:contract (a-arrow N B)]{
+  @function["num-is-positive" #:contract (a-arrow N B) #:return B]{
 
 Returns true if argument is greater than zero.
 
@@ -626,7 +626,7 @@ check:
 end
 }
   }
-  @function["num-is-negative" #:contract (a-arrow N B)]{
+  @function["num-is-negative" #:contract (a-arrow N B) #:return B]{
 
 Returns true if argument is less than zero.
 
@@ -642,7 +642,7 @@ end
 }
 
   }
-  @function["num-is-non-positive" #:contract (a-arrow N B)]{
+  @function["num-is-non-positive" #:contract (a-arrow N B) #:return B]{
 
 Returns true if argument is less than or equal to zero.
 @examples{
@@ -657,7 +657,7 @@ end
 }
 
   }
-  @function["num-is-non-negative" #:contract (a-arrow N B)]{
+  @function["num-is-non-negative" #:contract (a-arrow N B) #:return B]{
 
 Returns true if argument is greater than or equal to zero.
 
@@ -672,7 +672,7 @@ check:
 end
 }
   }
-  @function["num-is-fixnum" #:contract (a-arrow N B)]{
+  @function["num-is-fixnum" #:contract (a-arrow N B) #:return B]{
 
 Returns true if the argument is represented directly as a JS
 double.
