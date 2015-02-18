@@ -3562,6 +3562,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.toExact(n));
     }
+    var num_to_rational = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-rational");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
+    }
+    var num_to_roughnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-roughnum");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n));
+    }
+    var num_to_fixnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-fixnum");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toFixnum(n));
+    }
     var num_is_integer = function(n) {
       thisRuntime.checkArity(1, arguments, "num-is-integer");
       thisRuntime.checkNumber(n);
@@ -3768,6 +3783,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-log': makeFunction(num_log),
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
+          'num-to-rational': makeFunction(num_to_rational),
+          'num-to-roughnum': makeFunction(num_to_roughnum),
+          'num-to-fixnum': makeFunction(num_to_fixnum),
           'num-is-integer': makeFunction(num_is_integer),
           'num-is-rational': makeFunction(num_is_rational),
           'num-is-roughnum': makeFunction(num_is_roughnum),
