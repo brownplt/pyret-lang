@@ -13,6 +13,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
       var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
 
+      var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
+
       function applyBrand(brand, val) {
         return get(brand, "brand").app(val);
       }
@@ -70,6 +72,20 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return makeImmutableStringDict(newObj);
         });
 
+        var mergeISD = runtime.makeMethodFromFun(function(self, other) {
+          runtime.checkArity(2, arguments, "merge");
+          checkISD(other);
+          var otherKeys = runtime.getField(other, "keys-list").app();
+          var otherKeysArr = runtime.ffi.toArray(otherKeys);
+          if(otherKeysArr.length === 0) { return self; }
+          var newObj = Object.create(underlyingDict);
+          for(var i = 0; i < otherKeysArr.length; i++) {
+            var mkey = internalKey(otherKeysArr[i])
+            newObj[mkey] = runtime.getField(other, "get-value").app(otherKeysArr[i]);
+          }
+          return makeImmutableStringDict(newObj);
+        });
+
         var removeISD = runtime.makeMethodFromFun(function(_, key) {
           runtime.checkArity(2, arguments, 'remove');
           runtime.checkString(key);
@@ -108,6 +124,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           runtime.checkArity(1, arguments, 'keys');
           var keys = getAllKeys();
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
+            return runtime.makeString(userKey(mkey));
+          }));
+        });
+
+        var keysListISD = runtime.makeMethodFromFun(function(_) {
+          runtime.checkArity(1, arguments, 'keys-list');
+          var keys = getAllKeys();
+          return runtime.ffi.makeList(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
         });
@@ -198,8 +222,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           get: getISD,
           'get-value': getValueISD,
           set: setISD,
+          merge: mergeISD,
           remove: removeISD,
           keys: keysISD,
+          "keys-list": keysListISD,
           count: countISD,
             'has-key': hasKeyISD,
           _equals: equalsISD,
