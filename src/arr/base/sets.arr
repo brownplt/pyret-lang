@@ -10,8 +10,10 @@ provide {
   tree-set: {
     make: arr-to-tree-set
   },
+  empty-set: list-set(empty),
   empty-list-set: list-set(empty),
   empty-tree-set: tree-set(leaf),
+  list-to-set: list-to-list-set,
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set
 } end
@@ -46,7 +48,8 @@ data AVLTree:
     preorder(self) -> lists.List: empty end,
     inorder(self) -> lists.List: empty end,
     postorder(self) -> lists.List: empty end,
-    fold(self, f, base): base end
+    fold(self, f, base): base end,
+    count(self): 0 end
 
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
     height(self) -> Number:
@@ -94,7 +97,8 @@ data AVLTree:
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list```
       self.right.fold(f, self.left.fold(f, f(base, self.value)))
-    end
+    end,
+    count(self): 1 + self.left.count() + self.right.count() end
 sharing:
   to-list(self) -> lists.List:
     doc: "Returns a list of all elements from a inorder traversal"
@@ -211,7 +215,7 @@ data Set:
           end
       end
     end,
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "[set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
@@ -285,6 +289,10 @@ data Set:
           u
         end
       end
+    end,
+
+    size(self :: Set) -> Number:
+      self.elems.length()
     end
 
   | tree-set(elems :: AVLTree) with:
@@ -296,7 +304,7 @@ data Set:
           pick-some(v, tree-set(t.remove(v)))
       end
     end,
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": tostring(elem)
@@ -369,6 +377,10 @@ data Set:
         end
       end, self.elems)
       tree-set(new-elems)
+    end,
+
+    size(self :: Set) -> Number:
+      self.elems.count()
     end
 
 sharing:

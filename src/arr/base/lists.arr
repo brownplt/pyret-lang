@@ -83,7 +83,7 @@ data List<a>:
       self
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
 
     _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
 
@@ -177,7 +177,7 @@ data List<a>:
       reverse-help(self, empty)
     end,
 
-    tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
+    _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
       "[list: " +
         for fold(combined from tostring(self.first), elt from self.rest):
           combined + ", " + tostring(elt)
@@ -318,9 +318,11 @@ fun<a> reverse-help(lst :: List<a>, acc :: List<a>) -> List<a>:
     | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
   end
 where:
-  reverse([list: ], [list: ]) is [list: ]
-  reverse([list: 1, 3], [list: ]) is [list: 3, 1]
+  reverse-help([list: ], [list: ]) is [list: ]
+  reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
 end
+
+fun<a> reverse(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -336,6 +338,24 @@ where:
   range(0,0) is [list: ]
   range(0,1) is [list: 0]
   range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+end
+
+fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
+  doc: ```Creates a list of numbers, starting with start, in intervals of delta,
+          until reaching (but not including) stop```
+  if delta == 0:
+    if start == stop: empty
+    else: raise("range-by: an interval of 0 would produce an infinite list")
+    end
+  else if delta < 0:
+    if start <= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  else:
+    if start >= stop: empty
+    else: link(start, range-by(start + delta, stop, delta))
+    end
+  end
 end
 
 fun<a> repeat(n :: Number, e :: a) -> List<a>:
@@ -387,6 +407,19 @@ where:
   partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
   partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
   partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
+end
+
+fun<a> remove(lst :: List<a>, elt :: a) -> List<a>:
+  doc: ```Returns the list without the element if found, or the whole list if it is not```
+  if is-empty(lst):
+    empty
+  else:
+    if elt == lst.first:
+      remove(lst.rest, elt)
+    else:
+      link(lst.first, remove(lst.rest, elt))
+    end
+  end
 end
 
 fun<a> find(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
@@ -711,6 +744,18 @@ where:
   fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
 end
 
+rec foldl = fold
+
+fun<a, b> foldr(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
+  doc: ```Takes a function, an initial value and a list, and folds the function over the list from the right,
+        starting with the initial value```
+  if is-empty(lst):
+    base
+  else:
+    f(foldr(f, base, lst.rest), lst.first)
+  end
+end
+
 fun<a, b, c> fold2(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:
   doc: ```Takes a function, an initial value and two lists, and folds the function over the lists in parallel
         from the left, starting with the initial value and ending when either list is empty```
@@ -807,6 +852,15 @@ end
 
 fun<a> member-identical(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-identical3(lst, elt))
+end
+
+fun<a> shuffle(lst :: List<a>) -> List<a>:
+  if is-empty(lst): empty
+  else:
+    ix = random(lst.length())
+    elt = lst.get(ix)
+    link(elt, shuffle(remove(lst, elt)))
+  end
 end
 
 index = get
