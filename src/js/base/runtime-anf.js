@@ -7,6 +7,7 @@ var Bignum;
 
 define(["js/namespace", "js/js-numbers", "js/codePoint"],
        function (Namespace, jsnums, codePoint) {
+
   if(requirejs.isBrowser) {
     var require = requirejs;
   }
@@ -3637,36 +3638,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (n != n) { return thisRuntime.makeString("NaN"); }
       else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
       else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
-      else if (jsnums.equals(n, jsnums.negative_zero)) {
-        var s = "-0.";
-        for (var i = 0; i < d; i++)
-          s += "0";
-        return thisRuntime.makeString(s);
-      } else if (jsnums.isReal(n)) {
+      else if (jsnums.isReal(n)) {
         n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
         var s = jsnums.toFixnum(n).toString().split(".");
         s[1] = (s[1] || "").substring(0, d);
         for (var i = s[1].length; i < d; i++)
           s[1] += "0";
         return thisRuntime.makeString(s[0] + "." + s[1]);
-      } else {
-        var nreal = jsnums.realPart(n);
-        nreal = jsnums.divide(jsnums.round(jsnums.multiply(nreal, tenDigits)), tenDigits)
-        var sreal = jsnums.toFixnum(nreal).toString().split(".");
-        sreal[1] = (sreal[1] || "").substring(0, d);
-        for (var i = sreal[1].length; i < d; i++)
-          sreal[1] += "0";
-        var nimag = jsnums.imaginaryPart(n);
-        nimag = jsnums.divide(jsnums.round(jsnums.multiply(nimag, tenDigits)), tenDigits)
-        var simag = jsnums.toFixnum(nimag).toString().split(".");
-        simag[1] = (simag[1] || "").substring(0, d);
-        for (var i = simag[1].length; i < d; i++)
-          simag[1] += "0";
-        if (simag[0][0] === "-" || simag[0][0] === "+") {
-          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + simag[0] + "." + simag[1] + "i");
-        } else {
-          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + "+" + simag[0] + "." + simag[1] + "i");
-        }
       }
     }
     function random(max) {
@@ -3797,6 +3775,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
           'num-to-string': makeFunction(num_tostring),
+          'num-to-string-digits': makeFunction(num_tostring_digits),
 
           'string-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
