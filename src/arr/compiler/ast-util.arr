@@ -19,8 +19,6 @@ fun ok-last(stmt):
     A.is-s-rec(stmt) or
     A.is-s-fun(stmt) or
     A.is-s-data(stmt) or
-    A.is-s-graph(stmt) or
-    A.is-s-m-graph(stmt) or
     A.is-s-contract(stmt) or
     A.is-s-check(stmt) or
     A.is-s-type(stmt) or
@@ -171,7 +169,7 @@ fun binding-env-from-env(initial-env):
   end
 end
 
-fun <a, c> default-env-map-visitor(
+fun default-env-map-visitor<a, c>(
     initial-env :: a,
     initial-type-env :: c,
     bind-handlers :: {
@@ -285,7 +283,7 @@ fun <a, c> default-env-map-visitor(
 end
 
 
-fun <a, c> default-env-iter-visitor(
+fun default-env-iter-visitor<a, c>(
     initial-env :: a,
     initial-type-env :: c,
     bind-handlers :: {

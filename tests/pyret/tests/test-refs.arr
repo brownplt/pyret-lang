@@ -99,27 +99,3 @@ check "extend errors":
   m.{ v1: "new" } raises "update"
 end
 
-check "print uninitialized references":
-
-  ref-graph:
-    x = torepr(x)
-  end
-  ref-get(x) is "<uninitialized-ref>"
-
-end
-
-check "errors on ref construction in other contexts":
-
-  ref-graph:
-    r = r
-  end
-  link(1, r) raises "List"
-
-  fun f():
-    ref-graph:
-      l = link(1, l)
-    end
-    l
-  end
-  f() raises "List"
-end

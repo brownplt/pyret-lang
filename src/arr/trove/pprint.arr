@@ -65,7 +65,7 @@ sharing:
       end
     end
   end,
-  tostring(self, shadow tostring):
+  _tostring(self, shadow tostring):
     cases(PPrintDoc) self:
       | mt-doc(_, _) => "EmptyDoc"
       | str(s, _, _) => "Str('" + s + "')"

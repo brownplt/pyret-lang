@@ -61,7 +61,7 @@ fun std-compare(a, b) -> Comparison:
   else: equal;
 end
 
-fun <T> list-compare(a :: List<T>, b :: List<T>) -> Comparison:
+fun list-compare<T>(a :: List<T>, b :: List<T>) -> Comparison:
   cases(List<T>) a:
     | empty => cases(List<T>) b:
         | empty   => equal
@@ -144,7 +144,7 @@ end
 data TypeVariable:
   | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
-  tostring(self, shadow tostring) -> String:
+  _tostring(self, shadow tostring) -> String:
     self.id.toname() + " <: " + tostring(self.upper-bound)
   end,
   key(self) -> String:
@@ -154,7 +154,7 @@ end
 
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       self.field-name + " : " + tostring(self.typ)
     end,
     key(self):
@@ -230,7 +230,7 @@ end
 data ModuleType:
   | t-module(name :: String, provides :: Type, types :: SD.StringDict<DataType>, aliases :: SD.StringDict<Type>)
 sharing:
-  tostring(self, shadow tostring):
+  _tostring(self, shadow tostring):
     "t-module(" +
       torepr(self.name)          + ", " +
       torepr(self.provides)      + ", " +
@@ -250,7 +250,7 @@ data Type:
   | t-forall(introduces :: List<TypeVariable>, onto :: Type)
   | t-ref(typ :: Type)
 sharing:
-  tostring(self, shadow tostring) -> String:
+  _tostring(self, shadow tostring) -> String:
     cases(Type) self:
       | t-name(module-name, id) =>
         cases(Option<String>) module-name:
@@ -328,11 +328,11 @@ sharing:
       end
     end
   end,
-  _lessthan     (self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
-  _lessequal    (self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
-  _greaterthan  (self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
-  _greaterequal (self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
-  _equals       (self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
+  _lessthan(self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
+  _lessequal(self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
+  _greaterthan(self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
+  _greaterequal(self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
+  _equals(self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
   _comp(self, other :: Type) -> Comparison:
     cases(Type) self:
       | t-bot =>

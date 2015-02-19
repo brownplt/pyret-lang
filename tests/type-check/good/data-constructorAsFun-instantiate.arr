@@ -8,7 +8,7 @@ data My-List<A>:
   | my-link(first :: A, rest :: My-List<A>)
 end
 
-fun<A, B> my-map(f :: (A -> B), l :: My-List<A>) -> My-List<B>:
+fun my-map<A, B>(f :: (A -> B), l :: My-List<A>) -> My-List<B>:
   cases (My-List<A>) l:
     | my-empty()    => my-empty<B>()
     | my-link(a, r) =>
@@ -17,7 +17,7 @@ fun<A, B> my-map(f :: (A -> B), l :: My-List<A>) -> My-List<B>:
   end
 end
 
-fun<A> my-singleton(v :: A) -> My-List<A>: my-link(v, my-empty<A>()) end
+fun my-singleton<A>(v :: A) -> My-List<A>: my-link(v, my-empty<A>()) end
 
 zero-list-synth                     = my-link<Natural>(zero, my-link<Natural>(zero, my-empty<Natural>()))
 zero-list-check :: My-List<Natural> = my-link<Natural>(zero, my-link<Natural>(zero, my-empty<Natural>()))

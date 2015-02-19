@@ -268,15 +268,13 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 install:
 	@$(call MKDIR,node_modules)
 	npm install
-	git submodule init
-	git submodule update lib/CodeMirror
 
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
 
 .PHONY : test-all
-test-all: test bootstrap-test docs-test
+test-all: test docs-test
 
 .PHONY : runtime-test
 runtime-test : $(PHASE1)/phase1.built
@@ -294,6 +292,7 @@ repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
 parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
+TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
@@ -312,27 +311,32 @@ else
 endif
 endif
 
+tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : regression-test
-regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS)
+regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/regression.arr
 
 .PHONY : pyret-test
-pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS)
+pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
 .PHONY : type-check-test
-type-check-test: $(PYRET_TEST_PREREQ)
+type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/type-check \
     -check-all tests/type-check/main.arr
@@ -343,6 +347,11 @@ compiler-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir $(PYRET_TEST_PHASE)/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
+
+.PHONY : lib-test
+lib-test: $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
+    -check-all tests/lib-test/lib-test-main.arr
 
 .PHONY : bootstrap-test
 bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)

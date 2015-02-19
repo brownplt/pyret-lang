@@ -135,6 +135,11 @@ check "fold where: block":
   fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
   fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
   fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
+  fold(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 3, 2, 1]
+end
+
+check "foldr":
+  lists.foldr(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 1, 2, 3]
 end
 
 

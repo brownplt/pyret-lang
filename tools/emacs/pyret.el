@@ -173,7 +173,7 @@
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-hyphen-regex
-         "\\)")
+         "\\)\\_>")
        (1 font-lock-builtin-face) (2 font-lock-keyword-face))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("

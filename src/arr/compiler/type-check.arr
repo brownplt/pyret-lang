@@ -161,11 +161,11 @@ t-lte-method    = t-method-binop("_lessequal")
 t-gt-method     = t-method-binop("_greaterthan")
 t-gte-method    = t-method-binop("_greaterequal")
 
-fun <B> identity(b :: B) -> B:
+fun identity<B>(b :: B) -> B:
   b
 end
 
-fun <B,D> split(ps :: List<Pair<A,B>>) -> Pair<List<A>,List<B>>:
+fun split<X,Y>(ps :: List<Pair<X,Y>>) -> Pair<List<X>,List<Y>>:
   fun step(p, curr):
     pair(link(p.left, curr.left), link(p.right, curr.right))
   end
@@ -701,10 +701,10 @@ fun track-branches(data-type :: DataType) ->
   }
 end
 
-fun <B> handle-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
-                     maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, maybe-expect :: Option<Type>,
-                     info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
-                     has-else, no-else) -> B:
+fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>,
+                    maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, maybe-expect :: Option<Type>,
+                    info :: TCInfo, bind-direction, create-err :: (List<C.CompileError> -> B),
+                    has-else, no-else) -> B:
   for bind-direction(typ from to-type-std(ann, info)):
     cases(Option<DataType>) TCS.get-data-type(typ, info):
       | some(data-type) =>
@@ -890,8 +890,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-err([list: C.unsupported("Synthesizing type aliases is currently unsupported by the type checker", l)])
     | s-newtype(l, name, namet) =>
       synthesis-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
-    | s-graph(l, bindings) =>
-      synthesis-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
       synthesis-err([list: C.unsupported("s-contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>
@@ -920,8 +918,6 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-cases(l, typ, val, branches, none, info)
     | s-cases-else(l, typ, val, branches, _else) =>
       synthesis-cases(l, typ, val, branches, some(_else), info)
-    | s-try(l, body, id, _except) =>
-      synthesis-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,
@@ -1021,7 +1017,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
           | t-ref(typ) =>
             synthesis-result(new-get-bang, field-typ-loc, typ)
           | else =>
-            synthesis-err([list: C.incorrect-type(field-typ.tostring(), field-typ-loc, "a ref type", l)])
+            synthesis-err([list: C.incorrect-type(tostring(field-typ), field-typ-loc, "a ref type", l)])
         end
       end)
     | s-bracket(l, obj, field) =>
@@ -1228,7 +1224,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
   end
 end
 
-fun <V> check-and-log(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
+fun check-and-log<V>(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-typ :: Type, value :: V, info :: TCInfo) -> V:
   when not(satisfies-type(typ, expect-typ, info)):
     info.errors.insert(C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc))
   end
@@ -1318,8 +1314,6 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       end
     | s-newtype(l, name, namet) =>
       checking-err([list: C.unsupported("newtype is currently unsupported by the type checker", l)])
-    | s-graph(l, bindings) =>
-      checking-err([list: C.unsupported("Graph is currently unsupported by the type checker", l)])
     | s-contract(l, name, ann) =>
       checking-err([list: C.unsupported("Contract is currently unsupported by the type checker", l)])
     | s-assign(l, id, value) =>
@@ -1346,8 +1340,6 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       checking-cases(l, typ, val, branches, none, expect-loc, expect-typ, info)
     | s-cases-else(l, typ, val, branches, _else) =>
       checking-cases(l, typ, val, branches, some(_else), expect-loc, expect-typ, info)
-    | s-try(l, body, id, _except) =>
-      checking-err([list: C.unsupported("try is currently unsupported by the type checker", l)])
     | s-op(l, op, left, right) =>
       raise("s-op not yet handled")
     | s-lam(l,
@@ -1461,7 +1453,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
           | t-ref(typ) =>
             check-and-return(field-typ-loc, typ, expect-loc, expect-typ, e, info)
           | else =>
-            checking-err([list: C.incorrect-type(field-typ.tostring(), field-typ-loc, t-ref(expect-typ).tostring(), l)])
+            checking-err([list: C.incorrect-type(tostring(field-typ), field-typ-loc, tostring(t-ref(expect-typ)), l)])
         end
       end)
     | s-bracket(l, obj, field) =>

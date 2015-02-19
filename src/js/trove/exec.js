@@ -1,6 +1,6 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib", "js/runtime-util"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib, util) {
 
-  if(requirejs.isBrowser) {
+  if(util.isBrowser()) {
     var rjs = requirejs;
     var define = window.define;
   }
@@ -90,7 +90,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                             execRt.runThunk(function() {
                               if(execRt.isPyretVal(r.exn.exn)) {
                                 return execRt.string_append(
-                                  execRt.toReprJS(r.exn.exn, "tostring"),
+                                  execRt.toReprJS(r.exn.exn, "_tostring"),
                                   execRt.makeString("\n" +
                                                     execRt.printPyretStack(r.exn.pyretStack)));
                               } else {

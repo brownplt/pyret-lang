@@ -59,7 +59,7 @@
 
      @section{RawArray Functions}
 
-@collection-doc["raw-array" (list (cons "elt" "a")) (RA-of "a")]
+@collection-doc["raw-array" #:contract `(a-arrow ("elt" "a") ,(RA-of "a"))]
 
 Creates a @pyret-id{RawArray} with the given elements.  Note that
 @pyret-id{RawArray}s are mutable, so comparisons using @pyret["=="]
@@ -124,7 +124,7 @@ end
     Converts a @pyret-id{RawArray} to a @pyret-id["List" "lists"] containing
     the same elements in the same order.
 
-    Note that it doesn @emph{not} recursively convert @pyret-id{RawArray}s;
+    Note that it does @emph{not} recursively convert @pyret-id{RawArray}s;
     only the top-level is converted.
 
     @examples{

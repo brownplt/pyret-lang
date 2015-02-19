@@ -1,4 +1,4 @@
-define(["require", "q"], function(rjs, Q) {
+define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {
@@ -9,7 +9,7 @@ define(["require", "q"], function(rjs, Q) {
     };
     ourCajaVM = { compileExpr: compileExpr };
   }
-  if(requirejs.isBrowser) {
+  if(util.isBrowser()) {
     // caja.js had better be on the page already
     if(typeof caja === "undefined") {
       console.warn("Page was loaded without SES, so evals will be unguarded. Does this page load https://caja.appspot.com/caja.js?");

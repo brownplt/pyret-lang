@@ -8,15 +8,14 @@ define([
     "compiler/compile.arr",
     "compiler/repl-support.arr",
     "trove/parse-pyret",
-    "trove/checker"],
-function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib) {
-  if(requirejs.isBrowser) {
+    "trove/checker",
+    "js/runtime-util"],
+function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib, util) {
+  if(util.isBrowser()) {
     var r = requirejs;
-    var define = window.define;
   }
   else {
     var r = require("requirejs");
-    var define = r.define;
   }
   function randomName() { 
     return "anon" + Math.floor(Math.random() * 10000000);

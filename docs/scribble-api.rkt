@@ -107,8 +107,8 @@
 ;; print a warning message, optionally with name of issuing function
 (define (warning funname msg)
   (if funname
-      (eprintf "WARNING in ~a: ~s~n" funname msg)
-      (eprintf "WARNING: ~s~n" msg)))
+      (eprintf "WARNING in ~a: ~a~n" funname msg)
+      (eprintf "WARNING: ~a~n" msg)))
 
 (define (read-mod mod)
   (list (mod-name mod)
@@ -137,7 +137,7 @@
          (second mod)
          (lambda (key val)
            (unless val (warning 'report-undocumented
-                                (format "Undocumented export ~s from module ~s~n"
+                                (format "Undocumented export ~s from module ~s"
                                         key modname)))))
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
 
@@ -173,7 +173,8 @@
   (if (or (empty? indefns) (not indefns))
       #f
       (let ([d (findf (lambda (d)
-        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+                        (and (list? (spec-fields d))
+                             (equal? for-val (field-val (assoc by-field (spec-fields d)))))) indefns)])
         d)))
 
 
@@ -183,9 +184,10 @@
   (if (or (empty? indefns) (not indefns))
       #f
       (let ([d (findf (lambda (d)
-        (equal? for-val (field-val (assoc by-field (spec-fields d))))) indefns)])
+                        (and (list? (spec-fields d))
+                             (equal? for-val (field-val (assoc by-field (spec-fields d)))))) indefns)])
         (unless d
-          (warning 'find-defn (format "No definition for field ~a = ~a in module ~s ~n" by-field for-val indefns)))
+          (warning 'find-defn (format "No definition for field '~a = \"~a\" in module ~s" by-field for-val indefns)))
         d)))
 
 ;; defn-spec is '(fun-spec <assoc>)
@@ -199,6 +201,9 @@
 (define (find-doc mname fname)
   (let ([mdoc (find-module mname)])
     (find-defn 'name fname (drop mdoc 3))))
+(define (find-doc/nowarn mname fname)
+  (let ([mdoc (find-module mname)])
+    (find-defn/nowarn 'name fname (drop mdoc 3))))
 
 ;;;;;;;;;; Styles ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -423,14 +428,22 @@
                       #:alt-docstrings (alt-docstrings #f)
                       #:examples (examples '())
                       . body)
-  (let* ([methods (get-defn-field 'with-members (find-doc (curr-module-name) var-name))]
-         [spec (find-defn/nowarn 'name name methods)]
-         [methods2 (if spec methods (get-defn-field 'shared (find-doc (curr-module-name) data-name)))]
-         [spec (find-defn 'name name methods2)])
-    (render-fun-helper
-     spec name
-     (list 'part (tag-name (curr-module-name) data-name name))
-     contract return args alt-docstrings examples body)))
+  (let* ([spec (or (find-defn/nowarn 'name name
+                      (get-defn-field 'with-members (find-doc/nowarn (curr-module-name) var-name)))
+                   (find-defn/nowarn 'name name
+                      (get-defn-field 'shared (find-doc/nowarn (curr-module-name) data-name)))
+                   (find-defn/nowarn 'name name
+                      (get-defn-field 'with-members
+                         (find-defn/nowarn 'name var-name
+                            (drop (find-doc/nowarn (curr-module-name) data-name) 3)))))])
+      (unless spec
+        (warning 'method-doc
+          (format "No definition for method ~a for data ~a and variant ~a in module ~s"
+                  name data-name var-name (curr-module-name))))
+      (render-fun-helper
+        spec name
+        (list 'part (tag-name (curr-module-name) data-name name))
+        contract return args alt-docstrings examples body)))
 @(define (method-spec name
                       #:params (params #f)
                       #:contract (contract #f)
@@ -522,7 +535,7 @@
 @(define (a-record . fields)
    (append (list "{") (add-between fields ", ") (list "}")))
 @(define (a-field name type . desc)
-   (append (list name ":") (list type)))
+   (list name " :: " type))
 @(define (variants . vars)
    vars)
 @(define-syntax (shared stx)
@@ -540,7 +553,7 @@
 
 @(define (interp an-exp)
    (cond
-     [(list? an-exp)
+     [(and (cons? an-exp) (symbol? (first an-exp)))
       (let* ([f (first an-exp)]
              [args (map interp (rest an-exp))])
         (cond
@@ -554,6 +567,7 @@
           [(symbol=? f 'a-dot) (apply a-dot args)]
           [(symbol=? f 'xref) (apply xref args)]
           [#t an-exp]))]
+     [(list? an-exp) (map interp an-exp)]
      [#t an-exp]))
 
 
@@ -650,11 +664,37 @@
                                     (para (bold "Examples:"))
                                     (apply pyret-block examples)))))))))))))))
 
-@(define (collection-doc name arg-pattern return)
+@(define (collection-doc name #:contract contract)
   (define name-part (make-header-elt-for (seclink (xref (curr-module-name) name) (tt name)) name))
-  (define patterns (add-between (map (lambda (a) (list (car a) " :: " (cdr a))) arg-pattern) ","))
-  (para #:style (div-style "boxed pyret-header")
-    (tt "[" name-part ": " patterns ", ..." "] -> " return)))
+  (define (arrow-args arr) (reverse (rest (reverse (rest arr)))))
+  (define (arrow-ret arr) (last arr))
+  (define (unzip2 lst)
+    (cond
+      [(empty? lst) (values empty empty)]
+      [else (define-values (fsts snds) (unzip2 (rest lst)))
+            (values (cons (first (first lst)) fsts) (cons (second (first lst)) snds))]))
+  (cond
+    [(and (list? contract) (equal? (first contract) 'a-arrow))
+      (cond
+        [(and (list? (arrow-ret contract)) (equal? (first (arrow-ret contract)) 'a-arrow))
+          ;; curried constructor
+          (define-values (curried-argnames curried-argtypes) (unzip2 (arrow-args contract)))
+          (define curried-args (render-singleline-args curried-argnames (map interp curried-argtypes)))
+          (define-values (argnames argtypes) (unzip2 (arrow-args (arrow-ret contract))))
+          (define patterns (render-singleline-args argnames (map interp argtypes)))
+          (define return (interp (arrow-ret (arrow-ret contract))))
+          (para #:style (div-style "boxed pyret-header")
+            (tt "[" name-part "(" curried-args ")" ": " patterns ", ..." "] -> " return))]
+        [else
+          (define-values (argnames argtypes) (unzip2 (arrow-args contract)))
+          (define patterns (render-singleline-args argnames (map interp argtypes)))
+          (define return (interp (arrow-ret contract)))
+          (para #:style (div-style "boxed pyret-header")
+            (tt "[" name-part ": " patterns ", ..." "] -> " return))])]
+    [else
+      (warning 'collection-doc "Didn't provide an a-arrow as a contract!")
+      (para #:style (div-style "boxed pyret-header")
+        (tt "[" name-part ": ?] -> " (interp contract)))]))
 
 @(define (examples . body)
   (nested #:style (div-style "examples")

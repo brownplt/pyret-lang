@@ -3,10 +3,13 @@ define([], function() {
   function gensym(name) {
     return name + String(gs++);
   }
+  function isBrowser() {
+    return requirejs.isBrowser || typeof importScripts !== "undefined";
+  }
   function memoModule(name, moduleFun) {
     var modname = gensym(name);
     return function(RUNTIME, NAMESPACE) {
-      
+
       if(RUNTIME.modules[modname]) {
         return RUNTIME.modules[modname];
       }
@@ -37,6 +40,7 @@ define([], function() {
   }
   return {
       memoModule: memoModule,
-      makeModuleReturn: makeModuleReturn
+      makeModuleReturn: makeModuleReturn,
+      isBrowser: isBrowser
     };
 });

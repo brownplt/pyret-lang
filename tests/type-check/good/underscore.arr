@@ -2,7 +2,7 @@
 a :: (Number -> Number) = (_ + 2)
 a(2)
 
-fun <A,B> example(n :: A, l :: (A -> A), f :: (A -> B)):
+fun example<A,B>(n :: A, l :: (A -> A), f :: (A -> B)):
   f(l(n))
 end
 

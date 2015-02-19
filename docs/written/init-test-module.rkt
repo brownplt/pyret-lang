@@ -112,7 +112,7 @@
             #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
           ]
           @method-spec[
-            "tostring"
+            "_tostring"
             #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
           ]
           @method-spec[
@@ -191,7 +191,7 @@
             #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
           ]
           @method-spec[
-            "tostring"
+            "_tostring"
             #:contract (a-arrow (a-id "List" (xref "lists" "List")) "Any")
           ]
           @method-spec[

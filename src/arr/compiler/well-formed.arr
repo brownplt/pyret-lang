@@ -230,8 +230,6 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
-    | s-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
-    | s-m-graph(l, _) => wf-error("Cannot end a block with a graph definition", l)
     | else => nothing
   end
 end
@@ -451,18 +449,6 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "field name")
     lists.all(_.visit(self), fields)
   end,
-  s-m-graph(self, l, bindings):
-    for each(binding from bindings):
-      when A.is-s-underscore(binding.name.id):
-        add-error(C.pointless-graph-id(binding.l))
-      end
-    end
-    lists.all(_.visit(self), bindings)
-  end,
-  s-graph(self, l, bindings):
-    add-error(C.wf-error("graph expressions are not yet supported", l))
-    false
-  end,
   s-check(self, l, name, body, keyword-check):
     wrap-visit-check(self, some(body))
   end,
@@ -632,9 +618,6 @@ top-level-visitor = A.default-iter-visitor.{
   s-ref(_, l :: Loc, ann :: A.Ann):
     well-formed-visitor.s-ref(l, ann)
   end,
-  s-graph(_, l :: Loc, bindings :: List<A.Expr%(is-s-let)>): # PROBLEM HERE
-    well-formed-visitor.s-graph(l, bindings)
-  end,
   s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr):
     well-formed-visitor.s-when(l, test, block)
   end,
@@ -673,9 +656,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else)
-  end,
-  s-try(_, l :: Loc, body :: A.Expr, id :: A.Bind, _except :: A.Expr):
-    well-formed-visitor.s-try(l, body, id, _except)
   end,
   s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op, left, right)

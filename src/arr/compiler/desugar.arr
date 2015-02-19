@@ -23,7 +23,7 @@ mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 fun g(id): A.s-global(id);
 fun gid(l, id): A.s-id(l, g(id));
 
-fun <T> check-bool(l, e, cont :: (A.Expr -> T)) -> T:
+fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
 end
 
@@ -293,75 +293,13 @@ where:
 
 end
 
-fun<T> desugar-opt(f :: (T -> T), opt :: Option<T>):
+fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):
   cases(Option) opt:
     | none => none
     | some(e) => some(f(e))
   end
 end
 
-fun desugar-mutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
-  temp-names = for map(b from binds):
-    mk-id(l, b.b.id.toname())
-  end
-  b-ids = for map(b from binds):
-    A.s-id(b.l, b.b.id)
-  end
-  ref-let-binds = for map(b from binds):
-    A.s-let-bind(b.l, b.b, A.s-ref(b.l, none))
-  end
-  temp-let-binds = for map2(b from binds, n from temp-names):
-    A.s-let-bind(b.l, n.id-b, b.value)
-  end
-  finish-graph = for map(b from b-ids):
-    shadow l = b.l
-    A.s-prim-app(l, "refEndGraph", [list: b])
-  end
-  set-refs = for map2(b from b-ids, n from temp-names):
-    shadow l = b.l
-    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: b, n.id-e])
-  end
-  A.s-let-expr(l,
-    ref-let-binds +
-    temp-let-binds,
-    A.s-block(l, finish-graph + set-refs + [list: body])
-  )
-end
-
-
-fun desugar-immutable-graph(l, binds :: List<A.LetBind>, body :: A.Expr) -> A.Expr:
-  replacements = SD.make-mutable-string-dict()
-  new-names = for map(b from binds):
-    name = mk-id(l, b.b.id.toname())
-    replacements.set(b.b.id.key(), name.id)
-    name
-  end
-  renamer = U.make-renamer(replacements)
-  ref-let-binds = for map2(b from binds, n from new-names):
-    A.s-let-bind(b.l, n.id-b, A.s-ref(b.l, none))
-  end
-  original-let-binds = for map2(b from binds, n from new-names):
-    A.s-let-bind(b.l, b.b, b.value.visit(renamer))
-  end
-  finish-graph = for map2(b from binds, n from new-names):
-    shadow l = b.l
-    A.s-prim-app(l, "refEndGraph", [list: n.id-e])
-  end
-  set-refs = for map2(b from binds, n from new-names):
-    shadow l = b.l
-    A.s-app(l, A.s-id(l, A.s-global("ref-set")), [list: n.id-e, A.s-id(l, b.b.id)])
-  end
-  freeze-refs = for map2(b from binds, n from new-names):
-    shadow l = b.l
-    A.s-prim-app(l, "freezeRef", [list: n.id-e])
-  end
-
-  A.s-let-expr(l,
-    ref-let-binds +
-    original-let-binds,
-    A.s-block(l, finish-graph + set-refs + freeze-refs + [list: body])
-  )
-end
 
 fun desugar-bind(b :: A.Bind):
   cases(A.Bind) b:
@@ -424,10 +362,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-let-expr(l, new-binds, desugar-expr(body))
     | s-letrec(l, binds, body) =>
       A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
-    | s-graph-expr(l, binds, body) =>
-      desugar-immutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
-    | s-m-graph-expr(l, binds, body) =>
-      desugar-mutable-graph(l, desugar-let-binds(binds), desugar-expr(body))
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         cases(A.Variant) v:
@@ -620,7 +554,7 @@ where:
 
   # prog5 = p("cases(List) l: | empty => 5 + 4 | link(f, r) => 10 end")
   # dsed5 = ds(prog5)
-  # cases-name = dsed5.stmts.first.binds.first.b.id.tostring()
+  # cases-name = tostring(dsed5.stmts.first.binds.first.b.id)
   # compare = (cases-name + " = l " +
   #   cases-name + "._match({empty: lam(): 5._plus(4) end, link: lam(f, r): 10 end},
   #   lam(): raise('no cases matched') end)")

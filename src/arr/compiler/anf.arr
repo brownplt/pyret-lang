@@ -284,9 +284,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-cases-else(l, typ, val, branches, _else) =>
       anf-name(val, "cases_val",
         lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
-    | s-try(l, body, id, _except) =>
-      N.a-try(l, anf-term(body), id, anf-term(_except))
-
     | s-block(l, stmts) => anf-block(stmts, k)
     | s-user-block(l, body) => anf(body, k)
 
