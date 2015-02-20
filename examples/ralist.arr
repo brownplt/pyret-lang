@@ -33,7 +33,7 @@ data RandomAccessList:
   | ra-empty with:
       join-str(self, str): "" end
   | ra-link(size :: Number, tree :: NodeTree, next :: RandomAccessList) with:
-      join-str(self, str): rjoinr(fun(l, r): l + str + r end, self) end,
+      join-str(self, str): rjoinr(lam(l, r): l + str + r end, self) end,
 sharing:
   first(self): rfirst(self) end,
   rest(self): rrest(self) end,
@@ -45,7 +45,7 @@ sharing:
   partition(self, f): rpartition(f, self) end,
   foldr(self, f): rfoldr(f, self) end,
   foldl(self, f): rfoldl(f, self) end,
-  member(self, elt): rany(fun(e): e == elt end, self) end,
+  member(self, elt): rany(lam(e): e == elt end, self) end,
   append(self, other): rappend(self, other) end,
   last(self): rlast(self) end,
   take(self, n): rtake(self, n) end,
@@ -54,7 +54,7 @@ sharing:
   get(self, n): rget(self, n) end,
   set(self, n, e): rset(self, n, e) end,
   sort-by(self, cmp, eq): rsort(self, cmp, eq) end,
-  sort(self): rsort(self, fun(l, r): l < r end, fun(l, r): l == r end) end,
+  sort(self): rsort(self, lam(l, r): l < r end, lam(l, r): l == r end) end,
 
   to-list(self): rlist-to-list(self) end,
   tostring(self): tostring(rlist-to-list(self)) end,
@@ -227,7 +227,7 @@ fun rmap(f, rlist :: RandomAccessList) -> RandomAccessList:
     | ra-link(size, tree, next) => ra-link(size, nt-map(tree), rmap(f, next))
   end
 where:
-  rmap-inc = fun(rl): rmap(fun(n): n + 1 end, rl) end
+  rmap-inc = lam(rl): rmap(lam(n): n + 1 end, rl) end
   
   rmap-inc(ra-empty) is ra-empty
   rmap-inc(rlink(1, ra-empty)) is rlink(2, ra-empty)
@@ -255,7 +255,7 @@ fun reach(f, rlist :: RandomAccessList):
   end
 where:
   var x = 0
-  reach-inc-x = fun(rl): reach(fun(dummy): x := x + 1 end, rl) end
+  reach-inc-x = lam(rl): reach(lam(dummy): x := x + 1 end, rl) end
   
   reach-inc-x(ra-empty)
   x is 0
@@ -280,7 +280,7 @@ fun rfoldl(f, base, rlist :: RandomAccessList):
     | ra-link(_, tree, next) => rfoldl(f, nt-fold(base, tree), next)
   end
 where:
-  rfold-sum = fun(rl): rfoldl(fun(n, m): n + m end, 0, rl) end
+  rfold-sum = lam(rl): rfoldl(lam(n, m): n + m end, 0, rl) end
   
   rfold-sum(ra-empty) is 0
   rfold-sum(rlink(1, ra-empty)) is 1
@@ -301,7 +301,7 @@ fun rfoldr(f, base, rlist :: RandomAccessList):
     | ra-link(_, tree, next) => nt-fold(rfoldr(f, base, next), tree)
   end
 where:
-  rfold-sum = fun(rl): rfoldr(fun(n, m): n + m end, 0, rl) end
+  rfold-sum = lam(rl): rfoldr(lam(n, m): n + m end, 0, rl) end
   
   rfold-sum(ra-empty) is 0
   rfold-sum(rlink(1, ra-empty)) is 1
@@ -327,7 +327,7 @@ fun rfilter(f, rlist :: RandomAccessList) -> RandomAccessList:
       end
   end
 where:
-  rfilter-even = fun(rl): rfilter(fun(n): (num-modulo(n, 2)) == 0 end, rl) end
+  rfilter-even = lam(rl): rfilter(lam(n): (num-modulo(n, 2)) == 0 end, rl) end
 
   rfilter-even(ra-empty) is ra-empty
   rfilter-even(rlink(1, ra-empty)) is ra-empty
@@ -336,7 +336,7 @@ where:
     is rlink(2, rlink(4, ra-empty))
 end
 
-fun rany(f, rlist :: RandomAccessList) -> Bool:
+fun rany(f, rlist :: RandomAccessList) -> Boolean:
   doc: "Returns true if the predicate f is true for any element in the list"
   fun nt-any(nt):
     cases(NodeTree) nt:
@@ -349,7 +349,7 @@ fun rany(f, rlist :: RandomAccessList) -> Bool:
     | ra-link(_, tree, next) => nt-any(tree) or rany(f, next)
   end
 where:
-  rany-even = fun(rl): rany(fun(n): (num-modulo(n, 2)) == 0 end, rl) end
+  rany-even = lam(rl): rany(lam(n): (num-modulo(n, 2)) == 0 end, rl) end
 
   rany-even(ra-empty) is false
   rany-even(rlink(1, ra-empty)) is false
@@ -357,7 +357,7 @@ where:
   rany-even(rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))) is true
 end
 
-fun rall(f, rlist :: RandomAccessList) -> Bool:
+fun rall(f, rlist :: RandomAccessList) -> Boolean:
   doc: "Returns true if the predicate f is true for all elements in the list"
   fun nt-all(nt):
     cases(NodeTree) nt:
@@ -370,7 +370,7 @@ fun rall(f, rlist :: RandomAccessList) -> Bool:
     | ra-link(_, tree, next) => nt-all(tree) and rall(f, next)
   end
 where:
-  rall-even = fun(rl): rall(fun(n): (num-modulo(n, 2)) == 0 end, rl) end
+  rall-even = lam(rl): rall(lam(n): (num-modulo(n, 2)) == 0 end, rl) end
 
   rall-even(ra-empty) is true
   rall-even(rlink(1, ra-empty)) is false
@@ -403,7 +403,7 @@ fun rfind(f, rlist :: RandomAccessList) -> Option:
       end
   end
 where:
-  rfind-even = fun(rl): rfind(fun(n): (num-modulo(n, 2)) == 0 end, rl) end
+  rfind-even = lam(rl): rfind(lam(n): (num-modulo(n, 2)) == 0 end, rl) end
 
   rfind-even(ra-empty) is none
   rfind-even(rlink(1, ra-empty)) is none
@@ -430,7 +430,7 @@ fun rpartition(f, rlist :: RandomAccessList):
       end
   end
 where:
-  rpartition-even = fun(rl): rpartition(fun(n): (num-modulo(n, 2)) == 0 end, rl) end
+  rpartition-even = lam(rl): rpartition(lam(n): (num-modulo(n, 2)) == 0 end, rl) end
 
   rpartition-even(ra-empty) is { is-true: ra-empty, is-false: ra-empty }
   rpartition-even(rlink(1, ra-empty)) is { is-true: ra-empty, is-false: rlink(1, ra-empty) }
@@ -477,7 +477,7 @@ end
 
 fun rreverse(rlist :: RandomAccessList) -> RandomAccessList:
   doc: "Reverse a random access list"
-  rfoldl(fun(rl, v): rlink(v, rl) end, ra-empty, rlist)
+  rfoldl(lam(rl, v): rlink(v, rl) end, ra-empty, rlist)
 where:
   rreverse(ra-empty) is ra-empty
   rreverse(rlink(1, ra-empty)) is rlink(1, ra-empty)
@@ -534,7 +534,7 @@ fun rjoinl(joiner, rlist :: RandomAccessList):
       rfoldl(joiner, rfirst(rlist), rrest(rlist))
   end
 where:
-  join-sum = fun(rl): rjoinl(fun(l, r): l + r end, rl) end
+  join-sum = lam(rl): rjoinl(lam(l, r): l + r end, rl) end
 
 #  join-sum(ra-empty) raises "join"
   join-sum(rlink(1, ra-empty)) is 1
@@ -552,7 +552,7 @@ fun rjoinr(joiner, rlist :: RandomAccessList):
       if is-ra-empty(rst): fst else: joiner(fst, rjoinr(joiner, rst)) end
   end
 where:
-  join-sum = fun(rl): rjoinr(fun(l, r): l + r end, rl) end
+  join-sum = lam(rl): rjoinr(lam(l, r): l + r end, rl) end
 
 #  join-sum(ra-empty) raises "join"
   join-sum(rlink(1, ra-empty)) is 1
@@ -578,18 +578,18 @@ fun rsort(rlist :: RandomAccessList, cmp, eq) -> RandomAccessList:
       rsort(part-result.l, cmp, eq) + part-result.e + rsort(part-result.g, cmp, eq)
   end
 where:
-  cmp = fun(l, r): l < r end
-  eq = fun(l, r): l == r end
-  sort = fun(rl): rsort(rl, cmp, eq) end
+  cmp = lam(l, r): l < r end
+  eq = lam(l, r): l == r end
+  sort = lam(rl): rsort(rl, cmp, eq) end
 
   sort(ra-empty) is ra-empty
   sort(rlink(3, rlink(1, rlink(2, ra-empty)))) is rlink(1, rlink(2, rlink(3, ra-empty)))
   sort(rlink(1, rlink(-7, rlink(-5, rlink(10, rlink(1, rlink(0, rlink(4, ra-empty))))))))
     is rlink(-7, rlink(-5, rlink(0, rlink(1, rlink(1, rlink(4, rlink(10, ra-empty)))))))
   
-  wrapper = fun(n): { v:n,
+  wrapper = lam(n): { v:n,
                       _lessthan(self, other): self.v < other.v end,
-                      _equals(self, other): self.v == other.v end } end
+                      _equals(self, other, shadow eq): eq(self.v, other.v) end } end
   wrap-list = rmap(wrapper, rlink(5, rlink(2, rlink(4, rlink(8, ra-empty)))))
   for rmap(el from sort(wrap-list)): el.v end
     is rlink(2, rlink(4, rlink(5, rlink(8, ra-empty))))
@@ -599,20 +599,20 @@ fun rlist-to-list(rlist :: RandomAccessList) -> List:
   doc: "Convert a random access list to a normal list"
   rfoldr(link, empty, rlist)
 where:
-  rlist-to-list(ra-empty) is []
-  rlist-to-list(rlink(1, ra-empty)) is [1]
-  rlist-to-list(rlink(1, rlink(2, ra-empty))) is [1, 2]
-  rlist-to-list(rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))) is [1, 2, 3, 4]
+  rlist-to-list(ra-empty) is [list: ]
+  rlist-to-list(rlink(1, ra-empty)) is [list: 1]
+  rlist-to-list(rlink(1, rlink(2, ra-empty))) is [list: 1, 2]
+  rlist-to-list(rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))) is [list: 1, 2, 3, 4]
 end
 
 fun list-to-rlist(lst :: List) -> RandomAccessList:
   doc: "Convert a list to a random access list"
   lst.foldr(rlink, ra-empty)
 where:
-  list-to-rlist([]) is ra-empty
-  list-to-rlist([1]) is rlink(1, ra-empty)
-  list-to-rlist([1, 2]) is rlink(1, rlink(2, ra-empty))
-  list-to-rlist([1, 2, 3, 4]) is rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))
+  list-to-rlist([list: ]) is ra-empty
+  list-to-rlist([list: 1]) is rlink(1, ra-empty)
+  list-to-rlist([list: 1, 2]) is rlink(1, rlink(2, ra-empty))
+  list-to-rlist([list: 1, 2, 3, 4]) is rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))
 end
 
 check:

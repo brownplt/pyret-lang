@@ -1,9 +1,9 @@
 provide *
 provide-types *
 
-fun <T> identity(t :: T) -> T: t end
+fun identity<T>(t :: T) -> T: t end
 
-fun <A, B> all2-strict(f :: (A, B -> Boolean), l1 :: List<A>, l2 :: List<B>) -> Boolean:
+fun all2-strict<A, B>(f :: (A, B -> Boolean), l1 :: List<A>, l2 :: List<B>) -> Boolean:
   doc: ```
         all2 returns false if any application of f returns false, or if the lengths differ.
         his behavior is choosen to maintain the short-circuiting semantics. If one wants to
@@ -33,7 +33,7 @@ where:
   all2-strict(lam(_, _): false end, empty, empty) is true
 end
 
-fun <A, B, R> map2-strict(f :: (A, B -> R), l1 :: List<A>, l2 :: List<B>) -> Option<List<R>>:
+fun map2-strict<A, B, R>(f :: (A, B -> R), l1 :: List<A>, l2 :: List<B>) -> Option<List<R>>:
   cases (List<A>) l1:
     | empty       => cases (List<B>) l2:
         | empty       => some(empty)
@@ -53,7 +53,7 @@ where:
   map2-strict(lam(x, y): x or y;, [list: true, false], [list: false, false]) is some([list: true, false])
 end
 
-fun <A, B, R> fold2-strict(f :: (R, A, B -> R), base :: R, l1 :: List<A>, l2 :: List<B>) -> Option<R>:
+fun fold2-strict<A, B, R>(f :: (R, A, B -> R), base :: R, l1 :: List<A>, l2 :: List<B>) -> Option<R>:
   cases (List<A>) l1:
     | empty       => cases (List<B>) l2:
         | empty       => some(base)

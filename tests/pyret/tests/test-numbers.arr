@@ -138,6 +138,19 @@ check:
   randoms violates lists.all(lam(v): v == randoms.first end, _)
 end
 
+check "random seed":
+  num-random-seed(0)
+  s = num-random(10000)
+
+  num-random-seed(1)
+  s2 = num-random(10000)
+
+  num-random-seed(0)
+  num-random(10000) is s
+  num-random-seed(1)
+  num-random(10000) is s2
+end
+
 check:
   num-to-string-digits(5432.1234, 2) is "5432.12"
   num-to-string-digits(0.123456789, 2) is "0.12"

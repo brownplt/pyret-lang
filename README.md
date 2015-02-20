@@ -5,27 +5,35 @@
 
 A scripting language.
 
-To program in Pyret, visit [code.pyret.org](https://code.pyret.org).
-
 To learn about the language, visit [pyret.org](http://pyret.org).
 
+To read an introduction of the language, visit [the tour](http://www.pyret.org/docs/latest/A_Tour_of_Pyret.html).
+
 To read the documentation, visit [pyret.org/docs/](http://pyret.org/docs/).
+
+There are two main ways to use Pyret:
+
+1.  If all you want to do is program in Pyret, there is a web-based environment
+at [code.pyret.org](https://code.pyret.org) that lets you run and save programs
+that should be all you need.  If you're a student using Pyret, this is probably
+where you will do your assignments, for example.
+
+2.  If you want to develop Pyret, or install it for use at the command line,
+the README starting below is for you.
 
 The use of vocabulary from
 http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
 commenting and reporting issues.
 
-All Aboard
+
+Installing
 ----------
 
-First, make sure ye've installed [Node >= 0.10](http://nodejs.org).  Then run:
+First, make sure you've installed [Node >= 0.10](http://nodejs.org).  Then run:
 
     $ make install && make && make test
 
-It'll build the Pyret compiler, run the tests, and hoist the anchor.
-
-When yer ready to brave the sea, visit [the tour](http://pyret.org/tour/).
-
+It'll build the Pyret compiler and run the tests.
 
 Running Pyret
 -------------
@@ -39,12 +47,6 @@ The easiest way to *run* a Pyret program from the command-line is:
     $ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
 
 Where X is a number from 0-3, indicating a phase (described below).
-
-You can also see a simple REPL by opening the file
-
-    ./src/web/repl.html
-
-in a browser; this only depends on `make phase1`.
 
 Phases
 ------

@@ -59,7 +59,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("anonymous bindings", function(done) {
         P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
         P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
-        P.checkCompileErrorMsg("graph: _ = BOS\nBOS = 5\nend", "graph expressions");
         P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
         P.wait(done);
       });
@@ -142,34 +141,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "  42\n" +
                                "end",
                                "top level");
-        P.checkCompileErrorMsg("lam():\n" + 
-                               "  y = 10\n" + 
-                               "  x = 5\n" + 
-                               "  fun f(): nothing end\n" + 
-                               "  graph:\n" + 
-                               "  z = 5\n" + 
-                               "  end\n" + 
-                               "end",
-                               "Cannot end a block");
-        P.checkCompileErrorMsg("lam():\n" + 
-                               "  y = 10\n" + 
-                               "  x = 5\n" + 
-                               "  fun f(): nothing end\n" + 
-                               "  ref-graph:\n" + 
-                               "  z = 5\n" + 
-                               "  end\n" + 
-                               "end",
-                               "end a block with a graph");
         P.checkCompileErrorMsg("block:\n" + 
                                "  x = 5\n" + 
                                "  y = 10\n" + 
                                "end",
                                "Cannot end a block in a let-binding");
-        P.checkCompileErrorMsg("block:\n" + 
-                               "  x = 5\n" + 
-                               "  graph: y = 10 end\n" + 
-                               "end",
-                               "Cannot end a block");
         P.checkCompileErrorMsg("if x < y:\n" + 
                                "  print('x less than y')\n" + 
                                "end",
@@ -345,19 +321,18 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("underscores", function(done) {
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Cannot use underscore");
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Cannot use underscore");
-        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Underscore used as");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Underscore used as");
+        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "Underscore used as");
         P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
-        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "Cannot use underscore");
-        P.checkCompileErrorMsg("{ foo(self): _ end }", "Cannot use underscore");
-        P.checkCompileErrorMsg("{ fieldname: _ }", "Cannot use underscore");
-        P.checkCompileErrorMsg("{ ref fieldname: _ }", "Cannot use underscore");
-        P.checkCompileErrorMsg("method(self): _ end", "Cannot use underscore");
-        P.checkCompileErrorMsg("lam(self): _ end", "Cannot use underscore");
-        P.checkCompileErrorMsg("fun foo(self): _ end", "Cannot use underscore");
-        P.checkCompileErrorMsg("check: _ end", "Cannot use underscore");
-        P.checkCompileErrorMsg("provide _ end", "Cannot use underscore");
+        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "Underscore used as");
+        P.checkCompileErrorMsg("{ foo(self): _ end }", "Underscore used as");
+        P.checkCompileErrorMsg("{ fieldname: _ }", "Underscore used as");
+        P.checkCompileErrorMsg("method(self): _ end", "Underscore used as");
+        P.checkCompileErrorMsg("lam(self): _ end", "Underscore used as");
+        P.checkCompileErrorMsg("fun foo(self): _ end", "Underscore used as");
+        P.checkCompileErrorMsg("check: _ end", "Underscore used as");
+        P.checkCompileErrorMsg("provide _ end", "Underscore used as");
         P.wait(done);
       });
     });

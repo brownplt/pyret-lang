@@ -285,12 +285,16 @@ define([
           }
           // if it's something more sophisticated, render both images to canvases
           // First check canvas dimensions, then go pixel-by-pixel
-          var c1 = this.toDomNode(), c2 = other.toDomNode();
-          if(c1.width !== c2.width || c1.height !== c2.height){ return false;}
+          var node1 = this.toDomNode(), node2 = other.toDomNode();
+          if(node1.width !== node2.width || node1.height !== node2.height){ return false;}
+          var c1 = makeCanvas(node1.width, node1.height);
+          var c2 = makeCanvas(node2.width, node2.height);
+          var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
+          this.render(ctx1, 0, 0);
+          other.render(ctx2, 0, 0);
           try{
-            var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d'),
-            data1 = ctx1.getImageData(0, 0, c1.width, c1.height),
-            data2 = ctx2.getImageData(0, 0, c2.width, c2.height);
+            var data1 = ctx1.getImageData(0, 0, node1.width, node1.height),
+            data2 = ctx2.getImageData(0, 0, node2.width, node2.height);
             var pixels1 = data1.data,
             pixels2 = data2.data;
             for(var i = 0; i < pixels1.length; i++){
@@ -345,7 +349,6 @@ define([
           ctx.beginPath();
           ctx.rect(x, y, this.width, this.height);
           ctx.clip();
-          ctx.clearRect(x, y, this.width, this.height);
           // Ask every object to render itself inside the region
           for(i = 0; i < this.children.length; i++) {
             // then, render the child images

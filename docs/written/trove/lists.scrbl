@@ -32,7 +32,7 @@
 
 @section{The @pyret{list} Constructor}
 
-@collection-doc["list" (list (cons "elt" "a")) (L-of "a")]
+@collection-doc["list" #:contract `(a-arrow ("elt" "a") ,(L-of "a"))]
 
 Constructs a list out of the @pyret{elt}s by chaining @pyret-id{link}s,
 ending in a single @pyret-id{empty}.
@@ -348,7 +348,6 @@ end
     "map"
     #:examples
     '@{
-      map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
       map(lam(_): 2 end, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
       map(lam(x): x + 1 end, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
     }
@@ -357,10 +356,6 @@ end
     "map2"
     #:examples
     '@{
-      map2(lam(_, _): raise("shipwrecked!") end,
-        [list: ],
-        [list: ]) is
-        [list: ]
       map2(lam(x, y): x or y end, [list: true, false], [list: false, false]) is
         [list: true, false]
     }
@@ -427,6 +422,7 @@ end
       fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
       fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
       fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+      fold(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 3, 2, 1]
     end
     }
     #:alt-docstrings '()
@@ -442,6 +438,17 @@ end
     application is the result of the last application of @pyret{f}. If the list is empty,
     base is returned.
   }
+  @function["foldl"]
+  Another name for @pyret-id["fold"].
+  @function["foldr"]
+  Like @pyret-id["foldl"], but right-associative:
+@examples{
+check:
+  foldr(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
+  foldr(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 1, 2, 3]
+end
+}
+
   @function["fold2"]
   @function["fold3"]
   @function["fold4"]
@@ -490,4 +497,26 @@ end
   @function[
     "member-with"
   ]
+  @function[
+    "reverse"
+  ]
+
+
+  @function[
+    "shuffle"
+  ]
+
+  Returns a new list with all the elements of the original list in random
+  order.
+
+@examples{
+check "shuffle":
+  l = [list: 1, 2, 3, 4]                                                                         
+  l-mixed = lists.shuffle(l)
+  sets.list-to-set(l-mixed) is sets.list-to-set(l)                                               
+  l-mixed.length() is l.length()  
+end
 }
+
+}
+

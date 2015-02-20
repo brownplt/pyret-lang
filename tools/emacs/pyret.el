@@ -41,6 +41,9 @@
     (define-key map (kbd "=") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "<") 'pyret-indent-initial-punctuation)
     (define-key map (kbd ">") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "s") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "e") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "n") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "`")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -75,7 +78,8 @@
                   (or N (setq N 1))
                   (self-insert-command N)
                   (ignore-errors
-                    (when (save-excursion (forward-char -6) (pyret-EXCEPT))
+                    (when (or (save-excursion (forward-char -6) (pyret-EXCEPT))
+                              (save-excursion (forward-char -6) (pyret-IS-NOT)))
                       (pyret-smart-tab))))))
     (define-key map (kbd ":")
       (function (lambda (&optional N)
@@ -100,15 +104,16 @@
 (defconst pyret-keywords
    '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec"
-     "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
+     "and" "or" "is==" "is=~" "is<=>" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
-  '("provide-types" "type-let" "is-not" "raises-other-than"
+  '("provide-types" "type-let" 
+    "is-not==" "is-not=~" "is-not<=>" "is-not" "raises-other-than"
     "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
 (defconst pyret-keywords-percent
-   '("is"))
+   '("is" "is-not"))
 (defconst pyret-paragraph-starters
   '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
 
@@ -116,7 +121,11 @@
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
-  (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" "is" "satisfies" "raises")) "\\_>"))
+  (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" 
+                                      "is" "is%" "is==" "is=~" "is<=>" 
+                                      "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>"
+                                      "satisfies" "violates" "raises" "raises-other-than"
+                                      "does-not-raise" "raises-satisfies" "raises-violates")) "\\_>"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 
 
@@ -164,7 +173,7 @@
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-hyphen-regex
-         "\\)")
+         "\\)\\_>")
        (1 font-lock-builtin-face) (2 font-lock-keyword-face))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
@@ -219,6 +228,7 @@
         (1 font-lock-builtin-face) (2 font-lock-type-face))
       `(,(regexp-opt '("<" ">")) . font-lock-builtin-face)
       `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\((\\)")  (1 font-lock-function-name-face))
+      `(,(concat "\\(" pyret-ident-regex "\\)[ \t]*\\(<.*?>\\)\\((\\)")  (1 font-lock-function-name-face))
       `(,pyret-ident-regex . font-lock-variable-name-face)
       '("-" . font-lock-builtin-face)
       ))
@@ -298,7 +308,7 @@
 (defsubst pyret-LAM () (pyret-keyword "lam"))
 (defsubst pyret-METHOD () (pyret-keyword "method"))
 (defsubst pyret-VAR () (pyret-keyword "var"))
-(defsubst pyret-VAR () (pyret-keyword "rec"))
+(defsubst pyret-REC () (pyret-keyword "rec"))
 (defsubst pyret-LET () (pyret-keyword "let"))
 (defsubst pyret-LETREC () (pyret-keyword "letrec"))
 (defsubst pyret-CASES () (pyret-keyword "cases"))
@@ -306,6 +316,15 @@
 (defsubst pyret-ASKCOLON () (pyret-keyword "ask:"))
 (defsubst pyret-THEN () () (pyret-keyword "then:"))
 (defsubst pyret-IF () (pyret-keyword "if"))
+(defsubst pyret-IS () (pyret-keyword "is"))
+(defsubst pyret-IS-NOT () (pyret-keyword "is-not"))
+(defsubst pyret-SATISFIES () (pyret-keyword "satisfies"))
+(defsubst pyret-VIOLATES () (pyret-keyword "violates"))
+(defsubst pyret-RAISES () (pyret-keyword "raises"))
+(defsubst pyret-RAISES-OTHER-THAN () (pyret-keyword "raises-other-than"))
+(defsubst pyret-DOES-NOT-RAISE () (pyret-keyword "does-not-raise"))
+(defsubst pyret-RAISES-SATISFIES () (pyret-keyword "raises-satisfies"))
+(defsubst pyret-RAISES-VIOLATES () (pyret-keyword "raises-VIOLATES"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))
 (defsubst pyret-OTHERWISE () (pyret-keyword "otherwise:"))

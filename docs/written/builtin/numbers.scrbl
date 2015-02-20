@@ -109,11 +109,6 @@
     (args ("base" "exponent"))
     (doc ""))
   (fun-spec
-    (name "num-exact")
-    (arity 1)
-    (args ("n"))
-    (doc ""))
-  (fun-spec
     (name "num-to-rational")
     (arity 1)
     (args ("n"))
@@ -158,13 +153,9 @@
     (arity 1)
     (args ("n"))
     (doc ""))
+  
   (fun-spec
-    (name "num-is-fixnum")
-    (arity 1)
-    (args ("n"))
-    (doc ""))
-  (fun-spec
-    (name "num-tostring")
+    (name "num-to-string")
     (arity 1)
     (args ("n"))
     (doc ""))
@@ -198,7 +189,27 @@
     (arity 1)
     (args ("tol"))
     (doc ""))
-))
+  (fun-spec
+    (name "num-random")
+    (arity 1)
+    (args ("max"))
+    (doc ""))
+  (fun-spec
+    (name "num-random-seed")
+    (arity 1)
+    (args ("seed"))
+    (doc ""))
+  (fun-spec
+    (name "num-is-fixnum")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-exact")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+    ))
 
 @docmodule["numbers" #:noimport #t #:friendly-title "Numbers"]{
    @type-spec["Number" (list)]
@@ -277,6 +288,10 @@ check:
 end
 }
 
+Throws an exception on non-numeric
+arguments, which can be a useful alternative to @pyret-id["equal-always"
+"equality"] in situations where the program shouldn't compare non-numbers.
+
   }
   @function["num-max" #:contract (a-arrow N N N) #:return N]{
 Returns the larger of the two arguments.
@@ -287,6 +302,7 @@ check:
   num-max(2, ~3) is ~3
   num-max(4, ~4) is ~4
   num-max(~4, 4) is 4
+  num-max(-1.1, 0) is 0
 end
 }
 
@@ -300,6 +316,7 @@ check:
   num-min(2, ~3) is 2
   num-min(4, ~4) is ~4
   num-min(~4, 4) is 4
+  num-min(-1.1, 0) is -1.1
 end
 }
 
@@ -319,7 +336,7 @@ end
   }
   @function["num-sin" #:contract (a-arrow N N) #:return N]{
 
-Returns the sine of the argument  as a roughnum. If the argument is exact 0, the result is exact 0 too.
+Returns the sine of the argument, usually as a roughnum. If the argument is exact 0, the result is exact 0 too.
 
 @examples{
 check:
@@ -330,7 +347,7 @@ end
   }
   @function["num-cos" #:contract (a-arrow N N) #:return N]{
 
-Returns the cosine of the argument  as a roughnum. If
+Returns the cosine of the argument, usually  as a roughnum. If
 the argument is exact 0, the result is exact 1.
 
 @examples{
@@ -341,7 +358,7 @@ end
 }
   }
   @function["num-tan" #:contract (a-arrow N N) #:return N]{
-Returns the tangent of the argument as a roughnum. However, if
+Returns the tangent of the argument, usually as a roughnum. However, if
 the argument is exact 0, the result is exact 1.
 
 @examples{
@@ -353,7 +370,7 @@ end
 
   }
   @function["num-asin" #:contract (a-arrow N N) #:return N]{
-Returns the arc sine of the argument as a roughnum. However, if
+Returns the arc sine of the argument, usually as a roughnum. However, if
 the argument is exact 0, the result is exact 0.
 
 @examples{
@@ -366,7 +383,7 @@ end
   }
   @function["num-acos" #:contract (a-arrow N N)]{
 
-Returns the arc cosine of the argument as a roughnum. However, if
+Returns the arc cosine of the argument, usually as a roughnum. However, if
 the argumet is exact 1, the result is exact 0.
 
 @examples{
@@ -378,7 +395,7 @@ end
   }
   @function["num-atan" #:contract (a-arrow N N) #:return N]{
 
-Returns the arc tangent of the argument as a roughnum. However, if
+Returns the arc tangent of the argument, usually as a roughnum. However, if
 the argumet is exact 0, the result is exact 0.
 
 @examples{
@@ -397,13 +414,29 @@ check:
   num-modulo(5, 2) is 1
   num-modulo(-5, 2) is 1
   num-modulo(-5, -2) is -1
+  num-modulo(7, 3) is 1
+  num-modulo(0, 5) is 0
+  num-modulo(-7, 3) is 2
+end
+}
+
+It is useful for calculating if one number is a multiple of
+another, by checking for a zero remainder.
+
+@examples{
+fun is-odd(n :: Number) -> Boolean:
+  num-modulo(n, 2) == 0
+where:
+  is-odd(6) is true
+  is-odd(3) is false
 end
 }
 
   }
   @function["num-truncate" #:contract (a-arrow N N) #:return N]{
 
-Returns the integer part of its argument.
+Returns the integer part of its argument by cutting off any
+decimal part. Does not do any rounding.
 
 @examples{
 check:
@@ -417,7 +450,7 @@ end
   }
   @function["num-sqrt" #:contract (a-arrow N N) #:return N]{
 
-Returns the square root.  If the argument is exact and perfect
+Returns the square root.  If the argument is exact and a perfect
 square, the result is exact.
 
 @examples{
@@ -439,8 +472,8 @@ Returns the square.
 check:
   num-sqr(4) is 16
   num-sqr(5) is 25
+  num-sqr(-4) is 16
   num-sqr(~4) is ~16
-  num-sqr(~5) is ~25
   num-sqr(0.04) is 1/625
 end
 }
@@ -490,7 +523,7 @@ end
   }
   @function["num-log" #:contract (a-arrow N N) #:return N]{
 
-Returns the natural logarithm of the argument, as a roughnum.
+Returns the natural logarithm (ln) of the argument, usually as a roughnum.
 However, if the argument is exact 1, the
 result is exact 0. If the argument is non-positive, an exception is
 raised.
@@ -501,13 +534,14 @@ check:
   num-log(0) raises "non-positive argument"
   num-log(-1) raises "non-positive argument"
   num-log(2.718281828) is%(within-abs(0.01)) 1
+  num-log(10) is%(within-abs(0.1)) 2.3
 end
 }
 
   }
   @function["num-exp" #:contract (a-arrow N N) #:return N]{
 
-Returns e raised to the argument, as a roughnum.  However, if the
+Returns e raised to the argument, usually as a roughnum.  However, if the
 argument is exact 0, the result is
 exact 1.
 
@@ -543,18 +577,6 @@ check:
 end
 }
 
-  }
-  @function["num-exact" #:contract (a-arrow N N) #:return N]{
-
-Given a roughnum, returns an exact number most equal to it. Given
-an exact num, returns it directly.
-
-@examples{
-check:
-  num-sqrt(2) is%(within-abs(0.000001)) ~1.4142135623730951
-  num-exact(num-sqrt(2)) is 1767766952966369/1250000000000000
-end
-}
   }
   @function["num-to-rational" #:contract (a-arrow N N) #:return N]{
 
@@ -672,36 +694,38 @@ check:
 end
 }
   }
-  @function["num-is-fixnum" #:contract (a-arrow N B) #:return B]{
-
-Returns true if the argument is represented directly as a JS
-double.
-
-@examples{
-check:
-  num-is-fixnum(10) is true
-  num-is-fixnum(~10) is false
-  num-is-fixnum(1000000000000000) is true
-  num-is-fixnum(10000000000000000) is false
-  num-is-fixnum(1.5) is false
-end
-}
-
-N.B. Pyret representes exact rationals that are non-integers as tuples, and hence
-even small rationals such as 1.5 are considered non-fixnum,
-although they could be represented as JS doubles.
-
-  }
-  @function["num-tostring" #:contract (a-arrow N S)]{
+  @function["num-to-string" #:contract (a-arrow N S) #:return S]{
 Returns a string representing a literal form of the number.
 
 @examples{
 check:
-  num-tostring(2.5) is "5/2"
-  num-tostring(2) is "2"
-  num-tostring(2/3) is "2/3"
-  num-tostring(~2.718) is "~2.718"
-  num-tostring(~6.022e23) is "~6.022e+23"
+  num-to-string(2.5) is "5/2"
+  num-to-string(2) is "2"
+  num-to-string(2/3) is "2/3"
+  num-to-string(~2.718) is "~2.718"
+  num-to-string(~6.022e23) is "~6.022e+23"
+end
+}
+  }
+  @function["num-to-string-digits" #:contract (a-arrow N N S) #:return S]{
+
+Converts the number to a string, providing @pyret{digits} precision in the
+output.  If @pyret{digits} is positive, provides that many digits to the right
+of the decimal point (including adding zeroes beyond the actual precision of
+the number).  If @pyret{digits} is negative, rounds that many positions to the
+@emph{left} of the decimal, replacing them with zeroes.
+
+Note that @pyret-id{num-to-string-digits} is only for formatting, and its
+output's apparent precision may be unrelated to the actual precision of the
+input number, which may have been an approximation, or unrepresentable in
+decimal.
+
+@examples{
+check:
+  num-to-string-digits(5432.1234, 2) is "5432.12"
+  num-to-string-digits(0.123456789, 2) is "0.12"
+  num-to-string-digits(5, 2) is "5.00"
+  num-to-string-digits(555, -2) is "500"
 end
 }
   }
@@ -846,5 +870,87 @@ check:
 end
 }
 
+  }
+
+@section{Random Numbers}
+
+  @function["num-random" #:contract (a-arrow N N) #:return N]{
+
+  Returns a pseudo-random positive integer from @pyret{0} to @pyret{max - 1}.
+
+@examples{
+check:
+  fun between(min, max):
+    lam(v): (v >= min) and (v <= max) end
+  end
+  for each(i from range(0, 100)):
+    n = num-random(i)
+    print(n)
+    n satisfies between(0, i - 1)
+  end
+end
+}
+
+  }
+  @function["num-random-seed" #:contract (a-arrow N No) #:return No]{
+
+  Sets the random seed.  Setting the seed to a particular number makes all
+  future uses of random produce the same sequence of numbers.  Useful for
+  testing and debugging functions that have random behavior.
+
+  @examples{
+check:
+  num-random-seed(0)
+  n = num-random(1000)
+  n2 = num-random(1000)
+
+  n is-not n2
+
+  num-random-seed(0)
+  n3 = num-random(1000)
+  n3 is n
+  n4 = num-random(1000)
+  n4 is n2
+end
+}
+  }
+
+@section{Other Number Functions}
+
+  A few other number functions are useful in limited cases that don't come up
+  in most programs.
+
+  @function["num-is-fixnum" #:contract (a-arrow N B) #:return B]{
+
+Returns true if the argument is represented directly as a
+primitive
+JavaScript number (i.e., JavaScript double).
+
+@examples{
+check:
+  num-is-fixnum(10) is true
+  num-is-fixnum(~10) is false
+  num-is-fixnum(1000000000000000) is true
+  num-is-fixnum(10000000000000000) is false
+  num-is-fixnum(1.5) is false
+end
+}
+
+N.B. Pyret representes exact rationals that are non-integers as tuples, and hence
+even small rationals such as 1.5 are considered non-fixnum,
+although they could be represented as JavaScript doubles.
+
+  }
+  @function["num-exact" #:contract (a-arrow N N) #:return N]{
+
+Given a roughnum, returns an exact number most equal to it. Given
+an exact num, returns it directly.
+
+@examples{
+check:
+  num-sqrt(2) is%(within-abs(0.000001)) ~1.4142135623730951
+  num-exact(num-sqrt(2)) is 1767766952966369/1250000000000000
+end
+}
   }
 }

@@ -47,8 +47,6 @@ str-for = PP.str("for ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
-str-graph = PP.str("graph:")
-str-m-graph = PP.str("ref-graph:")
 str-if = PP.str("if ")
 str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
@@ -67,7 +65,6 @@ str-spacecolonequal = PP.str(" :=")
 str-spaceequal = PP.str(" =")
 str-thencolon = PP.str("then:")
 str-thickarrow = PP.str("=>")
-str-try = PP.str("try:")
 str-use-loc = PP.str("UseLoc")
 str-var = PP.str("var ")
 str-rec = PP.str("rec ")
@@ -93,7 +90,7 @@ data Name:
     to-compiled-source(self): raise("Cannot compile underscores") end,
     to-compiled(self): raise("Cannot compile underscores") end,
     tosource(self): PP.str("_") end,
-    tostring(self, shadow tostring): "_" end,
+    _tostring(self, shadow tostring): "_" end,
     toname(self): "_" end,
     key(self): "underscore#" end
 
@@ -101,7 +98,7 @@ data Name:
     to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
     to-compiled(self): raise("Cannot compile local name " + self.s) end,
     tosource(self): PP.str(self.s) end,
-    tostring(self, shadow tostring): self.s end,
+    _tostring(self, shadow tostring): self.s end,
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
@@ -109,7 +106,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
-    tostring(self, shadow tostring): self.s end,
+    _tostring(self, shadow tostring): self.s end,
     toname(self): self.s end,
     key(self): "global#" + self.s end
 
@@ -117,7 +114,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): "$type$" + self.s end,
     tosource(self): PP.str(self.s) end,
-    tostring(self, shadow tostring): "$type$" + self.s end,
+    _tostring(self, shadow tostring): "$type$" + self.s end,
     toname(self): self.s end,
     key(self): "tglobal#" + self.s end
 
@@ -125,7 +122,7 @@ data Name:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
     tosource(self): PP.str(self.to-compiled()) end,
-    tostring(self, shadow tostring): self.to-compiled() end,
+    _tostring(self, shadow tostring): self.to-compiled() end,
     toname(self): self.base end,
     key(self): "atom#" + self.base + tostring(self.serial) end
 sharing:
@@ -472,38 +469,6 @@ data Expr:
           PP.group(PP.str("ref ") + ann.tosource())
       end
     end
-  | s-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
-    label(self): "s-graph" end,
-    tosource(self):
-      PP.surround(0, 1, # NOTE: Not indented
-        str-graph,
-        PP.flow-map(PP.hardline, _.tosource(), self.binds),
-        str-end)
-    end
-  | s-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s-graph-expr" end,
-    tosource(self):
-      header = PP.surround-separate(2 * INDENT, 1, str-graph, str-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
-          self.binds.map(_.tosource()))
-          + str-colon
-      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
-  | s-m-graph(l :: Loc, binds :: List<Expr%(is-s-let)>) with:
-    label(self): "s-ref-graph" end,
-    tosource(self):
-      PP.surround(0, 1, # NOTE: Not indented
-        str-m-graph,
-        PP.flow-map(PP.hardline, _.tosource(), self.binds),
-        str-end)
-    end
-  | s-m-graph-expr(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s-m-graph-expr" end,
-    tosource(self):
-      header = PP.surround-separate(2 * INDENT, 1, str-m-graph, str-m-graph + PP.str(" "), PP.commabreak, PP.mt-doc,
-          self.binds.map(_.tosource()))
-          + str-colon
-      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     label(self): "s-contract" end,
     tosource(self):
@@ -568,15 +533,6 @@ data Expr:
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
-    end
-  | s-try(l :: Loc, body :: Expr, id :: Bind, _except :: Expr) with:
-    label(self): "s-try" end,
-    tosource(self):
-      _try = str-try + break-one
-        + PP.nest(INDENT, self.body.tosource()) + break-one
-      _except = str-except + PP.parens(self.id.tosource()) + str-colon + break-one
-        + PP.nest(INDENT, self._except.tosource()) + break-one
-      PP.group(_try + _except + str-end)
     end
   | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
@@ -1276,8 +1232,6 @@ fun binding-ids(stmt) -> List<Name>:
     | s-var(_, b, _) => [list: b.id]
     | s-rec(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
-    | s-graph(_, bindings) => flatten(bindings.map(binding-ids))
-    | s-m-graph(_, bindings) => flatten(bindings.map(binding-ids))
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
     | else => [list: ]
@@ -1450,22 +1404,6 @@ default-map-visitor = {
     s-ref(l, self.option(ann))
   end,
 
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-graph(l, bindings.map(_.visit(self)))
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-graph-expr(l, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-m-graph(l, bindings.map(_.visit(self)))
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-m-graph-expr(l, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     s-when(l, test.visit(self), block.visit(self))
   end,
@@ -1516,10 +1454,6 @@ default-map-visitor = {
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s-try(l, body.visit(self), id.visit(self), _except.visit(self))
   end,
 
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
@@ -1933,22 +1867,6 @@ default-iter-visitor = {
     self.option(ann)
   end,
 
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    lists.all(_.visit(self), bindings)
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    lists.all(_.visit(self), bindings) and body.visit(self)
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    lists.all(_.visit(self), bindings)
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    lists.all(_.visit(self), bindings) and body.visit(self)
-  end,
-
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     test.visit(self) and block.visit(self)
   end,
@@ -1999,10 +1917,6 @@ default-iter-visitor = {
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
-  end,
-  
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    body.visit(self) and id.visit(self) and _except.visit(self)
   end,
   
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
@@ -2407,22 +2321,6 @@ dummy-loc-visitor = {
     s-ref(self, dummy-loc, self.option(ann))
   end,
 
-  s-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-graph(dummy-loc, bindings.map(_.visit(self)))
-  end,
-
-  s-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-graph-expr(dummy-loc, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
-  s-m-graph(self, l :: Loc, bindings :: List<Expr%(is-s-let)>):
-    s-m-graph(dummy-loc, bindings.map(_.visit(self)))
-  end,
-
-  s-m-graph-expr(self, l :: Loc, bindings :: List<Expr%(is-s-let)>, body):
-    s-m-graph-expr(dummy-loc, bindings.map(_.visit(self)), body.visit(self))
-  end,
-
   s-when(self, l :: Loc, test :: Expr, block :: Expr):
     s-when(dummy-loc, test.visit(self), block.visit(self))
   end,
@@ -2473,10 +2371,6 @@ dummy-loc-visitor = {
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s-try(self, l :: Loc, body :: Expr, id :: Bind, _except :: Expr):
-    s-try(dummy-loc, body.visit(self), id.visit(self), _except.visit(self))
   end,
 
   s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):

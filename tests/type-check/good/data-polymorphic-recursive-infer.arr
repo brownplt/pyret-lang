@@ -8,7 +8,7 @@ data My-List<A>:
   | my-link(first :: A, rest :: My-List<A>)
 end
 
-fun<A> length(l :: My-List<A>) -> Natural:
+fun length<A>(l :: My-List<A>) -> Natural:
   cases (My-List<A>) l:
     | my-empty()       => zero
     | my-link(_, rest) => succ(length(l))

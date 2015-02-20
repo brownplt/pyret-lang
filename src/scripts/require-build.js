@@ -4,7 +4,8 @@
         'q': 'empty:',
         'fs': 'empty:',
         'requirejs': 'empty:',
-        's-expression': 'empty:'
+        's-expression': 'empty:',
+        'seedrandom': 'empty:'
       }
 })
 

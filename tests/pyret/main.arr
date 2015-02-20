@@ -13,8 +13,8 @@ import "./tests/test-s-exp.arr" as _
 import "./tests/test-refs.arr" as _
 import "./tests/test-equality.arr" as _
 import "./tests/test-refined-refs.arr" as _
-import "./tests/test-m-graph.arr" as _
 import "./tests/test-match.arr" as _
 import "./tests/test-lists.arr" as _
 import "./tests/test-cases.arr" as _
 import "./tests/test-rec.arr" as _
+import "./tests/test-compile-errors.arr" as _

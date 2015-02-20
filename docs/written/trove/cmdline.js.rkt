@@ -82,7 +82,7 @@
       @singleton-spec["once"]{
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParamRepeat -> Any)
             
           ]
@@ -91,7 +91,7 @@
       @singleton-spec["many"]{
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParamRepeat -> Any)
             
           ]
@@ -100,7 +100,7 @@
       @singleton-spec["required-once"]{
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParamRepeat -> Any)
             
           ]
@@ -109,7 +109,7 @@
       @singleton-spec["required-many"]{
         @with-members{
           @method-spec[
-            "tostring"
+            "_tostring"
             ;; N.B. Pyret contract: (ParamRepeat -> Any)
             
           ]

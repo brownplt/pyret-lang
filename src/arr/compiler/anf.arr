@@ -39,15 +39,6 @@ end
 
 fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, k-cont(lam(x): N.a-lettable(x.l, x) end))
-    #     cases(N.ALettable) x:
-    #         # tail call
-    #       | a-app(l, f, args) =>
-    #         name = mk-id(l, "anf_tail_app")
-    #         N.a-let(l, name.id-b, x, N.a-lettable(l, N.a-val(l, name.id-e)))
-    #       | else => N.a-lettable(x.l, x)
-    #     end
-    #   end)
-    # )
 end
 
 fun bind(l, id): N.a-bind(l, id, A.a-blank);
@@ -293,9 +284,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-cases-else(l, typ, val, branches, _else) =>
       anf-name(val, "cases_val",
         lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
-    | s-try(l, body, id, _except) =>
-      N.a-try(l, anf-term(body), id, anf-term(_except))
-
     | s-block(l, stmts) => anf-block(stmts, k)
     | s-user-block(l, body) => anf(body, k)
 
@@ -330,11 +318,20 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end)
 
     | s-app(l, f, args) =>
-      anf-name(f, "anf_fun", lam(v):
-          anf-name-rec(args, "anf_arg", lam(vs):
-              k.apply(l, N.a-app(l, v, vs))
+      cases(A.Expr) f:
+        | s-dot(l2, obj, m) =>
+          anf-name(obj, "anf_method_obj", lam(v):
+            anf-name-rec(args, "anf_arg", lam(vs):
+              k.apply(l, N.a-method-app(l, v, m, vs))
             end)
-        end)
+          end)
+        | else =>
+          anf-name(f, "anf_fun", lam(v):
+              anf-name-rec(args, "anf_arg", lam(vs):
+                  k.apply(l, N.a-app(l, v, vs))
+                end)
+            end)
+      end
 
     | s-prim-app(l, f, args) =>
       anf-name-rec(args, "anf_arg", lam(vs):

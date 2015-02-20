@@ -4,75 +4,54 @@ provide-types *
 import ast as A
 import string-dict as SD
 import "compiler/type-structs.arr" as TS
+import "compiler/type-defaults.arr" as TD
 import "compiler/compile-structs.arr" as C
 
 type Name                 = A.Name
 
+dict-to-string            = TS.dict-to-string
+
 type Type                 = TS.Type
 t-name                    = TS.t-name
-t-var                     = TS.t-var
-t-arrow                   = TS.t-arrow
 t-top                     = TS.t-top
-t-bot                     = TS.t-bot
-t-app                     = TS.t-app
-t-record                  = TS.t-record
-t-forall                  = TS.t-forall
 
-t-number                  = TS.t-number
-t-string                  = TS.t-string
-t-boolean                 = TS.t-boolean
-t-srcloc                  = TS.t-srcloc
-
-type Variance             = TS.Variance
-constant                  = TS.constant
-invariant                 = TS.invariant
-covariant                 = TS.covariant
-contravariant             = TS.contravariant
-
+type TypeMember           = TS.TypeMember
 type TypeVariable         = TS.TypeVariable
-t-variable                = TS.t-variable
+type TypeVariant          = TS.TypeVariant
+type DataType             = TS.DataType
+type ModuleType           = TS.ModuleType
 
-type DataType              = TS.DataType
+t-module                  = TS.t-module
+
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.make-string-dict()
-
 
 data TCInfo:
   | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
             aliases    :: SD.MutableStringDict<TS.Type>,
             data-exprs :: SD.MutableStringDict<TS.DataType>,
             branders   :: SD.MutableStringDict<TS.Type>,
+            modules    :: SD.MutableStringDict<TS.ModuleType>,
+            mod-names  :: SD.MutableStringDict<String>,
             binds      :: Bindings,
+            ref modul  :: TS.ModuleType,
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
+sharing:
+  _tostring(self, shadow tostring):
+    "tc-info(" +
+      dict-to-string(self.typs) + ", " +
+      dict-to-string(self.aliases) + ", " +
+      dict-to-string(self.data-exprs) + ", " +
+      dict-to-string(self.branders) + ", " +
+      dict-to-string(self.modules) + ", " +
+      tostring(self.binds) + ", " +
+      tostring(self.errors.get()) + ")"
+  end
 end
 
-t-number-binop = t-arrow([list: t-number, t-number], t-number)
-
-default-typs = SD.make-mutable-string-dict()
-default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
-default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
-default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
-default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
-default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
-default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
-default-typs.set-now(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set-now(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set-now(A.s-global("identical").key(), t-arrow([list: t-top, t-top], t-boolean))
-default-typs.set-now("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
-default-typs.set-now(A.s-global("tostring").key(), t-arrow([list: t-top], t-string))
-default-typs.set-now(A.s-global("_times").key(), t-number-binop)
-default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
-default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
-default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
-default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
-default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
-default-typs.set-now(A.s-global("_greaterthan").key(), t-number-binop)
-default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
-print-variable = A.s-atom(gensym("A"), 1)
-default-typs.set-now(A.s-global("print").key(), t-forall([list: t-variable(A.dummy-loc, print-variable, t-top, invariant)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
-
-fun empty-tc-info() -> TCInfo:
+fun empty-tc-info(mod-name :: String) -> TCInfo:
+  curr-module = t-module(mod-name, t-top, SD.make-string-dict(), SD.make-string-dict())
   errors = block:
     var err-list = empty
     {
@@ -84,12 +63,12 @@ fun empty-tc-info() -> TCInfo:
       end
     }
   end
-  tc-info(default-typs, SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), SD.make-mutable-string-dict(), empty-bindings, errors)
+  tc-info(TD.make-default-typs(), SD.make-mutable-string-dict(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
   new-binds = info.binds.set(id, bound)
-  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, new-binds, info.errors)
+  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, info.modules, info.mod-names, new-binds, info!modul, info.errors)
 end
 
 fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
@@ -103,22 +82,27 @@ end
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   cases(Type) typ:
     | t-name(module-name, name) =>
-      key = typ.key()
-      if info.data-exprs.has-key-now(key):
-        some(info.data-exprs.get-value-now(key))
-      else:
-        none
+      cases(Option<String>) module-name:
+        | some(mod) =>
+          cases(Option<ModuleType>) info.modules.get-now(mod):
+            | some(t-mod) =>
+              t-mod.types.get(tostring(name))
+            | none =>
+              raise("No module available with the name `" + mod + "'")
+          end
+        | none =>
+          key = typ.key()
+          info.data-exprs.get-now(key)
       end
     | t-app(base-typ, args) =>
-      key = base-typ.key()
-      if info.data-exprs.has-key-now(key):
-        data-type = info.data-exprs.get-value-now(key).introduce(args)
-        cases(Option<DataType>) data-type:
-          | some(dt) => data-type
-          | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
-        end
-      else:
-        none
+      cases(Option<DataType>) get-data-type(base-typ, info):
+        | some(new-base-typ) =>
+          data-type = new-base-typ.introduce(args)
+          cases(Option<DataType>) data-type:
+            | some(dt) => data-type
+            | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
+          end
+        | none => none
       end
     | else =>
       none
@@ -185,7 +169,7 @@ data SynthesisResult:
     end
 end
 
-fun <B> map-synthesis(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<List>:
+fun map-synthesis<B>(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<List>:
   cases(List<A>) lst:
     | link(first, rest) =>
       cases(SynthesisResult) f(first):
@@ -245,7 +229,7 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-result(" + tostring(self.v) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -261,7 +245,7 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    tostring(self, shadow tostring):
+    _tostring(self, shadow tostring):
       "fold-errors(" + tostring(self.errors) + ")"
     end,
     bind(self, f) -> FoldResult<V>:
@@ -279,7 +263,7 @@ data FoldResult<V>:
 end
 
 fun foldl2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -304,7 +288,7 @@ fun foldl2-result(not-equal :: C.CompileError):
 end
 
 fun foldl3-result(not-equal :: C.CompileError):
-  fun <E,B,F,D> helper(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,F,D>(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<F>) lst-2:
@@ -339,7 +323,7 @@ fun foldl3-result(not-equal :: C.CompileError):
 end
 
 fun foldr2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
+  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -364,7 +348,7 @@ end
 
 
 fun map2-result(not-equal :: C.CompileError):
-  fun <E,B,D> helper(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
+  fun helper<E,B,D>(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
     fun process-and-prepend(lst :: List<E>, b :: B, d :: D) -> FoldResult<List<E>>:
       for bind(result from f(b, d)):
         fold-result(link(result, lst))
@@ -375,7 +359,7 @@ fun map2-result(not-equal :: C.CompileError):
   helper
 end
 
-fun <E,B,D> foldl-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
+fun foldl-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
     | link(first, rest) =>
       for bind(v from base):
@@ -387,7 +371,7 @@ fun <E,B,D> foldl-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, ls
   end
 end
 
-fun <E,B,D> foldr-result(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
+fun foldr-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
   cases(List<B>) lst-1:
     | link(first, rest) =>
       for bind(v from foldr-result(f, base, rest)):
@@ -432,7 +416,7 @@ end
 
 
 fun map2-checking(not-equal :: C.CompileError):
-  fun <B,D> helper(f :: (B, D -> CheckingResult), lst-1 :: List<B>, lst-2 :: List<D>) -> CheckingMapResult:
+  fun helper<B,D>(f :: (B, D -> CheckingResult), lst-1 :: List<B>, lst-2 :: List<D>) -> CheckingMapResult:
     cases(List<B>) lst-1:
       | link(first-1, rest-1) =>
         cases(List<D>) lst-2:
@@ -459,7 +443,7 @@ fun map2-checking(not-equal :: C.CompileError):
   helper
 end
 
-fun <B> map-checking(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
+fun map-checking<B>(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
   cases(List<B>) lst:
     | link(first, rest) =>
       cases(CheckingResult) f(first):
@@ -477,7 +461,7 @@ end
 
 
 
-fun <B,D> map-result(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
+fun map-result<B,D>(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
   cases(List<B>) lst:
     | link(first, rest) =>
       cases(FoldResult<D>) f(first):

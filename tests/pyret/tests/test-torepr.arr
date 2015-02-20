@@ -18,21 +18,21 @@ data DerivedStrings:
   | w-sing
   | w()
   | x-sing with:
-    tostring(self, shadow tostring): "tostring-x-sing" end,
+    _tostring(self, shadow tostring): "tostring-x-sing" end,
     _torepr(self, shadow torepr): "torepr-x-sing" end,
   | x() with:
-    tostring(self, shadow tostring): "tostring-x" end,
+    _tostring(self, shadow tostring): "tostring-x" end,
     _torepr(self, shadow torepr): "torepr-x" end,
   | y-sing with:
-    tostring(self, shadow tostring): "tostring-y-sing" end
+    _tostring(self, shadow tostring): "tostring-y-sing" end
   | y() with:
-    tostring(self, shadow tostring): "tostring-y" end
+    _tostring(self, shadow tostring): "tostring-y" end
   | z-sing with:
     _torepr(self, shadow torepr): "torepr-z-sing" end
   | z() with:
     _torepr(self, shadow torepr): "torepr-z" end    
 sharing:
-  tostring(self, shadow tostring): "tostring-shared" end,
+  _tostring(self, shadow tostring): "tostring-shared" end,
   _torepr(self, shadow torepr): "torepr-shared" end
 end
 
@@ -119,3 +119,9 @@ check "Shared but not cyclic values":
   torepr(o3) is "{x: [raw-array: ], y: [raw-array: ]}"
 
 end
+
+check "run-task printing should be internal":
+  torepr(run-task(lam(): 1 / 0 end)) is "right(<internal value>)"
+  torepr(run-task(lam(): 1 / 1 end)) is "left(1)"
+end
+

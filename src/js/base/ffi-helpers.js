@@ -211,6 +211,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function throwParseErrorEOF(loc) {
         raise(err("parse-error-eof")(loc));
       }
+      function throwParseErrorUnterminatedString(loc) {
+        raise(err("parse-error-unterminated-string")(loc));
+      }
 
       function throwModuleLoadFailureL(names) {
         raise(makeModuleLoadFailureL(names));
@@ -261,33 +264,14 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return contract("dot-ann-not-present")(name, field);
       }
 
-      function isOk(val) {
-        return contract("is-ok")(val);
-      }
+      var isOk = contract("is-ok");
+      var isFail = contract("is-fail");
+      var isFailArg = contract("is-fail-arg");
 
-      function isFail(val) {
-        return contract("is-fail")(val);
-      }
-
-      function isFailArg(val) {
-        return contract("is-fail-arg")(val);
-      }
-
-      function isEqualityResult(val) {
-        return gf(EQ, "is-EqualityResult").app(val);
-      }
-
-      function isEqual(val) {
-        return gf(EQ, "is-Equal").app(val);
-      }
-
-      function isNotEqual(val) {
-        return gf(EQ, "is-NotEqual").app(val);
-      }
-
-      function isUnknown(val) {
-        return gf(EQ, "is-Unknown").app(val);
-      }
+      var isEqualityResult = gf(EQ, "is-EqualityResult").app;
+      var isEqual = gf(EQ, "is-Equal").app;
+      var isNotEqual = gf(EQ, "is-NotEqual").app;
+      var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
         throwPlusError: throwPlusError,
@@ -316,6 +300,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
+        throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
 
         makeRecordFieldsFail: makeRecordFieldsFail,
         makeFieldFailure: makeFieldFailure,

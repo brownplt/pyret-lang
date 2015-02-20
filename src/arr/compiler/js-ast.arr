@@ -502,7 +502,8 @@ data JExpr:
     end,
     tosource(self): PP.str("undefined") end
   | j-label(label :: Label) with:
-    label(self): "j-label" end,
+#   TODO(joe): We don't really use label, so ignoring this clash for the moment
+#    label(self): "j-label" end,
     print-ugly-source(self, printer): printer(tostring(self.label.get())) end,
     tosource(self): PP.number(self.label.get()) end
 sharing:

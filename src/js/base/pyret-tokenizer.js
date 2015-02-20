@@ -101,7 +101,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
-  const comment = new RegExp("^#.*(?:\\n|\\r|\\r\\n|\\n\\r|$)", STICKY_REGEXP)
+  const comment = new RegExp("^(#\\|([^\\|]|\\|[^#])*\\|#|#.*(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
   const bar = new RegExp("^\\|", STICKY_REGEXP);
   const langle = new RegExp("^<", STICKY_REGEXP);
   const rangle = new RegExp("^>", STICKY_REGEXP);
@@ -204,31 +204,27 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "TRUE", val: new RegExp(kw("true"), STICKY_REGEXP)},
     {name: "FALSE", val: new RegExp(kw("false"), STICKY_REGEXP)},
     {name: "METHOD", val: new RegExp(kw("method"), STICKY_REGEXP)},
-    {name: "DOC", val: new RegExp(colonKw("doc:"), STICKY_REGEXP)},
-    {name: "WHERE", val: new RegExp(colonKw("where:"), STICKY_REGEXP)},
-    {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP)},
+    {name: "DOC", val: new RegExp(colonKw("doc:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "WHERE", val: new RegExp(colonKw("where:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
-    {name: "TRY", val: new RegExp(colonKw("try:"), STICKY_REGEXP)},
-    {name: "EXCEPT", val: new RegExp(kw("except"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
-    {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP)},
-    {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP)},
+    {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
-    {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP)},
-    {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP)},
+    {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
     {name: "ELSE", val: new RegExp(kw("else"), STICKY_REGEXP)},
     {name: "DATA", val: new RegExp(kw("data"), STICKY_REGEXP)},
-    {name: "WITH", val: new RegExp(colonKw("with:"), STICKY_REGEXP)},
-    {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP)},
+    {name: "WITH", val: new RegExp(colonKw("with:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
     {name: "REF", val: new RegExp(kw("ref"), STICKY_REGEXP)},
     {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},
     {name: "WITHCONSTRUCTOR", val: new RegExp(kw("with constructor"), STICKY_REGEXP)},
-    {name: "GRAPH", val: new RegExp(colonKw("graph:"), STICKY_REGEXP)},
-    {name: "MGRAPH", val: new RegExp(colonKw("ref-graph:"), STICKY_REGEXP)},
-    {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP)},
+    {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
@@ -241,9 +237,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "THINARROW", val: thinarrow},
     {name: "THICKARROW", val: thickarrow, parenIsForExp: true},
     {name: "COLONEQUALS", val: colonequals, parenIsForExp: true},
-    {name: "COLONCOLON", val: coloncolon},
+    {name: "COLONCOLON", val: coloncolon, parenIsForExp: true},
     {name: "COLON", val: colon, parenIsForExp: true},
-    {name: "BAR", val: bar},
+    {name: "BAR", val: bar, parenIsForExp: true},
 
     {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},

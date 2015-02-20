@@ -294,6 +294,10 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                               reusableCanvas.height = height;
                           }
               var ctx = reusableCanvas.getContext("2d");
+              ctx.save();
+              ctx.fillStyle = "rgba(255,255,255,1)";
+              ctx.fillRect(0, 0, width, height);
+              ctx.restore();
               theImage.render(ctx, 0, 0);
               success([toplevelNode, reusableCanvasNode]);
           } else {

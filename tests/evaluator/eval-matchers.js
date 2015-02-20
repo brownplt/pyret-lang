@@ -84,8 +84,12 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
           } else {
             // NOTE(joe): only works when runing sync.
             var answer = runtime.runThunk(function() {
-              return runtime.unwrap(runtime.toReprJS(arr[i], "tostring"));
+              return runtime.unwrap(runtime.toReprJS(arr[i], "_tostring"));
             }, function(result) {
+              if(result.exn) {
+                console.error("Failed to tostring excepton ", arr, result);
+                return false;
+              }
               if(result.result && result.result.indexOf(exnMsg) === -1) {
                 console.error(result.result + " did not contain " + exnMsg);
               }

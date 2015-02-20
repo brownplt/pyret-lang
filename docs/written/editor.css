@@ -17,6 +17,7 @@
 .repl .CodeMirror pre {
   padding: 0;
 }
+.CodeMirror div.CodeMirror-cursors { z-index: 9500; }
 .CodeMirror div.CodeMirror-cursor { border-left: 2px solid #111; }
 .cm-s-default.CodeMirror { color: #111; }
 .cm-s-default .cm-comment { color: #39f; }
@@ -26,7 +27,6 @@
 .cm-s-default .cm-keyword { color: #636; }
 .cm-s-default .cm-number { color: #164; }
 .cm-s-default .cm-string { color: #164; }
-.cm-s-default .cm-unterminated-string { color: #164; text-decoration: underline; }
 .cm-s-default .cm-type { color: #339; }
 .cptteach-fixed { line-height: 1.5; background: #ddd; }
 
@@ -49,6 +49,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {
 
 div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
     background-color: #fdc;
+    z-index: 4000;
 }
 
 .replTextOutput .CodeMirror {
@@ -88,6 +89,9 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
 
 .repl {
   padding-left: 0.5em;
+  padding-bottom: 5em;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
   height: 100%;
   overflow-y: scroll;
   background-color: #f8f8f8;
@@ -106,7 +110,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
 }
 
 .check-failure {
-  background-color: #fcc;
+  background-color: #d66;
 }
 
 .check-block {
@@ -118,7 +122,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
 }
 
 .check-block-failed {
-  background-color: #fcc;
+  background-color: #d66;
 }
 
 .check-block-success {
@@ -222,13 +226,13 @@ body {
 
 .replMain {
   position: absolute;
-  z-index: 7000;
+  z-index: 8500;
   left: 0;
   width: 50%;
   top:0;
   height: 100%;
   max-height: 100%;
-  padding-top: 75px;
+  padding-top: 55px;
   padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -243,7 +247,7 @@ body {
   top:0;
   height: 100%;
   max-height: 100%;
-  padding-top: 80px;
+  padding-top: 55px;
   padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -259,119 +263,77 @@ body {
     margin-right: -35%;
 }
 
-.blueButton {
-    font-family: sans-serif;
-/*  darker blue option #2a348b */
-    background-color: #469ad4;
-    border: 1px solid #469ad4;
-    border-radius: 3px;
-    color: #eee;
-    text-align: center;
-}
-
-.blueButton:hover {
-    background-color: #eee;
-    color: #469ad4;
-    cursor: pointer;
-}
-
-.blueButton:disabled {
-    background-color: #9cc;
-    border: 1px solid #9cc;
-    color: #ddd;
-    cursor: default;
-}
-
 
 .runButton {
     width: 50px;
-}
-
-#loader {
-  position: fixed;
-  left: 0px;
-  top: 0px;
-  width: 100%;
-  height: 100%;
-  z-index: 9999;
-  background: url('./../../img/pyret-spin.gif') 50% 50% no-repeat rgb(249,249,249);
-  background-size: 200px 200px;
-}
-
-#loader p {
-  position: fixed;
-  top: 20%;
-  text-align: center;
-  width: 100%;
-}
-
-#header {
-  position: fixed;
-  z-index: 9000;
-  top: 0;
-  width: 100%;
-  height: 50px;
-  background: url("./../../img/patch-logo.png") 0 0 no-repeat #2a348b;
-  background-size: 150.15px 50px;
-  padding-left: 200px;
-}
-
-#header div {
-  width: 100px;
-  margin-top: 15px;
-  float: left;
-  padding-right: 2em;
-}
-
-#header a {
-  color: #eee;
-  font-family: sans-serif;
 }
 
 #main {
   width: 100%;
   z-index: 5000;
   height: 100%;
-  padding-top: 75px;
+  padding-top: 55px;
   padding-bottom: 5px;
   box-sizing: border-box;
   -moz-box-sizing: border-box;
 }
 
-#toolbar {
-  position: fixed;
-  z-index: 8000;
-  top: 50px;
-  height: 25px;
-  width: 100%;
-  background-color: #111;
-}
-
-#footer {
-  height: 5px;
-  background-color: #111;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-}
-
 #program-name-container {
-  color: #eee;
-  float: left;
+  margin-top: 12px;
+  display: inline-block;
   font-family: sans-serif;
 }
 
+#program-name-container input {
+  display: inline-block;
+}
+
+#program-name-container label {
+  display: inline-block;
+}
+
+#program-name-container span {
+  display: inline-block;
+}
+
+#program-name-container a {
+  margin-top: 0 !important;
+}
+
 #saveButton {
-  float: left;
 }
-#shareButton {
-  float: left;
-}
-
-.rhs {
-  float: right;
+#shareContainer {
+  display: inline-block;
 }
 
+.notificationArea {
+  width: 200px;
+  font-family: sans-serif;
+}
+
+.notificationArea .active {
+  width: 200px;
+  color: #111;
+}
+
+.notificationArea .error {
+  width: 200px;
+  color: red;
+  font-weight: bold;
+}
+
+.logoutOnly {
+  display: none;
+}
+
+.loginOnly {
+  display: none;
+}
+
+#menuContents {
+  background-color: #fefefe;
+  border: 1px solid black;
+}
 .replPrint {
   padding-top: 0;
   padding-bottom: 0.5em;
@@ -383,6 +345,33 @@ body {
   padding-top: 0;
   padding-bottom: 0.5em;
   color: #1f1180;
+}
+
+.replOutputPassed {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  color: #1f9180;
+}
+
+.replOutputFailed {
+  padding-top: 0;
+  padding-bottom: 0.5em;
+  color: #af1180;
+}
+
+.replOutputReason {
+ padding-top: 0;
+ padding-bottom: 0.5em;
+ padding-left: 3.0em;
+ color: #af1180;
+}
+
+.rationalNumber {
+ color: #af1180;
+}
+
+span.rationalRepeat {
+  text-decoration: overline;
 }
 
 .replImageThumbnail canvas {
@@ -398,19 +387,24 @@ body {
 }
 
 .error-highlight {
-  background-color: #FCC;
+  background-color: #fcc;
   border-bottom: 2px solid #F33;
+}
+
+.check-highlight {
+ background-color: #CCF;
+ border-bottom: 2px solid #33F;
+}
+
+.check-block-error {
+  padding-left: 2em;
 }
 
 .compile-error {
   font-family: sans-serif;
-  border: 1px solid #F33;
-  border-radius: 1em;
-  padding: 1em;
-}
-
-.compile-error:hover {
-  background-color: #FCC;
+  border: 3px solid #d66;
+  font-size: 10pt;
+  padding: 3px;
 }
 
 .compile-error .code {
@@ -419,6 +413,49 @@ body {
 
 .compile-error .srcloc {
   font-family: monospace; 
+}
+
+.compile-error a {
+  color: #469ad4;
+  cursor: pointer;
+}
+
+.compile-error a:hover {
+  background-color: #fcc;
+}
+
+.parse-error {
+  font-family: sans-serif;
+  border: 3px solid #d66;
+  font-size: 10pt;
+  padding: 3px;
+}
+
+.error-icon {
+  size: 16pt;
+  color: #f33;
+}
+
+.parse-error .code {
+  font-family: monospace; 
+}
+
+.parse-error .srcloc {
+  font-family: monospace; 
+}
+
+.parse-error a {
+  color: #469ad4;
+  cursor: pointer;
+}
+
+.parse-error a:hover {
+  text-decoration: underline;
+}
+
+.parse-error ul {
+  list-style-type: disc;
+  padding-left: 1em;
 }
 
 .warning-upper {
@@ -433,6 +470,7 @@ body {
    background: -o-linear-gradient(top,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* Opera 11.10+ */
    background: -ms-linear-gradient(top,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* IE10+ */
    background: linear-gradient(to bottom,  rgba(221,44,44,1) 0%,rgba(145,78,78,0) 50%); /* W3C */
+   height: 75px;
 }
 
 .warning-lower {
@@ -447,12 +485,18 @@ body {
    width: 100%;
    text-align: center;
    display:none;
+   height: 75px;
 }
 
 .topbar {
   position: fixed;
   width: 100%;
   background-color: #eee;
+}
+
+/* NOTE(joe): removes the white bar in popups */
+.ui-widget-content{
+  background: none;
 }
 
 /* From internet: http://stackoverflow.com/questions/5663137/jquery-modal-dialog-is-hidden-by-overlay-div-if-dialogs-parent-has-fixed-positi */
@@ -498,5 +542,25 @@ body {
 
 .ui-dialog-titlebar-close .ui-button-icon-primary:before {
   content: "×"
+}
+
+#breakButton {
+  width: 150px;
+  height: 40px;
+  margin: 5px;
+}
+
+#runButton {
+  width: 150px;
+  height: 40px;
+  margin: 5px;
+}
+
+.module-info-hover {
+  width: 30em;
+  height: auto;
+  border: 1px solid #111;
+  padding: 5px;
+  background-color: #eeeeee;
 }
 

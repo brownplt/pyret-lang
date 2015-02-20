@@ -3,7 +3,7 @@ fun add2(n :: Number):
   n + 2
 end
 
-fun <A> f(a :: A, b :: (A -> A)) -> A:
+fun f<A>(a :: A, b :: (A -> A)) -> A:
   a
 end
 
