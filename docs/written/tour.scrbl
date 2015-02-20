@@ -144,8 +144,8 @@ end
 
 @section{Strings}
 
-Strings can be written single- or double- quoted. Character escapes like \\n
-work, and the enclosing quote character can be included if escaped like \\".
+Strings can be written single- or double- quoted. Character escapes like @pyret{\n}
+work, and the enclosing quote character can be included if escaped like @pyret{\"}.
 
 @pyret-block{
 "hello world"
