@@ -1,0 +1,10 @@
+# [PackageDev] target_format: plist, ext: tmLanguage
+---
+name: Pyret
+scopeName: source.arr
+fileTypes: [arr]
+uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
+
+patterns:
+- 
+...
