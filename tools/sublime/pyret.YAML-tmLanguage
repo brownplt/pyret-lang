@@ -1,4 +1,8 @@
 # [PackageDev] target_format: plist, ext: tmLanguage
+# Pyret syntax file
+# Language: Pyret
+# Maintainer: Razi Shaban (rshaban1@swarthmore.edu)
+
 ---
 name: Pyret
 scopeName: source.arr
