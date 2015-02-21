@@ -12,35 +12,36 @@ uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 patterns:
 - comment: Delimiters
   name: keyword.other.delimiter.arr
-  match: (('!')|('\.')|('|')|('(')|(')|')|('->')|('=')|('=>')|(':=')|('\[')|('\]')|('{')|('}')|(':')|('::'))
+  match: (!|\.|\||\(|\)|->|=|=>|:=|\[|\]|{|}|:|::)
 
 - comment: Now for basic keywords
   name: keyword.control.arr
-  match: (('var')|('fun')|('fun:')|('end')|('with:')|('sharing:')|('data')|('import')|('provide')|('as')|('try:')|('except')|('when')|('for')|('from')|('check:')|('where:')|('doc:')|('and')|('or')|('not')|('else:')|('if')|('else')|('cases')|('is')|('is==')|('is=~')|('is<=>')|('is-not')|('is-not==')|('is-not=~')|('is-not<=>')|('raises')|('deriving')|('ref')|('graph:')|('m-graph:')|('block:')|('satisfies')|('shadow')|('lam')|('type')|('type-let')|('provide-types')|('newtype'))
+  match: \b(var\b|fun\b|fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b|not\b|else:\s|if\b|else\b|cases\b|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)
 
 - comment: operators
   name: keyword.operator.arr
-  match: ((' + ')|(' - ')|(' / ')|(' * ')|(' > ')|(' < ')|(' >= ')|(' <= ')|(' <> '))
+  match: ( \+ | - | \/ | \* | > | < | >= | <= | <> )
 
 - comment: comments
   name: comment.line.number-sign.arr
-  match: (('\#.*$'))
+  match: (\#.*$)
 
 - comment: strings
   name: string.quoted.arr
-  begin: /\v"/
-  end: /\v"/
+  begin: (\s\")
+  end: (\")
 
 - comment: strings
   name: string.quoted.arr
-  begin: /\v'/
-  end: /\v'/
+  begin: (\s\')
+  end: (\')
 
 - comment: strings
   name: string.quoted.arr
-  begin: /\v```/
-  end: /\v```/
+  begin: (\s```)
+  end: (```)
 
 - comment: numbers
   name: constant.numeric.arr
-  match: ("[0-9]+")
+  match: ([0-9]+)
+  # ([^a-zA-Z][0-9]+)

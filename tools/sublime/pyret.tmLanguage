@@ -14,7 +14,7 @@
 			<key>comment</key>
 			<string>Delimiters</string>
 			<key>match</key>
-			<string>(('!')|('\.')|('|')|('(')|(')|')|('-&gt;')|('=')|('=&gt;')|(':=')|('\[')|('\]')|('{')|('}')|(':')|('::'))</string>
+			<string>(!|\.|\||\(|\)|-&gt;|=|=&gt;|:=|\[|\]|{|}|:|::)</string>
 			<key>name</key>
 			<string>keyword.other.delimiter.arr</string>
 		</dict>
@@ -22,7 +22,7 @@
 			<key>comment</key>
 			<string>Now for basic keywords</string>
 			<key>match</key>
-			<string>(('var')|('fun')|('fun:')|('end')|('with:')|('sharing:')|('data')|('import')|('provide')|('as')|('try:')|('except')|('when')|('for')|('from')|('check:')|('where:')|('doc:')|('and')|('or')|('not')|('else:')|('if')|('else')|('cases')|('is')|('is==')|('is=~')|('is&lt;=&gt;')|('is-not')|('is-not==')|('is-not=~')|('is-not&lt;=&gt;')|('raises')|('deriving')|('ref')|('graph:')|('m-graph:')|('block:')|('satisfies')|('shadow')|('lam')|('type')|('type-let')|('provide-types')|('newtype'))</string>
+			<string>\b(var\b|fun\b|fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b|not\b|else:\s|if\b|else\b|cases\b|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)</string>
 			<key>name</key>
 			<string>keyword.control.arr</string>
 		</dict>
@@ -30,7 +30,7 @@
 			<key>comment</key>
 			<string>operators</string>
 			<key>match</key>
-			<string>((' + ')|(' - ')|(' / ')|(' * ')|(' &gt; ')|(' &lt; ')|(' &gt;= ')|(' &lt;= ')|(' &lt;&gt; '))</string>
+			<string>( \+ | - | \/ | \* | &gt; | &lt; | &gt;= | &lt;= | &lt;&gt; )</string>
 			<key>name</key>
 			<string>keyword.operator.arr</string>
 		</dict>
@@ -38,37 +38,37 @@
 			<key>comment</key>
 			<string>comments</string>
 			<key>match</key>
-			<string>(('\#.*$'))</string>
+			<string>(\#.*$)</string>
 			<key>name</key>
 			<string>comment.line.number-sign.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>/\v"/</string>
+			<string>(\s\")</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
-			<string>/\v"/</string>
+			<string>(\")</string>
 			<key>name</key>
 			<string>string.quoted.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>/\v'/</string>
+			<string>(\s\')</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
-			<string>/\v'/</string>
+			<string>(\')</string>
 			<key>name</key>
 			<string>string.quoted.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>/\v```/</string>
+			<string>(\s```)</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
-			<string>/\v```/</string>
+			<string>(```)</string>
 			<key>name</key>
 			<string>string.quoted.arr</string>
 		</dict>
@@ -76,7 +76,7 @@
 			<key>comment</key>
 			<string>numbers</string>
 			<key>match</key>
-			<string>("[0-9]+")</string>
+			<string>([0-9]+)</string>
 			<key>name</key>
 			<string>constant.numeric.arr</string>
 		</dict>
