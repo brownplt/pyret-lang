@@ -10,5 +10,37 @@ fileTypes: [arr]
 uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 
 patterns:
-- 
-...
+- comment: Delimiters
+  name: keyword.other.delimiter.arr
+  match: (('!')|('\.')|('|')|('(')|(')|')|('->')|('=')|('=>')|(':=')|('\[')|('\]')|('{')|('}')|(':')|('::'))
+
+- comment: Now for basic keywords
+  name: keyword.control.arr
+  match: (('var')|('fun')|('fun:')|('end')|('with:')|('sharing:')|('data')|('import')|('provide')|('as')|('try:')|('except')|('when')|('for')|('from')|('check:')|('where:')|('doc:')|('and')|('or')|('not')|('else:')|('if')|('else')|('cases')|('is')|('is==')|('is=~')|('is<=>')|('is-not')|('is-not==')|('is-not=~')|('is-not<=>')|('raises')|('deriving')|('ref')|('graph:')|('m-graph:')|('block:')|('satisfies')|('shadow')|('lam')|('type')|('type-let')|('provide-types')|('newtype'))
+
+- comment: operators
+  name: keyword.operator.arr
+  match: ((' + ')|(' - ')|(' / ')|(' * ')|(' > ')|(' < ')|(' >= ')|(' <= ')|(' <> '))
+
+- comment: comments
+  name: comment.line.number-sign.arr
+  match: (('\#.*$'))
+
+- comment: strings
+  name: string.quoted.arr
+  begin: /\v"/
+  end: /\v"/
+
+- comment: strings
+  name: string.quoted.arr
+  begin: /\v'/
+  end: /\v'/
+
+- comment: strings
+  name: string.quoted.arr
+  begin: /\v```/
+  end: /\v```/
+
+- comment: numbers
+  name: constant.numeric.arr
+  match: ("[0-9]+")
