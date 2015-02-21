@@ -14,7 +14,7 @@
 			<key>comment</key>
 			<string>Delimiters</string>
 			<key>match</key>
-			<string>(!|\.|\||\(|\)|-&gt;|=|=&gt;|:=|\[|\]|{|}|:|::)</string>
+			<string>(!|\.|\||\(|\)|-&gt;|=&gt;|:=|=|\[|\]|{|}|::|:)</string>
 			<key>name</key>
 			<string>keyword.other.delimiter.arr</string>
 		</dict>

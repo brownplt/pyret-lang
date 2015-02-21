@@ -12,7 +12,7 @@ uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 patterns:
 - comment: Delimiters
   name: keyword.other.delimiter.arr
-  match: (!|\.|\||\(|\)|->|=|=>|:=|\[|\]|{|}|:|::)
+  match: (!|\.|\||\(|\)|->|=>|:=|=|\[|\]|{|}|::|:)
 
 - comment: Now for basic keywords
   name: keyword.control.arr
@@ -45,3 +45,31 @@ patterns:
   name: constant.numeric.arr
   match: ([0-9]+)
   # ([^a-zA-Z][0-9]+)
+
+
+
+- comment: 
+       /* Don't indentation
+        *  <?, </, <!
+        * <whatever></whatever>
+        * <whatever />
+        * <% %>
+        * <!-- -->
+        * <%-- --%>
+        *
+        * Do indent:
+        *  <whatever>
+        *  <%
+        *  <!--
+        *  <%--
+        *
+        * Decrease indent for:
+        *  </whatever>
+        *  -->
+        *  --%>
+        */
+    decreaseIndentPattern: ^\s*(</[^>]+>|-->|--%>)
+    highlightPairs:
+        ( ) [ ] { } "\"" "\"" < >
+    increaseIndentPattern:
+        ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
