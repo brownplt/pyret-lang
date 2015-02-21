@@ -117,7 +117,7 @@ expr: paren-expr | id-expr | prim-expr
     | type-let-expr
     | construct-expr
 
-bad-expr: UNTERMINATED-STRING | UNKNOWN
+bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
