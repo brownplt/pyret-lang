@@ -153,11 +153,15 @@
     (arity 1)
     (args ("n"))
     (doc ""))
-  
   (fun-spec
     (name "num-to-string")
     (arity 1)
     (args ("n"))
+    (doc ""))
+  (fun-spec
+    (name "num-to-string-digits")
+    (arity 2)
+    (args ("n" "digits"))
     (doc ""))
   (fun-spec
     (name "num-within-abs")
