@@ -2,7 +2,7 @@ This folder contains an easily-editable syntax definition (pyret.YAML-tmLanguage
 
 For Sublime(3) to recognize your pyret.tmLanguage file, you will need to run 
 
-cp pyret.tmLanguage "/Users/USER/Library/Application Support/Sublime Text 3/Packages/User/"
+	cp pyret.tmLanguage "/Users/USER/Library/Application Support/Sublime Text 3/Packages/User/"
 
 To build the .YAML-tmLanguage file into the .tmLanguage file Sublime will recognize, you will want to use [the AAAPackageDev plugin](https://github.com/SublimeText/AAAPackageDev).
 
