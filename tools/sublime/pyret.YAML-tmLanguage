@@ -12,14 +12,38 @@ uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 patterns:
 - comment: Delimiters
   name: keyword.other.delimiters.arr
-  match: (!|\.|\||\(|\)|->|=>|:=|=|\[|\]|{|}|::|:)
+  match: (!|->|=>|:=|=|\[|\]|{|}|::|:)
+
+- comment: ()
+  name: variable.arr
+  match: (\(|\)|\.)
+
+- comment: #|
+  name: keyword.other.delimiters.arr
+  match: (\|)
+
+- comment: cases
+  name: keyword.cases.arr
+  match: (^\s\|) ([a-zA-Z0-9\-]*) (=>)
 
 - comment: Now for basic keywords
   name: keyword.operators.arr
-  match: \b(var\b|fun\b|fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b|not\b|else:\s|if\b|else\b|cases\b|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)
+  match: \b(var\b|^fun\b|^fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|if\b|else\b|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)
+
+- comment: cases
+  name: variable.operators.arr
+  match: (cases)\(([a-zA-Z\-<>]*)\) ([a-zA-Z\-]*)(\:)
+  captures:
+    '1': {name: keyword.operators.case.arr}
+    #'2': {name: variable.arr}
+    '2': {name: storage.type.class.arr}
+    #'4': {name: variable.arr}
+    '3': {name: string.arr}
+    #'': {name: keyword.other.delimiters.arr}
+
 
 - comment: operators
-  name: constant.language.arr
+  name: keyword.operator.arr
   match: ( \+ | - | \/ | \* | > | < | >= | <= | <> )
 
 - comment: comments
@@ -43,14 +67,14 @@ patterns:
 
 - comment: numbers
   name: constant.numeric.arr
-  match: ([0-9]+)
+  match: ( [0-9]+ )
   # ([^a-zA-Z][0-9]+)
 
 
-# - decreaseIndentPattern: (\:)
-# - highlightPairs: 
-#     ( ) [ ] { }
-# - increaseIndentPattern:
-#         ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
+- decreaseIndentPattern: (\:)
+- highlightPairs: 
+    ( ) [ ] { } / /
+- increaseIndentPattern:
+        ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
 
 
