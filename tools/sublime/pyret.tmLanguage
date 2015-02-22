@@ -14,7 +14,7 @@
 			<key>comment</key>
 			<string>Delimiters</string>
 			<key>match</key>
-			<string>(!|-&gt;|=&gt;|:=|=|\[|\]|{|}|::|:)</string>
+			<string>(!|-&gt;|=&gt;|:=|\[|\]|{|}|:\s)</string>
 			<key>name</key>
 			<string>keyword.other.delimiters.arr</string>
 		</dict>
@@ -22,7 +22,7 @@
 			<key>comment</key>
 			<string>()</string>
 			<key>match</key>
-			<string>(\(|\)|\.)</string>
+			<string>(\(|\)|\.|::|=)</string>
 			<key>name</key>
 			<string>variable.arr</string>
 		</dict>
@@ -32,21 +32,29 @@
 			<key>match</key>
 			<string>(\|)</string>
 			<key>name</key>
-			<string>keyword.other.delimiters.arr</string>
+			<string>storage.type.delimiters.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
 			<string>cases</string>
 			<key>match</key>
-			<string>(\s\|) ([a-zA-Z0-9\,\-]*) (=&gt;)</string>
+			<string>(^\s\|) ([a-zA-Z0-9\-]*) (=&gt;)</string>
 			<key>name</key>
-			<string>keyword.cases.arr</string>
+			<string>variable.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
 			<string>Now for basic keywords</string>
 			<key>match</key>
-			<string>\b(var\b|^fun\b|^fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|if\b|else\b|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)</string>
+			<string>\s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b)</string>
+			<key>name</key>
+			<string>keyword.operators.arr</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Keywords that start a line</string>
+			<key>match</key>
+			<string>^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b)</string>
 			<key>name</key>
 			<string>keyword.operators.arr</string>
 		</dict>
@@ -131,16 +139,16 @@
 			<string>constant.numeric.arr</string>
 		</dict>
 		<dict>
+			<key>increaseIndentPattern</key>
+			<string>&lt;!--</string>
+		</dict>
+		<dict>
 			<key>decreaseIndentPattern</key>
 			<string>(\:)</string>
 		</dict>
 		<dict>
 			<key>highlightPairs</key>
 			<string>( ) [ ] { } / /</string>
-		</dict>
-		<dict>
-			<key>increaseIndentPattern</key>
-			<string>^\s*&lt;(([^!/?]|%)(?!.+?([/%]&gt;|&lt;/.+?&gt;))|[%!]--\s*$)</string>
 		</dict>
 	</array>
 	<key>scopeName</key>

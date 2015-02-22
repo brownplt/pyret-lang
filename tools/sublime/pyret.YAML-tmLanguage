@@ -1,5 +1,5 @@
 # [PackageDev] target_format: plist, ext: tmLanguage
-# Pyret syntax file
+# Pyret syntax file for SublimeText - build with AAAPackageDev
 # Language: Pyret
 # Maintainer: Razi Shaban (rshaban1@swarthmore.edu)
 
@@ -12,23 +12,27 @@ uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 patterns:
 - comment: Delimiters
   name: keyword.other.delimiters.arr
-  match: (!|->|=>|:=|=|\[|\]|{|}|::|:)
+  match: (!|->|=>|:=|\[|\]|{|}|:\s)
 
 - comment: ()
-  name: variable.arr
-  match: (\(|\)|\.)
+  name: variable.arr # so that parentheses are recognized but not highlighted
+  match: (\(|\)|\.|::|=)
 
 - comment: #|
-  name: keyword.other.delimiters.arr
+  name: storage.type.delimiters.arr
   match: (\|)
 
 - comment: cases
-  name: keyword.cases.arr
+  name: variable.arr
   match: (^\s\|) ([a-zA-Z0-9\-]*) (=>)
 
 - comment: Now for basic keywords
   name: keyword.operators.arr
-  match: \b(var\b|^fun\b|^fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|if\b|else\b|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)
+  match: \s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b)
+
+- comment: Keywords that start a line
+  name: keyword.operators.arr
+  match: ^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b)
 
 - comment: cases
   name: variable.operators.arr
@@ -40,7 +44,6 @@ patterns:
     #'4': {name: variable.arr}
     '3': {name: string.arr}
     #'': {name: keyword.other.delimiters.arr}
-
 
 - comment: operators
   name: keyword.operator.arr
@@ -70,11 +73,10 @@ patterns:
   match: ( [0-9]+ )
   # ([^a-zA-Z][0-9]+)
 
-
+  # While these are defined in TextMate, I don't believe SublimeText respects
+  # them. The increaseIndentPattern is defined for <!-- as a test.
+- increaseIndentPattern: <!--
 - decreaseIndentPattern: (\:)
-- highlightPairs: 
-    ( ) [ ] { } / /
-- increaseIndentPattern:
-        ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
+- highlightPairs: ( ) [ ] { } / /
 
 
