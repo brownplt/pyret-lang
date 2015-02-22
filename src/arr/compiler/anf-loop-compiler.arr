@@ -567,8 +567,9 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   c-block(
     j-block([list: 
         j-if(rt-method("isPyretTrue", [list: cond.visit(compiler).exp]),
-          j-block([list: j-expr(j-assign(compiler.cur-step, consq-label)), j-break]),
-          j-block([list: j-expr(j-assign(compiler.cur-step, alt-label)), j-break]))
+          j-block([list: j-expr(j-assign(compiler.cur-step, consq-label))]),
+          j-block([list: j-expr(j-assign(compiler.cur-step, alt-label))])),
+        j-break
       ]),
     new-cases)
 end
