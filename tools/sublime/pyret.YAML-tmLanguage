@@ -2,6 +2,7 @@
 # Pyret syntax file for SublimeText - build with AAAPackageDev
 # Language: Pyret
 # Maintainer: Razi Shaban (rshaban1@swarthmore.edu)
+# SublimeText uses Oniguruma, the Ruby regex engine. Use http://rubular.com/ for testing 
 
 ---
 name: Pyret
