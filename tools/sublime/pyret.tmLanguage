@@ -16,7 +16,7 @@
 			<key>match</key>
 			<string>(!|\.|\||\(|\)|-&gt;|=&gt;|:=|=|\[|\]|{|}|::|:)</string>
 			<key>name</key>
-			<string>keyword.other.delimiter.arr</string>
+			<string>keyword.other.delimiters.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
@@ -24,7 +24,7 @@
 			<key>match</key>
 			<string>\b(var\b|fun\b|fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b|not\b|else:\s|if\b|else\b|cases\b|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)</string>
 			<key>name</key>
-			<string>keyword.control.arr</string>
+			<string>keyword.operators.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
@@ -32,45 +32,45 @@
 			<key>match</key>
 			<string>( \+ | - | \/ | \* | &gt; | &lt; | &gt;= | &lt;= | &lt;&gt; )</string>
 			<key>name</key>
-			<string>keyword.operator.arr</string>
+			<string>constant.language.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
 			<string>comments</string>
 			<key>match</key>
-			<string>(\#.*$)</string>
+			<string>\#.*$</string>
 			<key>name</key>
 			<string>comment.line.number-sign.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>(\s\")</string>
+			<string>\"</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
-			<string>(\")</string>
+			<string>\"</string>
 			<key>name</key>
-			<string>string.quoted.arr</string>
+			<string>string.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>(\s\')</string>
+			<string>\'</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
-			<string>(\')</string>
+			<string>\'</string>
 			<key>name</key>
-			<string>string.quoted.arr</string>
+			<string>string.arr</string>
 		</dict>
 		<dict>
 			<key>begin</key>
-			<string>(\s```)</string>
+			<string>(```)</string>
 			<key>comment</key>
 			<string>strings</string>
 			<key>end</key>
 			<string>(```)</string>
 			<key>name</key>
-			<string>string.quoted.arr</string>
+			<string>string.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>

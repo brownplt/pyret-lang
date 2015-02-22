@@ -11,34 +11,34 @@ uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
 
 patterns:
 - comment: Delimiters
-  name: keyword.other.delimiter.arr
+  name: keyword.other.delimiters.arr
   match: (!|\.|\||\(|\)|->|=>|:=|=|\[|\]|{|}|::|:)
 
 - comment: Now for basic keywords
-  name: keyword.control.arr
+  name: keyword.operators.arr
   match: \b(var\b|fun\b|fun:\s|end\b|with:\s|sharing:\s|data\b|import\b|provide\b|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b|not\b|else:\s|if\b|else\b|cases\b|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|lam\b|type-let\b|provide-types\b|newtype\b|type\b)
 
 - comment: operators
-  name: keyword.operator.arr
+  name: constant.language.arr
   match: ( \+ | - | \/ | \* | > | < | >= | <= | <> )
 
 - comment: comments
   name: comment.line.number-sign.arr
-  match: (\#.*$)
+  match: \#.*$
 
 - comment: strings
-  name: string.quoted.arr
-  begin: (\s\")
-  end: (\")
+  name: string.arr
+  begin: \"
+  end: \"
 
 - comment: strings
-  name: string.quoted.arr
-  begin: (\s\')
-  end: (\')
+  name: string.arr
+  begin: \'
+  end: \'
 
 - comment: strings
-  name: string.quoted.arr
-  begin: (\s```)
+  name: string.arr
+  begin: (```)
   end: (```)
 
 - comment: numbers
@@ -47,29 +47,10 @@ patterns:
   # ([^a-zA-Z][0-9]+)
 
 
+# - decreaseIndentPattern: (\:)
+# - highlightPairs: 
+#     ( ) [ ] { }
+# - increaseIndentPattern:
+#         ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
 
-- comment: 
-       /* Don't indentation
-        *  <?, </, <!
-        * <whatever></whatever>
-        * <whatever />
-        * <% %>
-        * <!-- -->
-        * <%-- --%>
-        *
-        * Do indent:
-        *  <whatever>
-        *  <%
-        *  <!--
-        *  <%--
-        *
-        * Decrease indent for:
-        *  </whatever>
-        *  -->
-        *  --%>
-        */
-    decreaseIndentPattern: ^\s*(</[^>]+>|-->|--%>)
-    highlightPairs:
-        ( ) [ ] { } "\"" "\"" < >
-    increaseIndentPattern:
-        ^\s*<(([^!/?]|%)(?!.+?([/%]>|</.+?>))|[%!]--\s*$)
+
