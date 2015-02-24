@@ -380,10 +380,11 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
         end
     end
   end
-  stack-attach-guard = if compiler.options.proper-tail-calls:
+  stack-attach-guard =
+    if compiler.options.proper-tail-calls:
       j-binop(rt-method("isCont", [list: j-id(e)]),
-                            j-and,
-                            j-parens(j-binop(j-id(step), j-neq, ret-label)))
+        j-and,
+        j-parens(j-binop(j-id(step), j-neq, ret-label)))
     else:
       rt-method("isCont", [list: j-id(e)])
     end
