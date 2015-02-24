@@ -44,9 +44,9 @@
 		</dict>
 		<dict>
 			<key>comment</key>
-			<string>Now for basic keywords</string>
+			<string>Basic keywords</string>
 			<key>match</key>
-			<string>\s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b)</string>
+			<string>\s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is&lt;=&gt;\s|is-not==\s|is-not=~\s|is-not&lt;=&gt;\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b|cases)</string>
 			<key>name</key>
 			<string>keyword.operators.arr</string>
 		</dict>
@@ -54,7 +54,7 @@
 			<key>comment</key>
 			<string>Keywords that start a line</string>
 			<key>match</key>
-			<string>^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b)</string>
+			<string>^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|check\s|cases)</string>
 			<key>name</key>
 			<string>keyword.operators.arr</string>
 		</dict>
@@ -91,6 +91,16 @@
 			<string>( \+ | - | \/ | \* | &gt; | &lt; | &gt;= | &lt;= | &lt;&gt; )</string>
 			<key>name</key>
 			<string>keyword.operator.arr</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>(#\|)</string>
+			<key>comment</key>
+			<string>multi-line comments</string>
+			<key>end</key>
+			<string>(\|#)</string>
+			<key>name</key>
+			<string>string.arr</string>
 		</dict>
 		<dict>
 			<key>comment</key>
