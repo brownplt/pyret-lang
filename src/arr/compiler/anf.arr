@@ -25,9 +25,7 @@ data ANFCont:
     apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(l2, v) =>
-          name = mk-id(l2, "cont_tail_app")
-          N.a-let(l, name.id-b, N.a-app(l, N.a-id(l, self.name), [list: v]),
-            N.a-lettable(l2, N.a-val(l2, name.id-e)))
+          N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: v]))
         | else =>
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")

@@ -51,6 +51,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
                   runtime.makeObject({
                     "check-mode": runtime.pyretTrue,
                     "allow-shadowed": runtime.pyretFalse,
+                    "proper-tail-calls": options.properTailCalls || true,
                     "collect-all": runtime.pyretFalse,
                     "type-check": runtime.makeBoolean(options.typeCheck || false),
                     "ignore-unbound": runtime.pyretFalse
