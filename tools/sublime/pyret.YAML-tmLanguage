@@ -27,13 +27,13 @@ patterns:
   name: variable.arr
   match: (^\s\|) ([a-zA-Z0-9\-]*) (=>)
 
-- comment: Now for basic keywords
+- comment: Basic keywords
   name: keyword.operators.arr
-  match: \s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b)
+  match: \s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b|cases)
 
 - comment: Keywords that start a line
   name: keyword.operators.arr
-  match: ^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b)
+  match: ^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|check\s|cases)
 
 - comment: cases
   name: variable.operators.arr
@@ -49,6 +49,11 @@ patterns:
 - comment: operators
   name: keyword.operator.arr
   match: ( \+ | - | \/ | \* | > | < | >= | <= | <> )
+  
+- comment: multi-line comments
+  name: string.arr
+  begin: (#\|)
+  end: (\|#)
 
 - comment: comments
   name: comment.line.number-sign.arr
