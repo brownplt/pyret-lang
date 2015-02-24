@@ -57,6 +57,7 @@ j-try-catch = J.j-try-catch
 j-throw = J.j-throw
 j-expr = J.j-expr
 j-binop = J.j-binop
+j-and = J.j-and
 j-eq = J.j-eq
 j-neq = J.j-neq
 j-geq = J.j-geq
@@ -379,6 +380,16 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
         end
     end
   end
+  stack-attach-guard =
+    if compiler.options.proper-tail-calls:
+      j-binop(rt-method("isCont", [list: j-id(e)]),
+        j-and,
+        j-parens(j-binop(j-id(step), j-neq, ret-label)))
+    else:
+      rt-method("isCont", [list: j-id(e)])
+    end
+
+    
   j-block([list:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
@@ -398,7 +409,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
         e,
         j-block(
           [list:
-            j-if1(rt-method("isCont", [list: j-id(e)]),
+            j-if1(stack-attach-guard,
               j-block([list: 
                   j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                       j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
@@ -545,7 +556,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
     j-block([list:
         check-fun(compiler.get-loc(l), compiled-f),
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-        j-expr(j-assign(step,  after-app-label)),
+        j-expr(j-assign(step, after-app-label)),
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         j-break]),
@@ -1317,8 +1328,9 @@ fun compile-program(self, l, imports, prog, freevars, env):
                         [list: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
 end
 
-fun non-splitting-compiler(env):
+fun non-splitting-compiler(env, options):
   compiler-visitor.{
+    options: options,
     a-program(self, l, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
