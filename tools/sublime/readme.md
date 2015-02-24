@@ -3,10 +3,12 @@ This folder contains an easily-editable syntax definition (pyret.YAML-tmLanguage
 **For users looking to get Pyret syntax highlighting in Sublime3:** simply make a copy of the tmLanguage file, and move it to the appropriate directory.
 
 Linux:
-	cp pyret.tmLanguage "/Users/USER/Library/Application Support/Sublime Text 3/Packages/User/"
+
+    cp pyret.tmLanguage "/Users/USER/Library/Application Support/Sublime Text 3/Packages/User/"
 	
 Windows: copy the file to your equivalent of
-  C:\Users\USER\AppData\Roaming\Sublime Text 3\Packages\User
+
+    C:\Users\USER\AppData\Roaming\Sublime Text 3\Packages\User
   
 Once the file is in this directory, Pyret should be a selectable option in the syntax chooser.
 
