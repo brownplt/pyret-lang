@@ -11,7 +11,7 @@ define([], function() {
   if (typeof setImmediate !== 'undefined') {
     suspend = setImmediate;
   }
-  else if (isBrowser() && window && window.postMessage) {
+  else if (isBrowser() && (typeof window !== "undefined") && window.postMessage) {
     var origin = String(window.location.origin);
     var postMessageCBToken = String(Math.random());
     var postMessageCBs = {};
