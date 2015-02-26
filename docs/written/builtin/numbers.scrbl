@@ -8,6 +8,38 @@
       (name "Number")
       (variants)
       (shared))
+    (data-spec
+      (name "Exactnum")
+      (variants)
+      (shared))
+    (data-spec
+      (name "Roughnum")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumInteger")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumRational")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumPositive")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumNegative")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumNonPositive")
+      (variants)
+      (shared))
+    (data-spec
+      (name "NumNonNegative")
+      (variants)
+      (shared))
   (fun-spec
     (name "num-equal")
     (arity 2)
