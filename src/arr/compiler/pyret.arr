@@ -25,14 +25,10 @@ end
 
 fun main(args):
   options = [D.string-dict:
-    "compile-standalone-js",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "compile-module-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
-    "libs",
-      C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
     "check-all",
@@ -112,18 +108,8 @@ fun main(args):
             raise("There were compilation errors")
         end
       else:
-        result = if r.has-key("compile-standalone-js"):
-          CM.compile-standalone-js-file(
-            r.get-value("compile-standalone-js"),
-            libs,
-            {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed
-            }
-            )
-        else if r.has-key("compile-module-js"):
-          CM.compile-js(
+        if r.has-key("compile-module-js"):
+          result = CM.compile-js(
             CM.start,
             r.get-value("dialect"),
             F.file-to-string(r.get-value("compile-module-js")),
@@ -138,18 +124,18 @@ fun main(args):
               proper-tail-calls: tail-calls
             }
             ).result
+          cases(CS.CompileResult) result:
+            | ok(comp-object) => comp-object.print-js-runnable(display)
+            | err(errors) =>
+              print-error("Compilation errors:")
+              for lists.each(e from errors):
+                print-error(tostring(e))
+              end
+              raise("There were compilation errors")
+          end
         else:
           print(C.usage-info(options).join-str("\n"))
           raise("Unknown command line options")
-        end
-        cases(CS.CompileResult) result:
-          | ok(comp-object) => comp-object.print-js-runnable(display)
-          | err(errors) =>
-            print-error("Compilation errors:")
-            for lists.each(e from errors):
-              print-error(tostring(e))
-            end
-            raise("There were compilation errors")
         end
       end
     | arg-error(message, partial) =>

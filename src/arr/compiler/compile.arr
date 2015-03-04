@@ -100,16 +100,3 @@ fun compile-runnable-js-file(dialect, js-file, libs, options) -> C.CompileResult
   compile-runnable-js(dialect, code, js-file, libs, options)
 end
 
-fun compile-standalone-js-file(dialect, js-file, libs, options) -> C.CompileResult<P.CompiledCodePrinter, Any>:
-  code = F.file-to-string(js-file)
-  compile-standalone-js(dialect, code, js-file, libs, options)
-end
-
-fun compile-standalone-js(code, name, libs, options) -> C.CompileResult<String, Any>:
-  result = compile-js(start, code, name, libs, options.{collect-all: false, ignore-unbound: false}).result
-  cases (C.CompileResult) result:
-    | ok(comp) => C.ok(comp.pyret-to-js-standalone())
-    | err(_) => result
-  end
-end
-

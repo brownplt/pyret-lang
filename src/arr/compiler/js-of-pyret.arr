@@ -13,9 +13,6 @@ import "compiler/js-ast.arr" as J
 
 data CompiledCodePrinter:
   | ccp(compiled :: J.JExpr) with:
-    pyret-to-js-standalone(self) -> String:
-      raise("Cannot generate standalone JS")
-    end,
     pyret-to-js-pretty(self, width) -> String:
       self.compiled.tosource().pretty(width).join-str("\n")
     end,
@@ -26,9 +23,6 @@ data CompiledCodePrinter:
       self.compiled.print-ugly-source(printer)
     end
   | ccp-string(compiled :: String) with:
-    pyret-to-js-standalone(self) -> String:
-      raise("Cannot generate standalone JS")
-    end,
     pyret-to-js-pretty(self, width) -> String:
       raise("Cannot generate pretty JS from code string")
     end,
