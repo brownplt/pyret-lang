@@ -1,24 +1,8 @@
 
-import "compiler/compile.arr" as CM
+import "../test-compile-helper.arr" as C
 import "compiler/compile-structs.arr" as CS
 
-compile-str = lam(str):
-  CM.compile-js(
-          CM.start,
-          "Pyret",
-          str,
-          "test",
-          CS.standard-builtins,
-          {
-            check-mode : true,
-            allow-shadowed : false,
-            collect-all: false,
-            type-check: false,
-            ignore-unbound: false
-          }
-          ).result
-end
-
+compile-str = C.compile-str
 is-unbound-failure = lam(e): CS.is-err(e) and CS.is-unbound-id(e.problems.first) end
 is-pointless-rec = lam(e): CS.is-err(e) and CS.is-pointless-rec(e.problems.first) end
 is-ok = CS.is-ok

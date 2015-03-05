@@ -14,7 +14,8 @@ compile-str = lam(str):
             allow-shadowed : false,
             collect-all: false,
             type-check: false,
-            ignore-unbound: false
+            ignore-unbound: false,
+            proper-tail-calls: true,
           }
           ).result
 end

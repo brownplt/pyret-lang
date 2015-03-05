@@ -1,0 +1,88 @@
+# [PackageDev] target_format: plist, ext: tmLanguage
+# Pyret syntax file for SublimeText - build with AAAPackageDev
+# Language: Pyret
+# Maintainer: Razi Shaban (rshaban1@swarthmore.edu)
+# SublimeText uses Oniguruma, the Ruby regex engine. Use http://rubular.com/ for testing 
+
+---
+name: Pyret
+scopeName: source.arr
+fileTypes: [arr]
+uuid: 1455576b-4f6f-4650-bc99-ae682419cd2a
+
+patterns:
+- comment: Delimiters
+  name: keyword.other.delimiters.arr
+  match: (!|->|=>|:=|\[|\]|{|}|:\s)
+
+- comment: ()
+  name: variable.arr # so that parentheses are recognized but not highlighted
+  match: (\(|\)|\.|::|=)
+
+- comment: #|
+  name: storage.type.delimiters.arr
+  match: (\|)
+
+- comment: cases
+  name: variable.arr
+  match: (^\s\|) ([a-zA-Z0-9\-]*) (=>)
+
+- comment: Basic keywords
+  name: keyword.operators.arr
+  match: \s(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|var\b|fun:\s|with:\s|sharing:\s|as\b|try:\s|except\b|when\b|for\b|from\b|check:\s|where:\s|doc:\s|and\b|or\b| not |else:\s|\sif\s|is==\s|is=~\s|is<=>\s|is-not==\s|is-not=~\s|is-not<=>\s|is-not\b|is\s|raises\b|deriving\b|ref\b|graph:\s|m-graph:\s|block:\s|satisfies\b|shadow\b|\slam\b|type-let\b|provide-types\b|newtype\b|cases)
+
+- comment: Keywords that start a line
+  name: keyword.operators.arr
+  match: ^(fun\s|where:|end\s|type\s|data\b|import\b|provide\b|check\s|cases)
+
+- comment: cases
+  name: variable.operators.arr
+  match: (cases)\(([a-zA-Z\-<>]*)\) ([a-zA-Z\-]*)(\:)
+  captures:
+    '1': {name: keyword.operators.case.arr}
+    #'2': {name: variable.arr}
+    '2': {name: storage.type.class.arr}
+    #'4': {name: variable.arr}
+    '3': {name: string.arr}
+    #'': {name: keyword.other.delimiters.arr}
+
+- comment: operators
+  name: keyword.operator.arr
+  match: ( \+ | - | \/ | \* | > | < | >= | <= | <> )
+  
+- comment: multi-line comments
+  name: string.arr
+  begin: (#\|)
+  end: (\|#)
+
+- comment: comments
+  name: comment.line.number-sign.arr
+  match: \#.*$
+
+- comment: strings
+  name: string.arr
+  begin: \"
+  end: \"
+
+- comment: strings
+  name: string.arr
+  begin: \'
+  end: \'
+
+- comment: strings
+  name: string.arr
+  begin: (```)
+  end: (```)
+
+- comment: numbers
+  name: constant.numeric.arr
+  match: ( [0-9]+ )
+  # ([^a-zA-Z][0-9]+)
+
+  # While these are defined in TextMate, I don't believe SublimeText respects
+  # them. The increaseIndentPattern is defined for <!-- as a test.
+- increaseIndentPattern: <!--
+- decreaseIndentPattern: (\:)
+- highlightPairs: ( ) [ ] { } / /
+
+

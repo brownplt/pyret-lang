@@ -1,31 +1,17 @@
 #lang pyret
 
 import exec as X
-import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
+import "../test-compile-helper.arr" as C
+
+compile-str = C.compile-str
 
 exec-result = lam(result):
   str = result.code.pyret-to-js-runnable()
   X.exec(str, "test", ".", true, "Pyret", [list:])
 end
-compile-str = lam(str):
-  CM.compile-js(
-          CM.start,
-          "Pyret",
-          str,
-          "test",
-          CS.standard-builtins,
-          {
-            check-mode : true,
-            allow-shadowed : false,
-            collect-all: false,
-            type-check: false,
-            ignore-unbound: false
-          }
-          ).result
-end
 run-str = lam(str):
-  compiled = compile-str(str)
+  compiled = C.compile-str(str)
   cases(CS.CompileResult) compiled:
     | ok(code) => exec-result(compiled)
     | err(errs) => raise("Compilation failure when a run was expected " + torepr(errs) + "\n Program was:\n " + str)
