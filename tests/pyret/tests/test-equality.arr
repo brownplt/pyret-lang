@@ -112,8 +112,8 @@ check "identical pre-check overrides method in true case, but not in false case"
   eq-none is-not=~ eq-all
 end
 
-f-func-err = "Attempted to compare functions"
-f-meth-err = "Attempted to compare methods"
+f-func-err = "Functions"
+f-meth-err = "Methods"
 f = lam(): "no-op" end
 m = method(self): "no-op" end
 
@@ -205,7 +205,7 @@ check:
   s1 = [list: 1, long-equals, 3, 4]
   s2 = [list: 1, {}, 3, 4]
 
-  equal-always(s1, s2) raises "functions"
+  equal-always(s1, s2) raises "Functions"
 end
 
 check "non-equality result from equals":

@@ -1,3 +1,5 @@
+import equality as equality
+
 check "roughnum":
   local-within-abs = lam(delta):
             lam(a, b):
@@ -11,7 +13,7 @@ check "roughnum":
   1 < 2 is true
   ~1 < ~2 is true
   2 == (1 + 1) is true
-  ~2 == (~1 + ~1) raises "roughnum"
+  ~2 == (~1 + ~1) raises "Roughnum"
   ~2 is%(local-within-abs(~0.01)) (~1 + ~1)
   #
   # but we can also use builtin num-within, within
@@ -133,6 +135,29 @@ end
 
 check "comparing MAX_VALUEs":
    1.7976931348623157e+308 -  1.7976931348623157e+308 is                  0
+end
+check "comparing rough MAX_VALUEs":
   ~1.7976931348623157e+308 - ~1.7976931348623157e+308 is%(within-abs(0.001)) ~0
    1.7976931348623157e+308 - ~1.7976931348623157e+308 is%(within-abs(0.001)) ~0
 end
+
+check "identical":
+  roughly-4 = ~4
+  identical3(roughly-4, roughly-4) satisfies equality.is-Unknown
+  identical3(~3, ~3) satisfies equality.is-Unknown
+  identical3(~2, ~3) satisfies equality.is-Unknown
+  identical3(~2, lam(): 5 end) satisfies equality.is-NotEqual
+  identical3(lam(): 5 end, ~2) satisfies equality.is-NotEqual
+  identical3(~2, 2) satisfies equality.is-NotEqual
+  identical3(2, ~2) satisfies equality.is-NotEqual
+
+  identical(~2, ~2) raises-satisfies error.is-equality-failure
+  identical(~2, ~3) raises-satisfies error.is-equality-failure
+
+  ~2 is-not<=> lam(): 5 end
+  ~2 is-not<=> method(self): 5 end
+  lam(): 5 end is-not<=> ~2
+  method(self): 5 end is-not<=> ~2
+end
+
+

@@ -91,6 +91,12 @@ data RuntimeError:
     _tostring(self, shadow tostring):
       "Error: Bad array index " + tostring(self.index) + " in " + self.method-name + ": " + self.reason
     end
+  | equality-failure(reason :: String, value1, value2) with:
+    _tostring(self, shadow tostring):
+      "Error: Attempted to compare incomparable values " + torepr(self.value1) +
+        " and " + torepr(self.value2) + "; " + self.reason
+    end
+
   | user-break
 end
 

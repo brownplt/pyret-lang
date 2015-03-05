@@ -2,6 +2,7 @@
 
 provide *
 provide-types *
+import error as error
 
 data EqualityResult:
   | Equal
@@ -29,7 +30,7 @@ end
 
 fun to-boolean(er :: EqualityResult):
   cases(EqualityResult) er:
-    | Unknown(_, _, _) => raise("Equality check on functions or methods or roughnums")
+    | Unknown(r, v1, v2) => raise(error.equality-failure(r, v1, v2))
     | Equal => true
     | NotEqual(_,_,_) => false
   end
