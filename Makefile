@@ -22,7 +22,7 @@ LIBS_JS         := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
 # You can download the script to work with s3 here:
-# 
+#
 #     http://aws.amazon.com/code/Amazon-S3/1710
 #
 # On Debian, you need the following packages:
@@ -65,7 +65,6 @@ DOCS_DIRS       := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
 
-
 endef
 ifneq ($(findstring .exe,$(SHELL)),)
 	override SHELL:=$(COMSPEC)$(ComSpec)
@@ -78,8 +77,6 @@ else
 	RM = rm -f $1
 	VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{ print $$1 "r" $$2 }')
 endif
-
-
 
 -include config.mk
 
@@ -106,7 +103,6 @@ phase3: $(PHASE3)/phase3.built
 $(PHASE3)/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
 	touch $(PHASE3)/phase3.built
 
-
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
 $(PHASE2_ALL_DEPS): | $(PHASE2) phase1
@@ -122,7 +118,6 @@ standalone2: phase2 $(PHASE2)/pyret.js
 .PHONY : standalone3
 standalone3: phase3 $(PHASE3)/pyret.js
 
-
 $(PHASE1):
 	@$(call MKDIR,$(PHASE1_DIRS))
 
@@ -135,7 +130,6 @@ $(PHASE3):
 $(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
 		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
-
 
 $(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
 	cd $(PHASE2) && \
@@ -154,13 +148,13 @@ $(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
 $(PHASE3)/pyret-start.js: src/scripts/pyret-start.js
 	cp $< $@
 
-$(PHASE1)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE1)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
-$(PHASE2)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE2)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
-$(PHASE3)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE3)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
 $(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
@@ -221,7 +215,6 @@ $(DOCS)/written/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.
 $(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
 	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
 
-
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
@@ -268,7 +261,6 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 install:
 	@$(call MKDIR,node_modules)
 	npm install
-
 
 .PHONY : test
 test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
@@ -341,7 +333,6 @@ type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
     --module-load-dir tests/type-check \
     -check-all tests/type-check/main.arr
 
-
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
@@ -371,13 +362,11 @@ clean:
 	$(call RMDIR,$(PHASE3))
 	$(call RMDIR,$(RELEASE_DIR))
 
-
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
 	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
 no-diff-standalone: standalone2 standalone3
 	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
-
 
 $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
@@ -406,4 +395,3 @@ release:
 test-release: release-gzip
 	$(error Cannot release from this platform)
 endif
-
