@@ -135,7 +135,6 @@ define(["trove/arrays",
           loadRuntime.setParam("current-checker", currentChecker);
           runtime.pauseStack(function(restarter) {
             loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
-              console.log("Success: ", result);
               restarter.resume(makeModuleResult(loadRuntime, result));
             });
           });
