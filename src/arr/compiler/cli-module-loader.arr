@@ -1,10 +1,10 @@
 provide *
 import namespace-lib as N
 import runtime-lib as R
-#import builtin-modules as B
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/locators/file.arr" as FL
+import "compiler/locators/builtin.arr" as BL
 
 fun module-finder(ctxt, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
@@ -15,7 +15,7 @@ fun module-finder(ctxt, dep :: CS.Dependency):
         raise("Unknown import type: " + protocol)
       end
     | builtin(modname) =>
-      raise("can't handle builtin modules yet")
+      BL.make-builtin-locator(modname)
   end
 end
 

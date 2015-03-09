@@ -98,7 +98,7 @@ define(["trove/arrays",
               return gf(gf(gf(compileResult, "result-printer"), "code"), "pyret-to-js-runnable").app();
             }
             else {
-              return runtime.getField(compileResult, "pre-loaded");
+              return runtime.getField(compileResult, "internal-mod");
             }
           }, function(toExec) {
             runtime.pauseStack(function(restart) {
@@ -109,7 +109,7 @@ define(["trove/arrays",
               }
               else {
                 // Don't auto-include the builtins for preloaded stuff
-                var loaded = loader.loadClosure(loadRuntime, toExec, dependencies);
+                var loaded = loader.loadClosure(loadRuntime, toExec.val, dependencies);
               }
               loaded.fail(function(err) {
                 restart.error(runtime.ffi.makeMessageException(String(err)));

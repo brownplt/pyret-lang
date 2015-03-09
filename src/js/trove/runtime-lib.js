@@ -1,5 +1,5 @@
 define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
-  return util.memoModule("namespace-lib.js", function(runtime, ns) {
+  return util.memoModule("runtime-lib.js", function(runtime, ns) {
     var get = runtime.getField;
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);

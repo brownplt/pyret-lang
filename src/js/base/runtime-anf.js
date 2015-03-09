@@ -3844,7 +3844,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function loadModule(module, runtime, namespace, withModule) {
       var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {
-          return module(thisRuntime, namespace);
+          if(typeof module === "function") {
+            return module(thisRuntime, namespace);
+          }
+          else if (typeof module === "object") {
+            console.log("Loading module ", module);
+            var innerModule = module.theModule();
+            console.log("One step ", innerModule);
+            return innerModule(thisRuntime, namespace);
+          }
         },
         withModule, "loadModule(" + modstring.substring(0, 70) + ")");
     }

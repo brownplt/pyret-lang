@@ -55,7 +55,7 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
   function loadClosure(runtime, mod, dependencies) {
     var deferred = Q.defer();
     try {
-      var answer = mod.theModule.apply(null, dependencies);
+      var answer = mod.apply(null, dependencies);
       deferred.resolve(answer);
     } catch(e) {
       deferred.reject(e);

@@ -36,8 +36,7 @@ define([], function() {
     suspend = function(f) { setTimeout(f, 0); };
   }
 
-  function memoModule(name, moduleFun) {
-    var modname = gensym(name);
+  function memoModule(modname, moduleFun) {
     return function(RUNTIME, NAMESPACE) {
 
       if(RUNTIME.modules[modname]) {
@@ -60,9 +59,27 @@ define([], function() {
       }
     };
   }
+
+  function definePyretModule(name, deps, provides, func) {
+    var modname = gensym(name);
+    return {
+      dependencies: deps,
+      provides: provides,
+      theModule: function(/* varargs */) {
+        var pyretDependencies = arguments;
+        return memoModule(modname, function(runtime, namespace) {
+          console.log("Inside memo'd module", func);
+          return func.apply(null, [runtime, namespace].concat(pyretDependencies));
+        });
+      }
+    };
+  }
+
   return {
       memoModule: memoModule,
       isBrowser: isBrowser,
-      suspend: suspend
+      suspend: suspend,
+      definePyretModule: definePyretModule,
+      isBrowser: isBrowser
     };
 });
