@@ -7,6 +7,7 @@ import string-dict as D
 import "compiler/compile.arr" as CM
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
+import "compiler/cli-module-loader.arr" as CLI
 import format as Format
 import either as E
 import "compiler/initialize-trove.arr" as IT
@@ -27,6 +28,10 @@ fun main(args):
   options = [D.string-dict:
     "compile-module-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+    "build",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+    "run",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
@@ -108,7 +113,20 @@ fun main(args):
             raise("There were compilation errors")
         end
       else:
-        if r.has-key("compile-module-js"):
+        if r.has-key("build"):
+          result = CLI.compile(r.get-value("build"))
+          failures = filter(CS.is-err, result)
+          when is-link(failures):
+            for each(f from failures):
+              for lists.each(e from f.errors):
+                print-error(tostring(e))
+              end
+              raise("There were compilation errors")
+            end
+          end
+        else if r.has-key("run"):
+          CLI.run(r.get-value("run"))
+        else if r.has-key("compile-module-js"):
           result = CM.compile-js(
             CM.start,
             r.get-value("dialect"),

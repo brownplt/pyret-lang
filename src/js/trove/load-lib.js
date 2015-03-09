@@ -93,11 +93,24 @@ define(["trove/arrays",
           var modArr = runtime.ffi.toArray(listOfMods);
           var dependencies = modArr.map(function(m) { return runtime.getField(m, "modval").val.moduleFun; });
           return runtime.safeCall(function() {
-            return runtime.getField(compileResult, "pyret-to-js-runnable").app();
+            if (runtime.hasField(compileResult, "result-printer")) {
+              var gf = runtime.getField;
+              return gf(gf(gf(compileResult, "result-printer"), "code"), "pyret-to-js-runnable").app();
+            }
+            else {
+              return runtime.getField(compileResult, "pre-loaded");
+            }
           }, function(toExec) {
             runtime.pauseStack(function(restart) {
-              var fullDeps = [arrays, errors, lists, option, sets].concat(dependencies);
-              var loaded = loader.loadSingle(loadRuntime, toExec, fullDeps);
+              if (typeof toExec === "string") {
+                // For now, a statically-determined list of defaults
+                var fullDeps = [arrays, errors, lists, option, sets].concat(dependencies);
+                var loaded = loader.loadSingle(loadRuntime, toExec, fullDeps);
+              }
+              else {
+                // Don't auto-include the builtins for preloaded stuff
+                var loaded = loader.loadClosure(loadRuntime, toExec, dependencies);
+              }
               loaded.fail(function(err) {
                 restart.error(runtime.ffi.makeMessageException(String(err)));
               });
@@ -122,6 +135,7 @@ define(["trove/arrays",
           loadRuntime.setParam("current-checker", currentChecker);
           runtime.pauseStack(function(restarter) {
             loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
+              console.log("Success: ", result);
               restarter.resume(makeModuleResult(loadRuntime, result));
             });
           });

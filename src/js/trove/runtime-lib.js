@@ -11,7 +11,9 @@ define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
 
     function makeRuntime() {
       return applyBrand(brandRuntime, runtime.makeObject({
-        "runtime": runtime.makeOpaque(runtimeLib.makeRuntime({}))
+        "runtime": runtime.makeOpaque(runtimeLib.makeRuntime({
+          stdout: runtime.stdout
+        }))
       }));
     }
     return runtime.makeObject({

@@ -1,4 +1,3 @@
-
 define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton"],
        function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {

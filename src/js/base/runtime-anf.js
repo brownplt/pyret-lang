@@ -4384,7 +4384,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         },
         'getParam' : getParam,
         'setParam' : setParam,
-        'hasParam' : hasParam
+        'hasParam' : hasParam,
+        'stdout' : theOutsideWorld.stdout
     };
 
     makePrimAnn("Number", isNumber);

@@ -33,7 +33,7 @@ fun mockable-file-locator(file-ops):
     end,
     get-compile-env(self): self.cenv end,
     set-compiled(self, cr, deps):
-      cases(CS.CompileResult) cr:
+      cases(CS.CompileResult) cr.result-printer:
         | ok(ccp) =>
           cpath = self.path + ".js"
           f = file-ops.output-file(cpath)
@@ -62,9 +62,9 @@ fun mockable-file-locator(file-ops):
         # otherwise we could just use needs-compile to decide whether to
         # fetch or not (since otherwise they're very similar)
         cfp = file-ops.input-file(cpath)
-        ctimes = cfp.file-times(cpath)
+        ctimes = file-ops.file-times(cpath)
         if ctimes.mtime > stimes.mtime:
-          ret = some(JSP.ccp-string(cfp.read-file()))
+          ret = some(CL.module-as-string(CS.ok(JSP.ccp-string(cfp.read-file()))))
           cfp.close-file()
           ret
         else:
@@ -82,7 +82,7 @@ end
 
 file-locator = mockable-file-locator({
     input-file: F.input-file,
-    output-file: F.output-file,
+    output-file: F.output-file(_, false),
     file-exists: F.file-exists,
     file-times: F.file-times,
 })

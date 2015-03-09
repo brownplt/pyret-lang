@@ -32,7 +32,7 @@ end
 
 fun file-times(path :: String):
   f = input-file(path)
-  ts = F.file-times(f)
+  ts = F.file-times(f.inner-file)
   f.close-file()
   ts
 end

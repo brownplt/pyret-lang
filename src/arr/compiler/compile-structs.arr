@@ -17,6 +17,9 @@ data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
     with:
     key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
+  | builtin(modname :: String)
+    with:
+    key(self): "builtin(" + self.modname + ")" end
 end
 
 data CompileEnvironment:
