@@ -24,7 +24,6 @@ fun make-provides(raw-provides):
 end
 
 fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
-  print("Loading: " + builtin-name)
   raw = B.builtin-raw-locator(builtin-name)  
   {
     needs-compile(_, _): false end,

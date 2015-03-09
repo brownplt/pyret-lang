@@ -21,3 +21,4 @@ import "./tests/test-compile-errors.arr" as _
 import "./tests/test-file.arr" as _
 import "./tests/test-path.arr" as _
 import "./tests/test-file-locators.arr" as _
+import "./tests/test-builtin-locator.arr" as _

@@ -68,7 +68,6 @@ define([], function() {
       theModule: function(/* varargs */) {
         var pyretDependencies = arguments;
         return memoModule(modname, function(runtime, namespace) {
-          console.log("Inside memo'd module", func);
           return func.apply(null, [runtime, namespace].concat(pyretDependencies));
         });
       }

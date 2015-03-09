@@ -65,7 +65,6 @@ check:
       CM.dependency("protocol", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
   wlist.length() is 4
-  print(torepr(wlist))
   wlist.get(3).locator is floc
   wlist.get(2).locator.uri() is "pyret-builtin://string-dict"
   wlist.get(1).locator is string-to-locator("bar")
