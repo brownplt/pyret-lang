@@ -647,8 +647,8 @@ define([
                   this.y1        === other.y1 &&
                   this.x2        === other.x2 &&
                   this.y2        === other.y2 &&
-                  equals(this.img1, other.img1) &&
-                  equals(this.img2, other.img2) );
+                  imageEquals(this.img1, other.img1) &&
+                  imageEquals(this.img2, other.img2) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -711,7 +711,7 @@ define([
                   this.angle     === other.angle &&
                   this.translateX=== other.translateX &&
                   this.translateY=== other.translateY &&
-                  equals(this.img, other.img) );
+                  imageEquals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -755,7 +755,7 @@ define([
                   this.height    === other.height &&
                   this.xFactor   === other.xFactor &&
                   this.yFactor   === other.yFactor &&
-                  equals(this.img, other.img) );
+                  imageEquals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -790,7 +790,7 @@ define([
                   this.height    === other.height &&
                   this.x         === other.x &&
                   this.y         === other.y &&
-                  equals(this.img, other.img) );
+                  imageEquals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -820,7 +820,7 @@ define([
           if (!(other instanceof FrameImage)) {
             return BaseImage.prototype.equals.call(this, other);
           }
-          return equals(this.img, other.img);
+          return imageEquals(this.img, other.img);
         };
 
         //////////////////////////////////////////////////////////////////////
@@ -868,7 +868,7 @@ define([
           return (this.width     === other.width &&
                   this.height    === other.height &&
                   this.direction === other.direction &&
-                  equals(this.img, other.img) );
+                  imageEquals(this.img, other.img) );
         };
 
         //////////////////////////////////////////////////////////////////////

@@ -525,7 +525,6 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('#|||#')).not.toBe(false);
       expect(parse('#||||||#')).not.toBe(false);
       expect(parse('#| | # | # | # | # |#')).not.toBe(false);
-      expect(parse('#|#|#')).not.toBe(false);
       expect(parse('#| back to |##| back |#')).not.toBe(false);
       expect(parse('#||##||#')).not.toBe(false);
       expect(parse('#|\n|#')).not.toBe(false);
@@ -533,9 +532,12 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse(' #||#')).not.toBe(false);
       expect(parse('\n#||#')).not.toBe(false);
       expect(parse('\r\n#||#')).not.toBe(false);
-      // No nesting yet
-      expect(parse('#| #| |#')).not.toBe(false);
-      expect(parse('#|#||#')).not.toBe(false);
+      // Unterminated comments
+      expect(parse('#| #| |#')).toBe(false);
+      expect(parse('#|#||#')).toBe(false);
+      expect(parse('#|#|#')).toBe(false);
+      // Nested comments
+      expect(parse('x = #| not #| parsed |# here either |# 5')).not.toBe(false);
 
       expect(parse('#| |# # extra hash for line comment')).not.toBe(false);
       expect(parse('#| |# closing hash doesn\'t count as line comment')).toBe(false);

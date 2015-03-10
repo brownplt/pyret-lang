@@ -40,6 +40,8 @@ fun main(args):
       C.flag(C.once, "Skip checks"),
     "allow-shadow",
       C.flag(C.once, "Run without checking for shadowed variables"),
+    "improper-tail-calls",
+      C.flag(C.once, "Run without proper tail calls"),
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
     "dialect",
@@ -67,6 +69,7 @@ fun main(args):
       module-dir = r.get-value("module-load-dir")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
+      tail-calls = not(r.has-key("improper-tail-calls"))
       if not(is-empty(rest)):
         program-name = rest.first
         result = CM.compile-js(
@@ -80,7 +83,8 @@ fun main(args):
             allow-shadowed : allow-shadowed,
             collect-all: false,
             type-check: type-check,
-            ignore-unbound: false
+            ignore-unbound: false,
+            proper-tail-calls: tail-calls
           }
           ).result
         cases(CS.CompileResult) result:
@@ -129,7 +133,8 @@ fun main(args):
               type-check : type-check,
               allow-shadowed : allow-shadowed,
               collect-all: false,
-              ignore-unbound: false
+              ignore-unbound: false,
+              proper-tail-calls: tail-calls
             }
             ).result
         else:

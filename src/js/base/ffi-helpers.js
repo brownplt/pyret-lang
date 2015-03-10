@@ -6,10 +6,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
       var gf = runtime.getField;
 
+      var lnk = gf(L, "link").app;
+      var mt = gf(L, "empty");
       function makeList(arr) {
-        var lst = gf(L, "empty");
+        var lst = mt;
         for(var i = arr.length - 1; i >= 0; i--) {
-          lst = gf(L, "link").app(arr[i], lst);
+          lst = lnk(arr[i], lst);
         }
         return lst;
       }

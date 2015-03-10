@@ -2730,7 +2730,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           val = restartVal;
           TOS++;
           RUN_ACTIVE = true;
-          setTimeout(iter, 0);
+          util.suspend(iter);
         },
         break: breakFun,
         error: function(errVal) {
@@ -2784,7 +2784,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             if(!sync && frameCount++ > 100) {
               TOS++;
               // console.log("Setting timeout to resume iter");
-              setTimeout(iter, 0);
+              util.suspend(iter);
               return;
             }
             var next = theOneTrueStack[--theOneTrueStackHeight];
@@ -2834,7 +2834,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
               else {
                 TOS++;
-                setTimeout(iter, 0);
+                util.suspend(iter);
                 return;
               }
             }

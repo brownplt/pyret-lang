@@ -242,7 +242,8 @@
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?_ "w" st)
     (modify-syntax-entry ?$ "w" st)
-    (modify-syntax-entry ?# "< b" st)
+    (modify-syntax-entry ?# "< 14b" st)
+    (modify-syntax-entry ?| ". 23n" st)
     (modify-syntax-entry ?\n "> b" st)
     (modify-syntax-entry ?: "." st)
     (modify-syntax-entry ?^ "." st)
@@ -285,6 +286,13 @@
 
 (defsubst pyret-in-string ()
   (equal (get-text-property (point) 'face) 'font-lock-string-face))
+(defun pyret-in-long-string ()
+  (and (pyret-in-string)
+       (save-excursion
+         (goto-char (previous-single-property-change (point) 'face))
+         (pyret-in-string))))
+(defsubst pyret-in-comment ()
+  (equal (get-text-property (point) 'face) 'font-lock-comment-face))
 (defsubst pyret-keyword (s) 
   (if (or (pyret-is-word (preceding-char))
           (pyret-in-string)) nil
@@ -302,7 +310,8 @@
           t))))))
 (defsubst pyret-char (c)
   (and (= (char-after) c)
-       (not (pyret-in-string))))
+       (not (pyret-in-string))
+       (not (pyret-in-comment))))
       
 (defsubst pyret-FUN () (pyret-keyword "fun"))
 (defsubst pyret-LAM () (pyret-keyword "lam"))
@@ -357,6 +366,7 @@
 (defsubst pyret-LPAREN () (pyret-char ?())
 (defsubst pyret-RPAREN () (pyret-char ?)))
 (defsubst pyret-EQUALS () (and (not (pyret-in-string)) (looking-at "=[^>]")))
+(defsubst pyret-BLOCK-COMMENT () (and (not (pyret-in-string)) (looking-at "[ \t]*#|")))
 (defsubst pyret-COMMENT () (and (not (pyret-in-string)) (looking-at "[ \t]*#.*$")))
 
 (defun pyret-has-top (stack top)
@@ -367,10 +377,11 @@
 
 (defstruct
   (pyret-indent
-   (:constructor pyret-make-indent (fun cases data shared try except graph parens object vars fields initial-period))
+   (:constructor pyret-make-indent 
+                 (fun cases data shared try except graph parens object 
+                  vars fields initial-period block-comment-depth))
    :named)
-   fun cases data shared try except graph parens object vars fields initial-period)
-
+   fun cases data shared try except graph parens object vars fields initial-period block-comment-depth)
 (defun pyret-map-indent (f total delta)
   (let* ((len (length total))
          (ret (make-vector len nil))
@@ -393,7 +404,7 @@
       (incf sum (aref total i))
       (incf i))
     sum))
-(defun pyret-make-zero-indent () (pyret-make-indent 0 0 0 0 0 0 0 0 0 0 0 0))
+(defun pyret-make-zero-indent () (pyret-make-indent 0 0 0 0 0 0 0 0 0 0 0 0 0))
 (defun pyret-zero-indent! (ind)
   (let ((i 1)
         (len (length ind)))
@@ -409,7 +420,7 @@
 
 (defun pyret-print-indent (ind)
   (format
-   "Fun %d, Cases %d, Data %d, Shared %d, Try %d, Except %d, Graph %s, Parens %d, Object %d, Vars %d, Fields %d, Period %d"
+   "Fun %d, Cases %d, Data %d, Shared %d, Try %d, Except %d, Graph %s, Parens %d, Object %d, Vars %d, Fields %d, Period %d, Block comment depth %d"
    (pyret-indent-fun ind)
    (pyret-indent-cases ind)
    (pyret-indent-data ind)
@@ -421,7 +432,8 @@
    (pyret-indent-object ind)
    (pyret-indent-vars ind)
    (pyret-indent-fields ind)
-   (pyret-indent-initial-period ind)))
+   (pyret-indent-initial-period ind)
+   (pyret-indent-block-comment-depth ind)))
 
 (defun pyret-make-zero-vector (length)
   (let ((v (make-vector length nil))
@@ -498,6 +510,30 @@
         ;;(message "At start of line %d, open is %s" (+ n 1) open)
         (while (not (eolp))
           (cond
+           ((or (> (pyret-indent-block-comment-depth cur-opened) 0)
+                (> (pyret-indent-block-comment-depth defered-opened) 0)
+                (> (pyret-indent-block-comment-depth open) 0))
+            (cond
+             ((looking-at ".*|#")
+              (cond
+               ((> (pyret-indent-block-comment-depth cur-opened) 0) 
+                (decf (pyret-indent-block-comment-depth cur-opened)))
+               ((> (pyret-indent-block-comment-depth defered-opened) 0)
+                (decf (pyret-indent-block-comment-depth defered-opened)))
+               ((looking-at "[ \t]*|#")
+                (incf (pyret-indent-block-comment-depth cur-closed)))
+               (t 
+                (incf (pyret-indent-block-comment-depth defered-closed))))
+              (goto-char (match-end 0)))
+             ((pyret-BLOCK-COMMENT)
+              (incf (pyret-indent-block-comment-depth defered-opened))
+              (goto-char (match-end 0)))
+             (t
+              (end-of-line)))
+            )
+           ((pyret-BLOCK-COMMENT)
+            (incf (pyret-indent-block-comment-depth defered-opened))
+            (goto-char (match-end 0)))
            ((pyret-COMMENT)
             (end-of-line))
            ((and (looking-at "[^ \t]") (pyret-has-top opens '(needsomething)))
@@ -956,7 +992,7 @@
         (message "Open %4d: %s" i (pyret-print-indent defered))
         ))))
 
-(defconst pyret-indent-widths (pyret-make-indent 1 2 2 1 1 1 0 1 1 1 1 1)) ;; NOTE: 0 = indent for graphs
+(defconst pyret-indent-widths (pyret-make-indent 1 2 2 1 1 1 0 1 1 1 1 1 1.5)) ;; NOTE: 0 = indent for graphs
 (defun pyret-indent-line ()
   "Indent current line as Pyret code"
   (interactive)
@@ -965,11 +1001,20 @@
          (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
     (save-excursion
       (beginning-of-line)
-      (if (looking-at "^[ \t]*[|]")
-          (if (> total-indent 0)
-              (indent-line-to (* tab-width (- total-indent 1)))
-            (indent-line-to 0))
-        (indent-line-to (max 0 (* tab-width total-indent)))))
+      (cond
+       ((pyret-in-long-string)
+        (if (= 0 (current-indentation))
+            (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
+              (indent-line-to col-start))))
+       ((or (= 0 (pyret-indent-block-comment-depth indents))
+            (= 0 (current-indentation)))
+        (if (and (looking-at "^[ \t]*[|]\\($\\|\n\\|[^#]\\)")
+                 (not (pyret-in-string)) (not (pyret-in-comment)))
+            (if (> total-indent 0)
+                (indent-line-to (truncate (* tab-width (- total-indent 1))))
+              (indent-line-to 0))
+          (indent-line-to (max 0 (truncate (* tab-width total-indent))))))
+       (t nil)))
     (if (< (current-column) (current-indentation))
         (forward-char (- (current-indentation) (current-column))))
     ))
@@ -987,9 +1032,20 @@
       (while (<= n line-max)
         (let* ((indents (aref pyret-nestings-at-line-start (min (- n 1) (length pyret-nestings-at-line-start))))
                (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
-          (if (looking-at "^[ \t]*[|]")
-              (aset indent-widths (- n line-min) (max 0 (* tab-width (- total-indent 1))))
-            (aset indent-widths (- n line-min) (max 0 (* tab-width total-indent)))))
+          (cond
+           ((pyret-in-long-string)
+            (if (= 0 (current-indentation))
+                (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
+                  (aset indent-widths (- n line-min) col-start))
+              (aset indent-widths (- n line-min) (current-indentation))))
+           ((or (= 0 (pyret-indent-block-comment-depth indents))
+                (= 0 (current-indentation)))
+            (if (and (looking-at "^[ \t]*[|]\\($\\|\n\\|[^#]\\)")
+                     (not (pyret-in-string)) (not (pyret-in-comment)))
+                (aset indent-widths (- n line-min) (max 0 (truncate (* tab-width (- total-indent 1)))))
+              (aset indent-widths (- n line-min) (max 0 (truncate (* tab-width total-indent))))))
+           (t 
+            (aset indent-widths (- n line-min) (current-indentation)))))
         (incf n)
         (forward-line))
       (setq n line-min) (goto-char start) (beginning-of-line)
