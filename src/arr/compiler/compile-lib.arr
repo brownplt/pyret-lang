@@ -22,7 +22,7 @@ end
 data Loadable:
   | module-as-string(result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
   # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(internal-mod :: Any)
+  | pre-loaded(include-base-libs :: Boolean, internal-mod :: Any)
 end
 
 type Provides = Set<String>
@@ -65,7 +65,7 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
   dependency-list = for map(s from parsed.imports.map(_.file)):
     cases(A.ImportType) s:
       # crossover compatibility
-      | s-file-import(l, path) => CS.dependency("file", [list: path])
+      | s-file-import(l, path) => CS.dependency("legacy-path", [list: path])
       | s-const-import(l, modname) => CS.builtin(modname)
       | s-special-import(l, kind, args) => CS.dependency(kind, args)
     end
@@ -151,7 +151,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             CM.start,
             "Pyret",
             module-string,
-            locator.name(),
+            locator.uri(),
             locator.get-compile-env(),
             options
             ).result
@@ -159,7 +159,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
           CM.compile-js-ast(
             CM.start,
             module-ast,
-            locator.name(),
+            locator.uri(),
             locator.get-compile-env(),
             options
             ).result

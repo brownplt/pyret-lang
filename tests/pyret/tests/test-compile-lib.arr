@@ -34,7 +34,7 @@ check "Worklist generation (simple)":
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-compile-env(self): CM.standard-builtins end,
+      get-compile-env(self): CM.minimal-builtins end,
       get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,

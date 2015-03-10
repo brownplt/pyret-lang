@@ -1,9 +1,11 @@
 provide *
 import namespace-lib as N
 import runtime-lib as R
+import load-lib as L
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/locators/file.arr" as FL
+import "compiler/locators/legacy-path.arr" as LP
 import "compiler/locators/builtin.arr" as BL
 
 fun module-finder(ctxt, dep :: CS.Dependency):
@@ -11,6 +13,8 @@ fun module-finder(ctxt, dep :: CS.Dependency):
     | dependency(protocol, args) =>
       if protocol == "file":
         FL.file-locator(dep.arguments.get(0), CS.standard-builtins)
+      else if protocol == "legacy-path":
+        LP.legacy-path-locator(dep.arguments.get(0))
       else:
         raise("Unknown import type: " + protocol)
       end
@@ -39,6 +43,7 @@ fun run(path):
   wl = cl.compile-worklist(base, {})
   r = R.make-runtime()
   result = CL.compile-and-run-worklist(cl, wl, r)
-  print("Result: " + torepr(result))
+  print(L.render-check-results(result))
+  result
 end
 

@@ -1,37 +1,23 @@
 define([], function() {
   return function(runtime, ns) {
     var F = runtime.makeFunction;
-    function getBuiltinLocator(name) {
+    function getLegacyPath(name) {
       runtime.pauseStack(function(restarter) {
         // NOTE(joe): This is a bit of requireJS hackery that assumes a
         // certain layout for builtin modules
-        require(["trove/" + name], function(m) {
+        require([name], function(m) {
           restarter.resume(runtime.makeObject({
             "get-raw-dependencies":
               F(function() {
-                if(m.dependencies) {
-                  return m.dependencies.map(function(m) { return runtime.makeObject(m); });
-                } else {
-                  return [];
-                }
+                return [];
               }),
             "get-raw-provides":
               F(function() {
-                if (m.provides) {
-                  return m.provides;
-                }
-                else {
-                  return [];
-                }
+                return [];
               }),
             "get-raw-compiled":
               F(function() {
-                if(m.theModule) {
-                  return runtime.makeOpaque(m.theModule);
-                }
-                else {
-                  return runtime.makeOpaque(function() { return m; });
-                }
+                return runtime.makeOpaque(function() { return m; });
               })
           }));
         });
@@ -43,7 +29,7 @@ define([], function() {
       "provide-plus-types": O({
         types: { },
         values: O({
-          "builtin-raw-locator": runtime.makeFunction(getBuiltinLocator)
+          "legacy-path-raw-locator": runtime.makeFunction(getLegacyPath)
         })
       }),
       "answer": runtime.nothing

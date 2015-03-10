@@ -15,6 +15,10 @@ define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runti
     var require = requirejs.nodeRequire("requirejs");
   }
 
+  function copyArgs(args) {
+    return Array.prototype.slice.call(args);
+  }
+
   var codePointAt = codePoint.codePointAt;
   var fromCodePoint = codePoint.fromCodePoint;
 
@@ -1466,12 +1470,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ?
         this.getStack().map(function(s) {
             var g = getField;
-            return s && hasField(s, "source") ? g(s, "source") +
+            if(s && hasField(s, "source")) {
+              return g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
                    g(s, "start-column")
-              : "<builtin>";
+            } else if(s && hasField(s, "module-name")) {
+              return "<builtin " + g(s, "module-name") + ">";
+            } else {
+              return "<builtin " + s + ">";
+            }
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
@@ -3841,6 +3850,57 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return num_random(max);
     }
 
+    function loadBuiltinModules(modules, startName, withModules) {
+            console.log("Loading builtins");
+      function loadWorklist(startMod) {
+        function addMod(curMod, curPath, curName) {
+          if (curPath.filter(function(b) { return b.name === curMod.name; }).length > 0) {
+            console.error("Module cycle: ", curMod, curPath);
+            throw new Error("Module cycle in loadBuiltinModules");
+          }
+          if (typeof curMod === "function") {
+            return [{mod: {
+                theModule: curMod,
+                name: curName,
+                dependencies: []
+              },
+              path: curPath
+            }];
+          }
+          var curDeps = curMod.dependencies;
+          var depMods = curDeps.map(function(d) {
+            return { dname: d.name, modinfo: require("trove/" + d.name) };
+          });
+          var tocomp = {mod: curMod, path: curPath};
+          return depMods.reduce(function(acc, elt) {
+            return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
+          }, [tocomp])
+        }
+        return addMod(startMod, []);
+      }
+      var wl = loadWorklist({name: startName, dependencies: modules });
+      var finalModMap = {};
+      var rawModules = wl.forEach(function(m) {
+        if(m.mod.name === startName) {
+
+        return; }
+        if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
+          var thisRawMod = m.mod.theModule;
+        }
+        else {
+          var rawDeps = m.mod.dependencies.map(function(d) {
+            return finalModMap[d.name];
+          });
+          var thisRawMod = m.mod.theModule.apply(null, rawDeps);
+        }
+        finalModMap[m.mod.name] = thisRawMod;
+      });
+      var originalOrderRawModules = modules.map(function(m) {
+        return finalModMap[m.name];
+      });
+      return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
+    }
+
     function loadModule(module, runtime, namespace, withModule) {
       var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {
@@ -3848,8 +3908,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return module(thisRuntime, namespace);
           }
           else if (typeof module === "object") {
-            var innerModule = module.theModule();
-            return innerModule(thisRuntime, namespace);
+              if(module.dependencies === undefined) {
+                console.log("Undefine dependencies remain: ", module);
+                return module;
+              }
+              return loadBuiltinModules(module.dependencies, module.name,
+                function(/* varargs */) {
+                  var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                  return innerModule(thisRuntime, namespace);
+                });
           }
         },
         withModule, "loadModule(" + modstring.substring(0, 70) + ")");
@@ -3879,6 +3946,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         function wrapMod(m) {
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
+          }
+          else if (hasField(m, "values")) {
+            return m;
           }
           else {
             return thisRuntime.makeObject({
@@ -4383,6 +4453,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'loadModule' : loadModule,
         'loadModules' : loadModules,
         'loadModulesNew' : loadModulesNew,
+        'loadBuiltinModules' : loadBuiltinModules,
         'loadJSModules' : loadJSModules,
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
