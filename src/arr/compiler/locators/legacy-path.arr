@@ -27,11 +27,11 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
     end,
     get-dependencies(_): 
       raw-deps = raw.get-raw-dependencies()
-      mod-deps = sets.list-to-list-set(raw-array-to-list(raw-deps).map(make-dep))
+      mod-deps = raw-array-to-list(raw-deps).map(make-dep)
       env-deps = for map(e from CS.standard-builtins.bindings.filter(CS.is-module-bindings)):
         CS.builtin(e.name)
       end
-      mod-deps.union(sets.list-to-list-set(env-deps))
+      mod-deps.append(env-deps)
     end,
     get-provides(_):
       provides = raw.get-raw-provides()

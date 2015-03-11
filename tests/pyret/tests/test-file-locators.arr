@@ -1,3 +1,4 @@
+import lists as L
 import string-dict as SD
 import load-lib as LL
 import runtime-lib as R
@@ -91,7 +92,7 @@ check "File locators":
   clib = CL.make-compile-lib(dfind)
 
   floc = file-loc("foo", CM.minimal-builtins)
-  CL.get-dependencies(floc.get-module(), floc.uri()) is [set: CM.dependency("file", [list: "bar"])]
+  CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
   wlist.length() is 2
   wlist.get(1).locator is floc

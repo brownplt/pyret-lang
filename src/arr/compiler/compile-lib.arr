@@ -36,7 +36,7 @@ type Locator = {
   needs-compile :: (SD.MutableStringDict<Provides> -> Boolean),
 
   get-module :: ( -> PyretCode),
-  get-dependencies :: ( -> Set<CS.Dependency>),
+  get-dependencies :: ( -> List<CS.Dependency>),
   get-provides :: ( -> Provides),
   get-compile-env :: ( -> CS.CompileEnv),
   get-namespace :: (R.Runtime -> N.Namespace),
@@ -60,9 +60,9 @@ fun get-ast(p :: PyretCode, uri :: URI):
   end
 end
 
-fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
+fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   parsed = get-ast(p, uri)
-  dependency-list = for map(s from parsed.imports.map(_.file)):
+  for map(s from parsed.imports.map(_.file)):
     cases(A.ImportType) s:
       # crossover compatibility
       | s-file-import(l, path) => CS.dependency("legacy-path", [list: path])
@@ -70,15 +70,14 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
       | s-special-import(l, kind, args) => CS.dependency(kind, args)
     end
   end
-  S.list-to-list-set(dependency-list)
 end
 
-fun get-dependencies-with-env(p :: PyretCode, uri :: URI, env :: CS.CompileEnvironment) -> Set<CS.Dependency>:
+fun get-dependencies-with-env(p :: PyretCode, uri :: URI, env :: CS.CompileEnvironment) -> List<CS.Dependency>:
   mod-deps = get-dependencies(p, uri)
   env-deps = for map(e from env.bindings.filter(CS.is-module-bindings)):
-    CM.builtin(e.name)
+    CS.builtin(e.name)
   end
-  mod-deps.union(sets.list-to-list-set(env-deps))
+  mod-deps.append(env-deps)
 end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
@@ -112,7 +111,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
         raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
       pmap = SD.make-mutable-string-dict()
-      deps = locator.get-dependencies().to-list()
+      deps = locator.get-dependencies()
       dlocs = for map(d from deps):
         dloc = dfind(context, d)
         pmap.set-now(d.key(), dloc)
@@ -202,10 +201,11 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
     | empty =>
       raise("Didn't get anything to run in run-worklist")
     | link(load-info, r) =>
-      dependencies = load-info.to-compile.dependency-map
-      depnames = dependencies.keys-now().to-list()
-      depvals = for map(d from depnames.sort()):
-        { modval: modvals.get-value(dependencies.get-value-now(d).uri()), key: d }
+      depmap = load-info.to-compile.dependency-map
+      dependencies = load-info.to-compile.locator.get-dependencies()
+      depnames = dependencies.map(lam(d): d.key() end).sort()
+      depvals = for map(d from depnames):
+        { modval: modvals.get-value(depmap.get-value-now(d).uri()), key: d }
       end
       m = load-info.compiled-mod
       when is-module-as-string(m) and CS.is-err(m):

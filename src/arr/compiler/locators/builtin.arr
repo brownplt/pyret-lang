@@ -41,7 +41,7 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
     end,
     get-dependencies(_): 
       deps = raw.get-raw-dependencies()
-      sets.list-to-list-set(raw-array-to-list(deps).map(make-dep))
+      raw-array-to-list(deps).map(make-dep)
     end,
     get-provides(_):
       provides = raw.get-raw-provides()
