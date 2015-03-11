@@ -73,6 +73,14 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> Set<CS.Dependency>:
   S.list-to-list-set(dependency-list)
 end
 
+fun get-dependencies-with-env(p :: PyretCode, uri :: URI, env :: CS.CompileEnvironment) -> Set<CS.Dependency>:
+  mod-deps = get-dependencies(p, uri)
+  env-deps = for map(e from env.bindings.filter(CS.is-module-bindings)):
+    CM.builtin(e.name)
+  end
+  mod-deps.union(sets.list-to-list-set(env-deps))
+end
+
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
   cases (A.Provide) parsed._provide:

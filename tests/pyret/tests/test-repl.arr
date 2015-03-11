@@ -8,7 +8,7 @@ import "compiler/repl-support.arr" as RS
 check:
   r = RT.make-runtime()
   var current-defs = "5"
-  loc = RS.make-repl-definitions-locator("definitions", "pyret://definitions", lam(): current-defs end, CS.standard-builtins)
+  loc = RS.make-repl-definitions-locator("definitions", "pyret://definitions", lam(): current-defs end, CS.minimal-builtins)
   dfind = RS.make-definitions-finder([SD.string-dict:])
   repl = R.make-repl(r, loc, {}, dfind)
 

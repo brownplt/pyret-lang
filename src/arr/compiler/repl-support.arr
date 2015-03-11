@@ -201,7 +201,9 @@ fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
   {
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
-    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    get-dependencies(self):
+      CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+    end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-compile-env(self): compile-env end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
@@ -223,7 +225,9 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
   {
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
-    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    get-dependencies(self):
+      CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+    end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-compile-env(self): repl.get-current-compile-env() end,
     get-namespace(self, runtime): repl.get-current-namespace() end,

@@ -86,16 +86,16 @@ check "File locators":
     ```)
   bar.close-file()
 
-  fun dfind(ctxt, dep): file-loc(dep.arguments.get(0), CM.standard-builtins) end
+  fun dfind(ctxt, dep): file-loc(dep.arguments.get(0), CM.minimal-builtins) end
 
   clib = CL.make-compile-lib(dfind)
 
-  floc = file-loc("foo", CM.standard-builtins)
+  floc = file-loc("foo", CM.minimal-builtins)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [set: CM.dependency("file", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
   wlist.length() is 2
   wlist.get(1).locator is floc
-  wlist.get(0).locator is file-loc("bar", CM.standard-builtins)
+  wlist.get(0).locator is file-loc("bar", CM.minimal-builtins)
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime())
   ans satisfies LL.is-success-result

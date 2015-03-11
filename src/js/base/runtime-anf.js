@@ -3851,7 +3851,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function loadBuiltinModules(modules, startName, withModules) {
-            console.log("Loading builtins");
       function loadWorklist(startMod) {
         function addMod(curMod, curPath, curName) {
           if (curPath.filter(function(b) { return b.name === curMod.name; }).length > 0) {
@@ -3889,7 +3888,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var rawDeps = m.mod.dependencies.map(function(d) {
             return finalModMap[d.name];
           });
-          console.log("Raw deps for ", startName, " are: ", rawDeps);
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
         finalModMap[m.mod.name] = thisRawMod;
@@ -3908,7 +3906,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           else if (typeof module === "object") {
               if(module.dependencies === undefined) {
-                console.log("Undefined dependencies remain: ", module);
+                // NOTE(joe): Catches already-initialized modules.  Needs to
+                // be tracked down.  Putting the log back in detects them.
+//                console.error("Undefined dependencies remain: ", module);
                 return module;
               }
               return loadBuiltinModules(module.dependencies, module.name,

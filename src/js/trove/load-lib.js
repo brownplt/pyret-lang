@@ -150,7 +150,6 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
               }, function(toExec) {
                 runtime.pauseStack(function(restart) {
                   if (typeof toExec === "string") {
-                    console.log("Dependencies are: ", dependencies);
                     var loaded = loader.loadSingle(loadRuntime, toExec, dependencies);
                   }
                   else {

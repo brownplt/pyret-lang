@@ -1,5 +1,5 @@
-import file("tests/exporter.arr") as E
-import x, f from file("tests/exporter.arr")
+import "tests/exporter.arr" as E
+import x, f from "tests/exporter.arr"
 import error as Err
 
 check "Should import only what is exported":
