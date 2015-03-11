@@ -100,6 +100,28 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             });
          });
       }
+      function renderErrorMessage(mr) {
+        var res = getModuleResultResult(mr);
+        var execRt = mr.val.runtime;
+        runtime.pauseStack(function(restarter) {
+          execRt.runThunk(function() {
+            if(execRt.isPyretVal(res.exn.exn)) {
+              return execRt.string_append(
+                execRt.toReprJS(r.exn.exn, "_tostring"),
+                execRt.makeString("\n" +
+                                  execRt.printPyretStack(r.exn.pyretStack)));
+            } else {
+              return String(res.exn + "\n" + res.exn.stack);
+            }
+          }, function(v) {
+            if(execRt.isSuccessResult(v)) {
+              return restarter.resume(v.result)
+            } else {
+              console.error("There was an exception while rendering the exception: ", r.exn, v.exn);
+            }
+          })
+        });
+      }
       function getModuleResultAnswer(mr) {
         checkSuccess(mr, "answer");
         return mr.val.runtime.getField(mr.val.result.result, "answer");
@@ -109,14 +131,9 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
         runtime.getField(runtimeLib, "internal").checkRuntime(loadRuntimePyret);
         var loadRuntime = runtime.getField(loadRuntimePyret, "runtime").val;
         return loadRuntime.loadBuiltinModules([
-          mb("arrays"),
-          mb("error"),
-          mb("lists"),
-          mb("option"),
-          mb("sets"),
           mb("checker")],
           "load-lib",
-          function(arrays, errors, lists, option, sets, checkerLib) {
+          function(checkerLib) {
             function load(compileResult, listOfMods, namespace) {
               // TODO(joe): check for compileResult annotation
               runtime.checkList(listOfMods);
@@ -133,6 +150,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
               }, function(toExec) {
                 runtime.pauseStack(function(restart) {
                   if (typeof toExec === "string") {
+                    console.log("Dependencies are: ", dependencies);
                     var loaded = loader.loadSingle(loadRuntime, toExec, dependencies);
                   }
                   else {
@@ -179,7 +197,8 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             "is-success-result": runtime.makeFunction(isSuccessResult),
             "is-failure-result": runtime.makeFunction(isFailureResult),
             "get-result-answer": runtime.makeFunction(getAnswerForPyret),
-            "render-check-results": runtime.makeFunction(renderCheckResults)
+            "render-check-results": runtime.makeFunction(renderCheckResults),
+            "render-error-message": runtime.makeFunction(renderErrorMessage)
           }),
           types: {
             Module: annModule,

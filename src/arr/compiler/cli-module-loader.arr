@@ -43,7 +43,11 @@ fun run(path):
   wl = cl.compile-worklist(base, {})
   r = R.make-runtime()
   result = CL.compile-and-run-worklist(cl, wl, r)
-  print(L.render-check-results(result))
+  if L.is-success-result(result):
+    print(L.render-check-results(result))
+  else:
+    print(L.render-error-message(result))
+  end
   result
 end
 
