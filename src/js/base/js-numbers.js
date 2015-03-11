@@ -1510,12 +1510,68 @@ define(function() {
     return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
   };
 
+  /*
   Rational.prototype.expt = function(a){
     if (isInteger(a) && greaterThanOrEqual(a, 0)) {
       return fastExpt(this, a);
     }
     return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
                                           _integerDivideToFixnum(a.n, a.d)));
+  };*/
+
+  var integerNthRootSearchIter = function(r, n, guess) {
+    var guessPrev, guessToTheR;
+
+    while(true) {
+      guessToTheR = expt(guess, r);
+      if (lessThanOrEqual(guessToTheR, n) &&
+          lessThan(n, expt(add(guess, 1), r))) break;
+      guessPrev = guess;
+      guess = floor(subtract(guess, divide(subtract(guessToTheR, n),
+            multiply(r, divide(guessToTheR, guess)))));
+      if (equals(guess, guessPrev)) break;
+    }
+
+    return guess;
+  };
+
+  var integerNthRoot = function(n, r) {
+    if (sign(n) >= 0 ||
+        (sign(n) < 0 && _integerModulo(r, 2) === 1)) {
+      return integerNthRootSearchIter(r, n, n);
+    } else {
+      throwRuntimeError(r + "th root of negative bigint " + n);
+    }
+  };
+
+  var nthRoot = function(n, r) {
+    var approx = integerNthRoot(n, r);
+    if (eqv(expt(approx, r), n)) {
+      return approx;
+    } else {
+      return Roughnum.makeInstance(Math.pow(toFixnum(n), toFixnum(divide(1,r))));
+    }
+  };
+
+  Rational.prototype.expt = function(a) {
+    if (isInteger(a) && greaterThanOrEqual(a, 0)) {
+      return fastExpt(this, a);
+    } else if (_integerLessThanOrEqual(a.d, 8)) {
+      var nRaisedToAn = expt(this.n, a.n);
+      var dRaisedToAn = expt(this.d, a.n);
+      var newN = nthRoot(nRaisedToAn, a.d);
+      var newD = nthRoot(dRaisedToAn, a.d);
+      if (isExact(newN) && isExact(newD) &&
+          equals(floor(newN), newN) &&
+          equals(floor(newD), newD)) {
+        return Rational.makeInstance(newN, newD);
+      } else {
+        return divide(newN, newD);
+      }
+    } else {
+      return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
+            _integerDivideToFixnum(a.n, a.d)));
+    }
   };
 
   Rational.prototype.exp = function(){
