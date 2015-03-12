@@ -92,16 +92,6 @@ Address all questions regarding this license to:
 
 //var jsnums = {};
 
-// The numeric tower [which we want to demolish] has the following levels:
-//     integers
-//     rationals
-//     roughnums
-//
-// with the representations:
-//     integers: fixnum or BigInteger [level=0]
-//     rationals: Rational [level=1]
-//     roughnums: Roughnum [level=2, but should we be doing levels?]
-
 // We try to stick with the unboxed fixnum representation for
 // integers, since that's what scheme programs commonly deal with, and
 // we want that common type to be lightweight.
@@ -118,7 +108,7 @@ define(function() {
   // makeNumericBinop: (fixnum fixnum -> any) (scheme-number scheme-number -> any) -> (scheme-number scheme-number) X
   // Creates a binary function that works either on fixnums or boxnums.
   // Applies the appropriate binary function, ensuring that both scheme numbers are
-  // lifted to the same level.
+  // lifted to the same kind.
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y) {
@@ -1194,8 +1184,6 @@ define(function() {
   //
   // toString: -> string
 
-  // level: number
-
   // isFinite: -> boolean
 
   // isInteger: -> boolean
@@ -1331,8 +1319,6 @@ define(function() {
       return this.n.toString() + "/" + this.d.toString();
     }
   };
-
-  Rational.prototype.level = 1;
 
   Rational.prototype.isFinite = function() {
     return true;
@@ -1666,8 +1652,6 @@ define(function() {
   };
 
   Roughnum.prototype.toRational = Roughnum.prototype.toExact;
-
-  Roughnum.prototype.level = 2; // we really don't care about levels anymore
 
   Roughnum.prototype.toString = function() {
     /*
@@ -3228,8 +3212,6 @@ define(function() {
     }
     return buf.join('');
   };
-
-  BigInteger.prototype.level = 0;
 
   BigInteger.prototype.isFinite = function() {
     return true;
