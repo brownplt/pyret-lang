@@ -1499,45 +1499,43 @@ define(function() {
     return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
   };
 
-  var integerNthRootSearchIter = function(r, n, guess) {
-    var guessPrev, guessToTheR;
+  var integerNthRoot = function(n, m) {
+    var guessPrev, guessToTheN;
+    var guess = m;
 
-    // finding zero of x^r - n = 0 using Newton-Raphson.
+    // find closest integral zero of x^n - m = 0 using Newton-Raphson.
     // if k'th guess is x_k, then
-    // x_{k+1} = x_k - [(x_k)^r - n]/[r (x_k)^(r-1)].
-    // Use only integer x_k.
-    // Stop iteration if (x_k)^r is close enough to n, or
-    // if x_k stops changing
+    // x_{k+1} = floor( x_k - [(x_k)^n - m]/[n (x_k)^(n-1)] ).
+    // Stop iteration if (x_k)^n is close enough to m, or
+    // if x_k stops evolving
 
     while(true) {
-      guessToTheR = expt(guess, r);
-      if (lessThanOrEqual(guessToTheR, n) &&
-          lessThan(n, expt(add(guess, 1), r))) break;
+      guessToTheN = expt(guess, n);
+      if (lessThanOrEqual(guessToTheN, m) &&
+          lessThan(m, expt(add(guess, 1), n))) break;
       guessPrev = guess;
-      guess = floor(subtract(guess, divide(subtract(guessToTheR, n),
-            multiply(r, divide(guessToTheR, guess)))));
+      guess = floor(subtract(guess, divide(subtract(guessToTheN, m),
+            multiply(n, divide(guessToTheN, guess)))));
       if (equals(guess, guessPrev)) break;
     }
 
     return guess;
   };
 
-  var integerNthRoot = function(n, r) {
-    if (sign(n) >= 0 ||
-        (sign(n) < 0 && _integerModulo(r, 2) === 1)) {
-      return integerNthRootSearchIter(r, n, n);
-    } else {
-      throwRuntimeError('expt: taking even (' + r + ') root of negative integer ' + n);
-    }
-  };
+  var nthRoot = function(n, m) {
+    var mNeg = (sign(m) < 0);
+    var mAbs = (mNeg ? abs(m) : m);
+    var approx;
 
-  var nthRoot = function(n, r) {
-    var approx = integerNthRoot(n, r);
-    if (eqv(expt(approx, r), n)) {
-      return approx;
-    } else {
-      return Roughnum.makeInstance(Math.pow(toFixnum(n), toFixnum(divide(1,r))));
-    }
+    if (mNeg && _integerModulo(n, 2) === 0)
+      throwRuntimeError('expt: taking even (' + n + ') root of negative integer ' + m);
+
+    approx = integerNthRoot(n, mAbs);
+    if (mNeg) approx = negate(approx);
+    if (eqv(expt(approx, n), m)) return approx;
+
+    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs), toFixnum(divide(1,n))));
+    return (mNeg ? negate(approx) : approx);
   };
 
   Rational.prototype.expt = function(a) {
@@ -1546,8 +1544,8 @@ define(function() {
     } else if (_integerLessThanOrEqual(a.d, 8)) {
       var nRaisedToAn = expt(this.n, a.n);
       var dRaisedToAn = expt(this.d, a.n);
-      var newN = nthRoot(nRaisedToAn, a.d);
-      var newD = nthRoot(dRaisedToAn, a.d);
+      var newN = nthRoot(a.d, nRaisedToAn);
+      var newD = nthRoot(a.d, dRaisedToAn);
       if (isRational(newN) && isRational(newD) &&
           equals(floor(newN), newN) &&
           equals(floor(newD), newD)) {
