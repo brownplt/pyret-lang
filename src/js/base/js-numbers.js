@@ -138,8 +138,26 @@ define(function() {
         y = liftFixnumInteger(y, x);
       }
 
-      if (x.level < y.level) x = x.liftTo(y);
-      if (y.level < x.level) y = y.liftTo(x);
+      if (x instanceof Roughnum) {
+        // y is rough, rat or bigint
+        if (!(y instanceof Roughnum)) {
+          // y is rat or bigint
+          y = y.toRoughnum();
+        }
+      } else if (y instanceof Roughnum) {
+        // x is rat or bigint
+        x = x.toRoughnum();
+      } else if (x instanceof Rational) {
+        // y is rat or bigint
+        if (!(y instanceof Rational)) {
+          // y is bigint
+          y = new Rational(y, 1);
+        }
+      } else if (y instanceof Rational) {
+        // x is bigint
+        x = new Rational(x, 1);
+      }
+
       return onBoxednums(x, y);
     };
   };
@@ -1178,8 +1196,6 @@ define(function() {
 
   // level: number
 
-  // liftTo: scheme-number -> scheme-number
-
   // isFinite: -> boolean
 
   // isInteger: -> boolean
@@ -1317,13 +1333,6 @@ define(function() {
   };
 
   Rational.prototype.level = 1;
-
-  Rational.prototype.liftTo = function(target) {
-    if (target.level === 2)
-      return new Roughnum(
-        _integerDivideToFixnum(this.n, this.d));
-    return throwRuntimeError("invalid level of Number", this, target);
-  };
 
   Rational.prototype.isFinite = function() {
     return true;
@@ -1659,10 +1668,6 @@ define(function() {
   Roughnum.prototype.toRational = Roughnum.prototype.toExact;
 
   Roughnum.prototype.level = 2; // we really don't care about levels anymore
-
-  Roughnum.prototype.liftTo = function(target) {
-    return throwRuntimeError("roughnum can't change level");
-  };
 
   Roughnum.prototype.toString = function() {
     /*
@@ -3225,15 +3230,6 @@ define(function() {
   };
 
   BigInteger.prototype.level = 0;
-  BigInteger.prototype.liftTo = function(target) {
-    if (target.level === 1) {
-      return new Rational(this, 1);
-    }
-    if (target.level === 2) {
-      return Roughnum.makeInstance(this.toFixnum());
-    }
-    return throwRuntimeError("invalid level for BigInteger lift", this, target);
-  };
 
   BigInteger.prototype.isFinite = function() {
     return true;
