@@ -209,17 +209,14 @@ define(function() {
 
   // liftFixnumInteger: fixnum-integer boxed-scheme-number -> boxed-scheme-number
   // Lifts up fixnum integers to a boxed type.
+
   var liftFixnumInteger = function(x, other) {
-    switch(other.level) {
-    case 0: // BigInteger
-      return makeBignum(x);
-    case 1: // Rational
-      return new Rational(x, 1);
-    case 2: // Roughnum, but do we still do lifting?
+    if (other instanceof Roughnum)
       return new Roughnum(x);
-    default:
-      throwRuntimeError("IMPOSSIBLE: cannot lift fixnum integer to " + other.toString(), x, other);
-    }
+    else if (other instanceof BigInteger)
+      return makeBignum(x);
+    else
+      return new Rational(x, 1);
   };
 
   // throwRuntimeError: string (scheme-number | undefined) (scheme-number | undefined) -> void
