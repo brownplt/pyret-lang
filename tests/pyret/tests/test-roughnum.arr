@@ -162,7 +162,11 @@ end
 
 check "fractional rational powers":
   num-expt(125, 1/3) is 5
+  num-expt(125, -1/3) is 1/5
+  num-expt(-125, 1/3) is -5
+  num-expt(-125, -1/3) is -1/5
   num-expt(126, 1/3) is%(within(0.01)) 5
+  num-expt(-126, 1/3) is%(within(0.01)) -5
   num-is-roughnum(num-expt(126, 1/3)) is true
   num-expt(256, 1/8) is 2
   num-expt(255, 1/8) is%(within(0.01)) 2
