@@ -255,16 +255,12 @@ define(function() {
             (isSchemeNumber(n) && n.isRational()));
   };
 
+  var isExact = isRational;
+
   // isReal: scheme-number -> boolean
   var isReal = function(n) {
     return (typeof(n) === 'number' ||
             (isSchemeNumber(n) && n.isReal()));
-  };
-
-  // isExact: scheme-number -> boolean
-  var isExact = function(n) {
-    return (typeof(n) === 'number' ||
-            (isSchemeNumber(n) && n.isExact()));
   };
 
   // isInteger: scheme-number -> boolean
@@ -320,15 +316,14 @@ define(function() {
     return n.toFixnum();
   };
 
-  // toExact: scheme-number -> scheme-number
-  // this is used in runtime-anf.js -- can't phase it out immediately
-  var toExact = function(n) {
+  // toRational: scheme-number -> scheme-number
+  var toRational = function(n) {
     if (typeof(n) === 'number')
       return n;
-    return n.toExact();
+    return n.toRational();
   };
 
-  var toRational = toExact;
+  var toExact = toRational;
 
   // toRoughnum: scheme-number -> scheme-number
 
@@ -500,7 +495,7 @@ define(function() {
       return true;
     if (typeof(x) === 'number' && typeof(y) === 'number')
       return x === y;
-    var ex = isExact(x), ey = isExact(y);
+    var ex = isRational(x), ey = isRational(y);
     return (((ex && ey) || (!ex && !ey)) && equals(x, y));
   };
 
@@ -962,7 +957,7 @@ define(function() {
   // Integers are either represented as fixnums or as BigIntegers.
 
   // makeIntegerBinop: (fixnum fixnum -> X) (BigInteger BigInteger -> X) -> X
-  // Helper to collect the common logic for coersing integer fixnums or bignums to a
+  // Helper to collect the common logic for coercing integer fixnums or bignums to a
   // common type before doing an operation.
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
@@ -1192,14 +1187,18 @@ define(function() {
   // isRational: -> boolean
   // Produce true if the number is rational.
 
+  // isExact === isRational
+
   // isReal: -> boolean
   // Produce true if the number is real.
 
-  // isExact: -> boolean
-  // Produce true if the number is exact
-
-  // toExact: -> scheme-number
+  // toRational: -> scheme-number
   // Produce an exact number.
+
+  // toExact === toRational
+
+  // toRoughnum: -> scheme-number
+  // Produce a roughnum.
 
   // toFixnum: -> javascript-number
   // Produce a javascript number.
@@ -1338,6 +1337,8 @@ define(function() {
     return true;
   };
 
+  Rational.prototype.isExact = Rational.prototype.isRational;
+
   Rational.prototype.isReal = function() {
     return true;
   };
@@ -1392,15 +1393,11 @@ define(function() {
                                  _integerMultiply(this.d, other.n));
   };
 
-  Rational.prototype.toExact = function() {
+  Rational.prototype.toRational = function() {
     return this;
   };
 
-  Rational.prototype.toRational = Rational.prototype.toExact;
-
-  Rational.prototype.isExact = function() {
-    return true;
-  };
+  Rational.prototype.toExact = Rational.prototype.toRational;
 
   Rational.prototype.toFixnum = function() {
     return _integerDivideToFixnum(this.n, this.d);
@@ -1440,14 +1437,14 @@ define(function() {
 
   Rational.prototype.integerSqrt = function() {
     var result = sqrt(this);
-    return toExact(floor(result));
+    return toRational(floor(result));
   };
 
   Rational.prototype.sqrt = function() {
     if (_integerGreaterThanOrEqual(this.n,  0)) {
       var newN = sqrt(this.n);
       var newD = sqrt(this.d);
-      if (isExact(newN) && isExact(newD) &&
+      if (isRational(newN) && isRational(newD) &&
           equals(floor(newN), newN) &&
           equals(floor(newD), newD)) {
         return Rational.makeInstance(newN, newD);
@@ -1502,17 +1499,15 @@ define(function() {
     return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
   };
 
-  /*
-  Rational.prototype.expt = function(a){
-    if (isInteger(a) && greaterThanOrEqual(a, 0)) {
-      return fastExpt(this, a);
-    }
-    return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
-                                          _integerDivideToFixnum(a.n, a.d)));
-  };*/
-
   var integerNthRootSearchIter = function(r, n, guess) {
     var guessPrev, guessToTheR;
+
+    // finding zero of x^r - n = 0 using Newton-Raphson.
+    // if k'th guess is x_k, then
+    // x_{k+1} = x_k - [(x_k)^r - n]/[r (x_k)^(r-1)].
+    // Use only integer x_k.
+    // Stop iteration if (x_k)^r is close enough to n, or
+    // if x_k stops changing
 
     while(true) {
       guessToTheR = expt(guess, r);
@@ -1532,7 +1527,7 @@ define(function() {
         (sign(n) < 0 && _integerModulo(r, 2) === 1)) {
       return integerNthRootSearchIter(r, n, n);
     } else {
-      throwRuntimeError(r + "th root of negative bigint " + n);
+      throwRuntimeError('expt: taking even (' + r + ') root of negative integer ' + n);
     }
   };
 
@@ -1553,13 +1548,13 @@ define(function() {
       var dRaisedToAn = expt(this.d, a.n);
       var newN = nthRoot(nRaisedToAn, a.d);
       var newD = nthRoot(dRaisedToAn, a.d);
-      if (isExact(newN) && isExact(newD) &&
+      if (isRational(newN) && isRational(newD) &&
           equals(floor(newN), newN) &&
           equals(floor(newD), newD)) {
         return Rational.makeInstance(newN, newD);
       } else {
         return divide(newN, newD);
-      }
+     }
     } else {
       return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
             _integerDivideToFixnum(a.n, a.d)));
@@ -1622,19 +1617,15 @@ define(function() {
     return new Roughnum(n);
   };
 
-  Roughnum.prototype.isExact = function() { //needed?
-    return false;
-  };
-
   Roughnum.prototype.isFinite = function() {
     //actually, true, as we don't store overflows
     return (isFinite(this.n));
   };
 
-  Roughnum.prototype.toExact = function() {
+  Roughnum.prototype.toRational = function() {
     // The precision of ieee is about 16 decimal digits, which we use here.
     if (! isFinite(this.n) || isNaN(this.n)) {
-      throwRuntimeError("toExact: no exact representation for " + this, this);
+      throwRuntimeError("toRational: no exact representation for " + this, this);
     }
 
     var stringRep = this.n.toString();
@@ -1651,7 +1642,7 @@ define(function() {
     }
   };
 
-  Roughnum.prototype.toRational = Roughnum.prototype.toExact;
+  Roughnum.prototype.toExact = Roughnum.prototype.toRational;
 
   Roughnum.prototype.toString = function() {
     /*
@@ -1672,6 +1663,8 @@ define(function() {
   Roughnum.prototype.isRational = function() {
     return false;
   };
+
+  Roughnum.prototype.isExact = Roughnum.prototype.isRational;
 
   Roughnum.prototype.isInteger = function() {
     return false;
@@ -3225,11 +3218,9 @@ define(function() {
     return true;
   };
 
-  BigInteger.prototype.isReal = function() {
-    return true;
-  };
+  BigInteger.prototype.isExact = BigInteger.prototype.isRational;
 
-  BigInteger.prototype.isExact = function() {
+  BigInteger.prototype.isReal = function() {
     return true;
   };
 
@@ -3253,11 +3244,11 @@ define(function() {
     return this.compareTo(BigInteger.ZERO) <= 0;
   };
 
-  BigInteger.prototype.toExact = function() {
+  BigInteger.prototype.toRational = function() {
     return this;
   };
 
-  BigInteger.prototype.toRational = BigInteger.prototype.toExact;
+  BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
   BigInteger.prototype.toFixnum = function() {
     var str = this.toString();
