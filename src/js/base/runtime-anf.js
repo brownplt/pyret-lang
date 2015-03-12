@@ -882,7 +882,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
-    var checkExactnum = makeCheckType(jsnums.isExact, "Exactnum");
+    var checkExactnum = makeCheckType(jsnums.isRational, "Exactnum");
     var checkRoughnum = makeCheckType(jsnums.isRoughnum, "Roughnum");
     var checkNumInteger = makeCheckType(jsnums.isInteger, "NumInteger");
     var checkNumRational = makeCheckType(jsnums.isRational, "NumRational");
@@ -3683,7 +3683,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_exact = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exact");
       thisRuntime.checkNumber(n);
-      return thisRuntime.makeNumberBig(jsnums.toExact(n));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
     }
     var num_to_rational = function(n) {
       thisRuntime.checkArity(1, arguments, "num-to-rational");
@@ -4205,7 +4205,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     };
 
     makePrimAnn("Number", isNumber);
-    makePrimAnn("Exactnum", jsnums.isExact);
+    makePrimAnn("Exactnum", jsnums.isRational);
     makePrimAnn("Roughnum", jsnums.isRoughnum);
     makePrimAnn("NumInteger", jsnums.isInteger);
     makePrimAnn("NumRational", jsnums.isRational);
