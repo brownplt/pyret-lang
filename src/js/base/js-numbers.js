@@ -1618,13 +1618,9 @@ define(function() {
   // Roughnums
 
   var Roughnum = function(n) {
-    if (typeof(n) === 'number') {
-      this.n = n;
-    } else if (isSchemeNumber(n)) {
-      // this is probably not needed. We wouldn't be using the Roughnum constructor
-      // on other types of SchemeNumber
-      this.n = n.liftTo(0.1);
-    }
+    if (!(typeof(n) === 'number'))
+      throwRuntimeError('roughnum constructor got unsuitable arg ' + n);
+    this.n = n;
   };
 
   Roughnum.makeInstance = function(n) {
