@@ -160,4 +160,13 @@ check "identical":
   method(self): 5 end is-not<=> ~2
 end
 
-
+check "fractional rational powers":
+  num-expt(125, 1/3) is 5
+  num-expt(126, 1/3) is%(within(0.01)) 5
+  num-is-roughnum(num-expt(126, 1/3)) is true
+  num-expt(256, 1/8) is 2
+  num-expt(255, 1/8) is%(within(0.01)) 2
+  num-is-roughnum(num-expt(255, 1/8)) is true
+  num-expt(512, 1/9) is%(within(0.01)) 2
+  num-is-roughnum(num-expt(512, 1/9)) is true
+end
