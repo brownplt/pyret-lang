@@ -173,4 +173,5 @@ check "fractional rational powers":
   num-is-roughnum(num-expt(255, 1/8)) is true
   num-expt(512, 1/9) is%(within(0.01)) 2
   num-is-roughnum(num-expt(512, 1/9)) is true
+  num-expt(-125, 1/9) raises "negative"
 end
