@@ -1554,6 +1554,8 @@ define(function() {
         return divide(newN, newD);
      }
     } else {
+      if (this.isNegative() && !a.isInteger())
+        throwRuntimeError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
       return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
             _integerDivideToFixnum(a.n, a.d)));
     }
