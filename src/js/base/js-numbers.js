@@ -526,6 +526,7 @@ define(function() {
 
     var ratx = isRoughnum(x) ? x.toRational() : x;
     var raty = isRoughnum(y) ? y.toRational() : y;
+
     var ratdelta = isRoughnum(delta) ? delta.toRational() : delta;
     return approxEquals(ratx, raty, ratdelta);
   };
@@ -1635,23 +1636,12 @@ define(function() {
   };
 
   Roughnum.prototype.toRational = function() {
-    // The precision of ieee is about 16 decimal digits, which we use here.
     if (! isFinite(this.n) || isNaN(this.n)) {
+      // this _should_ be dead, as we don't store overflows
       throwRuntimeError("toRational: no exact representation for " + this, this);
     }
 
-    var stringRep = this.n.toString();
-    var match = stringRep.match(/^(.*)\.(.*)$/);
-    if (match) {
-      var intPart = parseInt(match[1]);
-      var fracPart = parseInt(match[2]);
-      var tenToDecimalPlaces = Math.pow(10, match[2].length);
-      return Rational.makeInstance(Math.round(this.n * tenToDecimalPlaces),
-                                   tenToDecimalPlaces);
-    }
-    else {
-      return this.n;
-    }
+    return fromString(this.n.toString());
   };
 
   Roughnum.prototype.toExact = Roughnum.prototype.toRational;
