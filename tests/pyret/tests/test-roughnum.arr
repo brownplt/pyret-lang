@@ -175,3 +175,10 @@ check "fractional rational powers":
   num-is-roughnum(num-expt(512, 1/9)) is true
   num-expt(-125, 1/9) raises "negative"
 end
+
+check "comparing very small roughnums":
+  within-abs(~5e-324)(~12e-324, ~5e-324) raises "too small"
+  within-abs(~5e-324)(~12e-300, ~5e-324) raises "too small"
+  within-abs(~5e-312)(~12e-300, ~5e-324) is true
+  within-abs(5e-324)(12e-324, 5e-324) is false
+end
