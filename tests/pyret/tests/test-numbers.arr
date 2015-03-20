@@ -90,7 +90,8 @@ check:
   1 / 3 is num-exact(1 / 3)
   # NOTE(joe): This seems a big algorithm-dependent; mainly here
   # as a regression test so we know if this changes
-  num-exact(num-sqrt(2)) is 1767766952966369 / 1250000000000000
+  #num-exact(num-sqrt(2)) is 1767766952966369 / 1250000000000000
+  num-exact(num-sqrt(2)) is 14142135623730951/10000000000000000
 
   2 satisfies num-is-integer
   1 / 3 satisfies negate(num-is-integer)
