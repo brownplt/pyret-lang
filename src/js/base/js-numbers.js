@@ -1389,7 +1389,7 @@ define(function() {
   };
 
   Rational.prototype.negate = function() {
-    return Rational.makeInstance(-this.n, this.d)
+    return Rational.makeInstance(negate(this.n), this.d)
   };
 
   Rational.prototype.multiply = function(other) {
