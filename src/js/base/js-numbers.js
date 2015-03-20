@@ -512,6 +512,18 @@ define(function() {
     }
 
     if (x === y) return true;
+
+    if (isRoughnum(delta) && delta.n <= Number.MIN_VALUE) {
+      throwRuntimeError("roughnum tolerance too small for meaningful comparison", x, y, delta);
+    }
+    else if (isRoughnum(x) || isRoughnum(y)) {
+      if (((isRoughnum(x) && Math.abs(x.n) <= Number.MIN_VALUE) ||
+            (isRoughnum(y) && Math.abs(y.n) <= Number.MIN_VALUE)) &&
+          (Math.abs(subtract(x, y).n) <= Number.MIN_VALUE)) {
+        throwRuntimeError("roughnum arguments too small for meaningful comparison", x, y, delta);
+      }
+    }
+
     var ratx = isRoughnum(x) ? x.toRational() : x;
     var raty = isRoughnum(y) ? y.toRational() : y;
     var ratdelta = isRoughnum(delta) ? delta.toRational() : delta;
