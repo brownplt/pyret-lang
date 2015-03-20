@@ -1862,7 +1862,7 @@ define(function() {
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
   var roughnumRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
-  var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([-+]?\\d+)$");
+  var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
   // fromString: string -> (scheme-number | false)
   var fromString = function(x) {
