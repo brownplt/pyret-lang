@@ -146,7 +146,7 @@ end
 
 check "comparing very small roughnums":
   within-abs(~5e-324)(~12e-324, ~5e-324) raises "too small"
-  within-abs(~5e-324)(~12e-300, ~5e-324) raises "too small"
+  within-abs(~5e-324)(~12e-300, ~5e-324) is false
   within-abs(~5e-312)(~12e-300, ~5e-324) is false
   within-abs(5e-324)(12e-324, 5e-324) is false
   within-abs(~10e-324)(~30e-324, ~10e-324) is false
