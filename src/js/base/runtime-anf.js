@@ -3678,7 +3678,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_exp = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exp");
       thisRuntime.checkNumber(n);
+      try {
       return thisRuntime.makeNumberBig(jsnums.exp(n));
+      } catch (err) {
+        throw makeMessageException('exp: argument too large ' + n);
+      }
     }
     var num_exact = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exact");
