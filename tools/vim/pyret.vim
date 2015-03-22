@@ -42,7 +42,7 @@ syn match op ' <= '
 syn match op ' <> '
 
 syn match comment '\#.*$'
-
+syntax region comment start=/#|/ skip=/\./ end=/|#/
 
 syntax region string start=/\v"/ skip=/\v\\./ end=/\v"/
 syntax region string start=/\v'/ skip=/\v\\./ end=/\v'/
