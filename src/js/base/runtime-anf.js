@@ -3125,9 +3125,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "_divide");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
-        if (jsnums.equalsAnyZero(r)) {
-          throw makeMessageException("Division by zero");
-        }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
         return safeTail(function() {
@@ -3557,8 +3554,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_within_rel = function(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0)) {
-        throw makeMessageException('negative tolerance ' + relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
@@ -3607,17 +3604,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_asin = function(n) {
       thisRuntime.checkArity(1, arguments, "num-asin");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.asin(n));
     }
     var num_acos = function(n) {
       thisRuntime.checkArity(1, arguments, "num-acos");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.acos(n));
     }
     var num_atan = function(n) {
@@ -3644,9 +3635,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_sqrt = function(n) {
       thisRuntime.checkArity(1, arguments, "num-sqrt");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, 0)) {
-        throw makeMessageException('sqrt: negative argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
     var num_sqr = function(n) {
@@ -3672,19 +3660,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_log = function(n) {
       thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThanOrEqual(n, 0)) {
-        throw makeMessageException('log: non-positive argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.log(n));
     }
     var num_exp = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exp");
       thisRuntime.checkNumber(n);
-      try {
       return thisRuntime.makeNumberBig(jsnums.exp(n));
-      } catch (err) {
-        throw makeMessageException('exp: argument too large ' + n);
-      }
     }
     var num_exact = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exact");

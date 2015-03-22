@@ -447,7 +447,7 @@ define(function() {
   var divide = makeNumericBinop(
     function(x, y) {
       if (_integerIsZero(y))
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       var div = x / y;
       if (isOverflow(div)) {
         return (makeBignum(x)).divide(makeBignum(y));
@@ -458,6 +458,9 @@ define(function() {
       }
     },
     function(x, y) {
+      if (equalsAnyZero(y)) {
+        throwRuntimeError('/: division by zero, ' + x + ' ' + y);
+      }
       return x.divide(y);
     },
     {
@@ -466,7 +469,7 @@ define(function() {
       },
       onXSpecialCase: function(x, y) {
         if (equalsAnyZero(y)) {
-          throwRuntimeError("/: division by zero", x, y);
+          throwRuntimeError("/: division by zero, " + x + ' ' + y);
         }
         return 0;
       },
@@ -474,7 +477,7 @@ define(function() {
         return equalsAnyZero(y);
       },
       onYSpecialCase: function(x, y) {
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       }
     });
 
@@ -512,7 +515,7 @@ define(function() {
   // used for within
   var roughlyEquals = function(x, y, delta) {
     if (isNegative(delta)) {
-      throwRuntimeError("negative tolerance", delta);
+      throwRuntimeError("negative tolerance " + delta);
     }
 
     if (x === y) return true;
@@ -520,7 +523,7 @@ define(function() {
     if (isRoughnum(delta) && delta.n === Number.MIN_VALUE) {
       if ((isRoughnum(x) || isRoughnum(y)) &&
             (Math.abs(subtract(x,y).n) === Number.MIN_VALUE)) {
-      throwRuntimeError("roughnum tolerance too small for meaningful comparison", x, y, delta);
+      throwRuntimeError("roughnum tolerance too small for meaningful comparison, " + x + ' ' + y + ' ' + delta);
       }
     }
 
@@ -616,7 +619,10 @@ define(function() {
       return 1;
     }
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(Math.exp(n));
+      var res = Math.exp(n);
+      if (!isFinite(res))
+        throwRuntimeError('exp: argument too large: ' + n);
+      return Roughnum.makeInstance(res);
     }
     return n.exp();
   };
@@ -681,16 +687,15 @@ define(function() {
 
   // sqrt: scheme-number -> scheme-number
   var sqrt = function(n) {
+    if (lessThan(n, 0)) {
+      throwRuntimeError('sqrt: negative argument ' + n);
+    }
     if (typeof(n) === 'number') {
-      if (n >= 0) {
-        var result = Math.sqrt(n);
-        if (Math.floor(result) === result) {
-          return result;
-        } else {
-          return Roughnum.makeInstance(result);
-        }
+      var result = Math.sqrt(n);
+      if (Math.floor(result) === result) {
+        return result;
       } else {
-        throwRuntimeError("sqrt of negative number", n);
+        return Roughnum.makeInstance(result);
       }
     }
     return n.sqrt();
@@ -725,6 +730,9 @@ define(function() {
   var log = function(n) {
     if ( eqv(n, 1) ) {
       return 0;
+    }
+    if (lessThanOrEqual(n, 0)) {
+      throwRuntimeError('log: non-positive argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n));
@@ -772,7 +780,7 @@ define(function() {
   var acos = function(n) {
     if (eqv(n, 1)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('acos: arg out of domain', n);
+      throwRuntimeError('acos: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.acos(n));
@@ -784,7 +792,7 @@ define(function() {
   var asin = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('asin: arg out of domain', n);
+      throwRuntimeError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.asin(n));
@@ -1454,18 +1462,14 @@ define(function() {
   };
 
   Rational.prototype.sqrt = function() {
-    if (_integerGreaterThanOrEqual(this.n,  0)) {
-      var newN = sqrt(this.n);
-      var newD = sqrt(this.d);
-      if (isRational(newN) && isRational(newD) &&
-          equals(floor(newN), newN) &&
-          equals(floor(newD), newD)) {
-        return Rational.makeInstance(newN, newD);
-      } else {
-        return divide(newN, newD);
-      }
+    var newN = sqrt(this.n);
+    var newD = sqrt(this.d);
+    if (isRational(newN) && isRational(newD) &&
+        equals(floor(newN), newN) &&
+        equals(floor(newD), newD)) {
+      return Rational.makeInstance(newN, newD);
     } else {
-      throwRuntimeError('sqrt of negative rational', this.n, this.d);
+      return divide(newN, newD);
     }
   };
 
@@ -1497,19 +1501,19 @@ define(function() {
   };
 
   Rational.prototype.tan = function(){
-    return Roughnum.makeInstance(Math.tan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.tan(this.toFixnum()));
   };
 
   Rational.prototype.atan = function(){
-    return Roughnum.makeInstance(Math.atan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.atan(this.toFixnum()));
   };
 
   Rational.prototype.cos = function(){
-    return Roughnum.makeInstance(Math.cos(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.cos(this.toFixnum()));
   };
 
   Rational.prototype.sin = function(){
-    return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.sin(this.toFixnum()));
   };
 
   var integerNthRoot = function(n, m) {
@@ -1569,28 +1573,30 @@ define(function() {
     } else {
       if (this.isNegative() && !a.isInteger())
         throwRuntimeError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
-      return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
-            _integerDivideToFixnum(a.n, a.d)));
+      return Roughnum.makeInstance(Math.pow(this.toFixnum(), a.toFixnum()));
     }
   };
 
   Rational.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(_integerDivideToFixnum(this.n, this.d)));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Rational.prototype.acos = function(){
-    return acos(_integerDivideToFixnum(this.n, this.d));
+    return acos(this.toFixnum());
   };
 
   Rational.prototype.asin = function(){
-    return asin(_integerDivideToFixnum(this.n, this.d));
+    return asin(this.toFixnum());
   };
 
   Rational.prototype.round = function() {
     // FIXME: not correct when values are bignums
     if (equals(this.d, 2)) {
       // Round to even if it's a n/2
-      var v = _integerDivideToFixnum(this.n, this.d);
+      var v = this.toFixnum();
       var fl = Math.floor(v);
       var ce = Math.ceil(v);
       if (_integerIsZero(fl % 2)) {
@@ -1788,11 +1794,7 @@ define(function() {
   };
 
   Roughnum.prototype.sqrt = function() {
-    if (this.n < 0) {
-      throwRuntimeError('sqrt of negative roughnum', this.n);
-    } else {
-      return Roughnum.makeInstance(Math.sqrt(this.n));
-    }
+    return Roughnum.makeInstance(Math.sqrt(this.n));
   };
 
   Roughnum.prototype.abs = function() {
@@ -1835,7 +1837,10 @@ define(function() {
   };
 
   Roughnum.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(this.n));
+    var res = Math.exp(this.n);
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Roughnum.prototype.acos = function(){
@@ -3351,7 +3356,7 @@ define(function() {
       if(sign(this) >= 0) {
         return searchIter(this, this);
       } else {
-        throwRuntimeError('integerSqrt of negative bignum', this);
+        throwRuntimeError('integerSqrt of negative bignum ' + this);
       }
     };
   })();
@@ -3366,11 +3371,7 @@ define(function() {
       }
       fix = toFixnum(this);
       if (isFinite(fix)) {
-        if (fix >= 0) {
-          return Roughnum.makeInstance(Math.sqrt(fix));
-        } else {
-          throwRuntimeError('sqrt of negative bignum', fix);
-        }
+        return Roughnum.makeInstance(Math.sqrt(fix));
       } else {
         return approx;
       }
@@ -3432,8 +3433,10 @@ define(function() {
   // exp: -> scheme-number
   // Produce e raised to the given power.
   BigInteger.prototype.exp = function() {
-    var x = this.toFixnum();
-    return Roughnum.makeInstance(Math.exp(x));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   // acos: -> scheme-number
