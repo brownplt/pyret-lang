@@ -515,7 +515,7 @@ define(function() {
   // used for within
   var roughlyEquals = function(x, y, delta) {
     if (isNegative(delta)) {
-      throwRuntimeError("negative tolerance", delta);
+      throwRuntimeError("negative tolerance " + delta);
     }
 
     if (x === y) return true;
@@ -523,7 +523,7 @@ define(function() {
     if (isRoughnum(delta) && delta.n === Number.MIN_VALUE) {
       if ((isRoughnum(x) || isRoughnum(y)) &&
             (Math.abs(subtract(x,y).n) === Number.MIN_VALUE)) {
-      throwRuntimeError("roughnum tolerance too small for meaningful comparison", x, y, delta);
+      throwRuntimeError("roughnum tolerance too small for meaningful comparison, " + x + ' ' + y + ' ' + delta);
       }
     }
 
@@ -1462,18 +1462,14 @@ define(function() {
   };
 
   Rational.prototype.sqrt = function() {
-    if (_integerGreaterThanOrEqual(this.n,  0)) {
-      var newN = sqrt(this.n);
-      var newD = sqrt(this.d);
-      if (isRational(newN) && isRational(newD) &&
-          equals(floor(newN), newN) &&
-          equals(floor(newD), newD)) {
-        return Rational.makeInstance(newN, newD);
-      } else {
-        return divide(newN, newD);
-      }
+    var newN = sqrt(this.n);
+    var newD = sqrt(this.d);
+    if (isRational(newN) && isRational(newD) &&
+        equals(floor(newN), newN) &&
+        equals(floor(newD), newD)) {
+      return Rational.makeInstance(newN, newD);
     } else {
-      throwRuntimeError('sqrt of negative rational', this.n, this.d);
+      return divide(newN, newD);
     }
   };
 
@@ -1798,11 +1794,7 @@ define(function() {
   };
 
   Roughnum.prototype.sqrt = function() {
-    if (this.n < 0) {
-      throwRuntimeError('sqrt of negative roughnum', this.n);
-    } else {
-      return Roughnum.makeInstance(Math.sqrt(this.n));
-    }
+    return Roughnum.makeInstance(Math.sqrt(this.n));
   };
 
   Roughnum.prototype.abs = function() {
@@ -3364,7 +3356,7 @@ define(function() {
       if(sign(this) >= 0) {
         return searchIter(this, this);
       } else {
-        throwRuntimeError('integerSqrt of negative bignum', this);
+        throwRuntimeError('integerSqrt of negative bignum ' + this);
       }
     };
   })();
@@ -3379,11 +3371,7 @@ define(function() {
       }
       fix = toFixnum(this);
       if (isFinite(fix)) {
-        if (fix >= 0) {
-          return Roughnum.makeInstance(Math.sqrt(fix));
-        } else {
-          throwRuntimeError('sqrt of negative bignum', fix);
-        }
+        return Roughnum.makeInstance(Math.sqrt(fix));
       } else {
         return approx;
       }
