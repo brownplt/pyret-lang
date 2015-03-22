@@ -781,7 +781,7 @@ define(function() {
   var acos = function(n) {
     if (eqv(n, 1)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('acos: arg out of domain', n);
+      throwRuntimeError('acos: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.acos(n));
@@ -793,7 +793,7 @@ define(function() {
   var asin = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('asin: arg out of domain', n);
+      throwRuntimeError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.asin(n));

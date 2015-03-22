@@ -3604,17 +3604,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_asin = function(n) {
       thisRuntime.checkArity(1, arguments, "num-asin");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.asin(n));
     }
     var num_acos = function(n) {
       thisRuntime.checkArity(1, arguments, "num-acos");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.acos(n));
     }
     var num_atan = function(n) {
