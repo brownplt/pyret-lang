@@ -3554,8 +3554,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_within_rel = function(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0)) {
-        throw makeMessageException('negative tolerance ' + relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
