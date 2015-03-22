@@ -729,6 +729,9 @@ define(function() {
     if ( eqv(n, 1) ) {
       return 0;
     }
+    if (lessThanOrEqual(n, 0)) {
+      throwRuntimeError('log: non-positive argument ' + n);
+    }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n));
     }

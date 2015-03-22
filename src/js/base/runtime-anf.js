@@ -3672,9 +3672,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_log = function(n) {
       thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThanOrEqual(n, 0)) {
-        throw makeMessageException('log: non-positive argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.log(n));
     }
     var num_exp = function(n) {
