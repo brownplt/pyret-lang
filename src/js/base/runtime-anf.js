@@ -3635,9 +3635,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_sqrt = function(n) {
       thisRuntime.checkArity(1, arguments, "num-sqrt");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, 0)) {
-        throw makeMessageException('sqrt: negative argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
     var num_sqr = function(n) {

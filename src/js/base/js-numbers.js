@@ -687,16 +687,15 @@ define(function() {
 
   // sqrt: scheme-number -> scheme-number
   var sqrt = function(n) {
+    if (lessThan(n, 0)) {
+      throwRuntimeError('sqrt: negative argument ' + n);
+    }
     if (typeof(n) === 'number') {
-      if (n >= 0) {
-        var result = Math.sqrt(n);
-        if (Math.floor(result) === result) {
-          return result;
-        } else {
-          return Roughnum.makeInstance(result);
-        }
+      var result = Math.sqrt(n);
+      if (Math.floor(result) === result) {
+        return result;
       } else {
-        throwRuntimeError("sqrt of negative number", n);
+        return Roughnum.makeInstance(result);
       }
     }
     return n.sqrt();
