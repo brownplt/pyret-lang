@@ -616,7 +616,10 @@ define(function() {
       return 1;
     }
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(Math.exp(n));
+      var res = Math.exp(n);
+      if (!isFinite(res))
+        throwRuntimeError('exp: argument too large: ' + n);
+      return Roughnum.makeInstance(res);
     }
     return n.exp();
   };
@@ -1497,19 +1500,19 @@ define(function() {
   };
 
   Rational.prototype.tan = function(){
-    return Roughnum.makeInstance(Math.tan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.tan(this.toFixnum()));
   };
 
   Rational.prototype.atan = function(){
-    return Roughnum.makeInstance(Math.atan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.atan(this.toFixnum()));
   };
 
   Rational.prototype.cos = function(){
-    return Roughnum.makeInstance(Math.cos(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.cos(this.toFixnum()));
   };
 
   Rational.prototype.sin = function(){
-    return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.sin(this.toFixnum()));
   };
 
   var integerNthRoot = function(n, m) {
@@ -1569,28 +1572,30 @@ define(function() {
     } else {
       if (this.isNegative() && !a.isInteger())
         throwRuntimeError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
-      return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
-            _integerDivideToFixnum(a.n, a.d)));
+      return Roughnum.makeInstance(Math.pow(this.toFixnum(), a.toFixnum()));
     }
   };
 
   Rational.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(_integerDivideToFixnum(this.n, this.d)));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Rational.prototype.acos = function(){
-    return acos(_integerDivideToFixnum(this.n, this.d));
+    return acos(this.toFixnum());
   };
 
   Rational.prototype.asin = function(){
-    return asin(_integerDivideToFixnum(this.n, this.d));
+    return asin(this.toFixnum());
   };
 
   Rational.prototype.round = function() {
     // FIXME: not correct when values are bignums
     if (equals(this.d, 2)) {
       // Round to even if it's a n/2
-      var v = _integerDivideToFixnum(this.n, this.d);
+      var v = this.toFixnum();
       var fl = Math.floor(v);
       var ce = Math.ceil(v);
       if (_integerIsZero(fl % 2)) {
@@ -1835,7 +1840,10 @@ define(function() {
   };
 
   Roughnum.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(this.n));
+    var res = Math.exp(this.n);
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Roughnum.prototype.acos = function(){
@@ -3432,8 +3440,10 @@ define(function() {
   // exp: -> scheme-number
   // Produce e raised to the given power.
   BigInteger.prototype.exp = function() {
-    var x = this.toFixnum();
-    return Roughnum.makeInstance(Math.exp(x));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   // acos: -> scheme-number
