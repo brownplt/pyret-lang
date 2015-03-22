@@ -447,7 +447,7 @@ define(function() {
   var divide = makeNumericBinop(
     function(x, y) {
       if (_integerIsZero(y))
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       var div = x / y;
       if (isOverflow(div)) {
         return (makeBignum(x)).divide(makeBignum(y));
@@ -458,6 +458,9 @@ define(function() {
       }
     },
     function(x, y) {
+      if (equalsAnyZero(y)) {
+        throwRuntimeError('/: division by zero, ' + x + ' ' + y);
+      }
       return x.divide(y);
     },
     {
@@ -466,7 +469,7 @@ define(function() {
       },
       onXSpecialCase: function(x, y) {
         if (equalsAnyZero(y)) {
-          throwRuntimeError("/: division by zero", x, y);
+          throwRuntimeError("/: division by zero, " + x + ' ' + y);
         }
         return 0;
       },
@@ -474,7 +477,7 @@ define(function() {
         return equalsAnyZero(y);
       },
       onYSpecialCase: function(x, y) {
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       }
     });
 
