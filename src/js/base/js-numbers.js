@@ -233,6 +233,10 @@ define(function() {
     Numbers['onThrowRuntimeError'](msg, x, y);
   };
 
+  var setThrowRuntimeError = function(fn) {
+    throwRuntimeError = fn;
+  };
+
   // onThrowRuntimeError: string (scheme-number | undefined) (scheme-number | undefined) -> void
   // By default, will throw a new Error with the given message.
   // Override Numbers['onThrowRuntimeError'] if you need to do something special.
@@ -3556,6 +3560,7 @@ define(function() {
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
 
   Numbers['onThrowRuntimeError'] = onThrowRuntimeError;
+  Numbers['setThrowRuntimeError'] = setThrowRuntimeError;
   Numbers['isSchemeNumber'] = isSchemeNumber;
   Numbers['isRational'] = isRational;
   Numbers['isReal'] = isReal;

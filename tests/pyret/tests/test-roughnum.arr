@@ -104,9 +104,9 @@ end
 
 check "overflow rather than infinity":
   # in JS, e^709 converges, e^710 doesn't
-  num-exp(710)          raises "overflow"
-  num-exp(~710)         raises "overflow"
-  num-exp(1000000000000000000000000) raises "overflow" # this tests for arg known to be bigint
+  num-exp(710)          raises "too large"
+  num-exp(~710)         raises "too large"
+  num-exp(1000000000000000000000000) raises "too large" # this tests for arg known to be bigint
   num-expt(2.718,~710)  raises "overflow"
   num-expt(~2.718,710)  raises "overflow"
   num-expt(~2.718,~710) raises "overflow"

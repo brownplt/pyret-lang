@@ -1457,6 +1457,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       ffi.throwMessageException(str);
     }
 
+    jsnums.setThrowRuntimeError(makeMessageException);
+
     var raiseJSJS =
       /**
         Raises any Pyret value as an exception
