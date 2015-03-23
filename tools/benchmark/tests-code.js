@@ -4,15 +4,15 @@ require('jasmine-node');
 jasmine.getEnv().addReporter(new jasmine.ConsoleReporter(console.log));
 var validProgram = '1';
 var invalidProgram = '1 + true';
-var nonParsableProgram = '...';
-// var longProgram = '';
-// for(var i = 0; i < 1000; i++){
-//   longProgram += '1 + ';   
-// }
-// longProgram += '1';
+var longProgram = '';
+for(var i = 0; i < 1000; i++){
+  longProgram += '1 + ';   
+}
+longProgram += '1';
 
-///SKIP ALL TESTS INVOLVING longProgram FOR NOW
-// problem with async waiting.
+var PASSES = true;
+var FAILS = false;
+
 describe('checkResult', function(){
   it('returns true given a SuccessResult', function(){
     expect(b.test.testCheckResult(true)).toBe(true);
@@ -24,334 +24,122 @@ describe('checkResult', function(){
 });
 
 describe('ensureSuccess', function() {
-  it('passes on a valid program', function() {
-  	var passed, flag;  	
-
+  it('passes on a valid program', function(done) {
   	runs(function(){
-  		passed = false;
-  		flag = false;
   		b.test.testEnsureSuccess(validProgram, {}, function(result){
-  			passed = result;
-  			flag = true;
-  		})
-  	});
-
-  	waitsFor(function(){
-  		return flag;
-  	}, 'failure',5000);
-
-  	runs(function(){
-  		expect(passed).toBe(true);
+        expect(result).toBe(PASSES);
+        done();
+      });
   	});
   });
 
-  xit('passes on a valid (long) program', function() {
-    var passed, flag;   
-
+  it('passes on a valid (long) program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testEnsureSuccess(longProgram, {}, function(result){
-        passed = result;
-        flag = true;
-      })
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
+        expect(result).toBe(PASSES);
+        done();
+      });
     });
   });
 
-  it('fails on an invalid program', function() {
-  	var passed, flag;  	
-
+  it('fails on an invalid program', function(done) {
   	runs(function(){
-  		passed = false;
-  		flag = false;
   		b.test.testEnsureSuccess(invalidProgram,{},function(result){
-  			passed = result;
-  			flag = true;
-  		})
-  	});
-
-  	waitsFor(function(){
-  		return flag;
-  	}, 'failure',5000);
-
-  	runs(function(){
-  		expect(passed).toBe(false);
-  	});
-  });
-
-  it('fails on a nonparsable program', function() {
-  	var passed, flag;  	
-
-  	runs(function(){
-  		passed = false;
-  		flag = false;
-  		b.test.testEnsureSuccess(nonParsableProgram,{},function(result){
-  			passed = result;
-  			flag = true;
-  		})
-  	});
-
-  	waitsFor(function(){
-  		return flag;
-  	}, 'failure',5000);
-
-  	runs(function(){
-  		expect(passed).toBe(false);
+        expect(result).toBe(FAILS);
+        done();
+      });
   	});
   });
 });
 
 describe('parsePyret', function(){
-  it('passes on a valid program', function() {
-  	var passed, flag;  	
-
+  it('passes on a valid program', function(done) {
   	runs(function(){
-  		passed = false;
-  		flag = false;
   		b.test.testDeferredFunction(validProgram, {}, 'parsePyret',function(result){
-  			passed = result;
-  			flag = true;
-  		});
-  	});
-
-  	waitsFor(function(){
-  		return flag;
-  	}, 'failure',5000);
-
-  	runs(function(){
-  		expect(passed).toBe(true);
-  	});
-  });
-
-  xit('passes on a valid (long) program', function() {
-    var passed, flag;   
-
-    runs(function(){
-      passed = false;
-      flag = false;
-      b.test.testDeferredFunction(longProgram, {}, 'parsePyret',function(result){
-        passed = result;
-        flag = true;
+  			expect(result).toBe(PASSES);
+        done();
       });
     });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
-    });
   });
 
-  it('fails on a nonparsable program', function() {
-  	var passed, flag;  	
-
-  	runs(function(){
-  		passed = false;
-  		flag = false;
-  		b.test.testDeferredFunction(nonParsableProgram, {}, 'parsePyret',function(result){
-  			passed = result;
-  			flag = true;
-  		});
-  	});
-
-  	waitsFor(function(){
-  		return flag;
-  	}, 'failure',5000);
-
-  	runs(function(){
-  		expect(passed).toBe(false);
-  	});
+  it('passes on a valid (long) program', function(done) {
+    runs(function(){
+      b.test.testDeferredFunction(longProgram, {}, 'parsePyret',function(result){
+        expect(result).toBe(PASSES);
+        done();
+      });
+    });
   });
 });
 
 describe('initializeGlobalRuntime', function(){
-	it('sets a runtime to global.rt', function(){
-		expect(b.test.testInitializeGlobalRuntime()).toBe(true);
-	})
+  it('sets a runtime to global.rt', function(){
+    expect(b.test.testInitializeGlobalRuntime()).toBe(true);
+  });
 });
 
 describe('loadParsedPyret', function(){
-  it('passes on a valid program', function() {
-    var passed, flag;   
-
+  it('passes on a valid program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testDeferredFunction(validProgram, {}, 'loadParsedPyret',function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(PASSES);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
     });
   });
 
-  xit('passes on a valid (long) program', function() {
-    var passed, flag;   
-
+  it('passes on a valid (long) program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testDeferredFunction(longProgram, {}, 'loadParsedPyret',function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(PASSES);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
-    });
-  });
-
-  it('fails on a nonparsable program', function() {
-    var passed, flag;   
-
-    runs(function(){
-      passed = false;
-      flag = false;
-      b.test.testDeferredFunction(nonParsableProgram, {}, 'loadParsedPyret',function(result){
-        passed = result;
-        flag = true;
-      });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(false);
     });
   });
 });
 
 describe('setup', function(){
-  it('sets up parsed ast and loaded js module', function(){
+  it('sets up parsed ast and loaded js module', function(done){
     var passed, flag;   
 
     runs(function(){
       passed = false;
       flag = false;
       b.test.testSetup(validProgram, {}, function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(true);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
     });
   });
 });
 
 describe('evalLoadedPyret', function(){
-  it('passes on a valid program', function() {
-    var passed, flag;   
-
+  it('passes on a valid program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testDeferredFunction(validProgram, {}, 'evalLoadedPyret',function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(PASSES);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
     });
   });
 
-  xit('passes on a valid (long) program', function() {
-    var passed, flag;   
-
+  it('passes on a valid (long) program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testDeferredFunction(longProgram, {}, 'evalLoadedPyret',function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(PASSES);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(true);
     });
   });
 
-  it('fails on an invalid program', function() {
-    var passed, flag;   
-
+  it('fails on an invalid program', function(done) {
     runs(function(){
-      passed = false;
-      flag = false;
       b.test.testDeferredFunction(invalidProgram, {}, 'evalLoadedPyret',function(result){
-        passed = result;
-        flag = true;
+        expect(result).toBe(FAILS);
+        done();
       });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(false);
     });
   }); 
-
-  it('fails on a nonparsable program', function() {
-    var passed, flag;   
-
-    runs(function(){
-      passed = false;
-      flag = false;
-      b.test.testDeferredFunction(nonParsableProgram, {}, 'evalLoadedPyret',function(result){
-        passed = result;
-        flag = true;
-      });
-    });
-
-    waitsFor(function(){
-      return flag;
-    }, 'failure',5000);
-
-    runs(function(){
-      expect(passed).toBe(false);
-    });
-  });
 });
 
 describe('createSuite', function(){
@@ -390,7 +178,7 @@ describe('runBenchmarks', function(){
       && (typeof results[name].samples == 'number');
     }
     expect(passed).toBe(true);
-  })
+  });
 });
 
 describe('runFile', function(){
@@ -419,7 +207,7 @@ describe('runFile', function(){
       && (typeof results[name].samples == 'number');
     }
     expect(passed).toBe(true);
-  })
+  });
 });
 
 var benchmarks = 
@@ -433,6 +221,7 @@ var filename = 'auto-report-programs/empty.arr';
 var benchmarkResults = undefined;
 var runFileResults = undefined;
 
+console.log("Running tests...");
 b.runBenchmarks(benchmarks, {}, false, function(r){
   benchmarkResults = r;
   b.runFile(filename, {}, false, function(f){
@@ -441,4 +230,3 @@ b.runBenchmarks(benchmarks, {}, false, function(r){
   });
 });
 
-//jasmine.getEnv().execute();
