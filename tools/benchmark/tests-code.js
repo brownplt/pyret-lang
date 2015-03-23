@@ -2,16 +2,14 @@ var b = require('benchmark-pyret');
 require('jasmine-node');
 
 jasmine.getEnv().addReporter(new jasmine.ConsoleReporter(console.log));
-
 var validProgram = '1';
 var invalidProgram = '1 + true';
 var nonParsableProgram = '...';
 // var longProgram = '';
 // for(var i = 0; i < 1000; i++){
-//   longProgram += '1 + ';
+//   longProgram += '1 + ';   
 // }
 // longProgram += '1';
-
 
 ///SKIP ALL TESTS INVOLVING longProgram FOR NOW
 // problem with async waiting.
@@ -423,8 +421,6 @@ describe('runFile', function(){
     expect(passed).toBe(true);
   })
 });
-
-
 
 var benchmarks = 
 [

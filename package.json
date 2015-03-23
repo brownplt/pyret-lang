@@ -9,7 +9,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "jasmine-node": "1.14.2",
+    "jasmine-node": "1.14.5",
     "sweet.js": "~0.4.2",
     "jquery": "~2.1.0",
     "ses": "~0.0.0",
