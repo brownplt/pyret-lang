@@ -556,6 +556,16 @@ check:
 end
 }
 
+If the argument is midway between integers, returns the closest
+even integer.
+
+@examples{
+check:
+  num-round(3.5) is 4
+  num-round(2.5) is 2
+end
+}
+
   }
   @function["num-log" #:contract (a-arrow N N) #:return N]{
 
