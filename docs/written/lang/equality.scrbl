@@ -10,6 +10,9 @@
 
 @(define boolean '(a-id "Boolean" (xref "<global>" "Boolean")))
 @(define eq '(a-id "EqualityResult" (xref "equality" "EqualityResult")))
+@(define eqfun `(a-arrow ,A ,A ,B))
+@(define numeqfun `(a-arrow ,N ,N ,B))
+@(define eq3fun `(a-arrow ,A ,A ,eq))
 @(define T (a-id "EqualityResult" (xref "equality" "EqualityResult")))
 
 @(append-gen-docs
@@ -32,6 +35,66 @@
       (arity 2)
       (args ("val1" "val2"))
       (return ,boolean)
+      (doc ""))
+    (fun-spec
+      (name "within-abs")
+      (arity 1)
+      (args ("tol"))
+      (return ,eqfun)
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now")
+      (arity 1)
+      (args ("tol"))
+      (return ,eqfun)
+      (doc ""))
+    (fun-spec
+      (name "within")
+      (arity 1)
+      (args ("tol"))
+      (return ,eqfun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel")
+      (arity 1)
+      (args ("tol"))
+      (return ,eqfun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now")
+      (arity 1)
+      (args ("tol"))
+      (return ,eqfun)
+      (doc ""))
+    (fun-spec
+      (name "within3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-abs3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
       (doc ""))
     (fun-spec
       (name "equal-now3")
@@ -449,7 +512,256 @@ This table doesn't have all the @pyret{false} cases in it, because we need to
 complete the story for a few values that haven't been discussed before we can
 give the whole picture.
 
-@section[#:tag "s:equality-and-functions"]{Equality and Functions}
+@section[#:tag "s:bounded-equalities"]{Bounded Equalities}
+
+When comparing numbers, it's often useful to be able to compare within a
+range.  For example, if we write an algorithm that computes an answer to
+within a given tolerance, we may want to check if the answer is within that
+tolerance.
+
+@pyret-block{
+check:
+  sqrt-5 = num-sqrt(5)
+  (sqrt-5 < 2.23) is true
+  (sqrt-5 > 2.22) is true
+end
+}
+
+Pyret has a family of built-in functions for cases like this, and the default
+is @pyret{within}:
+
+@function["within" #:contract (a-arrow N A)]
+
+It takes an argument representing the @emph{relative error}, and returns a
+function that can be used to check equality up to that relative error.  For
+example, we can check if an answer is within 10% of a desired result:
+
+@pyret-block{
+check:
+  within-10-percent = within(0.1)
+  within-10-percent(9.5, 10.5)
+end
+}
+
+Relative difference is defined by multiplying the @emph{mean} of the two
+numbers by @pyret{tol}, and checking that the result is less than the
+difference between them.  That is, in the expression above, @pyret-id{within}
+checks:
+
+@pyret-block{
+(((9.5 + 10.5) / 2) * 0.1) < (10.5 - 9.5)
+}
+
+@note{Converting to exact numbers first avoids overflows on computing the
+mean.}
+Put yet another way, aside from some slight differences in bounds checking for
+errors, we could implement the numeric comparison of @pyret-id{within} as:
+
+@pyret-block{
+fun within(tol):
+  lam(left, right):
+    (((num-exact(left) + num-exact(right)) / 2) * num-exact(tol))
+      < num-abs(num-exact(left) - num-exact(right))
+  end
+end
+}
+
+The @pyret{tol} argument must be between @pyret{0} and @pyret{1}.
+
+It's common to use @pyret{within} along with @pyret-id["is%" "testing"] to
+define the binary predicate inline with the test:
+
+@examples{
+check:
+  num-sqrt(10) is%(within(0.1)) 3.2
+  num-sqrt(10) is-not%(within(0.1)) 5
+end
+}
+
+Finally, @pyret-id{within} accepts @emph{any} two values, not just numbers.
+On non-numeric arguments, @pyret-id{within} traverses the structures just as
+in @pyret-id{equal-always}, but deferring to the bounds-checking equality when
+a pair of numbers is encountered.  All other values are compared with
+@pyret-id{equal-always}. 
+
+@examples{
+check:
+  l7 = [list: 1]
+  l8 = [list: ~1.2]
+  l7 is%(within-rel(0.5))  l8
+  l7 is-not%(within-rel(0.1)) l8
+  l7 is%(within-rel(~0.5))  l8
+  l7 is-not%(within-rel(~0.1)) l8
+end
+}
+
+@function["within-rel" #:contract (a-arrow N A)]
+
+An alias for @pyret-id{within}.
+
+@function["within-abs" #:contract (a-arrow N A)]
+
+Like @pyret-id{within-rel}, but compares with @emph{absolute} tolerance rather
+than relative.  The definition is equivalent to:
+
+@pyret-block{
+fun within-abs(tol):
+  lam(left, right):
+    num-abs(num-exact(left) - num-exact(right)) <= tol
+  end
+end
+}
+
+@examples{
+check:
+  la = [list: 10]
+  lb = [list: ~12]
+  la is%(within-abs(2))  lb
+  la is-not%(within-abs(1))  lb
+  la is%(within-abs(~5.5))  lb
+  la is-not%(within-abs(~1.9999)) lb
+end
+}
+
+@function["within-rel-now" #:contract (a-arrow N A)]
+@function["within-abs-now" #:contract (a-arrow N A)]
+
+Like @pyret-id{within-rel} and @pyret-id{within-abs}, but they traverse
+mutable structures as in @pyret{equal-now}.
+
+@examples{
+check:
+  aa = [array: 10]
+  ab = [array: ~12]
+  aa is%(within-rel-now(~0.2))  ab
+  aa is-not%(within-rel(~0.2)) ab
+  aa is%(within-abs-now(2))  ab
+  aa is-not%(within-abs(2))  ab
+end
+}
+
+
+
+
+@section[#:tag "s:undefined-equalities"]{Undefined Equalities}
+
+For some values, Pyret refuses to report @pyret{true} or @pyret{false} for any
+equality predicate, and raises an error instead.  For example:
+
+@pyret-block{
+check:
+  (~3 == ~3) raises "equality-failure"
+
+  (1 == ~1) raises "equality-failure"
+
+  (lam(x): x end == lam(y): y end) raises "equality-failure"
+end
+}
+
+This section discusses why this is the case.
+
+@subsection[#:tag "s:roughnum-equality"]{Roughnums and Equality}
+
+@note{@link["http://htdp.org/2003-09-26/Book/curriculum-Z-H-41.html#node_chap_33"]{How
+to Design Programs} describes this design space well.} Numbers'
+representations in programs reflect a number of tradeoffs, but the upshot is
+that numbers have finite, approximate representations for performance reasons.
+Numbers like @pyret{e}, @pyret{π}, and @pyret{√2} are only represented up to
+some approximation of their true (irrational) value.  When such a result is
+used in a computation, it represents a @emph{rough approximation} of the true
+value.
+
+Pyret calls these numbers @pyret-id["Roughnum" "numbers"]s, and they have
+special rules related to equality.  In particular, they @emph{cannot} be
+directly compared for equality, even if it seems like they ought to be equal:
+
+@pyret-block{
+check:
+  (~3 == ~3) raises "equality-failure"
+end
+}
+
+In addition, @pyret-id["Roughnum" "numbers"]s cannot be compared for equality
+with @pyret-id["Exactnum" "numbers"]s, either.
+
+@pyret-block{
+check:
+  (~0.1 == 0.1) raises "equality-failure"
+end
+}
+
+@note{This example is not Pyret-specific, but matches the behavior of IEEE
+floating point.}
+Returning either @pyret{true} or @pyret{false} in this case would be
+misleading.  This is due to the fact that because of unavoidable inaccuracies,
+both of these expressions evaluate to @pyret{~0.1}, even though
+mathematically only one of them does:
+
+@pyret-block{
+(~1 - ~0.9) + 0.00000000000000003
+~0.2 - ~0.1
+}
+
+So in this check block, if we chose either @pyret{true} or @pyret{false} for
+the result of @pyret{~0.1 == 0.1}, one test would be incorrect:
+
+@pyret-block{
+check:
+  ((~1 - ~0.9) + 0.00000000000000003) is 0.1
+  (~0.2 - ~0.1) is 0.1
+end
+}
+
+If Pyret answered @pyret{true} for @pyret{~0.1 == ~0.1} (the rough
+equivalent), then this test would pass when, mathematically, it ought to fail:
+
+@pyret-block{
+check:
+  ((~1 - ~0.9) + 0.00000000000000003) is (~0.2 - ~0.1)
+end
+}
+
+To avoid giving misleading answers in cases like these, Pyret triggers an
+error on any number-to-number comparison that involves a @pyret-id["Roughnum"
+"numbers"].  So, if you see an error like
+
+@verbatim{
+These two values cannot be compared for direct equality:
+
+~0.1
+~0.1
+
+Approximations of numbers (Roughnums) cannot be compared for equality. The
+program may need to use within().
+}
+
+It's a hint that the program should be using an equality from the
+@pyret-id["within"] family of functions to do a relative comparison, rather
+than a direct equality comparison.  So in this case, we could check that the
+answer is equal up to an absolute error of @pyret{0.001}:
+
+@pyret-block{
+check:
+  ((~1 - ~0.9) + 0.00000000000000003) is%(within(0.001)) (~0.2 - ~0.1)
+end
+}
+
+If a program needs to check that two @pyret-id["Roughnum" "numbers"]s are
+actually indistinguishable in their representation (even though they may be
+approximating different values), it can do so by checking that the numbers are
+within a tolerance of @pyret{~0}:
+
+@pyret-block{
+check:
+  ((~1 - ~0.9) + 0.00000000000000003) is%(within(~0)) (~0.2 - ~0.1)
+end
+}
+
+Note that the same won't work for a tolerance of @pyret{0}, the exact zero,
+which will give an error if used to compare two @pyret-id["Roughnum"
+"numbers"]s.
+
+@subsection[#:tag "s:function-equality"]{Functions and Equality}
 
 When comparing two functions or two methods, all the equality operators raise
 an exception.  Why?  Well, the traditional way to compare functions for
@@ -704,6 +1016,14 @@ We can now modify our table from above to be more complete:
     )
 ]
 
+There are corresponding total functions defined for @pyret-id{within} as well:
+
+@function["within3" #:contract (a-arrow N A)]
+@function["within-rel3" #:contract (a-arrow N A)]
+@function["within-rel-now3" #:contract (a-arrow N A)]
+@function["within-abs3" #:contract (a-arrow N A)]
+@function["within-abs-now3" #:contract (a-arrow N A)]
+
 @section[#:tag "s:datatype-defined-equality"]{Datatype-defined Equality}
 
 The functions @pyret-id{equal-now} and @pyret-id{equal-always} are defined to
@@ -815,7 +1135,7 @@ The last argument to @pyret{_equals} is the recursive equality callback to use
 for checking equality of any members.  When checking for equality of members
 (say in our set implementation above), we would use this callback rather than
 one of @pyret-id{equal-always3} or @pyret-id{equal-now3}.  The reasons for this
-are twofold:
+are threefold:
 
 @itemlist[
   @item{In order to check for equality of cyclic values, Pyret needs to do
@@ -829,6 +1149,10 @@ are twofold:
   should use the original semantics for comparing references, so using the
   callback ensures that equality checks on elements have the right semantics
   (even in deeply nested data structures).}
+
+  @item{The recursive equality predicate closes over and remembers the
+  @emph{tolerance} for @pyret-id["within"]-family functions, and whether or
+  not the tolerance is absolute or relative.}
 ]
 
 }
