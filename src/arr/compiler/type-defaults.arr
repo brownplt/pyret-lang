@@ -49,7 +49,6 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
-
 fun make-default-typs():
   default-typs = SD.make-mutable-string-dict()
   default-typs.set-now(A.s-global("builtins").key(), t-record([list:
@@ -134,7 +133,10 @@ fun make-default-typs():
   # Number functions
   default-typs.set-now(A.s-global("num-max").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-min").key(), t-number-binop)
-  default-typs.set-now(A.s-global("nums-equal").key(), t-number-binop)
+  default-typs.set-now(A.s-global("num-equal").key(), t-number-binop)
+  default-typs.set-now(A.s-global("num-within").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
+  default-typs.set-now(A.s-global("num-within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
+  default-typs.set-now(A.s-global("num-within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
   default-typs.set-now(A.s-global("num-abs").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-sin").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-cos").key(), t-arrow([list: t-number], t-number))
@@ -148,15 +150,31 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-sqr").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-ceiling").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-floor").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-round").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-log").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-exp").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-exact").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-to-rational").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-to-roughnum").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-to-fixnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-roughnum").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-positive").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-negative").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-non-positive").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-non-negative").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-fixnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-expt").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-tostring").key(), t-arrow([list: t-number], t-string))
   default-typs.set-now(A.s-global("num-to-string").key(), t-arrow([list: t-number], t-string))
   default-typs.set-now(A.s-global("num-to-string-digits").key(), t-arrow([list: t-number, t-number], t-string))
+  default-typs.set-now(A.s-global("within").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
+  default-typs.set-now(A.s-global("within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
+  default-typs.set-now(A.s-global("within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
+  default-typs.set-now(A.s-global("within-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
+  default-typs.set-now(A.s-global("within-abs-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
+  default-typs.set-now(A.s-global("within-rel-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
   default-typs.set-now(A.s-global("random").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-random").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-random-seed").key(), t-arrow([list: t-number], t-nothing))
@@ -168,7 +186,7 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("string-toupper").key(), t-arrow([list: t-string], t-string))
   default-typs.set-now(A.s-global("string-tolower").key(), t-arrow([list: t-string], t-string))
   default-typs.set-now(A.s-global("string-append").key(), t-arrow([list: t-string, t-string], t-string))
-  default-typs.set-now(A.s-global("strings-equal").key(), t-arrow([list: t-string, t-string], t-boolean))
+  default-typs.set-now(A.s-global("string-equal").key(), t-arrow([list: t-string, t-string], t-boolean))
   default-typs.set-now(A.s-global("string-contains").key(), t-arrow([list: t-string, t-string], t-boolean))
   default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-number))
   default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
@@ -770,5 +788,3 @@ fun make-default-modules():
   default-modules.set-now("const:s-exp-structs", module-const-s-exp-structs)
   default-modules
 end
-
-

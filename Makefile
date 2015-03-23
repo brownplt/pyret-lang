@@ -22,7 +22,7 @@ LIBS_JS         := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 
 # You can download the script to work with s3 here:
-# 
+#
 #     http://aws.amazon.com/code/Amazon-S3/1710
 #
 # On Debian, you need the following packages:
@@ -65,7 +65,6 @@ DOCS_DIRS       := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
 
-
 endef
 ifneq ($(findstring .exe,$(SHELL)),)
 	override SHELL:=$(COMSPEC)$(ComSpec)
@@ -78,8 +77,6 @@ else
 	RM = rm -f $1
 	VERSION = $(shell git describe --long --tags HEAD | awk -F '[/-]' '{ print $$1 "r" $$2 }')
 endif
-
-
 
 -include config.mk
 
@@ -106,7 +103,6 @@ phase3: $(PHASE3)/phase3.built
 $(PHASE3)/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
 	touch $(PHASE3)/phase3.built
 
-
 $(PHASE1_ALL_DEPS): | $(PHASE1)
 
 $(PHASE2_ALL_DEPS): | $(PHASE2) phase1
@@ -122,7 +118,6 @@ standalone2: phase2 $(PHASE2)/pyret.js
 .PHONY : standalone3
 standalone3: phase3 $(PHASE3)/pyret.js
 
-
 $(PHASE1):
 	@$(call MKDIR,$(PHASE1_DIRS))
 
@@ -135,7 +130,6 @@ $(PHASE3):
 $(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
 		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
-
 
 $(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
 	cd $(PHASE2) && \
@@ -154,13 +148,13 @@ $(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
 $(PHASE3)/pyret-start.js: src/scripts/pyret-start.js
 	cp $< $@
 
-$(PHASE1)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE1)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
-$(PHASE2)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE2)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
-$(PHASE3)/js/js-numbers.js: lib/js-numbers/src/js-numbers.js
+$(PHASE3)/js/js-numbers.js: src/js/base/js-numbers.js
 	cp $< $@
 
 $(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
@@ -221,7 +215,6 @@ $(DOCS)/written/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.
 $(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
 	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
 
-
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
@@ -268,12 +261,9 @@ $(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
 install:
 	@$(call MKDIR,node_modules)
 	npm install
-	git submodule init
-	git submodule update lib/CodeMirror
-
 
 .PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
 
 .PHONY : test-all
 test-all: test docs-test
@@ -294,6 +284,7 @@ repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
 parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
+TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
 BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
@@ -312,37 +303,46 @@ else
 endif
 endif
 
+tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+
 tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : regression-test
-regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS)
+regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/regression.arr
 
 .PHONY : pyret-test
-pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS)
+pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/pyret \
     -check-all tests/pyret/main.arr
 
 .PHONY : type-check-test
-type-check-test: $(PYRET_TEST_PREREQ)
+type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir tests/type-check \
     -check-all tests/type-check/main.arr
-
 
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     --module-load-dir $(PYRET_TEST_PHASE)/arr/compiler/ \
     -check-all src/arr/compiler/compile.arr
+
+.PHONY : lib-test
+lib-test: $(PYRET_TEST_PREREQ)
+	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
+    -check-all tests/lib-test/lib-test-main.arr
 
 .PHONY : bootstrap-test
 bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
@@ -362,13 +362,11 @@ clean:
 	$(call RMDIR,$(PHASE3))
 	$(call RMDIR,$(RELEASE_DIR))
 
-
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
 	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
 no-diff-standalone: standalone2 standalone3
 	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
-
 
 $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
@@ -397,4 +395,3 @@ release:
 test-release: release-gzip
 	$(error Cannot release from this platform)
 endif
-

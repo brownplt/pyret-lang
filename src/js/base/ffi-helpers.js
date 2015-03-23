@@ -6,10 +6,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
       var gf = runtime.getField;
 
+      var lnk = gf(L, "link").app;
+      var mt = gf(L, "empty");
       function makeList(arr) {
-        var lst = gf(L, "empty");
+        var lst = mt;
         for(var i = arr.length - 1; i >= 0; i--) {
-          lst = gf(L, "link").app(arr[i], lst);
+          lst = lnk(arr[i], lst);
         }
         return lst;
       }
@@ -101,6 +103,13 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function makeMessageException(message) {
         runtime.checkString(message);
         return err("message-exception")(message);
+      }
+
+      function throwEqualityException(reason, v1, v2) {
+        runtime.checkString(reason);
+        runtime.checkPyretVal(v1);
+        runtime.checkPyretVal(v2);
+        raise(err("equality-failure")(reason, v1, v2));
       }
 
       function throwTypeMismatch(val, typeName) {
@@ -283,6 +292,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
         throwArityError: throwArityError,

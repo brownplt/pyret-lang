@@ -79,21 +79,21 @@
     (name "is-function")
     (arity 1)
     (args ("val"))
-    (doc "Checks whether the provided argument is in fact function"))
+    (doc "Checks whether the provided argument is in fact a function"))
   (fun-spec
     (name "is-object")
     (arity 1)
     (args ("val"))
-    (doc "Checks whether the provided argument is in fact object"))
+    (doc "Checks whether the provided argument is in fact an object"))
   (fun-spec
     (name "is-method")
     (arity 1)
     (args ("val"))
-    (doc "Checks whether the provided argument is in fact method"))
+    (doc "Checks whether the provided argument is in fact a method"))
   (fun-spec
     (name "is-raw-array")
     (arity 1)
     (args ("val"))
-    (doc "Checks whether the provided argument is in fact method"))
+    (doc "Checks whether the provided argument is in fact a raw array"))
 
 )

@@ -117,7 +117,7 @@ expr: paren-expr | id-expr | prim-expr
     | type-let-expr
     | construct-expr
 
-bad-expr: UNTERMINATED-STRING | UNKNOWN
+bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
@@ -157,7 +157,7 @@ fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
      | key fun-header COLON doc-string block where-clause end
-key: STRING | NAME
+key: NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
 construct-modifier: | LAZY

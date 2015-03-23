@@ -73,7 +73,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     return tok_type;
   }
 
-
   const ws_after = "(?:\\s+)"
 
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
@@ -81,8 +80,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
   function op(str) { return "^\\s+" + str + ws_after; }
 
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
-  const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
-  const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
@@ -157,7 +157,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PARENSPACE", val: spaceparen, parenIsForExp: true},
     {name: "LPAREN?", val: lparen, parenIsForExp: true},
 
-
     {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
@@ -211,6 +210,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
+    {name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},
     {name: "STRING", val: dquot_str},
     {name: "STRING", val: squot_str},
@@ -253,7 +253,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "UNTERMINATED-STRING", val: unterminated_string},
     {name: "UNKNOWN", val: anychar},
   ];
-
 
   return {
     'Tokenizer': new Tokenizer(true, Tokens)

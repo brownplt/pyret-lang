@@ -42,7 +42,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     GenTokenizer.prototype.tokenizeFrom.call(this, str);
     this.parenIsForExp = true;
   }
-  Tokenizer.prototype.makeToken = function (tok_type, s, pos) { 
+  Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
     if (tok_type === "STRING") s = fixEscapes(s);
     return GenTokenizer.prototype.makeToken(tok_type, s, pos);
   }
@@ -72,15 +72,14 @@ define(["../../../lib/jglr/jglr"], function(E) {
     return tok_type;
   }
 
-
-
   function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
   const operator_regex_str = anyOf(["\\+", "-", "\\*", "/", "<=", ">=", "==", "<>", "%",
                                     "<", ">", "is", "raises"]);
   const name = new RegExp("^[_a-zA-Z][-_a-zA-Z0-9]*", STICKY_REGEXP);
-  const number = new RegExp("^-?[0-9]+(?:\\.[0-9]+)?", STICKY_REGEXP);
-  const rational = new RegExp("^-?[0-9]+/[0-9]+", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const opparen = new RegExp("^" + operator_regex_str + "(?=\\()", STICKY_REGEXP); // NOTE: likewise
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -123,21 +122,21 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opraises = new RegExp("^raises(?![-_a-zA-Z0-9])", STICKY_REGEXP);
 
   const slashable = "[\\\\nrt\"\']"
-  const dquot_str = 
+  const dquot_str =
     new RegExp("^\"(?:" +
                "\\\\[01234567]{1,3}" +
-               "|\\\\x[0-9a-fA-F]{1,2}" + 
-               "|\\\\u[0-9a-fA-f]{1,4}" + 
-               "|\\\\[\r\n]{1,2}" + 
-               "|\\\\[\\\\nrt\"\']" + 
+               "|\\\\x[0-9a-fA-F]{1,2}" +
+               "|\\\\u[0-9a-fA-f]{1,4}" +
+               "|\\\\[\r\n]{1,2}" +
+               "|\\\\[\\\\nrt\"\']" +
                "|[^\"])*\"", STICKY_REGEXP);
-  const squot_str = 
+  const squot_str =
     new RegExp("^\'(?:" +
                "\\\\[01234567]{1,3}" +
-               "|\\\\x[0-9a-fA-F]{1,2}" + 
-               "|\\\\u[0-9a-fA-f]{1,4}" + 
-               "|\\\\[\r\n]{1,2}" + 
-               "|\\\\[\\\\nrt\"\']" + 
+               "|\\\\x[0-9a-fA-F]{1,2}" +
+               "|\\\\u[0-9a-fA-f]{1,4}" +
+               "|\\\\[\r\n]{1,2}" +
+               "|\\\\[\\\\nrt\"\']" +
                "|[^\'])*\'", STICKY_REGEXP);
 
   const anychar = new RegExp("^[^]", STICKY_REGEXP);
@@ -146,7 +145,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PAREN?", val: opparen, parenIsForExp: true},
     {name: "PARENSPACE", val: spaceparen, parenIsForExp: true},
     {name: "LPAREN?", val: lparen, parenIsForExp: true},
-
 
     {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
@@ -187,7 +185,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
-    
+
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},
@@ -202,7 +200,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
-    {name: "STRING", val: dquot_str}, 
+    {name: "NUMBER", val: roughnum},
+    {name: "STRING", val: dquot_str},
     {name: "STRING", val: squot_str},
 
     {name: "PLUS", val: opplus, parenIsForExp: true},
@@ -218,17 +217,17 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "IS", val: opis},
     {name: "SATISFIES", val: opsatisfies},
     {name: "RAISES", val: opraises},
-    {name: "LBRACK", val: lbrack}, 
-    {name: "RBRACK", val: rbrack}, 
-    {name: "LBRACE", val: lbrace}, 
-    {name: "RBRACE", val: rbrace}, 
-    {name: "RPAREN", val: rparen}, 
+    {name: "LBRACK", val: lbrack},
+    {name: "RBRACK", val: rbrack},
+    {name: "LBRACE", val: lbrace},
+    {name: "RBRACE", val: rbrace},
+    {name: "RPAREN", val: rparen},
     {name: "LANGLE", val: langle, parenIsForExp: true},
     {name: "RANGLE", val: rangle, parenIsForExp: true},
 
     {name: "EQUALS", val: equals},
 
-    {name: "COMMENT", val: comment}, 
+    {name: "COMMENT", val: comment},
     {name: "WS", val: ws, parenIsForExp: true},
 
     {name: "SEMI", val: semi},
@@ -238,7 +237,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "UNKNOWN", val: anychar},
   ];
-
 
   return {
     'Tokenizer': new Tokenizer(true, Tokens)

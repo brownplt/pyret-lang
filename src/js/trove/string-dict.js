@@ -173,10 +173,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return toreprElts();
         });
 
-        var equalsISD = runtime.makeMethod2(function(_, other, recursiveEquality) {
+        var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, 'equals');
           if (!hasBrand(brandImmutable, other)) {
-            return runtime.ffi.notEqual.app('');
+            return runtime.ffi.notEqual.app('', self, other);
           } else {
             var keys = getAllKeys();
             var otherKeysLength = get(other, 'count').app();
@@ -185,21 +185,25 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 return runtime.ffi.equal;
               } else {
                 var thisKey = keys.pop();
-                return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get-value').app(userKey(thisKey)));
-                },
-                function (result) {
-                  if (runtime.ffi.isNotEqual(result)) {
-                    return result;
-                  } else {
-                    return equalsHelp();
-                  }
-                });
+                if (!get(other, 'has-key').app(userKey(thisKey))) {
+                  return runtime.ffi.notEqual.app('', self, other);
+                } else {
+                  return runtime.safeCall(function() {
+                    return recursiveEquality.app(underlyingDict[thisKey],
+                        get(other, 'get-value').app(userKey(thisKey)));
+                  },
+                  function (result) {
+                    if (runtime.ffi.isNotEqual(result)) {
+                      return result;
+                    } else {
+                      return equalsHelp();
+                    }
+                  });
+                }
               }
             }
             if (keys.length !== otherKeysLength) {
-              return runtime.ffi.notEqual.app('');
+              return runtime.ffi.notEqual.app('', self, other);
             } else {
               return equalsHelp();
             }
@@ -339,7 +343,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "equals");
           if (!hasBrand(brandMutable, other)) {
-            return runtime.ffi.notEqual.app("");
+            return runtime.ffi.notEqual.app("", self, other);
           } else {
             var keys = Object.keys(underlyingDict);
             var otherKeysLength = get(other, "count-now").app();
@@ -348,25 +352,25 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
                 return runtime.ffi.equal;
               } else {
                 var thisKey = keys.pop();
-                return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get-value-now').app(userKey(thisKey)));
-                },
-                function (result) {
-                  if (runtime.ffi.isNotEqual(result)) {
-                    return result;
-                  } else {
-                    return eqElts();
-                  }
-                  /*
-                     return runtime.combineEquality(result,
-                     eqElts());
-                   */
-                });
+                if (!get(other, 'has-key-now').app(userKey(thisKey))) {
+                  return runtime.ffi.notEqual.app('', self, other);
+                } else {
+                  return runtime.safeCall(function() {
+                    return recursiveEquality.app(underlyingDict[thisKey],
+                        get(other, 'get-value-now').app(userKey(thisKey)));
+                  },
+                  function (result) {
+                    if (runtime.ffi.isNotEqual(result)) {
+                      return result;
+                    } else {
+                      return eqElts();
+                    }
+                  });
+                }
               }
             }
             if (keys.length !== otherKeysLength) {
-              return runtime.ffi.notEqual.app("");
+              return runtime.ffi.notEqual.app("", self, other);
             } else {
               return eqElts();
             }
@@ -449,6 +453,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           var key = array[i];
           var val = array[i + 1];
           runtime.checkString(key);
+          var ikey = internalKey(key);
+          if (dict[ikey] !== undefined) {
+            runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + key);
+          }
           dict[internalKey(key)] = val;
         }
         return makeImmutableStringDict(dict);

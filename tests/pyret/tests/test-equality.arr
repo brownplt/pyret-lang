@@ -9,6 +9,7 @@ check "numbers":
   equal-always(1, 2) is false
   equal-now(1, 1) is true
   equal-now(1, 2) is false
+  equal-always3(~3, ~3) satisfies E.is-Unknown
 end
 
 data Nat:
@@ -89,18 +90,18 @@ check "lists":
 end
 
 eq-all = { _equals(_, _, _): E.Equal end }
-eq-none = { _equals(_, _, _): E.NotEqual("just because") end }
+eq-none = { _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
 
 check "identical pre-check overrides method in true case, but not in false case":
   identical(eq-none, eq-none) is true
   equal-always(eq-none, eq-none) is true
   equal-now(eq-none, eq-none) is true
-  
+
   identical(eq-all, eq-none) is false
   eq-all is-not<=> eq-none
   identical(eq-none, eq-all) is false
   eq-all is-not<=> eq-none
-  
+
   equal-always(eq-all, eq-none) is true
   eq-all is== eq-none
   equal-always(eq-none, eq-all) is false
@@ -109,9 +110,10 @@ check "identical pre-check overrides method in true case, but not in false case"
   eq-all is=~ eq-none
   equal-now(eq-none, eq-all) is false
   eq-none is-not=~ eq-all
-end                                                                                                                    
+end
 
-f-err = "compare functions or methods"
+f-func-err = "Functions"
+f-meth-err = "Methods"
 f = lam(): "no-op" end
 m = method(self): "no-op" end
 
@@ -138,59 +140,58 @@ check "eq-none is equal nothing never always":
 end
 
 check "error on bare fun and meth":
-  identical(f, f) raises f-err
-  equal-always(f, f) raises f-err
-  equal-now(f, f) raises f-err
+  identical(f, f) raises f-func-err
+  equal-always(f, f) raises f-func-err
+  equal-now(f, f) raises f-func-err
 
-
-  identical(m, m) raises f-err
-  equal-always(f, f) raises f-err
-  equal-now(f, f) raises f-err
+  identical(m, m) raises f-meth-err
+  equal-always(f, f) raises f-func-err
+  equal-now(f, f) raises f-func-err
 end
 
 check "error (and non-error) on nested fun and meth":
   o1 = {f: f, x: 5}
   o2 = {f: f, x: 5}
   o3 = {f: f, x: 6}
-  
-  equal-always(o1, o2) raises f-err
-  equal-always(o2, o1) raises f-err
 
-  equal-now(o1, o2) raises f-err
-  equal-now(o2, o1) raises f-err
-  
+  equal-always(o1, o2) raises f-func-err
+  equal-always(o2, o1) raises f-func-err
+
+  equal-now(o1, o2) raises f-func-err
+  equal-now(o2, o1) raises f-func-err
+
   equal-always(o1, o3) is false
   o1 is-not== o3
   equal-always(o3, o1) is false
   o3 is-not== o1
-  
+
   equal-now(o1, o3) is false
   o1 is-not=~ o3
   equal-now(o3, o1) is false
   o3 is-not=~ o1
-  
+
   o4 = { subobj: eq-none, f: f }
   o5 = { subobj: eq-all, f: f }
-  
+
   equal-always(o4, o5) is false
   o4 is-not== o5
-  equal-always(o5, o4) raises f-err
-  
+  equal-always(o5, o4) raises f-func-err
+
   equal-now(o4, o5) is false
   o4 is-not=~ o5
-  equal-now(o5, o4) raises f-err
+  equal-now(o5, o4) raises f-func-err
 end
 
 
 check:
   h = lam(): "no-op" end
-  
+
   var called = false
   var long-equals = {}
   long-equals := {
     _equals(_, _, eq):
       for each(i from range(0, 10000)):
-        i + i 
+        i + i
       end
       if called:
         E.Equal
@@ -200,11 +201,11 @@ check:
       end
     end
   }
-  
+
   s1 = [list: 1, long-equals, 3, 4]
   s2 = [list: 1, {}, 3, 4]
-  
-  equal-always(s1, s2) raises "functions"
+
+  equal-always(s1, s2) raises "Functions"
 end
 
 check "non-equality result from equals":

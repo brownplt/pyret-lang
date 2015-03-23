@@ -8,7 +8,7 @@
 (define B (a-id "Boolean" (xref "<global>" "Boolean")))
 (define S (a-id "String" (xref "<global>" "String")))
 (define RA (a-id "RawArray" (xref "<global>" "RawArray")))
-(define Ar (a-id "Array" (xref "arrays" "RawArray")))
+(define Ar (a-id "Array" (xref "arrays" "Array")))
 (define EQ (a-id "EqualityResult" (xref "equality" "EqualityResult")))
 (define L (a-id "List" (xref "lists" "List")))
 (define (RA-of typ) (a-app (a-id "RawArray" (xref "<global>" "RawArray")) typ))

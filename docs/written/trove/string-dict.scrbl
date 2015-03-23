@@ -49,6 +49,9 @@
 
 @docmodule["string-dict"]{
 
+@ignore[(list "string-dict" "make-string-dict"
+"mutable-string-dict" "make-mutable-string-dict")]
+
 @section{The StringDict Type}
 
 @type-spec["StringDict" (list "a")]
@@ -70,7 +73,7 @@ below).
 
 @section{StringDict Constructor}
 
-@collection-doc["string-dict" (list (cons "key" "String") (cons "elt" "a")) (SD-of "a")]
+@collection-doc["string-dict" #:contract `(a-arrow ("key" ,S) ("elt" "a") ,(SD-of "a"))]
 
 Creates a string-dict with the given @pyret{elt}s.
 
@@ -243,7 +246,7 @@ frozen to produce an immutable @pyret-id{StringDict} (see above).
 
 @section{MutableStringDict Constructor}
 
-@collection-doc["mutable-string-dict" (list (cons "elt" "a")) (SD-of "a")]
+@collection-doc["mutable-string-dict" #:contract `(a-arrow ("elt" "a") ,(SD-of "a"))]
 
 Creates an mutable string-dict with the given @pyret{elt}s.
 

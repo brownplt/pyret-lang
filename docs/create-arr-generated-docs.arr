@@ -74,7 +74,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
         sexp("method-spec",
           [list: spair("name", "\"" + PP.str(name).pretty(1000).first + "\""),
             spair("arity", tostring(args.length())),
-            spair("params", params.map(lam(p): leaf(torepr(p.toname())) end)),
+            spair("params", slist(params.map(lam(p): leaf(torepr(p.toname())) end))),
             spair("args", slist(args.map(lam(b): leaf(torepr(b.id.toname())) end))),
             spair("return", process-ann(ann)),
             spair("contract",

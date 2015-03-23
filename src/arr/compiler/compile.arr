@@ -69,11 +69,11 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
           when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
           any-errors = named-errors + U.check-unbound(libs, inlined) + U.bad-assignments(libs, inlined)
           if is-empty(any-errors):
-            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, inlined, libs)
-            else: phase("Result", C.ok(P.make-compiled-pyret(inlined, libs)), ret)
+            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, inlined, libs, options)
+            else: phase("Result", C.ok(P.make-compiled-pyret(inlined, libs, options)), ret)
             end
           else:
-            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, inlined, libs)
+            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, inlined, libs, options)
             else: phase("Result", C.err(any-errors), ret)
             end
           end
