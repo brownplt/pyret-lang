@@ -1496,6 +1496,30 @@ define(function() {
     }
   };
 
+  Rational.prototype.round = function() {
+    var halfintp = equals(this.d, 2);
+    var negativep = _integerLessThan(this.n, 0);
+    var n = this.n;
+    if (negativep) {
+      n = negate(n);
+    }
+    var quo = _integerQuotient(n, this.d);
+    if (halfintp) {
+      if (_integerIsOne(_integerModulo(quo, 2))) {
+        quo = add(quo, 1);
+      }
+    } else {
+      var rem = _integerRemainder(n, this.d);
+      if (greaterThan(multiply(rem, 2), this.d)) {
+        quo = add(quo, 1);
+      }
+    }
+    if (negativep) {
+      quo = negate(quo);
+    }
+    return quo;
+  };
+
   Rational.prototype.log = function(){
     return Roughnum.makeInstance(Math.log(this.n / this.d));
   };
@@ -1590,24 +1614,6 @@ define(function() {
 
   Rational.prototype.asin = function(){
     return asin(this.toFixnum());
-  };
-
-  Rational.prototype.round = function() {
-    // FIXME: not correct when values are bignums
-    if (equals(this.d, 2)) {
-      // Round to even if it's a n/2
-      var v = this.toFixnum();
-      var fl = Math.floor(v);
-      var ce = Math.ceil(v);
-      if (_integerIsZero(fl % 2)) {
-        return fl;
-      }
-      else {
-        return ce;
-      }
-    } else {
-      return Math.round(this.n / this.d);
-    }
   };
 
   // sign: Number -> {-1, 0, 1}
@@ -3453,7 +3459,7 @@ define(function() {
   // round: -> scheme-number
   // Round to the nearest integer.
   BigInteger.prototype.round = function(n) {
-    return round(this.toFixnum());
+    return this;
   };
 
   //////////////////////////////////////////////////////////////////////
