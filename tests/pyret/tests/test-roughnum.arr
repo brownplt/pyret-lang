@@ -14,6 +14,11 @@ check "roughnum":
   ~1 < ~2 is true
   2 == (1 + 1) is true
   ~2 == (~1 + ~1) raises "Roughnum"
+  ~2 < ~2 is false
+  ~2 <= ~2 is true
+  ~2 == ~2 raises "Roughnum"
+  ~2 >= ~2 is true
+  ~2 > ~2 is false
   ~2 is%(local-within-abs(~0.01)) (~1 + ~1)
   #
   # but we can also use builtin num-within, within

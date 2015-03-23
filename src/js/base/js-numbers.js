@@ -1762,7 +1762,7 @@ define(function() {
   };
 
   Roughnum.prototype.greaterThanOrEqual = function(other) {
-    return this.n > other.n;
+    return this.n >= other.n;
   };
 
   Roughnum.prototype.lessThan = function(other) {
@@ -1770,7 +1770,7 @@ define(function() {
   };
 
   Roughnum.prototype.lessThanOrEqual = function(other) {
-    return this.n < other.n;
+    return this.n <= other.n;
   };
 
   Roughnum.prototype.integerSqrt = function() {
