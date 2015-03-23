@@ -101,8 +101,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       SUITE_LENGTH = 3;
 
       suite.add('parse', parsePyret, {'defer': true});
-      //suite.add('compile', compilePyret, {'defer': true});
-      //suite.add('evaluate', evaluatePyret, {'defer': true});
       suite.add('load', loadParsedPyret, {'defer': true});
       suite.add('eval_loaded', evalLoadedPyret, {'defer': true});
           
@@ -256,12 +254,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           setupDefer.promise.then(
             function(resolveValue){
               switch(funName){
-                case 'compilePyret':
-                  compilePyret(d);
-                break;
-                case 'evaluatePyret':
-                  evaluatePyret(d);
-                break;
                 case 'loadParsedPyret':
                   loadParsedPyret(d);
                 break;
