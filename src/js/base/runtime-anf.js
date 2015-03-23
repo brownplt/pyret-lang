@@ -4012,6 +4012,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isBase'      : isBase,
         'isNothing'   : isNothing,
         'isNumber'    : isNumber,
+        'isRoughnum'  : jsnums.isRoughnum,
         'isString'    : isString,
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
