@@ -3125,6 +3125,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "_divide");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
+        if (jsnums.equalsAnyZero(r)) {
+          throw makeMessageException("Division by zero");
+        }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
         return safeTail(function() {
