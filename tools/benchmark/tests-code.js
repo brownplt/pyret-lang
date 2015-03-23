@@ -113,7 +113,6 @@ describe('ensureSuccess', function() {
 
 describe('parsePyret', function(){
   it('passes on a valid program', function() {
-    debugger;
   	var passed, flag;  	
 
   	runs(function(){
@@ -135,7 +134,6 @@ describe('parsePyret', function(){
   });
 
   xit('passes on a valid (long) program', function() {
-    debugger;
     var passed, flag;   
 
     runs(function(){
@@ -254,7 +252,6 @@ describe('setup', function(){
     var passed, flag;   
 
     runs(function(){
-      debugger;
       passed = false;
       flag = false;
       b.test.testSetup(validProgram, {}, function(result){
@@ -367,7 +364,6 @@ describe('createSuite', function(){
 
 describe('runBenchmarks', function(){
   it('returns array of objects with correct field types', function() {
-    debugger;
     var isArray = (benchmarkResults instanceof Array);
     var fields = true;
     for(var i = 0; i <benchmarkResults.length; i++){
@@ -401,7 +397,6 @@ describe('runBenchmarks', function(){
 
 describe('runFile', function(){
   it('returns array of objects with correct field types', function() {
-    debugger;
     var isArray = (runFileResults instanceof Array);
     var fields = true;
     for(var i = 0; i <runFileResults.length; i++){

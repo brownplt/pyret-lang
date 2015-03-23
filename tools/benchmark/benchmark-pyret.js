@@ -117,7 +117,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     @param onDone {Function} is the continuation
     */
     function runBenchmarks(tests, options, log, onDone){ 
-      debugger;
       initializeGlobalRuntime();
 
       global.astResult = undefined;
