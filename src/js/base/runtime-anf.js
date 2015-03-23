@@ -339,7 +339,7 @@ var nothing = makeNothing();
     @return {boolean} true if object is a PNumber
 */
 
-var isNumber = jsnums.isSchemeNumber;
+var isNumber = jsnums.isPyretNumber;
 
 function isJSNumber(obj) {
   return typeof obj === "number";
@@ -846,7 +846,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (typeof val === "string" || typeof val === "boolean" || val instanceof Array) {
         return true;
       }
-      else if (jsnums.isSchemeNumber(val)) {
+      else if (jsnums.isPyretNumber(val)) {
         return true;
       }
       else if (isObject(val) ||
@@ -2133,7 +2133,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function wrap(v) {
-      if(jsnums.isSchemeNumber(v)) { return makeNumberBig(v); }
+      if(jsnums.isPyretNumber(v)) { return makeNumberBig(v); }
       else if(typeof v === "number") { return makeNumber(v); }
       else if(typeof v === "string") { return makeString(v); }
       else if(typeof v === "boolean") { return makeBoolean(v); }
