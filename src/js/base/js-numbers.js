@@ -1896,9 +1896,6 @@ define(function() {
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
         beforeDecimal = makeBignum(beforeDecimalString);
-        if (negativeP) {
-          beforeDecimal = - beforeDecimal;
-        }
       }
       //
       var afterDecimalString = aMatch[3];
@@ -1932,8 +1929,10 @@ define(function() {
       //var finalNum = _integerAdd(_integerMultiply(beforeDecimal, finalDen), finalFracNum);
 
       var finalDen = denominatorTen;
-      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen),
-                                 negativeP ? - afterDecimal : afterDecimal);
+      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen), afterDecimal);
+      if (negativeP) {
+        finalNum = negate(finalNum);
+      }
       //
       if (!equals(exponent, 1)) {
         if (exponentNegativeP) {
