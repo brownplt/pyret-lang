@@ -551,18 +551,18 @@ the argument is rough.
 check:
   num-round(4.2) is 4
   num-round(4.8) is 5
-  num-round(-4.2) is -4
+  num-round(-½4.2) is -4
   num-round(-4.8) is -5
 end
 }
 
-If the argument is midway between integers, returns the closest
-even integer.
+If the argument is midway between integers, returns the integer
+away from zero.
 
 @examples{
 check:
   num-round(3.5) is 4
-  num-round(2.5) is 2
+  num-round(2.5) is 3
 end
 }
 
