@@ -8,20 +8,27 @@ var defer = Q.defer();
 
 var i = 0;
 
+function print_to_stdout(data){
+	console.log('name:', data[0].name);
+	console.log('success:', data[0].success)
+	if(data[0].success){
+		console.log('parse:', data[0].results.parse);
+		console.log('load:', data[0].results.load);
+		console.log('eval_loaded:', data[0].results.eval_loaded);
+		console.log('\n');
+	}
+}
+
+debugger;
+
 defer.promise.then(
 	function(v){throw new Error('resolve should not happen');},
 	function(v){throw new Error('reject should not happen');},
 	function(notifyValue){
 		if(i < files.length){
+			debugger;
 			b.runFile(dir + '/' + files[i], {}, false, function(data){
-				console.log('name:', data[0].name);
-				console.log('success:', data[0].success)
-				if(data[0].success){
-					console.log('parse:', data[0].results.parse);
-					console.log('load:', data[0].results.load);
-					console.log('eval_loaded:', data[0].results.eval_loaded);
-					console.log('\n');
-				}
+				print_to_stdout(data);
 				i++;
 				defer.notify();
 			});	
