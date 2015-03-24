@@ -5,6 +5,10 @@
 *.err
 *.bak
 
+sandbox/*
+tools/benchmark/TODO
+tools/benchmark/sandbox*
+
 # docs
 docs/written/*.html
 docs/written/*/compiled

@@ -205,26 +205,55 @@
     (arity 1)
     (args ("tol"))
     (doc ""))
-  (fun-spec
-    (name "within-abs")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-abs-now")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-rel")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-rel-now")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
+    (fun-spec
+      (name "within-abs")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-rel")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-abs3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
   (fun-spec
     (name "num-random")
     (arity 1)
@@ -810,113 +839,15 @@ check:
 end
 }
   }
-  @function["within-abs" #:contract (a-arrow N A)]{
 
-Returns a predicate that checks if its arguments are guaranteed
-to be structurally
-equivalent and any numbers in corresponding positions are such
-that their difference is less than @pyret{tol}.
-Notably,
-this predicate will fail if either argument contains mutable
-objects.
+  @function["within" #:contract (a-arrow N A)]
+  @function["within-abs" #:contract (a-arrow N A)]
+  @function["within-rel" #:contract (a-arrow N A)]
+  @function["within-abs-now" #:contract (a-arrow N A)]
+  @function["within-rel-now" #:contract (a-arrow N A)]
 
-@examples{
-check:
-  ~2  is-not%(within-abs(0.1))  ~3
-  ~2  is%(within-abs(1.1))      ~3
-
-   within-abs(-0.1)(1, 1.05) raises "negative tolerance"
-
-   l3 = [list: ~1]
-   l4 = [list: 1.2]
-   l3 is%(within-abs(0.5))  l4
-   l3 is-not%(within-abs(0.1)) l4
-   l3 is%(within-abs(~0.5))  l4
-   l3 is-not%(within-abs(~0.1)) l4
-end
-}
-
-  }
-  @function["within-abs-now" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are currently
-structurally
-equivalent and any numbers in corresponding positions are such
-that their current difference is less than @pyret{tol}.
-Notably,
-if the arguments contain mutable objects, the predicate could
-return false if those objects are mutated.
-
-@examples{
-check:
-  b1 = box(5)
-  b2 = box(5)
-  l1 = [list: 2, b1]
-  l2 = [list: 2.1, b2]
-
-  l1 is-not%(within-abs(0.3)) l2
-  l1 is%(within-abs-now(0.3)) l2
-
-  b1!{v: 10}
-
-  l1 is-not%(within-abs-now(0.3)) l2
-end
-}
-
-  }
-  @function["within-rel" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are guaranteed
-to be structurally
-equivalent and any numbers in corresponding positions are such
-that their relative difference is currently less than @pyret{tol}.
-Notably,
-this predicate will return false if either argument contains mutable
-objects.
-
-This function is aka @pyret{within}.
-
-@examples{
-check:
-  l7 = [list: 1]
-  l8 = [list: ~1.2]
-  l7 is%(within-rel(0.5))  l8
-  l7 is-not%(within-rel(0.1)) l8
-  l7 is%(within-rel(~0.5))  l8
-  l7 is-not%(within-rel(~0.1)) l8
-end
-}
-
-  }
-  @function["within-rel-now" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are currently
-structurally
-equivalent and any numbers in corresponding positions are such
-that their relative difference is currently less than @pyret{tol}.
-Notably,
-if the arguments contain mutable objects, the predicate could
-return false if those objects are mutated.
-
-This function is aka @pyret{within-now}.
-
-@examples{
-check:
-  b1 = box(5)
-  b2 = box(5)
-  l1 = [list: 2, b1]
-  l2 = [list: 2.1, b2]
-
-  l1 is%(within-rel-now(0.5)) l2
-  l1 is-not%(within-rel(0.5)) l2
-
-  b1!{v: 10}
-
-  l1 is-not%(within-rel-now(0.5)) l2
-end
-}
-
-  }
+  These comparison functions compare both numbers and structures, and are
+  documented in @seclink["s:bounded-equalities"].
 
 @section{Random Numbers}
 
