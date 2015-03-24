@@ -1499,9 +1499,10 @@ define(function() {
     }
     var quo = _integerQuotient(n, this.d);
     if (halfintp) {
-      if (_integerIsOne(_integerModulo(quo, 2))) {
-        quo = add(quo, 1);
-      }
+      // rounding half to away from 0
+      // uncomment following if rounding half to even
+      // if (_integerIsOne(_integerModulo(quo, 2)))
+      quo = add(quo, 1);
     } else {
       var rem = _integerRemainder(n, this.d);
       if (greaterThan(multiply(rem, 2), this.d)) {
