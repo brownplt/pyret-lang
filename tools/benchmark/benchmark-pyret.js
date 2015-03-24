@@ -159,6 +159,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           }
           if(i < tests.length){
             tests[i].results = {};
+            tests[i].options = global.pyretOptions;
             if(log) console.log('CURRENT BENCHMARK: ' + tests[i].name);
             var ensureSuccessDefer = Q.defer();
             if(log) console.log('Ensuring program runs successfully...');

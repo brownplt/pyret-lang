@@ -190,7 +190,8 @@ describe('runFile', function(){
       && (typeof runFileResults[i].program == 'string')
       && (typeof runFileResults[i].name == 'string')
       && (typeof runFileResults[i].results == 'object')
-      && (typeof runFileResults[i].success == 'boolean');
+      && (typeof runFileResults[i].success == 'boolean')
+      && (typeof runFileResults[i].options == 'object');
     }
     var passed = isArray && fields;
 
@@ -216,7 +217,7 @@ var benchmarks =
 {program: invalidProgram, name: 'invalidProgram'}
 ];
 
-var filename = 'auto-report-programs/empty.arr';
+var filename = 'auto-report-programs/0_empty.arr';
 
 var benchmarkResults = undefined;
 var runFileResults = undefined;
