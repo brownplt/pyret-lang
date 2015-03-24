@@ -8,9 +8,9 @@ After Pyret is set up and good to go, run the tests of these benchmarking tools 
 
 ### Profile a Pyret Program
 
-To measure the performance of a Pyret program from a file, simply run
+To measure the performance of (a) Pyret program(s) from a file, simply run
 
-`node measure-program <filename>`
+`node measure-program <filename0> <filename1> ... <filename_n>`
 
 #### Programmatic Options
 To measure the performance of programs which are Javascript strings, it may be easiest to copy examples.js and examples-code.js, editing the latter, then running examples.js in node.
