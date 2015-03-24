@@ -13,7 +13,6 @@ if(process.argv.length < 3){
 		function(v){throw new Error('reject should not happen');},
 		function(notifyValue){
 			if(i < files.length){
-				debugger;
 				b.runFile(files[i], {}, true, function(data){
 					i++;
 					defer.notify();
