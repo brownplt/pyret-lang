@@ -19,14 +19,11 @@ function print_to_stdout(data){
 	}
 }
 
-debugger;
-
 defer.promise.then(
 	function(v){throw new Error('resolve should not happen');},
 	function(v){throw new Error('reject should not happen');},
 	function(notifyValue){
 		if(i < files.length){
-			debugger;
 			b.runFile(dir + '/' + files[i], {}, false, function(data){
 				print_to_stdout(data);
 				i++;
