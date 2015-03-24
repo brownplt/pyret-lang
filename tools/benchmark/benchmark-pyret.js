@@ -141,7 +141,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       suite.on('complete', function() {
         if(log) console.log('Fastest is ' + this.filter('fastest').pluck('name'));
         if(log) console.log('Slowest is ' + this.filter('slowest').pluck('name'));
-        if(log) console.log('\n');
         suiteRunDefer.notify(true);
       });
 
