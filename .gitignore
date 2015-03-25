@@ -5,9 +5,10 @@
 *.err
 *.bak
 
-sandbox/*
+# benchmark
 tools/benchmark/TODO
 tools/benchmark/sandbox*
+tools/benchmark/nodelint
 
 # docs
 docs/written/*.html
