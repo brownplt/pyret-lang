@@ -291,7 +291,7 @@ fixnums, in order to optimize basic arithmetic.
 Roughnums are used to represent numbers that are necessarily or
 deliberately imprecise. These correspond to the same set of
 values covered by JavaScript
-fixnums (aka doubles), and thus cover a large but limited range
+fixnums (a.k.a. doubles), and thus cover a large but limited range
 (magnitude less than @pyret{1.7976931348623157e308}).
 
 Operations on exact numbers typically return
@@ -700,7 +700,7 @@ first argumetn is zero and the second is negative.
   }
   @function["num-to-roughnum" #:contract (a-arrow N N) #:return N]{
 
-Given an exact num, returns the roughnum version of it. Given ar
+Given an exact num, returns the roughnum version of it. Given a
 roughnum, returns it directly.
 
 @examples{
@@ -871,7 +871,7 @@ end
 Returns a predicate that checks if the relative difference of its two
 number arguments is less than @pyret{tol}.
 
-This function is aka @pyret{num-within}.
+This function is a.k.a. @pyret{num-within}.
 
 @examples{
 check:
