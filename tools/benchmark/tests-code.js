@@ -1,4 +1,3 @@
-/*global jasmine, describe, it, runs, expect*/ //JSlint
 var b = require('benchmark-pyret');
 require('jasmine-node');
 
