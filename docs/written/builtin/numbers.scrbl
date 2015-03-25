@@ -277,9 +277,49 @@
     ))
 
 @docmodule["numbers" #:noimport #t #:friendly-title "Numbers"]{
-   @type-spec["Number" (list)]
-       The type of number values
 
+Pyret numbers are of two kinds: exact
+numbers and rough numbers (``roughnums''). Both are to base ten;
+real; and finite.
+
+Exact numbers are arbitrarily precise rational numbers: these
+include integers and rational fractions.  For integers whose 
+magnitude is less than @pyret{(2^53 - 1)},
+Pyret internally uses JavaScript
+fixnums, in order to optimize basic arithmetic.
+
+Roughnums are used to represent numbers that are necessarily or
+deliberately imprecise. These correspond to the same set of
+values covered by JavaScript
+fixnums (a.k.a. doubles), and thus cover a large but limited range
+(magnitude less than @pyret{1.7976931348623157e308}).
+
+Operations on exact numbers typically return
+exacts. However, if the operation can yield irrationals, and it
+is not possible to determine that a particular result is
+definitely rational, the result is returned as a roughnum. Thus,
+trigonometric functions on exact nums typically yield roughnum
+answers, except for well-known edge cases such as the sine or
+cosine of zero. Fractional powers of rationals are usually roughnum,
+except for small roots where it can be ascertained that an exact
+root is possible.
+
+Operations that are non-casting and with at least one argument that is roughnum
+automatically coerce the result to be a roughnum. This is known
+as roughnum contagion.
+
+Exact numbers allow the usual comparison predicates. Roughnums do
+too, with the significant exception that trying to compare
+roughnums for equality throws an error.
+
+An operation whose numerical result is not determinate or finite
+throws an error, with the message signaling either an
+overflow or some more specific problem. 
+
+@section{Number Annotations}
+
+@type-spec["Number" (list)]
+The type of number values
 @type-spec["Exactnum" (list)]
 The type of exact number values
 @type-spec["Roughnum" (list)]
@@ -339,7 +379,7 @@ granularity of 5e-324 (JS’s Number.MIN_VALUE).
      @section{Number Functions}
   @function["num-equal" #:contract (a-arrow N N B)]{
 If both arguments are exact, returns a boolean.
-If either argument is roughnum, raises an exception.
+If either argument is roughnum, raises an error.
 
 @examples{
 check:
@@ -353,7 +393,7 @@ check:
 end
 }
 
-Throws an exception on non-numeric
+Throws an error on non-numeric
 arguments, which can be a useful alternative to @pyret-id["equal-always"
 "equality"] in situations where the program shouldn't compare non-numbers.
 
@@ -600,8 +640,8 @@ end
 
 Returns the natural logarithm (ln) of the argument, usually as a roughnum.
 However, if the argument is exact 1, the
-result is exact 0. If the argument is non-positive, an exception is
-raised.
+result is exact 0. If the argument is non-positive, an error is
+thrown.
 
 @examples{
 check:
@@ -634,8 +674,8 @@ end
   @function["num-expt" #:contract (a-arrow N N N) #:return N]{
 
 Returns the first argument raised to the second argument. The result is exact
-if both arguments are exact, except for an exception when the
-first argumetn is zero and the second is negative.
+if both arguments are exact, except that an error is thrown if
+the first argument is zero and the second is negative.
 Furthermore, if the first argument is exact 0 or 1,
 or the second argument is exact 0, then the result is exact even if the other
 argument is rough.
@@ -656,10 +696,11 @@ end
   @function["num-to-rational" #:contract (a-arrow N N) #:return N]{
 
 Same as @pyret{num-exact}.
+first argumetn is zero and the second is negative.
   }
   @function["num-to-roughnum" #:contract (a-arrow N N) #:return N]{
 
-Given an exact num, returns the roughnum version of it. Given ar
+Given an exact num, returns the roughnum version of it. Given a
 roughnum, returns it directly.
 
 @examples{
@@ -830,7 +871,7 @@ end
 Returns a predicate that checks if the relative difference of its two
 number arguments is less than @pyret{tol}.
 
-This function is aka @pyret{num-within}.
+This function is a.k.a. @pyret{num-within}.
 
 @examples{
 check:
