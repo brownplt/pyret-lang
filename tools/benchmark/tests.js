@@ -10,4 +10,4 @@ r.config({
   }
 });
 
-r(["tests-code"], function(p) { });
+r(["tests-code"], function (p) { });

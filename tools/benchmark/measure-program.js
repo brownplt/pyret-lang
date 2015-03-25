@@ -8,4 +8,4 @@ r.config({
   }
 });
 
-r(["measure-program-code"], function(p) { });
+r(["measure-program-code"], function (p) { });

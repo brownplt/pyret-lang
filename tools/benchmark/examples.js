@@ -8,4 +8,4 @@ r.config({
   }
 });
 
-r(["examples-code"], function(p) { });
+r(["examples-code"], function (p) { });

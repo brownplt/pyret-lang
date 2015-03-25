@@ -8,4 +8,4 @@ r.config({
   }
 });
 
-r(["type-check-compare-code"], function(p) { });
+r(["type-check-compare-code"], function (p) { });

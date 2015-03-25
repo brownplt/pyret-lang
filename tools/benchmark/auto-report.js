@@ -9,4 +9,4 @@ r.config({
   }
 });
 
-r(["auto-report-code"], function(p) { });
+r(["auto-report-code"], function (p) { });
