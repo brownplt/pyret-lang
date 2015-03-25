@@ -79,7 +79,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     }
 
     //run internally before each benchmark        
-    function ensureSuccess(src, deferred){      
+    function ensureSuccess(src, deferred){ 
       var newRT = RT.makeRuntime({
         initialGas: 500,
         stdout: function(str) {},
@@ -210,13 +210,14 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         stdout: function(str) {process.stdout.write(str); },
         stderr: function(str) {process.stderr.write(str); }
       })
-      global.evalLib.runEvalPyret(newRT, src, options, function(result){         
+      global.evalLib.runEvalPyret(newRT, src, options, function(result){
+        debugger; //can check result in debug repl         
         console.log('done.');
       });  
     }
 
     function runFile(filename, options, log, onDone){
-      var programSrc = fs.readFileSync(filename, {'encoding': 'utf8'});
+      var programSrc = fs.readFileSync(filename, {'encoding': 'UTF-8'});
       benchmarks = [{
         program: programSrc,
         name: filename
