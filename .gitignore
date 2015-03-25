@@ -8,7 +8,7 @@
 # benchmark
 tools/benchmark/TODO
 tools/benchmark/sandbox*
-tools/benchmark/nodelint
+tools/benchmark/nodelint*
 
 # docs
 docs/written/*.html
