@@ -222,7 +222,7 @@ var filename = 'auto-report-programs/0_empty.arr';
 var benchmarkResults = undefined;
 var runFileResults = undefined;
 
-console.log("Running tests...");
+console.log("Running tests of the benchmark-pyret framework...");
 b.runBenchmarks(benchmarks, {}, false, function(r){
   benchmarkResults = r;
   b.runFile(filename, {}, false, function(f){
