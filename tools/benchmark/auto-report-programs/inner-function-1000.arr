@@ -7,7 +7,7 @@ fun iter(n, thunk):
   if n <= 0: nothing
   else:
      thunk()
-     iter(n - 1)
+     iter(n - 1, thunk)
   end
 end
 
