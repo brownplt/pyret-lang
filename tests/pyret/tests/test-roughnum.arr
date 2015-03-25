@@ -180,3 +180,16 @@ check "fractional rational powers":
   num-is-roughnum(num-expt(512, 1/9)) is true
   num-expt(-125, 1/9) raises "negative"
 end
+
+check "rounding roughs":
+  num-round(~3.5) is 4
+  num-round(~3.3) is 3
+  num-round(~3) is 3
+  num-round(~2.7) is 3
+  num-round(~2.5) is 3
+  num-round(~-2.5) is -3
+  num-round(~-2.7) is -3
+  num-round(~-3) is -3
+  num-round(~-3.3) is -3
+  num-round(~-3.5) is -4
+end

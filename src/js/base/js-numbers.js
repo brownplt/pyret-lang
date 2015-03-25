@@ -901,21 +901,6 @@ define(function() {
     return _integerRemainder(x, y);
   };
 
-  // Implementation of the hyperbolic functions
-  // http://en.wikipedia.org/wiki/Hyperbolic_cosine
-  var cosh = function(x) {
-    if (eqv(x, 0)) {
-      return Roughnum.makeInstance(1.0);
-    }
-    return divide(add(exp(x), exp(negate(x))),
-                  2);
-  };
-
-  var sinh = function(x) {
-    return divide(subtract(exp(x), exp(negate(x))),
-                  2);
-  };
-
   //////////////////////////////////////////////////////////////////////
 
   // Helpers
@@ -1841,17 +1826,12 @@ define(function() {
   };
 
   Roughnum.prototype.round = function(){
-    if (isFinite(this.n)) {
-      if (Math.abs(Math.floor(this.n) - this.n) === 0.5) {
-        if (Math.floor(this.n) % 2 === 0)
-          return (Math.floor(this.n));
-        return (Math.ceil(this.n));
-      } else {
-        return (Math.round(this.n));
-      }
-    } else {
-      return this;
-    }
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if (negativep) res = -res;
+    return res;
   };
 
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
@@ -3315,7 +3295,7 @@ define(function() {
   };
 
   (function() {
-    // Classic implementation of Newton-Ralphson square-root search,
+    // Classic implementation of Newton-Raphson square-root search,
     // adapted for integer-sqrt.
     // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
     var searchIter = function(n, guess) {
@@ -3341,7 +3321,7 @@ define(function() {
 
   (function() {
     // Get an approximation using integerSqrt, and then start another
-    // Newton-Ralphson search if necessary.
+    // Newton-Raphson search if necessary.
     BigInteger.prototype.sqrt = function() {
       var approx = this.integerSqrt(), fix;
       if (eqv(sqr(approx), this)) {
@@ -3590,8 +3570,6 @@ define(function() {
   Numbers['tan'] = tan;
   Numbers['acos'] = acos;
   Numbers['asin'] = asin;
-  Numbers['cosh'] = cosh;
-  Numbers['sinh'] = sinh;
   Numbers['round'] = round;
   Numbers['sqr'] = sqr;
   Numbers['gcd'] = gcd;
