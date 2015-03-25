@@ -2,16 +2,13 @@ fun round-half-to-even(n):
   n-neg = (n < 0)
   n-abs = num-exact(num-abs(n))
   var n-round = num-round(n-abs)
-  if num-abs(n-round - n-abs) == 1/2:
-    if num-modulo(n-round, 2) == 1:
+  when num-abs(n-round - n-abs) == 1/2:
+    when num-modulo(n-round, 2) == 1:
       n-round := n-round - 1
-    else: nothing
     end
-  else: nothing
   end
-  if n-neg:
+  when n-neg:
     n-round := 0 - n-round
-  else: nothing
   end
   n-round
 end
