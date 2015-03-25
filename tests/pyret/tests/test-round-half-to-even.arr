@@ -1,6 +1,6 @@
 fun round-half-to-even(n):
   n-neg = (n < 0)
-  n-abs = num-abs(n)
+  n-abs = num-exact(num-abs(n))
   var n-round = num-round(n-abs)
   if num-abs(n-round - n-abs) == 1/2:
     if num-modulo(n-round, 2) == 1:
@@ -29,4 +29,6 @@ check "round-half-to-even":
   round-half-to-even(-3.5) is -4
   round-half-to-even(-3.7) is -4
   round-half-to-even(-4) is -4
+  round-half-to-even(~3.5) is 4
+  round-half-to-even(~2.5) is 2
 end
