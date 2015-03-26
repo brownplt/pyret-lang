@@ -812,6 +812,11 @@ define(function() {
     return n.round();
   };
 
+  var roundEven = function(n) {
+    if (typeof(n) === 'number') return n;
+    return n.roundEven();
+  };
+
   // sqr: pyretnum -> pyretnum
   var sqr = function(x) {
     return multiply(x, x);
@@ -1500,6 +1505,25 @@ define(function() {
     return quo;
   };
 
+  Rational.prototype.roundEven = function() {
+    // rounds half-integers to even
+    var halfintp = equals(this.d, 2);
+    var negativep = _integerLessThan(this.n, 0);
+    var n = this.n;
+    if (negativep) n = negate(n);
+    var quo = _integerQuotient(n, this.d);
+    if (halfintp) {
+      if (_integerIsOne(_integerModulo(quo, 2)))
+        quo = add(quo, 1);
+    } else {
+      var rem = _integerRemainder(n, this.d);
+      if (greaterThan(multiply(rem, 2), this.d))
+        quo = add(quo, 1);
+    }
+    if (negativep) quo = negate(quo);
+    return quo;
+  };
+
   Rational.prototype.log = function(){
     return Roughnum.makeInstance(Math.log(this.toFixnum()));
   };
@@ -1831,6 +1855,16 @@ define(function() {
     if (negativep) n = -n;
     var res = Math.round(n);
     if (negativep) res = -res;
+    return res;
+  };
+
+  Roughnum.prototype.roundEven = function() {
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if ((Math.abs(n - res) === 0.5) && (res % 2 === 1))
+      res -= 1;
     return res;
   };
 
@@ -3415,6 +3449,10 @@ define(function() {
     return this;
   };
 
+  BigInteger.prototype.roundEven = function(n) {
+    return this;
+  };
+
   //////////////////////////////////////////////////////////////////////
   // toRepeatingDecimal: jsnum jsnum {limit: number}? -> [string, string, string]
   //
@@ -3571,6 +3609,7 @@ define(function() {
   Numbers['acos'] = acos;
   Numbers['asin'] = asin;
   Numbers['round'] = round;
+  Numbers['roundEven'] = roundEven;
   Numbers['sqr'] = sqr;
   Numbers['gcd'] = gcd;
   Numbers['lcm'] = lcm;
