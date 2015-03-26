@@ -126,6 +126,11 @@
     (args ("n"))
     (doc ""))
   (fun-spec
+    (name "num-round-even")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
     (name "num-log")
     (arity 1)
     (args ("n"))
@@ -636,7 +641,19 @@ end
 }
 
   }
-  @function["num-log" #:contract (a-arrow N N) #:return N]{
+  @function["num-round-even" #:contract (a-arrow N N) #:return N]{
+
+Similar to @pyret{num-round}, except that if the argument is
+midway between integers, returns the even integer.
+
+@examples{
+check:
+  num-round-even(3.5) is 4
+  num-round-even(2.5) is 2
+end
+}
+
+  }  @function["num-log" #:contract (a-arrow N N) #:return N]{
 
 Returns the natural logarithm (ln) of the argument, usually as a roughnum.
 However, if the argument is exact 1, the
