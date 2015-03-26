@@ -135,7 +135,6 @@ check "trig-type functions on bigints should converge":
   num-tan(10000000000000000)   * 0 is 0
   num-atan(10000000000000000)  * 0 is 0
   num-log(10000000000000000)   * 0 is 0
-  num-round(10000000000000000) * 0 is 0
 end
 
 check "comparing MAX_VALUEs":
@@ -179,17 +178,4 @@ check "fractional rational powers":
   num-expt(512, 1/9) is%(within(0.01)) 2
   num-is-roughnum(num-expt(512, 1/9)) is true
   num-expt(-125, 1/9) raises "negative"
-end
-
-check "rounding roughs":
-  num-round(~3.5) is 4
-  num-round(~3.3) is 3
-  num-round(~3) is 3
-  num-round(~2.7) is 3
-  num-round(~2.5) is 3
-  num-round(~-2.5) is -3
-  num-round(~-2.7) is -3
-  num-round(~-3) is -3
-  num-round(~-3.3) is -3
-  num-round(~-3.5) is -4
 end
