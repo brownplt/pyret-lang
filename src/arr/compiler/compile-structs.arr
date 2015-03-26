@@ -301,6 +301,7 @@ runtime-builtins = lists.map(builtin-id, [list:
   "num-ceiling",
   "num-floor",
   "num-round",
+  "num-round-even",
   "num-log",
   "num-exp",
   "num-exact",
