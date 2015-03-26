@@ -2,9 +2,9 @@
 
 Note: all commands assume a current working directory of `<repo>/tools/benchmark`. Also, before using, ensure phase1 is built.
 
-Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Pyret performance, which in turn also depends on platform.js (and lodash.js, but you need that for Pyret anyway). These should be set up when installing Pyret, as they are listed as dependencies.
+Benchmark tool uses [benchmark.js v1.0.0](http://benchmarkjs.com/) to measure Pyret performance, which in turn also depends on platform.js and lodash.js. These should be set up when installing Pyret, as they are listed as dependencies.
 
-After Pyret is set up and good to go, run the tests of these benchmarking tools from the tools/benchmark directory via `node tests`.
+One run the tests of these benchmarking tools from the tools/benchmark directory via `node tests` to make sure nothing is broken, but these are also run when running `make test` when setting up Pyret, so one can also just not worry about it.
 
 ### Profile a Pyret Program
 
@@ -39,4 +39,4 @@ Slowest is load
 The number immediately preceding 'ops/sec' is the main thing to focus on. The higher this number, the faster that function ran. In order to be as accurate, benchmark.js runs the given function as many times as it can within some elapsed time, measuring each run indivudually. Then it samples some subset of the measurements and gives back a mean with a percentage uncertainty. For information, see this StackOverflow post: [http://stackoverflow.com/a/4996963](http://stackoverflow.com/a/4996963)
 
 ### Auto Report
-At the moment, one can run `node auto-report` to profile all the programs in the directory `auto-report-programs`. At the moment, a less human-readable version of the data spits out to the console. The goal of the near future is to adapt this into something that is *actually* automatic.
+At the moment, one can run `node auto-report` to profile all the programs in the directory `auto-report-programs`. At the moment, data just spits out to the console. The goal of the near future is to adapt this into something that is *actually* automatic.
