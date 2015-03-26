@@ -10,6 +10,7 @@ tools/benchmark/TODO
 tools/benchmark/sandbox*
 
 # docs
+docs/written/compiled
 docs/written/*.html
 docs/written/*/compiled
 docs/written/scribble*
