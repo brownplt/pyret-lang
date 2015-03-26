@@ -727,6 +727,19 @@ define(function() {
     return n.ceiling();
   };
 
+  // round: pyretnum -> pyretnum
+  var round = function(n) {
+    if (typeof(n) === 'number') {
+      return n;
+    }
+    return n.round();
+  };
+
+  var roundEven = function(n) {
+    if (typeof(n) === 'number') return n;
+    return n.roundEven();
+  };
+
   // NB: all of these trig-gy generic functions should now return roughnum rather than float
   // (except for an arg of 0, etc)
 
@@ -802,14 +815,6 @@ define(function() {
       return Roughnum.makeInstance(Math.asin(n));
     }
     return n.asin();
-  };
-
-  // round: pyretnum -> pyretnum
-  var round = function(n) {
-    if (typeof(n) === 'number') {
-      return n;
-    }
-    return n.round();
   };
 
   // sqr: pyretnum -> pyretnum
@@ -1500,6 +1505,25 @@ define(function() {
     return quo;
   };
 
+  Rational.prototype.roundEven = function() {
+    // rounds half-integers to even
+    var halfintp = equals(this.d, 2);
+    var negativep = _integerLessThan(this.n, 0);
+    var n = this.n;
+    if (negativep) n = negate(n);
+    var quo = _integerQuotient(n, this.d);
+    if (halfintp) {
+      if (_integerIsOne(_integerModulo(quo, 2)))
+        quo = add(quo, 1);
+    } else {
+      var rem = _integerRemainder(n, this.d);
+      if (greaterThan(multiply(rem, 2), this.d))
+        quo = add(quo, 1);
+    }
+    if (negativep) quo = negate(quo);
+    return quo;
+  };
+
   Rational.prototype.log = function(){
     return Roughnum.makeInstance(Math.log(this.toFixnum()));
   };
@@ -1743,6 +1767,25 @@ define(function() {
     return Math.ceil(this.n);
   };
 
+  Roughnum.prototype.round = function(){
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if (negativep) res = -res;
+    return res;
+  };
+
+  Roughnum.prototype.roundEven = function() {
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if ((Math.abs(n - res) === 0.5) && (res % 2 === 1))
+      res -= 1;
+    return res;
+  };
+
   Roughnum.prototype.greaterThan = function(other) {
     return this.n > other.n;
   };
@@ -1823,15 +1866,6 @@ define(function() {
 
   Roughnum.prototype.asin = function(){
     return asin(this.n);
-  };
-
-  Roughnum.prototype.round = function(){
-    var negativep = (this.n < 0);
-    var n = this.n;
-    if (negativep) n = -n;
-    var res = Math.round(n);
-    if (negativep) res = -res;
-    return res;
   };
 
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
@@ -3352,6 +3386,16 @@ define(function() {
     return this;
   }
 
+  // round: -> pyretnum
+  // Round to the nearest integer.
+  BigInteger.prototype.round = function(n) {
+    return this;
+  };
+
+  BigInteger.prototype.roundEven = function(n) {
+    return this;
+  };
+
   // log: -> pyretnum
   // Produce the log.
   BigInteger.prototype.log = function(n) {
@@ -3407,12 +3451,6 @@ define(function() {
   // Produce the arc sine.
   BigInteger.prototype.asin = function(n) {
     return asin(this.toFixnum());
-  };
-
-  // round: -> pyretnum
-  // Round to the nearest integer.
-  BigInteger.prototype.round = function(n) {
-    return this;
   };
 
   //////////////////////////////////////////////////////////////////////
@@ -3562,6 +3600,8 @@ define(function() {
   Numbers['remainder'] = remainder;
   Numbers['floor'] = floor;
   Numbers['ceiling'] = ceiling;
+  Numbers['round'] = round;
+  Numbers['roundEven'] = roundEven;
   Numbers['log'] = log;
   Numbers['tan'] = tan;
   Numbers['atan'] = atan;
@@ -3570,7 +3610,6 @@ define(function() {
   Numbers['tan'] = tan;
   Numbers['acos'] = acos;
   Numbers['asin'] = asin;
-  Numbers['round'] = round;
   Numbers['sqr'] = sqr;
   Numbers['gcd'] = gcd;
   Numbers['lcm'] = lcm;
