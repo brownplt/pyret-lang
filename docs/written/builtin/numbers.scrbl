@@ -288,7 +288,7 @@ magnitude is less than @pyret{(2^53 - 1)},
 Pyret internally uses JavaScript
 fixnums, in order to optimize basic arithmetic.
 
-Roughnums are used to represent numbers that are necessarily or
+Roughnums are numbers that are necessarily or
 deliberately imprecise. These correspond to the same set of
 values covered by JavaScript
 fixnums (a.k.a. doubles), and thus cover a large but limited range
@@ -297,8 +297,8 @@ fixnums (a.k.a. doubles), and thus cover a large but limited range
 Operations on exact numbers typically return
 exacts. However, if the operation can yield irrationals, and it
 is not possible to determine that a particular result is
-definitely rational, the result is returned as a roughnum. Thus,
-trigonometric functions on exact nums typically yield roughnum
+definitely rational, that result is returned as a roughnum. Thus,
+trigonometric functions on exact numbers typically yield roughnum
 answers, except for well-known edge cases such as the sine or
 cosine of zero. Fractional powers of rationals are usually roughnum,
 except for small roots where it can be ascertained that an exact
