@@ -29,3 +29,20 @@ check "round-half-to-even":
   round-half-to-even(~3.5) is 4
   round-half-to-even(~2.5) is 2
 end
+
+check "round-even":
+  num-round-even(4) is 4
+  num-round-even(3.7) is 4
+  num-round-even(3.5) is 4
+  num-round-even(3.3) is 3
+  num-round-even(3) is 3
+  num-round-even(2.5) is 2
+  num-round-even(-2.5) is -2
+  num-round-even(-3) is -3
+  num-round-even(-3.3) is -3
+  num-round-even(-3.5) is -4
+  num-round-even(-3.7) is -4
+  num-round-even(-4) is -4
+  num-round-even(~3.5) is 4
+  num-round-even(~2.5) is 2
+end
