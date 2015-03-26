@@ -151,6 +151,7 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-ceiling").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-floor").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-round").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-round-even").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-log").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-exp").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-exact").key(), t-arrow([list: t-number], t-number))
