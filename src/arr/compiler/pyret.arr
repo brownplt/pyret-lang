@@ -114,7 +114,14 @@ fun main(args):
         end
       else:
         if r.has-key("build"):
-          result = CLI.compile(r.get-value("build"))
+          result = CLI.compile(r.get-value("compile"),
+            {
+              check-mode : check-mode,
+              type-check : type-check,
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false
+            })
           failures = filter(CS.is-err, result)
           when is-link(failures):
             for each(f from failures):
@@ -125,7 +132,14 @@ fun main(args):
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"))
+          CLI.run(r.get-value("run"),
+            {
+              check-mode : check-mode,
+              type-check : type-check,
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false
+            })
         else if r.has-key("compile-module-js"):
           result = CM.compile-js(
             CM.start,

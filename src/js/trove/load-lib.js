@@ -11,8 +11,10 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       "is-success-result",
       "is-failure-result",
       "get-result-answer",
+      "render-check-results",
+      "render-error-message",
       "Module",
-      "ModuleResult",
+      "ModuleResult"
     ],
     function(runtime, namespace, runtimeLib) {
       var brandModule = runtime.namedBrander("module");

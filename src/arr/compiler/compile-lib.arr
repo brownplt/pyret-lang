@@ -12,6 +12,10 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 
+# for re-export
+standard-builtins = CS.standard-builtins
+make-base-namespace = N.make-base-namespace
+
 type URI = String
 
 data PyretCode:
@@ -22,7 +26,7 @@ end
 data Loadable:
   | module-as-string(result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
   # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(include-base-libs :: Boolean, internal-mod :: Any)
+  | pre-loaded(internal-mod :: Any)
 end
 
 type Provides = Set<String>
@@ -35,18 +39,31 @@ type Locator = {
   # the most recent map, or use explicit interface below
   needs-compile :: (SD.MutableStringDict<Provides> -> Boolean),
 
+  # Pre-compile (skippable if get-compile returns something)
   get-module :: ( -> PyretCode),
+
+  # Pre-compile (had better be known with no other help)
   get-dependencies :: ( -> List<CS.Dependency>),
+
+  # Post- or pre- compile
+  # get-import-names :: ( -> List<String>),
+
+  # Pre-compile (so other modules can know what this module provides
+  # type-wise)
   get-provides :: ( -> Provides),
+
+  # Pre-compile, but fuzzy how it gets constructed because merging types
   get-compile-env :: ( -> CS.CompileEnv),
+
+  # Post-compile, on-run (maybe dynamic and new namespaces)
   get-namespace :: (R.Runtime -> N.Namespace),
 
   uri :: (-> URI),
   name :: (-> String),
 
-  # Note that CompileResults can contain both errors and successful
-  # compilations
   set-compiled :: (Loadable, SD.MutableStringDict<Provides> -> Nothing),
+
+  # Pre-compile if needs-compile is false
   get-compiled :: ( -> Option<Loadable>),
 
   # _equals should compare uris for locators
@@ -67,7 +84,7 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
       # crossover compatibility
       | s-file-import(l, path) => CS.dependency("legacy-path", [list: path])
       | s-const-import(l, modname) => CS.builtin(modname)
-      | s-special-import(l, kind, args) => CS.dependency(kind, args)
+      | s-special-import(l, protocol, args) => CS.dependency(protocol, args)
     end
   end
 end
@@ -126,12 +143,12 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
     add-preds-to-worklist(locator, empty)
   end
 
-  fun compile-program(worklist :: List<ToCompile>) -> List<Loadable>:
+  fun compile-program(worklist :: List<ToCompile>, options) -> List<Loadable>:
     cache = SD.make-mutable-string-dict()
     for map(w from worklist):
       uri = w.locator.uri()
       if not(cache.has-key-now(uri)):
-        cr = compile-module(w.locator, w.dependency-map)
+        cr = compile-module(w.locator, w.dependency-map, options)
         cache.set-now(uri, cr)
         cr
       else:
@@ -140,15 +157,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
     end
   end
 
-  rec options = {
-    check-mode : true,
-    allow-shadowed : false,
-    collect-all: false,
-    type-check: false,
-    ignore-unbound: false
-  }
-
-  fun compile-module(locator :: Locator, dependencies :: SD.MutableStringDict<Locator>) -> Loadable:
+  fun compile-module(locator :: Locator, dependencies :: SD.MutableStringDict<Locator>, options) -> Loadable:
     provide-map = dict-map(dependencies, lam(_, v): v.get-provides() end)
     if locator.needs-compile(provide-map):
       mod = locator.get-module()
@@ -159,7 +168,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             "Pyret",
             module-string,
             locator.uri(),
-            locator.get-compile-env(),
+            locator.get-compile-env(), # provide-map as arg?
             options
             ).result
         | pyret-ast(module-ast) =>
@@ -167,7 +176,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             CM.start,
             module-ast,
             locator.uri(),
-            locator.get-compile-env(),
+            locator.get-compile-env(), # provide-map as arg?
             options
             ).result
       end
@@ -184,12 +193,12 @@ end
 type PyretAnswer = Any
 type PyretMod = Any
 
-fun compile-and-run-worklist(cl, ws :: List<ToCompile>, runtime :: R.Runtime):
-  compile-and-run-worklist-with(cl, ws, runtime, SD.make-string-dict())
+fun compile-and-run-worklist(cl, ws :: List<ToCompile>, runtime :: R.Runtime, options):
+  compile-and-run-worklist-with(cl, ws, runtime, SD.make-string-dict(), options)
 end
 
-fun compile-and-run-worklist-with(cl, ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.StringDict<PyretMod>):
-  compiled-mods = cl.compile-program(ws)
+fun compile-and-run-worklist-with(cl, ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.StringDict<PyretMod>, options):
+  compiled-mods = cl.compile-program(ws, options)
   load-infos = for map2(tc from ws, cm from compiled-mods):
     { to-compile: tc, compiled-mod: cm }
   end
@@ -197,6 +206,7 @@ fun compile-and-run-worklist-with(cl, ws :: List<ToCompile>, runtime :: R.Runtim
 end
 
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
+  doc: "Assumes topo-sorted worklist in ws"
   cases(List) ws:
     | empty =>
       raise("Didn't get anything to run in run-worklist")

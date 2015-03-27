@@ -26,7 +26,8 @@ define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
         }),
         internal: {
           makeRuntime: makeRuntime,
-          checkRuntime: checkRuntime
+          checkRuntime: checkRuntime,
+          brandRuntime: brandRuntime
         }
       })
     });

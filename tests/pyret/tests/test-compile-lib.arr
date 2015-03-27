@@ -55,7 +55,7 @@ check "Worklist generation (simple)":
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime())
+  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
   ans satisfies L.is-success-result
 end
 
@@ -132,7 +132,7 @@ check "Worklist generation (DAG)":
   # This way, we can make sure that we only get one retrieval during actual compilation of each module.
   for each(s from retrievals.keys-now().to-list()): retrievals.set-now(s, 0) end
 
-  results = clib.compile-program(wlist)
+  results = clib.compile-program(wlist, CM.default-compile-options)
 
   # Are we respecting needs-compile?
   retrievals.get-value-now("A") is 1

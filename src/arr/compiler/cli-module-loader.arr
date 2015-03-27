@@ -27,22 +27,22 @@ fun get-compiler():
   CL.make-compile-lib(module-finder)
 end
 
-fun compile(path):
+fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
   cl = get-compiler()
   base = module-finder({}, base-module)
   wl = cl.compile-worklist(base, {})
-  compiled = cl.compile-program(wl)
+  compiled = cl.compile-program(wl, options)
   compiled
 end
 
-fun run(path):
+fun run(path, options):
   base-module = CS.dependency("file", [list: path])
   cl = get-compiler()
   base = module-finder({}, base-module)
   wl = cl.compile-worklist(base, {})
   r = R.make-runtime()
-  result = CL.compile-and-run-worklist(cl, wl, r)
+  result = CL.compile-and-run-worklist(cl, wl, r, options)
   if L.is-success-result(result):
     print(L.render-check-results(result))
   else:

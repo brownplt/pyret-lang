@@ -98,6 +98,6 @@ check "File locators":
   wlist.get(1).locator is floc
   wlist.get(0).locator is file-loc("bar", CM.minimal-builtins)
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime())
+  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
   ans satisfies LL.is-success-result
 end

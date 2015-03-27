@@ -380,6 +380,14 @@ data CompileError:
     end
 end
 
+default-compile-options = {
+  check-mode : true,
+  type-check : false,
+  allow-shadowed : false,
+  collect-all: false,
+  ignore-unbound: false
+}
+
 data CompileTypeBinding:
   | type-id(id :: String)
   | type-module-bindings(name :: String, bindings :: List<String>)

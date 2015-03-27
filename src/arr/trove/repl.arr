@@ -30,14 +30,14 @@ fun make-repl(
 
   fun restart-interactions():
     worklist = compile-lib.compile-worklist(defs-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime)
+    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
     update-env(result, defs-locator)
     result
   end
 
   fun run-interaction(repl-locator :: CL.Locator):
     worklist = compile-lib.compile-worklist(repl-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime)
+    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
     update-env(result, repl-locator)
     result
   end
