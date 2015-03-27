@@ -39,4 +39,19 @@ Slowest is load
 The number immediately preceding 'ops/sec' is the main thing to focus on. The higher this number, the faster that function ran. In order to be as accurate, benchmark.js runs the given function as many times as it can within some elapsed time, measuring each run indivudually. Then it samples some subset of the measurements and gives back a mean with a percentage uncertainty. For information, see this StackOverflow post: [http://stackoverflow.com/a/4996963](http://stackoverflow.com/a/4996963)
 
 ### Auto Report
-At the moment, one can run `node auto-report` to profile all the programs in the directory `auto-report-programs`. At the moment, data just spits out to the console. The goal of the near future is to adapt this into something that is *actually* automatic.
+Run `./auto-report.run` from `tools/benchmark`; this will create a file auto-report.csv, which will roughly look like this:
+```
+name,0_empty.arr
+success,true
+parse,571.2541417487765,11.71407907994302,70
+load,4.372520267342395,7.158870557550586,26
+eval,713.2221905744033,1.279400581680515,84
+name,1_empty-with-comments.arr
+success,true
+parse,9.135781960203424,0.5677335587719914,27
+load,4.628862096483652,3.4233762978341575,28
+eval,670.4431415133222,6.126974521626943,80
+...
+```
+
+For example, the fourth line is the measurement of loading the ast into javascript after parsing 0_empty.arr. It was rated at roughly 4.37Hz with a relative margin of error of roughly 7.16%; it sampled 26 runs to determine these data.

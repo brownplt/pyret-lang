@@ -20,28 +20,18 @@ if (process.argv.indexOf('--help') >= 0 || process.argv.indexOf('-h') >= 0) {
   dir = dir + '/';
   var defer = Q.defer();
 
-  /* taken from Benchmark code */
-  var format_number = function (number) {
-    number = String(number).split('.');
-    return number[0].replace(/(?=(?:\d{3})+$)(?!\b)/g, ',') +
-      (number[1] ? '.' + number[1] : '');
-  };
-
   var format_stats = function (stats) {
-    return format_number(stats.hz.toFixed(stats.hz < 100 ? 2 : 0)) + ' ops/sec +/- ' +
-      stats.rme.toFixed(2) + '% (' + stats.samples + ' run' +
-      (stats.samples === 1 ? '' : 's') + ' sampled)';
+    return stats.hz + ',' + stats.rme + ',' + stats.samples;
   };
 
   var print_to_stdout = function (data) {
-    console.log('name:', data[0].name.slice(dir.length));
-    console.log('success:', data[0].success);
+    console.log('name,' + data[0].name.slice(dir.length));
+    console.log('success,' + data[0].success);
     if (data[0].success) {
-      console.log('parse:', format_stats(data[0].results.parse));
-      console.log('load: ', format_stats(data[0].results.load));
-      console.log('eval: ', format_stats(data[0].results.eval_loaded));
+      console.log('parse,' + format_stats(data[0].results.parse));
+      console.log('load,' + format_stats(data[0].results.load));
+      console.log('eval,' + format_stats(data[0].results.eval_loaded));
     }
-    console.log('\n');
   };
 
   var i = 0;
