@@ -1,1 +1,1 @@
-node auto-report >> auto-report.csv
+node auto-report > auto-report.csv
