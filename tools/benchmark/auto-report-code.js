@@ -25,12 +25,13 @@ if (process.argv.indexOf('--help') >= 0 || process.argv.indexOf('-h') >= 0) {
   };
 
   var print_to_stdout = function (data) {
-    console.log('name,' + data[0].name.slice(dir.length));
-    console.log('success,' + data[0].success);
+    var preamble = data[0].name.slice(dir.length) + ',' + data[0].success;
     if (data[0].success) {
-      console.log('parse,' + format_stats(data[0].results.parse));
-      console.log('load,' + format_stats(data[0].results.load));
-      console.log('eval,' + format_stats(data[0].results.eval_loaded));
+      console.log(preamble + ',parse,' + format_stats(data[0].results.parse));
+      console.log(preamble + ',load,' + format_stats(data[0].results.load));
+      console.log(preamble + ',eval,' + format_stats(data[0].results.eval_loaded));
+    } else {
+      console.log(preamble);
     }
   };
 
@@ -50,7 +51,7 @@ if (process.argv.indexOf('--help') >= 0 || process.argv.indexOf('-h') >= 0) {
       }
     }
   );
-
+  console.log('name,success,function,hz,rme,samples');
   defer.notify();
 
 }
