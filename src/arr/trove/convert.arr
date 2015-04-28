@@ -317,13 +317,30 @@ fun ast-to-constr(ast):
         | some(val) => A.s-app(dummy-loc, gid("_some"), [list: recur(val)])
       end
     | is-List(ast) then:     ast-list(map(recur, ast))
-    | A.is-Name(ast) then:
+    | A.is-s-atom(ast) then:
       l = dummy-loc
       A.s-app(l,
         A.s-dot(l, gid("_ast"), "s-atom"),
         [list: A.s-str(l, ast.base), A.s-num(l, ast.serial)])
+    | A.is-s-global(ast) then:
+      l = dummy-loc
+      A.s-app(l,
+        A.s-dot(l, gid("_ast"), "s-global"),
+        [list: A.s-str(l, ast.s)])
     | A.is-s-escape(ast) then:
       ast.ast
+    | A.is-s-value(ast) then:
+      l = dummy-loc
+      A.s-app(l,
+        A.s-dot(l, gid("_ast"), "s-value"),
+        [list: ast.val])
+    | A.is-a-blank(ast) or A.is-a-any(ast) then:
+      l = dummy-loc
+      A.s-dot(l, gid("_ast"), ast.label())
+    | A.is-a-checked(ast) then:
+      l = dummy-loc
+      A.s-app(l, A.s-dot(l, gid("_ast"), ast.label()),
+        map(recur, ast.children()))
     | otherwise:
       l = ast.l
       srcloc = ast-srcloc(l)

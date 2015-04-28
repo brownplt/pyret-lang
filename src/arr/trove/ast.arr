@@ -905,15 +905,19 @@ data Expr:
     end
   | s-value(val :: Any) with:
     # s-value is used internally by the stepper.
-    # You should never encounter in most ASTs.
+    # You should never encounter it in most ASTs.
     label(self): "s-value" end,
     children(self): [list:] end,
     tosource(self):
-      PP.str("<" + torepr(self.val) + ">")
+      if is-function(self.val):
+        PP.str(torepr(self.val))
+      else:
+        PP.str("<" + torepr(self.val) + ">")
+      end
     end
   | s-escape(ast) with:
     # s-escape is used internally by the stepper.
-    # You should never encounter in most ASTs.
+    # You should never encounter it in most ASTs.
     label(self): "s-escape" end,
     children(self): [list: self.ast] end,
     tosource(self): self.ast.tosource() end

@@ -11,6 +11,11 @@ import "compiler/compile-structs.arr" as C
 import convert as CV
 import srcloc as SL
 
+# NOTES:
+# * To add new magic global names, add them to
+#       src/arr/compiler/compile-structs.arr
+#   and src/js/base/runtime-anf.js
+
 dummy-loc = SL.builtin("dummy location")
 
 fun pretty-ast(ast):
@@ -79,10 +84,6 @@ fun PRINT_AST(l,  ast):
   PRINT(l, PRETTY_AST(l, ast))
 end
 
-fun PRINT_AST2(l, ast):
-  PRINT(l, PRETTY_AST(l, ast))
-end
-
 fun PUSH(l, frame): APP1(l, gid(l, "_push"), frame) end
 fun POP(l):         APP0(l, gid(l, "_pop")) end
 fun WRAP(l, expr):  APP1(l, gid(l, "_wrap"), expr) end
@@ -130,8 +131,10 @@ fun FRAMES(l, self, frame-wrapper):
           for FRAME(l, self)(H from asts.first):
             frame-wrapper(link(H, asts.rest))
           end):
-        wrapper = lam(shadow asts): frame-wrapper(link(ID(l, V), asts)) end
-        for make-frames(rest from asts.rest):
+        wrapper = lam(shadow asts):
+          frame-wrapper(link(A.s-value(ID(l, V)), asts))
+        end
+        for FRAMES(l, self, wrapper)(rest from asts.rest):
           body(link(ID(l, V), rest))
         end
       end
@@ -193,8 +196,8 @@ stepify-visitor = A.default-map-visitor.{
         for FRAME(l, self)(F from _fun):
           A.s-app(l, F, args)
         end):
-      for FRAMES(l, self, A.s-app(l, F, _))(ARGS from args):
-        for LET(l)(V from A.s-app(l, F, ARGS)):
+      for FRAMES(l, self, A.s-app(l, A.s-value(ID(l, F)), _))(ARGS from args):
+        for LET(l)(V from A.s-app(l, ID(l, F), ARGS)):
           STEP_TO_VALUE(l, ID(l, V))
         end
       end
@@ -281,7 +284,7 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   print("end")
   print("")
   stepified = A.s-block(l, [list:
-      PRINT_AST2(l, CV.ast-to-constr(expr)),
+      PRINT_AST(l, CV.ast-to-constr(expr)),
       stepify(expr)])
   print("-------")
   stepified
