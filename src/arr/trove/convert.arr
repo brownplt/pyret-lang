@@ -142,6 +142,8 @@ constructors = [D.string-dict:
   "s-if-else", A.s-if-else,
   "s-prim-app", A.s-prim-app,
   "s-block", A.s-block,
+  "s-id", A.s-id,
+  "s-id-var", A.s-id-var,
   
   # TODO:
   "s-let-bind", A.s-let-bind,
@@ -173,8 +175,6 @@ constructors = [D.string-dict:
   "s-construct", A.s-construct,
   "s-app", A.s-app,
   "s-prim-val", A.s-prim-val,
-  "s-id", A.s-id,
-  "s-id-var", A.s-id-var,
   "s-id-letrec", A.s-id-letrec,
   "s-undefined", A.s-undefined,
   "s-srcloc", A.s-srcloc,

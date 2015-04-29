@@ -156,6 +156,12 @@ stepify-visitor = A.default-map-visitor.{
   s-frac(self, l, numer, denom):
     STEP_TO_VALUE(l, A.s-frac(l, numer, denom))
   end,
+  s-id(self, l, id):
+    STEP_TO_VALUE(l, A.s-id(l, id))
+  end,
+  s-var-id(self, l, id):
+    STEP_TO_VALUE(l, A.s-id(l, id))
+  end,
   s-block(self, l, stmts):
     if stmts.length() <= 1:
       A.s-block(l, map(_.visit(self), stmts))
