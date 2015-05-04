@@ -16,6 +16,10 @@ import srcloc as SL
 #       src/arr/compiler/compile-structs.arr
 #   and src/js/base/runtime-anf.js
 
+# TODO:
+# * Builtin functions like _plus don't get wrapped;
+#   this results in missing steps.
+
 dummy-loc = SL.builtin("dummy location")
 
 fun pretty-ast(ast):
@@ -54,10 +58,17 @@ fun PRINT(l, arg):              APP1(l, gid(l, "print"), arg);
 fun TO_AST(l, arg):             APP1(l, gid(l, "_to-ast"), arg);
 fun PLUS(l, x, y):              APP2(l, gid(l, "_plus"), x, y);
 
+fun DEBUG(msg, expr):
+  l = dummy-loc
+  BLOCK(l, [list:
+      PRINT(l, A.s-str(l, msg)),
+      expr])
+end
+
 fun BIND(l, v): A.s-bind(l, false, v, A.a-blank);
 
 fun LET(l):
-  v = A.global-names.make-atom("v-let")
+  v = A.global-names.make-atom("r$let")
   lam(body, arg):
     binding = A.s-let-bind(l, BIND(l, v), arg)
     A.s-let-expr(l, [list: binding], body(v))
@@ -65,7 +76,7 @@ fun LET(l):
 end
 
 fun LAM(l):
-  v = A.global-names.make-atom("v-lam")
+  v = A.global-names.make-atom("r$lam")
   lam(body, _):
     A.s-lam(l, [list:], [list: BIND(l, v)], A.a-blank, "", body(v), none)
   end
@@ -88,27 +99,25 @@ fun PUSH(l, frame): APP1(l, gid(l, "_push"), frame) end
 fun POP(l):         APP0(l, gid(l, "_pop")) end
 fun WRAP(l, expr):  APP1(l, gid(l, "_wrap"), expr) end
 
-fun STEP_TO_VALUE(l, ast):
-  VAL = A.s-app(l,
-    A.s-dot(l, gid(l, "_ast"), "s-value"),
-    [list: ast])
-  BLOCK(l, [list:
-      PRINT(l, A.s-str(l, "->")),
-      PRINT_AST(l, WRAP(l, VAL)),
-      ast])
-end
-
-fun STEP(l, self, ast):
+fun STEP_TO(l, ast, visited-ast):
   BLOCK(l, [list:
       PRINT(l, A.s-str(l, "->")),
       PRINT_AST(l, WRAP(l, CV.ast-to-constr(ast))),
-      ast.visit(self)])
+      visited-ast])
+end
+
+fun STEP(l, self, ast):
+  STEP_TO(l, ast, ast.visit(self))
+end
+
+fun STEP_TO_VALUE(l, ast):
+  STEP_TO(l, A.s-value(ast), ast)
 end
 
 fun FRAME(l, self):
   lam(frame-wrapper, ast):
     frame = for LAM(l)(H from nothing):
-      CV.ast-to-constr(frame-wrapper(A.s-escape(A.s-id(l, H))))
+      CV.ast-to-constr(frame-wrapper(A.s-id(l, H)))
     end
     BLOCK(l, [list:
         PUSH(l, frame),
@@ -204,10 +213,34 @@ stepify-visitor = A.default-map-visitor.{
         end):
       for FRAMES(l, self, A.s-app(l, A.s-value(ID(l, F)), _))(ARGS from args):
         for LET(l)(V from A.s-app(l, ID(l, F), ARGS)):
-          STEP_TO_VALUE(l, ID(l, V))
+          ID(l, V)
         end
       end
     end
+  end,
+  s-let-expr(self, l, binds, body):
+    when binds.length() <> 1:
+      raise("s-let-expr: only single arm let implemented so far")
+    end
+    for LET(l)(V from
+        for FRAME(l, self)(V from binds.first.value):
+          bind = cases(A.LetBind) binds.first:
+            | s-let-bind(_l, _b, _) => A.s-let-bind(_l, _b, V)
+            | s-var-bind(_l, _b, _) => A.s-var-bind(_l, _b, V)
+          end
+          A.s-let-expr(l, [list: bind], body)
+        end):
+      bind = cases(A.LetBind) binds.first:
+        | s-let-bind(_l, _b, _) => A.s-let-bind(_l, _b, ID(l, V))
+        | s-var-bind(_l, _b, _) => A.s-var-bind(_l, _b, ID(l, V))
+      end
+      A.s-let-expr(l, [list: bind],
+        STEP(l, self, body))
+    end
+  end,
+  s-lam(self, l, params, args, ann, doc, body, _check):
+    shadow body = STEP(l, self, body)
+    A.s-lam(l, params, args, ann, doc, body, _check)
   end
 }
 

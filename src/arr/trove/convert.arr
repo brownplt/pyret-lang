@@ -130,6 +130,8 @@ constructors = [D.string-dict:
 
   "s-let", A.s-let,
 
+  "s-lam", A.s-lam,
+
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
   "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
@@ -166,7 +168,6 @@ constructors = [D.string-dict:
   "s-if-pipe-else", A.s-if-pipe-else,
   "s-cases", A.s-cases,
   "s-cases-else", A.s-cases-else,
-  "s-lam", A.s-lam,
   "s-method", A.s-method,
   "s-extend", A.s-extend,
   "s-update", A.s-update,
@@ -304,6 +305,12 @@ fun ast-list(lst):
   end
 end
 
+fun ast-call(l, name, args):
+  A.s-app(l,
+    A.s-dot(l, gid("_ast"), name),
+    args)
+end
+
 fun ast-to-constr(ast):
   doc: "Given an AST, construct an AST that, when executed, produces the first."
   recur = ast-to-constr
@@ -319,33 +326,39 @@ fun ast-to-constr(ast):
     | is-List(ast) then:     ast-list(map(recur, ast))
     | A.is-s-atom(ast) then:
       l = dummy-loc
-      A.s-app(l,
-        A.s-dot(l, gid("_ast"), "s-atom"),
-        [list: A.s-str(l, ast.base), A.s-num(l, ast.serial)])
+      ast-call(l, "s-atom", [list:
+          A.s-str(l, ast.base),
+          A.s-num(l, ast.serial)])
     | A.is-s-global(ast) then:
       l = dummy-loc
-      A.s-app(l,
-        A.s-dot(l, gid("_ast"), "s-global"),
-        [list: A.s-str(l, ast.s)])
+      ast-call(l, "s-global", [list:
+          A.s-str(l, ast.s)])
     | A.is-s-escape(ast) then:
       ast.ast
     | A.is-s-value(ast) then:
       l = dummy-loc
-      A.s-app(l,
-        A.s-dot(l, gid("_ast"), "s-value"),
-        [list: ast.val])
+      ast-call(l, "s-value", [list:
+          ast.val])
     | A.is-a-blank(ast) or A.is-a-any(ast) then:
       l = dummy-loc
       A.s-dot(l, gid("_ast"), ast.label())
     | A.is-a-checked(ast) then:
       l = dummy-loc
-      A.s-app(l, A.s-dot(l, gid("_ast"), ast.label()),
-        map(recur, ast.children()))
+      ast-call(l, ast.label(), map(recur, ast.children()))
+    | A.is-s-id(ast) or A.is-s-id-var(ast) or A.is-s-id-letrec(ast) then:
+      # TODO: Fix this horrible hack?
+      if string-contains(ast.id.toname(), "r$"):
+        ast
+      else:
+        l = ast.l
+        srcloc = ast-srcloc(l)
+        ast-call(l, ast.label(),
+          link(srcloc, map(recur, ast.children())))
+      end
     | otherwise:
       l = ast.l
       srcloc = ast-srcloc(l)
-      A.s-app(l,
-        A.s-dot(l, gid("_ast"), ast.label()),
+      ast-call(l, ast.label(),
         link(srcloc, map(recur, ast.children())))
   end
 end
