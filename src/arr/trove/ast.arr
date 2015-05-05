@@ -968,7 +968,7 @@ end
 data Member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) with:
     label(self): "s-data-field" end,
-    children(self): [list: self.name, self.valule] end,
+    children(self): [list: self.name, self.value] end,
     tosource(self):
       name-part = PP.str(self.name)
       PP.nest(INDENT, name-part + str-colonspace + self.value.tosource())
