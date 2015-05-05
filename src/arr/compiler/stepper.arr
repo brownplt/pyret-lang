@@ -246,6 +246,14 @@ stepify-visitor = A.default-map-visitor.{
     end
     stepify-let(binds, empty)
   end,
+  s-dot(self, l, obj, field):
+    for LET(l)(O from
+        for FRAME(l, self)(O from obj):
+          A.s-dot(l, O, field)
+        end):
+      STEP_TO_VALUE(l, A.s-dot(l, ID(l, O), field))
+    end
+  end,
   s-lam(self, l, params, args, ann, doc, body, _check):
     shadow body = STEP(l, self, body)
     A.s-lam(l, params, args, ann, doc, body, _check)
