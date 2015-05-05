@@ -345,6 +345,10 @@ fun ast-to-constr(ast):
     | A.is-a-checked(ast) then:
       l = dummy-loc
       ast-call(l, ast.label(), map(recur, ast.children()))
+    | A.is-s-srcloc(ast) then:
+      l = ast.l
+      ast-call(l, "s-srcloc", [list:
+          ast-srcloc(ast.loc)])
     | A.is-s-id(ast) or A.is-s-id-var(ast) or A.is-s-id-letrec(ast) then:
       # TODO: Fix this horrible hack?
       if string-contains(ast.id.toname(), "r$"):

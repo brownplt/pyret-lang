@@ -169,7 +169,7 @@ stepify-visitor = A.default-map-visitor.{
     STEP_TO_VALUE(l, A.s-id(l, id))
   end,
   s-var-id(self, l, id):
-    STEP_TO_VALUE(l, A.s-id(l, id))
+    STEP_TO_VALUE(l, A.s-var-id(l, id))
   end,
   s-block(self, l, stmts):
     if stmts.length() <= 1:
@@ -219,24 +219,32 @@ stepify-visitor = A.default-map-visitor.{
     end
   end,
   s-let-expr(self, l, binds, body):
-    when binds.length() <> 1:
-      raise("s-let-expr: only single arm let implemented so far")
-    end
-    for LET(l)(V from
-        for FRAME(l, self)(V from binds.first.value):
-          bind = cases(A.LetBind) binds.first:
-            | s-let-bind(_l, _b, _) => A.s-let-bind(_l, _b, V)
-            | s-var-bind(_l, _b, _) => A.s-var-bind(_l, _b, V)
-          end
-          A.s-let-expr(l, [list: bind], body)
-        end):
-      bind = cases(A.LetBind) binds.first:
-        | s-let-bind(_l, _b, _) => A.s-let-bind(_l, _b, ID(l, V))
-        | s-var-bind(_l, _b, _) => A.s-var-bind(_l, _b, ID(l, V))
+    fun replace-bind-value(bind, val):
+      cases(A.LetBind) bind:
+        | s-let-bind(_l, _b, _) => A.s-let-bind(_l, _b, val)
+        | s-var-bind(_l, _b, _) => A.s-var-bind(_l, _b, val)
       end
-      A.s-let-expr(l, [list: bind],
-        STEP(l, self, body))
     end
+    fun stepify-let(remaining-binds, Vs):
+      cases(List) remaining-binds:
+        | empty =>
+          shadow binds = map2(replace-bind-value, binds, Vs.reverse())
+          A.s-let-expr(l, binds, body.visit(self))
+        | link(bind, shadow remaining-binds) =>
+          for LET(l)(V from
+              for FRAME(l, self)(V from bind.value):
+                shadow bind = replace-bind-value(bind, V)
+                A.s-let-expr(l, link(bind, remaining-binds), body)
+              end):
+            T = if is-empty(remaining-binds): body
+                else: A.s-let-expr(l, remaining-binds, body)
+                end
+            STEP_TO(l, T,
+              stepify-let(remaining-binds, link(ID(l, V), Vs)))
+          end
+      end
+    end
+    stepify-let(binds, empty)
   end,
   s-lam(self, l, params, args, ann, doc, body, _check):
     shadow body = STEP(l, self, body)
