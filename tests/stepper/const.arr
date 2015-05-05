@@ -1,5 +1,6 @@
 #lang pyret
 
+nothing
 true
 "true"
 1
