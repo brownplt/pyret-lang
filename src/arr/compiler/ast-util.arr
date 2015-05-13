@@ -650,3 +650,44 @@ fun make-renamer(replacements :: SD.StringDict):
   }
 end
 
+fun wrap-env-imports(p :: A.Program, env :: CS.CompileEnvironment):
+  expr = p.block
+  new-body = 
+    cases(CS.CompileEnvironment) env:
+      | compile-env(compile-bindings, type-env) =>
+        shadow let-binds = for fold(lst from [list: ], b from compile-bindings):
+          cases(CS.CompileBinding) b:
+            | module-bindings(mname, bindings) =>
+              l = SL.builtin(mname)
+              lst + 
+              for map(name from bindings):
+                A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
+                  A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
+              end
+            | else => lst
+          end
+        end
+        type-binds = for fold(lst from [list: ], t from type-env):
+          cases(CS.CompileTypeBinding) t:
+            | type-id(id) => lst
+            | type-module-bindings(name, bindings) =>
+              l = SL.builtin(name)
+              lst +
+              for map(tname from bindings):
+                A.s-type(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
+              end
+          end
+        end
+        cases(A.Expr) expr:
+          | s-block(l, stmts) =>
+            A.s-block(l, type-binds + let-binds + stmts)
+          | else =>
+            A.s-block(A.dummy-loc, type-binds + let-binds + [list: expr])
+        end
+    end
+    full-imports = p.imports + for map(k from env.bindings.filter(CS.is-module-bindings).map(_.name)):
+        A.s-import(p.l, A.s-const-import(p.l, k), A.s-name(p.l, k))
+      end
+    A.s-program(p.l, p._provide, p.provided-types, full-imports, new-body)
+end
+

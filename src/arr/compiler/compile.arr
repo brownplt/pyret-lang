@@ -45,7 +45,10 @@ fun compile-js-ast(phases, ast, name, libs, options) -> CompilationPhase:
         ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
           checked, ret)
       end
-      scoped = R.desugar-scope(checked, libs)
+      imported = U.wrap-env-imports(checked, libs)
+#      print(imported.tosource().pretty(80).join-str("\n"))
+      scoped = R.desugar-scope(imported, libs)
+#      print(scoped.tosource().pretty(80).join-str("\n"))
       when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
       named-result = R.resolve-names(scoped, libs)
       when options.collect-all: ret := phase("Resolved names", named-result, ret) end

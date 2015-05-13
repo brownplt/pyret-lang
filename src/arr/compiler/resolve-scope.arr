@@ -314,36 +314,6 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun wrap-env-imports(expr :: A.Expr, env :: C.CompileEnvironment):
-  cases(C.CompileEnvironment) env:
-    | compile-env(compile-bindings, type-env) =>
-      shadow let-binds = for fold(lst from [list: ], b from compile-bindings):
-        cases(C.CompileBinding) b:
-          | module-bindings(mname, bindings) =>
-            l = S.builtin(mname)
-            lst + 
-            for map(name from bindings):
-              A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-                A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
-            end
-          | else => lst
-        end
-      end
-      type-binds = for fold(lst from [list: ], t from type-env):
-        cases(C.CompileTypeBinding) t:
-          | type-id(id) => lst
-          | type-module-bindings(name, bindings) =>
-            l = S.builtin(name)
-            lst +
-            for map(tname from bindings):
-              A.s-type-bind(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
-            end
-        end
-      end
-      A.s-type-let-expr(A.dummy-loc, type-binds, A.s-block(A.dummy-loc, let-binds + [list: expr]))
-  end
-end
-
 fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
   doc: ```
        Remove x = e, var x = e, and fun f(): e end
@@ -397,13 +367,9 @@ fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
           end
         | else => raise("Impossible")
       end
-      wrapped = wrap-env-imports(with-provides, compile-env)
-      full-imports = imports + for map(k from compile-env.bindings.filter(C.is-module-bindings).map(_.name)):
-          A.s-import(l, A.s-const-import(l, k), A.s-name(l, k))
-        end
 
       A.s-program(l, A.s-provide-none(l), A.s-provide-types-none(l),
-        full-imports, wrapped.visit(desugar-scope-visitor))
+        imports, with-provides.visit(desugar-scope-visitor))
   end
   
 where:
@@ -414,12 +380,11 @@ where:
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.minimal-builtins).visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
-      A.s-type-let-expr(d, [list:],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
           A.s-module(d, id("nothing"), id("x"), [list:], checks))
-      ))
+      )
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
@@ -427,12 +392,11 @@ where:
   compare2 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
-      A.s-type-let-expr(d, [list:],
         A.s-let-expr(d, [list: 
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
           A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
-      ))
+      )
   ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) is compare2
 end
 
