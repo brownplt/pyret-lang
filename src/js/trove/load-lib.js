@@ -103,11 +103,12 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
          });
       }
       function renderErrorMessage(mr) {
+        console.error(JSON.stringify(getModuleResultResult(mr)));
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         runtime.pauseStack(function(restarter) {
           execRt.runThunk(function() {
-            if(execRt.isPyretVal(res.exn.exn)) {
+            if(execRt.isPyretVal(res.exn)) {
               return execRt.string_append(
                 execRt.toReprJS(r.exn.exn, "_tostring"),
                 execRt.makeString("\n" +

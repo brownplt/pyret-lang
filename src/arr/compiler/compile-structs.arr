@@ -22,6 +22,17 @@ data Dependency:
     key(self): "builtin(" + self.modname + ")" end
 end
 
+# Used to describe when additional module imports should be added to a
+# program.  See wrap-extra-imports
+data ExtraImports:
+  | extra-imports(imports :: List<ExtraImport>)
+end
+
+# Import this module, and bind the given value and type bindings from it
+data ExtraImport:
+  | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>)
+end
+
 data CompileEnvironment:
   | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
 end
@@ -390,7 +401,6 @@ default-compile-options = {
 
 data CompileTypeBinding:
   | type-id(id :: String)
-  | type-module-bindings(name :: String, bindings :: List<String>)
 end
 
 runtime-types = lists.map(type-id, [list:
@@ -412,18 +422,8 @@ runtime-types = lists.map(type-id, [list:
   "RawArray"
 ])
 
-standard-types = runtime-types +
-  [list:
-    type-module-bindings("lists", [list: "List" ]),
-    type-module-bindings("option", [list: "Option" ]),
-    type-module-bindings("arrays", [list: "Array" ]),
-    type-module-bindings("sets", [list: "Set"])
-    #...
-    ]
-
 data CompileBinding:
   | builtin-id(id :: String)
-  | module-bindings(name :: String, bindings :: List<String>)
 end
 
 runtime-builtins = lists.map(builtin-id, [list:
@@ -540,182 +540,22 @@ runtime-builtins = lists.map(builtin-id, [list:
   "within-rel",
   "identical",
   "identical3",
-  "exn-unwrap"
+  "exn-unwrap",
+  "_empty",
+  "_link"
 ])
 
 no-builtins = compile-env([list: ], [list: ])
 
 minimal-builtins = compile-env(runtime-builtins, runtime-types)
 
-bootstrap-builtins = compile-env(
-  [list: module-bindings("lists", [list:
-      "list",
-      "is-empty",
-      "is-link",
-      "empty",
-      "link",
-      "range",
-      "range-by",
-      "repeat",
-      "filter",
-      "partition",
-      "split-at",
-      "any",
-      "all",
-      "find",
-      "map",
-      "map2",
-      "map3",
-      "map4",
-      "map_n",
-      "map2_n",
-      "map3_n",
-      "map4_n",
-      "each",
-      "each2",
-      "each3",
-      "each4",
-      "each_n",
-      "each2_n",
-      "each3_n",
-      "each4_n",
-      "fold-while",
-      "fold",
-      "fold2",
-      "fold3",
-      "fold4",
-      "index"
-  ])] +
-  runtime-builtins + lists.map(builtin-id, [list:
+standard-builtins = compile-env(runtime-builtins, runtime-types)
 
-  "_link",
-  "_empty",
+minimal-imports = extra-imports(empty)
 
-  # new arithmetic aliases
-  "add",
-  "sub",
-  "div",
-  "mul",
-  "less",
-  "greater",
-  "greaterequal",
-  "lessequal",
-
-  "both",
-  "either",
-  "not",
-
-  "max",
-  "min",
-  "abs",
-  "sin",
-  "cos",
-  "tan",
-  "asin",
-  "acos",
-  "atan",
-  "modulo",
-  "truncate",
-  "sqrt",
-  "sqr",
-  "ceiling",
-  "floor",
-  "log",
-  "exp",
-  "exact",
-  "is-integer",
-  "is-fixnum",
-  "expt",
-
-  # from js/trove/image.js
-  "circle",
-  "is-image-color",
-  "is-mode",
-  "is-x-place",
-  "is-y-place",
-  "is-angle",
-  "is-side-count",
-  "is-step-count",
-  "is-image",
-  "bitmap-url",
-  "open-image-url",
-  "image-url",
-  "images-equal",
-  "text",
-  "normal",
-  "text-font",
-  "overlay",
-  "middle",
-  "overlay-xy",
-  "overlay-align",
-  "underlay",
-  "middle",
-  "underlay-xy",
-  "underlay-align",
-  "beside-align",
-  "beside",
- "above",
-  "middle",
-  "above-align",
-  "empty-scene",
-  "put-image",
-  "place-image",
-  "place-image-align",
-  "rotate",
-  "scale",
-  "scale-xy",
-  "flip-horizontal",
-  "flip-vertical",
-  "frame",
-  "crop",
-  "line",
-  "add-line",
-  "scene-line",
-  "square",
-  "rectangle",
-  "regular-polygon",
-  "ellipse",
-  "triangle",
-  "triangle-sas",
-  "triangle-sss",
-  "triangle-ass",
-  "triangle-ssa",
-  "triangle-aas",
-  "triangle-asa",
-  "triangle-saa",
-  "right-triangle",
-  "isosceles-triangle",
-  "star",
-  "star-sized",
-  "radial-star",
-  "star-polygon",
-  "rhombus",
-  "image-to-color-list",
-  "color-list-to-image",
-  "color-list-to-bitmap",
-  "image-width",
-  "image-height",
-  "image-baseline",
-  "name-to-color",
-
-  # from js/trove/world.js
-  "big-bang",
-  "on-tick",
-  "on-tick-n",
-  "to-draw",
-  "on-mouse",
-  "on-key",
-  "stop-when",
-  "is-key-equal"
-  ]),
-  runtime-types
-)
-
-standard-builtins = compile-env(
-    runtime-builtins + [list:
-      builtin-id("_link"),
-      builtin-id("_empty"),
-      module-bindings("arrays", [list:
+standard-imports = extra-imports(
+   [list: 
+      extra-import(builtin("arrays"), "arrays", [list: 
           "array",
           "build-array",
           "array-from-list",
@@ -725,8 +565,9 @@ standard-builtins = compile-env(
           "array-get-now",
           "array-length",
           "array-to-list-now"
-        ]),
-      module-bindings("lists", [list:
+        ],
+        [list: "Array"]),
+      extra-import(builtin("lists"), "lists", [list: 
           "list",
           "is-empty",
           "is-link",
@@ -761,20 +602,22 @@ standard-builtins = compile-env(
           "fold3",
           "fold4",
           "index"
-        ]),
-      module-bindings("option", [list:
+        ],
+        [list: "List"]),
+      extra-import(builtin("option"), "option", [list: 
           "Option",
           "is-none",
           "is-some",
           "none",
           "some"
-        ]),
-      module-bindings("error", [list: ]),
-      module-bindings("sets", [list:
+        ],
+        [list: "Option"]),
+      extra-import(builtin("error"), "error", [list: ], [list:]),
+      extra-import(builtin("sets"), "sets", [list: 
           "set",
           "tree-set",
           "list-set"
-        ])
-    ],
-    standard-types
-    )
+        ],
+        [list: "Set"])
+    ])
+

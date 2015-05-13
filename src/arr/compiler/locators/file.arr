@@ -26,7 +26,10 @@ fun mockable-file-locator(file-ops):
     end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     get-dependencies(self):
-      CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+      CL.get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-extra-imports(self):
+      CS.standard-imports
     end,
     get-provides(self):
       CL.get-provides(self.get-module(), self.uri())

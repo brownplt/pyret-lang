@@ -39,6 +39,9 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
     get-module(_): 
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
+    get-extra-imports(self):
+      CM.standard-imports
+    end,
     get-dependencies(_): 
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)

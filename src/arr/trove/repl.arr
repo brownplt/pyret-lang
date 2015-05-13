@@ -15,7 +15,7 @@ fun make-repl(
     finder :: (CL.CompileContext, CS.Dependency -> CL.Locator)):
 
   var nspace = defs-locator.get-namespace(runtime)
-  var compile-env = RS.drop-module-bindings(defs-locator.get-compile-env())
+  var compile-env = defs-locator.get-compile-env()
 
   compile-lib = CL.make-compile-lib(finder)
 

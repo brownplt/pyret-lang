@@ -65,9 +65,8 @@ fun main(args):
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
-        if r.has-key("library"): CS.minimal-builtins
-        else if r.get-value("dialect") == "Bootstrap": CS.bootstrap-builtins
-        else: CS.standard-builtins end
+        if r.has-key("library"): CS.minimal-imports
+        else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
@@ -79,6 +78,7 @@ fun main(args):
           r.get-value("dialect"),
           F.file-to-string(program-name),
           program-name,
+          CS.standard-builtins,
           libs,
           {
             check-mode : check-mode,
@@ -146,6 +146,7 @@ fun main(args):
             r.get-value("dialect"),
             F.file-to-string(r.get-value("compile-module-js")),
             r.get-value("compile-module-js"),
+            CS.standard-builtins,
             libs,
             {
               check-mode : check-mode,

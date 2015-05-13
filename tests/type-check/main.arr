@@ -18,6 +18,7 @@ compile-str = lam(filename, str):
           str,
           filename,
           CS.minimal-builtins,
+          CS.minimal-imports,
           {
             check-mode : true,
             allow-shadowed : false,

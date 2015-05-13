@@ -45,6 +45,9 @@ type Locator = {
   # Pre-compile (had better be known with no other help)
   get-dependencies :: ( -> List<CS.Dependency>),
 
+  # Pre-compile
+  get-extra-imports :: ( -> CS.ExtraImports),
+
   # Post- or pre- compile
   # get-import-names :: ( -> List<String>),
 
@@ -89,12 +92,9 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   end
 end
 
-fun get-dependencies-with-env(p :: PyretCode, uri :: URI, env :: CS.CompileEnvironment) -> List<CS.Dependency>:
+fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   mod-deps = get-dependencies(p, uri)
-  env-deps = for map(e from env.bindings.filter(CS.is-module-bindings)):
-    CS.builtin(e.name)
-  end
-  mod-deps.append(env-deps)
+  mod-deps + CS.standard-imports.imports.map(_.dependency)
 end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
@@ -169,6 +169,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             module-string,
             locator.uri(),
             locator.get-compile-env(), # provide-map as arg?
+            locator.get-extra-imports(),
             options
             ).result
         | pyret-ast(module-ast) =>
@@ -177,6 +178,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             module-ast,
             locator.uri(),
             locator.get-compile-env(), # provide-map as arg?
+            locator.get-extra-imports(),
             options
             ).result
       end

@@ -5,6 +5,7 @@ import runtime-lib as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 import "compiler/locators/file.arr" as FL
+import "compiler/locators/builtin.arr" as BL
 
 fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
@@ -87,16 +88,23 @@ check "File locators":
     ```)
   bar.close-file()
 
-  fun dfind(ctxt, dep): file-loc(dep.arguments.get(0), CM.minimal-builtins) end
+  fun dfind(ctxt, dep):
+    cases(CM.Dependency) dep:
+      | builtin(modname) =>
+        BL.make-builtin-locator(modname)
+      | else =>
+        file-loc(dep.arguments.get(0), CM.minimal-builtins)
+    end
+  end
 
   clib = CL.make-compile-lib(dfind)
 
   floc = file-loc("foo", CM.minimal-builtins)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
-  wlist.length() is 2
-  wlist.get(1).locator is floc
-  wlist.get(0).locator is file-loc("bar", CM.minimal-builtins)
+  wlist.length() is 12
+  wlist.get(11).locator is floc
+  wlist.get(10).locator is file-loc("bar", CM.minimal-builtins)
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
   ans satisfies LL.is-success-result

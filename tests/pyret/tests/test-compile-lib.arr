@@ -32,6 +32,7 @@ check "Worklist generation (simple)":
     {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-extra-imports(self): CM.standard-imports end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-compile-env(self): CM.minimal-builtins end,
@@ -100,6 +101,7 @@ check "Worklist generation (DAG)":
         retrievals.set-now(name, count + 1)
         CL.pyret-string(modules.get-value-now(name))
       end,
+      get-extra-imports(self): CM.standard-imports end,
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-compile-env(self): CM.standard-builtins end,
@@ -162,6 +164,7 @@ check "Worklist generation (Cycle)":
     {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-extra-imports(self): CM.standard-imports end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-compile-env(self): CM.standard-builtins end,

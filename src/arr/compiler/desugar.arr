@@ -60,7 +60,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
   end
 end
 
-fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
+fun desugar(program :: A.Program):
   doc: ```
         Desugar non-scope and non-check based constructs.
         Preconditions on program:

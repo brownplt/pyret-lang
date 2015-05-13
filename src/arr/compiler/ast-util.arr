@@ -650,44 +650,40 @@ fun make-renamer(replacements :: SD.StringDict):
   }
 end
 
-fun wrap-env-imports(p :: A.Program, env :: CS.CompileEnvironment):
+fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
-  new-body = 
-    cases(CS.CompileEnvironment) env:
-      | compile-env(compile-bindings, type-env) =>
-        shadow let-binds = for fold(lst from [list: ], b from compile-bindings):
-          cases(CS.CompileBinding) b:
-            | module-bindings(mname, bindings) =>
-              l = SL.builtin(mname)
-              lst + 
-              for map(name from bindings):
-                A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-                  A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
-              end
-            | else => lst
-          end
-        end
-        type-binds = for fold(lst from [list: ], t from type-env):
-          cases(CS.CompileTypeBinding) t:
-            | type-id(id) => lst
-            | type-module-bindings(name, bindings) =>
-              l = SL.builtin(name)
-              lst +
-              for map(tname from bindings):
-                A.s-type(l, A.s-name(l, tname), A.a-dot(l, A.s-name(l, name), tname))
-              end
-          end
-        end
-        cases(A.Expr) expr:
-          | s-block(l, stmts) =>
-            A.s-block(l, type-binds + let-binds + stmts)
-          | else =>
-            A.s-block(A.dummy-loc, type-binds + let-binds + [list: expr])
-        end
-    end
-    full-imports = p.imports + for map(k from env.bindings.filter(CS.is-module-bindings).map(_.name)):
-        A.s-import(p.l, A.s-const-import(p.l, k), A.s-name(p.l, k))
+  cases(CS.ExtraImports) env:
+    | extra-imports(imports) =>
+      ltls = for fold(lets-and-type-lets from {ls: empty, tls: empty}, i from imports):
+        mname = i.as-name
+        l = SL.builtin(mname)
+        new-lets = lets-and-type-lets.ls + 
+            for map(name from i.values):
+              A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
+                A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
+            end
+        new-type-lets = lets-and-type-lets.tls +
+            for map(name from i.types):
+              A.s-type(l, A.s-name(l, name),
+                A.a-dot(l, A.s-name(l, mname), name))
+            end
+        {ls: new-lets, tls: new-type-lets}
       end
-    A.s-program(p.l, p._provide, p.provided-types, full-imports, new-body)
+      new-body = cases(A.Expr) expr:
+        | s-block(l, stmts) =>
+          A.s-block(l, ltls.ls + ltls.tls + stmts)
+        | else =>
+          A.s-block(A.dummy-loc, ltls.ls + ltls.tls + [list: expr])
+      end
+      full-imports = p.imports + for map(i from imports):
+          cases(CS.Dependency) i.dependency:
+            | builtin(name) =>
+              A.s-import(p.l, A.s-const-import(p.l, name), A.s-name(p.l, i.as-name))
+            | dependency(protocol, args) =>
+              A.s-import(p.l, A.s-special-import(p.l, protocol, args), A.s-name(p.l, i.as-name))
+          end
+        end
+      A.s-program(p.l, p._provide, p.provided-types, full-imports, new-body)
+  end
 end
 

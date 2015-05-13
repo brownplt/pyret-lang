@@ -25,6 +25,9 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
     get-module(_): 
       raise("Should never fetch source for legacy module " + builtin-name)
     end,
+    get-extra-imports(self):
+      CS.standard-imports
+    end,
     get-dependencies(_): 
       raw-deps = raw.get-raw-dependencies()
       mod-deps = raw-array-to-list(raw-deps).map(make-dep)

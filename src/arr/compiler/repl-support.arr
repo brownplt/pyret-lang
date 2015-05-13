@@ -4,29 +4,13 @@ provide *
 import srcloc as S
 import "compiler/compile-structs.arr" as C
 import "compiler/compile-lib.arr" as CL
+import "compiler/locators/builtin.arr" as B
 import ast as A
 import error as E
 import parse-pyret as P
 import string-dict as SD
 import namespace-lib as N
 
-fun drop-module-bindings(env :: C.CompileEnvironment):
-  fun negate(f): lam(x): not(f(x));;
-  C.compile-env(
-    env.bindings.filter(negate(C.is-module-bindings)),
-    env.types.filter(negate(C.is-type-module-bindings))
-  )
-where:
-  drop-module-bindings(C.compile-env([list:
-    C.builtin-id("x"),
-    C.module-bindings("list", [list:])
-  ], [list:
-    C.type-id("Number"),
-    C.type-module-bindings("lists", [list: "List"])
-  ])) is
-    C.compile-env([list: C.builtin-id("x")], [list: C.type-id("Number")])
-
-end
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   cases(C.CompileEnvironment) env:
@@ -201,8 +185,11 @@ fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
   {
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
     get-dependencies(self):
-      CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+      CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-compile-env(self): compile-env end,
@@ -225,8 +212,11 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
   {
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
     get-dependencies(self):
-      CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+      CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-compile-env(self): repl.get-current-compile-env() end,
@@ -242,9 +232,13 @@ end
 
 fun make-definitions-finder(import-types :: SD.StringDict):
   fun definitions-finder(context, dep):
-    cases(Option) import-types.get(dep.protocol):
-      | none => raise("Cannot find module: " + torepr(dep))
-      | some(handler) => handler(context, dep.arguments)
+    cases(C.Dependency) dep:
+      | builtin(name) => B.make-builtin-locator(name)
+      | dependency(protocol, arguments) =>
+        cases(Option) import-types.get(protocol):
+          | none => raise("Cannot find module: " + torepr(dep))
+          | some(handler) => handler(context, arguments)
+        end
     end
   end
   definitions-finder

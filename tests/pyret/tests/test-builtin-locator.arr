@@ -37,8 +37,11 @@ check:
     {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-extra-imports(self):
+        CM.minimal-imports
+      end,
       get-dependencies(self):
-        CL.get-dependencies-with-env(self.get-module(), self.uri(), self.get-compile-env())
+        CL.get-dependencies(self.get-module(), self.uri())
       end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-compile-env(self): CM.minimal-builtins end,
