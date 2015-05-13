@@ -50,6 +50,7 @@ str-lam = PP.str("lam")
 str-if = PP.str("if ")
 str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
+str-include = PP.str("include")
 str-method = PP.str("method")
 str-mutable = PP.str("mutable")
 str-period = PP.str(".")
@@ -215,6 +216,11 @@ sharing:
 end
 
 data Import:
+  | s-include(l :: Loc, mod :: ImportType) with:
+    label(self): "s-include" end,
+    tosource(self):
+      PP.flow([list: str-include, self.mod.tosource()])
+    end
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     label(self): "s-import" end,
     tosource(self):
@@ -1288,6 +1294,9 @@ default-map-visitor = {
     s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
+  s-include(self, l, import-type):
+    s-include(l, import-type.visit(self))
+  end,
   s-import(self, l, import-type, name):
     s-import(l, import-type.visit(self), name.visit(self))
   end,
@@ -1753,6 +1762,9 @@ default-iter-visitor = {
   s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
+  s-include(self, l, import-type):
+    import-type.visit(self)
+  end,
   s-file-import(self, l, file):
     true
   end,
@@ -2216,6 +2228,9 @@ dummy-loc-visitor = {
   end,
   s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
+  end,
+  s-include(self, l, import-type):
+    s-include(dummy-loc, import-type.visit(self))
   end,
   s-import-types(self, l, import-type, name, types):
     s-import-types(dummy-loc, import-type.visit(self), name.visit(self), types.visit(self))

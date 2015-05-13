@@ -456,6 +456,15 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
       expect(parse('import gdrive() as G')).toBe(false);
     });
+    
+    it("should parse includes", function() {
+      expect(parse('include modname')).not.toBe(false);
+      expect(parse('include "modname.arr"')).not.toBe(false);
+      expect(parse('include gdrive(a)')).toBe(false);
+      expect(parse('include gdrive("a")')).not.toBe(false);
+      expect(parse('include gdrive("a", "b")')).not.toBe(false);
+      expect(parse('include gdrive()')).toBe(false);
+    });
 
     it("should parse new equality operators", function() {
       expect(parse('o <=> o2')).not.toBe(false);

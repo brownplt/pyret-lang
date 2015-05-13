@@ -10,6 +10,7 @@ end: END | SEMI
 
 prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 
+import-stmt: INCLUDE import-source
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
 import-source: import-special | import-name | import-string 
