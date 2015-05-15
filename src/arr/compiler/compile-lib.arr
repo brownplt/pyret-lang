@@ -12,6 +12,8 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 
+mtd = [SD.string-dict:]
+
 # for re-export
 standard-builtins = CS.standard-builtins
 make-base-namespace = N.make-base-namespace
@@ -29,7 +31,7 @@ data Loadable:
   | pre-loaded(internal-mod :: Any)
 end
 
-type Provides = Set<String>
+type Provides = CS.Provides
 
 type CompileContext = Any
 
@@ -37,7 +39,7 @@ type Locator = {
  
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
-  needs-compile :: (SD.MutableStringDict<Provides> -> Boolean),
+  needs-compile :: (SD.StringDict<Provides> -> Boolean),
 
   # Pre-compile (skippable if get-compile returns something)
   get-module :: ( -> PyretCode),
@@ -55,8 +57,8 @@ type Locator = {
   # type-wise)
   get-provides :: ( -> Provides),
 
-  # Pre-compile, but fuzzy how it gets constructed because merging types
-  get-compile-env :: ( -> CS.CompileEnv),
+  # Pre-compile, specification of available globals
+  get-globals :: ( -> CS.Globals),
 
   # Post-compile, on-run (maybe dynamic and new namespaces)
   get-namespace :: (R.Runtime -> N.Namespace),
@@ -64,7 +66,7 @@ type Locator = {
   uri :: (-> URI),
   name :: (-> String),
 
-  set-compiled :: (Loadable, SD.MutableStringDict<Provides> -> Nothing),
+  set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
   get-compiled :: ( -> Option<Loadable>),
@@ -97,27 +99,42 @@ fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>
   mod-deps + CS.standard-imports.imports.map(_.dependency)
 end
 
+fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
+  for fold(d from mtd, s from strs):
+    d.set(s, val)
+  end
+end
+
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
-  cases (A.Provide) parsed._provide:
-    | s-provide-none(l) => S.empty-list-set
-    | s-provide-all(l) => S.list-to-list-set(A.toplevel-ids(parsed).map(_.toname()))
-    | s-provide(l, e) =>
-      cases (A.Expr) e:
-        | s-obj(_, mlist) => S.list-to-list-set(mlist.map(_.name))
-        | else => raise("Non-object expression in provide: " + l.format(true))
-      end
-  end
+  vals-part = 
+    cases (A.Provide) parsed._provide:
+      | s-provide-none(l) => CS.provides(mtd, mtd)
+      | s-provide-all(l) =>
+        const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
+      | s-provide(l, e) =>
+        cases (A.Expr) e:
+          | s-obj(_, mlist) => const-dict(mlist.map(_.name), CS.v-just-there)
+          | else => raise("Non-object expression in provide: " + l.format(true))
+        end
+    end
+  types-part =
+    cases(A.ProvideTypes) parsed.provided-types:
+      | s-provide-types-none(l) => mtd
+      | s-provide-types-all(l) =>
+        const-dict(A.block-type-ids(parsed), CS.t-just-there)
+      | s-provide-types(l, anns) =>
+        const-dict(anns.map(_.name), CS.t-just-there)
+    end
+  CS.provides(vals-part, types-part)
 end
 
 type ToCompile = { locator: Locator, dependency-map: SD.MutableStringDict<Locator>, path :: List<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
-  sd2 = SD.make-mutable-string-dict()
-  for each(k from sd.keys-now().to-list()):
-    sd2.set-now(k, f(k, sd.get-value-now(k)))
+  for fold(sd2 from mtd, k from sd.keys-now().to-list()):
+    sd2.set(k, f(k, sd.get-value-now(k)))
   end
-  sd2
 end
 
 fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
@@ -168,7 +185,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             "Pyret",
             module-string,
             locator.uri(),
-            locator.get-compile-env(), # provide-map as arg?
+            CS.compile-env(locator.get-globals(), provide-map),
             locator.get-extra-imports(),
             options
             ).result
@@ -177,7 +194,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             CM.start,
             module-ast,
             locator.uri(),
-            locator.get-compile-env(), # provide-map as arg?
+            CS.compile-env(locator.get-globals(), provide-map),
             locator.get-extra-imports(),
             options
             ).result

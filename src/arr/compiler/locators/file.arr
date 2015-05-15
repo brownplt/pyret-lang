@@ -12,9 +12,9 @@ import file as F
 #    with:
 
 fun mockable-file-locator(file-ops):
-  lam(path, cenv): {
+  lam(path, globals): {
     path: path,
-    cenv: cenv,
+    globals: globals,
     get-module(self):
       when not(file-ops.file-exists(self.path)):
         raise("File " + self.path + " does not exist")
@@ -34,7 +34,7 @@ fun mockable-file-locator(file-ops):
     get-provides(self):
       CL.get-provides(self.get-module(), self.uri())
     end,
-    get-compile-env(self): self.cenv end,
+    get-globals(self): self.globals end,
     set-compiled(self, cr, deps):
       cases(CS.CompileResult) cr.result-printer:
         | ok(ccp) =>

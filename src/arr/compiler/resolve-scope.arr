@@ -10,6 +10,9 @@ import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 import "compiler/gensym.arr" as G
 
+string-dict = SD.string-dict
+mtd = [string-dict:]
+
 data NameResolution:
   | resolved(ast :: A.Program, errors :: List<C.CompileError>,
       bindings :: SD.MutableStringDict, type-bindings :: SD.MutableStringDict)
@@ -72,6 +75,9 @@ fun resolve-imports(imports :: List<A.Import>):
           A.s-let(f.l, A.s-bind(l, false, f, A.a-blank), A.s-dot(l, A.s-id(l, imp-name), f.tosourcestring()), false)
         end
         acc.{imports: link(new-i, acc.imports), lets: new-lets + acc.lets}
+      | else => raise(
+        "s-import-types and s-import-complete should only be inserted by desugaring, " +
+        "but resolve-types got this import: " + torepr(i))
     end
   end
   { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
@@ -314,7 +320,7 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun desugar-scope(prog :: A.Program, compile-env:: C.CompileEnvironment):
+fun desugar-scope(prog :: A.Program):
   doc: ```
        Remove x = e, var x = e, and fun f(): e end
        and turn them into explicit let and letrec expressions.
@@ -378,7 +384,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s));
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.minimal-builtins).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog).visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -417,26 +423,17 @@ data TypeBinding:
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
-  for fold(acc from SD.make-string-dict(), b from initial.bindings):
-    cases(C.CompileBinding) b:
-      | module-bindings(name, ids) => acc
-      | builtin-id(name) =>
-        acc.set(name, let-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
-    end
+  for fold(acc from SD.make-string-dict(), name from initial.globals.values.keys-list()):
+    acc.set(name, let-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
   end
 where:
-  scope-env-from-env(C.compile-env([list:
-      C.builtin-id("x")
-    ], [list: ])).get-value("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
+  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", C.v-just-there], mtd), mtd))
+    .get-value("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):
-  for fold(acc from SD.make-string-dict(), b from initial.types):
-    cases(C.CompileTypeBinding) b:
-      | type-module-bindings(name, ids) => acc
-      | type-id(name) =>
-        acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
-    end
+  for fold(acc from SD.make-string-dict(), name from initial.globals.types.keys-list()):
+    acc.set(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
   end
 end
 

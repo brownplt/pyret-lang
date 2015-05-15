@@ -40,8 +40,8 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
       provides = raw.get-raw-provides()
       make-provides(provides) 
     end,
-    get-compile-env(_):
-      raise("Should never get compile-env for legacy module " + builtin-name)
+    get-global(_):
+      raise("Should never get-globals for legacy module " + builtin-name)
     end,
     get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)

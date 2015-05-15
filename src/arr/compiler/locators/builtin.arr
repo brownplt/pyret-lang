@@ -50,7 +50,7 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
       provides = raw.get-raw-provides()
       make-provides(provides) 
     end,
-    get-compile-env(_):
+    get-globals(_):
       raise("Should never get compile-env for builtin module " + builtin-name)
     end,
     get-namespace(_, some-runtime):

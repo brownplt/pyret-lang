@@ -144,28 +144,14 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   end
 end
 
-fun binding-type-env-from-env(initial-env):
-  for lists.fold(acc from SD.make-string-dict(), binding from initial-env.types):
-    cases(CS.CompileTypeBinding) binding:
-      | type-module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.make-string-dict(), b from ids):
-          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
-        end
-        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | type-id(name) => acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
-    end
+fun binding-type-env-from-env(env):
+  for lists.fold(acc from SD.make-string-dict(), name from env.globals.types.keys-list()):
+    acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
   end
 end
-fun binding-env-from-env(initial-env):
-  for lists.fold(acc from SD.make-string-dict(), binding from initial-env.bindings):
-    cases(CS.CompileBinding) binding:
-      | module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.make-string-dict(), b from ids):
-          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
-        end
-        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | builtin-id(name) => acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
-    end
+fun binding-env-from-env(env):
+  for lists.fold(acc from SD.make-string-dict(), name from env.globals.values.keys-list()):
+    acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
   end
 end
 

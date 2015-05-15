@@ -11,7 +11,7 @@ fun string-to-locator(name :: String):
     get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
     get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-    get-compile-env(self): CM.minimal-builtins end,
+    get-globals(self): CM.standard-globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     uri(self): "file://" + name end,
     name(self): name end,

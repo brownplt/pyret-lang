@@ -15,16 +15,16 @@ fun make-repl(
     finder :: (CL.CompileContext, CS.Dependency -> CL.Locator)):
 
   var nspace = defs-locator.get-namespace(runtime)
-  var compile-env = defs-locator.get-compile-env()
+  var globals = defs-locator.get-globals()
 
   compile-lib = CL.make-compile-lib(finder)
 
   fun update-env(result, loc):
     nspace := nspace.merge-all(result)
-    provided = loc.get-provides().to-list()
+    provided = loc.get-provides().values.keys-list()
     for each(provided-name from provided):
       # TODO(joe): Also need to add _type_ bindings for the repl here
-      compile-env := CS.compile-env(link(CS.builtin-id(provided-name), compile-env.bindings), compile-env.types)
+      globals := CS.globals(globals.values.set(provided-name, CS.v-just-there), globals.types)
     end
   end
 
@@ -47,6 +47,6 @@ fun make-repl(
     run-interaction: run-interaction,
     runtime: runtime,
     get-current-namespace: lam(): nspace end,
-    get-current-compile-env: lam(): compile-env end
+    get-current-globals: lam(): globals end
   }
 end

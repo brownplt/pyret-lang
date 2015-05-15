@@ -93,18 +93,18 @@ check "File locators":
       | builtin(modname) =>
         BL.make-builtin-locator(modname)
       | else =>
-        file-loc(dep.arguments.get(0), CM.minimal-builtins)
+        file-loc(dep.arguments.get(0), CM.standard-globals)
     end
   end
 
   clib = CL.make-compile-lib(dfind)
 
-  floc = file-loc("foo", CM.minimal-builtins)
+  floc = file-loc("foo", CM.standard-globals)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = clib.compile-worklist(floc, {})
   wlist.length() is 12
   wlist.get(11).locator is floc
-  wlist.get(10).locator is file-loc("bar", CM.minimal-builtins)
+  wlist.get(10).locator is file-loc("bar", CM.standard-globals)
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
   ans satisfies LL.is-success-result

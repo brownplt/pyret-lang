@@ -13,17 +13,15 @@ import namespace-lib as N
 
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
-  cases(C.CompileEnvironment) env:
-    | compile-env(bindings, types) =>
-      C.compile-env(link(C.builtin-id(name), bindings), types)
-  end
+  C.compile-env(
+    C.globals(env.globals.values.set(name, C.v-just-there), env.globals.types),
+    env.mods)
 end
 
 fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
-  cases(C.CompileEnvironment) env:
-    | compile-env(bindings, types) =>
-      C.compile-env(bindings, link(C.type-id(name), types))
-  end
+  C.compile-env(
+    C.globals(env.globals.values, env.globals.types.set(name, C.t-just-there)),
+    env.mods)
 end
 
 ok-imports = [list:
@@ -133,40 +131,22 @@ fun make-provide-for-repl(p :: A.Program):
   end
 end
 
-fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironment):
+fun make-provide-for-repl-main-env(p :: A.Program, env :: C.CompileEnvironment):
+  make-provide-for-repl-main(p, env.globals)
+end
+
+fun make-provide-for-repl-main(p :: A.Program, globals :: C.Globals):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      env-provide = for fold(flds from repl-provide, elt from compile-env.bindings):
-        cases(C.CompileBinding) elt:
-          | builtin-id(name) =>
-            shadow l = S.builtin(name)
-            link(df(l, A.s-name(l, name)), flds)
-          | module-bindings(name, fields) =>
-            shadow l = S.builtin(name)
-            [list: df(l, A.s-name(l, name))] +
-              for map(f from fields):
-                df(l, A.s-name(l, f))
-              end +
-              flds
-        end
+      env-provide = for fold(flds from repl-provide, name from globals.values.keys-list()):
+        link(df(l, A.s-name(l, name)), flds)
       end
-      env-type-provide = for fold(flds from repl-type-provide, elt from compile-env.types):
-        cases(C.CompileTypeBinding) elt:
-          | type-id(name) =>
-            shadow l = S.builtin(name)
-            link(af(l, A.s-name(l, name)), flds)
-          | type-module-bindings(name, fields) =>
-            shadow l = S.builtin(name)
-            [list: af(l, A.s-name(l, name))] +
-              for map(f from fields):
-                af(l, A.s-name(l, f))
-              end +
-              flds
-        end
+      env-type-provide = for fold(flds from repl-type-provide, name from globals.types.keys-list()):
+        link(af(l, A.s-name(l, name)), flds)
       end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
@@ -176,11 +156,11 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
   end
 end
 
-fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
+fun make-repl-definitions-locator(name, uri, get-definitions, globals):
   fun get-ast():
     initial-definitions = get-definitions()
     parsed = P.surface-parse(initial-definitions, name)
-    make-provide-for-repl-main(parsed, compile-env)
+    make-provide-for-repl-main(parsed, globals)
   end
   {
     needs-compile(self, provs): true end,
@@ -192,7 +172,7 @@ fun make-repl-definitions-locator(name, uri, get-definitions, compile-env):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-    get-compile-env(self): compile-env end,
+    get-globals(self): globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
@@ -219,7 +199,7 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-    get-compile-env(self): repl.get-current-compile-env() end,
+    get-globals(self): repl.get-current-globals() end,
     get-namespace(self, runtime): repl.get-current-namespace() end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,

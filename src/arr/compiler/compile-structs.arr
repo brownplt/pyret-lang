@@ -5,6 +5,10 @@ provide-types *
 import ast as A
 import srcloc as SL
 import error-display as ED
+import string-dict as SD
+
+type StringDict = SD.StringDict
+string-dict = SD.string-dict
 
 type Loc = SL.Srcloc
 
@@ -34,7 +38,29 @@ data ExtraImport:
 end
 
 data CompileEnvironment:
-  | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
+  | compile-env(
+        globals :: Globals,
+        mods :: StringDict<Provides> # map from dependency key to info provided from module
+      )
+end
+
+data Globals:
+  | globals(values :: StringDict<ValInfo>, types :: StringDict<TypeInfo>)
+end
+
+data ValInfo:
+  | v-just-there
+end
+
+data TypeInfo:
+  | t-just-there
+end
+
+data Provides:
+  | provides(
+      values :: StringDict<ValInfo>,
+      types :: StringDict<TypeInfo>
+      )
 end
 
 data CompileResult<C>:
@@ -399,157 +425,122 @@ default-compile-options = {
   ignore-unbound: false
 }
 
-data CompileTypeBinding:
-  | type-id(id :: String)
-end
+runtime-types = [string-dict:
+  "Number", t-just-there,
+  "String", t-just-there,
+  "Function", t-just-there,
+  "Boolean", t-just-there,
+  "Object", t-just-there,
+  "Method", t-just-there,
+  "Nothing", t-just-there,
+  "RawArray", t-just-there
+]
 
-runtime-types = lists.map(type-id, [list:
-  "Number",
-  "Exactnum",
-  "Roughnum",
-  "NumInteger",
-  "NumRational",
-  "NumPositive",
-  "NumNegative",
-  "NumNonPositive",
-  "NumNonNegative",
-  "String",
-  "Function",
-  "Boolean",
-  "Object",
-  "Method",
-  "Nothing",
-  "RawArray"
-])
+runtime-builtins = [string-dict: 
+  "test-print", v-just-there,
+  "print", v-just-there,
+  "display", v-just-there,
+  "print-error", v-just-there,
+  "display-error", v-just-there,
+  "tostring", v-just-there,
+  "torepr", v-just-there,
+  "brander", v-just-there,
+  "raise", v-just-there,
+  "nothing", v-just-there,
+  "builtins", v-just-there,
+  "not", v-just-there,
+  "is-nothing", v-just-there,
+  "is-number", v-just-there,
+  "is-string", v-just-there,
+  "is-boolean", v-just-there,
+  "is-object", v-just-there,
+  "is-function", v-just-there,
+  "is-raw-array", v-just-there,
+  "gensym", v-just-there,
+  "random", v-just-there,
+  "run-task", v-just-there,
+  "_plus", v-just-there,
+  "_minus", v-just-there,
+  "_times", v-just-there,
+  "_divide", v-just-there,
+  "_lessthan", v-just-there,
+  "_lessequal", v-just-there,
+  "_greaterthan", v-just-there,
+  "_greaterequal", v-just-there,
+  "strings-equal", v-just-there,
+  "string-contains", v-just-there,
+  "string-append", v-just-there,
+  "string-length", v-just-there,
+  "string-tonumber", v-just-there,
+  "string-to-number", v-just-there,
+  "string-repeat", v-just-there,
+  "string-substring", v-just-there,
+  "string-replace", v-just-there,
+  "string-split", v-just-there,
+  "string-split-all", v-just-there,
+  "string-char-at", v-just-there,
+  "string-toupper", v-just-there,
+  "string-tolower", v-just-there,
+  "string-explode", v-just-there,
+  "string-index-of", v-just-there,
+  "string-to-code-point", v-just-there,
+  "string-from-code-point", v-just-there,
+  "string-to-code-points", v-just-there,
+  "string-from-code-points", v-just-there,
+  "num-random", v-just-there,
+  "num-random-seed", v-just-there,
+  "num-max", v-just-there,
+  "num-min", v-just-there,
+  "nums-equal", v-just-there,
+  "num-abs", v-just-there,
+  "num-sin", v-just-there,
+  "num-cos", v-just-there,
+  "num-tan", v-just-there,
+  "num-asin", v-just-there,
+  "num-acos", v-just-there,
+  "num-atan", v-just-there,
+  "num-modulo", v-just-there,
+  "num-truncate", v-just-there,
+  "num-sqrt", v-just-there,
+  "num-sqr", v-just-there,
+  "num-ceiling", v-just-there,
+  "num-floor", v-just-there,
+  "num-log", v-just-there,
+  "num-exp", v-just-there,
+  "num-exact", v-just-there,
+  "num-is-integer", v-just-there,
+  "num-is-fixnum", v-just-there,
+  "num-expt", v-just-there,
+  "num-tostring", v-just-there,
+  "num-to-string", v-just-there,
+  "num-to-string-digits", v-just-there,
+  "raw-array-get", v-just-there,
+  "raw-array-set", v-just-there,
+  "raw-array-of", v-just-there,
+  "raw-array-length", v-just-there,
+  "raw-array-to-list", v-just-there,
+  "raw-array-fold", v-just-there,
+  "raw-array", v-just-there,
+  "ref-get", v-just-there,
+  "ref-set", v-just-there,
+  "ref-freeze", v-just-there,
+  "equal-always", v-just-there,
+  "equal-always3", v-just-there,
+  "equal-now", v-just-there,
+  "equal-now3", v-just-there,
+  "identical", v-just-there,
+  "identical3", v-just-there,
+  "exn-unwrap", v-just-there,
+  "_empty", v-just-there,
+  "_link", v-just-there
+]
 
-data CompileBinding:
-  | builtin-id(id :: String)
-end
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])
 
-runtime-builtins = lists.map(builtin-id, [list:
-  "test-print",
-  "print",
-  "display",
-  "print-error",
-  "display-error",
-  "tostring",
-  "torepr",
-  "brander",
-  "raise",
-  "nothing",
-  "builtins",
-  "not",
-  "is-nothing",
-  "is-number",
-  "is-string",
-  "is-boolean",
-  "is-object",
-  "is-function",
-  "is-raw-array",
-  "gensym",
-  "random",
-  "run-task",
-  "_plus",
-  "_minus",
-  "_times",
-  "_divide",
-  "_lessthan",
-  "_lessequal",
-  "_greaterthan",
-  "_greaterequal",
-  "string-equal",
-  "string-contains",
-  "string-append",
-  "string-length",
-  "string-tonumber",
-  "string-to-number",
-  "string-repeat",
-  "string-substring",
-  "string-replace",
-  "string-split",
-  "string-split-all",
-  "string-char-at",
-  "string-toupper",
-  "string-tolower",
-  "string-explode",
-  "string-index-of",
-  "string-to-code-point",
-  "string-from-code-point",
-  "string-to-code-points",
-  "string-from-code-points",
-  "num-random",
-  "num-random-seed",
-  "num-max",
-  "num-min",
-  "num-equal",
-  "num-within",
-  "num-within-abs",
-  "num-within-rel",
-  "num-abs",
-  "num-sin",
-  "num-cos",
-  "num-tan",
-  "num-asin",
-  "num-acos",
-  "num-atan",
-  "num-modulo",
-  "num-truncate",
-  "num-sqrt",
-  "num-sqr",
-  "num-ceiling",
-  "num-floor",
-  "num-round",
-  "num-round-even",
-  "num-log",
-  "num-exp",
-  "num-exact",
-  "num-to-rational",
-  "num-to-roughnum",
-  "num-to-fixnum",
-  "num-is-integer",
-  "num-is-rational",
-  "num-is-roughnum",
-  "num-is-positive",
-  "num-is-negative",
-  "num-is-non-positive",
-  "num-is-non-negative",
-  "num-is-fixnum",
-  "num-expt",
-  "num-tostring",
-  "num-to-string",
-  "num-to-string-digits",
-  "raw-array-get",
-  "raw-array-set",
-  "raw-array-of",
-  "raw-array-length",
-  "raw-array-to-list",
-  "raw-array-fold",
-  "raw-array",
-  "ref-get",
-  "ref-set",
-  "ref-freeze",
-  "equal-always",
-  "equal-always3",
-  "equal-now",
-  "equal-now3",
-  "within-abs-now",
-  "within-abs",
-  "within-now",
-  "within-rel-now",
-  "within",
-  "within-rel",
-  "identical",
-  "identical3",
-  "exn-unwrap",
-  "_empty",
-  "_link"
-])
+minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
 
-no-builtins = compile-env([list: ], [list: ])
-
-minimal-builtins = compile-env(runtime-builtins, runtime-types)
-
-standard-builtins = compile-env(runtime-builtins, runtime-types)
+standard-globals = globals(runtime-builtins, runtime-types)
+standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
 
 minimal-imports = extra-imports(empty)
 

@@ -44,7 +44,7 @@ check:
         CL.get-dependencies(self.get-module(), self.uri())
       end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-compile-env(self): CM.minimal-builtins end,
+      get-globals(self): CM.standard-globals end,
       get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "protocol://" + name end,
       name(self): name end,
