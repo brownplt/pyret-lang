@@ -12,7 +12,7 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr"], function(r, RT, py
         var exnStack = result.exn.stack; result.exn.stack = undefined;
         var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
         rt.run(function(_, _) {
-          return rt.toReprJS(result.exn.exn, "tostring");
+          return rt.toReprJS(result.exn.exn, rt.ReprMethods._tostring);
         }, rt.namespace, {sync: true}, function(printResult) {
           if(rt.isFailureResult(printResult)) {
             console.error('Pyret terminated with an unprintable error:\n' + JSON.stringify(result) + "\nStack:\n" 

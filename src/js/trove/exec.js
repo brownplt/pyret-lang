@@ -90,7 +90,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                             execRt.runThunk(function() {
                               if(execRt.isPyretVal(r.exn.exn)) {
                                 return execRt.string_append(
-                                  execRt.toReprJS(r.exn.exn, "_tostring"),
+                                  execRt.toReprJS(r.exn.exn, execRt.ReprMethods._tostring),
                                   execRt.makeString("\n" +
                                                     execRt.printPyretStack(r.exn.pyretStack)));
                               } else {

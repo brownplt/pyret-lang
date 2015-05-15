@@ -192,6 +192,22 @@ var emptyDict = Object.create(null);
 */
 function isBase(obj) { return obj instanceof PBase; }
 
+
+  var ReprMethods = {
+    "_torepr": {
+      "$name": "_torepr",
+      "string": function(str) {
+        return '"' + replaceUnprintableStringChars(String(str)) + '"';
+      }
+    },
+    "_tostring": {
+      "$name": "_tostring",
+      "string": function(str) { 
+        return str; 
+      }
+    }
+  };
+
 /********************
     Getting Fields
 ********************/
@@ -219,7 +235,7 @@ function getFieldLocInternal(val, field, loc, isBang) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
       if (ffi === undefined) {
-        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
+        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
       } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }
@@ -989,7 +1005,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return '"' + replaceUnprintableStringChars(s) + '"';
     };
 
-    function toReprLoop(val, method) {
+    function toReprLoop(val, reprMethods) {
       var stack = [];
       var stackOfStacks = [];
       function makeCache(type) {
@@ -1037,13 +1053,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else if (isNothing(next)) { finishVal("nothing"); }
             else if (isFunction(next)) { finishVal("<function>"); }
             else if (isMethod(next)) { finishVal("<method>"); }
-            else if(isString(next)) {
-              if (method === "_torepr") {
-                finishVal('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
-              } else {
-                finishVal(next);
-              }
-            }
+            else if (isString(next)) { finishVal(reprMethods["string"](next)); }
             else if (isOpaque(next)) { finishVal("<internal value>"); }
             else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
@@ -1089,7 +1099,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(typeof objHasBeenSeen === "string") {
                 finishVal(objHasBeenSeen);
               }
-              else if(next.dict[method]) {
+              else if(next.dict[reprMethods["$name"]]) {
                 stack.push({
                   arrays: top.arrays,
                   objects: addNewObject(top.objects, next),
@@ -1100,8 +1110,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 });
                 top = stack[stack.length - 1];
 
-                var m = getColonField(next, method);
-                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + method); }
+                var m = getColonField(next, reprMethods["$name"]);
+                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + reprMethods["$name"]); }
                 var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s))
               }
@@ -1294,23 +1304,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
       @return {!string} the value given in
     */
-    function toReprJS(val, method) {
+    function toReprJS(val, reprMethods) {
       if (isNumber(val)) { return String(val); }
       else if (isBoolean(val)) { return String(val); }
-      else if (isString(val)) {
-        if (method === "_torepr") {
-          return ('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (val))) + '"');
-        } else {
-          return String(/**@type {!PString}*/ (val));
-        }
-      }
-      return toReprLoop(val, method);
+      else if (isString(val)) { return reprMethods["string"](val); }
+      else { return toReprLoop(val, reprMethods); }
     }
 
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {
       thisRuntime.checkArity(1, arguments, "torepr");
-      return makeString(toReprJS(val, "_torepr"));
+      return makeString(toReprJS(val, ReprMethods._torepr));
     });
     var tostring = makeFunction(function(val) {
         thisRuntime.checkArity(1, arguments, "tostring");
@@ -1318,7 +1322,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return makeString(val);
         }
         else {
-          return makeString(toReprJS(val, "_tostring"));
+          return makeString(toReprJS(val, ReprMethods._tostring));
         }
       });
 
@@ -1349,7 +1353,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "_tostring");
+          var repr = toReprJS(val, ReprMethods._tostring);
         }
         theOutsideWorld.stdout(repr);
         return val;
@@ -1382,7 +1386,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "_tostring");
+          var repr = toReprJS(val, ReprMethods._tostring);
         }
         theOutsideWorld.stderr(repr);
         return val;
@@ -1422,7 +1426,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               : "<builtin>";
           }).join("\n") :
         "<no stack trace>";
-      return toReprJS(this.exn, "_tostring") + "\n" + stackStr;
+      return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);
@@ -4160,7 +4164,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'hasField' : hasField,
 
         'toReprJS' : toReprJS,
-        'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
+        'toRepr' : function(val) { return toReprJS(val, ReprMethods._torepr); },
+        'ReprMethods' : ReprMethods,
 
         'wrap' : wrap,
         'unwrap' : unwrap,

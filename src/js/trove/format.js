@@ -24,7 +24,7 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
                 var i;
                 for (i = 0; i < args.length; i++) {
                   if(RUNTIME.isString(args[i])) {
-                    errorStrBuffer.push( RUNTIME.toReprJS(args[i], "_tostring") );
+                    errorStrBuffer.push( RUNTIME.toReprJS(args[i], RUNTIME.ReprMethods._tostring) );
                   }
                   else {
                     RUNTIME.ffi.throwTypeMismatch(args[i], "String");
@@ -45,7 +45,7 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
                     if (buffer.length === 0) {
                         throwFormatError();
                     }
-                    return RUNTIME.toReprJS(buffer.shift(), "_tostring");
+                    return RUNTIME.toReprJS(buffer.shift(), RUNTIME.ReprMethods._tostring);
                 } else if (s === '~e' || s === "~E") {
                     // FIXME: we don't yet have support for the error-print
                     // handler, and currently treat ~e just like ~s.
@@ -54,7 +54,7 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
                     }
                     var arg = buffer.shift();
                     if (RUNTIME.isString(arg)) {
-                      return RUNTIME.toReprJS(buffer.shift(), "_tostring"); 
+                      return RUNTIME.toReprJS(buffer.shift(), RUNTIME.ReprMethods._tostring); 
                     }
                     else {
                       RUNTIME.ffi.throwTypeMismatch(args[i], "String");
@@ -71,7 +71,7 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
                     if (buffer.length === 0) {
                         throwFormatError();
                     }
-                    return RUNTIME.toReprJS(buffer.shift(), "_tostring");
+                    return RUNTIME.toReprJS(buffer.shift(), RUNTIME.ReprMethods._tostring);
                 } else {
                     throw new Error(functionName + 
                                     ': string.replace matched invalid regexp');
