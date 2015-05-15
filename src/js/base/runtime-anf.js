@@ -193,20 +193,68 @@ var emptyDict = Object.create(null);
 function isBase(obj) { return obj instanceof PBase; }
 
 
-  var ReprMethods = {
-    "_torepr": {
-      "$name": "_torepr",
-      "string": function(str) {
-        return '"' + replaceUnprintableStringChars(String(str)) + '"';
+  var DefaultReprMethods = {
+    "string": String,
+    "number": String,
+    "boolean": String,
+    "nothing": function(val) { return "nothing"; },
+    "function": function(val) { return "<function>"; },
+    "method": function(val) { return "<method>"; },
+    "opaque": function(val) { return "<internal value>"; },
+    "render-object": function(top) {
+      var s = "{";
+      for (var i = 0; i < top.keys.length; i++) {
+        if (i > 0) { s += ", "; }
+        s += top.keys[i] + ": " + top.done[i];
       }
+      s += "}";
+      return s;
     },
-    "_tostring": {
-      "$name": "_tostring",
-      "string": function(str) { 
-        return str; 
+    "render-ref": function(top) {
+      var s = "";
+      if (top.implicit) {
+        s += top.done[0];
+      } else {
+        s += "ref(" + top.done[0] + ")";
       }
+      return s;
+    },
+    "render-data": function(top) {
+      var s = top.constructorName;
+      // Sentinel value for singleton constructors
+      if(top.arity !== -1) {
+        s += "(";
+        for(var i = top.done.length - 1; i >= 0; i--) {
+          if(i < top.done.length - 1) { s += ", "; }
+          s += top.done[i];
+        }
+        s += ")";
+      }
+      return s;
+    },
+    "render-array": function(top) {
+      var s = "[raw-array: ";
+      for(var i = top.done.length - 1; i >= 0; i--) {
+        if(i < top.done.length - 1) { s += ", "; }
+        s += top.done[i];
+      }
+      s += "]";
+      return s;
+    },
+    "render-method-call": function(top) {
+      return top.done[0];
     }
   };
+
+  var ReprMethods = {};
+  ReprMethods["_torepr"] = Object.create(DefaultReprMethods);
+  ReprMethods["_torepr"]["$name"] = "_torepr";
+  ReprMethods["_torepr"]["string"] = function(str) {
+    return '"' + replaceUnprintableStringChars(String(str)) + '"';
+  };
+
+  ReprMethods["_tostring"] = Object.create(DefaultReprMethods);
+  ReprMethods["_tostring"]["$name"] = "_tostring";
 
 /********************
     Getting Fields
@@ -871,7 +919,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                isRef(val) ||
                isOpaque(val) ||
                isNothing(val)) {
-        return true
+        return true;
       }
     }
 
@@ -1048,13 +1096,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
           top = stack[stack.length - 1];
           if (top.todo.length > 0) {
             var next = top.todo[top.todo.length - 1];
-            if(isNumber(next)) { finishVal(String(next)); }
-            else if (isBoolean(next)) { finishVal(String(next)); }
-            else if (isNothing(next)) { finishVal("nothing"); }
-            else if (isFunction(next)) { finishVal("<function>"); }
-            else if (isMethod(next)) { finishVal("<method>"); }
+            if(isNumber(next)) { finishVal(reprMethods["number"](next)); }
+            else if (isBoolean(next)) { finishVal(reprMethods["boolean"](next)); }
+            else if (isNothing(next)) { finishVal(reprMethods["nothing"](next)); }
+            else if (isFunction(next)) { finishVal(reprMethods["function"](next)); }
+            else if (isMethod(next)) { finishVal(reprMethods["method"](next)); }
             else if (isString(next)) { finishVal(reprMethods["string"](next)); }
-            else if (isOpaque(next)) { finishVal("<internal value>"); }
+            else if (isOpaque(next)) { finishVal(reprMethods["opaque"](next)); }
             else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
               // Baffling bugs will result if next is passed directly
@@ -1069,7 +1117,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   refs: top.refs,
                   todo: Array.prototype.slice.call(next),
                   done: [],
-                  type: "array"
+                  type: "render-array"
                 });
               }
             }
@@ -1089,7 +1137,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   refs: addNewRef(top.refs, next),
                   todo: [getRef(next)],
                   done: [],
-                  type: "ref",
+                  type: "render-ref",
                   implicit: implicit
                 });
               }
@@ -1106,7 +1154,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   refs: top.refs,
                   todo: ["dummy"],
                   done: [],
-                  type: "method-call",
+                  type: "render-method-call",
                 });
                 top = stack[stack.length - 1];
 
@@ -1125,7 +1173,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   refs: top.refs,
                   todo: vals,
                   done: [],
-                  type: "data",
+                  type: "render-data",
                   arity: next.$arity,
                   implicitRefs: next.$mut_fields_mask,
                   constructorName: next.$name
@@ -1144,7 +1192,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   refs: top.refs,
                   todo: vals,
                   done: [],
-                  type: "object",
+                  type: "render-object",
                   keys: keys
                 });
               }
@@ -1156,46 +1204,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             stack.pop();
             var prev = stack[stack.length - 1];
             prev.todo.pop();
-            var s = "";
-            if(top.type === "object") {
-              s += "{";
-              for (var i = 0; i < top.keys.length; i++) {
-                if (i > 0) { s += ", "; }
-                s += top.keys[i] + ": " + top.done[i];
-              }
-              s += "}";
-            }
-            else if (top.type === "ref") {
-              if (top.implicit) {
-                s += top.done[0];
-              } else {
-                s += "ref(" + top.done[0] + ")";
-              }
-            }
-            else if (top.type === "data") {
-              s += top.constructorName;
-              // Sentinel value for singleton constructors
-              if(top.arity !== -1) {
-                s += "(";
-                for(var i = top.done.length - 1; i >= 0; i--) {
-                  if(i < top.done.length - 1) { s += ", "; }
-                  s += top.done[i];
-                }
-                s += ")";
-              }
-            }
-            else if (top.type === "array") {
-              s += "[raw-array: ";
-              for(var i = top.done.length - 1; i >= 0; i--) {
-                if(i < top.done.length - 1) { s += ", "; }
-                s += top.done[i];
-              }
-              s += "]";
-            }
-            else if (top.type === "method-call") {
-              s += top.done[0];
-            }
-            prev.done.push(s);
+            prev.done.push(reprMethods[top.type](top));
           }
         }
         var finalAns = stack[0].done[0];
