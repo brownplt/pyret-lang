@@ -4024,6 +4024,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
         'isObject'    : isObject,
+        'isDataValue' : isDataValue,
         'isRef'       : isRef,
         'isOpaque'    : isOpaque,
         'isPyretVal'  : isPyretVal,
