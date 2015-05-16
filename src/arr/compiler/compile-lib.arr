@@ -11,6 +11,7 @@ import string-dict as SD
 import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
+import "compiler/ast-util.arr" as AU
 
 mtd = [SD.string-dict:]
 
@@ -85,12 +86,7 @@ end
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   parsed = get-ast(p, uri)
   for map(s from parsed.imports.map(_.file)):
-    cases(A.ImportType) s:
-      # crossover compatibility
-      | s-file-import(l, path) => CS.dependency("legacy-path", [list: path])
-      | s-const-import(l, modname) => CS.builtin(modname)
-      | s-special-import(l, protocol, args) => CS.dependency(protocol, args)
-    end
+    AU.import-to-dep(s)
   end
 end
 

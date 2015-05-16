@@ -4084,6 +4084,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return args;
     }
 
+    function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
+      var bindings = namespace.bindings;
+      valFields.forEach(function(vf) {
+        bindings[vf] = getField(getField(moduleObj, "values"), vf);
+      });
+      typeFields.forEach(function(tf) {
+        bindings["$type$" + tf] = getField(getField(moduleObj, "types"), tf);
+      });
+      return Namespace.namespace(bindings);
+    }
 
     var runtimeNamespaceBindings = {
           'torepr': torepr,
@@ -4460,6 +4470,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'loadModulesNew' : loadModulesNew,
         'loadBuiltinModules' : loadBuiltinModules,
         'loadJSModules' : loadJSModules,
+
+        'addModuleToNamespace' : addModuleToNamespace,
+
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;

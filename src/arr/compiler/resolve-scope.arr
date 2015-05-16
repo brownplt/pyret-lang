@@ -51,36 +51,29 @@ fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr) -> A.ProvideTypes:
   end
 end
 
-fun resolve-imports(imports :: List<A.Import>):
-  fun resolve-import-type(imp :: A.ImportType):
-    cases(A.ImportType) imp:
-      | s-file-import(l, file) =>
-        if string-contains(file, "/"): imp
-        else: A.s-file-import(l, "./" + file)
-        end
-      | s-const-import(_, _) => imp
-      | s-special-import(_, _, _) => imp
-    end
+is-s-import-complete = A.is-s-import-complete
+
+fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
+  cases(A.Import) imp:
+    | s-import(l, shadow imp, name) =>
+      A.s-import-complete(l, empty, empty, imp, name, name)
+    | s-import-fields(l, fields, shadow imp) =>
+      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
+      imp-name = A.s-name(imp.l, G.make-name(imp-str))
+      A.s-import-complete(l, fields, empty, imp, imp-name, imp-name)
+    | s-include(l, shadow imp) =>
+      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
+      imp-name = A.s-name(imp.l, G.make-name(imp-str))
+      info-key = U.import-to-dep(imp).key()
+      mod-info = env.mods.get(info-key)
+      cases(Option<C.Provides>) mod-info:
+        | none => raise("No compile-time information provided for module " + info-key)
+        | some(provides) =>
+          val-names = provides.values.keys-list().map(A.s-name)
+          type-names = provides.values.keys-list().map(A.s-name)
+          A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
+      end
   end
-  ret = for fold(acc from {imports: [list: ], lets: [list: ]}, i from imports):
-    cases(A.Import) i:
-      | s-import(l, imp, name) =>
-        new-i = A.s-import(l, resolve-import-type(imp), name)
-        acc.{imports: link(new-i, acc.imports)}
-      | s-import-fields(l, fields, imp) =>
-        imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-        imp-name = A.s-name(imp.l, G.make-name(imp-str))
-        new-i = A.s-import(l, resolve-import-type(imp), imp-name)
-        new-lets = for map(f from fields.reverse()):
-          A.s-let(f.l, A.s-bind(l, false, f, A.a-blank), A.s-dot(l, A.s-id(l, imp-name), f.tosourcestring()), false)
-        end
-        acc.{imports: link(new-i, acc.imports), lets: new-lets + acc.lets}
-      | else => raise(
-        "s-import-types and s-import-complete should only be inserted by desugaring, " +
-        "but resolve-types got this import: " + torepr(i))
-    end
-  end
-  { imports: ret.imports.reverse(), lets: ret.lets.reverse() }
 end
 
 fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
@@ -320,7 +313,7 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun desugar-scope(prog :: A.Program):
+fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
   doc: ```
        Remove x = e, var x = e, and fun f(): e end
        and turn them into explicit let and letrec expressions.
@@ -333,9 +326,7 @@ fun desugar-scope(prog :: A.Program):
        ```
   cases(A.Program) prog:
     | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
-      imports-and-lets = resolve-imports(imports-raw)
-      imports = imports-and-lets.imports
-      extra-lets = imports-and-lets.lets
+      imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
       prov = cases(A.Provide) resolve-provide(_provide-raw, body):
         | s-provide-none(_) => A.s-obj(l, [list: ])
@@ -351,8 +342,8 @@ fun desugar-scope(prog :: A.Program):
       # TODO: Need to resolve provide-types here
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
-          A.s-block(l2, extra-lets + desugar-toplevel-types(stmts))
-        | else => A.s-block(l, extra-lets + desugar-toplevel-types([list: body]))
+          A.s-block(l2, desugar-toplevel-types(stmts))
+        | else => A.s-block(l, desugar-toplevel-types([list: body]))
       end
       fun transform-toplevel-last(l2, last):
         A.s-module(l2, last, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
@@ -384,7 +375,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s));
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -395,6 +386,8 @@ where:
   # had append-nothing-if-necessary called
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
 
+
+#|
   compare2 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:
         A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
       ],
@@ -404,6 +397,7 @@ where:
           A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
       )
   ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) is compare2
+|#
 end
 
 
@@ -547,15 +541,30 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
     s-program(self, l, _provide, _provide-types, imports, body):
-      imports-and-env = for fold(acc from { e: self.env, te: self.type-env, imps: [list: ] }, i from imports):
+      imports-and-env = for fold(
+          acc from { e: self.env, te: self.type-env, imps: [list: ] },
+          i from imports
+        ):
         cases(A.Import) i:
-          | s-import(l2, file, name) =>
-            atom-env = make-atom-for(name, false, acc.e, bindings, let-bind)
-            atom-env-t = make-atom-for(name, false, acc.te, type-bindings, let-type-bind)
-            new-header = A.s-import-types(l2, file, atom-env.atom, atom-env-t.atom)
+          | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
+            atom-env = make-atom-for(name-vals, false, acc.e, bindings, let-bind)
+            atom-env-t = make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind)
+            with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
+              v-atom-env = make-atom-for(v, false, nv-v.e, bindings, let-bind)
+              { e: v-atom-env.env, vn: link(v-atom-env.atom, nv-v.vn) }
+            end
+            with-types = for fold(nv-t from {et: atom-env-t.env, tn: empty}, t from tnames):
+              t-atom-env = make-atom-for(t, false, nv-t.et, bindings, let-type-bind)
+              { et: t-atom-env.env, vn: link(t-atom-env.atom, nv-t.vn) }
+            end
+            new-header = A.s-import-complete(l2,
+              with-vals.vn,
+              with-types.tn,
+              file, atom-env.atom,
+              atom-env-t.atom)
             update-binding-expr(atom-env.atom, some(new-header))
             update-type-binding-ann(atom-env-t.atom, some(new-header))
-            { e: atom-env.env, te: atom-env-t.env, imps: link(new-header, acc.imps) }
+            { e: with-vals.e, te: with-types.et, imps: link(new-header, acc.imps) }
           | else => acc
         end
       end

@@ -7,6 +7,7 @@ import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
 import "compiler/concat-lists.arr" as CL
+import "compiler/ast-util.arr" as AU
 import string-dict as D
 import srcloc as SL
 
@@ -1210,13 +1211,7 @@ fun mk-abbrevs(l):
   ]
 end
 
-fun import-key(imp):
-  cases(N.AImportType) imp:
-    | a-import-builtin(_, name) => CS.builtin(name).key()
-    | a-import-file(_, name) => CS.dependency("legacy-path", [list: name]).key()
-    | a-import-special(_, kind, args) => CS.dependency(kind, args).key()
-  end
-end
+fun import-key(i): AU.import-to-dep-anf(i).key() end
 
 fun compile-program(self, l, imports-in, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [list: j-id("R"), j-id("NAMESPACE")]);
@@ -1224,10 +1219,10 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
     )
-  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
+  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(_.vals-name)):
     freevars.remove(elt.key())
   end
-  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types)):
+  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types-name)):
     freevars.remove(elt.key())
   end
   free-ids = remove-types.keys-list().map(remove-types.get-value(_))
@@ -1238,9 +1233,9 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
     end
     j-var(js-id-of(n.tosourcestring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(bind-name)]))
   end
-  ids = imports.map(lam(i): js-id-of(i.name.tosourcestring()) end)
-  type-imports = imports.filter(N.is-a-import-types)
-  type-ids = type-imports.map(lam(i): js-id-of(i.types.tosourcestring()) end)
+  ids = imports.map(lam(i): js-id-of(i.vals-name.tosourcestring()) end)
+  type-imports = imports.filter(N.is-a-import-complete)
+  type-ids = type-imports.map(lam(i): js-id-of(i.types-name.tosourcestring()) end)
   filenames = imports.map(lam(i):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
@@ -1275,6 +1270,14 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
               for map2(mt from type-ids, in from mod-input-ids):
                 j-var(mt, rt-method("getField", [list: in, j-str("types")]))
               end +
+              for map(m from modules):
+                j-expr(j-assign("NAMESPACE", rt-method("addModuleToNamespace",
+                  [list:
+                    j-id("NAMESPACE"),
+                    j-list(false, m.imp.values.map(_.toname())),
+                    j-list(false, m.imp.types.map(_.toname())),
+                    j-id(m.input-id)])))
+              end +
               [list: 
                 j-var(body-name, body-fun),
                 j-return(rt-method(
@@ -1288,8 +1291,8 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
                       j-str("Evaluating " + body-name)
                 ]))]))]))
   end
-  module-specs = for map2(id from ids, in-id from input-ids):
-    { id: id, input-id: in-id }
+  module-specs = for map3(i from imports-in, id from ids, in-id from input-ids):
+    { id: id, input-id: in-id, imp: i}
   end
   var locations = concat-empty
   var loc-count = 0

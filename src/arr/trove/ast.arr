@@ -242,7 +242,7 @@ data Import:
       l :: Loc,
       values :: List<Name>,
       types :: List<Name>,
-      mod :: ImportType,
+      import-type :: ImportType,
       vals-name :: Name,
       types-name :: Name) with:
     label(self): "s-import-complete" end,
@@ -250,7 +250,7 @@ data Import:
       PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
           str-from,
-          self.mod.tosource(),
+          self.import-type.tosource(),
           str-as,
           self.vals-name.tosource(),
           self.types-name.tosource()])

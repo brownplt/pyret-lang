@@ -6,6 +6,7 @@ import srcloc as SL
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as CS
+import "compiler/ast-anf.arr" as N
 import string-dict as SD
 import either as E
 
@@ -393,8 +394,8 @@ end
 binding-handlers = {
   s-header(_, imp, env, type-env):
     {
-      val-env: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown)),
-      type-env: type-env.set(imp.types.key(), e-bind(imp.l, false, b-typ))
+      val-env: env.set(imp.vals-name.key(), e-bind(imp.l, false, b-unknown)),
+      type-env: type-env.set(imp.types-name.key(), e-bind(imp.l, false, b-typ))
     }
   end,
   s-param-bind(_, l, param, type-env):
@@ -670,6 +671,23 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
           end
         end
       A.s-program(p.l, p._provide, p.provided-types, full-imports, new-body)
+  end
+end
+
+fun import-to-dep(imp):
+  cases(A.ImportType) imp:
+    # crossover compatibility
+    | s-file-import(_, path) => CS.dependency("legacy-path", [list: path])
+    | s-const-import(_, modname) => CS.builtin(modname)
+    | s-special-import(_, protocol, args) => CS.dependency(protocol, args)
+  end
+end
+
+fun import-to-dep-anf(imp):
+  cases(N.AImportType) imp:
+    | a-import-builtin(_, name) => CS.builtin(name)
+    | a-import-file(_, name) => CS.dependency("legacy-path", [list: name])
+    | a-import-special(_, kind, args) => CS.dependency(kind, args)
   end
 end
 

@@ -47,7 +47,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
       end
       imported = U.wrap-extra-imports(checked, libs)
       when options.collect-all: ret := phase("Added imports", imported, ret) end
-      scoped = R.desugar-scope(imported)
+      scoped = R.desugar-scope(imported, env)
       when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
       named-result = R.resolve-names(scoped, env)
       when options.collect-all: ret := phase("Resolved names", named-result, ret) end

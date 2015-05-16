@@ -37,6 +37,7 @@ str-spaceequal = PP.str(" =")
 str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
+str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
@@ -71,15 +72,22 @@ data AImportType:
 end
 
 data AImport:
-  | a-import(l :: Loc, import-type :: AImportType, name :: A.Name) with:
-    label(self): "a-import" end,
+  | a-import-complete(
+      l :: Loc,
+      values :: List<A.Name>,
+      types :: List<A.Name>,
+      import-type :: AImportType,
+      vals-name :: A.Name,
+      types-name :: A.Name) with:
+    label(self): "a-import-complete" end,
     tosource(self):
-      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource()])
-    end
-  | a-import-types(l :: Loc, import-type :: AImportType, name :: A.Name, types :: A.Name) with:
-    label(self): "a-import-types" end,
-    tosource(self):
-      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.commabreak, self.types.tosource()])
+      PP.flow([list: str-import,
+          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
+          str-from,
+          self.import-type.tosource(),
+          str-as,
+          self.vals-name.tosource(),
+          self.types-name.tosource()])
     end
 sharing:
   visit(self, visitor):
@@ -421,11 +429,8 @@ end
 
 fun strip-loc-import(i :: AImport):
   cases(AImport) i:
-    | a-import(_, import-type, name) =>
-      a-import(dummy-loc, strip-loc-import-type(import-type), name.visit(A.dummy-loc-visitor))
-    | a-import-types(_, import-type, name, types) =>
-      a-import-types(dummy-loc, strip-loc-import-type(import-type),
-        name.visit(A.dummy-loc-visitor), types.visit(A.dummy-loc-visitor))
+    | a-import-complete(_, vns, tns, imp, vn, tn) =>
+      a-import-complete(dummy-loc, vns, tns, imp, vn, tn)
   end
 end
 
@@ -518,12 +523,6 @@ default-map-visitor = {
   end,
   a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
-  end,
-  a-import(self, l :: Loc, import-type :: AImportType, name :: A.Name):
-    a-import(l, import-type.visit(self), name.visit(self))
-  end,
-  a-import-types(self, l :: Loc, import-type :: AImportType, name :: A.NAme, types :: A.Name):
-    a-import-types(l, import-type.visit(self), name.visit(self), types.visit(self))
   end,
   a-import-file(self, l :: Loc, file :: String, name :: A.Name):
     a-import-file(l, file, name)
