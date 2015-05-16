@@ -861,5 +861,17 @@ fun freevars-v(v :: AVal) -> StringDict<A.Name>:
   freevars-v-acc(v, empty-dict)
 end
 
+fun freevars-prog(p :: AProg) -> StringDict<A.Name>:
+  cases(AProg) p:
+    | a-program(l, imports, body) =>
+      body-vars = freevars-e(body)
+      for fold(d from body-vars, i from imports):
+        for fold(shadow d from d, n from i.values + i.types):
+          d.remove(n.key())
+        end
+      end
+  end
+end
+
 rec empty-dict = [SD.string-dict:]
 

@@ -103,6 +103,7 @@ data Name:
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
+
   | s-global(s :: String) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,

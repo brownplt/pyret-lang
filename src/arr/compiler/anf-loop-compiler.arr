@@ -11,6 +11,8 @@ import "compiler/ast-util.arr" as AU
 import string-dict as D
 import srcloc as SL
 
+string-dict = D.string-dict
+
 type Loc = SL.Srcloc
 type ConcatList = CL.ConcatList
 
@@ -1219,17 +1221,36 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
     )
-  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(_.vals-name)):
-    freevars.remove(elt.key())
+  shadow freevars =
+    for fold(fv from freevars, i from imports):
+      fv.remove(i.vals-name.key()).remove(i.types-name.key())
+    end
+  import-keys = for fold(vt from {vs: [string-dict:], ts: [string-dict:]}, i from imports):
+    new-vals = for fold(vs from vt.vs, v from i.values):
+      vs.set(v.key(), v)
+    end
+    new-types = for fold(ts from vt.ts, t from i.types):
+      ts.set(t.key(), t)
+    end
+    { vs: new-vals, ts: new-types }
   end
-  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types-name)):
-    freevars.remove(elt.key())
-  end
-  free-ids = remove-types.keys-list().map(remove-types.get-value(_))
-  namespace-binds = for map(n from free-ids):
+  free-ids = freevars.keys-list().map(freevars.get-value(_))
+  module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
+  global-binds = for map(n from module-and-global-binds.is-false):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
       | s-type-global(s) => type-name(n.toname())
+    end
+    j-var(js-id-of(n.tosourcestring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(bind-name)]))
+  end
+  module-binds = for map(n from module-and-global-binds.is-true):
+    bind-name = cases(A.Name) n:
+      | s-atom(_, _) =>
+        if import-keys.vs.has-key(n.key()):
+          n.toname()
+        else if import-keys.ts.has-key(n.key()):
+          type-name(n.toname())
+        end
     end
     j-var(js-id-of(n.tosourcestring()), j-method(j-id("NAMESPACE"), "get", [list: j-str(bind-name)]))
   end
@@ -1274,10 +1295,11 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
                 j-expr(j-assign("NAMESPACE", rt-method("addModuleToNamespace",
                   [list:
                     j-id("NAMESPACE"),
-                    j-list(false, m.imp.values.map(_.toname())),
-                    j-list(false, m.imp.types.map(_.toname())),
+                    j-list(false, m.imp.values.map(lam(i): j-str(i.toname()) end)),
+                    j-list(false, m.imp.types.map(lam(i): j-str(i.toname()) end)),
                     j-id(m.input-id)])))
               end +
+              module-binds +
               [list: 
                 j-var(body-name, body-fun),
                 j-return(rt-method(
@@ -1291,7 +1313,7 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
                       j-str("Evaluating " + body-name)
                 ]))]))]))
   end
-  module-specs = for map3(i from imports-in, id from ids, in-id from input-ids):
+  module-specs = for map3(i from imports, id from ids, in-id from input-ids):
     { id: id, input-id: in-id, imp: i}
   end
   var locations = concat-empty
@@ -1326,7 +1348,7 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
                       j-block([list: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
                         [list: define-locations] + 
-                        namespace-binds +
+                        global-binds +
                         [list: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
 end
 

@@ -12,7 +12,6 @@ import either as E
 
 type Loc = SL.Srcloc
 
-
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
@@ -95,6 +94,7 @@ data BindingInfo:
   | b-exp(exp :: A.Expr) # This name is bound to some expression that we can't interpret yet
   | b-dot(base :: BindingInfo, name :: String) # A field lookup off some binding that isn't a b-dict
   | b-typ # A type
+  | b-import(imp :: A.ImportType) # imported from a module
   | b-unknown # Any unknown value
 end
 
@@ -393,9 +393,17 @@ end
 
 binding-handlers = {
   s-header(_, imp, env, type-env):
+    with-vname = env.set(imp.vals-name.key(), e-bind(imp.l, false, b-unknown))
+    with-tname = type-env.set(imp.types-name.key(), e-bind(imp.l, false, b-typ))
+    with-vnames = for fold(venv from with-vname, v from imp.values):
+      venv.set(v.key(), e-bind(imp.l, false, b-import(imp.import-type)))
+    end
+    with-tnames = for fold(tenv from with-tname, t from imp.types):
+      tenv.set(t.key(), e-bind(imp.l, false, b-import(imp.import-type)))
+    end
     {
-      val-env: env.set(imp.vals-name.key(), e-bind(imp.l, false, b-unknown)),
-      type-env: type-env.set(imp.types-name.key(), e-bind(imp.l, false, b-typ))
+      val-env: with-vnames,
+      type-env: with-tnames
     }
   end,
   s-param-bind(_, l, param, type-env):

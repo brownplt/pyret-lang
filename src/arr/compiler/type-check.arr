@@ -1501,6 +1501,15 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
         cases(A.Import) _import:
           | s-import(_, file, name) =>
             raise("NYI")
+          | s-import-complete(_, vals, types, file, vname, tname) =>
+            key = import-to-string(file)
+            info.mod-names.set-now(tname.key(), key)
+            cases(Option<ModuleType>) info.modules.get-now(key):
+              | some(mod) =>
+                info.typs.set-now(vname.key(), mod.provides)
+              | none =>
+                raise("Can't handle importing " + key + " because it doesn't exist")
+            end
           | s-import-types(_, file, name, types) =>
             key = import-to-string(file)
             info.mod-names.set-now(types.key(), key)
