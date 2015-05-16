@@ -301,7 +301,7 @@ fun process-ann(ann, file, fields, bindings, type-bindings):
         end      
       if A.Import(bound-as-import):
         sexp("a-compound", [list: sexp("a-dot", [list: leaf(torepr(obj.toname())), leaf(torepr(field))]),
-            xref(bound-as-import.file.tosource().pretty(1000).first, field)])
+            xref(bound-as-import.import-type.tosource().pretty(1000).first, field)])
       else:
         sexp("a-dot", [list: process-ann(obj, file, fields, bindings, type-bindings), leaf(torepr(field))])
       end
@@ -329,7 +329,7 @@ fun lookup-ann(ann :: A.Ann, type-bindings :: S.MutableStringDict) -> E.Either<A
               E.left(ann)
             | some(new-ann) =>
               if A.is-Import(new-ann):
-                E.right(crossref(new-ann.file.tosource().pretty(200).first, name))
+                E.right(crossref(new-ann.import-type.tosource().pretty(200).first, name))
               else:
                 lookup-ann(new-ann, type-bindings)
               end
