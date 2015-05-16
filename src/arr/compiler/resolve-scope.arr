@@ -73,6 +73,7 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
           type-names = provides.values.keys-list().map(A.s-name)
           A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
       end
+    | s-import-complete(_, _, _, _, _, _) => imp
   end
 end
 
@@ -555,7 +556,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             end
             with-types = for fold(nv-t from {et: atom-env-t.env, tn: empty}, t from tnames):
               t-atom-env = make-atom-for(t, false, nv-t.et, bindings, let-type-bind)
-              { et: t-atom-env.env, vn: link(t-atom-env.atom, nv-t.vn) }
+              { et: t-atom-env.env, tn: link(t-atom-env.atom, nv-t.tn) }
             end
             new-header = A.s-import-complete(l2,
               with-vals.vn,

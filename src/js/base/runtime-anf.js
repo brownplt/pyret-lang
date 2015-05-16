@@ -972,7 +972,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           Type Checking
     ************************/
     function checkType(val, test, typeName) {
-      if(!test(val)) { ffi.throwTypeMismatch(val, typeName) }
+      if(!test(val)) {
+        debugger;
+        ffi.throwTypeMismatch(val, typeName);
+      }
       return true;
     }
 
@@ -4090,7 +4093,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         bindings[vf] = getField(getField(moduleObj, "values"), vf);
       });
       typeFields.forEach(function(tf) {
-        bindings["$type$" + tf] = getField(getField(moduleObj, "types"), tf);
+        bindings["$type$" + tf] = getField(moduleObj, "types")[tf];
       });
       return Namespace.namespace(bindings);
     }

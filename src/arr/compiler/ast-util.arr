@@ -649,36 +649,27 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
-      ltls = for fold(lets-and-type-lets from {ls: empty, tls: empty}, i from imports):
-        mname = i.as-name
-        l = SL.builtin(mname)
-        new-lets = lets-and-type-lets.ls + 
-            for map(name from i.values):
-              A.s-let(l, A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-                A.s-dot(l, A.s-id(l, A.s-name(l, mname)), name), false)
-            end
-        new-type-lets = lets-and-type-lets.tls +
-            for map(name from i.types):
-              A.s-type(l, A.s-name(l, name),
-                A.a-dot(l, A.s-name(l, mname), name))
-            end
-        {ls: new-lets, tls: new-type-lets}
-      end
-      new-body = cases(A.Expr) expr:
-        | s-block(l, stmts) =>
-          A.s-block(l, ltls.ls + ltls.tls + stmts)
-        | else =>
-          A.s-block(A.dummy-loc, ltls.ls + ltls.tls + [list: expr])
-      end
       full-imports = p.imports + for map(i from imports):
           cases(CS.Dependency) i.dependency:
             | builtin(name) =>
-              A.s-import(p.l, A.s-const-import(p.l, name), A.s-name(p.l, i.as-name))
+              A.s-import-complete(
+                p.l,
+                i.values.map(A.s-name(p.l, _)),
+                i.types.map(A.s-name(p.l, _)),
+                A.s-const-import(p.l, name),
+                A.s-name(p.l, i.as-name),
+                A.s-name(p.l, i.as-name))
             | dependency(protocol, args) =>
-              A.s-import(p.l, A.s-special-import(p.l, protocol, args), A.s-name(p.l, i.as-name))
+              A.s-import-complete(
+                p.l,
+                i.values.map(A.s-name(p.l, _)),
+                i.types.map(A.s-name(p.l, _)),
+                A.special-import(p.l, protocol, args),
+                A.s-name(p.l, i.as-name),
+                A.s-name(p.l, i.as-name))
           end
         end
-      A.s-program(p.l, p._provide, p.provided-types, full-imports, new-body)
+      A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
   end
 end
 
