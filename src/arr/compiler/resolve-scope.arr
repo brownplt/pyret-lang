@@ -69,8 +69,8 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
       cases(Option<C.Provides>) mod-info:
         | none => raise("No compile-time information provided for module " + info-key)
         | some(provides) =>
-          val-names = provides.values.keys-list().map(A.s-name)
-          type-names = provides.values.keys-list().map(A.s-name)
+          val-names = provides.values.keys-list().map(A.s-name(l, _))
+          type-names = provides.values.keys-list().map(A.s-name(l, _))
           A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
       end
     | s-import-complete(_, _, _, _, _, _) => imp

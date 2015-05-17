@@ -59,7 +59,7 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
 
     uri(_): "pyret-builtin://" + builtin-name end,
     name(_): builtin-name end,
-    
+
     set-compiled(_, _): nothing end,
     get-compiled(_): some(CL.pre-loaded(raw.get-raw-compiled())) end,
 
