@@ -5,7 +5,6 @@ import runtime-lib as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 
-
 modules = [SD.mutable-string-dict:
   "foo",
   ```
@@ -21,18 +20,36 @@ modules = [SD.mutable-string-dict:
 
   y = 10
   fun g(x): x end
-  ```]
+  ```,
+  
+  
+  "provides-a-type",
+  ```
+  provide *
+
+  type N = Number 
+  ```,
+
+  "includes-a-type",
+  ```
+  include file("provides-a-type")
+
+  x :: N = 42
+  x
+  ```
+
+  ]
 
 
 fun string-to-locator(name :: String):
   {
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+    get-extra-imports(self): CM.minimal-imports end,
     get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
     get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): CM.standard-globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    get-extra-imports(self): CM.standard-imports end,
     uri(self): "file://" + name end,
     name(self): name end,
     set-compiled(self, ctxt, provs): nothing end,
@@ -44,11 +61,11 @@ end
 fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
 
 clib = CL.make-compile-lib(dfind)
-
+check:
     floc = string-to-locator("foo")
 
     wlist = clib.compile-worklist(floc, {})
     ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options) 
-    ans == L.is-success-result
-    L.get-result-answer(ans) == 52
-
+    ans satisfies L.is-success-result
+    L.get-result-answer(ans) is some(52)
+end

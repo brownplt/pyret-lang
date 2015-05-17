@@ -32,7 +32,7 @@ check "Worklist generation (simple)":
     {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self): CM.standard-imports end,
+      get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
@@ -101,7 +101,7 @@ check "Worklist generation (DAG)":
         retrievals.set-now(name, count + 1)
         CL.pyret-string(modules.get-value-now(name))
       end,
-      get-extra-imports(self): CM.standard-imports end,
+      get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-globals(self): CM.standard-globals end,
@@ -164,7 +164,7 @@ check "Worklist generation (Cycle)":
     {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self): CM.standard-imports end,
+      get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
