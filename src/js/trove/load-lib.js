@@ -103,7 +103,6 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
          });
       }
       function renderErrorMessage(mr) {
-        console.error(JSON.stringify(getModuleResultResult(mr)));
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         runtime.pauseStack(function(restarter) {
