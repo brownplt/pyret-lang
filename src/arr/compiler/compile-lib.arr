@@ -115,7 +115,7 @@ fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
   vals-part = 
     cases (A.Provide) parsed._provide:
-      | s-provide-none(l) => CS.provides(mtd, mtd)
+      | s-provide-none(l) => mtd
       | s-provide-all(l) =>
         const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
       | s-provide(l, e) =>
@@ -128,7 +128,9 @@ fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
     cases(A.ProvideTypes) parsed.provided-types:
       | s-provide-types-none(l) => mtd
       | s-provide-types-all(l) =>
-        const-dict(A.block-type-ids(parsed), CS.t-just-there)
+        type-ids = A.block-type-ids(parsed.block)
+        type-strs = type-ids.map(lam(i): i.name.toname() end)
+        const-dict(type-strs, CS.t-just-there)
       | s-provide-types(l, anns) =>
         const-dict(anns.map(_.name), CS.t-just-there)
     end

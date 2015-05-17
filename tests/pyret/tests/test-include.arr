@@ -25,7 +25,7 @@ modules = [SD.mutable-string-dict:
   
   "provides-a-type",
   ```
-  provide *
+  provide-types *
 
   type N = Number 
   ```,
@@ -35,6 +35,14 @@ modules = [SD.mutable-string-dict:
   include file("provides-a-type")
 
   x :: N = 42
+  x
+  ```,
+
+  "includes-and-violates",
+  ```
+  include file("provides-a-type")
+
+  x :: N = "not-a-num"
   x
   ```
 
@@ -61,11 +69,18 @@ end
 fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
 
 clib = CL.make-compile-lib(dfind)
-check:
-    floc = string-to-locator("foo")
 
-    wlist = clib.compile-worklist(floc, {})
-    ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options) 
-    ans satisfies L.is-success-result
-    L.get-result-answer(ans) is some(52)
+fun run-to-answer(filename):
+  floc = string-to-locator(filename)
+  wlist = clib.compile-worklist(floc, {})
+  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options) 
+  ans
+end
+val = lam(str): L.get-result-answer(run-to-answer(str)) end
+msg = lam(str): L.render-error-message(run-to-answer(str)) end
+
+check:
+  val("foo") is some(52)
+  val("includes-a-type") is some(42)
+  msg("includes-and-violates") satisfies string-contains(_, "Contract Error")
 end

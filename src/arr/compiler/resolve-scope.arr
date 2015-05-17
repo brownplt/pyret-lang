@@ -70,7 +70,7 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
         | none => raise("No compile-time information provided for module " + info-key)
         | some(provides) =>
           val-names = provides.values.keys-list().map(A.s-name(l, _))
-          type-names = provides.values.keys-list().map(A.s-name(l, _))
+          type-names = provides.types.keys-list().map(A.s-name(l, _))
           A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
       end
     | s-import-complete(_, _, _, _, _, _) => imp
@@ -531,7 +531,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(TypeBinding) type-env.get-value(s):
             | global-type-bind(_, name, _) => A.a-name(l, name)
             | let-type-bind(_, name, _) => A.a-name(l, name)
-            | type-var-bind(_, name, _) => A.a-type-var(l, name) # TODO: Turn this into a A.a-type-var(l, name) instead
+            | type-var-bind(_, name, _) => A.a-type-var(l, name)
           end
         else: A.a-name(l, names.s-type-global(s))
         end
@@ -561,12 +561,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             new-header = A.s-import-complete(l2,
               with-vals.vn,
               with-types.tn,
-              file, atom-env.atom,
+              file,
+              atom-env.atom,
               atom-env-t.atom)
             update-binding-expr(atom-env.atom, some(new-header))
             update-type-binding-ann(atom-env-t.atom, some(new-header))
             { e: with-vals.e, te: with-types.et, imps: link(new-header, acc.imps) }
-          | else => acc
+          | else => raise("Should only have s-import-complete when checking scope")
         end
       end
       visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
