@@ -45,6 +45,7 @@ j-return = J.j-return
 j-assign = J.j-assign
 j-if = J.j-if
 j-if1 = J.j-if1
+j-new = J.j-new
 j-app = J.j-app
 j-list = J.j-list
 j-obj = J.j-obj
@@ -58,6 +59,7 @@ j-throw = J.j-throw
 j-expr = J.j-expr
 j-binop = J.j-binop
 j-and = J.j-and
+j-lt = J.j-lt
 j-eq = J.j-eq
 j-neq = J.j-neq
 j-geq = J.j-geq
@@ -75,6 +77,7 @@ j-default = J.j-default
 j-label = J.j-label
 j-break = J.j-break
 j-while = J.j-while
+j-for = J.j-for
 make-label-sequence = J.make-label-sequence
 
 get-field-loc = j-id("G")
@@ -229,7 +232,16 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
   end
 end
 
+arglen = j-dot(j-id("arguments"), "length")
 fun arity-check(loc-expr, arity :: Number):
+  # j-if1(j-binop(j-num(arity), J.j-neq, arglen),
+  #   j-block([list:
+  #       j-var("$a", j-new(j-id("Array"), [list: arglen])),
+  #       j-for(true, j-assign("$i", j-num(0)), j-binop(j-id("$i"), j-lt, arglen), j-unop(j-id("$i"), j-incr),
+  #         j-block([list:
+  #             j-expr(j-bracket-assign(j-id("$a"), j-id("$i"), j-bracket(j-id("arguments"), j-id("$i"))))])),
+  #       j-expr(j-method(rt-field("ffi"), "throwArityErrorC", [list: j-list(false, [list: loc-expr]), j-num(arity), j-id("$a")]))
+  #     ]))
   j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-id("arguments")]))
 end
 
@@ -241,6 +253,7 @@ local-bound-vars-visitor = {
   j-unop(self, exp, op): exp.visit(self) end,
   j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
   j-fun(self, args, body): empty-string-dict end,
+  j-new(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
   j-app(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
   j-method(self, obj, meth, args): empty-string-dict end,
   j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
@@ -281,7 +294,10 @@ local-bound-vars-visitor = {
   j-switch(self, exp, branches):
     branches.foldl(lam(b, base): base.merge(b.visit(self)) end, exp.visit(self))
   end,
-  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end
+  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end,
+  j-for(self, create-var, init, cond, update, body):
+    init.visit(self).merge(cond.visit(self)).merge(update.visit(self)).merge(body.visit(self))
+  end
 }
 
 
