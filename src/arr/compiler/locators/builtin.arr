@@ -3,8 +3,11 @@ provide {
 } end
 import namespace-lib as N
 import builtin-modules as B
+import string-dict as SD
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
+
+mtd = [SD.string-dict:]
 
 # NOTE(joe): These conversions are done in Pyret-land because
 # "builtin-modules" in JS is as spartan as possible to make module load-order
@@ -22,8 +25,14 @@ fun make-dep(raw-dep):
   end
 end
 
+fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
+  for fold(d from mtd, s from strs):
+    d.set(s, val)
+  end
+end
+
 fun make-provides(raw-provides):
-  sets.list-to-list-set(raw-array-to-list(raw-provides))
+  CM.provides(const-dict(raw-array-to-list(raw-provides), CM.v-just-there), mtd)
 end
 
 fun needs-includes(modname):

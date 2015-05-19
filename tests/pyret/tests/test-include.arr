@@ -5,6 +5,7 @@ import runtime-lib as R
 import either as E
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
+import "compiler/locators/builtin.arr" as BL
 
 type Either = E.Either
 
@@ -82,6 +83,52 @@ modules = [SD.mutable-string-dict:
   include file("overlapping-def1")
   include file("overlapping-def2")
   n
+  ```,
+
+
+  "shadows-a-global",
+  ```
+  provide *
+  shadow tostring = "not-tostring"
+  ```,
+
+  "global-shadow-import",
+  ```
+  include file("shadows-a-global")
+  ```,
+
+
+  "shadows-global-type",
+  ```
+  provide-types { Number :: Boolean }
+  ```,
+
+  "global-type-shadow-import",
+  ```
+  include file("shadows-global-type")
+  ```,
+
+
+  "include-world",
+  ```
+  include world
+  is-function(big-bang)
+  ```,
+
+
+  "gather-includes",
+  ```
+  provide *
+  provide-types *
+  include world
+  include image
+  ```,
+
+  "gather-includes-include",
+  ```
+  include file("gather-includes")
+  fun f(i :: Image): nothing end
+  is-function(rectangle) and is-function(big-bang)
   ```
 
   ]
@@ -104,7 +151,13 @@ fun string-to-locator(name :: String):
   }
 end
 
-fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
+fun dfind(ctxt, dep):
+  cases(CM.Dependency) dep:
+    | dependency(_, _) => string-to-locator(dep.arguments.get(0))
+    | builtin(modname) =>
+      BL.make-builtin-locator(modname)
+  end
+end
 
 clib = CL.make-compile-lib(dfind)
 
@@ -145,4 +198,9 @@ check:
   msg("includes-and-violates") satisfies string-contains(_, "Contract Error")
   val("type-and-val") is some(12)
   cmsg("overlapping-import") satisfies string-contains(_, "already declared")
+  cmsg("global-shadow-import") satisfies string-contains(_, "already declared")
+  cmsg("global-type-shadow-import") satisfies string-contains(_, "already declared")
+
+  val("include-world") is some(true)
+  val("gather-includes-include") is some(true)
 end
