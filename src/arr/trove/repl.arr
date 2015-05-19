@@ -3,9 +3,12 @@ provide { make-repl: make-repl } end
 import runtime-lib as R
 import namespace-lib as N
 import string-dict as SD
+import either as E
 import "compiler/compile-structs.arr" as CS
 import "compiler/compile-lib.arr" as CL
 import "compiler/repl-support.arr" as RS
+
+type Either = E.Either
 
 
 fun make-repl(
@@ -31,14 +34,24 @@ fun make-repl(
   fun restart-interactions():
     worklist = compile-lib.compile-worklist(defs-locator, compile-context)
     result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
-    update-env(result, defs-locator)
+    cases(Either) result:
+      | right(answer) =>
+        update-env(answer, defs-locator)
+      | left(err) =>
+        nothing
+    end
     result
   end
 
   fun run-interaction(repl-locator :: CL.Locator):
     worklist = compile-lib.compile-worklist(repl-locator, compile-context)
     result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
-    update-env(result, repl-locator)
+    cases(Either) result:
+      | right(answer) =>
+        update-env(answer, repl-locator)
+      | left(err) =>
+        nothing
+    end
     result
   end
 

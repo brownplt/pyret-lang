@@ -107,5 +107,5 @@ check "File locators":
   wlist.get(10).locator is file-loc("bar", CM.standard-globals)
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
-  ans satisfies LL.is-success-result
+  ans.v satisfies LL.is-success-result
 end

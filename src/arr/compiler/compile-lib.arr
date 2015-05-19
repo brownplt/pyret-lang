@@ -1,6 +1,7 @@
 provide *
 provide-types *
 
+import either as E
 import parse-pyret as P
 import ast as A
 import load-lib as L
@@ -12,6 +13,10 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 import "compiler/ast-util.arr" as AU
+
+left = E.left
+right = E.right
+type Either = E.Either
 
 mtd = [SD.string-dict:]
 
@@ -224,12 +229,22 @@ fun compile-and-run-worklist(cl, ws :: List<ToCompile>, runtime :: R.Runtime, op
   compile-and-run-worklist-with(cl, ws, runtime, SD.make-string-dict(), options)
 end
 
+fun is-error-compilation(cr):
+  is-module-as-string(cr) and CS.is-err(cr.result-printer)
+end
+
 fun compile-and-run-worklist-with(cl, ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.StringDict<PyretMod>, options):
   compiled-mods = cl.compile-program(ws, options)
-  load-infos = for map2(tc from ws, cm from compiled-mods):
-    { to-compile: tc, compiled-mod: cm }
+  errors = compiled-mods.filter(is-error-compilation)
+  cases(List) errors:
+    | empty =>
+      load-infos = for map2(tc from ws, cm from compiled-mods):
+        { to-compile: tc, compiled-mod: cm }
+      end
+      right(load-worklist(load-infos, initial, L.make-loader(runtime), runtime))
+    | link(_, _) =>
+      left(errors.map(_.result-printer))
   end
-  load-worklist(load-infos, initial, L.make-loader(runtime), runtime)
 end
 
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:

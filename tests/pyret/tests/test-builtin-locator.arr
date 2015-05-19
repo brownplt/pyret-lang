@@ -79,5 +79,5 @@ check:
   wlist.get(0).locator.name() is "string-dict"
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
-  ans satisfies L.is-success-result
+  ans.v satisfies L.is-success-result
 end

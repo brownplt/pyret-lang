@@ -57,7 +57,7 @@ check "Worklist generation (simple)":
   wlist.get(0).locator is string-to-locator("bar")
 
   ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
-  ans satisfies L.is-success-result
+  ans.v satisfies L.is-success-result
 end
 
 check "Worklist generation (DAG)":

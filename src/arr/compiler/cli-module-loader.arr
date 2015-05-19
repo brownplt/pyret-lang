@@ -2,11 +2,14 @@ provide *
 import namespace-lib as N
 import runtime-lib as R
 import load-lib as L
+import either as E
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/locators/file.arr" as FL
 import "compiler/locators/legacy-path.arr" as LP
 import "compiler/locators/builtin.arr" as BL
+
+type Either = E.Either
 
 fun module-finder(ctxt, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
@@ -43,11 +46,21 @@ fun run(path, options):
   wl = cl.compile-worklist(base, {})
   r = R.make-runtime()
   result = CL.compile-and-run-worklist(cl, wl, r, options)
-  if L.is-success-result(result):
-    print(L.render-check-results(result))
-  else:
-    print(L.render-error-message(result))
+  cases(Either) result:
+    | right(answer) =>
+      if L.is-success-result(answer):
+        print(L.render-check-results(answer))
+      else:
+        print(L.render-error-message(answer))
+        raise("There were execution errors")
+      end
+      result
+    | left(errors) =>
+      print-error("Compilation errors:")
+      for lists.each(e from errors):
+        print-error(tostring(e))
+      end
+      raise("There were compilation errors")
   end
-  result
 end
 
