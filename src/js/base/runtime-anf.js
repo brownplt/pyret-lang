@@ -305,18 +305,15 @@ function isBase(obj) { return obj instanceof PBase; }
 
   var ReprMethods = {};
   ReprMethods["_torepr"] = Object.create(DefaultReprMethods);
-  ReprMethods["_torepr"]["$name"] = "_torepr";
   ReprMethods["_torepr"]["string"] = function(str) {
     return '"' + replaceUnprintableStringChars(String(str)) + '"';
   };
 
   ReprMethods["_tostring"] = Object.create(DefaultReprMethods);
-  ReprMethods["_tostring"]["$name"] = "_tostring";
 
   ReprMethods.createNewRenderer = function createNewRenderer(name, base) {
     if (ReprMethods[name]) { return false; }
     ReprMethods[name] = Object.create(base);
-    ReprMethods[name]["$name"] = name;
     return true;
   }
 
@@ -338,16 +335,17 @@ function isBase(obj) { return obj instanceof PBase; }
 **/
 function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) {
-      if (ffi === undefined) {
-        throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+      if (ffi === undefined || ffi.throwInternalError === undefined) {
+        throw ("FFI or ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
       } else {
-        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); 
+      }
     }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
-      if (ffi === undefined) {
-        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
+      if (ffi === undefined || ffi.throwFieldNotFound === undefined) {
+        throw ("FFI or ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
       } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }
@@ -1213,14 +1211,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(typeof objHasBeenSeen === "string") {
                 finishVal(objHasBeenSeen);
               }
-              else if(next.dict[reprMethods["$name"]] && isMethod(next.dict[reprMethods["$name"]])) {
-                pushTodo(undefined, next, undefined, ["dummy"], "render-method-call");
-                top = stack[stack.length - 1];
-                var m = getColonField(next, reprMethods["$name"]);
-                var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
-                finishVal(thisRuntime.unwrap(s));
-              }
-              else if (reprMethods["$name"] === "$cpo" && next.dict["_output"] && isMethod(next.dict["_output"])) {
+              else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
                 reprMethods["valueskeleton"](thisRuntime.unwrap(s), pushTodo);

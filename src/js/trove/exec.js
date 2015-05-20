@@ -90,7 +90,11 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                             execRt.runThunk(function() {
                               if(execRt.isPyretVal(r.exn.exn)) {
                                 return execRt.string_append(
-                                  execRt.toReprJS(r.exn.exn, execRt.ReprMethods._tostring),
+                                  // This should be replaced with a cmdline-renderer
+                                  // execRt.toReprJS(r.exn.exn, execRt.ReprMethods._tostring),
+                                  // for now, directly call the _tostring method
+                                  execRt.getColonField(r.exn.exn, "_tostring")
+                                    .full_meth(r.exn.exn, execRt.namespace.get("tostring")),
                                   execRt.makeString("\n" +
                                                     execRt.printPyretStack(r.exn.pyretStack)));
                               } else {

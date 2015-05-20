@@ -234,7 +234,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _output(self): VS.collection("list-set", self.to-list().map(VS.value)) end,
+    _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
     fold(self, f :: (Any, Any -> Any), base :: Any):
       fold(f, base, self.elems)
@@ -324,7 +324,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _output(self): VS.collection("tree-set", self.to-list().map(VS.value)) end,
+    _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
     fold(self, f :: (Any -> Any), base :: Any):
       tree-fold(f, base, self.elems)

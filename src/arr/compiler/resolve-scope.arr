@@ -26,7 +26,7 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr) -> A.Provide:
   cases(A.Provide) p:
     | s-provide-all(l) =>
       ids = A.block-ids(b)
-      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, tostring(id), A.s-id(l, id)) end)
+      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, id.tosourcestring(), A.s-id(l, id)) end)
       A.s-provide(l, obj)
     | else => p
   end
@@ -69,7 +69,7 @@ fun resolve-imports(imports :: List<A.Import>):
         imp-name = A.s-name(imp.l, G.make-name(imp-str))
         new-i = A.s-import(l, resolve-import-type(imp), imp-name)
         new-lets = for map(f from fields.reverse()):
-          A.s-let(f.l, A.s-bind(l, false, f, A.a-blank), A.s-dot(l, A.s-id(l, imp-name), tostring(f)), false)
+          A.s-let(f.l, A.s-bind(l, false, f, A.a-blank), A.s-dot(l, A.s-id(l, imp-name), f.tosourcestring()), false)
         end
         acc.{imports: link(new-i, acc.imports), lets: new-lets + acc.lets}
     end

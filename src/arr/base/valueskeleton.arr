@@ -4,7 +4,7 @@ provide *
 provide-types *
 
 data ValueSkeleton:
-  | value(v :: Any)
-  | collection(name :: String, items)
-  | constr(name :: String, args)
+  | vs-value(v :: Any)
+  | vs-collection(name :: String, items)
+  | vs-constr(name :: String, args)
 end

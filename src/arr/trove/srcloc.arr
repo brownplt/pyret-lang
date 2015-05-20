@@ -3,6 +3,8 @@
 provide *
 provide-types *
 
+import valueskeleton as VS
+
 data Srcloc:
   | builtin(module-name) with:
     format(self, _):
@@ -74,6 +76,7 @@ data Srcloc:
     end
 sharing:
   _tostring(self, shadow tostring): self.format(true) end,
+  _output(self): VS.vs-value(self.format(true)) end,
   after(self, other): other.before(self) end
 end
 

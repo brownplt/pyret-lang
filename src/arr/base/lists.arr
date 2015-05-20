@@ -236,7 +236,7 @@ data List<a>:
     end,
 
 sharing:
-  _output(self :: List<a>) -> VS.ValueSkeleton: VS.collection("list", self.map(VS.value)) end,
+  _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
   
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
