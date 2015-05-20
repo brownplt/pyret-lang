@@ -3,17 +3,20 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
   return util.definePyretModule(
     "world",
     [],
-    [
-      "big-bang",
-      "on-tick",
-      "on-tick-n",
-      "to-draw",
-      "stop-when",
-      "on-key",
-      "on-mouse",
-      "is-world-config",
-      "is-key-equal"
-    ],
+    {
+      values: [
+        "big-bang",
+        "on-tick",
+        "on-tick-n",
+        "to-draw",
+        "stop-when",
+        "on-key",
+        "on-mouse",
+        "is-world-config",
+        "is-key-equal"
+      ],
+      types: [ ]
+    },
     function(runtime, namespace) {
       return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib], function(imageLibrary, rawJsworld, ffi) {
         var isImage = imageLibrary.isImage;

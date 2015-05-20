@@ -16,9 +16,7 @@ mtd = [SD.string-dict:]
 # bootstrap things.  So make-dep and make-provides handle this transition
 
 fun make-dep(raw-dep):
-  print(raw-dep.name)
-  print(torepr(raw-dep))
-  if raw-dep.import-type == "builtin":
+ if raw-dep.import-type == "builtin":
     CM.builtin(raw-dep.name)
   else:
     CM.dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
@@ -31,9 +29,6 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-fun make-provides(raw-provides):
-  CM.provides(const-dict(raw-array-to-list(raw-provides), CM.v-just-there), mtd)
-end
 
 fun needs-includes(modname):
   [list:
@@ -56,8 +51,11 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
       raw-array-to-list(deps).map(make-dep)
     end,
     get-provides(_):
-      provides = raw.get-raw-provides()
-      make-provides(provides) 
+      vprovides = raw.get-raw-value-provides()
+      tprovides = raw.get-raw-type-provides()
+      CM.provides(
+        const-dict(raw-array-to-list(vprovides), CM.v-just-there),
+        const-dict(raw-array-to-list(tprovides), CM.t-just-there))
     end,
     get-globals(_):
       raise("Should never get compile-env for builtin module " + builtin-name)

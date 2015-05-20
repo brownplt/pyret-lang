@@ -1,7 +1,10 @@
 define(["js/runtime-util", "js/namespace"], function(util, namespace) {
 return util.definePyretModule("namespace-lib",
   [util.modBuiltin("load-lib")],
-  ["Namespace", "make-empty-namespace", "make-base-namespace"],
+  {
+    values: ["make-empty-namespace", "make-base-namespace"],
+    types: ["Namespace"]
+  },
   function(runtime, ns, load) {
     var get = runtime.getField;
     function applyBrand(brand, val) {

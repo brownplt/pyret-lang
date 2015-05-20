@@ -6,16 +6,21 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
     [
       mb("runtime-lib")
     ],
-    [
-      "make-loader",
-      "is-success-result",
-      "is-failure-result",
-      "get-result-answer",
-      "render-check-results",
-      "render-error-message",
-      "Module",
-      "ModuleResult"
-    ],
+    {
+      values:
+        [
+          "make-loader",
+          "is-success-result",
+          "is-failure-result",
+          "get-result-answer",
+          "render-check-results",
+          "render-error-message"
+        ],
+      types: [
+        "Module",
+        "ModuleResult"
+      ]
+    },
     function(runtime, namespace, runtimeLib) {
       var brandModule = runtime.namedBrander("module");
       var brandModuleResult = runtime.namedBrander("module-result");

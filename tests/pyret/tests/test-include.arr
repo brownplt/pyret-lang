@@ -119,6 +119,7 @@ modules = [SD.mutable-string-dict:
   "gather-includes",
   ```
   provide *
+  provide-types { Image :: Image }
   include world
   include image
   # Should re-exporting be required?
@@ -129,6 +130,7 @@ modules = [SD.mutable-string-dict:
   "gather-includes-include",
   ```
   include file("gather-includes")
+  fun f(i :: Image): nothing end
   is-function(rectangle) and is-function(big-bang)
   ```
 

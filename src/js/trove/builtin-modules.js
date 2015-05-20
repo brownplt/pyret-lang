@@ -15,10 +15,19 @@ define([], function() {
                   return [];
                 }
               }),
-            "get-raw-provides":
+            "get-raw-type-provides":
+              F(function() {
+                if(m.provides) {
+                  return m.provides.types;
+                }
+                else {
+                  return [];
+                }
+              }),
+            "get-raw-value-provides":
               F(function() {
                 if (m.provides) {
-                  return m.provides;
+                  return m.provides.values;
                 }
                 else {
                   return [];
