@@ -192,6 +192,28 @@ var emptyDict = Object.create(null);
 */
 function isBase(obj) { return obj instanceof PBase; }
 
+  function renderValueSkeleton(val, values) {
+    if (ffi.isVSValue(val)) { return values.pop(); } // double-check order!
+    else if (ffi.isVSCollection(val)) {
+      var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
+      var items = ffi.toArray(thisRuntime.getField(val, "items"));
+      var s = "[" + name + ": ";
+      for (var i = 0; i < items.length; i++) {
+        if (i > 0) { s += ", "; }
+        s += items[i];
+      }
+      return s + "]";
+    } else {
+      var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
+      var items = ffi.toArray(thisRuntime.getField(val, "args"));
+      var s = name + "(";
+      for (var i = 0; i < items.length; i++) {
+        if (i > 0) { s += ", "; }
+        s += items[i];
+      }
+      return s + ")";
+    }
+  }
 
   var DefaultReprMethods = {
     "string": String,
@@ -238,7 +260,8 @@ function isBase(obj) { return obj instanceof PBase; }
         return ans;
       });
       pushTodo(undefined, val, undefined, vals, "render-data", 
-               { arity: val.$arity, implicitRefs: val.$mut_fields_mask, constructorName: val.$name });
+               { arity: val.$arity, implicitRefs: val.$mut_fields_mask, 
+                 fields: val.$constructor.$fieldNames, constructorName: val.$name });
     },
     "render-data": function(top) {
       var s = top.extra.constructorName;
@@ -264,6 +287,16 @@ function isBase(obj) { return obj instanceof PBase; }
       }
       s += "]";
       return s;
+    },
+    "valueskeleton": function(val, pushTodo) {
+      // NOTE: this is the eager version;
+      // a lazy version would skip getting the skeleton values altogether
+      var values = ffi.skeletonValues(val);
+      pushTodo(undefined, undefined, undefined, values, "render-valueskeleton",
+               { skeleton: val });
+    },
+    "render-valueskeleton": function(top) {
+      return renderValueSkeleton(top.extra.skeleton, top.done);
     },
     "render-method-call": function(top) {
       return top.done[0];
@@ -1119,22 +1152,23 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var findSeenObject = objCache.check;
 
 
+      function pushTodo(newArray, newObject, newRef, todo, type, extra) {
+        var top = stack[stack.length - 1];
+        stack.push({
+          arrays: (newArray !== undefined) ? addNewArray(top.arrays, newArray) : top.arrays,
+          objects: (newObject !== undefined) ? addNewObject(top.objects, newObject) : top.objects,
+          refs: (newRef !== undefined) ? addNewRef(top.refs, newRef) : top.refs,
+          todo: todo,
+          done: [],
+          type: type,
+          extra: extra
+        });
+      }
       function toReprHelp() {
         var top;
         function finishVal(str) {
           top.todo.pop();
           top.done.push(str);
-        }
-        function pushTodo(newArray, newObject, newRef, todo, type, extra) {
-          stack.push({
-            arrays: (newArray !== undefined) ? addNewArray(top.arrays, newArray) : top.arrays,
-            objects: (newObject !== undefined) ? addNewObject(top.objects, newObject) : top.objects,
-            refs: (newRef !== undefined) ? addNewRef(top.refs, newRef) : top.refs,
-            todo: todo,
-            done: [],
-            type: type,
-            extra: extra
-          });
         }
         function implicitRefs(stackFrame) {
           return stackFrame.extra && stackFrame.extra.implicitRefs;
@@ -1186,6 +1220,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
                 finishVal(thisRuntime.unwrap(s));
               }
+              else if (reprMethods["$name"] === "$cpo" && next.dict["_output"] && isMethod(next.dict["_output"])) {
+                var m = getColonField(next, "_output");
+                var s = m.full_meth(next);
+                reprMethods["valueskeleton"](thisRuntime.unwrap(s), pushTodo);
+              }
               else if(isDataValue(next)) {
                 reprMethods["data"](next, pushTodo);
               }
@@ -1224,8 +1263,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
-              top.todo.pop();
-              top.done.push(thisRuntime.unwrap($ans));
+              var a = thisRuntime.unwrap($ans);
+              if (ffi.isValueSkeleton(a)) {
+                reprMethods["valueskeleton"](a, pushTodo);
+              } else {
+                // this is essentially finishVal
+                top.todo.pop();
+                top.done.push(a);
+              }
               $step = 0;
               break;
             }

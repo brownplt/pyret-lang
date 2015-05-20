@@ -5,6 +5,7 @@ provide-types *
 import option as O
 import either as E
 import equality as equality
+import valueskeleton as VS
 
 none = O.none
 is-none = O.is-none
@@ -44,7 +45,7 @@ data List<a>:
       none
     end,
 
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true: List<a>, is-false: List<a>}:
+    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
@@ -131,7 +132,7 @@ data List<a>:
       end
     end,
 
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true: List<a>, is-false: List<a>}:
+    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
@@ -235,6 +236,8 @@ data List<a>:
     end,
 
 sharing:
+  _output(self :: List<a>) -> VS.ValueSkeleton: VS.collection("list", self.map(VS.value)) end,
+  
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
   end,
@@ -243,7 +246,7 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  split-at(self :: List<a>, n :: Number) -> { prefix: List<a>, suffix: List<a> }:
+  split-at(self :: List<a>, n :: Number) -> { prefix :: List<a>, suffix :: List<a> }:
     doc: "Splits this list into two lists, one containing the first n elements, and the other containing the rest"
     split-at(n, self)
   end,
@@ -357,7 +360,7 @@ fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   end
 end
 
-fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-false: List<a>}:
+fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>}:
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
   var is-false = empty
@@ -403,7 +406,7 @@ fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   end
 end
 
-fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<a> }:
+fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> }:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
   when n < 0:
     raise("Invalid index")

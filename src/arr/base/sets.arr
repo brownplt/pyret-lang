@@ -25,6 +25,7 @@ import error as error
 import option as option
 import arrays as arrays
 import equality as equality
+import valueskeleton as VS
 
 type List = lists.List
 List = lists.List
@@ -233,6 +234,7 @@ data Set:
         end, "") +
       "]"
     end,
+    _output(self): VS.collection("list-set", self.to-list().map(VS.value)) end,
 
     fold(self, f :: (Any, Any -> Any), base :: Any):
       fold(f, base, self.elems)
@@ -322,6 +324,7 @@ data Set:
         end, "") +
       "]"
     end,
+    _output(self): VS.collection("tree-set", self.to-list().map(VS.value)) end,
 
     fold(self, f :: (Any -> Any), base :: Any):
       tree-fold(f, base, self.elems)
