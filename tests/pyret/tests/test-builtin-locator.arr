@@ -9,7 +9,7 @@ import runtime-lib as R
 check:
   sd = B.make-builtin-locator("string-dict")
   sd.get-dependencies() is [list:]
-  sd.get-provides() is [list-set: "MutableStringDict", "StringDict",
+  sd.get-provides().values.keys() is [tree-set: "MutableStringDict", "StringDict",
      "make-string-dict", "string-dict",
      "make-mutable-string-dict", "mutable-string-dict"]
   sd.get-compiled() satisfies is-some

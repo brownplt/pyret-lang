@@ -119,15 +119,16 @@ modules = [SD.mutable-string-dict:
   "gather-includes",
   ```
   provide *
-  provide-types *
   include world
   include image
+  # Should re-exporting be required?
+  shadow big-bang = big-bang
+  shadow rectangle = rectangle
   ```,
 
   "gather-includes-include",
   ```
   include file("gather-includes")
-  fun f(i :: Image): nothing end
   is-function(rectangle) and is-function(big-bang)
   ```
 
