@@ -952,7 +952,7 @@ compiler-visitor = {
     if num-is-fixnum(n):
       c-exp(j-parens(j-num(n)), empty)
     else:
-      c-exp(rt-method("makeNumberFromString", [list: j-str(n.tosourcestring())]), empty)
+      c-exp(rt-method("makeNumberFromString", [list: j-str(tostring(n))]), empty)
     end
   end,
   a-str(self, l :: Loc, s :: String):
