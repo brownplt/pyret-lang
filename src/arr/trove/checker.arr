@@ -4,9 +4,11 @@ provide *
 provide-types *
 import srcloc as SL
 import either as E
+import error-display as ED
 
 type Loc = SL.Srcloc
 type Either = E.Either
+
 
 data CheckBlockResult:
   | check-block-result(
@@ -20,61 +22,85 @@ end
 data TestResult:
   | success(loc :: Loc, code :: String)
   | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
-    reason(self):
-      var msg = cases(Option) self.refinement:
-        | none    => "Values not equal:"
-        | some(_) => "Values not equal (using custom equality):"
-      end
-      msg + "\n" + torepr(self.left) + "\n" + torepr(self.right)
+    render-reason(self):
+      [ED.error: 
+        cases(Option) self.refinement:
+          | none    => ED.text("Values not equal")
+          | some(_) => ED.text("Values not equal (using custom equality):")
+        end,
+        ED.embed(self.left),
+        ED.embed(self.right)]
     end
   | failure-not-different(loc :: Loc, code :: String, refinement, left, right) with:
-    reason(self):
-      var msg = cases(Option) self.refinement:
-        | none    => "Values not different:"
-        | some(_) => "Values not different (using custom equality):"
-      end
-      msg + "\n" + torepr(self.left) + "\n" + torepr(self.right)
+    render-reason(self):
+      [ED.error: 
+        cases(Option) self.refinement:
+          | none    => ED.text("Values not different")
+          | some(_) => ED.text("Values not different (using custom equality):")
+        end,
+        ED.embed(self.left),
+        ED.embed(self.right)]
     end
   | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
-    reason(self):
-      "Predicate failed for value: " + torepr(self.val)
+    render-reason(self):
+      [ED.error:
+        ED.text("Predicate failed for value:"),
+        ED.embed(self.val)]
     end
   | failure-not-dissatisfied(loc :: Loc, code :: String, val, pred) with:
-    reason(self):
-      "Predicate succeeded for value (it should have failed): " + torepr(self.val)
+    render-reason(self):
+      [ED.error:
+        ED.text("Predicate succeeded for value (it should have failed):"),
+        ED.embed(self.val)]
     end
   | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
-    reason(self):
-      "Got unexpected exception " + torepr(self.actual-exn) + ", when expecting " + torepr(self.exn-expected)
+    render-reason(self):
+      [ED.error:
+        ED.text("Got unexpected exception "),
+        ED.embed(self.actual-exn),
+        ED.text("when expecting "),
+        ED.embed(self.exn-expected)]
     end
   | failure-right-exn(loc :: Loc, code :: String, exn-not-expected, actual-exn) with:
-    reason(self):
-      "Got exception " + torepr(self.actual-exn) + " and expected it not to contain " + torepr(self.exn-not-expected)
+    render-reason(self):
+      [ED.error:
+        ED.text("Got exception "),
+        ED.embed(self.actual-exn),
+        ED.text("and expected it not to contain "),
+        ED.embed(self.exn-not-expected)]
     end
   | failure-exn(loc :: Loc, code :: String, actual-exn) with:
-    reason(self):
-      "Got unexpected exception " + torepr(self.actual-exn)
+    render-reason(self):
+      [ED.error:
+        ED.text("Got unexpected exception "),
+        ED.embed(self.actual-exn)]
     end
   | failure-no-exn(loc :: Loc, code :: String, exn-expected :: Option<String>) with:
-    reason(self):
+    render-reason(self):
       cases(Option) self.exn-expected:
-        | some(exn) => "No exception raised, expected " + torepr(exn)
-        | none      => "No exception raised"
+        | some(exn) => [ED.error: ED.text("No exception raised, expected"), ED.embed(exn)]
+        | none      => [ED.error: ED.text("No exception raised")]
       end
     end
   | failure-raise-not-satisfied(loc :: Loc, code :: String, exn, pred) with:
-    reason(self):
-      "Predicate failed for exception: " + torepr(self.exn)
+    render-reason(self):
+      [ED.error:
+        ED.text("Predicate failed for exception:"),
+        ED.embed(self.exn)]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, code :: String, exn, pred) with:
-    reason(self):
-      "Predicate succeeded for exception (it should have failed): " + torepr(self.exn)
+    render-reason(self):
+      [ED.error:
+        ED.text("Predicate succeeded for exception (it should have failed):"),
+        ED.embed(self.exn)]
     end
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
-    reason(self):
-      "The custom equality function must return a boolean, but instead it returned: " + torepr(self.test-result)
+    render-reason(self):
+      [ED.error:
+        ED.text("The custom equality funtion must return a boolean, but instead it returned: "),
+        ED.embed(self.test-result)]
     end
 end
 
@@ -232,7 +258,8 @@ fun results-summary(block-results :: List<CheckBlockResult>):
             total: s.total + 1
           }
         | else =>
-          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    " + tr.reason()
+          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
+            + tr.render-reason().to-string()
           s.{
             message: m,
             failed: s.failed + 1,

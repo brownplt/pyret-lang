@@ -1,8 +1,9 @@
-define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/valueskeleton"],
-       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, valueskeletonLib) {
+
+define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton"],
+       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
 
-    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, valueskeletonLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, VS) {
+    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS) {
 
       var gf = runtime.getField;
 
@@ -57,6 +58,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var checkSrcloc = runtime.makeCheckType(function(val) {
         return runtime.unwrap(gf(S, "Srcloc").app(val));
       }, "Srcloc");
+
+      function isTestResult(val) { return runtime.unwrap(runtime.getField(CH, "TestResult").app(val)); }
+      var checkTestResult = runtime.makeCheckType(isTestResult, "TestResult");
+
+      function isErrorDisplay(val) { return runtime.unwrap(runtime.getField(ED, "ErrorDisplay").app(val)); }
+      var checkErrorDisplay = runtime.makeCheckType(isErrorDisplay, "ErrorDisplay");
 
       function cases(pred, predName, val, casesObj) {
         if(!pred.app(val)) {
@@ -391,6 +398,13 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
         toArray: toArray,
         isList: function(list) { return runtime.unwrap(runtime.getField(L, "List").app(list)); },
+
+        isErrorDisplay: isErrorDisplay,
+        checkErrorDisplay: checkErrorDisplay,
+        isTestResult: isTestResult,
+        checkTestResult: checkTestResult,
+        isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success").app(val)); },
+
         isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "ValueSkeleton").app(v)); },
         isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
         isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },

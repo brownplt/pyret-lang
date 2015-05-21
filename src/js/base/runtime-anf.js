@@ -198,18 +198,18 @@ function isBase(obj) { return obj instanceof PBase; }
       var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
       var items = ffi.toArray(thisRuntime.getField(val, "items"));
       var s = "[" + name + ": ";
-      for (var i = 0; i < items.length; i++) {
-        if (i > 0) { s += ", "; }
-        s += items[i];
+      for (var i = items.length - 1; i >= 0; i--) {
+        s += renderValueSkeleton(items[i], values);
+        if (i != 0) { s += ", "; }
       }
       return s + "]";
     } else {
       var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
       var items = ffi.toArray(thisRuntime.getField(val, "args"));
       var s = name + "(";
-      for (var i = 0; i < items.length; i++) {
-        if (i > 0) { s += ", "; }
-        s += items[i];
+      for (var i = items.length - 1; i >= 0; i--) {
+        s += renderValueSkeleton(items[i], values);
+        if (i != 0) { s += ", "; }
       }
       return s + ")";
     }
