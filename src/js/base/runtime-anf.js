@@ -2564,7 +2564,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
-    Cont.prototype.toString = function() {
+    Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
         stack.map(function(s) {
