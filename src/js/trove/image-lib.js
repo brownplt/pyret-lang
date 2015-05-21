@@ -78,7 +78,6 @@ define([
                 jsnums.lessThan(x, 360);
         };
 
-
         // Produces true if the value is a color or a color string.
         // On the Racket side of things, this is exposed as image-color?.
         var isColorOrColorString = function(thing) {
@@ -86,9 +85,6 @@ define([
                     ((runtime.isString(thing) &&
                       typeof(colorDb.get(thing)) != 'undefined')));
         };
-
-
-
 
         //////////////////////////////////////////////////////////////////////
         // colorString : hexColor Style -> rgba
@@ -101,9 +97,6 @@ define([
                           alpha + ")";
         };
 
-
-
-
         var isSideCount = function(x) {
             return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3);
         };
@@ -112,14 +105,9 @@ define([
             return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1);
         };
 
-
         var isPointsCount = function(x) {
-            return jsnums.isExactInteger(x) && jsnums.greaterThanOrEqual(x, 2); 
+            return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2);
         };
-
-
-
-
 
         // Produces true if thing is an image-like object.
         var isImage = function(thing) {
@@ -154,11 +142,8 @@ define([
           return vertices;
         };
 
-
         // Base class for all images.
         var BaseImage = function() {};
-
-
 
         BaseImage.prototype.updatePinhole = function(x, y) {
             var aCopy = clone(this);
@@ -215,7 +200,6 @@ define([
           ctx.restore();
         };
 
-
         // makeCanvas: number number -> canvas
         // Constructs a canvas object of a particular width and height.
         var makeCanvas = function(width, height) {
@@ -235,8 +219,6 @@ define([
             return canvas;
         };
 
-
-
         var withIeHack = function(canvas, f) {
             // 	canvas.style.display = 'none';
             // 	document.body.appendChild(canvas);
@@ -251,8 +233,6 @@ define([
             // 	canvas.style.display = '';
             return result;
         };
-
-
 
         // Images are expected to define a render() method, which is used
         // here to draw to the canvas.
@@ -286,9 +266,6 @@ define([
 
             return canvas;
         };
-
-
-
 
         BaseImage.prototype.toWrittenString = function(cache) { return "<image>"; }
         BaseImage.prototype.toDisplayedString = function(cache) { return "<image>"; }
@@ -331,15 +308,11 @@ define([
           return true;
         };
 
-
-
-
         // isScene: any -> boolean
         // Produces true when x is a scene.
         var isScene = function(x) {
             return ((x != undefined) && (x != null) && (x instanceof SceneImage));
         };
-
 
         //////////////////////////////////////////////////////////////////////
         // SceneImage: primitive-number primitive-number (listof image) -> Scene
@@ -386,7 +359,7 @@ define([
           }
           // unclip
           ctx.restore();
-          
+
           if (this.withBorder) {
             ctx.strokeStyle = 'black';
             ctx.strokeRect(x, y, this.width, this.height);
@@ -402,7 +375,7 @@ define([
               this.children.length !== other.children.length) {
             return false;
           }
-          
+
           for (var i = 0; i < this.children.length; i++) {
             var rec1 = this.children[i];
             var rec2 = other.children[i];
@@ -422,10 +395,10 @@ define([
           var self = this;
           this.src = src;
           this.isLoaded = false;
-          
+
           // animationHack: see installHackToSupportAnimatedGifs() for details.
           this.animationHackImg = undefined;
-          
+
           if (rawImage && rawImage.complete) {
             this.img = rawImage;
             this.isLoaded = true;
@@ -451,7 +424,6 @@ define([
         }
         FileImage.prototype = heir(BaseImage.prototype);
 
-
         var imageCache = {};
         FileImage.makeInstance = function(path, rawImage) {
           if (! (path in imageCache)) {
@@ -469,13 +441,10 @@ define([
                                            "normal", "Optimer","","",false);
         };
 
-
-
         FileImage.prototype.render = function(ctx, x, y) {
           this.installHackToSupportAnimatedGifs();
           ctx.drawImage(this.animationHackImg, x, y);
         };
-
 
         // The following is a hack that we use to allow animated gifs to show
         // as animating on the canvas.
@@ -487,11 +456,9 @@ define([
           this.animationHackImg.style.top = '-2000px';
         };
 
-
         FileImage.prototype.getWidth = function() {
           return this.img.width;
         };
-
 
         FileImage.prototype.getHeight = function() {
           return this.img.height;
@@ -553,7 +520,7 @@ define([
         FileVideo.makeInstance = function(path, rawVideo) {
             if (! (path in FileVideo)) {
           videos[path] = new FileVideo(path, rawVideo);
-            } 
+            }
             return videos[path];
         };
 
@@ -580,23 +547,22 @@ define([
           ctx.putImageData(this.imageData, x, y);
         };
 
-
         //////////////////////////////////////////////////////////////////////
         // OverlayImage: image image placeX placeY -> image
         // Creates an image that overlays img1 on top of the
         // other image img2.
         var OverlayImage = function(img1, img2, placeX, placeY) {
           BaseImage.call(this);
-          
+
           // An overlay image consists of width, height, x1, y1, x2, and
           // y2.  We need to compute these based on the inputs img1,
           // img2, placex, and placey.
-          
+
           // placeX and placeY may be non-numbers, in which case their values
           // depend on the img1 and img2 geometry.
 
           var x1, y1, x2, y2;
-          
+
           if (placeX === "left") {
             x1 = 0;
             x2 = 0;
@@ -613,7 +579,7 @@ define([
             x1 = Math.max(placeX, 0) - placeX;
             x2 = Math.max(placeX, 0);
           }
-          
+
           if (placeY === "top") {
             y1 = 0;
             y2 = 0;
@@ -633,7 +599,7 @@ define([
             y1 = Math.max(placeY, 0) - placeY;
             y2 = Math.max(placeY, 0);
           }
-          
+
           // calculate the vertices of this image by translating the verticies of the sub-images
           var i, v1 = img1.getVertices(), v2 = img2.getVertices(), xs = [], ys = [];
 
@@ -645,12 +611,12 @@ define([
             xs.push(Math.round(v2[i].x + x2));
             ys.push(Math.round(v2[i].y + y2));
           }
-          
+
           // store the vertices as something private, so this.getVertices() will still return undefined
           this._vertices = zipVertices(xs, ys);
           this.width  = Math.max.apply(Math, xs) - Math.min.apply(Math, xs);
           this.height = Math.max.apply(Math, ys) - Math.min.apply(Math, ys);
-          
+
           // store the offsets for rendering
           this.x1 = Math.floor(x1);
           this.y1 = Math.floor(y1);
@@ -685,7 +651,6 @@ define([
                   imageEquals(this.img2, other.img2) );
         };
 
-
         //////////////////////////////////////////////////////////////////////
         // rotate: angle image -> image
         // Rotates image by angle degrees in a counter-clockwise direction.
@@ -696,7 +661,7 @@ define([
           var cos   = Math.cos(angle * Math.PI / 180);
           var width = img.getWidth();
           var height= img.getHeight();
-          
+
           // rotate each point as if it were rotated about (0,0)
           var vertices = img.getVertices(), xs = [], ys = [];
           for(var i=0; i<vertices.length; i++){
@@ -710,12 +675,12 @@ define([
             xs[i] += translateX;
             ys[i] += translateY;
           }
-          
+
           // store the vertices as something private, so this.getVertices() will still return undefined
           this._vertices = zipVertices(xs,ys);
           var rotatedWidth  = Math.max.apply( Math, xs ) - Math.min.apply( Math, xs );
           var rotatedHeight = Math.max.apply( Math, ys ) - Math.min.apply( Math, ys );
-          
+
           this.img        = img;
           this.width      = Math.floor(rotatedWidth);
           this.height     = Math.floor(rotatedHeight);
@@ -762,7 +727,7 @@ define([
           }
           // store the vertices as something private, so this.getVertices() will still return undefined
           this._vertices = zipVertices(xs,ys);
-          
+
           this.img      = img;
           this.width    = Math.floor(img.getWidth() * xFactor);
           this.height   = Math.floor(img.getHeight() * yFactor);
@@ -906,9 +871,6 @@ define([
                   imageEquals(this.img, other.img) );
         };
 
-
-
-
         //////////////////////////////////////////////////////////////////////
         // RectangleImage: Number Number Mode Color -> Image
         var RectangleImage = function(width, height, style, color) {
@@ -945,7 +907,7 @@ define([
                            {x:this.width,   y:this.height/2},
                            {x:this.width/2, y:this.height},
                            {x:0,            y:this.height/2}];
-          
+
         };
         RhombusImage.prototype = heir(BaseImage.prototype);
 
@@ -956,7 +918,6 @@ define([
         RhombusImage.prototype.getHeight = function() {
           return this.height;
         };
-
 
         //////////////////////////////////////////////////////////////////////
         // PolygonImage: Number Count Step Mode Color -> Image
@@ -970,7 +931,7 @@ define([
           this.outerRadius = Math.floor(length/(2*Math.sin(Math.PI/count)));
           this.innerRadius = Math.floor(length/(2*Math.tan(Math.PI/count)));
           var adjust = (3*Math.PI/2)+Math.PI/count;
-          
+
           // rotate around outer circle, storing x and y coordinates
           var radians = 0, xs = [], ys = [];
           for(var i = 0; i < count; i++) {
@@ -979,7 +940,7 @@ define([
             ys.push(Math.round(this.outerRadius*Math.sin(radians-adjust)));
           }
           var vertices = zipVertices(xs, ys);
-          
+
           this.width      = Math.max.apply(Math, xs) - Math.min.apply(Math, xs);
           this.height     = Math.max.apply(Math, ys) - Math.min.apply(Math, ys);
           this.length     = length;
@@ -987,7 +948,7 @@ define([
           this.step       = step;
           this.style      = style;
           this.color      = color;
-          
+
           // shift the vertices by the calculated offsets, now that we know the width
           var xOffset = Math.round(this.width/2);
           var yOffset = ((this.count % 2)? this.outerRadius : this.innerRadius);
@@ -1006,7 +967,6 @@ define([
           return s;
         };
 
-
         //////////////////////////////////////////////////////////////////////
         // TextImage: String Number Color String String String String any/c -> Image
         var TextImage = function(msg, size, color, face, family, style, weight, underline) {
@@ -1022,24 +982,24 @@ define([
           this.underline  = underline;
           // example: "bold italic 20px 'Times', sans-serif".
           // Default weight is "normal", face is "Arial"
-          
+
           // NOTE: we *ignore* font-family, as it causes a number of font bugs due the browser inconsistencies
           var canvas  = makeCanvas(0, 0),
               ctx     = canvas.getContext("2d");
-          
+
           this.font = (this.style + " " +
                        this.weight + " " +
                        this.size + "px " +
                        '"'+this.face+'", '+
                        this.family);
-          
+
           try {
             ctx.font    = this.font;
           } catch (e) {
             this.fallbackOnFont();
             ctx.font    = this.font;
           }
-          
+
           // Defensive: on IE, this can break.
           try {
             metrics     = ctx.measureText(msg);
@@ -1049,7 +1009,6 @@ define([
             this.fallbackOnFont();
           }
         };
-
 
         TextImage.prototype = heir(BaseImage.prototype);
 
@@ -1065,7 +1024,6 @@ define([
           // KLUDGE: I don't know how to get at the height.
           this.height     = Number(this.size);//ctx.measureText("m").width + 20;
         };
-
 
         TextImage.prototype.render = function(ctx, x, y) {
           ctx.save();
@@ -1111,7 +1069,6 @@ define([
                   this.font === other.font);
         };
 
-
         //////////////////////////////////////////////////////////////////////
         // StarImage: fixnum fixnum fixnum color -> image
         // Most of this code here adapted from the Canvas tutorial at:
@@ -1127,7 +1084,7 @@ define([
           this.width      = this.radius*2;
           this.height     = this.radius*2;
           var vertices   = [];
-          
+
           var oneDegreeAsRadian = Math.PI / 180;
           for(var pt = 0; pt < (this.points * 2) + 1; pt++ ) {
             var rads = ( ( 360 / (2 * this.points) ) * pt ) * oneDegreeAsRadian - 0.5;
@@ -1154,7 +1111,7 @@ define([
 
           this.width = Math.max(sideC, thirdX) + offsetX;
           this.height = Math.abs(thirdY);
-          
+
           var vertices = [];
           // if angle < 180 start at the top of the canvas, otherwise start at the bottom
           if(thirdY > 0){
@@ -1168,7 +1125,7 @@ define([
           }
             console.log(vertices);
           this.vertices = vertices;
-          
+
           this.style = style;
           this.color = color;
         };
@@ -1189,7 +1146,7 @@ define([
         EllipseImage.prototype.render = function(ctx, aX, aY) {
           ctx.save();
           ctx.beginPath();
-          
+
           // Most of this code is taken from:
           // http://webreflection.blogspot.com/2009/01/ellipse-and-circle-for-canvas-2d.html
           var hB = (this.width / 2) * 0.5522848,
@@ -1212,7 +1169,7 @@ define([
             ctx.fillStyle = colorString(this.color, this.style);
             ctx.fill();
           }
-          
+
           ctx.restore();
         };
 
@@ -1225,7 +1182,6 @@ define([
                   this.style    === other.style &&
                   equals(this.color, other.color));
         };
-
 
         //////////////////////////////////////////////////////////////////////
         // Line: Number Number Color Boolean -> Image
@@ -1248,9 +1204,6 @@ define([
         };
 
         LineImage.prototype = heir(BaseImage.prototype);
-
-
-
 
         var imageToColorList = function(img) {
             var width = img.getWidth(),
@@ -1275,7 +1228,6 @@ define([
             return ffi.makeList(colors);
         }
 
-
         var colorListToImage = function(listOfColors,
                                         width,
                                         height,
@@ -1299,18 +1251,6 @@ define([
 
             return makeImageDataImage(imageData);
         };
-
-
-
-
-
-
-
-
-
-
-
-
 
         var makeSceneImage = function(width, height, children, withBorder) {
             return new SceneImage(width, height, children, withBorder);
@@ -1373,9 +1313,8 @@ define([
             return FileVideo.makeInstance(path, rawVideo);
         };
 
-
         var isSceneImage = function(x) { return x instanceof SceneImage; };
-        var isCircleImage = function(x) { return x instanceof EllipseImage && 
+        var isCircleImage = function(x) { return x instanceof EllipseImage &&
                                           x.width === x.height; };
         var isStarImage	= function(x) { return x instanceof StarImage; };
         var isRectangleImage=function(x) { return x instanceof RectangleImage; };
@@ -1400,7 +1339,6 @@ define([
             this.colors = {};
         };
 
-
         ColorDb.prototype.put = function(name, color) {
             this.colors[name] = color;
         };
@@ -1408,7 +1346,6 @@ define([
         ColorDb.prototype.get = function(name) {
             return this.colors[name.toString().toUpperCase()];
         };
-
 
         // FIXME: update toString to handle the primitive field values.
 
@@ -1596,8 +1533,6 @@ define([
         colorDb.put("DIMGRAY", makeColor(105, 105, 105));
         colorDb.put("BLACK", makeColor(0, 0, 0));
 
-
-
         ///////////////////////////////////////////////////////////////
         // Exports
 
@@ -1605,8 +1540,6 @@ define([
         // of the Racket-exposed functions.
         return {
           makeCanvas: makeCanvas,
-
-
 
           BaseImage: BaseImage,
           SceneImage: SceneImage,
@@ -1628,7 +1561,6 @@ define([
           EllipseImage: EllipseImage,
           LineImage: LineImage,
           StarImage: StarImage,
-
 
           imageEquals: imageEquals,
 
@@ -1658,7 +1590,6 @@ define([
           imageToColorList: imageToColorList,
           colorListToImage: colorListToImage,
 
-
           isImage: isImage,
           isScene: isScene,
           isColorOrColorString: isColorOrColorString,
@@ -1666,7 +1597,6 @@ define([
           isSideCount: isSideCount,
           isStepCount: isStepCount,
           isPointsCount: isPointsCount,
-
 
           isSceneImage: isSceneImage,
           isCircleImage: isCircleImage,
@@ -1687,8 +1617,6 @@ define([
           isTextImage: isTextImage,
           isFileImage: isFileImage,
           isFileVideo: isFileVideo,
-
-
 
           makeColor: makeColor,
           isColor: isColor,

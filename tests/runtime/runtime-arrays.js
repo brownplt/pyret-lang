@@ -1,7 +1,6 @@
-
 var r = require("requirejs")
 
-define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
+define(["./matchers"], function (matchers) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -29,7 +28,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         thunkTrue,
         thunkFalse,
         thunkNum;
-
 
     beforeEach(function(){
         output = "";

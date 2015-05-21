@@ -1,6 +1,5 @@
 import equality as E
 
-
 data Box:
   | box(ref v)
 end
@@ -60,7 +59,6 @@ check "partition where: block":
   partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
-
 check "find where: block":
   find(lam(elt): elt > 1 end, [list: 1, 2, 3]) is some(2)
   find(lam(elt): elt > 4 end, [list: 1, 2, 3]) is none
@@ -69,8 +67,6 @@ check "find where: block":
   find(lam(elt): false end, [list: "miss-me"]) is none
   find(lam(elt): false end, empty) is none
 end
-
-
 
 check "split-at where: block":
   one-four = link(1, link(2, link(3, link(4, empty))))
@@ -82,8 +78,6 @@ check "split-at where: block":
   split-at(5, one-four) raises "Index too large"
 end
 
-
-
 check "any where: block":
   any(lam(n): n > 1 end, [list: 1, 2, 3]) is true
   any(lam(n): n > 3 end, [list: 1, 2, 3]) is false
@@ -91,15 +85,12 @@ check "any where: block":
   any(lam(x): false end, empty) is false
 end
 
-
 check "all where: block":
   lists.all(lam(n): n > 1 end, [list: 1, 2, 3]) is false
   lists.all(lam(n): n <= 3 end, [list: 1, 2, 3]) is true
   lists.all(lam(x): true  end, empty) is true
   lists.all(lam(x): false end, empty) is true
 end
-
-
 
 check "all2 where: block":
   lists.all2(lam(n, m): false end, [list: 1, 2, 3], empty) is true
@@ -111,25 +102,20 @@ check "all2 where: block":
   lists.all2(lam(_, _): false end, empty, empty) is true
 end
 
-
 check "map where: block":
   map(lam(_): raise("shipwrecked!");, [list: ]) is [list: ]
   map(lam(_): 2;, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
   map(lam(x): x + 1;, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
 end
 
-
-
 check "map2 where: block":
   map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
   map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
-
 check "map_n where: block":
   map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
-
 
 check "fold where: block":
   fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
@@ -142,11 +128,9 @@ check "foldr":
   lists.foldr(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 1, 2, 3]
 end
 
-
 check "fold2 where: block":
   fold2(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
 end
-
 
 check "fold_n where: block":
   lists.fold_n(lam(n, acc, _): n * acc end, 1, 1, [list: "a", "b", "c", "d"]) is 1 * 2 * 3 * 4
@@ -162,9 +146,6 @@ check "fold_n where: block":
     is true
 end
 
-
-
-
 check "member":
 
   # This is the old version that just uses == internally
@@ -177,10 +158,9 @@ check "member":
   traditional-member(l, f) raises "function"
   traditional-member(l, 5) is false
 
-
   lists.member3(l, 1) is E.Equal
   lists.member3(l, 3) is E.Equal
-  lists.member3(l, f) is E.Unknown
+  lists.member3(l, f) satisfies E.is-Unknown
   lists.member3(l, 5) satisfies E.is-NotEqual
 
   lists.member(l, 1) is true
@@ -205,7 +185,7 @@ check "member":
   lists.member-identical(l1, b1) is true
   lists.member-identical(l1, b2) is false
   lists.member-identical3(l1, b1) is E.Equal
-  lists.member-identical3(l1, b2) satisfies E.is-NotEqual  
+  lists.member-identical3(l1, b2) satisfies E.is-NotEqual
 
   b1!{v: 10}
 
@@ -228,4 +208,3 @@ check "shuffle":
   l-mixed2 = lists.shuffle(l)
   l-mixed2 is l-mixed
 end
-

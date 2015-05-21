@@ -595,11 +595,23 @@
 
 ;; render documentation for a function
 @(define (render-fun-helper spec name part-tag contract-in return-in args alt-docstrings examples contents)
-   (define is-method (symbol=? (first spec) 'method-spec))
+   (when (not (cons? spec))
+    (error (format "Could not find spec for ~a" name)))
+   (when (and (cons? args) (not (cons? (first args))))
+    (error (format "Args are not well-formed for ~a" name)))
+   (define (check-first elt)
+    (when (not (cons? elt))
+      (error (format "Ill-formed docs in ~a" name)))
+    (first elt))
+   (define is-method (symbol=? (check-first spec) 'method-spec))
    (let* ([contract (or contract-in (interp (get-defn-field 'contract spec)))] 
           [return (or return-in (interp (get-defn-field 'return spec)))] 
-          [orig-argnames (if (list? args) (map first args) (get-defn-field 'args spec))]
-          [input-types (map (lambda(i) (first (drop contract (+ 1 (* 2 i))))) (range 0 (length orig-argnames)))]
+          [orig-argnames (if (list? args) (map check-first args) (get-defn-field 'args spec))]
+          [input-types (map (lambda(i)
+            (define ret (drop contract (+ 1 (* 2 i))))
+            (when (empty? ret)
+              (error (format "Ill-formed args for ~a" name)))
+            (check-first ret)) (range 0 (length orig-argnames)))]
           [argnames (if is-method (drop orig-argnames 1) orig-argnames)]
           [input-types (if is-method (drop input-types 1) input-types)]
           [input-descr (if (list? args) (map second args) (map (lambda(i) #f) orig-argnames))]

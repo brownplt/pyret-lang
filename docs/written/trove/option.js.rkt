@@ -7,7 +7,7 @@
   @; Ignored type testers
   @section{The Option Datatype}
 
-  @data-spec2["Option" (list) (list
+  @data-spec2["Option" (list "a") (list
     @singleton-spec2["Option" "none"]
     @constructor-spec["Option" "some" s-some-args]
   )]

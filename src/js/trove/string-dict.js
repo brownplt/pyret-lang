@@ -173,10 +173,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return toreprElts();
         });
 
-        var equalsISD = runtime.makeMethod2(function(_, other, recursiveEquality) {
+        var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, 'equals');
           if (!hasBrand(brandImmutable, other)) {
-            return runtime.ffi.notEqual.app('');
+            return runtime.ffi.notEqual.app('', self, other);
           } else {
             var keys = getAllKeys();
             var otherKeysLength = get(other, 'count').app();
@@ -186,7 +186,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               } else {
                 var thisKey = keys.pop();
                 if (!get(other, 'has-key').app(userKey(thisKey))) {
-                  return runtime.ffi.notEqual.app('');
+                  return runtime.ffi.notEqual.app('', self, other);
                 } else {
                   return runtime.safeCall(function() {
                     return recursiveEquality.app(underlyingDict[thisKey],
@@ -203,7 +203,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               }
             }
             if (keys.length !== otherKeysLength) {
-              return runtime.ffi.notEqual.app('');
+              return runtime.ffi.notEqual.app('', self, other);
             } else {
               return equalsHelp();
             }
@@ -343,7 +343,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "equals");
           if (!hasBrand(brandMutable, other)) {
-            return runtime.ffi.notEqual.app("");
+            return runtime.ffi.notEqual.app("", self, other);
           } else {
             var keys = Object.keys(underlyingDict);
             var otherKeysLength = get(other, "count-now").app();
@@ -353,7 +353,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               } else {
                 var thisKey = keys.pop();
                 if (!get(other, 'has-key-now').app(userKey(thisKey))) {
-                  return runtime.ffi.notEqual.app('');
+                  return runtime.ffi.notEqual.app('', self, other);
                 } else {
                   return runtime.safeCall(function() {
                     return recursiveEquality.app(underlyingDict[thisKey],
@@ -370,7 +370,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
               }
             }
             if (keys.length !== otherKeysLength) {
-              return runtime.ffi.notEqual.app("");
+              return runtime.ffi.notEqual.app("", self, other);
             } else {
               return eqElts();
             }

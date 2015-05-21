@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
+define(["./matchers"], function (matchers) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -29,7 +29,6 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         thunkFalse,
         thunkNum;
 
-
     beforeEach(function(){
         output = "";
         rt = R.makeRuntime({'stdout' : stdout});
@@ -49,7 +48,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
     });
 
     function checkForPyretError(thunk) {
-      try{ 
+      try{
           thunk();
       }
       catch(e) {
@@ -68,26 +67,26 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(_and).not.toBeUndefined();
           expect(rt.isMethod(_and)).toEqual(true);
           var and = _and.full_meth;
-          
+
           //Base
-          expect(and(pTrue, thunkTrue).b).toBe(   true); 
-          expect(and(pFalse, thunkTrue).b).toBe(  false); 
-          expect(and(pTrue, thunkFalse).b).toBe(  false); 
-          expect(and(pFalse, thunkFalse).b).toBe( false); 
+          expect(and(pTrue, thunkTrue).b).toBe(   true);
+          expect(and(pFalse, thunkTrue).b).toBe(  false);
+          expect(and(pTrue, thunkFalse).b).toBe(  false);
+          expect(and(pFalse, thunkFalse).b).toBe( false);
 
           //Extended Bools
-          expect(and(pTrueExt, thunkTrue).b).toBe(   true); 
-          expect(and(pFalseExt, thunkTrue).b).toBe(  false    ); 
-          expect(and(pTrueExt, thunkFalse).b).toBe(  false); 
-          expect(and(pFalseExt, thunkFalse).b).toBe( false); 
+          expect(and(pTrueExt, thunkTrue).b).toBe(   true);
+          expect(and(pFalseExt, thunkTrue).b).toBe(  false    );
+          expect(and(pTrueExt, thunkFalse).b).toBe(  false);
+          expect(and(pFalseExt, thunkFalse).b).toBe( false);
 
           //Short Ciruiting
           expect(and(pFalse, thunkNum).b).toBe(false);
 
-          //Errors 
+          //Errors
           checkForPyretError(function() {and(pNum, thunkTrue);});
           checkForPyretError(function() {and(pTrue, thunkNum);});
-          
+
       });
       it("should have correct _or", function() {
 
@@ -95,23 +94,23 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(_or).not.toBeUndefined();
           expect(rt.isMethod(_or)).toEqual(true);
           var or = _or.full_meth;
-          
+
           //Base
-          expect(or(pTrue, thunkTrue).b).toBe(   true); 
-          expect(or(pFalse, thunkTrue).b).toBe(  true); 
-          expect(or(pTrue, thunkFalse).b).toBe(  true); 
-          expect(or(pFalse, thunkFalse).b).toBe( false); 
+          expect(or(pTrue, thunkTrue).b).toBe(   true);
+          expect(or(pFalse, thunkTrue).b).toBe(  true);
+          expect(or(pTrue, thunkFalse).b).toBe(  true);
+          expect(or(pFalse, thunkFalse).b).toBe( false);
 
           //Extended Bools
-          expect(or(pTrueExt, thunkTrue).b).toBe(   true); 
-          expect(or(pFalseExt, thunkTrue).b).toBe(  true); 
-          expect(or(pTrueExt, thunkFalse).b).toBe(  true); 
-          expect(or(pFalseExt, thunkFalse).b).toBe( false); 
+          expect(or(pTrueExt, thunkTrue).b).toBe(   true);
+          expect(or(pFalseExt, thunkTrue).b).toBe(  true);
+          expect(or(pTrueExt, thunkFalse).b).toBe(  true);
+          expect(or(pFalseExt, thunkFalse).b).toBe( false);
 
           //Short Ciruiting
           expect(or(pTrue, thunkNum).b).toBe(true);
 
-          //Errors 
+          //Errors
           checkForPyretError(function() {or(pNum, thunkTrue);});
           checkForPyretError(function() {or(pFalse, thunkNum);});
       });
@@ -121,16 +120,16 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(_not).not.toBeUndefined();
           expect(rt.isMethod(_not)).toEqual(true);
           var not = _not.full_meth;
-          
+
           //Base
-          expect(not(pTrue).b).toBe(   false); 
-          expect(not(pFalse).b).toBe(  true); 
+          expect(not(pTrue).b).toBe(   false);
+          expect(not(pFalse).b).toBe(  true);
 
           //Extended Bools
-          expect(not(pTrueExt).b).toBe(   false); 
-          expect(not(pFalseExt).b).toBe(  true); 
+          expect(not(pTrueExt).b).toBe(   false);
+          expect(not(pFalseExt).b).toBe(  true);
 
-          //Errors 
+          //Errors
           checkForPyretError(function() {not(pNum);});
       });
       it("should have correct tostring", function() {
@@ -139,16 +138,16 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(_tostring).not.toBeUndefined();
           expect(rt.isMethod(_tostring)).toEqual(true);
           var tostring = _tostring.full_meth;
-          
+
           //Base
-          expect(tostring(pTrue).s).toBe(   "true"); 
-          expect(tostring(pFalse).s).toBe(  "false"); 
+          expect(tostring(pTrue).s).toBe(   "true");
+          expect(tostring(pFalse).s).toBe(  "false");
 
           //Extended Bools
-          expect(tostring(pTrueExt).s).toBe(   "true"); 
-          expect(tostring(pFalseExt).s).toBe(  "false"); 
+          expect(tostring(pTrueExt).s).toBe(   "true");
+          expect(tostring(pFalseExt).s).toBe(  "false");
 
-          //Errors 
+          //Errors
           checkForPyretError(function() {tostring(pNum);});
       });
     });

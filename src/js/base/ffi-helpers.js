@@ -105,6 +105,13 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return err("message-exception")(message);
       }
 
+      function throwEqualityException(reason, v1, v2) {
+        runtime.checkString(reason);
+        runtime.checkPyretVal(v1);
+        runtime.checkPyretVal(v2);
+        raise(err("equality-failure")(reason, v1, v2));
+      }
+
       function throwTypeMismatch(val, typeName) {
         // NOTE(joe): can't use checkPyretVal here, because it will re-enter
         // this function and blow up... so bottom out at "nothing"
@@ -285,6 +292,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
         throwArityError: throwArityError,

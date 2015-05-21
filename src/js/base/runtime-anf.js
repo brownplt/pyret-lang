@@ -5,7 +5,6 @@ This is the runtime for the ANF'd version of pyret
 /** @typedef {!Object} */
 var Bignum;
 
-
 define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util"],
        function (Namespace, jsnums, codePoint, seedrandom, util) {
 
@@ -37,7 +36,7 @@ function makeRuntime(theOutsideWorld) {
     @param {!Object.<string, !PBase>} fields: a PObj whose fields will be added to the Pyret base
     If any of the fields exist, they will be overwritten with the new value
 
-    @return {!PBase} the extended object 
+    @return {!PBase} the extended object
 */
 function extendWith(fields) {
     /**@type {!Object}*/
@@ -54,7 +53,7 @@ function extendWith(fields) {
       }
 
       newDict[field] = fields[field];
-    } 
+    }
 
     var newObj = this.updateDict(newDict, allNewFields);
 
@@ -123,7 +122,7 @@ function hasProperty(obj, p) {
 }
 
 /**
-    Tests whether a JS Object has a property, but not on 
+    Tests whether a JS Object has a property, but not on
     any of its prototypes.
     Useful for objects that lack the .hasOwnProperty method
 
@@ -193,7 +192,7 @@ var emptyDict = Object.create(null);
 */
 function isBase(obj) { return obj instanceof PBase; }
 
-/********************   
+/********************
     Getting Fields
 ********************/
 /**
@@ -210,7 +209,7 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLocInternal(val, field, loc, isBang) {
-    if(val === undefined) { 
+    if(val === undefined) {
       if (ffi === undefined) {
         throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
       } else {
@@ -259,7 +258,6 @@ function extendObj(loc, val, extension) {
   if (!isObject(val)) { ffi.throwExtendNonObject(makeSrcloc(loc), val); }
   return val.extendWith(extension);
 }
-
 
 /**
   Gets the field from an object of the given name
@@ -317,8 +315,8 @@ function PNothing() {
   @param {!String} b The brand
   @return {!PNothing} With same dict
 */
-PNothing.prototype.brand = function(b) { 
-    var newNoth = makeNothing(); 
+PNothing.prototype.brand = function(b) {
+    var newNoth = makeNothing();
     return brandClone(newNoth, this, b);
 };
 /**Tests whether an object is a PNothing
@@ -340,9 +338,9 @@ var nothing = makeNothing();
     @param {Object} obj the item to test
     @return {boolean} true if object is a PNumber
 */
-function isNumber(obj) { 
-  return jsnums.isSchemeNumber(obj);
-}
+
+var isNumber = jsnums.isPyretNumber;
+
 function isJSNumber(obj) {
   return typeof obj === "number";
 }
@@ -367,7 +365,7 @@ function makeNumber(n) {
 
 /**Makes a PNumber using the given string
 
-  @param {string} s 
+  @param {string} s
   @return {!PNumber} with value n
 */
 function makeNumberFromString(s) {
@@ -385,7 +383,7 @@ function makeNumberFromString(s) {
     @param {Object} obj the item to test
     @return {boolean} true if object is a PString
 */
-function isString(obj) { 
+function isString(obj) {
   return typeof obj === 'string';
 }
 
@@ -400,7 +398,7 @@ function makeString(s) {
 }
 
 /*********************
-       Boolean 
+       Boolean
 **********************/
 //Boolean Singletons
 var pyretTrue =  true;
@@ -441,7 +439,7 @@ function isPyretFalse(b) {
 
     @param {Function} fun the function body
 */
-function PFunction(fun, arity) { 
+function PFunction(fun, arity) {
     /**@type {Function}*/
     this.app   = fun;
 
@@ -459,8 +457,8 @@ function PFunction(fun, arity) {
   @param {!string} b The brand to add
   @return {!PFunction} With same app and dict
 */
-PFunction.prototype.brand = function(b) { 
-    var newFun = makeFunction(this.app); 
+PFunction.prototype.brand = function(b) {
+    var newFun = makeFunction(this.app);
     return brandClone(newFun, this, b);
 };
 
@@ -476,12 +474,11 @@ function isFunction(obj) {return obj instanceof PFunction; }
   @return {!PFunction} with app of fun
 */
 function makeFunction(fun) {
-   return new PFunction(fun, fun.length); 
+   return new PFunction(fun, fun.length);
 }
 function makeFunctionArity(fun, arity) {
-   return new PFunction(fun, arity); 
+   return new PFunction(fun, arity);
 }
-
 
 /*********************
         Method
@@ -489,11 +486,11 @@ function makeFunctionArity(fun, arity) {
 
 /**The representation of a method
     @constructor
-    @param {Function} meth 
-    @param {Function} full_meth 
+    @param {Function} meth
+    @param {Function} full_meth
     @extends {PBase}
 */
-function PMethod(meth, full_meth) { 
+function PMethod(meth, full_meth) {
     /**@type {Function}*/
     this['meth']   = meth;
 
@@ -515,8 +512,8 @@ function PMethod(meth, full_meth) {
   @param {!string} b The brand to add
   @return {!PMethod} With same meth and dict
 */
-PMethod.prototype.brand = function(b) { 
-    var newMeth = makeMethod(this['meth'], this['full_meth']); 
+PMethod.prototype.brand = function(b) {
+    var newMeth = makeMethod(this['meth'], this['full_meth']);
     return brandClone(newMeth, this, b);
 };
 
@@ -534,7 +531,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @return {!PMethod} with app of fun
     */
     function makeMethod(meth, full_meth) {
-      return new PMethod(meth, full_meth); 
+      return new PMethod(meth, full_meth);
     }
     var app0 = function(obj) {
       var that = this;
@@ -702,7 +699,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function setRef(ref, value) {
       if(ref.state === UNGRAPHABLE || ref.state === SET) {
         return checkAnn(["references"], ref.anns, value, function(_) {
-          ref.value = value; 
+          ref.value = value;
           ref.state = SET;
           return ref;
         });
@@ -714,7 +711,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       ffi.throwMessageException("Attempt to get an unset ref");
     }
 
-
     /*********************
             Object
     **********************/
@@ -723,14 +719,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         @param {!Object.<string, !PBase>} dict
         @extends {PBase}
     */
-    function PObject(dict, brands) { 
+    function PObject(dict, brands) {
         /**@type {!Object.<string, !PBase>}*/
         this.dict = dict;
 
         /**@type {!Object.<string, Boolean>}*/
         this.brands = brands;
     }
-    //PObject.prototype = Object.create(PBase.prototype); 
+    //PObject.prototype = Object.create(PBase.prototype);
 
     PObject.prototype.updateDict = function(dict, keepBrands) {
       var newObj = new PObject(dict, keepBrands ? this.brands : noBrands);
@@ -740,8 +736,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     /**Clones the object
       @return {!PObject} With same dict
     */
-    PObject.prototype.brand = function(b) { 
-        var newObj = makeObject(this.dict); 
+    PObject.prototype.brand = function(b) {
+        var newObj = makeObject(this.dict);
         return brandClone(newObj, this, b);
     };
 
@@ -757,7 +753,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @return {!PObject} with given dict
     */
     function makeObject(dict) {
-       return new PObject(dict, noBrands); 
+       return new PObject(dict, noBrands);
     }
 
     function makeBrandedObject(dict, brands) {
@@ -800,7 +796,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return ret;
     }
 
-
     function isDataValue(v) {
       return hasProperty(v, "$name") && hasProperty(v, "$app_fields") && hasProperty(v, "$arity");
     }
@@ -812,8 +807,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           // Update fields in place with deref
           return getRef(value);
           fields[i] = getRef(fields[i]);
-        } else if(fieldIsRef) { 
-          ffi.throwMessageException("Cases on ref field needs to use ref"); 
+        } else if(fieldIsRef) {
+          ffi.throwMessageException("Cases on ref field needs to use ref");
         }
         else {
           return value;
@@ -839,7 +834,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return arr;
     }
 
-    
     /************************
           Type Checking
     ************************/
@@ -852,7 +846,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (typeof val === "string" || typeof val === "boolean" || val instanceof Array) {
         return true;
       }
-      else if (jsnums.isSchemeNumber(val)) {
+      else if (jsnums.isPyretNumber(val)) {
         return true;
       }
       else if (isObject(val) ||
@@ -876,19 +870,27 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
 
-
     var makeCheckType = function(test, typeName) {
       if (arguments.length !== 2) {
         // can't use checkArity yet because ffi isn't initialized
         throw("MakeCheckType was called with the wrong number of arguments: expected 2, got " + arguments.length);
       }
-      return function(val) { 
+      return function(val) {
         thisRuntime.checkArity(1, arguments, "runtime");
-        return checkType(val, test, typeName); 
+        return checkType(val, test, typeName);
       };
     }
     var checkString = makeCheckType(isString, "String");
     var checkNumber = makeCheckType(isNumber, "Number");
+    var checkExactnum = makeCheckType(jsnums.isRational, "Exactnum");
+    var checkRoughnum = makeCheckType(jsnums.isRoughnum, "Roughnum");
+    var checkNumInteger = makeCheckType(jsnums.isInteger, "NumInteger");
+    var checkNumRational = makeCheckType(jsnums.isRational, "NumRational");
+    var checkNumPositive = makeCheckType(jsnums.isPositive, "NumPositive");
+    var checkNumNegative = makeCheckType(jsnums.isNegative, "NumNegative");
+    var checkNumNonPositive = makeCheckType(jsnums.isNonPositive, "NumNonPositive");
+    var checkNumNonNegative = makeCheckType(jsnums.isNonNegative, "NumNonNegative");
+    // var checkArray = makeCheckType(isArray, "Array");
     var checkArray = makeCheckType(isArray, "RawArray");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
@@ -902,17 +904,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return val;
     };
 
-    var NumberC = makePrimitiveAnn("Number", isNumber);
-    var StringC = makePrimitiveAnn("String", isString);
-    var BooleanC = makePrimitiveAnn("Boolean", isBoolean);
-    var RawArrayC = makePrimitiveAnn("RawArray", isArray);
-    var FunctionC = makePrimitiveAnn("Function",
-      function(v) { return isFunction(v) || isMethod(v) });
-    var MethodC = makePrimitiveAnn("Method", isMethod);
-    var NothingC = makePrimitiveAnn("Nothing", isNothing);
-    var ObjectC = makePrimitiveAnn("Object", isObject);
-    var AnyC = makePrimitiveAnn("Any", function() { return true; });
-
     function confirm(val, test) {
       thisRuntime.checkArity(2, arguments, "runtime");
       if(!test(val)) {
@@ -920,7 +911,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return thisRuntime.unwrap(val);
     }
-
 
     /************************
        Builtin Functions
@@ -978,7 +968,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           case 13: ret.push('\\r'); break;
           case 34: ret.push('\\"'); break;
           case 92: ret.push('\\\\'); break;
-          default: 
+          default:
             if (val >= 32 && val <= 126) {
               ret.push( s.charAt(i) );
             }
@@ -1014,7 +1004,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               return null;
             }
             else {
-              if(matches[0].name === null) { 
+              if(matches[0].name === null) {
                 matches[0].name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
               }
               return matches[0].name;
@@ -1421,7 +1411,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
     function isPyretException(val) { return val instanceof PyretFailException; }
     PyretFailException.prototype.toString = function() {
-      var stackStr = this.pyretStack && this.pyretStack.length > 0 ? 
+      var stackStr = this.pyretStack && this.pyretStack.length > 0 ?
         this.getStack().map(function(s) {
             var g = getField;
             return s && hasField(s, "source") ? g(s, "source") +
@@ -1467,14 +1457,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       ffi.throwMessageException(str);
     }
 
-    var raiseJSJS = 
+    jsnums.setThrowRuntimeError(makeMessageException);
+
+    var raiseJSJS =
       /**
         Raises any Pyret value as an exception
         @param {!PBase} val the value to raise
       */
-      function(val) { 
+      function(val) {
         thisRuntime.checkArity(1, arguments, "raise");
-        throw new PyretFailException(val); 
+        throw new PyretFailException(val);
       };
     /** type {!PFunction} */
     var raisePyPy = makeFunction(raiseJSJS);
@@ -1485,7 +1477,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           Checks if an object has a given field
           @param {!PBase} obj The object to test
           @param {!PBase} str The field to test for, signals error if non-string
-          @return {!PBase} 
+          @return {!PBase}
         */
         function(obj, str) {
           thisRuntime.checkArity(2, arguments, "has-field");
@@ -1509,15 +1501,34 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else if (ffi.isNotEqual(e2)) { return e2; }
       else if (ffi.isUnknown(e1)) { return e1; }
     }
+
+    // equal3 :: PyretVal * PyretVal * Bool * (PyretNum U Undefined) * (Boolean U Undefined) -> EqualityResult
+
     // JS function from Pyret values to Pyret equality answers
-    function equal3(left, right, alwaysFlag) {
-      var isIdentical = identical3(left, right);
-      if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
-      
+
+    // Used for equal-always(3), equal-now(3), and within-(abs|rel)(3)
+
+    // left and right are two Pyret values to compare
+
+    // alwaysFlag is true for -always semantics (ref equality on mutables),
+    // false for -now semantics (cycle/deep equality on mutables)
+
+    // tol is the tolerance, expressed as a Pyret number (possibly an exact
+    // rational, possibly a roughnum).  For non-within calls, it isn't
+    // provided and is undefined.
+
+    // rel is a flag that indicates whether the tolerance should be
+    // interpreted as _absolute_ (two numbers are equal +/- tol) or _relative_
+    // (two numbers are equal +/- n * tol, where tol is between 0 and 1)
+    function equal3(left, right, alwaysFlag, tol, rel) {
+      if(tol === undefined) { // means that we aren't doing any kind of within
+        var isIdentical = identical3(left, right);
+        if (!ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
+      }
+
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: ffi.equal };
-      var current, curLeft, curRight, cache;
-      cache = {left: [], right: []};
+      var cache = {left: [], right: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
@@ -1530,30 +1541,46 @@ function isMethod(obj) { return obj instanceof PMethod; }
         cache.right.push(obj2);
       }
       function equalHelp() {
+        var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
           curLeft = current.left;
           curRight = current.right;
-          
+
           if (ffi.isEqual(identical3(curLeft, curRight))) {
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
-            if (jsnums.equals(curLeft, curRight)) {
+            if (tol) {
+              if (rel) {
+                var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
+                if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
+                  continue;
+                } else {
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+                }
+              } else if (jsnums.roughlyEquals(curLeft, curRight, tol)) {
+                continue;
+              } else {
+                toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+              }
+            } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
+              toCompare.curAns = ffi.unknown.app("Roughnums", curLeft, curRight);
+            } else if (jsnums.equals(curLeft, curRight)) {
               continue;
             } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
-            toCompare.curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown.app("Functions" , curLeft ,  curRight);
           } else if (isMethod(curLeft) && isMethod(curRight)) {
-            toCompare.curAns = ffi.unknown;
+            toCompare.curAns = ffi.unknown.app("Methods" , curLeft , curRight);
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
             } else {
-              toCompare.curAns = ffi.notEqual.app(current.path);
+              toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
             if (findPair(curLeft, curRight)) {
@@ -1562,9 +1589,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
               cachePair(curLeft, curRight);
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
-                  toCompare.curAns = ffi.notEqual.app(current.path); // We would've caught identical refs already
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
                 } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
@@ -1582,7 +1609,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
                     toCompare.stack.push({
@@ -1595,7 +1622,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                   /* Two objects with brands that differ */
-                  toCompare.curAns = ffi.notEqual.app(current.path);
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
@@ -1615,7 +1642,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     });
                     var fieldNames = curLeft.$constructor.$fieldNames;
                     for (var k = 0; k < fieldsLeft.length; k++) {
-                      toCompare.stack.push({ 
+                      toCompare.stack.push({
                         left: fieldsLeft[k],
                         right: fieldsRight[k],
                         path: current.path + "." + fieldNames[k]
@@ -1630,8 +1657,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   var fieldsRight;
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
-                  if(fieldsLeft.length !== fieldsRight.length) { 
-                    toCompare.curAns = ffi.notEqual.app(current.path); 
+                  if(fieldsLeft.length !== fieldsRight.length) {
+                    toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                   }
                   for(var k = 0; k < fieldsLeft.length; k++) {
                     toCompare.stack.push({
@@ -1642,7 +1669,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   }
                 }
               } else {
-                toCompare.curAns = ffi.notEqual.app(current.path);
+                toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
               }
             }
           }
@@ -1724,7 +1751,154 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var equalFunPy = makeFunction(reenterEqualFun);
       return reenterEqualFun(left, right);
     }
-        
+
+    function equalWithinAbsNow3(tol) {
+      thisRuntime.checkArity(1, arguments, "within-abs-now3");
+      thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
+      return makeFunction(function(l, r) {
+        return equal3(l, r, false, tol);
+      });
+    };
+
+    function equalWithinRelNow3(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel-now3");
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
+      }
+      return makeFunction(function(l, r) {
+        return equal3(l, r, false, relTol, true);
+      });
+    };
+
+    function equalWithinAbs3(tol) {
+      thisRuntime.checkArity(1, arguments, "within3");
+      thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
+      return makeFunction(function(l, r) {
+        return equal3(l, r, true, tol);
+      });
+    };
+
+    function equalWithinRel3(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel3");
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
+      }
+      return makeFunction(function(l, r) {
+        return equal3(l, r, true, relTol);
+      });
+    };
+
+    function equalWithinAbsNow(tol) {
+      thisRuntime.checkArity(1, arguments, "within-abs-now");
+      thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-abs-now");
+        return safeCall(function () {
+          return equal3(l, r, false, tol);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+          }
+        });
+      });
+    };
+
+    var equalWithinAbsNowPy = makeFunction(function(tol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinAbsNow(tol).app(l, r));
+      });
+    });
+
+    function equalWithin(tol) {
+      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkNumber(tol);
+      if (jsnums.lessThan(tol, 0)) {
+        throw makeMessageException('negative tolerance ' + tol);
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within");
+        return safeCall(function () {
+          return equal3(l, r, true, tol);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+          }
+        });
+      });
+    };
+
+    var equalWithinAbsPy = makeFunction(function(tol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithin(tol).app(l, r));
+      });
+    });
+
+    function equalWithinRelNow(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel");
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-rel");
+        return safeCall(function () {
+          return equal3(l, r, false, relTol, true);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+          }
+        });
+      });
+    };
+
+    var equalWithinRelNowPy = makeFunction(function(relTol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinRelNow(relTol).app(l, r));
+      });
+    });
+
+    function equalWithinRel(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel");
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-rel");
+        return safeCall(function () {
+          return equal3(l, r, true, relTol, true);
+        }, function(ans) {
+          if (ffi.isEqual(ans)) { return true; }
+          else if (ffi.isNotEqual(ans)) { return false; }
+          else if (ffi.isUnknown(ans)) {
+            ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+          }
+        });
+      });
+    };
+
+    var equalWithinRelPy = makeFunction(function(relTol) {
+      return makeFunction(function(l, r) {
+        return makeBoolean(equalWithinRel(relTol).app(l, r));
+      });
+    });
 
     // JS function from Pyret values to Pyret equality answers
     function equalAlways3(left, right) {
@@ -1734,8 +1908,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var eqAlwaysAns = function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-always"); }
-      };
+        else if (ffi.isUnknown(ans)) {
+          ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+        }
+    };
     // JS function from Pyret values to JS booleans (or throws)
     function equalAlways(v1, v2) {
       thisRuntime.checkArity(2, arguments, "equal-always");
@@ -1763,14 +1939,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }, function(ans) {
         if (ffi.isEqual(ans)) { return true; }
         else if (ffi.isNotEqual(ans)) { return false; }
-        else { ffi.throwMessageException("Attempted to compare functions or methods with equal-now"); }
+        else if (ffi.isUnknown(ans)) {
+          ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+        }
       });
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalNowPy = makeFunction(function(left, right) {
         return makeBoolean(equalNow(left, right));
     });
-  
 
     // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
@@ -1861,9 +2038,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     };
     // Pyret function from Pyret values to Pyret booleans
-    var samePyPy = makeFunction(function(v1, v2) { 
+    var samePyPy = makeFunction(function(v1, v2) {
       thisRuntime.checkArity(2, arguments, "same");
-      return makeBoolean(same(v1, v2)); 
+      return makeBoolean(same(v1, v2));
     });
     // JS function from Pyret values to Pyret booleans
     var sameJSPy = function(v1, v2) { return makeBoolean(same(v1, v2)); };
@@ -1871,13 +2048,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // JS function from Pyret values to Pyret equality answers
     function identical3(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
-        return ffi.unknown;
+        return ffi.unknown.app("Functions", v1,  v2);
       } else if (isMethod(v1) && isMethod(v2)) {
-        return ffi.unknown;
+        return ffi.unknown.app('Methods', v1,  v2);
+      } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
+        return ffi.unknown.app('Roughnums', v1,  v2);
       } else if (v1 === v2) {
         return ffi.equal;
       } else {
-        return ffi.notEqual.app("");
+        return ffi.notEqual.app("", v1, v2);
       }
     };
     // Pyret function from Pyret values to Pyret equality answers
@@ -1891,7 +2070,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var ans = identical3(v1, v2);
       if (ffi.isEqual(ans)) { return true; }
       else if (ffi.isNotEqual(ans)) { return false; }
-      else { ffi.throwMessageException("Attempted to compare functions or methods with identical"); }
+      else if (ffi.isUnknown(ans)) {
+        ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+      }
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var identicalPy = makeFunction(function(v1, v2) {
@@ -1942,7 +2123,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         })
       });
 
-
     function unwrap(v) {
       if(isNumber(v)) { return v; }
       else if(isString(v)) { return v; }
@@ -1953,7 +2133,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function wrap(v) {
-      if(jsnums.isSchemeNumber(v)) { return makeNumberBig(v); }
+      if(jsnums.isPyretNumber(v)) { return makeNumberBig(v); }
       else if(typeof v === "number") { return makeNumber(v); }
       else if(typeof v === "string") { return makeString(v); }
       else if(typeof v === "boolean") { return makeBoolean(v); }
@@ -1963,8 +2143,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function mkPred(jsPred) {
-      return makeFunction(function(v) { 
-        return makeBoolean(jsPred(v)); 
+      return makeFunction(function(v) {
+        return makeBoolean(jsPred(v));
       });
     }
 
@@ -2150,6 +2330,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     function makePrimitiveAnn(name, jsPred) {
       return new PPrimAnn(name, jsPred);
+    }
+
+    function makePrimAnn(name, jsPred) {
+      var nameC = new PPrimAnn(name, jsPred);
+          // NOTE(joe): the $type$ sadness is because we only have one dynamic
+          // namespace
+      runtimeNamespaceBindings['$type$' + name] = nameC;
+      runtimeNamespaceBindings[name] = nameC;
+      thisRuntime[name] = nameC;
     }
 
     function PAnnList(anns) {
@@ -2361,8 +2550,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @return {boolean} true if it is a FailueResult
     */
     function isFailureResult(val) { return val instanceof FailureResult; }
-    function makeFailureResult(e) { 
-      return new FailureResult(e); 
+    function makeFailureResult(e) {
+      return new FailureResult(e);
     }
 
     /**
@@ -2377,7 +2566,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function isCont(v) { return v instanceof Cont; }
     Cont.prototype.toString = function() {
       var stack = this.stack;
-      var stackStr = stack && stack.length > 0 ? 
+      var stackStr = stack && stack.length > 0 ?
         stack.map(function(s) {
           if(!s && s.from) { return "<blank frame>"; }
           else {
@@ -2452,12 +2641,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
 
-
-
     var RUN_ACTIVE = false;
     var currentThreadId = 0;
     var activeThreads = {};
-      
+
   function run(program, namespace, options, onDone) {
     // console.log("In run2");
     if(RUN_ACTIVE) {
@@ -2475,7 +2662,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function endTimer() {
       if (typeof window !== "undefined" && window.performance) {
-        return window.performance.now() - start; 
+        return window.performance.now() - start;
       } else if (typeof process !== "undefined" && process.hrtime) {
         return process.hrtime(start);
       }
@@ -2555,7 +2742,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           if(isPyretException(errVal)) {
             exn = errVal;
           } else {
-            exn = new PyretFailException(errVal); 
+            exn = new PyretFailException(errVal);
           }
           finishFailure(exn);
         }
@@ -2609,7 +2796,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             // console.log("Setting ans to " + JSON.stringify(val, null, "  "));
             next.ans = val;
             // console.log("GAS = ", thisRuntime.GAS);
-            
+
             if (next.fun instanceof Function) {
               val = next.fun(next);
             }
@@ -2707,13 +2894,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
   var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
   function ActivationRecord(from, fun, step, ans, args, vars) {
     this.from = from;
-    this.fun = fun; 
+    this.fun = fun;
     this.step = step;
     this.ans = ans;
     this.args = args;
     this.vars = vars;
-  }  
-  ActivationRecord.prototype.toString = function() { 
+  }
+  ActivationRecord.prototype.toString = function() {
     return "{from: " + this.from + ", fun: " + this.fun + ", step: " + this.step
       + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
       + ", vars: " + JSON.stringify(this.vars) + "}";
@@ -2902,7 +3089,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_plus").app(r);
           });
       } else {
-        ffi.throwPlusError(l, r);        
+        ffi.throwPlusError(l, r);
       }
     };
 
@@ -2938,7 +3125,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "_divide");
       if (thisRuntime.isNumber(l)) {
         thisRuntime.checkNumber(r);
-        if (jsnums.equals(0, r)) {
+        if (jsnums.equalsAnyZero(r)) {
           throw makeMessageException("Division by zero");
         }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r));
@@ -3124,7 +3311,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(min);
       thisRuntime.checkNumber(max);
       function exactCheck(name, val) {
-        if(!jsnums.isExactInteger(val)) {
+        if(!jsnums.isInteger(val)) {
           ffi.throwMessageException("substring: expected a positive integer for " + name + " index, but got " + String(val));
         }
       }
@@ -3217,7 +3404,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(2, arguments, "string-split-all");
       thisRuntime.checkString(s);
       thisRuntime.checkString(splitstr);
-      
+
       return ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_split = function(s, splitstr) {
@@ -3226,21 +3413,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(splitstr);
 
       var idx = s.indexOf(splitstr);
-      if (idx === -1) 
+      if (idx === -1)
         return ffi.makeList([thisRuntime.makeString(s)]);
       else
-        return ffi.makeList([thisRuntime.makeString(s.slice(0, idx)), 
+        return ffi.makeList([thisRuntime.makeString(s.slice(0, idx)),
                              thisRuntime.makeString(s.slice(idx + splitstr.length))]);
     }
     var string_charat = function(s, n) {
       thisRuntime.checkArity(2, arguments, "string-char-at");
       thisRuntime.checkString(s);
       thisRuntime.checkNumber(n);
-      if(!jsnums.isExactInteger(n) || n < 0) {
+      if(!jsnums.isInteger(n) || n < 0) {
         ffi.throwMessageException("string-char-at: expected a positive integer for the index, but got " + n);
       }
       if(n > (s.length - 1)) { ffi.throwMessageException("string-char-at: index " + n + " is greater than the largest index the string " + s); }
-      
+
       //TODO: Handle bignums that are beyond javascript
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
     }
@@ -3280,14 +3467,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
     var checkNatural = makeCheckType(function(val) {
-        return thisRuntime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
+        return thisRuntime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
       }, "Natural Number");
     var string_from_code_point = function(c) {
       thisRuntime.checkArity(1, arguments, "string-from-code-point");
       checkNatural(c);
       var c = jsnums.toFixnum(c);
       var ASTRAL_CUTOFF = 65535;
-      if(c > ASTRAL_CUTOFF) { 
+      if(c > ASTRAL_CUTOFF) {
         ffi.throwMessageException("Invalid code point: " + c);
       }
       try {
@@ -3328,7 +3515,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArity(1, arguments, "not");
       thisRuntime.checkBoolean(l);
       return thisRuntime.makeBoolean(!l);
-    }
+    };
 
     var rng = seedrandom("ahoy, world!");
 
@@ -3346,12 +3533,42 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return nothing;
     }
 
-    var num_equals = function(l, r) {
+    var num_equal = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-equals");
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       return thisRuntime.makeBoolean(jsnums.equals(l, r));
+    };
+
+    var num_within_abs = function(delta) {
+      thisRuntime.checkArity(1, arguments, "within");
+      thisRuntime.checkNumber(delta);
+      if (jsnums.lessThan(delta, 0)) {
+        throw makeMessageException('negative tolerance ' + delta);
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within");
+        thisRuntime.checkNumber(l);
+        thisRuntime.checkNumber(r);
+        return makeBoolean(jsnums.roughlyEquals(l, r, delta));
+      });
     }
+
+    var num_within_rel = function(relTol) {
+      thisRuntime.checkArity(1, arguments, "within-rel");
+      thisRuntime.checkNumber(relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
+      }
+      return makeFunction(function(l, r) {
+        thisRuntime.checkArity(2, arguments, "from within-rel");
+        thisRuntime.checkNumber(l);
+        thisRuntime.checkNumber(r);
+        var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol));
+        return makeBoolean(jsnums.roughlyEquals(l, r, absTol));
+      });
+    }
+
     var num_max = function(l, r) {
       thisRuntime.checkArity(2, arguments, "num-max");
       thisRuntime.checkNumber(l);
@@ -3371,7 +3588,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.abs(n));
     }
-      
+
     var num_sin = function(n) {
       thisRuntime.checkArity(1, arguments, "num-sin");
       thisRuntime.checkNumber(n);
@@ -3412,9 +3629,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_truncate = function(n) {
       thisRuntime.checkArity(1, arguments, "num-truncate");
       thisRuntime.checkNumber(n);
-      if (isNaN(n)) {
-        return n;
-      } else if (jsnums.greaterThanOrEqual(n, 0)) {
+      if (jsnums.greaterThanOrEqual(n, 0)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n));
       } else {
         return thisRuntime.makeNumberBig(jsnums.ceiling(n));
@@ -3440,15 +3655,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.floor(n));
     }
+    var num_round = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-round");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.round(n));
+    }
+    var num_round_even = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-round-even");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.roundEven(n));
+    }
     var num_log = function(n) {
       thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
-      if (jsnums.greaterThan(n, 0)) {
-        return thisRuntime.makeNumberBig(jsnums.log(n));
-      }
-      else {
-        throw makeMessageException("log: expected a number greater than 0 but got " + String(n));
-      }
+      return thisRuntime.makeNumberBig(jsnums.log(n));
     }
     var num_exp = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exp");
@@ -3458,12 +3678,57 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_exact = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exact");
       thisRuntime.checkNumber(n);
-      return thisRuntime.makeNumberBig(jsnums.toExact(n));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
+    }
+    var num_to_rational = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-rational");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
+    }
+    var num_to_roughnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-roughnum");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n));
+    }
+    var num_to_fixnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-to-fixnum");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.toFixnum(n));
     }
     var num_is_integer = function(n) {
       thisRuntime.checkArity(1, arguments, "num-is-integer");
       thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
+    }
+    var num_is_rational = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-rational");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isRational(n))
+    }
+    var num_is_roughnum = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-roughnum");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isRoughnum(n))
+    }
+    var num_is_positive = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-positive");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isPositive(n))
+    }
+    var num_is_negative = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-negative");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isNegative(n))
+    }
+    var num_is_non_positive = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-non-positive");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isNonPositive(n))
+    }
+    var num_is_non_negative = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-is-non-negative");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isNonNegative(n))
     }
     var num_is_fixnum = function(n) {
       thisRuntime.checkArity(1, arguments, "num-is-fixnum");
@@ -3490,36 +3755,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (n != n) { return thisRuntime.makeString("NaN"); }
       else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
       else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
-      else if (jsnums.equals(n, jsnums.negative_zero)) { 
-        var s = "-0.";
-        for (var i = 0; i < d; i++)
-          s += "0";
-        return thisRuntime.makeString(s);
-      } else if (jsnums.isReal(n)) {
+      else if (jsnums.isReal(n)) {
         n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
         var s = jsnums.toFixnum(n).toString().split(".");
         s[1] = (s[1] || "").substring(0, d);
         for (var i = s[1].length; i < d; i++)
           s[1] += "0";
         return thisRuntime.makeString(s[0] + "." + s[1]);
-      } else {
-        var nreal = jsnums.realPart(n);
-        nreal = jsnums.divide(jsnums.round(jsnums.multiply(nreal, tenDigits)), tenDigits)
-        var sreal = jsnums.toFixnum(nreal).toString().split(".");
-        sreal[1] = (sreal[1] || "").substring(0, d);
-        for (var i = sreal[1].length; i < d; i++)
-          sreal[1] += "0";
-        var nimag = jsnums.imaginaryPart(n);
-        nimag = jsnums.divide(jsnums.round(jsnums.multiply(nimag, tenDigits)), tenDigits)
-        var simag = jsnums.toFixnum(nimag).toString().split(".");
-        simag[1] = (simag[1] || "").substring(0, d);
-        for (var i = simag[1].length; i < d; i++)
-          simag[1] += "0";
-        if (simag[0][0] === "-" || simag[0][0] === "+") {
-          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + simag[0] + "." + simag[1] + "i");
-        } else {
-          return thisRuntime.makeString(sreal[0] + "." + sreal[1] + "+" + simag[0] + "." + simag[1] + "i");
-        }
       }
     }
     function random(max) {
@@ -3580,10 +3822,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
-    //Export the runtime
-    //String keys should be used to prevent renaming
-    var thisRuntime = {
-        'namespace': Namespace.namespace({
+    var runtimeNamespaceBindings = {
           'torepr': torepr,
           'tostring': tostring,
           'test-print': print,
@@ -3603,28 +3842,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
 
-          // NOTE(joe): the $type$ sadness is because we only have one dynamic
-          // namespace
-          '$type$Number': NumberC,
-          '$type$String': StringC,
-          '$type$Boolean': BooleanC,
-          '$type$Nothing': NothingC,
-          '$type$Function': FunctionC,
-          '$type$RawArray': RawArrayC,
-          '$type$Method': MethodC,
-          '$type$Object': ObjectC,
-          '$type$Any': AnyC,
-
-          'Number': NumberC,
-          'String': StringC,
-          'Boolean': BooleanC,
-          'Nothing': NothingC,
-          'Function': FunctionC,
-          'RawArray': RawArrayC,
-          'Method': MethodC,
-          'Object': ObjectC,
-          'Any': AnyC,
-
           'run-task': makeFunction(execThunk),
 
           'gensym': gensym,
@@ -3643,7 +3860,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-random-seed': makeFunction(num_random_seed),
           'num-max': makeFunction(num_max),
           'num-min': makeFunction(num_min),
-          'nums-equal': makeFunction(num_equals),
+          'num-equal': makeFunction(num_equal),
+          'num-within-abs': makeFunction(num_within_abs),
+          'num-within-rel': makeFunction(num_within_rel),
           'num-abs': makeFunction(num_abs),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
@@ -3657,17 +3876,28 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-sqr': makeFunction(num_sqr),
           'num-ceiling': makeFunction(num_ceiling),
           'num-floor': makeFunction(num_floor),
+          'num-round': makeFunction(num_round),
+          'num-round-even': makeFunction(num_round_even),
           'num-log': makeFunction(num_log),
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
+          'num-to-rational': makeFunction(num_to_rational),
+          'num-to-roughnum': makeFunction(num_to_roughnum),
+          'num-to-fixnum': makeFunction(num_to_fixnum),
           'num-is-integer': makeFunction(num_is_integer),
+          'num-is-rational': makeFunction(num_is_rational),
+          'num-is-roughnum': makeFunction(num_is_roughnum),
+          'num-is-positive': makeFunction(num_is_positive),
+          'num-is-negative': makeFunction(num_is_negative),
+          'num-is-non-positive': makeFunction(num_is_non_positive),
+          'num-is-non-negative': makeFunction(num_is_non_negative),
           'num-is-fixnum': makeFunction(num_is_fixnum),
           'num-expt': makeFunction(num_expt),
           'num-tostring': makeFunction(num_tostring),
           'num-to-string': makeFunction(num_tostring),
           'num-to-string-digits': makeFunction(num_tostring_digits),
 
-          'strings-equal': makeFunction(string_equals),
+          'string-equal': makeFunction(string_equals),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
@@ -3713,9 +3943,28 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'equal-always3': makeFunction(equalAlways3),
           'equal-always': equalAlwaysPy,
 
+          'within-abs-now3' : makeFunction(equalWithinAbsNow3),
+          'within-rel-now3' : makeFunction(equalWithinRelNow3),
+          'within-abs3' : makeFunction(equalWithinAbs3),
+          'within-rel3' : makeFunction(equalWithinRel3),
+          'within-abs-now': equalWithinAbsNowPy,
+          'within-rel-now': equalWithinRelNowPy,
+          'within-abs': equalWithinAbsPy,
+          'within-rel': equalWithinRelPy,
+
+          'num-within': makeFunction(num_within_rel),
+          'within-now3' : makeFunction(equalWithinRelNow3),
+          'within3' : makeFunction(equalWithinRel3),
+          'within-now': equalWithinRelNowPy,
+          'within': equalWithinRelPy,
+
           'exn-unwrap': makeFunction(getExnValue)
 
-        }),
+        };
+
+    //Export the runtime
+    //String keys should be used to prevent renaming
+    var thisRuntime = {
         'run': run,
         'runThunk': runThunk,
         'safeCall': safeCall,
@@ -3745,16 +3994,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
 
-        'Number': NumberC,
-        'String': StringC,
-        'Boolean': BooleanC,
-        'RawArray': RawArrayC,
-        'Any': AnyC,
-        'Function': FunctionC,
-        'Method': MethodC,
-        'Object': ObjectC,
-        'Nothing': NothingC,
-
         'makeCont'    : makeCont,
         'isCont'      : isCont,
         'makePause'   : makePause,
@@ -3779,6 +4018,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isBase'      : isBase,
         'isNothing'   : isNothing,
         'isNumber'    : isNumber,
+        'isRoughnum'  : jsnums.isRoughnum,
         'isString'    : isString,
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
@@ -3895,7 +4135,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'raw_array_length': raw_array_length,
         'raw_array_to_list': raw_array_to_list,
 
-
         'not': bool_not,
 
         'equiv': sameJSPy,
@@ -3906,6 +4145,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'equal_always3': equalAlways3,
         'equal_always': equalAlways,
         'combineEquality': combineEquality,
+
+        'within': equalWithin, //?
 
         'raise': raiseJSJS,
 
@@ -3960,11 +4201,30 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'hasParam' : hasParam
     };
 
+    makePrimAnn("Number", isNumber);
+    makePrimAnn("Exactnum", jsnums.isRational);
+    makePrimAnn("Roughnum", jsnums.isRoughnum);
+    makePrimAnn("NumInteger", jsnums.isInteger);
+    makePrimAnn("NumRational", jsnums.isRational);
+    makePrimAnn("NumPositive", jsnums.isPositive);
+    makePrimAnn("NumNegative", jsnums.isNegative);
+    makePrimAnn("NumNonPositive", jsnums.isNonPositive);
+    makePrimAnn("NumNonNegative", jsnums.isNonNegative);
+    makePrimAnn("String", isString);
+    makePrimAnn("Boolean", isBoolean);
+    makePrimAnn("RawArray", isArray);
+    makePrimAnn("Function", function(v) { return isFunction(v) || isMethod(v) });
+    makePrimAnn("Method", isMethod);
+    makePrimAnn("Nothing", isNothing);
+    makePrimAnn("Object", isObject);
+    makePrimAnn("Any", function() { return true; });
+
+    thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);
+
     var ffi = {
       contractOk: true,
       isOk: function() { return true; }
     }
-
 
     var list;
     var srcloc;

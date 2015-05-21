@@ -349,6 +349,26 @@ where:
 end
 }
 
+@subsection[#:tag "s:when-exp"]{When Expressions}
+
+A when expression has a single test condition with a corresponding
+block.
+
+@justcode{
+when-expr: "when" binop-expr COLON block "end"
+}
+
+For example:
+
+@pyret-block{
+when x == 42:
+  print("answer")
+end
+}
+
+If the test condition is true, the block is evaluated. If the
+test condition is false, nothing is done, and @pyret{nothing} is returned.
+
 @subsection[#:tag "s:var-expr"]{Variable Declarations}
 
 Variable declarations look like @seclink["s:let-expr" "let bindings"], but

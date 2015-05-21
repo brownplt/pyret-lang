@@ -72,7 +72,6 @@ check "basics":
   sd-many-as is-not sd-almost-many-as
   sd-almost-many-as is-not sd-many-as
 
-
   isd2.keys() is [tree-set: "a", "b"]
 
   isd2.has-key("a") is true
@@ -80,7 +79,6 @@ check "basics":
 end
 
 check "Immutable string dicts":
-
 
   isd2 is-not sd2
   isd3 is-not sd3

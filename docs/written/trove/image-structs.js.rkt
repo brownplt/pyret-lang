@@ -5,26 +5,27 @@
    (ignore (list name))
    (item name ": "
          (make-element (make-style "relax" (list (make-color-property (list r g b)))) "abc123") " "
-         (make-element (make-style "relax" (list (make-background-color-property (list r g b)))) "abc123"))))
+         (make-element (make-style "relax" (list (make-background-color-property (list r g b)))) "abc123")))
+@(define number (a-id "Number" (xref "<global>" "Number")))
+@(define color-args (list
+      `("red"   ("type" "normal") ("contract" ,number))
+      `("green" ("type" "normal") ("contract" ,number))
+      `("blue"  ("type" "normal") ("contract" ,number))
+      `("alpha" ("type" "normal") ("contract" ,number))))
 
 @docmodule["image-structs"]{
   @; Ignored type testers
   @ignore[(list "is-color")]
   @section[#:tag "image-structs_DataTypes"]{Data types}
-  @data-spec["Color"]{
-    @variants{
-      @constr-spec["color"]{
-        @members{
-          @member-spec["red"]
-          @member-spec["green"]
-          @member-spec["blue"]
-          @member-spec["alpha"]
-        }
-        @with-members{}
-      }
+  @data-spec2["Color" (list) (list
+    @constructor-spec["Color" "color" color-args]
+  )]
+  @nested[#:style 'inset]{
+    @constructor-doc["Color" "color" color-args (a-id "Color" (xref "image-structs" "Color"))]{
+      Valid arguments are in the range 0--255, inclusive.
     }
-    @shared{}
   }
+
   @section{Predefined colors}
   The following colors are predefined constants:
   @itemlist[

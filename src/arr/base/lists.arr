@@ -234,7 +234,6 @@ data List<a>:
       end
     end,
 
-
 sharing:
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
@@ -300,6 +299,9 @@ fun reverse-help<a>(lst :: List<a>, acc :: List<a>) -> List<a>:
     | empty => acc
     | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
   end
+where:
+  reverse-help([list: ], [list: ]) is [list: ]
+  reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
@@ -387,7 +389,6 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-
 fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
@@ -449,7 +450,6 @@ fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
   end
   help(lst1, lst2)
 end
-
 
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(elem) for each elem in lst"
@@ -708,7 +708,7 @@ end
 
 fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
   ask:
-    | is-empty(lst) then: equality.NotEqual("list")
+    | is-empty(lst) then: equality.NotEqual("list", elt, lst)
     | is-link(lst) then:
       f = lst.first
       r = lst.rest

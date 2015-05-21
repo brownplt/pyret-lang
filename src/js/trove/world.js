@@ -336,8 +336,14 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
       DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
           var that = this;
           var worldFunction = function(world, success) {
-              success([toplevelNode,
-                       rawJsworld.node_to_tree(String(world))]);
+              var textNode = jQuery("<pre>");
+              runtime.safeCall(function() {
+                return runtime.toReprJS(world, "_torepr");
+              }, function(str) {
+                textNode.text(str);
+                success([toplevelNode,
+                         rawJsworld.node_to_tree(textNode[0])]);
+              });
           };
           var cssFunction = function(w, success) { success([]); }
           return rawJsworld.on_draw(worldFunction, cssFunction);

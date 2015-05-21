@@ -1,4 +1,3 @@
-
 examples:
   add(1, 2) is 3
   add(1/2, 10000/20000) is 1
@@ -17,24 +16,24 @@ examples:
   mul(1/3, 3) is 1
   mul(1/2, 4) is 2
 
-  nums-equal(1/100000000000000, 10000/1000000000000000000) is true
-  nums-equal(1, 2) is false
-  nums-equal(0, 0) is true
-  nums-equal(555555555555555 * 666666666666 * 7, 7 * 555555555555555 * 666666666666) is true
-  nums-equal(true, 5) raises "Number"
-  nums-equal(33, false) raises "Number"
+  num-equal(1/100000000000000, 10000/1000000000000000000) is true
+  num-equal(1, 2) is false
+  num-equal(0, 0) is true
+  num-equal(555555555555555 * 666666666666 * 7, 7 * 555555555555555 * 666666666666) is true
+  num-equal(true, 5) raises "Number"
+  num-equal(33, false) raises "Number"
 
   num-tostring("a") raises "Number"
   num-tostring(5) is "5"
   num-tostring(1/2) is "1/2"
 
-  strings-equal("abcd", "abcd") is true
-  strings-equal("", "") is true
-  strings-equal("a", "") is false
-  strings-equal("", "b") is false
-  strings-equal("abcd efgh", "abcdefgh") is false
-  strings-equal(42, "a") raises "String"
-  strings-equal("a", 55) raises "String"
+  string-equal("abcd", "abcd") is true
+  string-equal("", "") is true
+  string-equal("a", "") is false
+  string-equal("", "b") is false
+  string-equal("abcd efgh", "abcdefgh") is false
+  string-equal(42, "a") raises "String"
+  string-equal("a", 55) raises "String"
 
   either(true, true) is true
   either(true, false) is true
@@ -54,4 +53,3 @@ examples:
   not(false) is true
   not("nab") raises "Boolean"
 end
-

@@ -47,7 +47,7 @@ cases (C.ParsedArguments) parsed-options:
         print("")
 
         comp = CM.compile-js(CM.start, dialect, file-contents, file, libs,
-          {check-mode: check-mode, collect-all: true, ignore-unbound: true, type-check: type-check}).tolist()
+          {check-mode: check-mode, proper-tail-calls: true, collect-all: true, ignore-unbound: true, type-check: type-check}).tolist()
 
         for each(phase from comp):
           print(">>>>>>>>>>>>>>>>>>")
