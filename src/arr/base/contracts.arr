@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import lists as L
+import error-display as ED
 
 data ContractResult:
   | ok
@@ -52,5 +53,9 @@ data FailureReason:
     _tostring(self, shadow tostring):
       "Couldn't find the annotation field " + self.field + " on " + self.name
     end
+sharing:
+  render-reason(self):
+    ED.text(self._tostring(torepr))
+  end
 end
 

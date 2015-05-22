@@ -27,24 +27,51 @@ data RuntimeError:
       "Internal error: " + self.message + "; relevant arguments: " + torepr(self.info-args)
     end
   | field-not-found(loc, obj, field :: String) with:
-    _tostring(self, shadow tostring):
-      "Error at " + self.loc.format(true) + ": field " + self.field + " not found on " + torepr(self.obj)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
+          draw-and-highlight(self.loc)],
+        [ED.para: ED.text("The object was:")],
+        ED.embed(self.obj)]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
-    _tostring(self, shadow tostring):
-      "Error at " + self.loc.format(true) + ": tried to look up field " + self.field + " on " + torepr(self.non-obj) + ", but it does not have fields"
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Tried to look up field"), ED.code(ED.text(self.field)),
+          ED.text("on a non-object in the lookup expression at"),
+          draw-and-highlight(self.loc)],
+        [ED.para: ED.text("The non-object was:")],
+        ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
-    _tostring(self, shadow tostring):
-      "Error at " + self.loc.format(true) + ": tried to extend a non-object " + torepr(self.non-obj)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Tried to extend a non-object in the expression at"),
+          draw-and-highlight(self.loc)],
+        [ED.para: ED.text("The non-object was:")],
+        ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
-    _tostring(self, shadow tostring):
-      "Error: expected a Boolean for the condition of a " + self.typ + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
+          ED.text("for the test in the"), ED.text(self.typ), ED.text("expression at"),
+          draw-and-highlight(self.loc), ED.text(" but got:")],
+        ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
-    _tostring(self, shadow tostring):
-      "Error: expected a Boolean for the " + self.position + " argument to " + self.typ + " at " + self.loc.format(true) + ", but got " + torepr(self.value)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
+          ED.text("for the"), ED.text(self.position), ED.text("argument in the"),
+          ED.text(self.typ), ED.text("expression at"),
+          draw-and-highlight(self.loc), ED.text(" but got:")],
+        ED.embed(self.value)]
     end
   | generic-type-mismatch(val, typ :: String) with:
     _tostring(self, shadow tostring):
@@ -55,12 +82,30 @@ data RuntimeError:
       "Error: expected a number between " + torepr(self.low) + " and " + torepr(self.high) + ", but got " + torepr(self.val)
     end
   | plus-error(val1, val2) with:
-    _tostring(self, shadow tostring):
-      "Error: Invalid use of +.  Either both arguments must be strings, both must be numbers, or the left operand must have a _plus method. Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Invalid use of"), ED.code(ED.text("+")), ED.text("for these values:")],
+        [ED.para: ED.embed(self.val1)],
+        [ED.para: ED.embed(self.val2)],
+        ED.text("Plus takes one of:"),
+        [ED.bulleted:
+          ED.text("Two numbers"),
+          ED.text("Two strings"),
+          [ED.para: ED.text("A left-hand operand that has a"), ED.code(ED.text("_plus")), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, methodname) with:
-    _tostring(self, shadow tostring):
-      "Error: Invalid use of " + self.opname + ".  Either both arguments must be numbers, or the left operand must have a " + self.methodname + " method.  Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
+        [ED.para: ED.embed(self.val1)],
+        [ED.para: ED.embed(self.val2)],
+        ED.text("Either:"),
+        [ED.bulleted:
+          ED.text("Both arguments must be numbers, or"),
+          [ED.para:
+            ED.text("The left operand must have a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity) with:
     render-reason(self):
@@ -100,8 +145,12 @@ data RuntimeError:
       "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())
     end
   | non-function-app(loc, non-fun-val) with:
-    _tostring(self, shadow tostring):
-      "Error: Expected a function at " + self.loc.format(true) + ", but got " + torepr(self.non-fun-val)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Expected a function in the application expression at"),
+          draw-and-highlight(self.loc), ED.text(" but got:")],
+        ED.embed(self.non-fun-val)]
     end
   | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val)
   | uninitialized-id(loc, name :: String) with:
@@ -109,8 +158,13 @@ data RuntimeError:
       "Error: The identifier " + self.name + " was used at " + self.loc.format(true) + " before it was defined."
     end
   | module-load-failure(names) with: # names is List<String>
-    _tostring(self, shadow tostring):
-      "Error: The following modules failed to load: " + torepr(self.names)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          if self.names.length() == 1: ED.text("The following module failed to load:")
+          else:                        ED.text("The following modules failed to load:")
+          end],
+        ED.h-sequence(self.names.map(ED.text), ", ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     _tostring(self, shadow tostring):
@@ -122,7 +176,10 @@ data RuntimeError:
         " and " + torepr(self.value2) + "; " + self.reason
     end
 
-  | user-break
+  | user-break with:
+    render-reason(self):
+      [ED.error: ED.text("Program stopped by user")]
+    end
 sharing:
   render-reason(self):
     ED.text(self._tostring(tostring))
@@ -131,16 +188,45 @@ end
 
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
-    _tostring(self, shadow tostring):
-      "parse error around " + self.loc.format(true) + ", next token was " + self.next-token
+    render-reason(self):
+      missing =
+        [ED.error:
+          [ED.para: ED.text("The program is missing something")],
+          [ED.para-nospace:
+            ED.text("Look carefully before the "), ED.styled(ED.text("highlighted text"), 'error-highlight'),
+            ED.text(".  Is something missing just before it?"),
+            ED.text("  Common missing items are colons ("), ED.code(ED.text(":")),
+            ED.text("), commas ("), ED.code(ED.text(",")), ED.text("), string markers ("),
+            ED.code(ED.text("\"")), ED.text("), and keywords.")],
+          [ED.para: ED.styled(ED.text("Usually, inserting the missing item will fix this error."), "hint")]]
+      extra =
+        [ED.error:
+          [ED.para: ED.text("The program contains something extra")],
+          [ED.para-nospace:
+            ED.text("Look carefully before the "), ED.styled(ED.text("highlighted text"), 'error-highlight'),
+            ED.text(".  Does it contains something extra?"),
+            ED.text("  A common source of errors is typing too much text or in the wrong order.")],
+          [ED.para:
+            ED.styled(ED.text("Usually, removing the extra item will fix this error."), "hint"),
+            ED.text("However, you may have meant to keep this text, so think before you delete!")]]
+      [ED.error:
+        [ED.para: ED.text("Pyret didn't understand your program around"), draw-and-highlight(self.loc)],
+        [ED.opt:
+          [ED.para: ED.text("Typical reasons for getting this error are")],
+          [ED.bulleted: missing, extra]]]
     end
   | parse-error-eof(loc) with:
-    _tostring(self, shadow tostring):
-      "parse error at end of file at " + self.loc.format(true)
+    render-reason(self):
+      [ED.error: [ED.para:
+          ED.text("Pyret didn't understand the very end of your program."),
+          ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" right at the end.")]]
     end
   | parse-error-unterminated-string(loc) with:
-    _tostring(self, shadow tostring):
-      "parse error with an incomplete string literal, starting around " + self.loc.format(true)
+    render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("Pyret thinks your program has an incomplete string literal around "),
+          draw-and-highlight(self.loc),
+          ED.text("; you may be missing closing punctuation.")]]
     end
   | empty-block(loc) with:
     _tostring(self, shadow tostring):
