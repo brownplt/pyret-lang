@@ -4,6 +4,7 @@ provide *
 provide-types *
 import ast as A
 import srcloc as SL
+import error-display as ED
 
 type Loc = SL.Srcloc
 
@@ -21,172 +22,332 @@ data CompileResult<C>:
   | err(problems :: List<CompileError>)
 end
 
+fun draw-and-highlight(l):
+  ED.loc-display(l, "error-highlight", ED.loc(l))
+end
+
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    _tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + tostring(self.loc) end
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Well-formedness:"),
+          ED.text(self.msg),
+          ED.text("at")],
+        draw-and-highlight(self.loc)]
+    end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    _tostring(self, shadow tostring): "well-formedness: " + self.msg + " at " + self.loc.map(tostring).join-str(", ") end
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Well-formedness:"),
+          ED.text(self.msg),
+          ED.text("at")],
+        ED.v-sequence(self.loc.map(draw-and-highlight), ", ")]
+    end
   | reserved-name(loc :: Loc, id :: String) with:
-    _tostring(self, shadow tostring):
-      "well-formedness: cannot use " + self.id + " as an identifier at " + tostring(self.loc) end
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Well-formedness: Pyret disallows the use of"),
+          ED.text(self.id),
+          ED.text("as an identifier")],
+        draw-and-highlight(self.loc)]
+    end
   | zero-fraction(loc, numerator) with:
-    _tostring(self, shadow tostring):
-      "well-formedness: fraction literal with zero denominator (numerator was " + tostring(self.numerator) + " at " + tostring(self.loc)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Well-formedness: fraction literal with zero denominator (numerator was"),
+          ED.val(self.numerator),
+          ED.text(") at")],
+        draw-and-highlight(self.loc)]
     end
   | underscore-as-expr(l :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Underscore used as an expression at " + tostring(self.l) + ", which is not allowed."
+    render-reason(self):
+      [ED.error: 
+        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
+        draw-and-highlight(self.l)]
     end
   | underscore-as-ann(l :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Underscore used as an annotation at " + tostring(self.l) + ", which is not allowed."
+    render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
+        draw-and-highlight(self.l)]
     end
   | unbound-id(id :: A.Expr) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + tostring(self.id.id) + " is used at " + tostring(self.id.l) + ", but is not defined"
+    render-reason(self):
+      cases(SL.Srcloc) self.id.l:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
+            ED.text(self.id.id.toname()),
+            draw-and-highlight(self.id.l)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.id.id.toname())), ED.text("is used but not defined at")],
+            draw-and-highlight(self.id.l)]
+      end
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Assigning to unbound variable " + self.id + " at " + tostring(self.loc)
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
+            ED.text(self.id),
+            draw-and-highlight(self.id.l)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The variable"), ED.code(ED.text(self.id)), ED.text("is assigned to, but not defined, at")],
+            draw-and-highlight(self.loc)]
+      end
     end
   | unbound-type-id(ann :: A.Ann) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + self.ann.id.toname() + " is used as a type name at " + tostring(self.ann.l) + ", but is not defined as a type."
+    render-reason(self):
+      cases(SL.Srcloc) self.ann.l:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
+            ED.text(self.ann.tosource().pretty(1000)),
+            draw-and-highlight(self.id.l)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.ann.id.toname())),
+              ED.text("is used as a type but not defined as one, at")],
+            draw-and-highlight(self.ann.l)]
+      end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable"
+    #### TODO ###
+    render-reason(self):
+      ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
   | pointless-var(loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "The anonymous mutable variable at " + tostring(self.loc) + " can never be re-used"
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("Defining an anonymous variable is pointless: there is no name to modify."),
+              ED.text("Either give this expression a name, or bind it to an identifier rather than a variable.")],
+            draw-and-highlight(self.loc)]
+      end
     end
   | pointless-rec(loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "The anonymous recursive identifier at " + tostring(self.loc) + " can never be re-used"
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("Defining an anonymous recursive identifier is pointless: there is no name to call recursively."),
+              ED.text("Either give this expression a name, or remove the rec annotation.")],
+            draw-and-highlight(self.loc)]
+      end
     end
   | pointless-shadow(loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "The anonymous identifier at " + tostring(self.loc) + " can't actually shadow anything"
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("Anonymous identifier cannot shadow anything: there is no name to shadow."),
+              ED.text("Either give this expression a name, or remove the shadow annotation.")],
+            draw-and-highlight(self.loc)]
+      end
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + self.id + " is assigned at " + tostring(self.loc)
-        + ", but its definition at " + self.prev-loc.format(not(self.loc.same-file(self.prev-loc)))
-        + " is not assignable.  (Only names declared with var are assignable.)"
+    render-reason(self):
+      cases(SL.Srcloc) self.prev-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is defined as an identifier,"),
+              ED.text("but it is assigned as if it were a variable at"),
+              draw-and-highlight(self.loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is defined as an identifier,"),
+              ED.text("but it is assigned as if it were a variable at"),
+              draw-and-highlight(self.loc)],
+            [ED.para:
+              ED.text("One possible fix is to change the declaration of"), ED.code(ED.text(self.id)),
+              ED.text("to use"), ED.code(ED.text("var")), ED.text("at"), draw-and-highlight(self.prev-loc)]]
+      end
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
-        + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")"
+    render-reason(self):
+      ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
+          + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + self.id + " is declared at " + tostring(self.new-loc)
-        + ", but is already declared at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
+    render-reason(self):
+      cases(SL.Srcloc) self.prev-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
+              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
+              draw-and-highlight(self.new-loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
+              ED.text("twice, at")],
+            draw-and-highlight(self.old-loc),
+            draw-and-highlight(self.new-loc),
+            [ED.para: ED.text("You need to pick a different name for one of them.")]]
+      end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "Identifier " + self.id + " is declared twice, at " + tostring(self.new-loc)
-        + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
+    render-reason(self):
+      cases(SL.Srcloc) self.prev-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
+              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
+              draw-and-highlight(self.new-loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
+              ED.text("twice, at")],
+            draw-and-highlight(self.old-loc),
+            draw-and-highlight(self.new-loc),
+            [ED.para: ED.text("You need to pick a different name for one of them.")]]
+      end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    _tostring(self, shadow tostring):
-      "The field " + self.id + " is declared twice, at " + tostring(self.new-loc)
-        + " and at " + self.old-loc.format(not(self.new-loc.same-file(self.old-loc)))
+    render-reason(self):
+      cases(SL.Srcloc) self.prev-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The field name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
+              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
+              draw-and-highlight(self.new-loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("It looks like you've defined the field name"), ED.code(ED.text(self.id)),
+              ED.text("twice, at")],
+            draw-and-highlight(self.old-loc),
+            draw-and-highlight(self.new-loc),
+            [ED.para: ED.text("You need to pick a different name for one of them.")]]
+      end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
-        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + "."
+    render-reason(self):
+      ED.text("Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
+        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + ".")
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
-        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + "."
+    render-reason(self):
+      ED.text("Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
+        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + ".")
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "Incorrect number of arguments given to function at line " + tostring(self.loc) + "."
+    render-reason(self):
+      ED.text("Incorrect number of arguments given to function at line " + tostring(self.loc) + ".")
     end
   | apply-non-function(loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "You tried to apply something that is not a function at line " + tostring(self.loc) + "."
+    render-reason(self):
+      ED.text("The program tried to apply something that is not a function at line " + tostring(self.loc) + ".")
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The object type " + self.obj
+    render-reason(self):
+      ED.text("The object type " + self.obj
         + " (defined at " + tostring(self.obj-loc)
         + ") does not have the field \"" + self.field-name
-        + "\" (accessed at line " + tostring(self.access-loc) + ")."
+        + "\" (accessed at line " + tostring(self.access-loc) + ").")
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The branch " + self.branch-name
+    render-reason(self):
+      ED.text("The branch " + self.branch-name
         + " (defined at " + tostring(self.branch-loc)
         + ") is not a variant of " + self.type-name
-        + " (declared at " + tostring(self.type-loc) + ")"
+        + " (declared at " + tostring(self.type-loc) + ")")
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The else branch for the cases expression at " + tostring(self.loc)
-        + " is not needed since all variants of " + self.type-name + " have been exhausted."
+    render-reason(self):
+      ED.text("The else branch for the cases expression at " + tostring(self.loc)
+        + " is not needed since all variants of " + self.type-name + " have been exhausted.")
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The cases expression at " + tostring(self.loc)
+    render-reason(self):
+      ED.text("The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
-        + ". It is missing: " + self.missing.join-str(", ") + "."
+        + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The type specified " + self.type-name
+    render-reason(self):
+      ED.text("The type specified " + self.type-name
         + " at " + tostring(self.loc)
-        + " cannot be used in a cases expression."
+        + " cannot be used in a cases expression.")
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
-    _tostring(self, shadow tostring):
-      "Incorrect number of bindings given to "
+    render-reason(self):
+      ED.text("Incorrect number of bindings given to "
         + "the variant " + self.variant-name
         + " at " + tostring(self.loc) + ". "
         + "Given " + num-tostring(self.given)
         + ", but expected " + num-tostring(self.expected)
-        + "."
+        + ".")
     end
-  | cases-singleton-mismatch(branch-name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    _tostring(self, shadow tostring):
+  | cases-singleton-mismatch(branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
+    render-reason(self):
       if self.should-be-singleton:
-        "The cases branch " + self.branch-name
-          + " at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
+        [ED.error:
+          ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+          ED.text("has an argument list, but the variant is a singleton.")]
       else:
-        "The cases branch at " + self.branch-loc.format(true) + " expects the value being examined to be a singleton, but it actually has fields"
+        [ED.error:
+          ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+          ED.text("doesn't have an argument list, but the variant is not a singleton.")]
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "The data type " + self.data-type
+    render-reason(self):
+      ED.text("The data type " + self.data-type
         + " does not take any parameters,"
         + " but is given some at " + tostring(self.loc)
-        + "."
+        + ".")
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      "There is not enough information to instantiate the type at " + tostring(self.loc)
-         + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly."
+    render-reason(self):
+      ED.text("There is not enough information to instantiate the type at " + tostring(self.loc)
+         + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly.")
     end
   | cant-typecheck(reason :: String) with:
-    _tostring(self, shadow tostring):
-      "This program cannot be type-checked. Please send it to the developers. " +
-        "The reason that it cannot be type-checked is: " + self.reason
+    render-reason(self):
+      ED.text("This program cannot be type-checked. Please send it to the developers. " +
+        "The reason that it cannot be type-checked is: " + self.reason)
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
-    _tostring(self, shadow tostring):
-      self.message + " (found at " + tostring(self.blame-loc) + ")"
+    render-reason(self):
+      ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
-    _tostring(self, shadow tostring):
-      "There is no module imported with the name " + self.mod-name
-        + " (used at " + tostring(self.loc) + ")"
+    render-reason(self):
+      ED.text("There is no module imported with the name " + self.mod-name
+        + " (used at " + tostring(self.loc) + ")")
     end
 end
 

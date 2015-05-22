@@ -222,7 +222,13 @@ function isBase(obj) { return obj instanceof PBase; }
     "nothing": function(val) { return "nothing"; },
     "function": function(val) { return "<function>"; },
     "method": function(val) { return "<method>"; },
-    "opaque": function(val) { return "<internal value>"; },
+    "opaque": function(val) { 
+      if (thisRuntime.imageLib.isImage(val.val)) {
+        return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
+      } else {
+        return "<internal value>"; 
+      }
+    },
     "object": function(val, pushTodo) {
       var keys = [];
       var vals = [];
@@ -4284,13 +4290,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var ffi;
     loadModulesNew(thisRuntime.namespace,
       [require("trove/lists"), require("trove/srcloc")],
-      function(listsLib, srclocLib) {
+      function(listsLib, srclocLib, errordisplayLib) {
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });
-    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
+    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
       ffi = f;
       thisRuntime["ffi"] = ffi;
+      thisRuntime["imageLib"] = i;
     });
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app

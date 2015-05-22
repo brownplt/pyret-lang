@@ -106,7 +106,7 @@ fun main(args):
           | err(errors) =>
             print-error("Compilation errors:")
             for lists.each(e from errors):
-              print-error(tostring(e))
+              print-error(e.render-reason().to-string())
             end
             raise("There were compilation errors")
         end

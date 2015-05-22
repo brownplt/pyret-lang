@@ -3,6 +3,12 @@ provide-types *
 # import arrays as A
 # import lists as L
 
+import error-display as ED
+
+fun draw-and-highlight(l):
+  ED.loc-display(l, "error-highlight", ED.loc(l))
+end
+
 data RuntimeError:
   | message-exception(message :: String) with:
     _tostring(self, shadow tostring):
@@ -57,17 +63,36 @@ data RuntimeError:
       "Error: Invalid use of " + self.opname + ".  Either both arguments must be numbers, or the left operand must have a " + self.methodname + " method.  Got: \n" + torepr(self.val1) + "\nand \n" + torepr(self.val2)
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity) with:
-    _tostring(self, shadow tostring):
-      "Error: The cases branch at " + self.branch-loc.format(true) + " expects " + tostring(self.num-args)
-        + " arguments, but the actual value has " + tostring(self.actual-arity)
-        + (if self.actual-arity == 1: " field" else: " fields" end)
+    render-reason(self):
+      [ED.error:
+        if self.num-args < self.actual-arity:
+          [ED.para:
+            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+            ED.text("expects only"), ED.embed(self.num-args),
+            if self.num-args == 1: ED.text("argument,") else: ED.text("arguments,") end,
+            ED.text("but the actual value has"), ED.embed(self.actual-arity),
+            if self.actual-arity == 1: ED.text("field") else: ED.text("fields") end]
+        else:
+          [ED.para:
+            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+            ED.text("expects"), ED.embed(self.num-args),
+            if self.num-args == 1: ED.text("argument,") else: ED.text("arguments,") end,
+            ED.text("but the actual value has only"), ED.embed(self.actual-arity),
+            if self.actual-arity == 1: ED.text("field") else: ED.text("fields") end]
+        end]
     end
   | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean) with:
-    _tostring(self, shadow tostring):
+    render-reason(self):
       if self.should-be-singleton:
-        "Error: The cases branch at " + self.branch-loc.format(true) + " expects to receive parameters, but the value being examined is a singleton"
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+            ED.text("has an argument list, but the variant is a singleton.")]]
       else:
-        "Error: The cases branch at " + self.branch-loc.format(true) + " expects the value being examined to be a singleton, but it actually has fields"
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
+            ED.text("doesn't have an argument list, but the variant is not a singleton.")]]
       end
     end
   | arity-mismatch(fun-loc, expected-arity, args) with:
@@ -98,6 +123,10 @@ data RuntimeError:
     end
 
   | user-break
+sharing:
+  render-reason(self):
+    ED.text(self._tostring(tostring))
+  end
 end
 
 data ParseError:
@@ -135,4 +164,8 @@ data ParseError:
     _tostring(self, shadow tostring): "app-args-missing-comma: " + self.loc.format(true) end
   | missing-end(loc)
   | missing-comma(loc)
+sharing:
+  render-reason(self):
+    ED.text(self._tostring(tostring))
+  end
 end
