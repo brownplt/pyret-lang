@@ -198,7 +198,7 @@ data CompileError:
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self):
-      cases(SL.Srcloc) self.prev-loc:
+      cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
@@ -217,7 +217,7 @@ data CompileError:
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self):
-      cases(SL.Srcloc) self.prev-loc:
+      cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
@@ -236,7 +236,7 @@ data CompileError:
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self):
-      cases(SL.Srcloc) self.prev-loc:
+      cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:

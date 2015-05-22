@@ -12,25 +12,25 @@ data ErrorDisplay:
   | code(contents :: ErrorDisplay)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
 sharing:
-  to-string(self): display-to-string(self) end
+  to-string(self): display-to-string(self, torepr) end
 end
 
-fun display-to-string(e):
+fun display-to-string(e, embed-display):
   cases(ErrorDisplay) e:
     | text(str) => str
-    | embed(val) => torepr(val)
+    | embed(val) => embed-display(val)
     | loc(l) => tostring(l)
     | loc-display(l, _, contents) =>
       cases(ErrorDisplay) contents:
         | loc(l2) =>
-          if l2 == l: display-to-string(contents)
-          else: display-to-string(contents) + " (at " + tostring(l) + ")"
+          if l2 == l: display-to-string(contents, embed-display)
+          else: display-to-string(contents, embed-display) + " (at " + tostring(l) + ")"
           end
-        | else => display-to-string(contents) + " (at " + tostring(l) + ")"
+        | else => display-to-string(contents, embed-display) + " (at " + tostring(l) + ")"
       end
-    | code(contents) => "`" + display-to-string(contents) + "`"
-    | h-sequence(contents, sep) => contents.map(display-to-string).join-str(sep)
-    | v-sequence(contents) => contents.map(display-to-string).join-str("\n")
+    | code(contents) => "`" + display-to-string(contents, embed-display) + "`"
+    | h-sequence(contents, sep) => contents.map(display-to-string(_, embed-display)).join-str(sep)
+    | v-sequence(contents) => contents.map(display-to-string(_, embed-display)).join-str("\n")
   end
 end
 

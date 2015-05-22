@@ -89,14 +89,25 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                           callingRt.pauseStack(function(restarter) {
                             execRt.runThunk(function() {
                               if(execRt.isPyretVal(r.exn.exn)) {
-                                return execRt.string_append(
-                                  // This should be replaced with a cmdline-renderer
-                                  // execRt.toReprJS(r.exn.exn, execRt.ReprMethods._tostring),
-                                  // for now, directly call the _tostring method
-                                  execRt.getColonField(r.exn.exn, "_tostring")
-                                    .full_meth(r.exn.exn, execRt.namespace.get("tostring")),
-                                  execRt.makeString("\n" +
-                                                    execRt.printPyretStack(r.exn.pyretStack)));
+                                // This is not quite flexible enough:
+                                // it should call display-to-string, passing in a pretty-printer
+                                // renderer to be used for embedded values.
+                                // For now, we're just calling it via the to-string() method,
+                                // which hardcodes using the default _torepr renderer
+                                return execRt.safeCall(
+                                  function() { 
+                                    return execRt.getColonField(r.exn.exn, "render-reason").full_meth(r.exn.exn);
+                                  }, function(reason) {
+                                    return execRt.safeCall(
+                                      function() { 
+                                        return execRt.getColonField(reason, "to-string").full_meth(reason);
+                                      }, function(str) {
+                                        return execRt.string_append(
+                                          str,
+                                          execRt.makeString("\n" +
+                                                            execRt.printPyretStack(r.exn.pyretStack)));
+                                      }, "errordisplay->to-string");
+                                  }, "error->display");
                               } else {
                                 return String(r.exn + "\n" + r.exn.stack);
                               }
