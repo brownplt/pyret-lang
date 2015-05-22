@@ -2967,17 +2967,23 @@ function isMethod(obj) { return obj instanceof PMethod; }
     return obj instanceof ActivationRecord;
   }
 
-    function printPyretStack(stack) {
-      if (stack === undefined) return "  undefined";
-      var stackStr = stack.map(function(val) {
-        if (val instanceof Array && val.length == 7) {
-          return (val[0] + ": line " + val[1] + ", column " + val[2]);
-        } else if (val) {
-          return JSON.stringify(val);
-        }
-      });
-      return "  " + stackStr.join("\n  ");
+  // we can set verbose to true to include the <builtin> srcloc positions
+  // and the "safecall for ..." internal frames
+  // but by default, it's now terser
+  function printPyretStack(stack, verbose) {
+    if (stack === undefined) return "  undefined";
+    if (!verbose) {
+      stack = stack.filter(function(val) { return val instanceof Array && val.length == 7; });
     }
+    var stackStr = stack.map(function(val) {
+      if (val instanceof Array && val.length == 7) {
+        return (val[0] + ": line " + val[1] + ", column " + val[2]);
+      } else if (val) {
+        return JSON.stringify(val);
+      }
+    });
+    return "  " + stackStr.join("\n  ");
+  }
 
     function breakAll() {
       RUN_ACTIVE = false;

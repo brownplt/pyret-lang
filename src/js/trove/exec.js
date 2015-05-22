@@ -104,7 +104,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                                       }, function(str) {
                                         return execRt.string_append(
                                           str,
-                                          execRt.makeString("\n" +
+                                          execRt.makeString("\nStack trace:\n" +
                                                             execRt.printPyretStack(r.exn.pyretStack)));
                                       }, "errordisplay->to-string");
                                   }, "error->display");
