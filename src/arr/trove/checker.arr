@@ -24,83 +24,83 @@ data TestResult:
   | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
     render-reason(self):
       [ED.error: 
-        cases(Option) self.refinement:
-          | none    => ED.text("Values not equal")
-          | some(_) => ED.text("Values not equal (using custom equality):")
-        end,
-        ED.embed(self.left),
-        ED.embed(self.right)]
+        [ED.para: cases(Option) self.refinement:
+            | none    => ED.text("Values not equal")
+            | some(_) => ED.text("Values not equal (using custom equality):")
+          end],
+        [ED.para: ED.embed(self.left)],
+        [ED.para: ED.embed(self.right)]]
     end
   | failure-not-different(loc :: Loc, code :: String, refinement, left, right) with:
     render-reason(self):
-      [ED.error: 
-        cases(Option) self.refinement:
-          | none    => ED.text("Values not different")
-          | some(_) => ED.text("Values not different (using custom equality):")
-        end,
-        ED.embed(self.left),
-        ED.embed(self.right)]
+      [ED.error:
+        [ED.para: cases(Option) self.refinement:
+            | none    => ED.text("Values not different")
+            | some(_) => ED.text("Values not different (using custom equality):")
+          end],
+        [ED.para: ED.embed(self.left)],
+        [ED.para: ED.embed(self.right)]]
     end
   | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
     render-reason(self):
       [ED.error:
-        ED.text("Predicate failed for value:"),
-        ED.embed(self.val)]
+        [ED.para: ED.text("Predicate failed for value:")],
+        [ED.para: ED.embed(self.val)]]
     end
   | failure-not-dissatisfied(loc :: Loc, code :: String, val, pred) with:
     render-reason(self):
       [ED.error:
-        ED.text("Predicate succeeded for value (it should have failed):"),
-        ED.embed(self.val)]
+        [ED.para: ED.text("Predicate succeeded for value (it should have failed):")],
+        [ED.para: ED.embed(self.val)]]
     end
   | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
     render-reason(self):
       [ED.error:
-        ED.text("Got unexpected exception "),
-        ED.embed(self.actual-exn),
-        ED.text("when expecting "),
-        ED.embed(self.exn-expected)]
+        [ED.para: ED.text("Got unexpected exception ")],
+        [ED.para: ED.embed(self.actual-exn)],
+        [ED.para: ED.text("when expecting ")],
+        [ED.para: ED.embed(self.exn-expected)]]
     end
   | failure-right-exn(loc :: Loc, code :: String, exn-not-expected, actual-exn) with:
     render-reason(self):
       [ED.error:
-        ED.text("Got exception "),
-        ED.embed(self.actual-exn),
-        ED.text("and expected it not to contain "),
-        ED.embed(self.exn-not-expected)]
+        [ED.para: ED.text("Got exception ")],
+        [ED.para: ED.embed(self.actual-exn)],
+        [ED.para: ED.text("and expected it not to contain ")],
+        [ED.para: ED.embed(self.exn-not-expected)]]
     end
   | failure-exn(loc :: Loc, code :: String, actual-exn) with:
     render-reason(self):
       [ED.error:
-        ED.text("Got unexpected exception "),
-        ED.embed(self.actual-exn)]
+        [ED.para: ED.text("Got unexpected exception ")],
+        [ED.para: ED.embed(self.actual-exn)]]
     end
   | failure-no-exn(loc :: Loc, code :: String, exn-expected :: Option<String>) with:
     render-reason(self):
       cases(Option) self.exn-expected:
-        | some(exn) => [ED.error: ED.text("No exception raised, expected"), ED.embed(exn)]
-        | none      => [ED.error: ED.text("No exception raised")]
+        | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
+        | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end
   | failure-raise-not-satisfied(loc :: Loc, code :: String, exn, pred) with:
     render-reason(self):
       [ED.error:
-        ED.text("Predicate failed for exception:"),
-        ED.embed(self.exn)]
+        [ED.para: ED.text("Predicate failed for exception:")],
+        [ED.para: ED.embed(self.exn)]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, code :: String, exn, pred) with:
     render-reason(self):
       [ED.error:
-        ED.text("Predicate succeeded for exception (it should have failed):"),
-        ED.embed(self.exn)]
+        [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
+        [ED.para: ED.embed(self.exn)]]
     end
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
     render-reason(self):
       [ED.error:
-        ED.text("The custom equality funtion must return a boolean, but instead it returned: "),
-        ED.embed(self.test-result)]
+        [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
+        [ED.para: ED.embed(self.test-result)]]
     end
 end
 
@@ -120,7 +120,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(on-failure())
     end
   end
-  fun reset-results(): current-results := [list: ];
+  fun reset-results(): current-results := [list: ] end
   {
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
@@ -139,12 +139,12 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     check-is(self, code, left, right, loc):
       check-bool(loc, code,
         left == right,
-        lam(): failure-not-equal(loc, code, none, left, right);)
+        lam(): failure-not-equal(loc, code, none, left, right) end)
     end,
     check-is-not(self, code, left, right, loc):
       check-bool(loc, code,
         not(left == right),
-        lam(): failure-not-different(loc, code, none, left, right);)
+        lam(): failure-not-different(loc, code, none, left, right) end)
     end,
     check-is-refinement(self, code, refinement, left, right, loc):
       test-result = refinement(left, right)
@@ -152,7 +152,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
       else:
         check-bool(loc, code, test-result,
-          lam(): failure-not-equal(loc, code, some(refinement), left, right);)
+          lam(): failure-not-equal(loc, code, some(refinement), left, right) end)
       end
     end,
     check-is-not-refinement(self, code, refinement, left, right, loc):
@@ -161,18 +161,18 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
       else:
         check-bool(loc, code, not(test-result),
-          lam(): failure-not-different(loc, code, some(refinement), left, right);)
+          lam(): failure-not-different(loc, code, some(refinement), left, right) end)
       end
     end,
     check-satisfies(self, code, left, pred, loc):
       check-bool(loc, code,
         pred(left),
-        lam(): failure-not-satisfied(loc, code, left, pred);)
+        lam(): failure-not-satisfied(loc, code, left, pred) end)
     end,
     check-satisfies-not(self, code, left, pred, loc):
       check-bool(loc, code,
         not(pred(left)),
-        lam(): failure-not-dissatisfied(loc, code, left, pred);)
+        lam(): failure-not-dissatisfied(loc, code, left, pred) end)
     end,
     check-raises(self, code, thunk, expected, comparator, on-failure, loc):
       result = run-task(thunk)

@@ -8,6 +8,10 @@ import error-display as ED
 fun draw-and-highlight(l):
   ED.loc-display(l, "error-highlight", ED.loc(l))
 end
+fun vert-list-values(vals):
+  ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
+end
+
 
 data RuntimeError:
   | message-exception(message :: String) with:
@@ -34,7 +38,7 @@ data RuntimeError:
       [ED.error:
         [ED.para: ED.text("Internal error:"), ED.text(self.message)],
         [ED.para: ED.text("Relevant arguments:")],
-        ED.v-sequence(self.info-args.map(ED.embed))]
+        vert-list-values(self.info-args)]
     end
   | field-not-found(loc, obj, field :: String) with:
     render-reason(self):
@@ -175,7 +179,7 @@ data RuntimeError:
               [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
               draw-and-highlight(caller-loc),
               [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              ED.v-sequence(self.args.map(ED.embed))]
+              vert-list-values(self.args)]
           else:
             [ED.error:
               [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity),
@@ -184,14 +188,14 @@ data RuntimeError:
               [ED.para: ED.text("from")],
               draw-and-highlight(caller-loc),
               [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              ED.v-sequence(self.args.map(ED.embed))]
+              vert-list-values(self.args)]
           end
         end,
         [ED.error:
           [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
           draw-and-highlight(self.fun-loc),
           [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-          ED.v-sequence(self.args.map(ED.embed))])
+          vert-list-values(self.args)])
     end
   | non-function-app(loc, non-fun-val) with:
     render-reason(self):
