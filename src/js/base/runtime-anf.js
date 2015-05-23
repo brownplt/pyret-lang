@@ -1493,6 +1493,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
             arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
           );
       }
+      else {
+        return getField(srcloc, "builtin").app(String(arr));
+      }
     }
 
     function makePyretFailException(exn) {
@@ -4296,7 +4299,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var ffi;
     loadModulesNew(thisRuntime.namespace,
       [require("trove/lists"), require("trove/srcloc")],
-      function(listsLib, srclocLib, errordisplayLib) {
+      function(listsLib, srclocLib) {
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });

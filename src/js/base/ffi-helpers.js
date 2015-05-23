@@ -390,7 +390,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         checkResultsSummary: checkResultsSummary,
 
         makeList: makeList,
-          makeTreeSet: makeTreeSet,
+        makeTreeSet: makeTreeSet,
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },

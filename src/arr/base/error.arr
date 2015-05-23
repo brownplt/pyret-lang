@@ -11,20 +11,30 @@ end
 
 data RuntimeError:
   | message-exception(message :: String) with:
-    _tostring(self, shadow tostring):
-      self.message
+    render-reason(self):
+      [ED.error: [ED.para: ED.text(self.message)]]
     end
   | no-cases-matched(loc, val) with:
-    _tostring(self, shadow tostring):
-      "At " + self.loc.format(true) + ", no branches matched in the cases expression for value\n" + torepr(self.val)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("No branches matched in the cases expression at"),
+          draw-and-highlight(self.loc), ED.text("for value")],
+        ED.embed(self.val)]
     end
   | no-branches-matched(loc, expression :: String) with:
-    _tostring(self, shadow tostring):
-      "No branches matched in the `" + self.expression + "` expression at " + self.loc.format(true)
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("No branches matched in the"), ED.code(ED.text(self.expression)),
+          ED.text("expression at"), draw-and-highlight(self.loc)]]
     end
   | internal-error(message, info-args) with:
-    _tostring(self, shadow tostring):
-      "Internal error: " + self.message + "; relevant arguments: " + torepr(self.info-args)
+    render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Internal error:"), ED.text(self.message)],
+        [ED.para: ED.text("Relevant arguments:")],
+        ED.v-sequence(self.info-args.map(ED.embed))]
     end
   | field-not-found(loc, obj, field :: String) with:
     render-reason(self):
@@ -74,12 +84,24 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | generic-type-mismatch(val, typ :: String) with:
-    _tostring(self, shadow tostring):
-      "Error: expected " + self.typ + ", but got " + torepr(self.val)
+    render-reason(self):
+      ED.maybe-stack-loc(0, true,
+        lam(loc):
+          [ED.error:
+            [ED.para:
+              ED.text("Expected to get a"), ED.embed(self.typ), ED.text("as an argument, but got this instead:")],
+            ED.embed(self.val),
+            [ED.para: ED.text("at"), draw-and-highlight(loc)]]
+        end,
+        [ED.error:
+          [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
     end
   | outside-numeric-range(val, low, high) with:
-    _tostring(self, shadow tostring):
-      "Error: expected a number between " + torepr(self.low) + " and " + torepr(self.high) + ", but got " + torepr(self.val)
+    render-reason(self):
+      [ED.error:
+        [ED.para-nospace: ED.text("expected a number between "), ED.embed(self.low),
+          ED.text(" and "), ED.embed(self.high),
+          ED.text(", but got"), ED.embed(self.val)]]
     end
   | plus-error(val1, val2) with:
     render-reason(self):
@@ -141,8 +163,35 @@ data RuntimeError:
       end
     end
   | arity-mismatch(fun-loc, expected-arity, args) with:
-    _tostring(self, shadow tostring):
-      "Error: The function at " + self.fun-loc.format(true) + " expects " + tostring(self.expected-arity) + " arguments, but got " + tostring(self.args.length())
+    render-reason(self):
+      num-args = self.args.length()
+      this-str = if num-args == 1: "this" else: "these" end
+      arg-str = if num-args == 1: "argument:" else: "arguments:" end
+      exp-arg-str = if self.expected-arity == 1: "argument" else: "arguments" end
+      ED.maybe-stack-loc(0, true,
+        lam(caller-loc):
+          if self.fun-loc.is-builtin():
+            [ED.error:
+              [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              ED.v-sequence(self.args.map(ED.embed))]
+          else:
+            [ED.error:
+              [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity),
+                ED.text(exp-arg-str + " when calling the function at")],
+              draw-and-highlight(self.fun-loc),
+              [ED.para: ED.text("from")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              ED.v-sequence(self.args.map(ED.embed))]
+          end
+        end,
+        [ED.error:
+          [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
+          draw-and-highlight(self.fun-loc),
+          [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+          ED.v-sequence(self.args.map(ED.embed))])
     end
   | non-function-app(loc, non-fun-val) with:
     render-reason(self):
@@ -152,10 +201,15 @@ data RuntimeError:
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.non-fun-val)]
     end
-  | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val)
+  | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val) with:
+    render-reason(self):
+      [ED.error: ED.text(tostring(self))]
+    end
   | uninitialized-id(loc, name :: String) with:
-    _tostring(self, shadow tostring):
-      "Error: The identifier " + self.name + " was used at " + self.loc.format(true) + " before it was defined."
+    render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("The name"), ED.code(ED.text(self.name)), ED.text("was used at"),
+          draw-and-highlight(self.loc), ED.text("before it was defined.")]]
     end
   | module-load-failure(names) with: # names is List<String>
     render-reason(self):
@@ -167,23 +221,31 @@ data RuntimeError:
         ED.h-sequence(self.names.map(ED.text), ", ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
-    _tostring(self, shadow tostring):
-      "Error: Bad array index " + tostring(self.index) + " in " + self.method-name + ": " + self.reason
+    render-reason(self):
+      ED.maybe-stack-loc(0, true,
+        lam(loc):
+          [ED.error:
+            [ED.para: ED.text("Invalid array index"), ED.code(ED.embed(self.index)),
+              ED.text("around the function call at"), draw-and-highlight(loc),
+              ED.text("because:"), ED.text(self.reason)]]
+        end,
+        [ED.error:
+          [ED.para: ED.text("Invalid array index"), ED.code(ED.embed(self.index)),
+            ED.text("because:"), ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
-    _tostring(self, shadow tostring):
-      "Error: Attempted to compare incomparable values " + torepr(self.value1) +
-        " and " + torepr(self.value2) + "; " + self.reason
+    render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Attempted to compare the following two incomparable values:")],
+        ED.embed(self.value1),
+        ED.embed(self.value2),
+        [ED.para: ED.text(self.reason)]]
     end
 
   | user-break with:
     render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
-sharing:
-  render-reason(self):
-    ED.text(self._tostring(tostring))
-  end
 end
 
 data ParseError:

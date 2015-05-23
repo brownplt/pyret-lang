@@ -122,8 +122,8 @@ data CompileError:
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    #### TODO ###
     render-reason(self):
+      #### TODO ###
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
   | pointless-var(loc :: Loc) with:
@@ -192,6 +192,7 @@ data CompileError:
       end
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
@@ -254,24 +255,29 @@ data CompileError:
       end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
         + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + ".")
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
         + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + ".")
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("Incorrect number of arguments given to function at line " + tostring(self.loc) + ".")
     end
   | apply-non-function(loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The program tried to apply something that is not a function at line " + tostring(self.loc) + ".")
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The object type " + self.obj
         + " (defined at " + tostring(self.obj-loc)
@@ -279,6 +285,7 @@ data CompileError:
         + "\" (accessed at line " + tostring(self.access-loc) + ").")
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The branch " + self.branch-name
         + " (defined at " + tostring(self.branch-loc)
@@ -286,23 +293,27 @@ data CompileError:
         + " (declared at " + tostring(self.type-loc) + ")")
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted.")
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The type specified " + self.type-name
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression.")
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
+    #### TODO ###
     render-reason(self):
       ED.text("Incorrect number of bindings given to "
         + "the variant " + self.variant-name
@@ -324,6 +335,7 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("The data type " + self.data-type
         + " does not take any parameters,"
@@ -331,20 +343,24 @@ data CompileError:
         + ".")
     end
   | unable-to-instantiate(loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text("There is not enough information to instantiate the type at " + tostring(self.loc)
          + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly.")
     end
   | cant-typecheck(reason :: String) with:
+    #### TODO ###
     render-reason(self):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason)
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
+    #### TODO ###
     render-reason(self):
       ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
+    #### TODO ###
     render-reason(self):
       ED.text("There is no module imported with the name " + self.mod-name
         + " (used at " + tostring(self.loc) + ")")

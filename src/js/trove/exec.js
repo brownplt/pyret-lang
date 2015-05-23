@@ -1,4 +1,4 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "js/dialects-lib", "js/runtime-util"], function(loader, ffi, runtimeLib, checkerLib, dialectsLib, util) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "trove/render-error-display", "js/dialects-lib", "js/runtime-util"], function(loader, ffi, runtimeLib, checkerLib, rendererrorLib, dialectsLib, util) {
 
   if(util.isBrowser()) {
     var rjs = requirejs;
@@ -48,8 +48,9 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
             }, function(newNamespace) {
               newRuntime.setParam("command-line-arguments", args);
 
-              return newRuntime.loadModulesNew(newNamespace, [checkerLib], function(checkerLib) {
+              return newRuntime.loadModulesNew(newNamespace, [checkerLib, rendererrorLib], function(checkerLib, rendererrorLib) {
                 var checker = newRuntime.getField(checkerLib, "values");
+                var rendererror = newRuntime.getField(rendererrorLib, "values");
                 var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname), newRuntime.makeBoolean(checkAll));
                 newRuntime.setParam("current-checker", currentChecker);
 
@@ -88,19 +89,19 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                         "render-error-message": callingRt.makeFunction(function() {
                           callingRt.pauseStack(function(restarter) {
                             execRt.runThunk(function() {
-                              if(execRt.isPyretVal(r.exn.exn)) {
-                                // This is not quite flexible enough:
-                                // it should call display-to-string, passing in a pretty-printer
-                                // renderer to be used for embedded values.
-                                // For now, we're just calling it via the to-string() method,
-                                // which hardcodes using the default _torepr renderer
+                              if(execRt.isPyretVal(r.exn.exn) 
+                                 && execRt.isObject(r.exn.exn) 
+                                 && execRt.hasField(r.exn.exn, "render-reason")) {
                                 return execRt.safeCall(
                                   function() { 
                                     return execRt.getColonField(r.exn.exn, "render-reason").full_meth(r.exn.exn);
                                   }, function(reason) {
                                     return execRt.safeCall(
                                       function() { 
-                                        return execRt.getColonField(reason, "to-string").full_meth(reason);
+                                        return execRt.getField(rendererror, "display-to-string").app(
+                                          reason, 
+                                          execRt.namespace.get("torepr"), 
+                                          execRt.ffi.makeList(r.exn.pyretStack.map(execRt.makeSrcloc)));
                                       }, function(str) {
                                         return execRt.string_append(
                                           str,

@@ -18,7 +18,8 @@ data Srcloc:
         | builtin(module-name) => (self.module-name < other.module-name)
         | srcloc(_, _, _, _, _, _, _) => false
       end
-    end
+    end,
+    is-builtin(self): true end
   | srcloc(
         source :: String,
         start-line :: Number,
@@ -73,14 +74,10 @@ data Srcloc:
           other
         end
       end
-    end
+    end,
+    is-builtin(self): false end
 sharing:
   _tostring(self, shadow tostring): self.format(true) end,
   _output(self): VS.vs-value(self.format(true)) end,
   after(self, other): other.before(self) end
 end
-
-fun old-srcloc(file, startR, startC, startCh, endR, endC, endCh):
-  raise("Cannot create old-srclocs anymore")
-end
-
