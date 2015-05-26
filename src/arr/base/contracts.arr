@@ -24,12 +24,17 @@ end
 
 data FieldFailure:
   | field-failure(loc, field, reason) with:
-    _tostring(self, shadow tostring):
-      "At " + self.loc.format(true) + ", field " + self.field + " failed because\n" + tostring(self.reason)
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para-nospace: ED.text("At "), draw-and-highlight(self.loc),
+          ED.text(", field "), ED.code(ED.text(self.field)), ED.text(" failed because")],
+        self.reason.render-reason(loc, from-fail-arg)]
     end
   | missing-field(loc, field) with:
-    _tostring(self, shadow tostring):
-      "Missing field " + self.field + " in required at " + self.loc.format(true)
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para: ED.text("Missing field"), ED.code(ED.text(self.field)),
+          ED.text("is required at"), draw-and-highlight(self.loc)]]
     end
 end
 
@@ -87,7 +92,10 @@ data FailureReason:
           ED.text("The record annotation at"),
           ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
           ED.text("failed on this value:")],
-        ED.embed(self.val)]
+        ED.embed(self.val),
+        [ED.para: ED.text("Because:")],
+        ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
+      ]
     end
   | dot-ann-not-present(name, field) with:
     render-reason(self, loc, from-fail-arg):

@@ -28,7 +28,7 @@ end
 
 fun is-field-error-str(msg, fields):
   for lists.all(f from fields):
-    string-contains(msg, "field " + f)
+    string-contains(msg, "field `" + f + "`")
   end
 end
 
