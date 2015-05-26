@@ -3,6 +3,7 @@ provide-types *
 
 import ast as A
 import string-dict as SD
+import valueskeleton as VS
 import "compiler/type-structs.arr" as TS
 import "compiler/type-defaults.arr" as TD
 import "compiler/compile-structs.arr" as C
@@ -10,6 +11,7 @@ import "compiler/compile-structs.arr" as C
 type Name                 = A.Name
 
 dict-to-string            = TS.dict-to-string
+mut-dict-to-string        = TS.mut-dict-to-string
 
 type Type                 = TS.Type
 t-name                    = TS.t-name
@@ -38,15 +40,16 @@ data TCInfo:
             errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
                             get    :: (-> List<C.CompileError>)})
 sharing:
-  _tostring(self, shadow tostring):
-    "tc-info(" +
-      dict-to-string(self.typs) + ", " +
-      dict-to-string(self.aliases) + ", " +
-      dict-to-string(self.data-exprs) + ", " +
-      dict-to-string(self.branders) + ", " +
-      dict-to-string(self.modules) + ", " +
-      tostring(self.binds) + ", " +
-      tostring(self.errors.get()) + ")"
+  _output(self):
+    VS.vs-constr("tc-info",
+      [list:
+        VS.value(mut-dict-to-string(self.typs)),
+        VS.value(mut-dict-to-string(self.aliases)),
+        VS.value(mut-dict-to-string(self.data-exprs)),
+        VS.value(mut-dict-to-string(self.branders)),
+        VS.value(mut-dict-to-string(self.modules)),
+        VS.value(tostring(self.binds)),
+        VS.value(tostring(self.errors.get()))])
   end
 end
 
@@ -86,7 +89,7 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
         | some(mod) =>
           cases(Option<ModuleType>) info.modules.get-now(mod):
             | some(t-mod) =>
-              t-mod.types.get(tostring(name))
+              t-mod.types.get(name.tosourcestring())
             | none =>
               raise("No module available with the name `" + mod + "'")
           end
@@ -229,8 +232,8 @@ end
 
 data FoldResult<V>:
   | fold-result(v :: V) with:
-    _tostring(self, shadow tostring):
-      "fold-result(" + tostring(self.v) + ")"
+    _output(self):
+      VS.vs-constr("fold-result", [list: VS.vs-value(tostring(self.v))])
     end,
     bind(self, f) -> FoldResult<V>:
       f(self.v)
@@ -245,8 +248,8 @@ data FoldResult<V>:
       f(self.v)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    _tostring(self, shadow tostring):
-      "fold-errors(" + tostring(self.errors) + ")"
+    _output(self):
+      VS.vs-constr("fold-errors", [list: VS.vs-value(tostring(self.errors))])
     end,
     bind(self, f) -> FoldResult<V>:
       self
