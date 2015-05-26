@@ -5,7 +5,7 @@ provide-types *
 import srcloc as SL
 import either as E
 import error-display as ED
-
+import render-error-display as RED
 type Loc = SL.Srcloc
 type Either = E.Either
 
@@ -259,7 +259,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
           }
         | else =>
           m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
-            + tr.render-reason().to-string()
+            + RED.display-to-string(tr.render-reason(), torepr, empty)
           s.{
             message: m,
             failed: s.failed + 1,

@@ -1,10 +1,11 @@
-define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, matchers, ffiLib) {
+define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-error-display"], function(e, matchers, ffiLib, rendererrorLib) {
   var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
     function gf(o, s) { return runtime.getField(o, s); }
     var tests = [];
     var ffi = ffiLib(runtime, runtime.namespace);
+    var rendererror = undefined;
 
     function pushTest(test) {
       tests.push(test);
@@ -17,6 +18,13 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
         tests.pop()(function() { wait(done); });
       }
     }
+    function waitForModules(done) {
+      runtime.loadModulesNew(runtime.namespace, [rendererrorLib], function(rendererrorLib) {
+        rendererror = runtime.getField(rendererrorLib, "values");
+        wait(done);
+      });
+    }
+      
 
     function checkEvalsTo(str, answer) {
       pushTest(function(after) {
@@ -64,7 +72,6 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
               expect(exn).toPassPredicate(exnPred);
             } catch(e) {
               console.error("Error while running predicate on program for errors: ", s, e);
-              after();
             }
           }
           after();
@@ -84,21 +91,30 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
           } else {
             // NOTE(joe): only works when runing sync.
             var answer = runtime.runThunk(function() {
-              return runtime.unwrap(runtime.toReprJS(arr[i], "_tostring"));
+              return runtime.getField(arr[i], "render-reason").app();
             }, function(result) {
-              if(result.exn) {
-                console.error("Failed to tostring excepton ", arr, result);
-                return false;
-              }
-              if(result.result && result.result.indexOf(exnMsg) === -1) {
-                console.error(result.result + " did not contain " + exnMsg);
-              }
-              if(typeof result.result === "string") {
-                expect(result.result).toContain(exnMsg);
+              if (runtime.isSuccessResult(result)) {
+                return runtime.runThunk(function() {
+                  return runtime.getField(rendererror, "display-to-string").app(result.result,
+                                                                                runtime.namespace.get("torepr"),
+                                                                                runtime.ffi.makeList([]));
+                }, function(result) {
+                  if(result.exn) {
+                    console.error("Failed to tostring excepton ", arr, result);
+                    return false;
+                  }
+                  if(result.result && result.result.indexOf(exnMsg) === -1) {
+                    console.error(">>>" + result.result + "<<< did not contain " + exnMsg);
+                  }
+                  if(typeof result.result === "string") {
+                    expect(result.result).toContain(exnMsg);
+                  }
+                  return true;
+                });
+                return true;
               }
               return true;
             });
-            return true;
           }
         }
         return true;
@@ -136,7 +152,7 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers"], function(e, mat
       checkEvalTests: checkEvalTests,
       checkEvalPred: checkEvalPred,
       checkError: checkError,
-      wait: wait
+      wait: waitForModules
     };
   }
 

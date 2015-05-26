@@ -9,7 +9,7 @@ import "compiler/compile-structs.arr" as CS
 import format as Format
 import either as E
 import "compiler/initialize-trove.arr" as IT
-
+import render-error-display as RED
 format = Format.format
 Either = E.Either
 left = E.left
@@ -106,7 +106,7 @@ fun main(args):
           | err(errors) =>
             print-error("Compilation errors:")
             for lists.each(e from errors):
-              print-error(e.render-reason().to-string())
+              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
             end
             raise("There were compilation errors")
         end

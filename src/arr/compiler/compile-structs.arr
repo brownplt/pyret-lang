@@ -50,7 +50,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("Well-formedness: Pyret disallows the use of"),
-          ED.text(self.id),
+          ED.code(ED.text(self.id)),
           ED.text("as an identifier")],
         draw-and-highlight(self.loc)]
     end

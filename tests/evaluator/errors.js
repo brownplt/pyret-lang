@@ -72,13 +72,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
     describe("contracts", function() {
       var isFail = function(err) { return err.exn && rt.ffi.isFail(err.exn); }
       it("should fail if the contract is not bound", function(done) {
-        P.checkCompileErrorMsg("x :: NotAType = 5", "not defined as a type");
-        P.checkCompileErrorMsg("x :: (Number -> Fail) = 5", "not defined as a type");
-        P.checkCompileErrorMsg("x :: (Number -> { x:: Fail }) = 5", "not defined as a type");
+        P.checkCompileErrorMsg("x :: NotAType = 5", "used as a type but not defined as one");
+        P.checkCompileErrorMsg("x :: (Number -> Fail) = 5", "used as a type but not defined as one");
+        P.checkCompileErrorMsg("x :: (Number -> { x:: Fail }) = 5", "used as a type but not defined as one");
         P.checkCompileErrorMsg("x :: Number % (is-even) = 5", "is-even");
-        P.checkCompileErrorMsg("x :: lisst.List = 10", "not defined as a type");
+        P.checkCompileErrorMsg("x :: lisst.List = 10", "used as a type but not defined as one");
 
-        P.checkCompileErrorMsg("y = 5\nx :: y = 5", "not defined as a type");
+        P.checkCompileErrorMsg("y = 5\nx :: y = 5", "used as a type but not defined as one");
         P.wait(done);
       });
 
