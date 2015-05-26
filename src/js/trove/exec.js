@@ -1,4 +1,4 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "trove/render-error-display", "js/dialects-lib", "js/runtime-util"], function(loader, ffi, runtimeLib, checkerLib, rendererrorLib, dialectsLib, util) {
+define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "trove/render-error-display", "js/dialects-lib", "js/runtime-util", "trove/error", "trove/contracts"], function(loader, ffi, runtimeLib, checkerLib, rendererrorLib, dialectsLib, util, errorLib, contractsLib) {
 
   if(util.isBrowser()) {
     var rjs = requirejs;
@@ -48,9 +48,11 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
             }, function(newNamespace) {
               newRuntime.setParam("command-line-arguments", args);
 
-              return newRuntime.loadModulesNew(newNamespace, [checkerLib, rendererrorLib], function(checkerLib, rendererrorLib) {
+              return newRuntime.loadModulesNew(newNamespace, [checkerLib, rendererrorLib, errorLib, contractsLib], function(checkerLib, rendererrorLib, errorLib, contractsLib) {
                 var checker = newRuntime.getField(checkerLib, "values");
                 var rendererror = newRuntime.getField(rendererrorLib, "values");
+                var error = newRuntime.getField(errorLib, "values");
+                var contracts = newRuntime.getField(contractsLib, "values");
                 var currentChecker = newRuntime.getField(checker, "make-check-context").app(newRuntime.makeString(modname), newRuntime.makeBoolean(checkAll));
                 newRuntime.setParam("current-checker", currentChecker);
 
@@ -59,6 +61,9 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                     var pyretResult = r.result;
                     return callingRt.makeObject({
                         "success": callingRt.makeBoolean(true),
+                        "is-parse-error": callingRt.makeBoolean(false),
+                        "is-runtime-error": callingRt.makeBoolean(false),
+                        "is-contract-error": callingRt.makeBoolean(false),
                         "render-check-results": callingRt.makeFunction(function() {
                           var toCall = execRt.getField(checker, "render-check-results");
                           var checks = execRt.getField(pyretResult, "checks");
@@ -83,9 +88,30 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                       });
                   }
                   else if(execRt.isFailureResult(r)) {
+                    var isParseError = execRt.getField(error, "ParseError").app(r.exn.exn);
+                    var isRuntimeError = execRt.getField(error, "RuntimeError").app(r.exn.exn);
+                    var isContractError = 
+                      execRt.getField(contracts, "ContractResult").app(r.exn.exn) 
+                      && !execRt.getField(contracts, "is-ok").app(r.exn.exn);
                     return callingRt.makeObject({
                         "success": callingRt.makeBoolean(false),
-                        "failure": r.exn.exn,
+                        "is-parse-error": callingRt.makeBoolean(isParseError),
+                        "is-runtime-error": callingRt.makeBoolean(isRuntimeError),
+                        "is-contract-error": callingRt.makeBoolean(isContractError),
+                        //"failure": r.exn.exn,
+                        "_output": callingRt.makeMethod1(function(self) {
+                          callingRt.pauseStack(function(restarter) {
+                            execRt.runThunk(function() {
+                              return execRt.toReprJS(r.exn.exn, execRt.ReprMethods._torepr);
+                            }, function(result) {
+                              if (execRt.isSuccessResult(result)) {
+                                return restarter.resume(result.result);
+                              } else {
+                                return restarter.error(result.exn);
+                              }
+                            });
+                          });
+                        }),
                         "render-error-message": callingRt.makeFunction(function() {
                           callingRt.pauseStack(function(restarter) {
                             execRt.runThunk(function() {

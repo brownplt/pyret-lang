@@ -294,18 +294,15 @@ function isBase(obj) { return obj instanceof PBase; }
       s += "]";
       return s;
     },
-    "valueskeleton": function(val, pushTodo) {
+    "valueskeleton": function(val, output, pushTodo) {
       // NOTE: this is the eager version;
       // a lazy version would skip getting the skeleton values altogether
-      var values = ffi.skeletonValues(val);
-      pushTodo(undefined, undefined, undefined, values, "render-valueskeleton",
-               { skeleton: val });
+      var values = ffi.skeletonValues(output);
+      pushTodo(undefined, val, undefined, values, "render-valueskeleton",
+               { skeleton: output, val: val });
     },
     "render-valueskeleton": function(top) {
       return renderValueSkeleton(top.extra.skeleton, top.done);
-    },
-    "render-method-call": function(top) {
-      return top.done[0];
     }
   };
 
@@ -1220,7 +1217,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
-                reprMethods["valueskeleton"](thisRuntime.unwrap(s), pushTodo);
+                reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
                 reprMethods["data"](next, pushTodo);
@@ -1228,6 +1225,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
               else {
                 reprMethods["object"](next, pushTodo);
               }
+            }
+            else {
+              console.log("UNKNOWN VALUE!");
+              console.log(next);
             }
           }
           else {
@@ -1262,7 +1263,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               var top = stack[stack.length - 1];
               var a = thisRuntime.unwrap($ans);
               if (ffi.isValueSkeleton(a)) {
-                reprMethods["valueskeleton"](a, pushTodo);
+                reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
               } else {
                 // this is essentially finishVal
                 top.todo.pop();
