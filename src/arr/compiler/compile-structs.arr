@@ -322,16 +322,20 @@ data CompileError:
         + ", but expected " + num-tostring(self.expected)
         + ".")
     end
-  | cases-singleton-mismatch(branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
+  | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-reason(self):
       if self.should-be-singleton:
         [ED.error:
-          ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
-          ED.text("has an argument list, but the variant is a singleton.")]
+          [ED.para:
+            ED.text("The cases branch named"), ED.code(ED.text(self.name)),
+            ED.text("at"), draw-and-highlight(self.branch-loc),
+            ED.text("has an argument list, but the variant is a singleton.")]]
       else:
         [ED.error:
-          ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
-          ED.text("doesn't have an argument list, but the variant is not a singleton.")]
+          [ED.para:
+            ED.text("The cases branch named"), ED.code(ED.text(self.name)),
+            ED.text("at"), draw-and-highlight(self.branch-loc),
+            ED.text("doesn't have an argument list, but the variant is not a singleton.")]]
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
