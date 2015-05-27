@@ -3895,7 +3895,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         
 
         var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
-          "thisRuntime.checkArityC(" + constArr(loc) + ", " + allArgs.length + ", arguments);\n" +
+          "if(arguments.length !== " + allArgs.length + ") {\n" +
+            "thisRuntime.checkArityC(" + constArr(loc) + ", " + allArgs.length + ", thisRuntime.cloneArgs.apply(null, arguments));\n" +
+          "}\n" +
           checksPlusBody + "\n" +
         "}";
         //console.log(constrFun);
@@ -3938,6 +3940,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
           console.error("Error constructing constructor: ", e);
         }
         */
+    }
+
+    function cloneArgs(/*arguments*/) {
+      var args = new Array(arguments.length);
+      for(var i = 0; i < args.length; ++i) {
+                  //i is always valid index in the arguments object
+          args[i] = arguments[i];
+      }
+      return args;
     }
 
 
@@ -4275,6 +4286,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         'undefined': undefined,
         'create': Object.create,
+        'cloneArgs': cloneArgs,
 
         'hasField' : hasField,
 

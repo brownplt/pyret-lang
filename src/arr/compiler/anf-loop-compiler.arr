@@ -230,7 +230,10 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
 end
 
 fun arity-check(loc-expr, arity :: Number):
-  j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-id("arguments")]))
+  j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
+    j-block([list:
+      j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, j-id("arguments")])]))
+    ]))
 end
 
 empty-string-dict = D.make-string-dict()
