@@ -993,7 +993,9 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(l2, base-id, brands-id, vname, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
+    fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
+      
+      #|
       member-names = members.map(lam(m): m.bind.id.toname();)
       member-ids = members.map(lam(m): tostring(m.bind.id);)
 
@@ -1023,6 +1025,7 @@ compiler-visitor = {
       [list:
         j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length()), refl-ref-fields-mask, constructor-id]))
       ]
+      |#
 
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
@@ -1035,13 +1038,39 @@ compiler-visitor = {
         }
       end
       compiled-locs = for map(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
-      compiled-vals = for map(m from nonblank-anns): j-id(js-id-of(tostring(m.bind.id))) end
+      compiled-vals = for map(m from nonblank-anns): j-str(js-id-of(m.bind.id.to-compiled())) end
       
       # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
       # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
       # a continuation and manages all of the stack safety of annotation checking itself.
+
+      # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic solution by
+      # passing the check off to a runtime function that uses JavaScript's Function
+      # to only do the refinement check once.
       c-exp(
-        rt-method("makeFunction", [list:
+        rt-method("makeVariantConstructor", [list:
+            self.get-loc(l2),
+            # NOTE(joe): Thunked at the JS level because compiled-anns might contain
+            # references to rec ids that should be resolved later
+            j-fun([list: ], j-block([list: j-return(j-list(false, compiled-anns.anns.reverse()))])),
+            j-list(false, compiled-vals),
+            j-list(false, compiled-locs),
+            j-list(false, for map(m from members):
+              j-bool(N.is-a-mutable(m.member-type))
+            end),
+            j-list(false, members.map(lam(m): j-str(js-id-of(m.bind.id.to-compiled())) end)),
+            refl-ref-fields-mask,
+            j-id(base-id),
+            j-id(brands-id),
+            refl-name,
+            refl-ref-fields,
+            refl-fields,
+            constructor-id
+          ]),
+        empty)
+
+
+#|
             j-fun(
               member-ids.map(js-id-of),
               j-block(
@@ -1061,6 +1090,7 @@ compiler-visitor = {
                       ]))
               ]))]),
         empty)
+        |#
     end
 
     fun compile-variant(v :: N.AVariant):
@@ -1103,7 +1133,7 @@ compiler-visitor = {
           | a-singleton-variant(_, _, _) => j-list(false, empty)
           | a-variant(_, _, _, members, _) =>
             j-list(false, members.map(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end))
-        end            
+        end
       
       refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-fields =
@@ -1145,7 +1175,7 @@ compiler-visitor = {
         | a-variant(l2, constr-loc, _, members, with-members) =>
           constr-vname = js-id-of(vname)
           compiled-constr =
-            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members,
+            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
               refl-name, j-id(refl-ref-fields-id), j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
           {
             stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],

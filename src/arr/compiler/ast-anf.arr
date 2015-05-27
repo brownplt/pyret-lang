@@ -358,7 +358,7 @@ data ALettable:
     tosource(self): self.v.tosource() end
 sharing:
   visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(_): raise("No visitor field for " + self.label()) end)
   end
 end
 
