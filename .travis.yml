@@ -8,6 +8,8 @@ before_install:
   - echo "id=$AWS_ID" >> ~/.aws
   - echo "key=$AWS_SECRET" >> ~/.aws
   - wget -O ~/bin/s3 http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD
+  - chmod a+x ~/bin/s3
+  - s3 add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' :pyret-horizon/current/travis-acl-test src/js/base/runtime-anf.js
   - wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
   - export PATH=$PATH:~/bin/
   - chmod 770 setup.sh
