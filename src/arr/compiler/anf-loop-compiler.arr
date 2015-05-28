@@ -998,38 +998,6 @@ compiler-visitor = {
 
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
       
-      #|
-      member-names = members.map(lam(m): m.bind.id.toname();)
-      member-ids = members.map(lam(m): tostring(m.bind.id);)
-
-      constr-body = [list:
-        j-var("dict", rt-method("create", [list: j-id(base-id)]))
-      ] +
-      for map3(n from member-names, m from members, id from member-ids):
-        cases(N.AMemberType) m.member-type:
-          | a-normal => j-expr(j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id))))
-          | a-mutable =>
-            val-id = j-id(js-id-of(id))
-            is-ref = rt-method("isGraphableRef", [list: val-id])
-            ann-result = compile-ann(m.bind.ann, self)
-            j-block(ann-result.other-stmts + [list:
-              j-if(is-ref,
-                j-block([list:
-                  j-expr(rt-method("addRefAnn", [list: val-id, ann-result.exp, self.get-loc(A.ann-loc(m.bind.ann))])),
-                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), val-id))
-                ]),
-                j-block([list:
-                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), rt-method("makeUnsafeSetRef", [list: ann-result.exp, val-id, self.get-loc(A.ann-loc(m.bind.ann))])))
-                ])
-              )
-            ])
-        end
-      end +
-      [list:
-        j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length()), refl-ref-fields-mask, constructor-id]))
-      ]
-      |#
-
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end

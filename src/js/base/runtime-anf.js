@@ -3907,7 +3907,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
       }
 
-        //console.log(String(outerFun));
+      //console.log(String(outerFun));
 
       var funToReturn = makeFunction(function() {
         var theFun = makeConstructor();
@@ -3919,27 +3919,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return res;
       });
       return funToReturn;
-
-/*
-        try {
-          //console.log("Creating constructor");
-          var theFun = outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
-          //console.log("theFun: ", theFun);
-          return makeFunction(function() {
-            try {
-              //console.log("Calling constructor ", arguments);
-              var res = theFun.apply(null, arguments)
-              //console.log("got ", res);
-              return res;
-            }
-            catch(e) {
-              console.error("Error constructing value: ", e.dict.reason);
-            }
-          });
-        } catch(e) {
-          console.error("Error constructing constructor: ", e);
-        }
-        */
     }
 
     function cloneArgs(/*arguments*/) {
