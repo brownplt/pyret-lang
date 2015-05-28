@@ -987,6 +987,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                isNothing(val)) {
         return true;
       }
+      return false;
     }
 
     var checkArity = function(expected, args, source) {

@@ -39,9 +39,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
 
       RUNTIME.pauseStack(function(restarter) {
         newRuntime.runThunk(function() {
-          newRuntime.safeCall(function() {
-            return dialectsLib(newRuntime, newRuntime.namespace);
-          }, function(dialects) {
+          newRuntime.loadJSModules(newRuntime.namespace, [dialectsLib], function(dialects) {
             dialect = dialects.dialects[dialect];
             return newRuntime.safeCall(function() {
               return dialect.makeNamespace(newRuntime);
