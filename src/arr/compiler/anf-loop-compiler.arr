@@ -232,17 +232,11 @@ fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
   end
 end
 
-arglen = j-dot(j-id("arguments"), "length")
 fun arity-check(loc-expr, arity :: Number):
-  # j-if1(j-binop(j-num(arity), J.j-neq, arglen),
-  #   j-block([list:
-  #       j-var("$a", j-new(j-id("Array"), [list: arglen])),
-  #       j-for(true, j-assign("$i", j-num(0)), j-binop(j-id("$i"), j-lt, arglen), j-unop(j-id("$i"), j-incr),
-  #         j-block([list:
-  #             j-expr(j-bracket-assign(j-id("$a"), j-id("$i"), j-bracket(j-id("arguments"), j-id("$i"))))])),
-  #       j-expr(j-method(rt-field("ffi"), "throwArityErrorC", [list: j-list(false, [list: loc-expr]), j-num(arity), j-id("$a")]))
-  #     ]))
-  j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-id("arguments")]))
+  j-if1(j-binop(j-dot(j-id("arguments"), "length"), j-neq, j-num(arity)),
+    j-block([list:
+      j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, j-id("arguments")])]))
+    ]))
 end
 
 empty-string-dict = D.make-string-dict()
@@ -1009,37 +1003,8 @@ compiler-visitor = {
         )
     end
 
-    fun make-variant-constructor(l2, base-id, brands-id, vname, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
-      member-names = members.map(lam(m): m.bind.id.toname();)
-      member-ids = members.map(lam(m): m.bind.id.tosourcestring();)
-
-      constr-body = [list:
-        j-var("dict", rt-method("create", [list: j-id(base-id)]))
-      ] +
-      for map3(n from member-names, m from members, id from member-ids):
-        cases(N.AMemberType) m.member-type:
-          | a-normal => j-expr(j-bracket-assign(j-id("dict"), j-str(n), j-id(js-id-of(id))))
-          | a-mutable =>
-            val-id = j-id(js-id-of(id))
-            is-ref = rt-method("isGraphableRef", [list: val-id])
-            ann-result = compile-ann(m.bind.ann, self)
-            j-block(ann-result.other-stmts + [list:
-              j-if(is-ref,
-                j-block([list:
-                  j-expr(rt-method("addRefAnn", [list: val-id, ann-result.exp, self.get-loc(A.ann-loc(m.bind.ann))])),
-                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), val-id))
-                ]),
-                j-block([list:
-                  j-expr(j-bracket-assign(j-id("dict"), j-str(n), rt-method("makeUnsafeSetRef", [list: ann-result.exp, val-id, self.get-loc(A.ann-loc(m.bind.ann))])))
-                ])
-              )
-            ])
-        end
-      end +
-      [list:
-        j-return(rt-method("makeDataValue", [list: j-id("dict"), j-id(brands-id), refl-name, refl-ref-fields, refl-fields, j-num(members.length()), refl-ref-fields-mask, constructor-id]))
-      ]
-
+    fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
+      
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
@@ -1051,31 +1016,35 @@ compiler-visitor = {
         }
       end
       compiled-locs = for map(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
-      compiled-vals = for map(m from nonblank-anns): j-id(js-id-of(m.bind.id.tosourcestring())) end
+      compiled-vals = for map(m from nonblank-anns): j-str(js-id-of(m.bind.id.to-compiled())) end
       
       # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
       # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
       # a continuation and manages all of the stack safety of annotation checking itself.
+
+      # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic solution by
+      # passing the check off to a runtime function that uses JavaScript's Function
+      # to only do the refinement check once.
       c-exp(
-        rt-method("makeFunction", [list:
-            j-fun(
-              member-ids.map(js-id-of),
-              j-block(
-                [list:
-                  arity-check(self.get-loc(l2), member-names.length())
-                ] +
-                compiled-anns.others.reverse() +
-                [list:
-                  j-return(rt-method("checkConstructorArgs2", [list:
-                        j-list(false, compiled-anns.anns.reverse()),
-                        j-list(false, compiled-vals),
-                        j-list(false, compiled-locs),
-                        j-list(false, for map(m from members):
-                          j-bool(N.is-a-mutable(m.member-type))
-                        end),
-                        j-fun(empty, j-block(constr-body))
-                      ]))
-              ]))]),
+        rt-method("makeVariantConstructor", [list:
+            self.get-loc(l2),
+            # NOTE(joe): Thunked at the JS level because compiled-anns might contain
+            # references to rec ids that should be resolved later
+            j-fun([list: ], j-block([list: j-return(j-list(false, compiled-anns.anns.reverse()))])),
+            j-list(false, compiled-vals),
+            j-list(false, compiled-locs),
+            j-list(false, for map(m from members):
+              j-bool(N.is-a-mutable(m.member-type))
+            end),
+            j-list(false, members.map(lam(m): j-str(js-id-of(m.bind.id.to-compiled())) end)),
+            refl-ref-fields-mask,
+            j-id(base-id),
+            j-id(brands-id),
+            refl-name,
+            refl-ref-fields,
+            refl-fields,
+            constructor-id
+          ]),
         empty)
     end
 
@@ -1119,7 +1088,7 @@ compiler-visitor = {
           | a-singleton-variant(_, _, _) => j-list(false, empty)
           | a-variant(_, _, _, members, _) =>
             j-list(false, members.map(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end))
-        end            
+        end
       
       refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-fields =
@@ -1161,7 +1130,7 @@ compiler-visitor = {
         | a-variant(l2, constr-loc, _, members, with-members) =>
           constr-vname = js-id-of(vname)
           compiled-constr =
-            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, constr-vname, members,
+            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
               refl-name, j-id(refl-ref-fields-id), j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
           {
             stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],
@@ -1270,6 +1239,8 @@ fun compile-program(self, l, imports, prog, freevars, env):
             "@my-gdrive/" + args.first
           else if typ == "shared-gdrive":
             "@shared-gdrive/" + args.first + "/" + args.rest.first
+          else if typ == "gdrive-js":
+            "@gdrive-js/" + args.first + "/" + args.rest.first
           else:
             raise("Should have been caught earlier: unhandled import-special-type")
           end

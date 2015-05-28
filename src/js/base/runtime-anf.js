@@ -2628,7 +2628,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
-    Cont.prototype.toString = function() {
+    Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
         stack.map(function(s) {
@@ -3894,6 +3894,115 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
+    function makeBrandPredicate(loc, brand, predName) {
+      return makeFunction(function(val) {
+        checkArityC(loc, 1, arguments);
+        return hasBrand(val, brand);
+      });
+    }
+    function makeVariantConstructor(
+        loc,
+        checkAnnsThunk,
+        checkArgs,
+        checkLocs,
+        checkMuts,
+        allArgs,
+        allMuts,
+        base,
+        brands,
+        reflName,
+        reflRefFields,
+        reflFields,
+        constructor) {
+      function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
+      function constArr(arr) { return "[" + arr.map(quote).join(",") + "]"; }
+
+      function makeConstructor() {
+        var argNames = constructor.$fieldNames;
+        var hasRefinement = false;
+        var checkAnns = checkAnnsThunk();
+        checkAnns.forEach(function(a) {
+          if(!isCheapAnnotation(a)) {
+            hasRefinement = true;
+          }
+        });
+        var constructorBody =
+          "var dict = thisRuntime.create(base);\n";
+        allArgs.forEach(function(a, i) {
+          if(allMuts[i]) {
+            var checkIndex = checkArgs.indexOf(a);
+            if(checkIndex >= 0) {
+              constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(checkAnns[" + checkIndex + "], " + a + ", checkLocs[" + checkIndex + "]);\n";
+            }
+            else {
+              constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(thisRuntime.Any, " + a + ", " + constArr(loc) + ");\n";
+            }
+          }
+          else {
+            constructorBody += "dict['" + argNames[i] + "'] = " + a + ";\n";
+          }
+        });
+        constructorBody +=
+          "return thisRuntime.makeDataValue(dict, brands, " + quote(reflName) + ", reflRefFields, reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+
+        var arityCheck = "thisRuntime.checkArityC(loc, " + allArgs.length + ", arguments);";
+
+        var checksPlusBody = "";
+        if(hasRefinement) {
+          checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
+            constructorBody + "\n" +
+          "});";
+        }
+        else {
+          checkArgs.forEach(function(a, i) {
+            if(checkMuts[i]) {
+              checksPlusBody += "isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+            }
+            else {
+              checksPlusBody += "thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+            }
+          });
+          checksPlusBody += constructorBody;
+        }
+        
+
+        var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
+          "if(arguments.length !== " + allArgs.length + ") {\n" +
+            "thisRuntime.checkArityC(" + constArr(loc) + ", " + allArgs.length + ", thisRuntime.cloneArgs.apply(null, arguments));\n" +
+          "}\n" +
+          checksPlusBody + "\n" +
+        "}";
+        //console.log(constrFun);
+
+        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
+        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
+        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
+      }
+
+      //console.log(String(outerFun));
+
+      var funToReturn = makeFunction(function() {
+        var theFun = makeConstructor();
+        funToReturn.app = theFun;
+        //console.log("Calling constructor ", quote(reflName), arguments);
+        //console.trace();
+        var res = theFun.apply(null, arguments)
+        //console.log("got ", res);
+        return res;
+      });
+      return funToReturn;
+    }
+
+    function cloneArgs(/*arguments*/) {
+      var args = new Array(arguments.length);
+      for(var i = 0; i < args.length; ++i) {
+                  //i is always valid index in the arguments object
+          args[i] = arguments[i];
+      }
+      return args;
+    }
+
+
     var runtimeNamespaceBindings = {
           'torepr': torepr,
           'tostring': tostring,
@@ -4134,6 +4243,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeGraphableRef' : makeGraphableRef,
         'makeRef' : makeRef,
         'makeUnsafeSetRef' : makeUnsafeSetRef,
+        'makeVariantConstructor': makeVariantConstructor,
         'makeDataValue': makeDataValue,
         'makeMatch': makeMatch,
         'makeOpaque'   : makeOpaque,
@@ -4228,6 +4338,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         'undefined': undefined,
         'create': Object.create,
+        'cloneArgs': cloneArgs,
 
         'hasField' : hasField,
 
