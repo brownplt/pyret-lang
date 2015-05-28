@@ -2,6 +2,7 @@ git:
   submodules: false
 before_install:
 #- sudo apt-get update
+- sudo apt-get install parallel
 #- sudo apt-get install --fix-missing liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl
 #  libnet-amazon-s3-tools-perl parallel cpanminus
 #- sudo cpanm Config::Tiny
