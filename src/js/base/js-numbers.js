@@ -85,30 +85,34 @@ Address all questions regarding this license to:
 
 */
 
-// Removes Complex, Exact, Inexact, Floatnum.
-// Adds Roughnum.
+/*
 
-// Scheme numbers.
+No notion of levels (complex, exact, inexact, flonum).
 
-//var jsnums = {};
+No complex numbers.
 
-// We try to stick with the unboxed fixnum representation for
-// integers, since that's what scheme programs commonly deal with, and
-// we want that common type to be lightweight.
+Added roughnums.
 
-// A boxed-scheme-number is either BigInteger, Rational, or Roughnum
-// An integer-scheme-number is either fixnum or BigInteger.
+pyretnum := fixnum | boxnum
+
+A fixnum is simply a JS double, and we prefer to use them
+whenever possible, viz., for integers that are small enough.
+
+boxnum := BigInteger | Rational | Roughnum.
+
+An integer is either a fixnum or a BigInteger.
+
+*/
 
 define(function() {
   'use strict';
   // Abbreviation
   var Numbers = {};
-  //var Numbers = jsnums;
 
-  // makeNumericBinop: (fixnum fixnum -> any) (scheme-number scheme-number -> any) -> (scheme-number scheme-number) X
+  // makeNumericBinop: (fixnum fixnum -> any) (pyretnum pyretnum -> any) -> (pyretnum pyretnum) X
   // Creates a binary function that works either on fixnums or boxnums.
-  // Applies the appropriate binary function, ensuring that both scheme numbers are
-  // lifted to the same kind.
+  // Applies the appropriate binary function, ensuring that both pyretnums are
+  // coerced to be the same kind.
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y) {
@@ -152,9 +156,9 @@ define(function() {
     };
   };
 
-  // fromFixnum: fixnum -> scheme-number
+  // fromFixnum: fixnum -> pyretnum
   var fromFixnum = function(x) {
-    if (isNaN(x) || (! isFinite(x))) {
+    if (!isFinite(x)) {
       return Roughnum.makeInstance(x);
     }
     var nf = Math.floor(x);
@@ -215,7 +219,7 @@ define(function() {
     return buffer.join('');
   };
 
-  // liftFixnumInteger: fixnum-integer boxed-scheme-number -> boxed-scheme-number
+  // liftFixnumInteger: fixnum-integer boxed-pyretnum -> boxed-pyretnum
   // Lifts up fixnum integers to a boxed type.
 
   var liftFixnumInteger = function(x, other) {
@@ -227,53 +231,57 @@ define(function() {
       return new Rational(x, 1);
   };
 
-  // throwRuntimeError: string (scheme-number | undefined) (scheme-number | undefined) -> void
+  // throwRuntimeError: string (pyretnum | undefined) (pyretnum | undefined) -> void
   // Throws a runtime error with the given message string.
   var throwRuntimeError = function(msg, x, y) {
     Numbers['onThrowRuntimeError'](msg, x, y);
   };
 
-  // onThrowRuntimeError: string (scheme-number | undefined) (scheme-number | undefined) -> void
+  var setThrowRuntimeError = function(fn) {
+    throwRuntimeError = fn;
+  };
+
+  // onThrowRuntimeError: string (pyretnum | undefined) (pyretnum | undefined) -> void
   // By default, will throw a new Error with the given message.
   // Override Numbers['onThrowRuntimeError'] if you need to do something special.
   var onThrowRuntimeError = function(msg, x, y) {
     throw new Error(msg);
   };
 
-  // isSchemeNumber: any -> boolean
-  // Returns true if the thing is a scheme number.
-  var isSchemeNumber = function(thing) {
+  // isPyretNumber: any -> boolean
+  // Returns true if the thing is a pyretnum
+  var isPyretNumber = function(thing) {
     return (typeof(thing) === 'number'
             || (thing instanceof Rational ||
                 thing instanceof Roughnum ||
                 thing instanceof BigInteger));
   };
 
-  // isRational: scheme-number -> boolean
+  // isRational: pyretnum -> boolean
   var isRational = function(n) {
     return (typeof(n) === 'number' ||
-            (isSchemeNumber(n) && n.isRational()));
+            (isPyretNumber(n) && n.isRational()));
   };
 
   var isExact = isRational;
 
-  // isReal: scheme-number -> boolean
+  // isReal: pyretnum -> boolean
   var isReal = function(n) {
     return (typeof(n) === 'number' ||
-            (isSchemeNumber(n) && n.isReal()));
+            (isPyretNumber(n) && n.isReal()));
   };
 
-  // isInteger: scheme-number -> boolean
+  // isInteger: pyretnum -> boolean
   var isInteger = function(n) {
     return (typeof(n) === 'number' ||
-            (isSchemeNumber(n) && n.isInteger()));
+            (isPyretNumber(n) && n.isInteger()));
   };
 
   var isRoughnum = function(n) {
     if (typeof(n) === 'number') {
       return false;
     } else {
-      return (isSchemeNumber(n) && n.isRoughnum());
+      return (isPyretNumber(n) && n.isRoughnum());
     }
   };
 
@@ -281,7 +289,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return n > 0;
     } else {
-      return (isSchemeNumber(n) && n.isPositive());
+      return (isPyretNumber(n) && n.isPositive());
     }
   };
 
@@ -289,7 +297,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return n <= 0;
     } else {
-      return (isSchemeNumber(n) && n.isNonPositive());
+      return (isPyretNumber(n) && n.isNonPositive());
     }
   };
 
@@ -297,7 +305,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return n < 0;
     } else {
-      return (isSchemeNumber(n) && n.isNegative());
+      return (isPyretNumber(n) && n.isNegative());
     }
   };
 
@@ -305,18 +313,18 @@ define(function() {
     if (typeof(n) === 'number') {
       return n >= 0;
     } else {
-      return (isSchemeNumber(n) && n.isNonNegative());
+      return (isPyretNumber(n) && n.isNonNegative());
     }
   };
 
-  // toFixnum: scheme-number -> javascript-number
+  // toFixnum: pyretnum -> javascript-number
   var toFixnum = function(n) {
     if (typeof(n) === 'number')
       return n;
     return n.toFixnum();
   };
 
-  // toRational: scheme-number -> scheme-number
+  // toRational: pyretnum -> pyretnum
   var toRational = function(n) {
     if (typeof(n) === 'number')
       return n;
@@ -325,7 +333,7 @@ define(function() {
 
   var toExact = toRational;
 
-  // toRoughnum: scheme-number -> scheme-number
+  // toRoughnum: pyretnum -> pyretnum
 
   var toRoughnum = function(n) {
     if (typeof(n) === 'number') {
@@ -337,7 +345,7 @@ define(function() {
 
   //////////////////////////////////////////////////////////////////////
 
-  // add: scheme-number scheme-number -> scheme-number
+  // add: pyretnum pyretnum -> pyretnum
   var add = function(x, y) {
     var sum;
     if (typeof(x) === 'number' && typeof(y) === 'number') {
@@ -369,7 +377,7 @@ define(function() {
      onYSpecialCase: function(x, y) { return x; }
     });
 
-  // subtract: scheme-number scheme-number -> scheme-number
+  // subtract: pyretnum pyretnum -> pyretnum
   var subtract = makeNumericBinop(
     function(x, y) {
       var diff = x - y;
@@ -390,7 +398,7 @@ define(function() {
      onYSpecialCase: function(x, y) { return x; }
     });
 
-  // mulitply: scheme-number scheme-number -> scheme-number
+  // mulitply: pyretnum pyretnum -> pyretnum
   var multiply = function(x, y) {
     var prod;
     if (typeof(x) === 'number' && typeof(y) === 'number') {
@@ -439,11 +447,11 @@ define(function() {
      }
     });
 
-  // divide: scheme-number scheme-number -> scheme-number
+  // divide: pyretnum pyretnum -> pyretnum
   var divide = makeNumericBinop(
     function(x, y) {
       if (_integerIsZero(y))
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       var div = x / y;
       if (isOverflow(div)) {
         return (makeBignum(x)).divide(makeBignum(y));
@@ -454,6 +462,9 @@ define(function() {
       }
     },
     function(x, y) {
+      if (equalsAnyZero(y)) {
+        throwRuntimeError('/: division by zero, ' + x + ' ' + y);
+      }
       return x.divide(y);
     },
     {
@@ -462,7 +473,7 @@ define(function() {
       },
       onXSpecialCase: function(x, y) {
         if (equalsAnyZero(y)) {
-          throwRuntimeError("/: division by zero", x, y);
+          throwRuntimeError("/: division by zero, " + x + ' ' + y);
         }
         return 0;
       },
@@ -470,11 +481,11 @@ define(function() {
         return equalsAnyZero(y);
       },
       onYSpecialCase: function(x, y) {
-        throwRuntimeError("/: division by zero", x, y);
+        throwRuntimeError("/: division by zero, " + x + ' ' + y);
       }
     });
 
-  // equals: scheme-number scheme-number -> boolean
+  // equals: pyretnum pyretnum -> boolean
   var equals = makeNumericBinop(
     function(x, y) {
       return x === y;
@@ -489,7 +500,7 @@ define(function() {
     return x.equals(0);
   };
 
-  // eqv: scheme-number scheme-number -> boolean
+  // eqv: pyretnum pyretnum -> boolean
   var eqv = function(x, y) {
     if (x === y)
       return true;
@@ -499,7 +510,7 @@ define(function() {
     return (((ex && ey) || (!ex && !ey)) && equals(x, y));
   };
 
-  // approxEqual: scheme-number scheme-number scheme-number -> boolean
+  // approxEqual: pyretnum pyretnum pyretnum -> boolean
   var approxEquals = function(x, y, delta) {
     return lessThanOrEqual(abs(subtract(x, y)),
                            delta);
@@ -508,7 +519,7 @@ define(function() {
   // used for within
   var roughlyEquals = function(x, y, delta) {
     if (isNegative(delta)) {
-      throwRuntimeError("negative tolerance", delta);
+      throwRuntimeError("negative tolerance " + delta);
     }
 
     if (x === y) return true;
@@ -516,7 +527,7 @@ define(function() {
     if (isRoughnum(delta) && delta.n === Number.MIN_VALUE) {
       if ((isRoughnum(x) || isRoughnum(y)) &&
             (Math.abs(subtract(x,y).n) === Number.MIN_VALUE)) {
-      throwRuntimeError("roughnum tolerance too small for meaningful comparison", x, y, delta);
+      throwRuntimeError("roughnum tolerance too small for meaningful comparison, " + x + ' ' + y + ' ' + delta);
       }
     }
 
@@ -527,7 +538,7 @@ define(function() {
     return approxEquals(ratx, raty, ratdelta);
   };
 
-  // greaterThanOrEqual: scheme-number scheme-number -> boolean
+  // greaterThanOrEqual: pyretnum pyretnum -> boolean
   var greaterThanOrEqual = makeNumericBinop(
     function(x, y) {
       return x >= y;
@@ -536,7 +547,7 @@ define(function() {
       return x.greaterThanOrEqual(y);
     });
 
-  // lessThanOrEqual: scheme-number scheme-number -> boolean
+  // lessThanOrEqual: pyretnum pyretnum -> boolean
   var lessThanOrEqual = makeNumericBinop(
     function(x, y){
       return x <= y;
@@ -545,7 +556,7 @@ define(function() {
       return x.lessThanOrEqual(y);
     });
 
-  // greaterThan: scheme-number scheme-number -> boolean
+  // greaterThan: pyretnum pyretnum -> boolean
   var greaterThan = makeNumericBinop(
     function(x, y){
       return x > y;
@@ -554,7 +565,7 @@ define(function() {
       return x.greaterThan(y);
     });
 
-  // lessThan: scheme-number scheme-number -> boolean
+  // lessThan: pyretnum pyretnum -> boolean
   var lessThan = makeNumericBinop(
     function(x, y){
       return x < y;
@@ -563,7 +574,7 @@ define(function() {
       return x.lessThan(y);
     });
 
-  // expt: scheme-number scheme-number -> scheme-number
+  // expt: pyretnum pyretnum -> pyretnum
   var expt = makeNumericBinop(
     function(x, y) {
       var pow = Math.pow(x, y);
@@ -606,18 +617,21 @@ define(function() {
       }
     });
 
-  // exp: scheme-number -> scheme-number
+  // exp: pyretnum -> pyretnum
   var exp = function(n) {
     if ( eqv(n, 0) ) {
       return 1;
     }
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(Math.exp(n));
+      var res = Math.exp(n);
+      if (!isFinite(res))
+        throwRuntimeError('exp: argument too large: ' + n);
+      return Roughnum.makeInstance(res);
     }
     return n.exp();
   };
 
-  // modulo: scheme-number scheme-number -> scheme-number
+  // modulo: pyretnum pyretnum -> pyretnum
   var modulo = function(m, n) {
     if (! isInteger(m)) {
       throwRuntimeError('modulo: the first argument '
@@ -661,38 +675,37 @@ define(function() {
     }
   };
 
-  // numerator: scheme-number -> scheme-number
+  // numerator: pyretnum -> pyretnum
   var numerator = function(n) {
     if (typeof(n) === 'number')
       return n;
     return n.numerator();
   };
 
-  // denominator: scheme-number -> scheme-number
+  // denominator: pyretnum -> pyretnum
   var denominator = function(n) {
     if (typeof(n) === 'number')
       return 1;
     return n.denominator();
   };
 
-  // sqrt: scheme-number -> scheme-number
+  // sqrt: pyretnum -> pyretnum
   var sqrt = function(n) {
+    if (lessThan(n, 0)) {
+      throwRuntimeError('sqrt: negative argument ' + n);
+    }
     if (typeof(n) === 'number') {
-      if (n >= 0) {
-        var result = Math.sqrt(n);
-        if (Math.floor(result) === result) {
-          return result;
-        } else {
-          return Roughnum.makeInstance(result);
-        }
+      var result = Math.sqrt(n);
+      if (Math.floor(result) === result) {
+        return result;
       } else {
-        throwRuntimeError("sqrt of negative number", n);
+        return Roughnum.makeInstance(result);
       }
     }
     return n.sqrt();
   };
 
-  // abs: scheme-number -> scheme-number
+  // abs: pyretnum -> pyretnum
   var abs = function(n) {
     if (typeof(n) === 'number') {
       return Math.abs(n);
@@ -700,27 +713,43 @@ define(function() {
     return n.abs();
   };
 
-  // floor: scheme-number -> scheme-number
+  // floor: pyretnum -> pyretnum
   var floor = function(n) {
     if (typeof(n) === 'number')
       return Math.floor(n);
     return n.floor();
   };
 
-  // ceiling: scheme-number -> scheme-number
+  // ceiling: pyretnum -> pyretnum
   var ceiling = function(n) {
     if (typeof(n) === 'number')
       return Math.ceil(n);
     return n.ceiling();
   };
 
+  // round: pyretnum -> pyretnum
+  var round = function(n) {
+    if (typeof(n) === 'number') {
+      return n;
+    }
+    return n.round();
+  };
+
+  var roundEven = function(n) {
+    if (typeof(n) === 'number') return n;
+    return n.roundEven();
+  };
+
   // NB: all of these trig-gy generic functions should now return roughnum rather than float
   // (except for an arg of 0, etc)
 
-  // log: scheme-number -> scheme-number
+  // log: pyretnum -> pyretnum
   var log = function(n) {
     if ( eqv(n, 1) ) {
       return 0;
+    }
+    if (lessThanOrEqual(n, 0)) {
+      throwRuntimeError('log: non-positive argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n));
@@ -728,7 +757,7 @@ define(function() {
     return n.log();
   };
 
-  // tan: scheme-number -> scheme-number
+  // tan: pyretnum -> pyretnum
   var tan = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
@@ -737,7 +766,7 @@ define(function() {
     return n.tan();
   };
 
-  // atan: scheme-number -> scheme-number
+  // atan: pyretnum -> pyretnum
   var atan = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
@@ -746,7 +775,7 @@ define(function() {
     return n.atan();
   };
 
-  // cos: scheme-number -> scheme-number
+  // cos: pyretnum -> pyretnum
   var cos = function(n) {
     if (eqv(n, 0)) { return 1; }
     if (typeof(n) === 'number') {
@@ -755,7 +784,7 @@ define(function() {
     return n.cos();
   };
 
-  // sin: scheme-number -> scheme-number
+  // sin: pyretnum -> pyretnum
   var sin = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
@@ -764,11 +793,11 @@ define(function() {
     return n.sin();
   };
 
-  // acos: scheme-number -> scheme-number
+  // acos: pyretnum -> pyretnum
   var acos = function(n) {
     if (eqv(n, 1)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('acos: arg out of domain', n);
+      throwRuntimeError('acos: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.acos(n));
@@ -776,11 +805,11 @@ define(function() {
     return n.acos();
   };
 
-  // asin: scheme-number -> scheme-number
+  // asin: pyretnum -> pyretnum
   var asin = function(n) {
     if (eqv(n, 0)) { return 0; }
     if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('asin: arg out of domain', n);
+      throwRuntimeError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.asin(n));
@@ -788,20 +817,12 @@ define(function() {
     return n.asin();
   };
 
-  // round: scheme-number -> scheme-number
-  var round = function(n) {
-    if (typeof(n) === 'number') {
-      return n;
-    }
-    return n.round();
-  };
-
-  // sqr: scheme-number -> scheme-number
+  // sqr: pyretnum -> pyretnum
   var sqr = function(x) {
     return multiply(x, x);
   };
 
-  // integerSqrt: scheme-number -> scheme-number
+  // integerSqrt: pyretnum -> pyretnum
   var integerSqrt = function(x) {
     if (! isInteger(x)) {
       throwRuntimeError('integer-sqrt: the argument ' + x.toString() +
@@ -817,7 +838,7 @@ define(function() {
     return x.integerSqrt();
   };
 
-  // gcd: scheme-number [scheme-number ...] -> scheme-number
+  // gcd: pyretnum [pyretnum ...] -> pyretnum
   var gcd = function(first, rest) {
     if (! isInteger(first)) {
       throwRuntimeError('gcd: the argument ' + first.toString() +
@@ -839,7 +860,7 @@ define(function() {
     return a;
   };
 
-  // lcm: scheme-number [scheme-number ...] -> scheme-number
+  // lcm: pyretnum [pyretnum ...] -> pyretnum
   var lcm = function(first, rest) {
     if (! isInteger(first)) {
       throwRuntimeError('lcm: the argument ' + first.toString() +
@@ -885,34 +906,9 @@ define(function() {
     return _integerRemainder(x, y);
   };
 
-  // Implementation of the hyperbolic functions
-  // http://en.wikipedia.org/wiki/Hyperbolic_cosine
-  var cosh = function(x) {
-    if (eqv(x, 0)) {
-      return Roughnum.makeInstance(1.0);
-    }
-    return divide(add(exp(x), exp(negate(x))),
-                  2);
-  };
-
-  var sinh = function(x) {
-    return divide(subtract(exp(x), exp(negate(x))),
-                  2);
-  };
-
   //////////////////////////////////////////////////////////////////////
 
   // Helpers
-
-  // IsFinite: scheme-number -> boolean
-  // Returns true if the scheme number is finite or not.
-  var isSchemeNumberFinite = function(n) {
-    if (typeof(n) === 'number') {
-      return isFinite(n);
-    } else {
-      return n.isFinite();
-    }
-  };
 
   // isOverflow: javascript-number -> boolean
   // Returns true if we consider the number an overflow.
@@ -922,7 +918,7 @@ define(function() {
     return (n < MIN_FIXNUM ||  MAX_FIXNUM < n);
   };
 
-  // negate: scheme-number -> scheme-number
+  // negate: pyretnum -> pyretnum
   // multiplies a number times -1.
   var negate = function(n) {
     if (typeof(n) === 'number') {
@@ -931,7 +927,7 @@ define(function() {
     return n.negate();
   };
 
-  // halve: scheme-number -> scheme-number
+  // halve: pyretnum -> pyretnum
   // Divide a number by 2.
   var halve = function(n) {
     return divide(n, 2);
@@ -1024,7 +1020,7 @@ define(function() {
     });
   };
 
-  // _integerModulo: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  // _integerModulo: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerModulo = makeIntegerBinop(
     function(m, n) {
       return m % n;
@@ -1033,7 +1029,7 @@ define(function() {
       return bnMod.call(m, n);
     });
 
-  // _integerGcd: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  // _integerGcd: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerGcd = makeIntegerBinop(
     function(a, b) {
       var t;
@@ -1048,7 +1044,7 @@ define(function() {
       return bnGCD.call(m, n);
     });
 
-  // _integerIsZero: integer-scheme-number -> boolean
+  // _integerIsZero: integer-pyretnum -> boolean
   // Returns true if the number is zero.
   var _integerIsZero = makeIntegerUnOp(
     function(n){
@@ -1059,7 +1055,7 @@ define(function() {
     }
   );
 
-  // _integerIsOne: integer-scheme-number -> boolean
+  // _integerIsOne: integer-pyretnum -> boolean
   var _integerIsOne = makeIntegerUnOp(
     function(n) {
       return n === 1;
@@ -1068,7 +1064,7 @@ define(function() {
       return bnEquals.call(n, BigInteger.ONE);
     });
 
-  // _integerIsNegativeOne: integer-scheme-number -> boolean
+  // _integerIsNegativeOne: integer-pyretnum -> boolean
   var _integerIsNegativeOne = makeIntegerUnOp(
     function(n) {
       return n === -1;
@@ -1077,7 +1073,7 @@ define(function() {
       return bnEquals.call(n, BigInteger.NEGATIVE_ONE);
     });
 
-  // _integerAdd: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  // _integerAdd: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerAdd = makeIntegerBinop(
     function(m, n) {
       return m + n;
@@ -1086,7 +1082,7 @@ define(function() {
       return bnAdd.call(m, n);
     });
 
-  // _integerSubtract: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  // _integerSubtract: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerSubtract = makeIntegerBinop(
     function(m, n) {
       return m - n;
@@ -1095,7 +1091,7 @@ define(function() {
       return bnSubtract.call(m, n);
     });
 
-  // _integerMultiply: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  // _integerMultiply: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerMultiply = makeIntegerBinop(
     function(m, n) {
       return m * n;
@@ -1104,7 +1100,7 @@ define(function() {
       return bnMultiply.call(m, n);
     });
 
-  //_integerQuotient: integer-scheme-number integer-scheme-number -> integer-scheme-number
+  //_integerQuotient: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerQuotient = makeIntegerBinop(
     function(m, n) {
       return ((m - (m % n))/ n);
@@ -1121,7 +1117,7 @@ define(function() {
       return bnRemainder.call(m, n);
     });
 
-  // _integerDivideToFixnum: integer-scheme-number integer-scheme-number -> fixnum
+  // _integerDivideToFixnum: integer-pyretnum integer-pyretnum -> fixnum
   var _integerDivideToFixnum = makeIntegerBinop(
     function(m, n) {
       return m / n;
@@ -1132,7 +1128,7 @@ define(function() {
     {ignoreOverflow: true,
      doNotCoerceToFloating: true});
 
-  // _integerEquals: integer-scheme-number integer-scheme-number -> boolean
+  // _integerEquals: integer-pyretnum integer-pyretnum -> boolean
   var _integerEquals = makeIntegerBinop(
     function(m, n) {
       return m === n;
@@ -1142,7 +1138,7 @@ define(function() {
     },
     {doNotCoerceToFloating: true});
 
-  // _integerGreaterThan: integer-scheme-number integer-scheme-number -> boolean
+  // _integerGreaterThan: integer-pyretnum integer-pyretnum -> boolean
   var _integerGreaterThan = makeIntegerBinop(
     function(m, n) {
       return m > n;
@@ -1152,7 +1148,7 @@ define(function() {
     },
     {doNotCoerceToFloating: true});
 
-  // _integerLessThan: integer-scheme-number integer-scheme-number -> boolean
+  // _integerLessThan: integer-pyretnum integer-pyretnum -> boolean
   var _integerLessThan = makeIntegerBinop(
     function(m, n) {
       return m < n;
@@ -1162,7 +1158,7 @@ define(function() {
     },
     {doNotCoerceToFloating: true});
 
-  // _integerGreaterThanOrEqual: integer-scheme-number integer-scheme-number -> boolean
+  // _integerGreaterThanOrEqual: integer-pyretnum integer-pyretnum -> boolean
   var _integerGreaterThanOrEqual = makeIntegerBinop(
     function(m, n) {
       return m >= n;
@@ -1172,7 +1168,7 @@ define(function() {
     },
     {doNotCoerceToFloating: true});
 
-  // _integerLessThanOrEqual: integer-scheme-number integer-scheme-number -> boolean
+  // _integerLessThanOrEqual: integer-pyretnum integer-pyretnum -> boolean
   var _integerLessThanOrEqual = makeIntegerBinop(
     function(m, n) {
       return m <= n;
@@ -1191,7 +1187,7 @@ define(function() {
   // isFinite: -> boolean
 
   // isInteger: -> boolean
-  // Produce true if this number can be coersed into an integer.
+  // Produce true if this number can be coerced into an integer.
 
   // isRational: -> boolean
   // Produce true if the number is rational.
@@ -1201,90 +1197,90 @@ define(function() {
   // isReal: -> boolean
   // Produce true if the number is real.
 
-  // toRational: -> scheme-number
+  // toRational: -> pyretnum
   // Produce an exact number.
 
   // toExact === toRational
 
-  // toRoughnum: -> scheme-number
+  // toRoughnum: -> pyretnum
   // Produce a roughnum.
 
-  // toFixnum: -> javascript-number
+  // toFixnum: -> fixnum
   // Produce a javascript number.
 
-  // greaterThan: scheme-number -> boolean
+  // greaterThan: pyretnum -> boolean
   // Compare against instance of the same type.
 
-  // greaterThanOrEqual: scheme-number -> boolean
+  // greaterThanOrEqual: pyretnum -> boolean
   // Compare against instance of the same type.
 
-  // lessThan: scheme-number -> boolean
+  // lessThan: pyretnum -> boolean
   // Compare against instance of the same type.
 
-  // lessThanOrEqual: scheme-number -> boolean
+  // lessThanOrEqual: pyretnum -> boolean
   // Compare against instance of the same type.
 
-  // add: scheme-number -> scheme-number
+  // add: pyretnum -> pyretnum
   // Add with an instance of the same type.
 
-  // subtract: scheme-number -> scheme-number
+  // subtract: pyretnum -> pyretnum
   // Subtract with an instance of the same type.
 
-  // multiply: scheme-number -> scheme-number
+  // multiply: pyretnum -> pyretnum
   // Multiply with an instance of the same type.
 
-  // divide: scheme-number -> scheme-number
+  // divide: pyretnum -> pyretnum
   // Divide with an instance of the same type.
 
-  // numerator: -> scheme-number
+  // numerator: -> pyretnum
   // Return the numerator.
 
-  // denominator: -> scheme-number
+  // denominator: -> pyretnum
   // Return the denominator.
 
-  // integerSqrt: -> scheme-number
+  // integerSqrt: -> pyretnum
   // Produce the integer square root.
 
-  // sqrt: -> scheme-number
+  // sqrt: -> pyretnum
   // Produce the square root.
 
-  // abs: -> scheme-number
+  // abs: -> pyretnum
   // Produce the absolute value.
 
-  // floor: -> scheme-number
+  // floor: -> pyretnum
   // Produce the floor.
 
-  // ceiling: -> scheme-number
+  // ceiling: -> pyretnum
   // Produce the ceiling.
 
-  // log: -> scheme-number
+  // log: -> pyretnum
   // Produce the log.
 
-  // atan: -> scheme-number
+  // atan: -> pyretnum
   // Produce the arc tangent.
 
-  // cos: -> scheme-number
+  // cos: -> pyretnum
   // Produce the cosine.
 
-  // sin: -> scheme-number
+  // sin: -> pyretnum
   // Produce the sine.
 
-  // expt: scheme-number -> scheme-number
+  // expt: pyretnum -> pyretnum
   // Produce the power to the input.
 
-  // exp: -> scheme-number
+  // exp: -> pyretnum
   // Produce e raised to the given power.
 
-  // acos: -> scheme-number
+  // acos: -> pyretnum
   // Produce the arc cosine.
 
-  // asin: -> scheme-number
+  // asin: -> pyretnum
   // Produce the arc sine.
 
-  // round: -> scheme-number
+  // round: -> pyretnum
   // Round to the nearest integer.
 
-  // equals: scheme-number -> boolean
+  // equals: pyretnum -> boolean
   // Produce true if the given number of the same type is equal.
 
   //////////////////////////////////////////////////////////////////////
@@ -1450,18 +1446,14 @@ define(function() {
   };
 
   Rational.prototype.sqrt = function() {
-    if (_integerGreaterThanOrEqual(this.n,  0)) {
-      var newN = sqrt(this.n);
-      var newD = sqrt(this.d);
-      if (isRational(newN) && isRational(newD) &&
-          equals(floor(newN), newN) &&
-          equals(floor(newD), newD)) {
-        return Rational.makeInstance(newN, newD);
-      } else {
-        return divide(newN, newD);
-      }
+    var newN = sqrt(this.n);
+    var newD = sqrt(this.d);
+    if (isRational(newN) && isRational(newD) &&
+        equals(floor(newN), newN) &&
+        equals(floor(newD), newD)) {
+      return Rational.makeInstance(newN, newD);
     } else {
-      throwRuntimeError('sqrt of negative rational', this.n, this.d);
+      return divide(newN, newD);
     }
   };
 
@@ -1488,24 +1480,68 @@ define(function() {
     }
   };
 
+  Rational.prototype.round = function() {
+    var halfintp = equals(this.d, 2);
+    var negativep = _integerLessThan(this.n, 0);
+    var n = this.n;
+    if (negativep) {
+      n = negate(n);
+    }
+    var quo = _integerQuotient(n, this.d);
+    if (halfintp) {
+      // rounding half to away from 0
+      // uncomment following if rounding half to even
+      // if (_integerIsOne(_integerModulo(quo, 2)))
+      quo = add(quo, 1);
+    } else {
+      var rem = _integerRemainder(n, this.d);
+      if (greaterThan(multiply(rem, 2), this.d)) {
+        quo = add(quo, 1);
+      }
+    }
+    if (negativep) {
+      quo = negate(quo);
+    }
+    return quo;
+  };
+
+  Rational.prototype.roundEven = function() {
+    // rounds half-integers to even
+    var halfintp = equals(this.d, 2);
+    var negativep = _integerLessThan(this.n, 0);
+    var n = this.n;
+    if (negativep) n = negate(n);
+    var quo = _integerQuotient(n, this.d);
+    if (halfintp) {
+      if (_integerIsOne(_integerModulo(quo, 2)))
+        quo = add(quo, 1);
+    } else {
+      var rem = _integerRemainder(n, this.d);
+      if (greaterThan(multiply(rem, 2), this.d))
+        quo = add(quo, 1);
+    }
+    if (negativep) quo = negate(quo);
+    return quo;
+  };
+
   Rational.prototype.log = function(){
-    return Roughnum.makeInstance(Math.log(this.n / this.d));
+    return Roughnum.makeInstance(Math.log(this.toFixnum()));
   };
 
   Rational.prototype.tan = function(){
-    return Roughnum.makeInstance(Math.tan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.tan(this.toFixnum()));
   };
 
   Rational.prototype.atan = function(){
-    return Roughnum.makeInstance(Math.atan(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.atan(this.toFixnum()));
   };
 
   Rational.prototype.cos = function(){
-    return Roughnum.makeInstance(Math.cos(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.cos(this.toFixnum()));
   };
 
   Rational.prototype.sin = function(){
-    return Roughnum.makeInstance(Math.sin(_integerDivideToFixnum(this.n, this.d)));
+    return Roughnum.makeInstance(Math.sin(this.toFixnum()));
   };
 
   var integerNthRoot = function(n, m) {
@@ -1565,39 +1601,23 @@ define(function() {
     } else {
       if (this.isNegative() && !a.isInteger())
         throwRuntimeError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
-      return Roughnum.makeInstance(Math.pow(_integerDivideToFixnum(this.n, this.d),
-            _integerDivideToFixnum(a.n, a.d)));
+      return Roughnum.makeInstance(Math.pow(this.toFixnum(), a.toFixnum()));
     }
   };
 
   Rational.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(_integerDivideToFixnum(this.n, this.d)));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Rational.prototype.acos = function(){
-    return acos(_integerDivideToFixnum(this.n, this.d));
+    return acos(this.toFixnum());
   };
 
   Rational.prototype.asin = function(){
-    return asin(_integerDivideToFixnum(this.n, this.d));
-  };
-
-  Rational.prototype.round = function() {
-    // FIXME: not correct when values are bignums
-    if (equals(this.d, 2)) {
-      // Round to even if it's a n/2
-      var v = _integerDivideToFixnum(this.n, this.d);
-      var fl = Math.floor(v);
-      var ce = Math.ceil(v);
-      if (_integerIsZero(fl % 2)) {
-        return fl;
-      }
-      else {
-        return ce;
-      }
-    } else {
-      return Math.round(this.n / this.d);
-    }
+    return asin(this.toFixnum());
   };
 
   // sign: Number -> {-1, 0, 1}
@@ -1620,21 +1640,21 @@ define(function() {
   };
 
   Roughnum.makeInstance = function(n) {
-    if (typeof(n) === 'number' && (isNaN(n) || n === Number.POSITIVE_INFINITY || n === Number.NEGATIVE_INFINITY)) {
+    if (typeof(n) === 'number' && !isFinite(n)) {
       throwRuntimeError('roughnum overflow error');
     }
     return new Roughnum(n);
   };
 
   Roughnum.prototype.isFinite = function() {
-    //actually, true, as we don't store overflows
+    //actually always true, as we don't store overflows
     return (isFinite(this.n));
   };
 
   Roughnum.prototype.toRational = function() {
-    if (! isFinite(this.n) || isNaN(this.n)) {
+    if (!isFinite(this.n)) {
       // this _should_ be dead, as we don't store overflows
-      throwRuntimeError("toRational: no exact representation for " + this, this);
+      throwRuntimeError("toRational: no exact representation for " + this);
     }
 
     return fromString(this.n.toString());
@@ -1643,14 +1663,6 @@ define(function() {
   Roughnum.prototype.toExact = Roughnum.prototype.toRational;
 
   Roughnum.prototype.toString = function() {
-    /*
-      var partialResult = this.n.toString();
-      if (! partialResult.match('\\.') && ! partialResult.match('e')) {
-      return "~" + partialResult + ".0";
-      } else {
-      return "~" + partialResult;
-      }
-    */
     return '~' + this.n.toString();
   };
 
@@ -1713,7 +1725,7 @@ define(function() {
   };
 
   Roughnum.prototype.toFixnum = function() {
-    return this.n; // lib seems to call any jsnum a fixnum, not just small ints?
+    return this.n;
   };
 
   Roughnum.prototype.toRoughnum = function() {
@@ -1755,12 +1767,31 @@ define(function() {
     return Math.ceil(this.n);
   };
 
+  Roughnum.prototype.round = function(){
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if (negativep) res = -res;
+    return res;
+  };
+
+  Roughnum.prototype.roundEven = function() {
+    var negativep = (this.n < 0);
+    var n = this.n;
+    if (negativep) n = -n;
+    var res = Math.round(n);
+    if ((Math.abs(n - res) === 0.5) && (res % 2 === 1))
+      res -= 1;
+    return res;
+  };
+
   Roughnum.prototype.greaterThan = function(other) {
     return this.n > other.n;
   };
 
   Roughnum.prototype.greaterThanOrEqual = function(other) {
-    return this.n > other.n;
+    return this.n >= other.n;
   };
 
   Roughnum.prototype.lessThan = function(other) {
@@ -1768,7 +1799,7 @@ define(function() {
   };
 
   Roughnum.prototype.lessThanOrEqual = function(other) {
-    return this.n < other.n;
+    return this.n <= other.n;
   };
 
   Roughnum.prototype.integerSqrt = function() {
@@ -1784,11 +1815,7 @@ define(function() {
   };
 
   Roughnum.prototype.sqrt = function() {
-    if (this.n < 0) {
-      throwRuntimeError('sqrt of negative roughnum', this.n);
-    } else {
-      return Roughnum.makeInstance(Math.sqrt(this.n));
-    }
+    return Roughnum.makeInstance(Math.sqrt(this.n));
   };
 
   Roughnum.prototype.abs = function() {
@@ -1801,10 +1828,6 @@ define(function() {
     else
       return Roughnum.makeInstance(Math.log(this.n));
   };
-
-  // NB: the trig generic functions above (near l 580) should return
-  // roughnum rather than float -- except for arg non-rough 0, which maps
-  // perfectly to non-rough 0 or 1
 
   Roughnum.prototype.tan = function(){
     return Roughnum.makeInstance(Math.tan(this.n));
@@ -1831,7 +1854,10 @@ define(function() {
   };
 
   Roughnum.prototype.exp = function(){
-    return Roughnum.makeInstance(Math.exp(this.n));
+    var res = Math.exp(this.n);
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
   Roughnum.prototype.acos = function(){
@@ -1842,27 +1868,13 @@ define(function() {
     return asin(this.n);
   };
 
-  Roughnum.prototype.round = function(){
-    if (isFinite(this.n)) {
-      if (Math.abs(Math.floor(this.n) - this.n) === 0.5) {
-        if (Math.floor(this.n) % 2 === 0)
-          return (Math.floor(this.n));
-        return (Math.ceil(this.n));
-      } else {
-        return (Math.round(this.n));
-      }
-    } else {
-      return this;
-    }
-  };
-
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
   var roughnumRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
-  // fromString: string -> (scheme-number | false)
+  // fromString: string -> (pyretnum | false)
   var fromString = function(x) {
     if (x.match(digitRegexp)) {
       var n = Number(x);
@@ -1887,9 +1899,6 @@ define(function() {
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
         beforeDecimal = makeBignum(beforeDecimalString);
-        if (negativeP) {
-          beforeDecimal = - beforeDecimal;
-        }
       }
       //
       var afterDecimalString = aMatch[3];
@@ -1915,16 +1924,12 @@ define(function() {
         }
         exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
       }
-      //
-      //var numDenGcd = _integerGcd(denominatorTen, afterDecimal);
-      //var finalFracNum = _integerQuotient(afterDecimal, numDenGcd);
-      //var finalDen = _integerQuotient(denominatorTen, numDenGcd);
-      //if (negativeP) finalFracNum = - finalFracNum;
-      //var finalNum = _integerAdd(_integerMultiply(beforeDecimal, finalDen), finalFracNum);
 
       var finalDen = denominatorTen;
-      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen),
-                                 negativeP ? - afterDecimal : afterDecimal);
+      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen), afterDecimal);
+      if (negativeP) {
+        finalNum = negate(finalNum);
+      }
       //
       if (!equals(exponent, 1)) {
         if (exponentNegativeP) {
@@ -1939,11 +1944,7 @@ define(function() {
     aMatch = x.match(roughnumRegexp);
     if (aMatch) {
       return Roughnum.makeInstance(Number(aMatch[1]));
-      //return Roughnum.makeInstance(fromString(aMatch[1]));
     }
-    // if (x.match(scientificPattern)) {
-    //  return Roughnum.makeInstance(Number(x));
-    // }
 
     return false; // if all else fails
 
@@ -3306,7 +3307,7 @@ define(function() {
     return this.compareTo(other) <= 0;
   };
 
-  // divide: scheme-number -> scheme-number
+  // divide: pyretnum -> pyretnum
   // WARNING NOTE: we override the old version of divide.
   BigInteger.prototype.divide = function(other) {
     var quotientAndRemainder = bnDivideAndRemainder.call(this, other);
@@ -3328,7 +3329,7 @@ define(function() {
   };
 
   (function() {
-    // Classic implementation of Newton-Ralphson square-root search,
+    // Classic implementation of Newton-Raphson square-root search,
     // adapted for integer-sqrt.
     // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
     var searchIter = function(n, guess) {
@@ -3341,20 +3342,20 @@ define(function() {
       return guess;
     };
 
-    // integerSqrt: -> scheme-number
+    // integerSqrt: -> pyretnum
     BigInteger.prototype.integerSqrt = function() {
       var n;
       if(sign(this) >= 0) {
         return searchIter(this, this);
       } else {
-        throwRuntimeError('integerSqrt of negative bignum', this);
+        throwRuntimeError('integerSqrt of negative bignum ' + this);
       }
     };
   })();
 
   (function() {
     // Get an approximation using integerSqrt, and then start another
-    // Newton-Ralphson search if necessary.
+    // Newton-Raphson search if necessary.
     BigInteger.prototype.sqrt = function() {
       var approx = this.integerSqrt(), fix;
       if (eqv(sqr(approx), this)) {
@@ -3362,92 +3363,94 @@ define(function() {
       }
       fix = toFixnum(this);
       if (isFinite(fix)) {
-        if (fix >= 0) {
-          return Roughnum.makeInstance(Math.sqrt(fix));
-        } else {
-          throwRuntimeError('sqrt of negative bignum', fix);
-        }
+        return Roughnum.makeInstance(Math.sqrt(fix));
       } else {
         return approx;
       }
     };
   })();
 
-  // sqrt: -> scheme-number
+  // sqrt: -> pyretnum
   // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
   // Produce the square root.
 
-  // floor: -> scheme-number
+  // floor: -> pyretnum
   // Produce the floor.
   BigInteger.prototype.floor = function() {
     return this;
   }
 
-  // ceiling: -> scheme-number
+  // ceiling: -> pyretnum
   // Produce the ceiling.
   BigInteger.prototype.ceiling = function() {
     return this;
   }
 
-  // log: -> scheme-number
+  // round: -> pyretnum
+  // Round to the nearest integer.
+  BigInteger.prototype.round = function(n) {
+    return this;
+  };
+
+  BigInteger.prototype.roundEven = function(n) {
+    return this;
+  };
+
+  // log: -> pyretnum
   // Produce the log.
   BigInteger.prototype.log = function(n) {
     return log(this.toFixnum());
   };
 
-  // tan: -> scheme-number
+  // tan: -> pyretnum
   // Produce the tan.
   BigInteger.prototype.tan = function(n) {
     return tan(this.toFixnum());
   };
 
-  // atan: -> scheme-number
+  // atan: -> pyretnum
   // Produce the arc tangent.
   BigInteger.prototype.atan = function(n) {
     return atan(this.toFixnum());
   };
 
-  // cos: -> scheme-number
+  // cos: -> pyretnum
   // Produce the cosine.
   BigInteger.prototype.cos = function(n) {
     return cos(this.toFixnum());
   };
 
-  // sin: -> scheme-number
+  // sin: -> pyretnum
   // Produce the sine.
   BigInteger.prototype.sin = function(n) {
     return sin(this.toFixnum());
   };
 
-  // expt: scheme-number -> scheme-number
+  // expt: pyretnum -> pyretnum
   // Produce the power to the input.
   BigInteger.prototype.expt = function(n) {
     return bnPow.call(this, n);
   };
 
-  // exp: -> scheme-number
+  // exp: -> pyretnum
   // Produce e raised to the given power.
   BigInteger.prototype.exp = function() {
-    var x = this.toFixnum();
-    return Roughnum.makeInstance(Math.exp(x));
+    var res = Math.exp(this.toFixnum());
+    if (!isFinite(res))
+      throwRuntimeError('exp: argument too large: ' + this);
+    return Roughnum.makeInstance(res);
   };
 
-  // acos: -> scheme-number
+  // acos: -> pyretnum
   // Produce the arc cosine.
   BigInteger.prototype.acos = function(n) {
     return acos(this.toFixnum());
   };
 
-  // asin: -> scheme-number
+  // asin: -> pyretnum
   // Produce the arc sine.
   BigInteger.prototype.asin = function(n) {
     return asin(this.toFixnum());
-  };
-
-  // round: -> scheme-number
-  // Round to the nearest integer.
-  BigInteger.prototype.round = function(n) {
-    return round(this.toFixnum());
   };
 
   //////////////////////////////////////////////////////////////////////
@@ -3556,7 +3559,8 @@ define(function() {
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
 
   Numbers['onThrowRuntimeError'] = onThrowRuntimeError;
-  Numbers['isSchemeNumber'] = isSchemeNumber;
+  Numbers['setThrowRuntimeError'] = setThrowRuntimeError;
+  Numbers['isPyretNumber'] = isPyretNumber;
   Numbers['isRational'] = isRational;
   Numbers['isReal'] = isReal;
   Numbers['isExact'] = isExact;
@@ -3596,6 +3600,8 @@ define(function() {
   Numbers['remainder'] = remainder;
   Numbers['floor'] = floor;
   Numbers['ceiling'] = ceiling;
+  Numbers['round'] = round;
+  Numbers['roundEven'] = roundEven;
   Numbers['log'] = log;
   Numbers['tan'] = tan;
   Numbers['atan'] = atan;
@@ -3604,9 +3610,6 @@ define(function() {
   Numbers['tan'] = tan;
   Numbers['acos'] = acos;
   Numbers['asin'] = asin;
-  Numbers['cosh'] = cosh;
-  Numbers['sinh'] = sinh;
-  Numbers['round'] = round;
   Numbers['sqr'] = sqr;
   Numbers['gcd'] = gcd;
   Numbers['lcm'] = lcm;

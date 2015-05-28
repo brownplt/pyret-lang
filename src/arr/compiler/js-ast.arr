@@ -172,6 +172,34 @@ data JStmt:
       PP.surround(INDENT, 1, PP.group(PP.str("while") + PP.parens(self.cond.tosource()) + PP.sbreak(1) + PP.lbrace),
         self.body.tosource(), PP.rbrace)
     end
+  | j-for(create-var :: Boolean, init :: JExpr, cond :: JExpr, update :: JExpr, body :: JBlock) with:
+    print-ugly-source(self, printer):
+      printer("for(")
+      when self.create-var:
+        printer("var ")
+      end
+      self.init.print-ugly-source(printer)
+      printer(";")
+      self.cond.print-ugly-source(printer)
+      printer(";")
+      self.update.print-ugly-source(printer)
+      printer(") {\n")
+      self.body.print-ugly-source(printer)
+      printer("}\n")
+    end,
+    tosource(self):
+      semi = PP.str(";") + PP.sbreak(1)
+      init-src =
+        if self.create-var: PP.str("var ") + self.init.tosource()
+        else: self.init.tosource()
+        end
+      PP.surround(INDENT, 1,
+        PP.group(PP.str("for")
+            + PP.parens(init-src + semi + self.cond.tosource() + semi + self.update.tosource())
+            + PP.sbreak(1) + PP.lbrace),
+        self.body.tosource(),
+        PP.rbrace)
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -313,6 +341,26 @@ data JExpr:
       arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))
       header = PP.group(PP.str("function") + arglist)
       PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
+    end
+  | j-new(func :: JExpr, args :: List<JExpr>) with:
+    label(self): "j-new" end,
+    print-ugly-source(self, printer):
+      printer("new ")
+      self.func.print-ugly-source(printer)
+      printer("(")
+      when is-link(self.args):
+        self.args.first.print-ugly-source(printer)
+        for each(a from self.args.rest):
+          printer(",")
+          a.print-ugly-source(printer)
+        end
+      end
+      printer(")")
+    end,
+    tosource(self):
+      PP.group(PP.str("new ") + self.func.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | j-app(func :: JExpr, args :: List<JExpr>) with:
     label(self): "j-app" end,
@@ -588,6 +636,7 @@ default-map-visitor = {
   j-unop(self, exp, op): j-unop(exp.visit(self), op) end,
   j-binop(self, left, op, right): j-binop(left.visit(self), op, right.visit(self)) end,
   j-fun(self, args, body): j-fun(args, body.visit(self)) end,
+  j-new(self, func, args): j-new(func.visit(self), args.map(_.visit(self))) end,
   j-app(self, func, args): j-app(func.visit(self), args.map(_.visit(self))) end,
   j-method(self, obj, meth, args): j-method(obj.visit(self), meth, args.map(_.visit(self))) end,
   j-ternary(self, test, consq, alt): j-ternary(test.visit(self), consq.visit(self), alt.visit(self)) end,
@@ -619,5 +668,6 @@ default-map-visitor = {
   j-break(self): j-break end,
   j-continue(self): j-continue end,
   j-switch(self, exp, branches): j-switch(exp.visit(self), branches.map(_.visit(self))) end,
-  j-while(self, cond, body): j-while(cond.visit(self), body.visit(self)) end
+  j-while(self, cond, body): j-while(cond.visit(self), body.visit(self)) end,
+  j-for(self, create-var, init, cond, update, body): j-for(create-var, init.visit(self), cond.visit(self), update.visit(self), body.visit(self)) end
 }

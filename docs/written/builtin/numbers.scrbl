@@ -126,6 +126,11 @@
     (args ("n"))
     (doc ""))
   (fun-spec
+    (name "num-round-even")
+    (arity 1)
+    (args ("n"))
+    (doc ""))
+  (fun-spec
     (name "num-log")
     (arity 1)
     (args ("n"))
@@ -205,26 +210,55 @@
     (arity 1)
     (args ("tol"))
     (doc ""))
-  (fun-spec
-    (name "within-abs")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-abs-now")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-rel")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
-  (fun-spec
-    (name "within-rel-now")
-    (arity 1)
-    (args ("tol"))
-    (doc ""))
+    (fun-spec
+      (name "within-abs")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-rel")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now")
+      (arity 1)
+      (args ("tol"))
+      (doc ""))
+    (fun-spec
+      (name "within-abs3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-abs-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
+    (fun-spec
+      (name "within-rel-now3")
+      (arity 1)
+      (args ("tol"))
+      (return ,eq3fun)
+      (doc ""))
   (fun-spec
     (name "num-random")
     (arity 1)
@@ -248,9 +282,49 @@
     ))
 
 @docmodule["numbers" #:noimport #t #:friendly-title "Numbers"]{
-   @type-spec["Number" (list)]
-       The type of number values
 
+Pyret numbers are of two kinds: exact
+numbers and rough numbers (``roughnums''). Both are to base ten;
+real; and finite.
+
+Exact numbers are arbitrarily precise rational numbers: these
+include integers and rational fractions.  For integers whose 
+magnitude is less than @pyret{(2^53 - 1)},
+Pyret internally uses JavaScript
+fixnums, in order to optimize basic arithmetic.
+
+Roughnums are numbers that are necessarily or
+deliberately imprecise. These correspond to the same set of
+values covered by JavaScript
+fixnums (a.k.a. doubles), and thus cover a large but limited range
+(magnitude less than @pyret{1.7976931348623157e308}).
+
+Operations on exact numbers typically return
+exacts. However, if the operation can yield irrationals, and it
+is not possible to determine that a particular result is
+definitely rational, that result is returned as a roughnum. Thus,
+trigonometric functions on exact numbers typically yield roughnum
+answers, except for well-known edge cases such as the sine or
+cosine of zero. Fractional powers of rationals are usually roughnum,
+except for small roots where it can be ascertained that an exact
+root is possible.
+
+Operations that are non-casting and with at least one argument that is roughnum
+automatically coerce the result to be a roughnum. This is known
+as roughnum contagion.
+
+Exact numbers allow the usual comparison predicates. Roughnums do
+too, with the significant exception that trying to compare
+roughnums for equality throws an error.
+
+An operation whose numerical result is not determinate or finite
+throws an error, with the message signaling either an
+overflow or some more specific problem. 
+
+@section{Number Annotations}
+
+@type-spec["Number" (list)]
+The type of number values
 @type-spec["Exactnum" (list)]
 The type of exact number values
 @type-spec["Roughnum" (list)]
@@ -310,7 +384,7 @@ granularity of 5e-324 (JS’s Number.MIN_VALUE).
      @section{Number Functions}
   @function["num-equal" #:contract (a-arrow N N B)]{
 If both arguments are exact, returns a boolean.
-If either argument is roughnum, raises an exception.
+If either argument is roughnum, raises an error.
 
 @examples{
 check:
@@ -324,7 +398,7 @@ check:
 end
 }
 
-Throws an exception on non-numeric
+Throws an error on non-numeric
 arguments, which can be a useful alternative to @pyret-id["equal-always"
 "equality"] in situations where the program shouldn't compare non-numbers.
 
@@ -551,18 +625,40 @@ the argument is rough.
 check:
   num-round(4.2) is 4
   num-round(4.8) is 5
-  num-round(-4.2) is -4
+  num-round(-½4.2) is -4
   num-round(-4.8) is -5
 end
 }
 
+If the argument is midway between integers, returns the integer
+away from zero.
+
+@examples{
+check:
+  num-round(3.5) is 4
+  num-round(2.5) is 3
+end
+}
+
   }
-  @function["num-log" #:contract (a-arrow N N) #:return N]{
+  @function["num-round-even" #:contract (a-arrow N N) #:return N]{
+
+Similar to @pyret{num-round}, except that if the argument is
+midway between integers, returns the even integer.
+
+@examples{
+check:
+  num-round-even(3.5) is 4
+  num-round-even(2.5) is 2
+end
+}
+
+  }  @function["num-log" #:contract (a-arrow N N) #:return N]{
 
 Returns the natural logarithm (ln) of the argument, usually as a roughnum.
 However, if the argument is exact 1, the
-result is exact 0. If the argument is non-positive, an exception is
-raised.
+result is exact 0. If the argument is non-positive, an error is
+thrown.
 
 @examples{
 check:
@@ -595,8 +691,8 @@ end
   @function["num-expt" #:contract (a-arrow N N N) #:return N]{
 
 Returns the first argument raised to the second argument. The result is exact
-if both arguments are exact, except for an exception when the
-first argumetn is zero and the second is negative.
+if both arguments are exact, except that an error is thrown if
+the first argument is zero and the second is negative.
 Furthermore, if the first argument is exact 0 or 1,
 or the second argument is exact 0, then the result is exact even if the other
 argument is rough.
@@ -617,10 +713,11 @@ end
   @function["num-to-rational" #:contract (a-arrow N N) #:return N]{
 
 Same as @pyret{num-exact}.
+first argumetn is zero and the second is negative.
   }
   @function["num-to-roughnum" #:contract (a-arrow N N) #:return N]{
 
-Given an exact num, returns the roughnum version of it. Given ar
+Given an exact num, returns the roughnum version of it. Given a
 roughnum, returns it directly.
 
 @examples{
@@ -791,7 +888,7 @@ end
 Returns a predicate that checks if the relative difference of its two
 number arguments is less than @pyret{tol}.
 
-This function is aka @pyret{num-within}.
+This function is a.k.a. @pyret{num-within}.
 
 @examples{
 check:
@@ -800,113 +897,15 @@ check:
 end
 }
   }
-  @function["within-abs" #:contract (a-arrow N A)]{
 
-Returns a predicate that checks if its arguments are guaranteed
-to be structurally
-equivalent and any numbers in corresponding positions are such
-that their difference is less than @pyret{tol}.
-Notably,
-this predicate will fail if either argument contains mutable
-objects.
+  @function["within" #:contract (a-arrow N A)]
+  @function["within-abs" #:contract (a-arrow N A)]
+  @function["within-rel" #:contract (a-arrow N A)]
+  @function["within-abs-now" #:contract (a-arrow N A)]
+  @function["within-rel-now" #:contract (a-arrow N A)]
 
-@examples{
-check:
-  ~2  is-not%(within-abs(0.1))  ~3
-  ~2  is%(within-abs(1.1))      ~3
-
-   within-abs(-0.1)(1, 1.05) raises "negative tolerance"
-
-   l3 = [list: ~1]
-   l4 = [list: 1.2]
-   l3 is%(within-abs(0.5))  l4
-   l3 is-not%(within-abs(0.1)) l4
-   l3 is%(within-abs(~0.5))  l4
-   l3 is-not%(within-abs(~0.1)) l4
-end
-}
-
-  }
-  @function["within-abs-now" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are currently
-structurally
-equivalent and any numbers in corresponding positions are such
-that their current difference is less than @pyret{tol}.
-Notably,
-if the arguments contain mutable objects, the predicate could
-return false if those objects are mutated.
-
-@examples{
-check:
-  b1 = box(5)
-  b2 = box(5)
-  l1 = [list: 2, b1]
-  l2 = [list: 2.1, b2]
-
-  l1 is-not%(within-abs(0.3)) l2
-  l1 is%(within-abs-now(0.3)) l2
-
-  b1!{v: 10}
-
-  l1 is-not%(within-abs-now(0.3)) l2
-end
-}
-
-  }
-  @function["within-rel" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are guaranteed
-to be structurally
-equivalent and any numbers in corresponding positions are such
-that their relative difference is currently less than @pyret{tol}.
-Notably,
-this predicate will return false if either argument contains mutable
-objects.
-
-This function is aka @pyret{within}.
-
-@examples{
-check:
-  l7 = [list: 1]
-  l8 = [list: ~1.2]
-  l7 is%(within-rel(0.5))  l8
-  l7 is-not%(within-rel(0.1)) l8
-  l7 is%(within-rel(~0.5))  l8
-  l7 is-not%(within-rel(~0.1)) l8
-end
-}
-
-  }
-  @function["within-rel-now" #:contract (a-arrow N A)]{
-
-Returns a predicate that checks if its arguments are currently
-structurally
-equivalent and any numbers in corresponding positions are such
-that their relative difference is currently less than @pyret{tol}.
-Notably,
-if the arguments contain mutable objects, the predicate could
-return false if those objects are mutated.
-
-This function is aka @pyret{within-now}.
-
-@examples{
-check:
-  b1 = box(5)
-  b2 = box(5)
-  l1 = [list: 2, b1]
-  l2 = [list: 2.1, b2]
-
-  l1 is%(within-rel-now(0.5)) l2
-  l1 is-not%(within-rel(0.5)) l2
-
-  b1!{v: 10}
-
-  l1 is-not%(within-rel-now(0.5)) l2
-end
-}
-
-  }
+  These comparison functions compare both numbers and structures, and are
+  documented in @seclink["s:bounded-equalities"].
 
 @section{Random Numbers}
 

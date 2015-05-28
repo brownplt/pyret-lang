@@ -5,7 +5,13 @@
 *.err
 *.bak
 
+# benchmark
+tools/benchmark/TODO
+tools/benchmark/sandbox*
+tools/benchmark/nodelint*
+
 # docs
+docs/written/compiled
 docs/written/*.html
 docs/written/*/compiled
 docs/written/scribble*

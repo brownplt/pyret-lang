@@ -18,8 +18,8 @@ run-str = lam(str):
   end
 end
 
-fun is-contract-error-str(result):
-  (result.success == false) and string-contains(result.render-error-message(), "Contract Error")
+fun is-contract-error(result):
+  (result.success == false) and result.is-contract-error
 end
 
 fun is-refinement-error-str(result):
@@ -28,7 +28,7 @@ end
 
 fun is-field-error-str(msg, fields):
   for lists.all(f from fields):
-    string-contains(msg, "field " + f)
+    string-contains(msg, "field `" + f + "`")
   end
 end
 
@@ -52,7 +52,7 @@ check "should work for flat contracts":
       "Should be error" is program
     end
     when result.success == false:
-      result satisfies is-contract-error-str
+      result satisfies is-contract-error
     end
   end
 end
@@ -83,7 +83,7 @@ check "should work for refinements":
       "Should be error" is program
     end
     when result.success == false:
-      result satisfies is-contract-error-str
+      result satisfies is-contract-error
     end
   end
   non-errors = [list:
@@ -173,34 +173,34 @@ check "should bind types":
       "Should be error" is program
     end
     when result.success == false:
-      result satisfies is-contract-error-str
+      result satisfies is-contract-error
     end
   end
 end
 
 check "should work for lambda-bound annotations":
-  run-str("fun f(x :: Number): x end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun id(x): x end\n fun f(x) -> Number: id(x) end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun f(x) -> Number: if true: x else: x end end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun f(x) -> Number: cases(List) empty: | empty => x | link(_, _) => x end end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun id(x): x end\n fun f(x) -> Number: if true: id(x) else: id(x) end end\n f('foo')") satisfies is-contract-error-str
-  run-str("fun id(x): x end\n fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end\n f('foo')") satisfies is-contract-error-str
+  run-str("fun f(x :: Number): x end\n f('foo')") satisfies is-contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: id(x) end\n f('foo')") satisfies is-contract-error
+  run-str("fun f(x) -> Number: if true: x else: x end end\n f('foo')") satisfies is-contract-error
+  run-str("fun f(x) -> Number: cases(List) empty: | empty => x | link(_, _) => x end end\n f('foo')") satisfies is-contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: if true: id(x) else: id(x) end end\n f('foo')") satisfies is-contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end\n f('foo')") satisfies is-contract-error
 end
 
 check "should work for method-bound annotations":
-  run-str("o = { m(self, x :: Number): x end }\n o.m('foo')") satisfies is-contract-error-str
-  run-str("o = { m(self, x) -> Number: x end }\n o.m('foo')") satisfies is-contract-error-str
+  run-str("o = { m(self, x :: Number): x end }\n o.m('foo')") satisfies is-contract-error
+  run-str("o = { m(self, x) -> Number: x end }\n o.m('foo')") satisfies is-contract-error
   run-str(```
     o = {
       id(self, n): n end,
       m(self, x) -> Number: self.id(x) end
     }
-    o.m('foo')```) satisfies is-contract-error-str
+    o.m('foo')```) satisfies is-contract-error
   run-str(```
     o = {
       m(self, x) -> Number: if true: x else: x end end
     }
-    o.m('foo')```) satisfies is-contract-error-str
+    o.m('foo')```) satisfies is-contract-error
   run-str(```
     o = {
       m(self, x) -> Number: cases(List) empty:
@@ -208,13 +208,13 @@ check "should work for method-bound annotations":
         | link(_, _) => x
       end end
     }
-    o.m('foo')```) satisfies is-contract-error-str
+    o.m('foo')```) satisfies is-contract-error
   run-str(```
     o = {
       id(self, n): n end,
       m(self, x) -> Number: if true: self.id(x) else: self.id(x) end end
     }
-    o.m('foo')```) satisfies is-contract-error-str
+    o.m('foo')```) satisfies is-contract-error
   run-str(```
     o = {
       id(self, n): n end,
@@ -223,17 +223,17 @@ check "should work for method-bound annotations":
         | link(_, _) => self.id(x)
       end end
     }
-    o.m('foo')```) satisfies is-contract-error-str
+    o.m('foo')```) satisfies is-contract-error
 end
 
 
 check "should work for standalone binding constructs":
-  run-str("type N = Number\nx :: N = 'foo'") satisfies is-contract-error-str
+  run-str("type N = Number\nx :: N = 'foo'") satisfies is-contract-error
   run-str("newtype Lyst as LystT").success is true
 end
 
 check "should work for data":
-  run-str("data D: | var1 end\nx :: D = 5") satisfies is-contract-error-str
+  run-str("data D: | var1 end\nx :: D = 5") satisfies is-contract-error
   run-str("data D: | var1 end\nx :: D = var1").success is true
 end
 
@@ -247,11 +247,11 @@ check "should work with deep refinements":
     long-is-even +
     "x :: Number % (is-even) = 100000\n" +
     "x2 :: Number % (is-even) = x + 1"
-  ) satisfies is-contract-error-str
+  ) satisfies is-contract-error
   run-str(
     long-is-even +
     "x :: Number % (is-even) = 100001"
-  ) satisfies is-contract-error-str
+  ) satisfies is-contract-error
   run-str(
     long-is-even +
     "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
@@ -261,7 +261,7 @@ check "should work with deep refinements":
     long-is-even +
     "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
     "f(\"nan\")"
-  ) satisfies is-contract-error-str
+  ) satisfies is-contract-error
 end 
 
 
@@ -298,7 +298,7 @@ check "should work in cases positions":
     end
   ```
 
-  run-str(data-def) satisfies is-contract-error-str
+  run-str(data-def) satisfies is-contract-error
 
   data-def2 = ```
     data D: d end
@@ -308,5 +308,5 @@ check "should work in cases positions":
     end
   ```
 
-  run-str(data-def2) satisfies is-contract-error-str
+  run-str(data-def2) satisfies is-contract-error
 end

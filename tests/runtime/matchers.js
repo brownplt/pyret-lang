@@ -22,7 +22,7 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toBeSameAs : function(rt, expect) {
                 this.message = function() {
-                  return ["Custom expectation: " + rt.toReprJS(this.actual) + " to equal " + rt.toReprJS(expect)];
+                  return ["Custom expectation: " + rt.toReprJS(this.actual, rt.ReprMethods._tostring) + " to equal " + rt.toReprJS(expect, rt.ReprMethods._tostring)];
                 };
                 return rt.equal_always(this.actual, expect);
             },
@@ -54,7 +54,7 @@ define(["js/js-numbers"], function (jsnums) {
                 this.message = function() {
                   if (rt.isSuccessResult(this.actual)) {
                     return ["Custom expectation: Expected a failure, but successfully evaluated to " + 
-                            rt.toReprJS(this.actual.result)];
+                            rt.toReprJS(this.actual.result, rt.ReprMethods._tostring)];
                   } else {
                     return ["Custom expectation: Expected a failure, but got neither success nor failure: " + 
                             JSON.stringify(this.actual)];
@@ -70,7 +70,7 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toBeCompileError : function(cs, rt) {
                 this.message = function() {
-                  return ["Custom expectation: " + rt.toReprJS(this.actual) + " to be compile error"];
+                  return ["Custom expectation: " + rt.toReprJS(this.actual, rt.ReprMethods._tostring) + " to be compile error"];
                 };
                 return rt.unwrap(gf(cs, "is-err").app(this.actual)) === true;
             },
@@ -83,14 +83,17 @@ define(["js/js-numbers"], function (jsnums) {
             toBeMessageExn : function(rt, s) {
                 return rt1.unwrap(rt1.getField(e, "message")).indexOf(s) !== -1;
             },
-            toThrowRuntimeExn : function(s) {
+            toThrowRuntimeExn : function(rt, renderErrors, s) {
                 try {
                   this.actual();
                   return false;
                 } catch(e) {
-                  if (e.toString().indexOf(s) >= 0) return true;
+                  var renderedExn = rt.getField(e.exn, "render-reason").app();
+                  var displayExn = rt.getField(renderErrors, "display-to-string");
+                  var renderedString = displayExn.app(renderedExn, rt.namespace.get("torepr"), rt.ffi.makeList([]));
+                  if (renderedString.indexOf(s) >= 0) return true;
                   this.message = function() {
-                    return ["Expected " + JSON.stringify(s) + " but got " + JSON.stringify(e.toString())];
+                    return ["Expected " + JSON.stringify(s) + " but got " + renderedString/* + "; the exn itself was: " + JSON.stringify(e)*/];
                   }
                   return false;
                 }

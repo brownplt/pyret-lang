@@ -266,7 +266,7 @@ install:
 test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
 
 .PHONY : test-all
-test-all: test docs-test
+test-all: test docs-test benchmark-test
 
 .PHONY : runtime-test
 runtime-test : $(PHASE1)/phase1.built
@@ -350,6 +350,10 @@ bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
     --module-load-dir tests/pyret \
     --dialect Bootstrap \
     -check-all tests/pyret/bootstrap-main.arr
+
+.PHONY : benchmark-test
+benchmark-test: tools/benchmark/*.js $(PHASE1)/phase1.built
+	cd tools/benchmark && node tests
 
 .PHONY : docs-test
 docs-test: docs

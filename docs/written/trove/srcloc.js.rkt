@@ -70,5 +70,4 @@
   }
   
   @section[#:tag "srcloc_Functions"]{Functions}
-  @function["old-srcloc"]
 }

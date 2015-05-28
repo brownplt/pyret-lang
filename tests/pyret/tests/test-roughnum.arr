@@ -14,6 +14,11 @@ check "roughnum":
   ~1 < ~2 is true
   2 == (1 + 1) is true
   ~2 == (~1 + ~1) raises "Roughnum"
+  ~2 < ~2 is false
+  ~2 <= ~2 is true
+  ~2 == ~2 raises "Roughnum"
+  ~2 >= ~2 is true
+  ~2 > ~2 is false
   ~2 is%(local-within-abs(~0.01)) (~1 + ~1)
   #
   # but we can also use builtin num-within, within
@@ -104,9 +109,9 @@ end
 
 check "overflow rather than infinity":
   # in JS, e^709 converges, e^710 doesn't
-  num-exp(710)          raises "overflow"
-  num-exp(~710)         raises "overflow"
-  num-exp(1000000000000000000000000) raises "overflow" # this tests for arg known to be bigint
+  num-exp(710)          raises "too large"
+  num-exp(~710)         raises "too large"
+  num-exp(1000000000000000000000000) raises "too large" # this tests for arg known to be bigint
   num-expt(2.718,~710)  raises "overflow"
   num-expt(~2.718,710)  raises "overflow"
   num-expt(~2.718,~710) raises "overflow"
@@ -130,7 +135,6 @@ check "trig-type functions on bigints should converge":
   num-tan(10000000000000000)   * 0 is 0
   num-atan(10000000000000000)  * 0 is 0
   num-log(10000000000000000)   * 0 is 0
-  num-round(10000000000000000) * 0 is 0
 end
 
 check "comparing MAX_VALUEs":

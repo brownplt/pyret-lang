@@ -1,11 +1,14 @@
-define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Namespace, ffi) {
+define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
   return util.memoModule("string-dict2", function(runtime, namespace) {
     return runtime.loadJSModules(namespace, [ffi], function(F) {
+    return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 
       var O = runtime.makeObject;
       var F = runtime.makeFunction;
       var arity = runtime.checkArity;
       var get = runtime.getField;
+
+      var VS = get(VSlib, "values");
 
       var brandMutable = runtime.namedBrander("mutable-string-dict");
       var brandImmutable = runtime.namedBrander("string-dict");
@@ -148,29 +151,18 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return runtime.makeNumber(num);
         });
 
-        var toreprISD = runtime.makeMethod1(function(_, recursiveToRepr) {
-          runtime.checkArity(2, arguments, 'torepr');
+        var outputISD = runtime.makeMethod0(function(_) {
+          runtime.checkArity(1, arguments, '_output');
           var elts = [];
           var keys = getAllKeys();
-          function combine(elts) {
-            return '[string-dict: ' + elts.join(', ') + ']';
+          var vsValue = get(VS, "vs-value");
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(vsValue.app(userKey(keys[i])));
+            elts.push(vsValue.app(underlyingDict[keys[i]]));
           }
-          function toreprElts() {
-            if (keys.length === 0) {
-              return combine(elts);
-            } else {
-              var thisKey = keys.pop();
-              return runtime.safeCall(function() {
-                return recursiveToRepr.app(underlyingDict[thisKey]);
-              },
-              function (result) {
-                elts.push(recursiveToRepr.app(userKey(thisKey)));
-                elts.push(result);
-                return toreprElts();
-              });
-            }
-          }
-          return toreprElts();
+          return get(VS, "vs-collection").app(
+            runtime.makeString("string-dict"),
+            runtime.ffi.makeList(elts));
         });
 
         var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
@@ -228,9 +220,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           keys: keysISD,
           "keys-list": keysListISD,
           count: countISD,
-            'has-key': hasKeyISD,
+          'has-key': hasKeyISD,
           _equals: equalsISD,
-          _torepr: toreprISD,
+          _output: outputISD,
           unfreeze: unfreezeISD
         });
 
@@ -339,6 +331,19 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
           return toreprElts();
         });
+        var outputMSD = runtime.makeMethod0(function(_) {
+          runtime.checkArity(1, arguments, '_output');
+          var elts = [];
+          var keys = Object.keys(underlyingDict);
+          var vsValue = get(VS, "vs-value");
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(vsValue.app(userKey(keys[i])));
+            elts.push(vsValue.app(underlyingDict[keys[i]]));
+          }
+          return get(VS, "vs-collection").app(
+            runtime.makeString("mutable-string-dict"),
+            runtime.ffi.makeList(elts));
+        });
 
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           runtime.checkArity(3, arguments, "equals");
@@ -404,7 +409,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
           _equals: equalsMSD,
-          _torepr: toreprMSD,
+          _output: outputMSD,
           freeze: freezeMSD,
           seal: sealMSD
         });
@@ -486,6 +491,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         "answer": runtime.nothing
       });
 
+    });
     });
   });
 });

@@ -121,6 +121,7 @@ define(["js/namespace", "trove/image", "trove/world", "js/js-numbers"], function
         'num-ceiling': rt.namespace.get("num-ceiling"),
         'num-floor': rt.namespace.get("num-floor"),
         'num-round': rt.namespace.get("num-round"),
+        'num-round-even': rt.namespace.get("num-round-even"),
         'num-log': rt.namespace.get("num-log"),
         'num-exp': rt.namespace.get("num-exp"),
         'num-exact': rt.namespace.get("num-exact"),

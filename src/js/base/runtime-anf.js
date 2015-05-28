@@ -192,6 +192,134 @@ var emptyDict = Object.create(null);
 */
 function isBase(obj) { return obj instanceof PBase; }
 
+  function renderValueSkeleton(val, values) {
+    if (ffi.isVSValue(val)) { return values.pop(); } // double-check order!
+    else if (ffi.isVSCollection(val)) {
+      var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
+      var items = ffi.toArray(thisRuntime.getField(val, "items"));
+      var s = "[" + name + ": ";
+      for (var i = items.length - 1; i >= 0; i--) {
+        s += renderValueSkeleton(items[i], values);
+        if (i != 0) { s += ", "; }
+      }
+      return s + "]";
+    } else {
+      var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
+      var items = ffi.toArray(thisRuntime.getField(val, "args"));
+      var s = name + "(";
+      for (var i = items.length - 1; i >= 0; i--) {
+        s += renderValueSkeleton(items[i], values);
+        if (i != 0) { s += ", "; }
+      }
+      return s + ")";
+    }
+  }
+
+  var DefaultReprMethods = {
+    "string": String,
+    "number": String,
+    "boolean": String,
+    "nothing": function(val) { return "nothing"; },
+    "function": function(val) { return "<function>"; },
+    "method": function(val) { return "<method>"; },
+    "opaque": function(val) { 
+      if (thisRuntime.imageLib.isImage(val.val)) {
+        return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
+      } else {
+        return "<internal value>"; 
+      }
+    },
+    "object": function(val, pushTodo) {
+      var keys = [];
+      var vals = [];
+      for (var field in val.dict) {
+        keys.push(field); // NOTE: this is reversed order from the values,
+        vals.unshift(val.dict[field]); // because processing will reverse them back
+      }
+      pushTodo(undefined, val, undefined, vals, "render-object", { keys: keys });
+    },
+    "render-object": function(top) {
+      var s = "{";
+      for (var i = 0; i < top.extra.keys.length; i++) {
+        if (i > 0) { s += ", "; }
+        s += top.extra.keys[i] + ": " + top.done[i];
+      }
+      s += "}";
+      return s;
+    },
+    "ref": function(val, implicit, pushTodo) { 
+      pushTodo(undefined, undefined, val, [getRef(val)], "render-ref", { implicit: implicit }); 
+    },
+    "render-ref": function(top) {
+      var s = "";
+      if (top.extra.implicit) {
+        s += top.done[0];
+      } else {
+        s += "ref(" + top.done[0] + ")";
+      }
+      return s;
+    },
+    "data": function(val, pushTodo) {
+      var vals = val.$app_fields_raw(function(/* varargs */) {
+        var ans = new Array(arguments.length);
+        for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
+        return ans;
+      });
+      pushTodo(undefined, val, undefined, vals, "render-data", 
+               { arity: val.$arity, implicitRefs: val.$mut_fields_mask, 
+                 fields: val.$constructor.$fieldNames, constructorName: val.$name });
+    },
+    "render-data": function(top) {
+      var s = top.extra.constructorName;
+      // Sentinel value for singleton constructors
+      if(top.extra.arity !== -1) {
+        s += "(";
+        for(var i = top.done.length - 1; i >= 0; i--) {
+          if(i < top.done.length - 1) { s += ", "; }
+          s += top.done[i];
+        }
+        s += ")";
+      }
+      return s;
+    },
+    "array": function(val, pushTodo) { 
+      pushTodo(val, undefined, undefined, Array.prototype.slice.call(val), "render-array");
+    },
+    "render-array": function(top) {
+      var s = "[raw-array: ";
+      for(var i = top.done.length - 1; i >= 0; i--) {
+        if(i < top.done.length - 1) { s += ", "; }
+        s += top.done[i];
+      }
+      s += "]";
+      return s;
+    },
+    "valueskeleton": function(val, output, pushTodo) {
+      // NOTE: this is the eager version;
+      // a lazy version would skip getting the skeleton values altogether
+      var values = ffi.skeletonValues(output);
+      pushTodo(undefined, val, undefined, values, "render-valueskeleton",
+               { skeleton: output, val: val });
+    },
+    "render-valueskeleton": function(top) {
+      return renderValueSkeleton(top.extra.skeleton, top.done);
+    }
+  };
+
+  var ReprMethods = {};
+  ReprMethods["_torepr"] = Object.create(DefaultReprMethods);
+  ReprMethods["_torepr"]["string"] = function(str) {
+    return '"' + replaceUnprintableStringChars(String(str)) + '"';
+  };
+
+  ReprMethods["_tostring"] = Object.create(DefaultReprMethods);
+
+  ReprMethods.createNewRenderer = function createNewRenderer(name, base) {
+    if (ReprMethods[name]) { return false; }
+    ReprMethods[name] = Object.create(base);
+    return true;
+  }
+
 /********************
     Getting Fields
 ********************/
@@ -210,16 +338,17 @@ function isBase(obj) { return obj instanceof PBase; }
 **/
 function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) {
-      if (ffi === undefined) {
-        throw ("FFI is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+      if (ffi === undefined || ffi.throwInternalError === undefined) {
+        throw ("FFI or ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
       } else {
-        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); }
+        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field])); 
+      }
     }
     if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
-      if (ffi === undefined) {
-        throw ("FFI is not yet defined, and lookup of field " + field + " on " + toReprJS(val, "_torepr") + " failed at location " + JSON.stringify(loc));
+      if (ffi === undefined || ffi.throwFieldNotFound === undefined) {
+        throw ("FFI or ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
       } else {
         throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }
@@ -339,7 +468,7 @@ var nothing = makeNothing();
     @return {boolean} true if object is a PNumber
 */
 
-var isNumber = jsnums.isSchemeNumber;
+var isNumber = jsnums.isPyretNumber;
 
 function isJSNumber(obj) {
   return typeof obj === "number";
@@ -572,9 +701,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var appN = function(obj) {
       var that = this;
       return function() {
-          var argList = Array.prototype.slice.call(arguments);
-          return that.full_meth.apply(null, [obj].concat(argList));
-        };
+        var argList = new Array(arguments.length);
+        for (var i = 0; i < arguments.length; i++) argList[i] = arguments[i];
+        return that.full_meth.apply(null, [obj].concat(argList));
+      };
     }
     function makeMethod0(meth) {
       return new PMethod(app0, meth);
@@ -846,7 +976,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (typeof val === "string" || typeof val === "boolean" || val instanceof Array) {
         return true;
       }
-      else if (jsnums.isSchemeNumber(val)) {
+      else if (jsnums.isPyretNumber(val)) {
         return true;
       }
       else if (isObject(val) ||
@@ -855,7 +985,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                isRef(val) ||
                isOpaque(val) ||
                isNothing(val)) {
-        return true
+        return true;
       }
     }
 
@@ -989,7 +1119,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return '"' + replaceUnprintableStringChars(s) + '"';
     };
 
-    function toReprLoop(val, method) {
+    function toReprLoop(val, reprMethods) {
       var stack = [];
       var stackOfStacks = [];
       function makeCache(type) {
@@ -1022,29 +1152,39 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var addNewObject = objCache.add;
       var findSeenObject = objCache.check;
 
+
+      function pushTodo(newArray, newObject, newRef, todo, type, extra) {
+        var top = stack[stack.length - 1];
+        stack.push({
+          arrays: (newArray !== undefined) ? addNewArray(top.arrays, newArray) : top.arrays,
+          objects: (newObject !== undefined) ? addNewObject(top.objects, newObject) : top.objects,
+          refs: (newRef !== undefined) ? addNewRef(top.refs, newRef) : top.refs,
+          todo: todo,
+          done: [],
+          type: type,
+          extra: extra
+        });
+      }
       function toReprHelp() {
         var top;
         function finishVal(str) {
           top.todo.pop();
           top.done.push(str);
         }
+        function implicitRefs(stackFrame) {
+          return stackFrame.extra && stackFrame.extra.implicitRefs;
+        }
         while (stack.length > 0 && stack[0].todo.length > 0) {
           top = stack[stack.length - 1];
           if (top.todo.length > 0) {
             var next = top.todo[top.todo.length - 1];
-            if(isNumber(next)) { finishVal(String(next)); }
-            else if (isBoolean(next)) { finishVal(String(next)); }
-            else if (isNothing(next)) { finishVal("nothing"); }
-            else if (isFunction(next)) { finishVal("<function>"); }
-            else if (isMethod(next)) { finishVal("<method>"); }
-            else if(isString(next)) {
-              if (method === "_torepr") {
-                finishVal('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (next))) + '"');
-              } else {
-                finishVal(next);
-              }
-            }
-            else if (isOpaque(next)) { finishVal("<internal value>"); }
+            if(isNumber(next)) { finishVal(reprMethods["number"](next)); }
+            else if (isBoolean(next)) { finishVal(reprMethods["boolean"](next)); }
+            else if (isNothing(next)) { finishVal(reprMethods["nothing"](next)); }
+            else if (isFunction(next)) { finishVal(reprMethods["function"](next)); }
+            else if (isMethod(next)) { finishVal(reprMethods["method"](next)); }
+            else if (isString(next)) { finishVal(reprMethods["string"](next)); }
+            else if (isOpaque(next)) { finishVal(reprMethods["opaque"](next)); }
             else if (isArray(next)) {
               // NOTE(joe): need to copy the array below because we will pop from it
               // Baffling bugs will result if next is passed directly
@@ -1053,19 +1193,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 finishVal(arrayHasBeenSeen);
               }
               else {
-                stack.push({
-                  arrays: addNewArray(top.arrays, next),
-                  objects: top.objects,
-                  refs: top.refs,
-                  todo: Array.prototype.slice.call(next),
-                  done: [],
-                  type: "array"
-                });
+                reprMethods["array"](next, pushTodo);
               }
             }
             else if(isRef(next)) {
               var refHasBeenSeen = findSeenRef(top.refs, next);
-              var implicit = top.implicitRefs && top.implicitRefs[top.todo.length - 1];
+              var implicit = implicitRefs(top) && top.extra.implicitRefs[top.todo.length - 1];
               if(typeof refHasBeenSeen === "string") {
                 finishVal(refHasBeenSeen);
               }
@@ -1073,15 +1206,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 finishVal("<uninitialized-ref>");
               }
               else {
-                stack.push({
-                  arrays: top.arrays,
-                  objects: top.objects,
-                  refs: addNewRef(top.refs, next),
-                  todo: [getRef(next)],
-                  done: [],
-                  type: "ref",
-                  implicit: implicit
-                });
+                reprMethods["ref"](next, implicit, pushTodo);
               }
             }
             else if(isObject(next)) {
@@ -1089,55 +1214,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(typeof objHasBeenSeen === "string") {
                 finishVal(objHasBeenSeen);
               }
-              else if(next.dict[method]) {
-                stack.push({
-                  arrays: top.arrays,
-                  objects: addNewObject(top.objects, next),
-                  refs: top.refs,
-                  todo: ["dummy"],
-                  done: [],
-                  type: "method-call",
-                });
-                top = stack[stack.length - 1];
-
-                var m = getColonField(next, method);
-                if(!isMethod(m)) { ffi.throwMessageException("Non-method as " + method); }
-                var s = m.full_meth(next, toReprFunPy); // NOTE: Passing in the function below!
-                finishVal(thisRuntime.unwrap(s))
+              else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
+                var m = getColonField(next, "_output");
+                var s = m.full_meth(next);
+                reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
-                var vals = next.$app_fields_raw(function(/* varargs */) {
-                  return Array.prototype.slice.call(arguments);
-                });
-                stack.push({
-                  arrays: top.arrays,
-                  objects: addNewObject(top.objects, next),
-                  refs: top.refs,
-                  todo: vals,
-                  done: [],
-                  type: "data",
-                  arity: next.$arity,
-                  implicitRefs: next.$mut_fields_mask,
-                  constructorName: next.$name
-                });
+                reprMethods["data"](next, pushTodo);
               }
               else {
-                var keys = [];
-                var vals = [];
-                for (var field in next.dict) {
-                  keys.push(field); // NOTE: this is reversed order from the values,
-                  vals.unshift(next.dict[field]); // because processing will reverse them back
-                }
-                stack.push({
-                  arrays: top.arrays,
-                  objects: addNewObject(top.objects, next),
-                  refs: top.refs,
-                  todo: vals,
-                  done: [],
-                  type: "object",
-                  keys: keys
-                });
+                reprMethods["object"](next, pushTodo);
               }
+            }
+            else {
+              console.log("UNKNOWN VALUE!");
+              console.log(next);
             }
           }
           else {
@@ -1146,46 +1237,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             stack.pop();
             var prev = stack[stack.length - 1];
             prev.todo.pop();
-            var s = "";
-            if(top.type === "object") {
-              s += "{";
-              for (var i = 0; i < top.keys.length; i++) {
-                if (i > 0) { s += ", "; }
-                s += top.keys[i] + ": " + top.done[i];
-              }
-              s += "}";
-            }
-            else if (top.type === "ref") {
-              if (top.implicit) {
-                s += top.done[0];
-              } else {
-                s += "ref(" + top.done[0] + ")";
-              }
-            }
-            else if (top.type === "data") {
-              s += top.constructorName;
-              // Sentinel value for singleton constructors
-              if(top.arity !== -1) {
-                s += "(";
-                for(var i = top.done.length - 1; i >= 0; i--) {
-                  if(i < top.done.length - 1) { s += ", "; }
-                  s += top.done[i];
-                }
-                s += ")";
-              }
-            }
-            else if (top.type === "array") {
-              s += "[raw-array: ";
-              for(var i = top.done.length - 1; i >= 0; i--) {
-                if(i < top.done.length - 1) { s += ", "; }
-                s += top.done[i];
-              }
-              s += "]";
-            }
-            else if (top.type === "method-call") {
-              s += top.done[0];
-            }
-            prev.done.push(s);
+            prev.done.push(reprMethods[top.type](top));
           }
         }
         var finalAns = stack[0].done[0];
@@ -1209,8 +1261,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
               }
               var top = stack[stack.length - 1];
-              top.todo.pop();
-              top.done.push(thisRuntime.unwrap($ans));
+              var a = thisRuntime.unwrap($ans);
+              if (ffi.isValueSkeleton(a)) {
+                reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
+              } else {
+                // this is essentially finishVal
+                top.todo.pop();
+                top.done.push(a);
+              }
               $step = 0;
               break;
             }
@@ -1258,7 +1316,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 refs: getOld("refs"),
                 todo: [val],
                 done: [],
-                implicitRefs: [false],
+                extra: { implicitRefs: [false] },
                 root: val
               }];
               $step = 1;
@@ -1294,23 +1352,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
       @return {!string} the value given in
     */
-    function toReprJS(val, method) {
-      if (isNumber(val)) { return String(val); }
-      else if (isBoolean(val)) { return String(val); }
-      else if (isString(val)) {
-        if (method === "_torepr") {
-          return ('"' + replaceUnprintableStringChars(String(/**@type {!PString}*/ (val))) + '"');
-        } else {
-          return String(/**@type {!PString}*/ (val));
-        }
-      }
-      return toReprLoop(val, method);
+    function toReprJS(val, reprMethods) {
+      if (isNumber(val)) { return reprMethods["number"](val); }
+      else if (isBoolean(val)) { return reprMethods["boolean"](val); }
+      else if (isString(val)) { return reprMethods["string"](val); }
+      else { return toReprLoop(val, reprMethods); }
     }
 
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {
       thisRuntime.checkArity(1, arguments, "torepr");
-      return makeString(toReprJS(val, "_torepr"));
+      return makeString(toReprJS(val, ReprMethods._torepr));
     });
     var tostring = makeFunction(function(val) {
         thisRuntime.checkArity(1, arguments, "tostring");
@@ -1318,7 +1370,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return makeString(val);
         }
         else {
-          return makeString(toReprJS(val, "_tostring"));
+          return makeString(toReprJS(val, ReprMethods._tostring));
         }
       });
 
@@ -1349,7 +1401,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "_tostring");
+          var repr = toReprJS(val, ReprMethods._tostring);
         }
         theOutsideWorld.stdout(repr);
         return val;
@@ -1382,7 +1434,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           var repr = val;
         }
         else {
-          var repr = toReprJS(val, "_tostring");
+          var repr = toReprJS(val, ReprMethods._tostring);
         }
         theOutsideWorld.stderr(repr);
         return val;
@@ -1422,7 +1474,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               : "<builtin>";
           }).join("\n") :
         "<no stack trace>";
-      return toReprJS(this.exn, "_tostring") + "\n" + stackStr;
+      return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);
@@ -1442,6 +1494,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
             arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
           );
       }
+      else {
+        return getField(srcloc, "builtin").app(String(arr));
+      }
     }
 
     function makePyretFailException(exn) {
@@ -1456,6 +1511,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function makeMessageException(str) {
       ffi.throwMessageException(str);
     }
+
+    jsnums.setThrowRuntimeError(makeMessageException);
 
     var raiseJSJS =
       /**
@@ -1632,11 +1689,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 else if (isDataValue(curLeft) && isDataValue(curRight)) {
                   /* Two data values with the same brands and no equals method on the left */
                   var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
-                    return Array.prototype.slice.call(arguments);
+                    var ans = new Array(arguments.length);
+                    for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
+                    return ans;
                   });
                   if (fieldsLeft.length > 0) {
                     var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
-                      return Array.prototype.slice.call(arguments);
+                      var ans = new Array(arguments.length);
+                      for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
+                      return ans;
                     });
                     var fieldNames = curLeft.$constructor.$fieldNames;
                     for (var k = 0; k < fieldsLeft.length; k++) {
@@ -2131,7 +2192,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function wrap(v) {
-      if(jsnums.isSchemeNumber(v)) { return makeNumberBig(v); }
+      if(jsnums.isPyretNumber(v)) { return makeNumberBig(v); }
       else if(typeof v === "number") { return makeNumber(v); }
       else if(typeof v === "string") { return makeString(v); }
       else if(typeof v === "boolean") { return makeBoolean(v); }
@@ -2910,17 +2971,23 @@ function isMethod(obj) { return obj instanceof PMethod; }
     return obj instanceof ActivationRecord;
   }
 
-    function printPyretStack(stack) {
-      if (stack === undefined) return "  undefined";
-      var stackStr = stack.map(function(val) {
-        if (val instanceof Array && val.length == 7) {
-          return (val[0] + ": line " + val[1] + ", column " + val[2]);
-        } else if (val) {
-          return JSON.stringify(val);
-        }
-      });
-      return "  " + stackStr.join("\n  ");
+  // we can set verbose to true to include the <builtin> srcloc positions
+  // and the "safecall for ..." internal frames
+  // but by default, it's now terser
+  function printPyretStack(stack, verbose) {
+    if (stack === undefined) return "  undefined";
+    if (!verbose) {
+      stack = stack.filter(function(val) { return val instanceof Array && val.length == 7; });
     }
+    var stackStr = stack.map(function(val) {
+      if (val instanceof Array && val.length == 7) {
+        return (val[0] + ": line " + val[1] + ", column " + val[2]);
+      } else if (val) {
+        return JSON.stringify(val);
+      }
+    });
+    return "  " + stackStr.join("\n  ");
+  }
 
     function breakAll() {
       RUN_ACTIVE = false;
@@ -3555,8 +3622,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_within_rel = function(relTol) {
       thisRuntime.checkArity(1, arguments, "within-rel");
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0)) {
-        throw makeMessageException('negative tolerance ' + relTol);
+      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
+        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
       }
       return makeFunction(function(l, r) {
         thisRuntime.checkArity(2, arguments, "from within-rel");
@@ -3605,17 +3672,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_asin = function(n) {
       thisRuntime.checkArity(1, arguments, "num-asin");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.asin(n));
     }
     var num_acos = function(n) {
       thisRuntime.checkArity(1, arguments, "num-acos");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, -1) || jsnums.greaterThan(n, 1)) {
-        throw makeMessageException('asin: out of domain argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.acos(n));
     }
     var num_atan = function(n) {
@@ -3642,9 +3703,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_sqrt = function(n) {
       thisRuntime.checkArity(1, arguments, "num-sqrt");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThan(n, 0)) {
-        throw makeMessageException('sqrt: negative argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.sqrt(n));
     }
     var num_sqr = function(n) {
@@ -3667,22 +3725,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.round(n));
     }
+    var num_round_even = function(n) {
+      thisRuntime.checkArity(1, arguments, "num-round-even");
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.roundEven(n));
+    }
     var num_log = function(n) {
       thisRuntime.checkArity(1, arguments, "num-log");
       thisRuntime.checkNumber(n);
-      if (jsnums.lessThanOrEqual(n, 0)) {
-        throw makeMessageException('log: non-positive argument ' + n);
-      }
       return thisRuntime.makeNumberBig(jsnums.log(n));
     }
     var num_exp = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exp");
       thisRuntime.checkNumber(n);
-      try {
       return thisRuntime.makeNumberBig(jsnums.exp(n));
-      } catch (err) {
-        throw makeMessageException('exp: argument too large ' + n);
-      }
     }
     var num_exact = function(n) {
       thisRuntime.checkArity(1, arguments, "num-exact");
@@ -3806,7 +3862,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function loadModulesNew(namespace, modules, withModules) {
       return loadJSModules(namespace, modules, function(/* args */) {
-        var ms = Array.prototype.slice.call(arguments);
+        var ms = new Array(arguments.length);
+        for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
@@ -3824,7 +3881,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     function loadModules(namespace, modules, withModules) {
       return loadModulesNew(namespace, modules, function(/* varargs */) {
-        var ms = Array.prototype.slice.call(arguments);
+        var ms = new Array(arguments.length);
+        for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         return safeTail(function() {
           return withModules.apply(null, ms.map(function(m) { return getField(m, "values"); }));
         });
@@ -3886,6 +3944,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-ceiling': makeFunction(num_ceiling),
           'num-floor': makeFunction(num_floor),
           'num-round': makeFunction(num_round),
+          'num-round-even': makeFunction(num_round_even),
           'num-log': makeFunction(num_log),
           'num-exp': makeFunction(num_exp),
           'num-exact': makeFunction(num_exact),
@@ -4026,11 +4085,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isBase'      : isBase,
         'isNothing'   : isNothing,
         'isNumber'    : isNumber,
+        'isRoughnum'  : jsnums.isRoughnum,
         'isString'    : isString,
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
         'isObject'    : isObject,
+        'isDataValue' : isDataValue,
         'isRef'       : isRef,
         'isOpaque'    : isOpaque,
         'isPyretVal'  : isPyretVal,
@@ -4166,7 +4227,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'hasField' : hasField,
 
         'toReprJS' : toReprJS,
-        'toRepr' : function(val) { return toReprJS(val, "_torepr"); },
+        'toRepr' : function(val) { return toReprJS(val, ReprMethods._torepr); },
+        'ReprMethods' : ReprMethods,
 
         'wrap' : wrap,
         'unwrap' : unwrap,
@@ -4242,9 +4304,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });
-    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
+    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
       ffi = f;
       thisRuntime["ffi"] = ffi;
+      thisRuntime["imageLib"] = i;
     });
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app

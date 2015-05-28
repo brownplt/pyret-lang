@@ -44,6 +44,8 @@ provide {
 } end
 provide-types *
 
+import valueskeleton as VS
+
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)
   | str(s :: String, flat-width :: Number, has-hardline :: Boolean)
@@ -79,6 +81,7 @@ sharing:
       | align-spaces(n, _, _) => "AlignSpaces(" + tostring(n) + ")"
     end
   end,
+  _output(self): VS.vs-value(tostring(self)) end,
   pretty(self, width):
     format(width, self)
   end
