@@ -11,7 +11,7 @@ node_js:
   - "0.10.26"
 install:
   - sudo ./setup.sh < setup_commands 
-  - sudo apt-get install libterm-shellui-perl liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl libnet-amazon-s3-tools-perl parallel cpan-minus
+  - sudo apt-get install liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl libnet-amazon-s3-tools-perl parallel cpanminus
   - sudo cpanm Config::Tiny
   - mkdir -p ~/bin
   - echo "id=$AWS_ID" >> ~/.aws
