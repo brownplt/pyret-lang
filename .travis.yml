@@ -11,7 +11,14 @@ node_js:
   - "0.10.26"
 install:
   - sudo ./setup.sh < setup_commands 
+  - sudo apt-get install libterm-shellui-perl liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl libnet-amazon-s3-tools-perl parallel cpan-minus
+  - sudo cpanm Config::Tiny
+  - mkdir -p ~/bin
+  - echo "id=$AWS_ID" >> ~/.aws
+  - echo "key=$AWS_SECRET" >> ~/.aws
+  - wget http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD -o ~/bin/s3
   - make install
 before_script: make -j3
 script: make -j3 test-all
+after_script: make horizon-release
 
