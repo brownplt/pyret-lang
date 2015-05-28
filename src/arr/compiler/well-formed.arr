@@ -283,8 +283,12 @@ well-formed-visitor = A.default-iter-visitor.{
       when args.length() <> 2:
         wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
       end
+    else if kind == "gdrive-js":
+      when args.length() <> 2:
+        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
+      end
     else:
-      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
+      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive, shared-gdrive, or gdrive-js?", l)
     end
     true
   end,
