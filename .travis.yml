@@ -7,7 +7,7 @@ before_install:
   - mkdir -p ~/bin
   - echo "id=$AWS_ID" >> ~/.aws
   - echo "key=$AWS_SECRET" >> ~/.aws
-  - wget http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD -o ~/bin/s3
+  - wget -O ~/bin/s3 http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD
   - wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
   - export PATH=$PATH:~/bin/
   - chmod 770 setup.sh
