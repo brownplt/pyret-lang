@@ -133,14 +133,14 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
               elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
                 | none => nothing
               end
             | else =>
               elt = lists.find(lam(b): b.id == id end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
                 | none => nothing
               end
           end
@@ -162,7 +162,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           else if shadows: nothing
           else:
             cases(Option) lists.find(lam(b): b.id == id end, rest):
-              | some(found) => duplicate-id(tostring(id), l, found.l)
+              | some(found) => duplicate-id(id.tosourcestring(), l, found.l)
               | none => nothing
             end
           end
@@ -369,8 +369,8 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-bind(self, l, shadows, name, ann):
-    when (reserved-names.has-key(tostring(name))):
-      reserved-name(l, tostring(name))
+    when (reserved-names.has-key(name.tosourcestring())):
+      reserved-name(l, name.tosourcestring())
     end
     when shadows and A.is-s-underscore(name):
       add-error(C.pointless-shadow(l))
@@ -482,8 +482,8 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   s-id(self, l, id):
-    when (reserved-names.has-key(tostring(id))):
-      reserved-name(l, tostring(id))
+    when (reserved-names.has-key(id.tosourcestring())):
+      reserved-name(l, id.tosourcestring())
     end
     true
   end,

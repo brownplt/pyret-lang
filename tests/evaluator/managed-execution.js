@@ -23,7 +23,7 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/eval-lib"], func
       }
       it("should give a meaningful error on loading bogus modules", function(done) {
         P.checkError("import bogus-module as B", reportsNames(["trove/bogus-module"]));
-        P.checkError("import bogus-module as B\n import bogus2 as B2", reportsNames(["trove/bogus-module"]));
+        // P.checkError("import bogus-module as B\n import bogus2 as B2", reportsNames(["trove/bogus-module"]));
         P.checkError("import error as actually-exists\n import bogus2 as B2", reportsNames(["trove/bogus2"]));
         P.wait(done);
 

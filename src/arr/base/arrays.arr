@@ -16,6 +16,7 @@ provide {
 provide-types *
 
 import lists as lists
+import valueskeleton as VS
 type List = lists.List
 
 newtype Array as ArrayT
@@ -42,7 +43,8 @@ fun make(arr :: RawArray) -> Array:
     end,
     _tostring(self, shadow tostring):
       "[array: " + self.to-list-now().map(tostring).join-str(", ") + "]"
-    end
+    end,
+    _output(self): VS.vs-collection("array", self.to-list-now().map(VS.vs-value)) end
   })
 end
 

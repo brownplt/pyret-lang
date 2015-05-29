@@ -319,7 +319,7 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
       });
 
       it("should have correct tostring", function() {
-          var tostring = rt.toReprJS;
+          var tostring = function(val) { return rt.toReprJS(val, rt.ReprMethods._tostring); };
 
           expect(tostring(zero)).toEqual("0");
           expect(tostring(one)).toEqual("1");

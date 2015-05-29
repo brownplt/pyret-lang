@@ -1,17 +1,45 @@
 git:
   submodules: false
 before_install:
-  - wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
-  - chmod 770 setup.sh
-  - echo y >  setup_commands
-  - echo 1 >> setup_commands
-  - echo   >> setup_commands
+#- sudo apt-get update
+- sudo apt-get install parallel
+#- sudo apt-get install --fix-missing liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl
+#  libnet-amazon-s3-tools-perl parallel cpanminus
+#- sudo cpanm Config::Tiny
+#- mkdir -p ~/bin
+#- echo "id=$AWS_ID" > ~/.aws
+#- echo "key=$AWS_SECRET" >> ~/.aws
+#- wget -O ~/bin/s3 http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD
+#- chmod a+x ~/bin/s3
+#- s3 add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip'
+#  --acl 'public-read' :pyret-horizon/current/travis-acl-test src/js/base/runtime-anf.js
+- wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
+- export PATH=$PATH:~/bin/
+- chmod 770 setup.sh
+- echo y >  setup_commands
+- echo 1 >> setup_commands
+- echo   >> setup_commands
 language: node_js
 node_js:
-  - "0.10.26"
+- 0.10.26
 install:
-  - sudo ./setup.sh < setup_commands 
-  - make install
+- sudo ./setup.sh < setup_commands
+- make install
 before_script: make -j3
-script: make -j3 test-all
-
+script:
+  - make -j3 test-all
+  - make horizon-gzip
+deploy:
+  provider: s3
+  access_key_id: AKIAJ4MD373MBQS246RQ
+  secret_access_key:
+    secure: eDTWRuS+uXKcXvKU846GH285Hxd8fdojCj/IFgfXHojskmgKyoxqPbSuiP5lzafqC5YbVNIBqjWq5y3ZuNQpBrE8C/nc8lhCMGxv1r8qlbKwfcs9sVha3PxqgvL+N4KLtvBgUY87sqmkR7AKGn8oqrB1wKQKMxpjh0HD8SeWEUM=
+  bucket: 'pyret-horizon'
+  local-dir: build/release
+  upload-dir: current
+  acl: public_read
+  skip_cleanup: true
+  detect_encoding: true
+  on:
+    repo: brownplt/pyret-lang
+    branch: horizon

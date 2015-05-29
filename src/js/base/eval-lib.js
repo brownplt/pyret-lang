@@ -32,55 +32,46 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
-    return runtime.safeCall(function() {
-      return ffiHelpersLib(runtime, runtime.namespace);
-    }, function(ffi) {
-      return runtime.safeCall(function() {
-        return dialectsLib(runtime, runtime.namespace);
-      },
-      function(dialects) {
-        return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
-          var name = options.name || randomName();
-          var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
-          return runtime.safeCall(function() {
-              return gf(comp, "compile-js-ast").app(
-                  gf(comp, "start"),
-                  ast,
-                  s(name),
-                  compileEnv,
-                  runtime.makeObject({
-                    "check-mode": runtime.pyretTrue,
-                    "allow-shadowed": runtime.pyretFalse,
-                    "proper-tail-calls": options.properTailCalls || true,
-                    "collect-all": runtime.pyretFalse,
-                    "type-check": runtime.makeBoolean(options.typeCheck || false),
-                    "ignore-unbound": runtime.pyretFalse
-                  })
-                );
-            },
-            function(compPhase) {
-              var compiled = gf(compPhase, "result");
-              return runtime.safeTail(function() {
-                  if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
-                    return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
-                  }
-                  else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
-                    // NOTE(joe): reverse added to get compile errors in the right order
-                    // for the UI reporting
-                    throw ffi.toArray(gf(compiled, "problems")).reverse();
-                  }
-                  else {
-                    throw new Error("Unknown result type while compiling: ", compiled);
-                  }
-                });
+    return runtime.loadJSModules(runtime.namespace, [ffiHelpersLib, dialectsLib], function(ffi, dialects) {
+      return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
+        var name = options.name || randomName();
+        var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
+        return runtime.safeCall(function() {
+            return gf(comp, "compile-js-ast").app(
+                gf(comp, "start"),
+                ast,
+                s(name),
+                compileEnv,
+                runtime.makeObject({
+                  "check-mode": runtime.pyretTrue,
+                  "allow-shadowed": runtime.pyretFalse,
+                  "proper-tail-calls": options.properTailCalls || true,
+                  "collect-all": runtime.pyretFalse,
+                  "type-check": runtime.makeBoolean(options.typeCheck || false),
+                  "ignore-unbound": runtime.pyretFalse
+                })
+              );
+          },
+          function(compPhase) {
+            var compiled = gf(compPhase, "result");
+            return runtime.safeTail(function() {
+                if (runtime.unwrap(gf(cs, "is-ok").app(compiled)) === true) {
+                  return runtime.unwrap(gf(gf(compiled, "code"), "pyret-to-js-runnable").app());
+                }
+                else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
+                  // NOTE(joe): reverse added to get compile errors in the right order
+                  // for the UI reporting
+                  throw ffi.toArray(gf(compiled, "problems")).reverse();
+                }
+                else {
+                  throw new Error("Unknown result type while compiling: ", compiled);
+                }
+              });
 
-            },
-            "compiling JS ast");
-        });
-      },
-      "loading dialects");
-    },
-    "loading ffi-helpers library");
+          },
+          "compiling JS ast");
+      });
+    });
   }
 
   function runCompileSrcPyret(runtime, src, options, ondone) {
@@ -102,16 +93,13 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
   function parsePyret(runtime, src, options) {
     return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
       var pp = runtime.getField(parseLib, "values");
-      return runtime.safeCall(function() {
-        return dialectsLib(runtime, runtime.namespace);
-      }, function(dialects) {
+      return runtime.loadJSModules(runtime.namespace, [dialectsLib], function(dialects) {
         if (!options.name) { options.name = randomName(); }
           return runtime.getField(pp, "parse-dialect").app(
                     runtime.makeString(options.dialect || dialects.defaultDialect), 
                     runtime.makeString(src), 
                     runtime.makeString(options.name));
-      },
-      "loading dialects to parse Pyret");
+      });
     });
   }
 

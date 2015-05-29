@@ -59,7 +59,8 @@ ok-imports = [list:
   "pprint",
   "srcloc",
   "format",
-  "equality"
+  "equality",
+  "valueskeleton"
 ]
 
 fun get-special-imports(program):

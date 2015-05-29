@@ -5,6 +5,7 @@ import ast as A
 import string-dict as SD
 import "compiler/list-aux.arr" as LA
 import equality as E
+import valueskeleton as VS
 
 all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
@@ -16,6 +17,14 @@ fun dict-to-string(dict :: SD.StringDict) -> String:
   "{"
     + for map(key from dict.keys().to-list()):
         key + " => " + torepr(dict.get(key))
+      end.join-str(", ")
+    + "}"
+end
+
+fun mut-dict-to-string(dict :: SD.MutableStringDict) -> String:
+  "{"
+    + for map(key from dict.keys-now().to-list()):
+        key + " => " + torepr(dict.get-now(key))
       end.join-str(", ")
     + "}"
 end
@@ -144,8 +153,8 @@ end
 data TypeVariable:
   | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
-  _tostring(self, shadow tostring) -> String:
-    self.id.toname() + " <: " + tostring(self.upper-bound)
+  _output(self):
+    VS.vs-value(self.id.toname() + " <: " + tostring(self.upper-bound))
   end,
   key(self) -> String:
     self.id.key() + " <: " + self.upper-bound.key()
@@ -154,8 +163,8 @@ end
 
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
-    _tostring(self, shadow tostring):
-      self.field-name + " : " + tostring(self.typ)
+    _output(self):
+      VS.vs-value(self.field-name + " : " + tostring(self.typ))
     end,
     key(self):
       self.field-name + " : " + self.typ.key()
@@ -230,12 +239,13 @@ end
 data ModuleType:
   | t-module(name :: String, provides :: Type, types :: SD.StringDict<DataType>, aliases :: SD.StringDict<Type>)
 sharing:
-  _tostring(self, shadow tostring):
-    "t-module(" +
-      torepr(self.name)          + ", " +
-      torepr(self.provides)      + ", " +
-      dict-to-string(self.types) + ", " +
-      dict-to-string(self.aliases) + ")"
+  _output(self):
+    VS.vs-constr("t-module",
+      [list:
+        VS.vs-value(torepr(self.name)),
+        VS.vs-value(torepr(self.provides)),
+        VS.vs-value(dict-to-string(self.types)),
+        VS.vs-value(dict-to-string(self.aliases))])
   end
 end
 
@@ -250,30 +260,30 @@ data Type:
   | t-forall(introduces :: List<TypeVariable>, onto :: Type)
   | t-ref(typ :: Type)
 sharing:
-  _tostring(self, shadow tostring) -> String:
+  _output(self):
     cases(Type) self:
       | t-name(module-name, id) =>
         cases(Option<String>) module-name:
-          | none    => id.toname()
-          | some(m) => m + "." + id.toname()
+          | none    => VS.vs-value(id.toname())
+          | some(m) => VS.vs-value(m + "." + id.toname())
         end
-      | t-var(id) => id.toname()
+      | t-var(id) => VS.vs-value(id.toname())
       | t-arrow(args, ret) =>
-        "("
+        VS.vs-value("("
           + args.map(tostring).join-str(", ")
-          + " -> " + tostring(ret) + ")"
+          + " -> " + tostring(ret) + ")")
       | t-app(onto, args) =>
-        tostring(onto) + "<" + args.map(tostring).join-str(", ") + ">"
-      | t-top => "Any"
-      | t-bot => "Bot"
+        VS.vs-value(tostring(onto) + "<" + args.map(tostring).join-str(", ") + ">")
+      | t-top => VS.vs-value("Any")
+      | t-bot => VS.vs-value("Bot")
       | t-record(fields) =>
-        "{"
+        VS.vs-value("{"
           + fields.map(tostring).join-str(", ")
-          + "}"
+          + "}")
       | t-forall(introduces, onto) =>
-        tostring(onto)
+        VS.vs-value(tostring(onto))
       | t-ref(typ) =>
-        "ref " + tostring(typ)
+        VS.vs-value("ref " + tostring(typ))
     end
   end,
   key(self) -> String:

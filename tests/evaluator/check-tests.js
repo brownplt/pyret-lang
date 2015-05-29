@@ -108,7 +108,7 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
         test("check: 'oops' raises-other-than 'op' end", checkFailed);
       });
       testGroup("should give good error messages", function() {
-        test("check: raise('oops') raises-other-than 'op' end", checkMessage("expected it not to contain \"op\""));
+        test("check: raise('oops') raises-other-than 'op' end", checkMessage("expected it not to contain"));
         test("check: 'oops' raises-other-than 'op' end", checkMessage("No exception raised"));
       });
     });

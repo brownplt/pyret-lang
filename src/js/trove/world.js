@@ -338,7 +338,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
           var worldFunction = function(world, success) {
               var textNode = jQuery("<pre>");
               runtime.safeCall(function() {
-                return runtime.toReprJS(world, "_torepr");
+                return runtime.toReprJS(world, runtime.ReprMethods._torepr);
               }, function(str) {
                 textNode.text(str);
                 success([toplevelNode,

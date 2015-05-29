@@ -57,9 +57,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("anonymous bindings", function(done) {
-        P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
-        P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
-        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
+        P.checkCompileErrorMsg("var _ = 5", "there is no name to modify");
+        P.checkCompileErrorMsg("shadow _ = 5", "there is no name to shadow");
+        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "defined the field name `a` twice");
         P.wait(done);
       });
       it("malformed check-tests", function(done) {
@@ -291,7 +291,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "with"
         ];
         for(var i = 0; i < reservedNames.length; i++) {
-          var err = "cannot use " + reservedNames[i] + " as an identifier";
+          var err = "disallows the use of `" + reservedNames[i] + "` as an identifier";
           P.checkCompileErrorMsg(reservedNames[i], err);
           P.checkCompileErrorMsg(reservedNames[i] + " = 5", err);
           P.checkCompileErrorMsg("fun f(" + reservedNames[i] + "): 5 end", err);
