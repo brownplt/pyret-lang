@@ -111,22 +111,46 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         runtime.pauseStack(function(restarter) {
-          execRt.runThunk(function() {
-            if(execRt.isPyretVal(res.exn)) {
-              return execRt.string_append(
-                execRt.toReprJS(r.exn.exn, "_tostring"),
-                execRt.makeString("\n" +
-                                  execRt.printPyretStack(r.exn.pyretStack)));
-            } else {
-              return String(res.exn + "\n" + res.exn.stack);
-            }
-          }, function(v) {
-            if(execRt.isSuccessResult(v)) {
-              return restarter.resume(v.result)
-            } else {
-              console.error("There was an exception while rendering the exception: ", r.exn, v.exn);
-            }
-          })
+          return execRt.loadBuiltinModules([
+            mb("render-error-display")],
+            "load-lib",
+            function(rendererror) {
+            var gf = execRt.getField;
+            execRt.runThunk(function() {
+                if(execRt.isPyretVal(res.exn.exn) 
+                   && execRt.isObject(res.exn.exn) 
+                   && execRt.hasField(res.exn.exn, "render-reason")) {
+                  return execRt.safeCall(
+                    function() { 
+                      return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
+                    }, function(reason) {
+                      return execRt.safeCall(
+                        function() { 
+                          return gf(gf(rendererror, "values"), "display-to-string").app(
+                            reason, 
+                            execRt.namespace.get("torepr"), 
+                            execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
+                        }, function(str) {
+                          return execRt.string_append(
+                            str,
+                            execRt.makeString("\nStack trace:\n" +
+                                              execRt.printPyretStack(res.exn.pyretStack)));
+                        }, "errordisplay->to-string");
+                    }, "error->display");
+                } else {
+                  return String(res.exn + "\n" + res.exn.stack);
+                }
+              }, function(v) {
+                if(execRt.isSuccessResult(v)) {
+                  return restarter.resume(v.result)
+                } else {
+                  debugger;
+                  console.error("load error");
+                  console.error("There was an exception while rendering the exception: ",  r.exn, v.exn);
+
+                }
+              })
+          });
         });
       }
       function getModuleResultAnswer(mr) {

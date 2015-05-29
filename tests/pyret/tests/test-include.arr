@@ -3,6 +3,7 @@ import load-lib as L
 import namespace-lib as N
 import runtime-lib as R
 import either as E
+import render-error-display as ED
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 import "compiler/locators/builtin.arr" as BL
@@ -186,23 +187,25 @@ fun get-compile-errs(str):
   cases(Either) run-to-result(str):
     | right(ans) =>
       print-error("Expected compilation errors, but got an answer")
-    | left(errs) => errs
+    | left(errs) => errs.map(_.problems).foldr(_ + _, empty)
   end
 end
 val = lam(str): L.get-result-answer(get-run-answer(str)) end
 msg = lam(str): L.render-error-message(get-run-answer(str)) end
 cmsg = lam(str):
-  get-compile-errs(str).map(tostring).join-str(" ")
+  get-compile-errs(str).map(lam(err):
+    ED.display-to-string(err.render-reason(), torepr, empty)
+  end).join-str(" ")
 end
 
 check:
   val("foo") is some(52)
   val("includes-a-type") is some(42)
-  msg("includes-and-violates") satisfies string-contains(_, "Contract Error")
+  msg("includes-and-violates") satisfies string-contains(_, "Number")
   val("type-and-val") is some(12)
-  cmsg("overlapping-import") satisfies string-contains(_, "already declared")
-  cmsg("global-shadow-import") satisfies string-contains(_, "already declared")
-  cmsg("global-type-shadow-import") satisfies string-contains(_, "already declared")
+  cmsg("overlapping-import") satisfies string-contains(_, "defined")
+  cmsg("global-shadow-import") satisfies string-contains(_, "defined")
+  cmsg("global-type-shadow-import") satisfies string-contains(_, "defined")
 
   val("include-world") is some(true)
   val("gather-includes-include") is some(true)
