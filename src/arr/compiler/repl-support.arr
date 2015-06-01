@@ -59,14 +59,22 @@ fun get-special-imports(program):
   end
 end
 
+fun get-imp-dependency(imp):
+  cases(A.Import) imp:
+    | s-include(_, mod) => mod
+    | else => imp.file
+  end
+end
+
 fun make-safe-imports(imps):
   imps.each(lam(i):
-    cases(A.ImportType) i.file:
+    d = get-imp-dependency(i)
+    cases(A.ImportType) d:
       | s-special-import(_, _, _) => nothing
       | s-file-import(l, f) =>
         raise(E.module-load-failure([list: f]))
       | s-const-import(l, m) =>
-        when not(ok-imports.member(i.file.mod)):
+        when not(ok-imports.member(m)):
           raise(E.module-load-failure([list: m]))
         end
     end
@@ -89,6 +97,7 @@ fun get-defined-ids(p, imports, body):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names + imp-names
+      | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
@@ -98,6 +107,7 @@ fun get-defined-ids(p, imports, body):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names
+      | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
