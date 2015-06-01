@@ -137,10 +137,7 @@ end
 
 fun MakeName(start):
   var count = start
-  fun atom(base):
-    when not(is-string(base)):
-      raise("Got a non-string in make-atom: " + torepr(base))
-    end
+  fun atom(base :: String):
     count := 1 + count
     s-atom(base, count)
   end

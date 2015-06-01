@@ -184,51 +184,117 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>):
   end
 end
 
-fun simplify(body-cases :: ConcatList<J.JCase>, step :: String) -> RegisterAllocation:
-  fun find-steps-to(rev-stmts :: List<J.JStmt>):
-    cases(List) rev-stmts:
-      | empty => cl-empty
-      | link(stmt, rest) =>
-        cases(J.JStmt) stmt:
-          | j-var(name, rhs) => find-steps-to(rest)
-          | j-if1(cond, consq) => find-steps-to(consq.stmts.reverse()) + find-steps-to(rest)
-          | j-if(cond, consq, alt) =>
-            find-steps-to(consq.stmts.reverse()) + find-steps-to(alt.stmts.reverse()) + find-steps-to(rest)
-          | j-return(expr) => find-steps-to(rest)
-          | j-try-catch(body, exn, catch) => find-steps-to(rest)
-          | j-throw(exp) => find-steps-to(rest)
-          | j-expr(expr) =>
-            if J.is-j-assign(expr) and (expr.name == step):
-              if J.is-j-label(expr.rhs):
-                # simple assignment statement to $step
-                cl-sing(expr.rhs.label) + find-steps-to(rest)
-              else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
-                # $step gets a cases dispatch
-                # ASSUMES that the dispatch table is assigned two statements before this one
-                dispatch-table = rev-stmts.rest.rest.first.rhs
-                for fold(acc from cl-sing(expr.rhs.right.label), field from dispatch-table.fields):
-                  acc + cl-sing(field.value.label)
-                end
-                  + find-steps-to(rest)
-              else:
-                raise("Should not happen")
+fun find-steps-to(rev-stmts :: List<J.JStmt>, step :: String):
+  cases(List) rev-stmts:
+    | empty => cl-empty
+    | link(stmt, rest) =>
+      cases(J.JStmt) stmt:
+        | j-var(name, rhs) => find-steps-to(rest, step)
+        | j-if1(cond, consq) => find-steps-to(consq.stmts.reverse(), step) + find-steps-to(rest, step)
+        | j-if(cond, consq, alt) =>
+          find-steps-to(consq.stmts.reverse(), step)
+            + find-steps-to(alt.stmts.reverse(), step)
+            + find-steps-to(rest, step)
+        | j-return(expr) => find-steps-to(rest, step)
+        | j-try-catch(body, exn, catch) => find-steps-to(rest, step)
+        | j-throw(exp) => find-steps-to(rest, step)
+        | j-expr(expr) =>
+          if J.is-j-assign(expr) and (expr.name == step):
+            if J.is-j-label(expr.rhs):
+              # simple assignment statement to $step
+              cl-sing(expr.rhs.label) + find-steps-to(rest, step)
+            else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
+              # $step gets a cases dispatch
+              # ASSUMES that the dispatch table is assigned two statements before this one
+              dispatch-table = rev-stmts.rest.rest.first.rhs
+              for fold(acc from cl-sing(expr.rhs.right.label), field from dispatch-table.fields):
+                acc + cl-sing(field.value.label)
               end
+                + find-steps-to(rest, step)
             else:
-              find-steps-to(rest)
+              raise("Should not happen")
             end
-          | j-break => find-steps-to(rest)
-          | j-continue => find-steps-to(rest)
-          | j-switch(exp, branches) => find-steps-to(rest)
-          | j-while(cond, body) => find-steps-to(rest)
-          | j-for(create-var, init, cont, update, body) => find-steps-to(rest)
-        end
-    end
+          else:
+            find-steps-to(rest, step)
+          end
+        | j-break => find-steps-to(rest, step)
+        | j-continue => find-steps-to(rest, step)
+        | j-switch(exp, branches) => find-steps-to(rest, step)
+        | j-while(cond, body) => find-steps-to(rest, step)
+        | j-for(create-var, init, cont, update, body) => find-steps-to(rest, step)
+      end
   end
+end
+
+fun ignorable(rhs):
+  if J.is-j-app(rhs):
+    (J.is-j-id(rhs.func) and (rhs.func.id == "G"))
+  else if J.is-j-method(rhs):
+    (J.is-j-id(rhs.obj) and (rhs.obj.id == "R") and ((rhs.meth == "getFieldRef") or (rhs.meth == "getDotAnn")))
+  else:
+    false
+  end
+end
+
+
+fun elim-dead-vars-jblock(block :: J.JBlock, dead-vars :: Set<String>):
+  J.j-block(elim-dead-vars-jstmts(block.stmts, dead-vars))
+end
+fun elim-dead-vars-jstmts(stmts :: List<J.JStmt>, dead-vars :: Set<String>):
+  cases(List) stmts:
+    | empty => empty
+    | link(s, rest) =>
+      cases(J.JStmt) s:
+        | j-var(name, rhs) =>
+          if dead-vars.member(name):
+            if ignorable(rhs): elim-dead-vars-jstmts(rest, dead-vars)
+            else: link(J.j-expr(rhs), elim-dead-vars-jstmts(rest, dead-vars))
+            end
+          else:
+            link(s, elim-dead-vars-jstmts(rest, dead-vars))
+          end
+        | j-if1(cond, consq) =>
+          J.j-if1(cond, elim-dead-vars-jblock(consq, dead-vars))
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-if(cond, consq, alt) =>
+          J.j-if(cond, elim-dead-vars-jblock(consq, dead-vars), elim-dead-vars-jblock(alt, dead-vars))
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-return(expr) => link(s, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-try-catch(body, exn, catch) =>
+          J.j-try-catch(elim-dead-vars-jblock(body, dead-vars), exn, elim-dead-vars-jblock(catch, dead-vars))
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-throw(exp) => link(s, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-expr(expr) => link(s, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-break => link(s, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-continue => link(s, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-switch(exp, branches) =>
+          new-switch-branches = for map(b from branches):
+            elim-dead-vars-jcase(b, dead-vars)
+          end
+          J.j-switch(exp, new-switch-branches)
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-while(cond, body) =>
+          J.j-while(cond, elim-dead-vars-jblock(body, dead-vars))
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+        | j-for(create-var, init, cont, update, body) =>
+          J.j-for(create-var, init, cont, update, elim-dead-vars-jblock(body, dead-vars))
+            ^ link(_, elim-dead-vars-jstmts(rest, dead-vars))
+      end
+  end
+end
+fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: Set<String>):
+  cases(J.JCase) c:
+    | j-default(body) => J.j-default(elim-dead-vars-jblock(body, dead-vars))
+    | j-case(exp, body) => J.j-case(exp, elim-dead-vars-jblock(body, dead-vars))
+  end
+end
+
+fun simplify(body-cases :: ConcatList<J.JCase>, step :: String) -> RegisterAllocation:
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   dag = (for CL.foldl(acc from D.make-mutable-string-dict(), body-case from body-cases):
       if J.is-j-case(body-case):
         acc.set-now(tostring(body-case.exp.label.get()),
-          node(body-case.exp.label, find-steps-to(body-case.body.stmts.reverse()), body-case,
+          node(body-case.exp.label, find-steps-to(body-case.body.stmts.reverse(), step), body-case,
             [tree-set: ], [tree-set: ], cl-empty, none, none, none, none))
         acc
       else:
@@ -284,7 +350,15 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: String) -> RegisterAlloc
       | some(dead) => acc.union(dead)
     end
   end
+
+  dead-assignment-eliminated = for CL.map(body-case from body-cases):
+    n = dag.get-value(tostring(body-case.exp.label.get()))
+    cases(Option) n!dead-vars:
+      | none => body-case
+      | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars)
+    end
+  end
   
   # print("Done")
-  results(body-cases, discardable-vars)
+  results(dead-assignment-eliminated, discardable-vars)
 end

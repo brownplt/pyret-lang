@@ -302,7 +302,8 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   ret-label = make-label()
   ans = js-id-of(compiler-name("ans"))
   apploc = js-id-of(compiler-name("al"))
-  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
+  cur-temp = mk-id("$t")
+  local-compiler = compiler.{make-label: make-label, cur-temp: cur-temp, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
   visited-body = body.visit(local-compiler)
   ann-cases = compile-anns(local-compiler, step, args, local-compiler.make-label())
   main-body-cases =
@@ -407,6 +408,7 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
     
   j-block([list:
       j-var(step, j-num(0)),
+      j-var(cur-temp.id-s, undefined),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
       j-try-catch(
@@ -535,29 +537,54 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
   compiled-args = args.map(lam(a): a.visit(compiler).exp end)
-  obj-id = mk-id("obj")
 
-  colon-field = rt-method("getColonField", [list: obj-id.id-j, j-str(methname)])
-  colon-field-id = mk-id("field")
-  check-method = rt-method("isMethod", [list: colon-field-id.id-j])
-  after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
-  c-block(
-    j-block([list:
-        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-        j-expr(j-assign(step,  after-app-label)),
-        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-        j-var(obj-id.id-s, compiled-obj),
-        j-var(colon-field-id.id-s, colon-field),
-        j-if(check-method, j-block([list: 
-            j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"), link(obj-id.id-j, compiled-args))))
-          ]),
-          j-block([list:
-            check-fun(compiler.get-loc(l), colon-field-id.id-j),
-            j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
-          ])),
-        j-break]),
-    new-cases)
+  if J.is-j-id(compiled-obj):
+    colon-field = rt-method("getColonField", [list: compiled-obj, j-str(methname)])
+    colon-field-id = compiler.cur-temp
+    check-method = rt-method("isMethod", [list: colon-field-id.id-j])
+    after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+    new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+    c-block(
+      j-block([list:
+          # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+          j-expr(j-assign(step,  after-app-label)),
+          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+          j-expr(j-assign(colon-field-id.id-s, colon-field)),
+          j-if(check-method, j-block([list: 
+                j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
+                      link(compiled-obj, compiled-args))))
+              ]),
+            j-block([list:
+                check-fun(compiler.get-loc(l), colon-field-id.id-j),
+                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
+              ])),
+          j-break]),
+      new-cases)
+  else:
+    obj-id = mk-id("obj")
+    colon-field = rt-method("getColonField", [list: obj-id.id-j, j-str(methname)])
+    colon-field-id = mk-id("field")
+    check-method = rt-method("isMethod", [list: colon-field-id.id-j])
+    after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+    new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+    c-block(
+      j-block([list:
+          # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+          j-expr(j-assign(step,  after-app-label)),
+          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+          j-var(obj-id.id-s, compiled-obj),
+          j-var(colon-field-id.id-s, colon-field),
+          j-if(check-method, j-block([list: 
+                j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
+                      link(obj-id.id-j, compiled-args))))
+              ]),
+            j-block([list:
+                check-fun(compiler.get-loc(l), colon-field-id.id-j),
+                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
+              ])),
+          j-break]),
+      new-cases)
+  end
 end
 
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
@@ -908,8 +935,7 @@ compiler-visitor = {
                 compile-fun-body(l, new-step, temp, self, effective-args, some(args.length()), body, true)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
-    step-curry = js-id-of(compiler-name("step"))
-    temp-curry = js-id-of(compiler-name("temp_curry"))
+    step = js-id-of(compiler-name("step"))
     temp-full = js-id-of(compiler-name("temp_full"))
     len = args.length()
     # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
@@ -917,13 +943,10 @@ compiler-visitor = {
       if len > 1: args.rest
       else: [list: N.a-bind(l, A.s-name(l, compiler-name("resumer")), A.a-blank)]
       end
-    compiled-body-curry = j-block([list: j-return(j-app(j-id(temp-full), args.map(lam(a): j-id(js-id-of(a.id.tosourcestring())) end)))])
-    curry-var = j-var(temp-curry,
-      j-fun(effective-curry-args.map(lam(a): js-id-of(a.id.tosourcestring()) end), compiled-body-curry))
     full-var = 
       j-var(temp-full,
         j-fun(args.map(lam(a): js-id-of(a.id.tosourcestring()) end),
-          compile-fun-body(l, step-curry, temp-full, self, args, some(args.length()), body, true)
+          compile-fun-body(l, step, temp-full, self, args, some(args.length()), body, true)
         ))
     method-expr = if len < 9:
       rt-method("makeMethod" + tostring(len - 1), [list: j-id(temp-full)])
