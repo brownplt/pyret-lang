@@ -44,6 +44,8 @@
     (define-key map (kbd "s") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "e") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "n") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd ".") 'pyret-indent-initial-punctuation)
+    (define-key map (kbd "^") 'pyret-indent-initial-punctuation)
     (define-key map (kbd "`")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -103,7 +105,7 @@
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
 (defconst pyret-keywords
    '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
-     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec"
+     "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is==" "is=~" "is<=>" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
@@ -121,11 +123,15 @@
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
-  (concat "^[ \t]*\\_<" (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>" "." "!" "^" 
-                                      "is" "is%" "is==" "is=~" "is<=>" 
-                                      "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>"
-                                      "satisfies" "violates" "raises" "raises-other-than"
-                                      "does-not-raise" "raises-satisfies" "raises-violates")) "\\_>"))
+  (concat "^[ \t]*\\(?:\\_<"
+          (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>"
+                        "is" "is%" "is==" "is=~" "is<=>" 
+                        "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>"
+                        "satisfies" "violates" "raises" "raises-other-than"
+                        "does-not-raise" "raises-satisfies" "raises-violates"))
+          "\\_>\\|" 
+          (regexp-opt '("." "!" "^")) 
+          "\\)"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 
 
