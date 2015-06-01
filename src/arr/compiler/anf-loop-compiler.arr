@@ -7,8 +7,10 @@ import "compiler/js-ast.arr" as J
 import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
 import "compiler/concat-lists.arr" as CL
+import "compiler/js-dag-utils.arr" as DAG
 import string-dict as D
 import srcloc as SL
+import sets as S
 
 type Loc = SL.Srcloc
 type ConcatList = CL.ConcatList
@@ -25,8 +27,6 @@ concat-singleton = CL.concat-singleton
 concat-append = CL.concat-append
 concat-cons = CL.concat-cons
 concat-snoc = CL.concat-snoc
-concat-foldl = CL.concat-foldl
-concat-foldr = CL.concat-foldr
 
 fun type-name(str):
   "$type$" + str
@@ -171,14 +171,15 @@ fun thunk-app-stmt(stmt):
   thunk-app(j-block([list: stmt]))
 end
 
+c-exp = DAG.c-exp
+c-field = DAG.c-field
+c-block = DAG.c-block
+is-c-exp = DAG.is-c-exp
+is-c-field = DAG.is-c-field
+is-c-block = DAG.is-c-block
 
-data CaseResults:
-  | c-exp(exp :: J.JExpr, other-stmts :: List<J.JStmt>)
-  | c-field(field :: J.JField, other-stmts :: List<J.JStmt>)
-  | c-block(block :: J.JBlock, new-cases :: ConcatList<J.JCase>)
-end
 
-fun compile-ann(ann :: A.Ann, visitor) -> CaseResults%(is-c-exp):
+fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n.tosourcestring())), empty)
     | a-type-var(_, _) => c-exp(rt-field("Any"), empty)
@@ -309,9 +310,15 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   ^ concat-append(_, ann-cases.new-cases)
   ^ concat-snoc(_, j-case(ann-cases.new-label, visited-body.block))
   ^ concat-append(_, visited-body.new-cases)
-  vars = (for concat-foldl(base from empty-string-dict, case-expr from main-body-cases):
+  # Initialize the case numbers, for more legible output...
+  main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
+  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
+  shadow main-body-cases = main-body-cases-and-dead-vars.body
+  all-vars = for CL.foldl(base from empty-string-dict, case-expr from main-body-cases):
       base.merge(case-expr.visit(local-bound-vars-visitor))
-    end).keys-list()
+    end
+  all-needed-vars = all-vars.keys().difference(main-body-cases-and-dead-vars.discardable-vars)
+  vars = all-needed-vars.to-list()
   switch-cases =
     main-body-cases
   ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -337,8 +344,6 @@ fun compile-fun-body(l :: Loc, step :: String, fun-name :: String, compiler, arg
   #   end
   # end        
   # check-no-dups(sets.empty-tree-set, switch-cases.to-list())
-  # Initialize the case numbers, for more legible output...
-  switch-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end) 
   act-record = rt-method("makeActivationRecord", [list:
       j-id(apploc),
       j-id(fun-name),
@@ -470,7 +475,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   { new-cases: new-cases, new-label: cur-target }
 end
 
-fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: CaseResults%(is-c-exp), compiled-body :: CaseResults%(is-c-block)) -> CaseResults%(is-c-block):
+fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
   if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(
@@ -1250,7 +1255,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
     end)
   module-id = compiler-name(l.source)
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = ids.map(lam(f): compiler-name(f) end)
+  input-ids = ids.map(compiler-name)
   fun wrap-modules(modules, body-name, body-fun):
     mod-input-names = modules.map(_.input-id)
     mod-input-ids = mod-input-names.map(j-id)

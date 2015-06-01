@@ -12,10 +12,10 @@ break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
 fun string-printer():
-  var str = ""
+  var strs = empty
   {
-    append: lam(s): str := str + s end,
-    get: lam(): str end
+    append: lam(s): strs := link(s, strs) end,
+    get: lam(): for fold(acc from "", s from strs): s + acc end end
   }
 end
 
