@@ -742,6 +742,90 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var makeMethodN = makeMethodFromFun;
 
+
+    function callIfPossible0(L, fun, obj) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj);
+      } else if (isFunction(fun)) {
+        return fun.app();
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible1(L, fun, obj, v1) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1);
+      } else if (isFunction(fun)) {
+        return fun.app(v1);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible2(L, fun, obj, v1, v2) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible3(L, fun, obj, v1, v2, v3) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible4(L, fun, obj, v1, v2, v3, v4) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3, v4);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3, v4);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible5(L, fun, obj, v1, v2, v3, v4, v5) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3, v4, v5);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3, v4, v5);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible6(L, fun, obj, v1, v2, v3, v4, v5, v6) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3, v4, v5, v6);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3, v4, v5, v6);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible7(L, fun, obj, v1, v2, v3, v4, v5, v6, v7) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3, v4, v5, v6, v7);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3, v4, v5, v6, v7);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+    function callIfPossible8(L, fun, obj, v1, v2, v3, v4, v5, v6, v7, v8) {
+      if (isMethod(fun)) {
+        return fun.full_meth(obj, v1, v2, v3, v4, v5, v6, v7, v8);
+      } else if (isFunction(fun)) {
+        return fun.app(v1, v2, v3, v4, v5, v6, v7, v8);
+      } else {
+        ffi.throwNonFunApp(L, fun);
+      }
+    }
+
+
     var GRAPHABLE = 0;
     var UNGRAPHABLE = 1;
     var SET = 2;
@@ -4238,6 +4322,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeMethod8'   : makeMethod8,
         'makeMethodN'   : makeMethodN,
         'makeMethodFromFun' : makeMethodFromFun,
+        'callIfPossible0' : callIfPossible0,
+        'callIfPossible1' : callIfPossible1,
+        'callIfPossible2' : callIfPossible2,
+        'callIfPossible3' : callIfPossible3,
+        'callIfPossible4' : callIfPossible4,
+        'callIfPossible5' : callIfPossible5,
+        'callIfPossible6' : callIfPossible6,
+        'callIfPossible7' : callIfPossible7,
+        'callIfPossible8' : callIfPossible8,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,

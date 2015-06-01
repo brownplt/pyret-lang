@@ -537,6 +537,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
   compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  num-args = args.length()
 
   if J.is-j-id(compiled-obj):
     colon-field = rt-method("getColonField", [list: compiled-obj, j-str(methname)])
@@ -550,14 +551,20 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           j-expr(j-assign(step,  after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
           j-expr(j-assign(colon-field-id.id-s, colon-field)),
-          j-if(check-method, j-block([list: 
-                j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
-                      link(compiled-obj, compiled-args))))
-              ]),
-            j-block([list:
-                check-fun(compiler.get-loc(l), colon-field-id.id-j),
-                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
-              ])),
+          # if num-args < 6:
+          #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
+          #         link(compiler.get-loc(l), link(colon-field-id.id-j, link(compiled-obj, compiled-args))))))
+          # else:
+            j-if(check-method, j-block([list: 
+                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
+                        link(compiled-obj, compiled-args))))
+                ]),
+              j-block([list:
+                  check-fun(compiler.get-loc(l), colon-field-id.id-j),
+                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
+                ]))
+          # end
+          ,
           j-break]),
       new-cases)
   else:
@@ -574,14 +581,20 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
           j-var(obj-id.id-s, compiled-obj),
           j-var(colon-field-id.id-s, colon-field),
-          j-if(check-method, j-block([list: 
-                j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
-                      link(obj-id.id-j, compiled-args))))
-              ]),
-            j-block([list:
-                check-fun(compiler.get-loc(l), colon-field-id.id-j),
-                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
-              ])),
+          # if num-args < 6:
+          #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
+          #         link(compiler.get-loc(l), link(colon-field-id.id-j, link(obj-id.id-j, compiled-args))))))
+          # else:
+            j-if(check-method, j-block([list: 
+                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id.id-j, "full_meth"),
+                        link(obj-id.id-j, compiled-args))))
+                ]),
+              j-block([list:
+                  check-fun(compiler.get-loc(l), colon-field-id.id-j),
+                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id.id-j, compiled-args)))
+                ]))
+          # end
+          ,
           j-break]),
       new-cases)
   end
