@@ -146,7 +146,7 @@ fun main(args):
           | err(errors) =>
             print-error("Compilation errors:")
             for lists.each(e from errors):
-              print-error(tostring(e))
+              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
             end
             raise("There were compilation errors")
         end
