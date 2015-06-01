@@ -8,7 +8,8 @@ data ConcatList<a>:
     each(self, f): nothing end,
     foldl(self, f, base): base end,
     foldr(self, f, base): base end,
-    is-empty(self): true end
+    is-empty(self): true end,
+    length(self): 0 end
   | concat-singleton(element) with:
     to-list-acc(self, rest): link(self.element, rest) end,
     map(self, f): concat-singleton(f(self.element)) end,
@@ -20,7 +21,8 @@ data ConcatList<a>:
     foldr(self, f, base): f(self.element, base) end,
     getFirst(self): self.element end,
     getLast(self): self.element end,
-    is-empty(self): false end
+    is-empty(self): false end,
+    length(self): 1 end,
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
     to-list-acc(self, rest :: List):
       self.left.to-list-acc(self.right.to-list-acc(rest))
@@ -34,7 +36,8 @@ data ConcatList<a>:
     foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end,
     getFirst(self): if self.left.is-empty(): self.right.getFirst() else: self.left.getFirst() end end,
     getLast(self): if self.right.is-empty(): self.left.getLast() else: self.right.getLast() end end,
-    is-empty(self): self.left.is-empty() and self.right.is-empty() end
+    is-empty(self): self.left.is-empty() and self.right.is-empty() end,
+    length(self): self.left.length() + self.right.length() end
   | concat-cons(first :: a, rest :: ConcatList<a>) with:
     to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
     map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
@@ -46,7 +49,8 @@ data ConcatList<a>:
     foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
     getFirst(self): self.first end,
     getLast(self): if self.rest.is-empty(): self.first else: self.rest.getLast() end end,
-    is-empty(self): false end
+    is-empty(self): false end,
+    length(self): 1 + self.rest.length() end
   | concat-snoc(head :: ConcatList<a>, last :: a) with:
     to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
     map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
@@ -59,7 +63,8 @@ data ConcatList<a>:
     foldr(self, f, base): self.head.foldr(f, f(self.last, base)) end,
     getFirst(self): if self.head.is-empty(): self.last else: self.head.getFirst() end end,
     getLast(self): self.last end,
-    is-empty(self): false end
+    is-empty(self): false end,
+    length(self): self.head.length() + 1 end
 sharing:
   _plus(self, other :: ConcatList):
     if is-concat-empty(self): other
@@ -83,5 +88,7 @@ where:
   ca(ce, cc(1, ce)).getFirst() is 1
   ca(cs(ce, 1), ce).getLast() is 1
 end
-fun concat-foldl(f, base, lst): lst.foldl(f, base) end
-fun concat-foldr(f, base, lst): lst.foldr(f, base) end
+shadow foldl = lam(f, base, lst): lst.foldl(f, base) end
+shadow foldr = lam(f, base, lst): lst.foldr(f, base) end
+shadow map = lam(f, lst): lst.map(f) end
+shadow each = lam(f, lst): lst.each(f) end
