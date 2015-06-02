@@ -26,7 +26,9 @@ install:
   - sudo ./setup.sh < setup_commands 
   - make install
 before_script: make -j3
-script: make -j3 test
+script:
+  - make -j3 test
+  - make horizon-gzip
 deploy:
   provider: s3
   access_key_id: AKIAJ4MD373MBQS246RQ
