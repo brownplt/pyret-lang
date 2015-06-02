@@ -52,7 +52,7 @@ fun make-repl(
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):
-          update-env(answer, defs-locator)
+          update-env(answer, repl-locator)
         end
       | left(err) =>
         nothing
