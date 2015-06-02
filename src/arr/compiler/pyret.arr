@@ -5,7 +5,9 @@ import file as F
 import exec as X
 import string-dict as D
 import "compiler/compile.arr" as CM
+import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
+import "compiler/cli-module-loader.arr" as CLI
 import format as Format
 import either as E
 import "compiler/initialize-trove.arr" as IT
@@ -24,14 +26,14 @@ end
 
 fun main(args):
   options = [D.string-dict:
-    "compile-standalone-js",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "compile-module-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+    "build",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+    "run",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
-    "libs",
-      C.next-val(C.String, C.many, "Paths to files to include as builtin libraries"),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
     "check-all",
@@ -63,9 +65,8 @@ fun main(args):
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
-        if r.has-key("library"): CS.minimal-builtins
-        else if r.get-value("dialect") == "Bootstrap": CS.bootstrap-builtins
-        else: CS.standard-builtins end
+        if r.has-key("library"): CS.minimal-imports
+        else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
@@ -77,6 +78,7 @@ fun main(args):
           r.get-value("dialect"),
           F.file-to-string(program-name),
           program-name,
+          CS.standard-builtins,
           libs,
           {
             check-mode : check-mode,
@@ -111,22 +113,40 @@ fun main(args):
             raise("There were compilation errors")
         end
       else:
-        result = if r.has-key("compile-standalone-js"):
-          CM.compile-standalone-js-file(
-            r.get-value("compile-standalone-js"),
-            libs,
+        if r.has-key("build"):
+          result = CLI.compile(r.get-value("compile"),
             {
               check-mode : check-mode,
               type-check : type-check,
-              allow-shadowed : allow-shadowed
-            }
-            )
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false
+            })
+          failures = filter(CS.is-err, result)
+          when is-link(failures):
+            for each(f from failures):
+              for lists.each(e from f.errors):
+                print-error(tostring(e))
+              end
+              raise("There were compilation errors")
+            end
+          end
+        else if r.has-key("run"):
+          CLI.run(r.get-value("run"),
+            {
+              check-mode : check-mode,
+              type-check : type-check,
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false
+            })
         else if r.has-key("compile-module-js"):
-          CM.compile-js(
+          result = CM.compile-js(
             CM.start,
             r.get-value("dialect"),
             F.file-to-string(r.get-value("compile-module-js")),
             r.get-value("compile-module-js"),
+            CS.standard-builtins,
             libs,
             {
               check-mode : check-mode,
@@ -137,18 +157,18 @@ fun main(args):
               proper-tail-calls: tail-calls
             }
             ).result
+          cases(CS.CompileResult) result:
+            | ok(comp-object) => comp-object.print-js-runnable(display)
+            | err(errors) =>
+              print-error("Compilation errors:")
+              for lists.each(e from errors):
+                print-error(tostring(e))
+              end
+              raise("There were compilation errors")
+          end
         else:
           print(C.usage-info(options).join-str("\n"))
           raise("Unknown command line options")
-        end
-        cases(CS.CompileResult) result:
-          | ok(comp-object) => comp-object.print-js-runnable(display)
-          | err(errors) =>
-            print-error("Compilation errors:")
-            for lists.each(e from errors):
-              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-            end
-            raise("There were compilation errors")
         end
       end
     | arg-error(message, partial) =>

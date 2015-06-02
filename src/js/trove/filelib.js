@@ -53,6 +53,37 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                     throw Error("Expected file in read-file, but got something else");
                   }
                 }),
+              "file-times": RUNTIME.makeFunction(function(file) {
+                  ffi.checkArity(1, arguments, "file-times");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(!(v instanceof InputFile || v instanceof OutputFile)) {
+                    RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
+                  }
+                  if(!fs.existsSync(v.name)) {
+                    RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
+                  }
+                  var stats = fs.lstatSync(v.name);
+                  return RUNTIME.makeObject({
+                    mtime: Number(stats.mtime),
+                    atime: Number(stats.atime),
+                    ctime: Number(stats.ctime)
+                  });
+                }),
+              "real-path": RUNTIME.makeFunction(function(path) {
+                  ffi.checkArity(1, arguments, "real-path");
+                  RUNTIME.checkString(path);
+                  var s = RUNTIME.unwrap(path);
+                  var newpath = fs.realpathSync(s);
+                  return RUNTIME.makeString(newpath);
+                }),
+              "exists": RUNTIME.makeFunction(function(path) {
+                  ffi.checkArity(1, arguments, "exists");
+                  RUNTIME.checkString(path);
+                  var s = RUNTIME.unwrap(path);
+                  var e = fs.existsSync(s);
+                  return RUNTIME.makeBoolean(e);
+                }),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   ffi.checkArity(1, arguments, "close-output-file");
                 }),

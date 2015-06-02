@@ -288,7 +288,8 @@ well-formed-visitor = A.default-iter-visitor.{
         wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
       end
     else:
-      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive, shared-gdrive, or gdrive-js?", l)
+      true
+      #wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
     true
   end,
@@ -556,6 +557,9 @@ top-level-visitor = A.default-iter-visitor.{
   # Everything else delegates to the non-toplevel visitor
   s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
+  end,
+  s-include(_, l, import-type, name):
+    well-formed-visitor.s-include(l, import-type)
   end,
   s-import-types(_, l, import-type, name, types):
     well-formed-visitor.s-import-types(l, import-type, name, types)

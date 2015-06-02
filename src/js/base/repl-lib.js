@@ -16,7 +16,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       var somethingRunning = false;
       function get(obj, fld) { return runtime.getField(obj, fld); }
       var mainCompileEnv = initialCompileEnv;
-      var initialReplCompileEnv = get(replSupport, "drop-module-bindings").app(mainCompileEnv);
+      var initialReplCompileEnv = mainCompileEnv;
       var replCompileEnv = initialReplCompileEnv;
       
       function evaluate(toEval) {
@@ -62,7 +62,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
         eval.runParsePyret(runtime, code, { name: mainName, dialect: dialect, typeCheck: typeCheck }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runImmediate(function() {
-              return get(replSupport, "make-provide-for-repl-main").app(astResult.result, initialCompileEnv);
+              return get(replSupport, "make-provide-for-repl-main-env").app(astResult.result, initialCompileEnv);
             },
             function(result) {
               if(!runtime.isSuccessResult(result)) {

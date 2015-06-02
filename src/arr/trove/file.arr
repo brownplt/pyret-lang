@@ -4,6 +4,7 @@ provide {
   input-file : input-file,
   output-file : output-file,
   file-exists: file-exists,
+  file-times: file-times,
   file-to-string: file-to-string
 } end
 provide-types *
@@ -26,7 +27,14 @@ fun input-file(path :: String):
 end
 
 fun file-exists(path :: String):
-  F.file-exists(path)
+  F.exists(path)
+end
+
+fun file-times(path :: String):
+  f = input-file(path)
+  ts = F.file-times(f.inner-file)
+  f.close-file()
+  ts
 end
 
 fun file-to-string(path):

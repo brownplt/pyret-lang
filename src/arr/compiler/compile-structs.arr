@@ -5,6 +5,10 @@ provide-types *
 import ast as A
 import srcloc as SL
 import error-display as ED
+import string-dict as SD
+
+type StringDict = SD.StringDict
+string-dict = SD.string-dict
 
 type Loc = SL.Srcloc
 
@@ -13,8 +17,50 @@ data PyretDialect:
   | Bootstrap
 end
 
+data Dependency:
+  | dependency(protocol :: String, arguments :: List<String>)
+    with:
+    key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
+  | builtin(modname :: String)
+    with:
+    key(self): "builtin(" + self.modname + ")" end
+end
+
+# Used to describe when additional module imports should be added to a
+# program.  See wrap-extra-imports
+data ExtraImports:
+  | extra-imports(imports :: List<ExtraImport>)
+end
+
+# Import this module, and bind the given value and type bindings from it
+data ExtraImport:
+  | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>)
+end
+
 data CompileEnvironment:
-  | compile-env(bindings :: List<CompileBinding>, types :: List<CompileTypeBinding>)
+  | compile-env(
+        globals :: Globals,
+        mods :: StringDict<Provides> # map from dependency key to info provided from module
+      )
+end
+
+data Globals:
+  | globals(values :: StringDict<ValInfo>, types :: StringDict<TypeInfo>)
+end
+
+data ValInfo:
+  | v-just-there
+end
+
+data TypeInfo:
+  | t-just-there
+end
+
+data Provides:
+  | provides(
+      values :: StringDict<ValInfo>,
+      types :: StringDict<TypeInfo>
+      )
 end
 
 data CompileResult<C>:
@@ -371,334 +417,155 @@ data CompileError:
     end
 end
 
-data CompileTypeBinding:
-  | type-id(id :: String)
-  | type-module-bindings(name :: String, bindings :: List<String>)
-end
+default-compile-options = {
+  check-mode : true,
+  type-check : false,
+  allow-shadowed : false,
+  collect-all: false,
+  ignore-unbound: false,
+  proper-tail-calls: true
+}
 
-runtime-types = lists.map(type-id, [list:
-  "Number",
-  "Exactnum",
-  "Roughnum",
-  "NumInteger",
-  "NumRational",
-  "NumPositive",
-  "NumNegative",
-  "NumNonPositive",
-  "NumNonNegative",
-  "String",
-  "Function",
-  "Boolean",
-  "Object",
-  "Method",
-  "Nothing",
-  "RawArray"
-])
+runtime-types = [string-dict:
+  "Number", t-just-there,
+  "String", t-just-there,
+  "Function", t-just-there,
+  "Boolean", t-just-there,
+  "Object", t-just-there,
+  "Method", t-just-there,
+  "Nothing", t-just-there,
+  "RawArray", t-just-there
+]
 
-standard-types = runtime-types +
-  [list:
-    type-module-bindings("lists", [list: "List" ]),
-    type-module-bindings("option", [list: "Option" ]),
-    type-module-bindings("arrays", [list: "Array" ]),
-    type-module-bindings("sets", [list: "Set"])
-    #...
-    ]
+runtime-builtins = [string-dict: 
+  "test-print", v-just-there,
+  "print", v-just-there,
+  "display", v-just-there,
+  "print-error", v-just-there,
+  "display-error", v-just-there,
+  "tostring", v-just-there,
+  "torepr", v-just-there,
+  "brander", v-just-there,
+  "raise", v-just-there,
+  "nothing", v-just-there,
+  "builtins", v-just-there,
+  "not", v-just-there,
+  "is-nothing", v-just-there,
+  "is-number", v-just-there,
+  "is-string", v-just-there,
+  "is-boolean", v-just-there,
+  "is-object", v-just-there,
+  "is-function", v-just-there,
+  "is-raw-array", v-just-there,
+  "gensym", v-just-there,
+  "random", v-just-there,
+  "run-task", v-just-there,
+  "_plus", v-just-there,
+  "_minus", v-just-there,
+  "_times", v-just-there,
+  "_divide", v-just-there,
+  "_lessthan", v-just-there,
+  "_lessequal", v-just-there,
+  "_greaterthan", v-just-there,
+  "_greaterequal", v-just-there,
+  "string-equal", v-just-there,
+  "string-contains", v-just-there,
+  "string-append", v-just-there,
+  "string-length", v-just-there,
+  "string-tonumber", v-just-there,
+  "string-to-number", v-just-there,
+  "string-repeat", v-just-there,
+  "string-substring", v-just-there,
+  "string-replace", v-just-there,
+  "string-split", v-just-there,
+  "string-split-all", v-just-there,
+  "string-char-at", v-just-there,
+  "string-toupper", v-just-there,
+  "string-tolower", v-just-there,
+  "string-explode", v-just-there,
+  "string-index-of", v-just-there,
+  "string-to-code-point", v-just-there,
+  "string-from-code-point", v-just-there,
+  "string-to-code-points", v-just-there,
+  "string-from-code-points", v-just-there,
+  "num-random", v-just-there,
+  "num-random-seed", v-just-there,
+  "num-max", v-just-there,
+  "num-min", v-just-there,
+  "num-equal", v-just-there,
+  "num-within", v-just-there,
+  "num-round", v-just-there,
+  "num-round-even", v-just-there,
+  "num-abs", v-just-there,
+  "num-sin", v-just-there,
+  "num-cos", v-just-there,
+  "num-tan", v-just-there,
+  "num-asin", v-just-there,
+  "num-acos", v-just-there,
+  "num-atan", v-just-there,
+  "num-modulo", v-just-there,
+  "num-truncate", v-just-there,
+  "num-sqrt", v-just-there,
+  "num-sqr", v-just-there,
+  "num-ceiling", v-just-there,
+  "num-floor", v-just-there,
+  "num-log", v-just-there,
+  "num-exp", v-just-there,
+  "num-exact", v-just-there,
+  "num-to-rational", v-just-there,
+  "num-to-roughnum", v-just-there,
+  "num-is-positive", v-just-there,
+  "num-is-negative", v-just-there,
+  "num-is-non-positive", v-just-there,
+  "num-is-non-negative", v-just-there,
+  "num-is-integer", v-just-there,
+  "num-is-fixnum", v-just-there,
+  "num-is-rational", v-just-there,
+  "num-is-roughnum", v-just-there,
+  "num-expt", v-just-there,
+  "num-tostring", v-just-there,
+  "num-to-string", v-just-there,
+  "num-to-string-digits", v-just-there,
+  "num-within-rel", v-just-there,
+  "num-within-abs", v-just-there,
+  "within-rel", v-just-there,
+  "within-rel-now", v-just-there,
+  "within-abs", v-just-there,
+  "within-abs-now", v-just-there,
+  "within", v-just-there,
+  "raw-array-get", v-just-there,
+  "raw-array-set", v-just-there,
+  "raw-array-of", v-just-there,
+  "raw-array-length", v-just-there,
+  "raw-array-to-list", v-just-there,
+  "raw-array-fold", v-just-there,
+  "raw-array", v-just-there,
+  "ref-get", v-just-there,
+  "ref-set", v-just-there,
+  "ref-freeze", v-just-there,
+  "equal-always", v-just-there,
+  "equal-always3", v-just-there,
+  "equal-now", v-just-there,
+  "equal-now3", v-just-there,
+  "identical", v-just-there,
+  "identical3", v-just-there,
+  "exn-unwrap", v-just-there,
+  "_empty", v-just-there,
+  "_link", v-just-there
+]
 
-data CompileBinding:
-  | builtin-id(id :: String)
-  | module-bindings(name :: String, bindings :: List<String>)
-end
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])
 
-runtime-builtins = lists.map(builtin-id, [list:
-  "test-print",
-  "print",
-  "display",
-  "print-error",
-  "display-error",
-  "tostring",
-  "torepr",
-  "brander",
-  "raise",
-  "nothing",
-  "builtins",
-  "not",
-  "is-nothing",
-  "is-number",
-  "is-string",
-  "is-boolean",
-  "is-object",
-  "is-function",
-  "is-raw-array",
-  "gensym",
-  "random",
-  "run-task",
-  "_plus",
-  "_minus",
-  "_times",
-  "_divide",
-  "_lessthan",
-  "_lessequal",
-  "_greaterthan",
-  "_greaterequal",
-  "string-equal",
-  "string-contains",
-  "string-append",
-  "string-length",
-  "string-tonumber",
-  "string-to-number",
-  "string-repeat",
-  "string-substring",
-  "string-replace",
-  "string-split",
-  "string-split-all",
-  "string-char-at",
-  "string-toupper",
-  "string-tolower",
-  "string-explode",
-  "string-index-of",
-  "string-to-code-point",
-  "string-from-code-point",
-  "string-to-code-points",
-  "string-from-code-points",
-  "num-random",
-  "num-random-seed",
-  "num-max",
-  "num-min",
-  "num-equal",
-  "num-within",
-  "num-within-abs",
-  "num-within-rel",
-  "num-abs",
-  "num-sin",
-  "num-cos",
-  "num-tan",
-  "num-asin",
-  "num-acos",
-  "num-atan",
-  "num-modulo",
-  "num-truncate",
-  "num-sqrt",
-  "num-sqr",
-  "num-ceiling",
-  "num-floor",
-  "num-round",
-  "num-round-even",
-  "num-log",
-  "num-exp",
-  "num-exact",
-  "num-to-rational",
-  "num-to-roughnum",
-  "num-to-fixnum",
-  "num-is-integer",
-  "num-is-rational",
-  "num-is-roughnum",
-  "num-is-positive",
-  "num-is-negative",
-  "num-is-non-positive",
-  "num-is-non-negative",
-  "num-is-fixnum",
-  "num-expt",
-  "num-tostring",
-  "num-to-string",
-  "num-to-string-digits",
-  "raw-array-get",
-  "raw-array-set",
-  "raw-array-of",
-  "raw-array-length",
-  "raw-array-to-list",
-  "raw-array-fold",
-  "raw-array",
-  "ref-get",
-  "ref-set",
-  "ref-freeze",
-  "equal-always",
-  "equal-always3",
-  "equal-now",
-  "equal-now3",
-  "within-abs-now",
-  "within-abs",
-  "within-now",
-  "within-rel-now",
-  "within",
-  "within-rel",
-  "identical",
-  "identical3",
-  "exn-unwrap"
-])
+minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
 
-no-builtins = compile-env([list: ], [list: ])
+standard-globals = globals(runtime-builtins, runtime-types)
+standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
 
-minimal-builtins = compile-env(runtime-builtins, runtime-types)
+minimal-imports = extra-imports(empty)
 
-bootstrap-builtins = compile-env(
-  [list: module-bindings("lists", [list:
-      "list",
-      "is-empty",
-      "is-link",
-      "empty",
-      "link",
-      "range",
-      "range-by",
-      "repeat",
-      "filter",
-      "partition",
-      "split-at",
-      "any",
-      "all",
-      "find",
-      "map",
-      "map2",
-      "map3",
-      "map4",
-      "map_n",
-      "map2_n",
-      "map3_n",
-      "map4_n",
-      "each",
-      "each2",
-      "each3",
-      "each4",
-      "each_n",
-      "each2_n",
-      "each3_n",
-      "each4_n",
-      "fold-while",
-      "fold",
-      "fold2",
-      "fold3",
-      "fold4",
-      "index"
-  ])] +
-  runtime-builtins + lists.map(builtin-id, [list:
-
-  "_link",
-  "_empty",
-
-  # new arithmetic aliases
-  "add",
-  "sub",
-  "div",
-  "mul",
-  "less",
-  "greater",
-  "greaterequal",
-  "lessequal",
-
-  "both",
-  "either",
-  "not",
-
-  "max",
-  "min",
-  "abs",
-  "sin",
-  "cos",
-  "tan",
-  "asin",
-  "acos",
-  "atan",
-  "modulo",
-  "truncate",
-  "sqrt",
-  "sqr",
-  "ceiling",
-  "floor",
-  "log",
-  "exp",
-  "exact",
-  "is-integer",
-  "is-fixnum",
-  "expt",
-
-  # from js/trove/image.js
-  "circle",
-  "is-image-color",
-  "is-mode",
-  "is-x-place",
-  "is-y-place",
-  "is-angle",
-  "is-side-count",
-  "is-step-count",
-  "is-image",
-  "bitmap-url",
-  "open-image-url",
-  "image-url",
-  "images-equal",
-  "text",
-  "normal",
-  "text-font",
-  "overlay",
-  "middle",
-  "overlay-xy",
-  "overlay-align",
-  "underlay",
-  "middle",
-  "underlay-xy",
-  "underlay-align",
-  "beside-align",
-  "beside",
- "above",
-  "middle",
-  "above-align",
-  "empty-scene",
-  "put-image",
-  "place-image",
-  "place-image-align",
-  "rotate",
-  "scale",
-  "scale-xy",
-  "flip-horizontal",
-  "flip-vertical",
-  "frame",
-  "crop",
-  "line",
-  "add-line",
-  "scene-line",
-  "square",
-  "rectangle",
-  "regular-polygon",
-  "ellipse",
-  "triangle",
-  "triangle-sas",
-  "triangle-sss",
-  "triangle-ass",
-  "triangle-ssa",
-  "triangle-aas",
-  "triangle-asa",
-  "triangle-saa",
-  "right-triangle",
-  "isosceles-triangle",
-  "star",
-  "star-sized",
-  "radial-star",
-  "star-polygon",
-  "rhombus",
-  "image-to-color-list",
-  "color-list-to-image",
-  "color-list-to-bitmap",
-  "image-width",
-  "image-height",
-  "image-baseline",
-  "name-to-color",
-
-  # from js/trove/world.js
-  "big-bang",
-  "on-tick",
-  "on-tick-n",
-  "to-draw",
-  "on-mouse",
-  "on-key",
-  "stop-when",
-  "is-key-equal"
-  ]),
-  runtime-types
-)
-
-standard-builtins = compile-env(
-    runtime-builtins + [list:
-      builtin-id("_link"),
-      builtin-id("_empty"),
-      module-bindings("arrays", [list:
+standard-imports = extra-imports(
+   [list: 
+      extra-import(builtin("arrays"), "arrays", [list: 
           "array",
           "build-array",
           "array-from-list",
@@ -708,8 +575,9 @@ standard-builtins = compile-env(
           "array-get-now",
           "array-length",
           "array-to-list-now"
-        ]),
-      module-bindings("lists", [list:
+        ],
+        [list: "Array"]),
+      extra-import(builtin("lists"), "lists", [list: 
           "list",
           "is-empty",
           "is-link",
@@ -744,20 +612,22 @@ standard-builtins = compile-env(
           "fold3",
           "fold4",
           "index"
-        ]),
-      module-bindings("option", [list:
+        ],
+        [list: "List"]),
+      extra-import(builtin("option"), "option", [list: 
           "Option",
           "is-none",
           "is-some",
           "none",
           "some"
-        ]),
-      module-bindings("error", [list: ]),
-      module-bindings("sets", [list:
+        ],
+        [list: "Option"]),
+      extra-import(builtin("error"), "error", [list: ], [list:]),
+      extra-import(builtin("sets"), "sets", [list: 
           "set",
           "tree-set",
           "list-set"
-        ])
-    ],
-    standard-types
-    )
+        ],
+        [list: "Set"])
+    ])
+

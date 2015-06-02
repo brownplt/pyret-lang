@@ -18,3 +18,10 @@ import "./tests/test-lists.arr" as _
 import "./tests/test-cases.arr" as _
 import "./tests/test-rec.arr" as _
 import "./tests/test-compile-errors.arr" as _
+import "./tests/test-file.arr" as _
+import "./tests/test-path.arr" as _
+import "./tests/test-repl.arr" as _
+import "./tests/test-file-locators.arr" as _
+import "./tests/test-builtin-locator.arr" as _
+import "./tests/test-compile-lib.arr" as _
+import "./tests/test-include.arr" as _
