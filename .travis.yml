@@ -26,5 +26,5 @@ install:
   - sudo ./setup.sh < setup_commands 
   - make install
 before_script: make -j3
-script: make -j3 test-all
+script: make -j3 test
 
