@@ -31,8 +31,7 @@ deploy:
   provider: s3
   access_key_id: AKIAJ4MD373MBQS246RQ
   secret_access_key:
-    secure:
-eDTWRuS+uXKcXvKU846GH285Hxd8fdojCj/IFgfXHojskmgKyoxqPbSuiP5lzafqC5YbVNIBqjWq5y3ZuNQpBrE8C/nc8lhCMGxv1r8qlbKwfcs9sVha3PxqgvL+N4KLtvBgUY87sqmkR7AKGn8oqrB1wKQKMxpjh0HD8SeWEUM=
+    secure: eDTWRuS+uXKcXvKU846GH285Hxd8fdojCj/IFgfXHojskmgKyoxqPbSuiP5lzafqC5YbVNIBqjWq5y3ZuNQpBrE8C/nc8lhCMGxv1r8qlbKwfcs9sVha3PxqgvL+N4KLtvBgUY87sqmkR7AKGn8oqrB1wKQKMxpjh0HD8SeWEUM=
   bucket: 'pyret-horizon'
   local-dir: build/release
   upload-dir: current
