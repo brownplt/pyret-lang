@@ -1,9 +1,10 @@
 
 provide { make-repl: make-repl } end
-import runtime-lib as R
+import either as E
+import load-lib as L
 import namespace-lib as N
 import string-dict as SD
-import either as E
+import runtime-lib as R
 import "compiler/compile-structs.arr" as CS
 import "compiler/compile-lib.arr" as CL
 import "compiler/repl-support.arr" as RS
@@ -36,7 +37,9 @@ fun make-repl(
     result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
     cases(Either) result:
       | right(answer) =>
-        update-env(answer, defs-locator)
+        when L.is-success-result(answer):
+          update-env(answer, defs-locator)
+        end
       | left(err) =>
         nothing
     end
@@ -48,7 +51,9 @@ fun make-repl(
     result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
     cases(Either) result:
       | right(answer) =>
-        update-env(answer, repl-locator)
+        when L.is-success-result(answer):
+          update-env(answer, defs-locator)
+        end
       | left(err) =>
         nothing
     end
