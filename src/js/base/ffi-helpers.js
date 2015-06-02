@@ -409,11 +409,15 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
         isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
         isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
+        isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
+        isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
         skeletonValues: function(skel) {
           var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
           var isValue = runtime.getField(VS, "is-vs-value");
           var isCollection = runtime.getField(VS, "is-vs-collection");
           var isConstr = runtime.getField(VS, "is-vs-constr");
+          var isStr = runtime.getField(VS, "is-vs-str");
+          var isSeq = runtime.getField(VS, "is-vs-seq");
           if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
             throw "Non-value-skeleton given to skeletonValues " + String(skel);
           }
@@ -428,6 +432,10 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else if (runtime.unwrap(isConstr.app(cur)) === true) {
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
+              } else if (runtime.unwrap(isStr.app(cur)) === true) {
+                // nothing
+              } else if (runtime.unwrap(isSeq.app(cur)) === true) {
+                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else {
                 throw "Non-value appeared in skeleton: " + String(cur);
               }

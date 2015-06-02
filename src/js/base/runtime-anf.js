@@ -194,6 +194,7 @@ function isBase(obj) { return obj instanceof PBase; }
 
   function renderValueSkeleton(val, values) {
     if (ffi.isVSValue(val)) { return values.pop(); } // double-check order!
+    else if (ffi.isVSStr(val)) { return thisRuntime.unwrap(thisRuntime.getField(val, "s")); }
     else if (ffi.isVSCollection(val)) {
       var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
       var items = ffi.toArray(thisRuntime.getField(val, "items"));
@@ -203,7 +204,7 @@ function isBase(obj) { return obj instanceof PBase; }
         if (i != 0) { s += ", "; }
       }
       return s + "]";
-    } else {
+    } else if (ffi.isVSConstr(val)) {
       var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
       var items = ffi.toArray(thisRuntime.getField(val, "args"));
       var s = name + "(";
@@ -212,6 +213,13 @@ function isBase(obj) { return obj instanceof PBase; }
         if (i != 0) { s += ", "; }
       }
       return s + ")";
+    } else if (ffi.isVSSeq(val)) {
+      var items = ffi.toArray(thisRuntime.getField(val, "items"));
+      var s = "";
+      for (var i = items.length - 1; i >= 0; i--) {
+        s += renderValueSkeleton(items[i], values);
+      }
+      return s;
     }
   }
 
@@ -299,10 +307,12 @@ function isBase(obj) { return obj instanceof PBase; }
       // a lazy version would skip getting the skeleton values altogether
       var values = ffi.skeletonValues(output);
       pushTodo(undefined, val, undefined, values, "render-valueskeleton",
-               { skeleton: output, val: val });
+               { skeleton: output });
     },
     "render-valueskeleton": function(top) {
-      return renderValueSkeleton(top.extra.skeleton, top.done);
+      var skel = top.extra.skeleton;
+      top.extra.skeleton = undefined;
+      return renderValueSkeleton(skel, top.done);
     }
   };
 
@@ -1209,21 +1219,24 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var stackOfStacks = [];
       function makeCache(type) {
         var cyclicCounter = 1;
+        // Note (Ben): using concat was leading to quadratic copying times and memory usage...
         return {
           add: function(elts, elt) {
-            return [{elt: elt, name: null}].concat(elts);
+            return {elt: elt, name: null, next: elts};
           },
           check: function(elts, elt) {
-            var matches = elts.filter(function(a) { return a.elt === elt; });
-            if(matches.length === 0) {
-              return null;
-            }
-            else {
-              if(matches[0].name === null) {
-                matches[0].name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
+            var cur = elts;
+            while (cur && cur.next !== undefined) {
+              if (cur.elt === elt) {
+                if (cur.name === null) {
+                  cur.name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
+                }
+                return cur.name;
+              } else {
+                cur = cur.next;
               }
-              return matches[0].name;
             }
+            return null;
           }
         };
       }
@@ -1382,7 +1395,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return oldStack[oldStack.length - 1][name];
           }
           else {
-            return [];
+            return undefined;
           }
         }
         try {
@@ -3488,8 +3501,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(s);
       thisRuntime.checkString(find);
       thisRuntime.checkString(replace);
-      var escapedFind = find.replace(/\\/g, "\\\\");
-      return thisRuntime.makeString(s.replace(new RegExp(escapedFind,'g'), replace));
+      return thisRuntime.makeString(s.split(find).join(replace));
     }
 
     var string_equals = function(l, r) {

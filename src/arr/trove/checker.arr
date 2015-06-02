@@ -124,6 +124,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   {
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
+        when check-all: print("Checking " + module-name) end
         for each(c from checks):
           results-before = current-results
           reset-results()

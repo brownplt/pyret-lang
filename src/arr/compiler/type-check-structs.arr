@@ -48,8 +48,8 @@ sharing:
         VS.value(mut-dict-to-string(self.data-exprs)),
         VS.value(mut-dict-to-string(self.branders)),
         VS.value(mut-dict-to-string(self.modules)),
-        VS.value(tostring(self.binds)),
-        VS.value(tostring(self.errors.get()))])
+        VS.value(self.binds),
+        VS.value(self.errors.get())])
   end
 end
 
@@ -233,7 +233,7 @@ end
 data FoldResult<V>:
   | fold-result(v :: V) with:
     _output(self):
-      VS.vs-constr("fold-result", [list: VS.vs-value(tostring(self.v))])
+      VS.vs-constr("fold-result", [list: VS.vs-value(self.v)])
     end,
     bind(self, f) -> FoldResult<V>:
       f(self.v)
@@ -249,7 +249,7 @@ data FoldResult<V>:
     end
   | fold-errors(errors :: List<C.CompileError>) with:
     _output(self):
-      VS.vs-constr("fold-errors", [list: VS.vs-value(tostring(self.errors))])
+      VS.vs-constr("fold-errors", [list: VS.vs-value(self.errors)])
     end,
     bind(self, f) -> FoldResult<V>:
       self

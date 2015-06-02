@@ -81,7 +81,7 @@ define(["js/js-numbers"], function (jsnums) {
                 return this.actual.indexOf(s) !== -1;
             },
             toBeMessageExn : function(rt, s) {
-                return rt1.unwrap(rt1.getField(e, "message")).indexOf(s) !== -1;
+                return rt.unwrap(rt.getField(this.actual, "message")).indexOf(s) !== -1;
             },
             toThrowRuntimeExn : function(rt, renderErrors, s) {
                 try {

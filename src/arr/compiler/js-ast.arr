@@ -4,6 +4,7 @@ provide *
 provide-types *
 import pprint as PP
 import format as F
+import ast as A
 
 format = F.format
 
@@ -50,16 +51,16 @@ sharing:
 end
 
 data JStmt:
-  | j-var(name :: String, rhs :: JExpr) with:
+  | j-var(name :: A.Name, rhs :: JExpr) with:
     label(self): "j-var" end,
     print-ugly-source(self, printer):
-      printer("var " + self.name + " = ")
+      printer("var " + self.name.tosourcestring() + " = ")
       self.rhs.print-ugly-source(printer)
       printer(";\n")
     end,
     tosource(self):
       PP.group(
-        PP.str("var ") + PP.group(PP.nest(INDENT, PP.str(self.name) +
+        PP.str("var ") + PP.group(PP.nest(INDENT, self.name.tosource() +
             PP.str(" =") + PP.sbreak(1) + self.rhs.tosource())) + PP.str(";"))
     end
   | j-if1(cond :: JExpr, consq :: JBlock) with:
@@ -106,18 +107,18 @@ data JStmt:
     tosource(self):
       PP.str("return ") + self.expr.tosource() + PP.str(";")
     end
-  | j-try-catch(body :: JBlock, exn :: String, catch :: JBlock) with:
+  | j-try-catch(body :: JBlock, exn :: A.Name, catch :: JBlock) with:
     label(self): "j-try-catch" end,
     print-ugly-source(self, printer):
       printer("try {\n")
       self.body.print-ugly-source(printer)
-      printer("} catch(" + self.exn + ") {\n")
+      printer("} catch(" + self.exn.tosourcestring() + ") {\n")
       self.catch.print-ugly-source(printer)
       printer("}\n")
     end,
     tosource(self):
       PP.surround(INDENT, 1, PP.str("try {"), self.body.tosource(), PP.rbrace)
-        + PP.surround(INDENT, 1, PP.str(" catch(" + self.exn + ") {"), self.catch.tosource(), PP.rbrace)
+        + PP.surround(INDENT, 1, PP.str(" catch(" + self.exn.tosourcestring() + ") {"), self.catch.tosource(), PP.rbrace)
     end
   | j-throw(exp :: JExpr) with:
     label(self): "j-throw" end,
@@ -328,17 +329,17 @@ data JExpr:
       self.right.print-ugly-source(printer)
     end,
     tosource(self): PP.flow([list: self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
-  | j-fun(args :: List<String>, body :: JBlock) with:
+  | j-fun(args :: List<A.Name>, body :: JBlock) with:
     label(self): "j-fun" end,
     print-ugly-source(self, printer):
       printer("function(")
-      printer(self.args.join-str(","))
+      printer(self.args.map(_.tosourcestring()).join-str(","))
       printer(") {\n")
       self.body.print-ugly-source(printer)
       printer("}")
     end,
     tosource(self):
-      arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(PP.str)))
+      arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
       header = PP.group(PP.str("function") + arglist)
       PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
     end
@@ -417,15 +418,15 @@ data JExpr:
           + PP.nest(INDENT, break-one + PP.str("?") + blank-one + PP.group(PP.nest(INDENT, self.consq.tosource())))
           + PP.nest(INDENT, break-one + PP.str(":") + blank-one + PP.group(PP.nest(INDENT, self.altern.tosource()))))
     end
-  | j-assign(name :: String, rhs :: JExpr) with:
+  | j-assign(name :: A.Name, rhs :: JExpr) with:
     label(self): "j-assign" end,
     print-ugly-source(self, printer):
-      printer(self.name)
+      printer(self.name.tosourcestring())
       printer(" = ")
       self.rhs.print-ugly-source(printer)
     end,
     tosource(self):
-      PP.group(PP.nest(INDENT, PP.str(self.name) + PP.str(" =") + break-one + self.rhs.tosource()))
+      PP.group(PP.nest(INDENT, self.name.tosource() + PP.str(" =") + break-one + self.rhs.tosource()))
     end
   | j-bracket-assign(obj :: JExpr, field :: JExpr, rhs :: JExpr) with:
     label(self): "j-bracket-assign" end,
@@ -507,12 +508,12 @@ data JExpr:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | j-id(id :: String) with:
+  | j-id(id :: A.Name) with:
     label(self): "j-id" end,
     print-ugly-source(self, printer):
-      printer(self.id)
+      printer(self.id.tosourcestring())
     end,
-    tosource(self): PP.str(self.id) end
+    tosource(self): self.id.tosource() end
   | j-str(s :: String) with:
     label(self): "j-str" end,
     print-ugly-source(self, printer):
@@ -565,12 +566,14 @@ sharing:
   end
 
 where:
-  j-fun([list: "a","b"], j-block([list: j-app(j-id("a"), [list: j-id("b")])])).tosource().pretty(80) is
-    [list: "function(a, b) { a(b) }"]
+  fun j-n-id(name): j-id(A.s-name(A.dummy-loc, name)) end
+  j-fun([list: j-n-id("a").id,j-n-id("b").id],
+    j-block([list: j-app(j-n-id("a"), [list: j-n-id("b")])])).tosource().pretty(80)
+    is [list: "function(a, b) { a(b) }"]
 
-  j-fun([list: "RUNTIME", "NAMESPACE"], j-block([list: 
-      j-var("print", j-method(j-id("NAMESPACE"), "get", [list: j-str("print")])),
-      j-var("brand", j-method(j-id("NAMESPACE"), "get", [list: j-str("brand")]))
+  j-fun([list: j-n-id("RUNTIME").id, j-n-id("NAMESPACE").id], j-block([list: 
+      j-var(j-n-id("print").id, j-method(j-n-id("NAMESPACE"), "get", [list: j-str("print")])),
+      j-var(j-n-id("brand").id, j-method(j-n-id("NAMESPACE"), "get", [list: j-str("brand")]))
     ])).tosource().pretty(80)
     is
     [list: 
