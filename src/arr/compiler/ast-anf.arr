@@ -255,14 +255,25 @@ sharing:
 end
 
 data ALettable:
-  | a-module(l :: Loc, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
+  | a-module(
+      l :: Loc,
+      answer :: AVal,
+      defined-values :: List<A.Name>,
+      defined-types :: List<A.Name>,
+      provided-values :: AVal,
+      provided-types,
+      checks :: AVal) with:
     label(self): "a-module" end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Types"), 
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | a-cases(l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr) with:
@@ -464,8 +475,8 @@ end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
-    | a-module(_, answer, provides, types, checks) =>
-      a-module(dummy-loc, strip-loc-val(answer), strip-loc-val(provides),
+    | a-module(_, answer, dv, dt, provides, types, checks) =>
+      a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(provides),
         types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
@@ -518,8 +529,8 @@ fun strip-loc-val(val :: AVal):
 end
 
 default-map-visitor = {
-  a-module(self, l :: Loc, answer :: AVal, provides :: AVal, types :: List<A.AField>, checks :: AVal):
-    a-module(l, answer.visit(self), provides.visit(self), types, checks.visit(self))
+  a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
+    a-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), types, checks.visit(self))
   end,
   a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
@@ -755,7 +766,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: StringD
 end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   cases(ALettable) e:
-    | a-module(_, ans, provs, types, checks) =>
+    | a-module(_, ans, dv, dt, provs, types, checks) =>
       freevars-v-acc(ans,
         freevars-v-acc(provs,
           freevars-list-acc(types.map(_.ann),

@@ -707,7 +707,7 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
 end
 
 compiler-visitor = {
-  a-module(self, l, answer, provides, types, checks):
+  a-module(self, l, answer, dv, dt, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
       compiled = compile-ann(ann.ann, self)
       {

@@ -378,14 +378,25 @@ end
 
 
 data Expr:
-  | s-module(l :: Loc, answer :: Expr, provides :: Expr, types :: List<AField>, checks :: Expr) with:
+  | s-module(
+      l :: Loc,
+      answer :: Expr,
+      defined-values :: List<Name>,
+      defined-types :: List<Name>,
+      provided-values :: Expr,
+      provided-types :: List<AField>,
+      checks :: Expr) with:
     label(self): "s-module" end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
             PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
@@ -1304,8 +1315,8 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
-  s-module(self, l, answer, provides, types, checks):
-    s-module(l, answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  s-module(self, l, answer, dv, dt, provides, types, checks):
+    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
@@ -1775,8 +1786,8 @@ default-iter-visitor = {
     true
   end,
   
-  s-module(self, l, answer, provides, types, checks):
-    answer.visit(self) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  s-module(self, l, answer, dv, dt, provides, types, checks):
+    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
@@ -2242,9 +2253,9 @@ dummy-loc-visitor = {
     s-atom(base, serial)
   end,
   
-  s-module(self, l, answer, provides, types, checks):
+  s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(dummy-loc,
-      answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):

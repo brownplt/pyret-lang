@@ -347,7 +347,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
         | else => A.s-block(l, desugar-toplevel-types([list: body]))
       end
       fun transform-toplevel-last(l2, last):
-        A.s-module(l2, last, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
+        A.s-module(l2, last, empty, empty, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
@@ -381,7 +381,7 @@ where:
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
-          A.s-module(d, id("nothing"), id("x"), [list:], checks))
+          A.s-module(d, id("nothing"), empty, empty, id("x"), [list:], checks))
       )
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called

@@ -844,9 +844,9 @@ end
 
 fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
   cases(A.Expr) e:
-    | s-module(l, answer, provides, types, checks) =>
+    | s-module(l, answer, dv, dt, provides, types, checks) =>
       synthesis(answer, info)
-        .map-expr(A.s-module(l, _, provides, types, checks))
+        .map-expr(A.s-module(l, _, dv, dt, provides, types, checks))
     | s-type-let-expr(l, binds, body) =>
       for synth-bind(_ from handle-type-let-binds(binds, info)):
         synthesis(body, info)
@@ -1241,7 +1241,7 @@ end
 
 fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   cases(A.Expr) e:
-    | s-module(l, answer, provides, typs, checks) =>
+    | s-module(l, answer, dvs, dts, provides, typs, checks) =>
       synthesis(provides, info).check-bind(
         lam(new-provides, provides-loc, provides-typ):
           for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
@@ -1254,7 +1254,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
             for check-bind(to-export from wrapped):
               info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
               checking(answer, expect-loc, expect-typ, info)
-                .map(A.s-module(l, _, provides, typs, checks))
+                .map(A.s-module(l, _, dvs, dts, provides, typs, checks))
             end
           end
         end)

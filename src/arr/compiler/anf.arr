@@ -137,11 +137,11 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, provides, types, checks) =>
+    | s-module(l, answer, dv, dt, provides, types, checks) =>
       anf-name(answer, "answer", lam(ans):
           anf-name(provides, "provides", lam(provs):
               anf-name(checks, "checks", lam(chks):
-                  k.apply(l, N.a-module(l, ans, provs, types, chks))
+                  k.apply(l, N.a-module(l, ans, dv, dt, provs, types, chks))
                 end)
             end)
         end)
