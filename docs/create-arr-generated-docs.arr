@@ -163,7 +163,7 @@ cases (C.ParsedArguments) parsed-options:
       | link(file, more) =>
         file-contents = F.file-to-string(file)
         parsed = P.parse-dialect(dialect, file-contents, file)
-        scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).or-else(parsed)), CS.minimal-builtins)
+        scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).or-else(parsed)), CS.standard-builtins)
         named-and-bound = R.resolve-names(scoped, CS.minimal-builtins)
         named = named-and-bound.ast
         bindings = named-and-bound.bindings

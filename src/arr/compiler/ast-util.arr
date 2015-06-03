@@ -6,11 +6,11 @@ import srcloc as SL
 import ast as A
 import parse-pyret as PP
 import "compiler/compile-structs.arr" as CS
+import "compiler/ast-anf.arr" as N
 import string-dict as SD
 import either as E
 
 type Loc = SL.Srcloc
-
 
 fun ok-last(stmt):
   not(
@@ -94,6 +94,7 @@ data BindingInfo:
   | b-exp(exp :: A.Expr) # This name is bound to some expression that we can't interpret yet
   | b-dot(base :: BindingInfo, name :: String) # A field lookup off some binding that isn't a b-dict
   | b-typ # A type
+  | b-import(imp :: A.ImportType) # imported from a module
   | b-unknown # Any unknown value
 end
 
@@ -144,28 +145,14 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   end
 end
 
-fun binding-type-env-from-env(initial-env):
-  for lists.fold(acc from SD.make-string-dict(), binding from initial-env.types):
-    cases(CS.CompileTypeBinding) binding:
-      | type-module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.make-string-dict(), b from ids):
-          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-typ))
-        end
-        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | type-id(name) => acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
-    end
+fun binding-type-env-from-env(env):
+  for lists.fold(acc from SD.make-string-dict(), name from env.globals.types.keys-list()):
+    acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
   end
 end
-fun binding-env-from-env(initial-env):
-  for lists.fold(acc from SD.make-string-dict(), binding from initial-env.bindings):
-    cases(CS.CompileBinding) binding:
-      | module-bindings(name, ids) =>
-        mod = for lists.fold(m from SD.make-string-dict(), b from ids):
-          m.set(A.s-name(A.dummy-loc, b).key(), e-bind(A.dummy-loc, false, b-prim(name + ":" + b)))
-        end
-        acc.set(A.s-name(A.dummy-loc, name).key(), e-bind(A.dummy-loc, false, b-dict(mod)))
-      | builtin-id(name) => acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
-    end
+fun binding-env-from-env(env):
+  for lists.fold(acc from SD.make-string-dict(), name from env.globals.values.keys-list()):
+    acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
   end
 end
 
@@ -406,9 +393,17 @@ end
 
 binding-handlers = {
   s-header(_, imp, env, type-env):
+    with-vname = env.set(imp.vals-name.key(), e-bind(imp.l, false, b-unknown))
+    with-tname = type-env.set(imp.types-name.key(), e-bind(imp.l, false, b-typ))
+    with-vnames = for fold(venv from with-vname, v from imp.values):
+      venv.set(v.key(), e-bind(imp.l, false, b-import(imp.import-type)))
+    end
+    with-tnames = for fold(tenv from with-tname, t from imp.types):
+      tenv.set(t.key(), e-bind(imp.l, false, b-import(imp.import-type)))
+    end
     {
-      val-env: env.set(imp.name.key(), e-bind(imp.l, false, b-unknown)),
-      type-env: type-env.set(imp.types.key(), e-bind(imp.l, false, b-typ))
+      val-env: with-vnames,
+      type-env: with-tnames
     }
   end,
   s-param-bind(_, l, param, type-env):
@@ -648,5 +643,50 @@ fun make-renamer(replacements :: SD.StringDict):
       end
     end
   }
+end
+
+fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
+  expr = p.block
+  cases(CS.ExtraImports) env:
+    | extra-imports(imports) =>
+      full-imports = p.imports + for map(i from imports):
+          cases(CS.Dependency) i.dependency:
+            | builtin(name) =>
+              A.s-import-complete(
+                p.l,
+                i.values.map(A.s-name(p.l, _)),
+                i.types.map(A.s-name(p.l, _)),
+                A.s-const-import(p.l, name),
+                A.s-name(p.l, i.as-name),
+                A.s-name(p.l, i.as-name))
+            | dependency(protocol, args) =>
+              A.s-import-complete(
+                p.l,
+                i.values.map(A.s-name(p.l, _)),
+                i.types.map(A.s-name(p.l, _)),
+                A.special-import(p.l, protocol, args),
+                A.s-name(p.l, i.as-name),
+                A.s-name(p.l, i.as-name))
+          end
+        end
+      A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
+  end
+end
+
+fun import-to-dep(imp):
+  cases(A.ImportType) imp:
+    # crossover compatibility
+    | s-file-import(_, path) => CS.dependency("legacy-path", [list: path])
+    | s-const-import(_, modname) => CS.builtin(modname)
+    | s-special-import(_, protocol, args) => CS.dependency(protocol, args)
+  end
+end
+
+fun import-to-dep-anf(imp):
+  cases(N.AImportType) imp:
+    | a-import-builtin(_, name) => CS.builtin(name)
+    | a-import-file(_, name) => CS.dependency("legacy-path", [list: name])
+    | a-import-special(_, kind, args) => CS.dependency(kind, args)
+  end
 end
 

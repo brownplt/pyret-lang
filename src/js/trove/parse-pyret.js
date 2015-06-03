@@ -103,14 +103,17 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/di
             'import-stmt': function(node) {
               if (node.kids[node.kids.length - 2].name === "AS") {
                 if (node.kids.length == 4) {
-                  // (import-stmt IMPORT mod AS NAME)
+                  // (import-stmt IMPORT import-source AS NAME)
                   return RUNTIME.getField(ast, 's-import')
                     .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
                 } else {
-                  // (import-stmt IMPORT mod AS NAME, TYPES)
+                  // (import-stmt IMPORT import-source AS NAME, TYPES)
                   return RUNTIME.getField(ast, 's-import-types')
                     .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
                 }
+              } else if (node.kids[0].name === "INCLUDE") {
+                // (import-stmt INCLUDE import-source)
+                return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
               } else {
                 // (import-stmt IMPORT NAME (COMMA NAME)* FROM mod)
                 var names = [];

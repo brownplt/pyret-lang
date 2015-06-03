@@ -36,12 +36,14 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
       return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
         var name = options.name || randomName();
         var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
+        var compileLibs = options.compileLibs || gf(cs, "standard-imports");
         return runtime.safeCall(function() {
             return gf(comp, "compile-js-ast").app(
                 gf(comp, "start"),
                 ast,
                 s(name),
                 compileEnv,
+                compileLibs,
                 runtime.makeObject({
                   "check-mode": runtime.pyretTrue,
                   "allow-shadowed": runtime.pyretFalse,

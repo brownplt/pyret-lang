@@ -18,10 +18,16 @@ import image-structs as _
 import lists as _
 import option as _
 import parse-pyret as _
+import pathlib as _
 import pprint as _
 import s-exp as _
 import sets as _
 import srcloc as _
 import string-dict as _
 import world as _
+import load-lib as _
+import repl as _
 
+# In here just so it gets included so I can run tests against it. Should
+# eventually be loaded somewhere appropriate once we're using it.
+import "compiler/locators/file.arr" as _

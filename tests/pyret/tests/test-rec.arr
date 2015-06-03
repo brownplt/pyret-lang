@@ -1,8 +1,9 @@
 
-import "../test-compile-helper.arr" as C
 import "compiler/compile-structs.arr" as CS
+import "../test-compile-helper.arr" as H
 
-compile-str = C.compile-str
+compile-str = H.compile-str
+
 is-unbound-failure = lam(e): CS.is-err(e) and CS.is-unbound-id(e.problems.first) end
 is-pointless-rec = lam(e): CS.is-err(e) and CS.is-pointless-rec(e.problems.first) end
 is-ok = CS.is-ok

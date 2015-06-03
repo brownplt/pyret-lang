@@ -52,6 +52,34 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
     f(env);
   }
 
+  function loadClosure(runtime, mod, dependencies) {
+    var deferred = Q.defer();
+    try {
+      var answer = mod.apply(null, dependencies);
+      deferred.resolve(answer);
+    } catch(e) {
+      deferred.reject(e);
+    }
+    return deferred.promise;
+  }
+
+
+  function loadSingle(runtime, src, dependencies) {
+    var deferred = Q.defer();
+    safeEval(src, {
+      define: function(_, body) {
+        try {
+          var answer = body.apply(null, dependencies);
+          deferred.resolve(answer);
+        } catch(e) {
+          deferred.reject(e);
+        }
+      }
+    });
+    return deferred.promise;
+  }
+
+
   function goodIdea(runtime, name, src) {
     var deferred = Q.defer();
     require.undef(name);
@@ -80,6 +108,8 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
 
   return {
     safeEval: safeEval,
-    goodIdea: goodIdea
+    goodIdea: goodIdea,
+    loadSingle: loadSingle,
+    loadClosure: loadClosure
   }
 });

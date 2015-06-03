@@ -15,6 +15,10 @@ define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runti
     var require = requirejs.nodeRequire("requirejs");
   }
 
+  function copyArgs(args) {
+    return Array.prototype.slice.call(args);
+  }
+
   var codePointAt = codePoint.codePointAt;
   var fromCodePoint = codePoint.fromCodePoint;
 
@@ -968,7 +972,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           Type Checking
     ************************/
     function checkType(val, test, typeName) {
-      if(!test(val)) { ffi.throwTypeMismatch(val, typeName) }
+      if(!test(val)) {
+        debugger;
+        ffi.throwTypeMismatch(val, typeName);
+      }
       return true;
     }
 
@@ -1466,12 +1473,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var stackStr = this.pyretStack && this.pyretStack.length > 0 ?
         this.getStack().map(function(s) {
             var g = getField;
-            return s && hasField(s, "source") ? g(s, "source") +
+            if(s && hasField(s, "source")) {
+              return g(s, "source") +
                    " at " +
                    g(s, "start-line") +
                    ":" +
                    g(s, "start-column")
-              : "<builtin>";
+            } else if(s && hasField(s, "module-name")) {
+              return "<builtin " + g(s, "module-name") + ">";
+            } else {
+              return "<builtin " + s + ">";
+            }
           }).join("\n") :
         "<no stack trace>";
       return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
@@ -3841,10 +3853,76 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return num_random(max);
     }
 
+    function loadBuiltinModules(modules, startName, withModules) {
+      function loadWorklist(startMod) {
+        function addMod(curMod, curPath, curName) {
+          if (curPath.filter(function(b) { return b.name === curMod.name; }).length > 0) {
+            console.error("Module cycle: ", curMod, curPath);
+            throw new Error("Module cycle in loadBuiltinModules");
+          }
+          if (typeof curMod === "function") {
+            return [{mod: {
+                theModule: curMod,
+                name: curName,
+                dependencies: []
+              },
+              path: curPath
+            }];
+          }
+          var curDeps = curMod.dependencies;
+          var depMods = curDeps.map(function(d) {
+            return { dname: d.name, modinfo: require("trove/" + d.name) };
+          });
+          var tocomp = {mod: curMod, path: curPath};
+          return depMods.reduce(function(acc, elt) {
+            return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
+          }, [tocomp])
+        }
+        return addMod(startMod, []);
+      }
+      var wl = loadWorklist({name: startName, dependencies: modules });
+      var finalModMap = {};
+      var rawModules = wl.forEach(function(m) {
+        if(m.mod.name === startName) { return; }
+        if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
+          var thisRawMod = m.mod.theModule;
+        }
+        else {
+          var rawDeps = m.mod.dependencies.map(function(d) {
+            return finalModMap[d.name];
+          });
+          var thisRawMod = m.mod.theModule.apply(null, rawDeps);
+        }
+        finalModMap[m.mod.name] = thisRawMod;
+      });
+      var originalOrderRawModules = modules.map(function(m) {
+        return finalModMap[m.name];
+      });
+      return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
+    }
+
     function loadModule(module, runtime, namespace, withModule) {
       var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {
-          return module(thisRuntime, namespace);
+          if(typeof module === "function") {
+            return module(thisRuntime, namespace);
+          }
+          else if (typeof module === "object") {
+              if(module.dependencies === undefined) {
+                // NOTE(joe): Catches already-initialized modules.  Needs to
+                // be tracked down.  Putting the log back in detects them.
+//                console.error("Undefined dependencies remain: ", module);
+                return module;
+              }
+              return loadBuiltinModules(module.dependencies, module.name,
+                function(/* varargs */) {
+                  var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                  return innerModule(thisRuntime, namespace);
+                });
+          }
+          else {
+            console.log("Unkown module type: ", module);
+          }
         },
         withModule, "loadModule(" + modstring.substring(0, 70) + ")");
     }
@@ -3871,8 +3949,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var ms = new Array(arguments.length);
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
+          if (typeof m === 'undefined') {
+            console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
+          }
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
+          }
+          else if (hasField(m, "values")) {
+            return m;
           }
           else {
             return thisRuntime.makeObject({
@@ -4003,6 +4087,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return args;
     }
 
+    function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
+      var bindings = namespace.bindings;
+      valFields.forEach(function(vf) {
+        bindings[vf] = getField(getField(moduleObj, "values"), vf);
+      });
+      typeFields.forEach(function(tf) {
+        bindings["$type$" + tf] = getField(moduleObj, "types")[tf];
+      });
+      return Namespace.namespace(bindings);
+    }
 
     var runtimeNamespaceBindings = {
           'torepr': torepr,
@@ -4377,14 +4471,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'loadModule' : loadModule,
         'loadModules' : loadModules,
         'loadModulesNew' : loadModulesNew,
+        'loadBuiltinModules' : loadBuiltinModules,
         'loadJSModules' : loadJSModules,
+
+        'addModuleToNamespace' : addModuleToNamespace,
+
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {
           theOutsideWorld.stdout = newStdout;
         },
         'getParam' : getParam,
         'setParam' : setParam,
-        'hasParam' : hasParam
+        'hasParam' : hasParam,
+        'stdout' : theOutsideWorld.stdout
     };
 
     makePrimAnn("Number", isNumber);

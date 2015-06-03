@@ -1,5 +1,15 @@
 define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
-  return util.memoModule("string-dict2", function(runtime, namespace) {
+  return util.definePyretModule(
+    "string-dict",
+    [],
+    {
+      values:
+        ["make-string-dict", "string-dict",
+         "make-mutable-string-dict", "mutable-string-dict"],
+      types:
+        ["MutableStringDict", "StringDict"]
+     },
+     function(runtime, namespace /* no pyret dependencies */) {
     return runtime.loadJSModules(namespace, [ffi], function(F) {
     return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 

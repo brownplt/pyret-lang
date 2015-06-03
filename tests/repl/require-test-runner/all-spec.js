@@ -14,7 +14,8 @@ console.log("Starting repl tests");
 r([
     "../repl",
     ], function (
-      repl
+      repl,
+      locRepl
     ) {
   repl.performTest();
 }, function(err) {

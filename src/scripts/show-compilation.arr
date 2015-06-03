@@ -35,7 +35,12 @@ cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
     print-width = opts.get-value("width")
     dialect = opts.get-value("dialect")
-    libs = if opts.has-key("standard-builtins"): CS.standard-builtins else: CS.minimal-builtins end
+    libs =
+      if opts.has-key("standard-builtins"):
+        CS.standard-imports
+      else:
+        CS.minimal-imports
+      end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
     print("Success")
@@ -46,8 +51,14 @@ cases (C.ParsedArguments) parsed-options:
         file-contents = F.file-to-string(file)
         print("")
 
-        comp = CM.compile-js(CM.start, dialect, file-contents, file, libs,
-          {check-mode: check-mode, proper-tail-calls: true, collect-all: true, ignore-unbound: true, type-check: type-check}).tolist()
+        comp = CM.compile-js(CM.start, dialect, file-contents, file, CS.standard-builtins, libs,
+          {
+            check-mode: check-mode,
+            collect-all: true,
+            ignore-unbound: true,
+            type-check: type-check,
+            proper-tail-calls: true
+          }).tolist()
 
         for each(phase from comp):
           print(">>>>>>>>>>>>>>>>>>")
