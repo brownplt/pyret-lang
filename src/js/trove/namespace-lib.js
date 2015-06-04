@@ -18,29 +18,26 @@ return util.definePyretModule("namespace-lib",
     var loadInternalAPI = runtime.getField(load, "internal");
 
     function makeNamespace(runtimeNamespaceIsFor, ns) {
-      function mergeAll(self, answer) {
-//          checkModuleResult(answer);
-        var runtimeOfAnswer = loadInternalAPI.getModuleResultRuntime(answer);
-        if(runtimeOfAnswer !== runtimeNamespaceIsFor) {
-          runtime.ffi.throwMessageException("Namespace got values from different runtimes.");
-        }
-        var typesOfAnswer = loadInternalAPI.getModuleResultTypes(answer);
-        var valuesOfAnswer = loadInternalAPI.getModuleResultValues(answer);
-        var newNamespace = ns;
-        Object.keys(typesOfAnswer).forEach(function(k) {
-          newNamespace = newNamespace.setType(k, typesOfAnswer[k]);
-        });
-        Object.keys(valuesOfAnswer).forEach(function(k) {
-          newNamespace = newNamespace.set(k, valuesOfAnswer[k]);
-        });
-        return makeNamespace(runtimeNamespaceIsFor, newNamespace);
-      }
-
       var obj = runtime.makeObject({
-        "merge-all": runtime.makeMethodFromFun(mergeAll),
         "namespace": runtime.makeOpaque(ns)
       });
       return applyBrand(brandNamespace, obj);
+    }
+
+    function makeNamespaceFromResult(answer) {
+      var runtimeOfAnswer = loadInternalAPI.getModuleResultRuntime(answer);
+      var namespaceOfAnswer = loadInternalAPI.getModuleResultNamespace(answer);
+      console.log("rt: ", runtimeOfAnswer.namespace.getNames());
+      var typesOfAnswer = loadInternalAPI.getModuleResultDefinedTypes(answer);
+      var valuesOfAnswer = loadInternalAPI.getModuleResultDefinedValues(answer);
+      var newNamespace = namespaceOfAnswer;
+      Object.keys(typesOfAnswer).forEach(function(k) {
+        newNamespace = newNamespace.setType(k, typesOfAnswer[k]);
+      });
+      Object.keys(valuesOfAnswer).forEach(function(k) {
+        newNamespace = newNamespace.set(k, valuesOfAnswer[k]);
+      });
+      return makeNamespace(runtimeOfAnswer, newNamespace);
     }
 
     return runtime.makeObject({
@@ -55,7 +52,8 @@ return util.definePyretModule("namespace-lib",
           "make-base-namespace": runtime.makeFunction(function(nsRuntime) {
             var r = get(nsRuntime, "runtime").val;
             return makeNamespace(r, r.namespace);
-          })
+          }),
+          "make-namespace-from-result": runtime.makeFunction(makeNamespaceFromResult)
         }),
         internal: {
           makeNamespace: makeNamespace

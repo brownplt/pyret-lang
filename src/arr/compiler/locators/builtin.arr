@@ -68,7 +68,7 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
     name(_): builtin-name end,
 
     set-compiled(_, _): nothing end,
-    get-compiled(_): some(CL.pre-loaded(raw.get-raw-compiled())) end,
+    get-compiled(_): some(CL.pre-loaded(CM.minimal-builtins, raw.get-raw-compiled())) end,
 
     _equals(self, other, req-eq):
       req-eq(self.uri(), other.uri())

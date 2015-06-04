@@ -138,7 +138,8 @@ fun main(args):
               type-check : type-check,
               allow-shadowed : allow-shadowed,
               collect-all: false,
-              ignore-unbound: false
+              ignore-unbound: false,
+              proper-tail-calls: true,
             })
         else if r.has-key("compile-module-js"):
           result = CM.compile-js(

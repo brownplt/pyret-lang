@@ -103,7 +103,6 @@ data Name:
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
-
   | s-global(s :: String) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
@@ -376,13 +375,35 @@ sharing:
   end
 end
 
+data DefinedValue:
+  | s-defined-value(name :: String, value :: Expr) with:
+    label(self): "s-defined-value" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data DefinedType:
+  | s-defined-type(name :: String, typ :: Ann) with:
+    label(self): "s-defined-type" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
 
 data Expr:
   | s-module(
       l :: Loc,
       answer :: Expr,
-      defined-values :: List<Name>,
-      defined-types :: List<Name>,
+      defined-values :: List<DefinedValue>,
+      defined-types :: List<DefinedType>,
       provided-values :: Expr,
       provided-types :: List<AField>,
       checks :: Expr) with:
@@ -1315,6 +1336,13 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
+  s-defined-value(self, name, val):
+    s-defined-value(name, val.visit(self))
+  end,
+  s-defined-type(self, name, typ):
+    s-defined-type(name, typ.visit(self))
+  end,
+
   s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
@@ -1786,6 +1814,13 @@ default-iter-visitor = {
     true
   end,
   
+  s-defined-value(self, name, val):
+    val.visit(self)
+  end,
+  s-defined-type(self, name, typ):
+    typ.visit(self)
+  end,
+
   s-module(self, l, answer, dv, dt, provides, types, checks):
     answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
@@ -2253,6 +2288,13 @@ dummy-loc-visitor = {
     s-atom(base, serial)
   end,
   
+  s-defined-value(self, name, val):
+    s-defined-value(name, val.visit(self))
+  end,
+  s-defined-type(self, name, typ):
+    s-defined-type(name, typ.visit(self))
+  end,
+
   s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(dummy-loc,
       answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))

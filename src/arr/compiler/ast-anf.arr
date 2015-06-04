@@ -254,12 +254,35 @@ sharing:
   end
 end
 
+data ADefinedValue:
+  | a-defined-value(name :: String, value :: AVal) with:
+    label(self): "a-defined-value" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data ADefinedType:
+  | a-defined-type(name :: String, typ :: A.Ann) with:
+    label(self): "a-defined-type" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data ALettable:
   | a-module(
       l :: Loc,
       answer :: AVal,
-      defined-values :: List<A.Name>,
-      defined-types :: List<A.Name>,
+      defined-values :: List<ADefinedValue>,
+      defined-types :: List<ADefinedType>,
       provided-values :: AVal,
       provided-types,
       checks :: AVal) with:
@@ -530,7 +553,7 @@ end
 
 default-map-visitor = {
   a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
-    a-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), types, checks.visit(self))
+    a-module(l, answer.visit(self), dv, dt, provides.visit(self), types, checks.visit(self))
   end,
   a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))

@@ -13,6 +13,8 @@ import "compiler/gensym.arr" as G
 string-dict = SD.string-dict
 mtd = [string-dict:]
 
+names = A.global-names
+
 data NameResolution:
   | resolved(ast :: A.Program, errors :: List<C.CompileError>,
       bindings :: SD.MutableStringDict, type-bindings :: SD.MutableStringDict)
@@ -59,11 +61,10 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
       A.s-import-complete(l, empty, empty, imp, name, name)
     | s-import-fields(l, fields, shadow imp) =>
       imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      imp-name = A.s-name(imp.l, G.make-name(imp-str))
-      A.s-import-complete(l, fields, empty, imp, imp-name, imp-name)
+      A.s-import-complete(l, fields, empty, imp, A.s-underscore(l), A.s-underscore(l))
     | s-include(l, shadow imp) =>
       imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      imp-name = A.s-name(imp.l, G.make-name(imp-str))
+      imp-name = A.s-underscore(l)
       info-key = U.import-to-dep(imp).key()
       mod-info = env.mods.get(info-key)
       cases(Option<C.Provides>) mod-info:
@@ -92,9 +93,9 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
       | s-data(l, name, params, mixins, variants, shared, _check) =>
-        namet = G.make-name(name + "T")
-        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), A.s-name(l, namet)), rev-type-binds)
-        rev-stmts := link(A.s-data-expr(l, name, A.s-name(l, namet), params, mixins, variants, shared, _check), rev-stmts)
+        namet = names.make-atom(name + "T")
+        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), namet), rev-type-binds)
+        rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check), rev-stmts)
       | else =>
         rev-stmts := link(s, rev-stmts)
     end
@@ -185,6 +186,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
             ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
+          fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank);
           fun variant-binds(data-blob-id, v):
             vname = v.name
             checker-name = A.make-checker-name(vname)
@@ -194,13 +196,13 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               A.s-letrec-bind(v.l, b(v.l, checker-name), get-part(checker-name))
             ]
           end
-          blob-id = G.make-name(name)
+          blob-id = names.make-atom(name)
           data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check)
-          bind-data = A.s-letrec-bind(l, b(l, blob-id), data-expr)
-          bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id(l, A.s-name(l, blob-id)), name))
-          bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id(l, A.s-name(l, blob-id)), name))
+          bind-data = A.s-letrec-bind(l, bn(l, blob-id), data-expr)
+          bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
+          bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
-            variant-binds(A.s-id(l, A.s-name(l, blob-id)), v) + acc
+            variant-binds(A.s-id-letrec(l, blob-id, true), v) + acc
           end
           add-letrec-binds(binding-group, all-binds, rest-stmts)
         | s-contract(l, name, ann) =>
@@ -402,28 +404,29 @@ where:
 end
 
 
-names = A.global-names
 
 data ScopeBinding:
   | letrec-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
   | let-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
   | var-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
   | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | module-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
 end
 
 data TypeBinding:
   | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
   | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
   | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
   for fold(acc from SD.make-string-dict(), name from initial.globals.values.keys-list()):
-    acc.set(name, let-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
+    acc.set(name, global-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
   end
 where:
   scope-env-from-env(C.compile-env(C.globals([string-dict: "x", C.v-just-there], mtd), mtd))
-    .get-value("x") is let-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
+    .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 
 fun type-env-from-env(initial :: C.CompileEnvironment):
@@ -462,6 +465,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         atom = names.make-atom("$underscore")
         bindings.set-now(atom.key(), typ(l, atom, none))
         { atom: atom, env: env }
+      # NOTE(joe): an s-atom is pre-resolved to all its uses, so no need to add
+      # it or do any more work.
+      | s-atom(_, _) =>
+        { atom: name, env: env }
       | else => raise("Unexpected atom type: " + torepr(name))
     end
   end
@@ -470,6 +477,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(TypeBinding) type-bindings.get-value-now(atom.key()):
         | let-type-bind(l, _, _) =>
           type-bindings.set-now(atom.key(), let-type-bind(l, atom, ann))
+        | module-type-bind(l, _, _) =>
+          type-bindings.set-now(atom.key(), module-type-bind(l, atom, ann))
         | global-type-bind(l, _, _) =>
           type-bindings.set-now(atom.key(), global-type-bind(l, atom, ann))
         | type-var-bind(l, _, _) =>
@@ -480,11 +489,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
   fun update-binding-expr(atom, expr):
-    cases(ScopeBinding) bindings.get-value-now(atom.key()):
-      | letrec-bind(loc, _, _) => bindings.set-now(atom.key(), letrec-bind(loc, atom, expr))
-      | let-bind(loc, _, _) => bindings.set-now(atom.key(), let-bind(loc, atom, expr))
-      | var-bind(loc, _, _) => bindings.set-now(atom.key(), var-bind(loc, atom, expr))
-      | global-bind(loc, _, _) => bindings.set-now(atom.key(), global-bind(loc, atom, expr))
+    cases(Option) bindings.get-now(atom.key()):
+      | none => nothing
+      | some(sb) =>
+        cases(ScopeBinding) sb:
+          | letrec-bind(loc, _, _) => bindings.set-now(atom.key(), letrec-bind(loc, atom, expr))
+          | let-bind(loc, _, _) => bindings.set-now(atom.key(), let-bind(loc, atom, expr))
+          | var-bind(loc, _, _) => bindings.set-now(atom.key(), var-bind(loc, atom, expr))
+          | global-bind(loc, _, _) => bindings.set-now(atom.key(), global-bind(loc, atom, expr))
+          | module-bind(loc, _, _) => bindings.set-now(atom.key(), module-bind(loc, atom, expr))
+        end
     end
   end
   fun resolve-letrec-binds(visitor, binds):
@@ -512,15 +526,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-name(l2, s) =>
         if env.has-key(s):
           cases (ScopeBinding) env.get-value(s):
-            | let-bind(_, atom, _) => A.s-id(l, atom)
-            | letrec-bind(_, atom, _) => A.s-id-letrec(l, atom, false)
-            | var-bind(_, atom, _) => A.s-id-var(l, atom)
-            | global-bind(_, atom, _) => A.s-id(l, atom)
+            | let-bind(_, atom, _) => atom
+            | letrec-bind(_, atom, _) => atom
+            | var-bind(_, atom, _) => atom
+            | global-bind(_, atom, _) => atom
           end
         else:
-          A.s-id(l, names.s-global(s))
+          names.s-global(s)
         end
-      | s-underscore(_) => A.s-id(l, id)
+      | s-atom(_, _) => id
+      | s-underscore(_) => id
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
@@ -530,6 +545,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         if type-env.has-key(s):
           cases(TypeBinding) type-env.get-value(s):
             | global-type-bind(_, name, _) => A.a-name(l, name)
+            | module-type-bind(_, name, _) => A.a-name(l, name)
             | let-type-bind(_, name, _) => A.a-name(l, name)
             | type-var-bind(_, name, _) => A.a-type-var(l, name)
           end
@@ -541,6 +557,34 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
+    s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
+      non-globals =
+        for filter(k from self.env.keys-list()):
+          sb = self.env.get-value(k)
+          not(is-global-bind(sb) or is-module-bind(sb))
+        end
+      defined-vals = for map(key from non-globals): 
+        id-exp = cases(ScopeBinding) self.env.get-value(key):
+          | let-bind(_, atom, _) => A.s-id(l, atom)
+          | letrec-bind(_, atom, _) => A.s-id-letrec(l, atom, true)
+          | var-bind(_, atom, _) => A.s-id-var(l, atom)
+        end
+        A.s-defined-value(key, id-exp)
+      end
+      non-global-types =
+        for filter(k from self.type-env.keys-list()):
+          tb = self.type-env.get-value(k)
+          not(is-global-type-bind(tb) or is-module-type-bind(tb))
+        end
+      defined-types = for map(key from non-global-types):
+        typ = cases(TypeBinding) self.type-env.get-value(key):
+          | let-type-bind(_, atom, _) => A.a-name(l, atom)
+          | type-var-bind(_, atom, _) => A.a-name(l, atom)
+        end
+        A.s-defined-type(key, typ)
+      end
+      A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
+    end,
     s-program(self, l, _provide, _provide-types, imports, body):
       imports-and-env = for fold(
           acc from { e: self.env, te: self.type-env, imps: [list: ] },
@@ -551,11 +595,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             atom-env = make-atom-for(name-vals, false, acc.e, bindings, let-bind)
             atom-env-t = make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind)
             with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
-              v-atom-env = make-atom-for(v, false, nv-v.e, bindings, let-bind)
+              v-atom-env = make-atom-for(v, false, nv-v.e, bindings, module-bind)
               { e: v-atom-env.env, vn: link(v-atom-env.atom, nv-v.vn) }
             end
             with-types = for fold(nv-t from {et: atom-env-t.env, tn: empty}, t from tnames):
-              t-atom-env = make-atom-for(t, false, nv-t.et, bindings, let-type-bind)
+              t-atom-env = make-atom-for(t, false, nv-t.et, bindings, module-type-bind)
               { et: t-atom-env.env, tn: link(t-atom-env.atom, nv-t.tn) }
             end
             new-header = A.s-import-complete(l2,
@@ -663,8 +707,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
       end
       with-params = self.{type-env: new-types.env}
-      new-namet = handle-id(self.env, l, namet).id
-      A.s-data-expr(l, name, new-namet, new-types.atoms.reverse(),
+      A.s-data-expr(l, name, namet, new-types.atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
@@ -746,9 +789,31 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | else => raise("Wasn't expecting a non-s-name in resolve-names for assignment: " + torepr(id))
       end
     end,
-    s-id(self, l, id): handle-id(self.env, l, id) end,
-    s-id-letrec(self, l, id, _): handle-id(self.env, l, id) end,
-    s-id-var(self, l, id): handle-id(self.env, l, id) end,
+    # NOTE(joe): Since there's no syntactic difference between _uses_ of letrec-,
+    # let-, and var-bound names, this case disambiguates based on known binding
+    # information
+    s-id(self, l, id):
+      cases(A.Name) id:
+        | s-name(l2, s) =>
+          cases(Option) self.env.get(s):
+            | none =>
+              A.s-id(l2, names.s-global(s))
+            | some(sb) =>
+              cases (ScopeBinding) sb:
+                | let-bind(_, atom, _) => A.s-id(l2, atom)
+                | letrec-bind(_, atom, _) => A.s-id-letrec(l2, atom, false)
+                | var-bind(_, atom, _) => A.s-id-var(l2, atom)
+                | global-bind(_, atom, _) => A.s-id(l2, atom)
+                | module-bind(_, atom, _) => A.s-id(l2, atom)
+              end
+          end
+        | s-atom(_, _) => A.s-id(l, id)
+        | s-underscore(_) => A.s-id(l, id)
+        | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
+      end
+    end,
+    s-id-letrec(self, l, id, _): A.s-id-letrec(l, handle-id(self.env, l, id), false) end,
+    s-id-var(self, l, id): A.s-id-var(l, handle-id(self.env, l, id)) end,
     s-variant-member(self, l, typ, bind):
       new-bind = cases(A.Bind) bind:
         | s-bind(l2, shadows, name, ann) =>

@@ -32,9 +32,9 @@ data PyretCode:
 end
 
 data Loadable:
-  | module-as-string(result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
+  | module-as-string(compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
   # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(internal-mod :: Any)
+  | pre-loaded(compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
 
 type Provides = CS.Provides
@@ -191,6 +191,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
     provide-map = dict-map(dependencies, lam(_, v): v.get-provides() end)
     if locator.needs-compile(provide-map):
       mod = locator.get-module()
+      ce = CS.compile-env(locator.get-globals(), provide-map)
       cr = cases(PyretCode) mod:
         | pyret-string(module-string) =>
           CM.compile-js(
@@ -198,7 +199,7 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             "Pyret",
             module-string,
             locator.uri(),
-            CS.compile-env(locator.get-globals(), provide-map),
+            ce,
             locator.get-extra-imports(),
             options
             ).result
@@ -207,13 +208,13 @@ fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { c
             CM.start,
             module-ast,
             locator.uri(),
-            CS.compile-env(locator.get-globals(), provide-map),
+            ce,
             locator.get-extra-imports(),
             options
             ).result
       end
-      locator.set-compiled(module-as-string(cr), provide-map)
-      module-as-string(cr)
+      locator.set-compiled(module-as-string(ce, cr), provide-map)
+      module-as-string(ce, cr)
     else:
       locator.get-compiled().value
     end
@@ -265,7 +266,7 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
       end
       ans = loader.load(m, depvals, load-info.to-compile.locator.get-namespace(runtime))
       modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
-      answer = loader.run(ans, load-info.to-compile.locator.uri())
+      answer = loader.run(ans, m.compile-env, load-info.to-compile.locator.uri())
       cases(List) r:
         | empty => answer
         | link(_, _) => load-worklist(r, modvals-new, loader, runtime)

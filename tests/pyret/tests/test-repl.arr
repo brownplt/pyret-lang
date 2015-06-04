@@ -2,8 +2,11 @@ import load-lib as L
 import repl as R
 import runtime-lib as RT
 import string-dict as SD
+import either as E
 import "compiler/compile-structs.arr" as CS
 import "compiler/repl-support.arr" as RS
+
+type Either = E.Either
 
 check:
   r = RT.make-runtime()
@@ -19,13 +22,65 @@ check:
   result2 = repl.restart-interactions()
   L.get-result-answer(result2.v) is none
 
-  interaction1 = RS.make-repl-interaction-locator("interactions1", "pyret://interactions1", lam(): "y = 10\nx" end, repl)
-  result3 = repl.run-interaction(interaction1)
+  var ic = 0
+  fun next-interaction(src):
+    ic := ic + 1
+    i = RS.make-repl-interaction-locator("interactions" + tostring(ic), "pyret://interactions" + tostring(ic), lam(): src end, repl)
+    repl.run-interaction(i)
+  end
+
+  result3 = next-interaction("y = 10\nx")
   L.get-result-answer(result3.v) is some(5)
 
-  interaction2 = RS.make-repl-interaction-locator("interactions2", "pyret://interactions2", lam(): "y" end, repl)
-  result4 = repl.run-interaction(interaction2)
+  result4 = next-interaction("y")
   L.get-result-answer(result4.v) is some(10)
 
+  result5 = next-interaction("include image")
+  result5.v satisfies L.is-success-result
 
+  result6 = next-interaction("is-function(rectangle)")
+  cases(Either) result6:
+    | right(v) =>
+      L.get-result-answer(result6.v) is some(true)
+    | left(err) =>
+      print(err)
+  end
+
+  current-defs := "import string-dict from string-dict\n55"
+  result7 = repl.restart-interactions()
+  L.get-result-answer(result7.v) is some(55)
+
+  # should fail because y no longer bound
+  result8 = next-interaction("y")
+  result8 satisfies E.is-left
+
+  result9 = next-interaction("is-function(string-dict.make)")
+  L.get-result-answer(result9.v) is some(true)
+
+  result10 = next-interaction("import string-dict as SD")
+  result10 satisfies E.is-right
+
+  result11 = next-interaction(```
+    sd1 :: SD.StringDict = [string-dict:]
+    sd2 = [SD.string-dict:]
+    sd1 == sd2
+  ```)
+  L.get-result-answer(result11.v) is some(true)
+
+  # fails because shadows string-dict from import ... from
+  result12 = next-interaction("include string-dict")
+  result12 satisfies E.is-left
+
+  current-defs := "include string-dict"
+  result13 = repl.restart-interactions()
+  result13 satisfies E.is-right
+
+  result14 = next-interaction("[string-dict: 'x', 10].get-value('x')")
+  L.get-result-answer(result14.v) is some(10)
+
+  result15 = next-interaction("shadow string-dict = 57")
+  result15 satisfies E.is-right
+
+  result16 = next-interaction("string-dict")
+  L.get-result-answer(result16.v) is some(57)
 end

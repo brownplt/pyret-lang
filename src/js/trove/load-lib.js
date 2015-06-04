@@ -13,6 +13,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
           "is-success-result",
           "is-failure-result",
           "get-result-answer",
+          "get-result-compile-env",
           "render-check-results",
           "render-error-message"
         ],
@@ -40,15 +41,18 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
         return m;
       }
 
-      function makeModuleResult(runtimeForModule, result) {
+      function makeModuleResult(runtimeForModule, result, compileEnv) {
         return runtime.makeOpaque({
           runtime: runtimeForModule,
-          result: result
+          result: result,
+          compileEnv: compileEnv
         });
       }
 
       function checkSuccess(mr, field) {
         if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
+          console.error(mr.val.result);
+          console.error(mr.val.result.exn);
           runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
         }
       }
@@ -68,11 +72,35 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
           return runtime.ffi.makeNone();
         }
       }
+      function getResultCompileEnv(mr) {
+        return mr.val.compileEnv;
+      }
       function getModuleResultRuntime(mr) {
         return mr.val.runtime;
       }
       function getModuleResultResult(mr) {
         return mr.val.result;
+      }
+      function getModuleResultNamespace(mr) {
+        return mr.val.runtime.getField(mr.val.result.result, "namespace");
+      }
+      function getModuleResultDefinedValues(mr) {
+        var rt = mr.val.runtime;
+        if(rt.hasField(mr.val.result.result, "defined-values")) {
+          return mr.val.runtime.getField(mr.val.result.result, "defined-values");
+        }
+        else {
+          return {};
+        }
+      }
+      function getModuleResultDefinedTypes(mr) {
+        var rt = mr.val.runtime;
+        if(rt.hasField(mr.val.result.result, "defined-types")) {
+          return mr.val.runtime.getField(mr.val.result.result, "defined-types");
+        }
+        else {
+          return {};
+        }
       }
       function getModuleResultValues(mr) {
         checkSuccess(mr, "values");
@@ -203,14 +231,15 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             function setCheckAll(newCheckAll) {
               checkAll = newCheckAll;
             }
-            function run(modval, modname) {
+            function run(modval, compileEnv, modname) {
               loadRuntime.setParam("command-line-arguments", cca);
               var checker = loadRuntime.getField(checkerLib, "values");
               var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
               loadRuntime.setParam("current-checker", currentChecker);
               runtime.pauseStack(function(restarter) {
                 loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
-                  restarter.resume(makeModuleResult(loadRuntime, result));
+                  var modResult = makeModuleResult(loadRuntime, result, compileEnv);
+                  restarter.resume(modResult);
                 });
               });
             }
@@ -227,6 +256,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             "is-success-result": runtime.makeFunction(isSuccessResult),
             "is-failure-result": runtime.makeFunction(isFailureResult),
             "get-result-answer": runtime.makeFunction(getAnswerForPyret),
+            "get-result-compile-env": runtime.makeFunction(getResultCompileEnv),
             "render-check-results": runtime.makeFunction(renderCheckResults),
             "render-error-message": runtime.makeFunction(renderErrorMessage)
           }),
@@ -240,7 +270,10 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             getModuleResultTypes: getModuleResultTypes,
             getModuleResultValues: getModuleResultValues,
             getModuleResultRuntime: getModuleResultRuntime,
-            getModuleResultResult: getModuleResultResult
+            getModuleResultResult: getModuleResultResult,
+            getModuleResultNamespace: getModuleResultNamespace,
+            getModuleResultDefinedTypes: getModuleResultDefinedTypes,
+            getModuleResultDefinedValues: getModuleResultDefinedValues
           }
         })
       });
