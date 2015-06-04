@@ -27,7 +27,6 @@ return util.definePyretModule("namespace-lib",
     function makeNamespaceFromResult(answer) {
       var runtimeOfAnswer = loadInternalAPI.getModuleResultRuntime(answer);
       var namespaceOfAnswer = loadInternalAPI.getModuleResultNamespace(answer);
-      console.log("rt: ", runtimeOfAnswer.namespace.getNames());
       var typesOfAnswer = loadInternalAPI.getModuleResultDefinedTypes(answer);
       var valuesOfAnswer = loadInternalAPI.getModuleResultDefinedValues(answer);
       var newNamespace = namespaceOfAnswer;
