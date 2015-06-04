@@ -18,7 +18,7 @@ data ConcatList<a>:
       nothing
     end,
     foldl(self, f, base): f(base, self.element) end,
-    foldr(self, f, base): f(self.element, base) end,
+    foldr(self, f, base): f(base, self.element) end,
     getFirst(self): self.element end,
     getLast(self): self.element end,
     is-empty(self): false end,
@@ -46,7 +46,7 @@ data ConcatList<a>:
       self.rest.each(f)
     end,
     foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
-    foldr(self, f, base): f(self.first, self.rest.foldr(f, base)) end,
+    foldr(self, f, base): f(self.rest.foldr(f, base), self.first) end,
     getFirst(self): self.first end,
     getLast(self): if self.rest.is-empty(): self.first else: self.rest.getLast() end end,
     is-empty(self): false end,
@@ -60,7 +60,7 @@ data ConcatList<a>:
       nothing
     end,
     foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
-    foldr(self, f, base): self.head.foldr(f, f(self.last, base)) end,
+    foldr(self, f, base): self.head.foldr(f, f(base, self.last)) end,
     getFirst(self): if self.head.is-empty(): self.last else: self.head.getFirst() end end,
     getLast(self): self.last end,
     is-empty(self): false end,
@@ -81,7 +81,7 @@ where:
   cs = concat-snoc
   l1 = ca(cs(cc(1, ce), 2), cc(3, cs(ce, 4)))
   l1.foldl(lam(base, e): base + tostring(e * e) end, "B") is "B14916"
-  l1.foldr(lam(e, base): tostring(e * e) + base end, "B") is "14916B"
+  l1.foldr(lam(base, e): tostring(e * e) + base end, "B") is "14916B"
 
   ca(ce,ce).is-empty() is true
   cc(1, ce).getFirst() is 1
