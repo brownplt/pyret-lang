@@ -270,7 +270,7 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     end
     ended-in-error = cases(Option) br.maybe-err:
       | none => ""
-      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  " + tostring(exn-unwrap(err)) + "\n\n"
+      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  " + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, empty) + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     with-error-notification = message + ended-in-error
