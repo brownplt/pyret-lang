@@ -4053,7 +4053,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         else {
           checkArgs.forEach(function(a, i) {
             if(checkMuts[i]) {
-              checksPlusBody += "isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
             else {
               checksPlusBody += "thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
