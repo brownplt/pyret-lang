@@ -103,14 +103,16 @@
   "Keymap for Pyret major mode")
 
 (defconst pyret-ident-regex "[a-zA-Z_][a-zA-Z0-9$_\\-]*")
+(defconst pyret-keywords-test
+  '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
    '("fun" "lam" "method" "var" "when" "import" "provide" "type" "newtype" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
-     "and" "or" "is==" "is=~" "is<=>" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
+     "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
-    "is-not==" "is-not=~" "is-not<=>" "is-not" "raises-other-than"
+    "is-not" "raises-other-than"
     "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
    '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
@@ -158,6 +160,7 @@
 
 (defun pyret-recompute-lexical-regexes ()
   (defconst pyret-keywords-regex (regexp-opt pyret-keywords))
+  (defconst pyret-keywords-test-regex (regexp-opt pyret-keywords-test))
   (defconst pyret-keywords-hyphen-regex (regexp-opt pyret-keywords-hyphen))
   (defconst pyret-keywords-colon-regex (regexp-opt pyret-keywords-colon))
   (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
@@ -178,6 +181,11 @@
        (1 font-lock-builtin-face) (2 font-lock-keyword-face) (3 font-lock-builtin-face))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
+         pyret-keywords-test-regex
+         "\\)[^%]") 
+       (1 font-lock-builtin-face) (2 font-lock-keyword-face))
+     `(,(concat 
+         "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-hyphen-regex
          "\\)\\_>")
        (1 font-lock-builtin-face) (2 font-lock-keyword-face))
@@ -194,7 +202,7 @@
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-regex
-         "\\)\\b")
+         "\\)\\_>")
        (1 font-lock-builtin-face) (2 font-lock-keyword-face))
      `(,pyret-punctuation-regex . font-lock-builtin-face)
      `(,(concat "\\_<" (regexp-opt '("true" "false") t) "\\_>") . font-lock-constant-face)
