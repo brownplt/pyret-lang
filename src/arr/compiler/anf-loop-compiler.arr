@@ -707,7 +707,7 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
 end
 
 compiler-visitor = {
-  a-module(self, l, answer, provides, types, checks):
+  a-module(self, l, answer, dvs, dts, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
       compiled = compile-ann(ann.ann, self)
       {
@@ -723,6 +723,19 @@ compiler-visitor = {
       rt-method("makeObject", [list:
           j-obj([list:
               j-field("answer", compiled-answer.exp),
+              j-field("namespace", j-id("NAMESPACE")),
+              j-field("defined-values",
+                j-obj(
+                  for map(dv from dvs):
+                    compiled-val = dv.value.visit(self).exp
+                    j-field(dv.name, compiled-val)
+                  end)),
+              j-field("defined-types",
+                j-obj(
+                  for map(dt from dts):
+                    compiled-ann = compile-ann(dt.typ, self).exp
+                    j-field(dt.name, compiled-ann)
+                  end)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [list: j-obj([list:
                         j-field("values", compiled-provides.exp),

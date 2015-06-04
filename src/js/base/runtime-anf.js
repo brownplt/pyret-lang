@@ -4088,14 +4088,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
-      var bindings = namespace.bindings;
+      var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
-        bindings[vf] = getField(getField(moduleObj, "values"), vf);
+        newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
       });
       typeFields.forEach(function(tf) {
-        bindings["$type$" + tf] = getField(moduleObj, "types")[tf];
+        newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
       });
-      return Namespace.namespace(bindings);
+      return namespace.merge(newns);
     }
 
     var runtimeNamespaceBindings = {

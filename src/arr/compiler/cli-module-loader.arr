@@ -15,7 +15,7 @@ fun module-finder(ctxt, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
-        FL.file-locator(dep.arguments.get(0), CS.standard-builtins)
+        FL.file-locator(dep.arguments.get(0), CS.standard-globals)
       else if protocol == "legacy-path":
         LP.legacy-path-locator(dep.arguments.get(0))
       else:

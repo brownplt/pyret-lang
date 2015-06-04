@@ -56,7 +56,7 @@ fun find-result(expr):
     | s-let-expr(_, _, body) => find-result(body)
     | s-type-let-expr(_, _, body) => find-result(body)
     | s-letrec(_, _, body) => find-result(body)
-    | s-module(_, _, _, _, _) => expr
+    | s-module(_, _, _, _, _, _, _) => expr
     | else =>
       print("Got an expression we didn't expect:")
       print(torepr(expr))
@@ -171,7 +171,7 @@ cases (C.ParsedArguments) parsed-options:
         body = named.block
         result = find-result(body)
         cases(A.Expr) result:
-          | s-module(_, _, provides, provides-types, _) =>
+          | s-module(_, _, _, _, provides, provides-types, _) =>
             cases(A.Expr) provides:
               | s-obj(_, fields) =>
                 output = toplevel(

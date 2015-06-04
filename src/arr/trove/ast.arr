@@ -103,7 +103,6 @@ data Name:
     toname(self): self.s end,
     key(self): "name#" + self.s end
 
-
   | s-global(s :: String) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.s end,
@@ -376,16 +375,49 @@ sharing:
   end
 end
 
+data DefinedValue:
+  | s-defined-value(name :: String, value :: Expr) with:
+    label(self): "s-defined-value" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data DefinedType:
+  | s-defined-type(name :: String, typ :: Ann) with:
+    label(self): "s-defined-type" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
 
 data Expr:
-  | s-module(l :: Loc, answer :: Expr, provides :: Expr, types :: List<AField>, checks :: Expr) with:
+  | s-module(
+      l :: Loc,
+      answer :: Expr,
+      defined-values :: List<DefinedValue>,
+      defined-types :: List<DefinedType>,
+      provided-values :: Expr,
+      provided-types :: List<AField>,
+      checks :: Expr) with:
     label(self): "s-module" end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
             PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
@@ -1304,8 +1336,15 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
-  s-module(self, l, answer, provides, types, checks):
-    s-module(l, answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  s-defined-value(self, name, val):
+    s-defined-value(name, val.visit(self))
+  end,
+  s-defined-type(self, name, typ):
+    s-defined-type(name, typ.visit(self))
+  end,
+
+  s-module(self, l, answer, dv, dt, provides, types, checks):
+    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
@@ -1775,8 +1814,15 @@ default-iter-visitor = {
     true
   end,
   
-  s-module(self, l, answer, provides, types, checks):
-    answer.visit(self) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  s-defined-value(self, name, val):
+    val.visit(self)
+  end,
+  s-defined-type(self, name, typ):
+    typ.visit(self)
+  end,
+
+  s-module(self, l, answer, dv, dt, provides, types, checks):
+    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
@@ -2242,9 +2288,16 @@ dummy-loc-visitor = {
     s-atom(base, serial)
   end,
   
-  s-module(self, l, answer, provides, types, checks):
+  s-defined-value(self, name, val):
+    s-defined-value(name, val.visit(self))
+  end,
+  s-defined-type(self, name, typ):
+    s-defined-type(name, typ.visit(self))
+  end,
+
+  s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(dummy-loc,
-      answer.visit(self), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
