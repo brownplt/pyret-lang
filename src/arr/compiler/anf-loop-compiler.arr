@@ -108,6 +108,11 @@ fun compiler-name(id):
   const-id("$" + id)
 end
 
+fun formal-shadow-name(id :: A.Name) -> A.Name:
+  js-id = js-id-of(id)
+  A.s-name(A.dummy-loc, "$" + js-id.tosourcestring())
+end
+
 get-field-loc = j-id(const-id("G"))
 throw-uninitialized = j-id(const-id("U"))
 source-name = j-id(const-id("M"))
@@ -170,7 +175,7 @@ fun check-fun(l, f):
 end
 
 fun thunk-app(block):
-  j-app(j-parens(j-fun([list: ], block)), [list: ])
+  j-app(j-parens(j-fun(empty, block)), empty)
 end
 
 fun thunk-app-stmt(stmt):
@@ -240,10 +245,22 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
 end
 
 fun arity-check(loc-expr, arity :: Number):
-  j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
-    j-block([list:
-      j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS])]))
-    ]))
+  #|[list:
+    j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
+      j-block([list:
+          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS])]))
+      ]))]|#
+  len = j-id(compiler-name("l"))
+  iter = j-id(compiler-name("i"))
+  t = j-id(compiler-name("t"))
+  [list:
+    j-var(len.id, j-dot(ARGUMENTS, "length")),
+    j-if1(j-binop(len, j-neq, j-num(arity)),
+      j-block([list:
+          j-var(t.id, j-new(j-id(const-id("Array")), [list: len])),
+          j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
+            j-block([list: j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter)))])),
+          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), t]))]))]
 end
 
 no-vars = D.make-string-dict()
@@ -310,6 +327,16 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   apploc = fresh-id(compiler-name("al"))
   local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
   visited-body = body.visit(local-compiler)
+  # To avoid penalty for assigning to formal parameters and also using the arguments object,
+  # we create a shadow set of formal arguments, and immediately assign them to the "real" ones
+  # in the normal entry case.  This expands the function preamble, but might enable JS optimizations,
+  # so it should be worth it
+  formal-args = for map(arg from args):
+    N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
+  end
+  copy-formals-to-args = for map2(formal-arg from formal-args, arg from args):
+    j-var(js-id-of(arg.id), j-id(formal-arg.id))
+  end
   ann-cases = compile-anns(local-compiler, step, args, local-compiler.make-label())
   main-body-cases =
     concat-empty
@@ -360,8 +387,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-list(false, vars.map(lam(v): j-id(v) end))
     ])  
   e = fresh-id(compiler-name("e"))
-  first-arg = js-id-of(args.first.id)
-  ar = fresh-id(compiler-name("ar"))
+  first-arg = formal-args.first.id
   entryExit = [list:
     j-str(tostring(l)),
     j-num(vars.length())
@@ -370,23 +396,23 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     restorer =
       j-block(
         [list:
-          j-var(ar, j-id(first-arg)),
-          j-expr(j-assign(step, j-dot(j-id(ar), "step"))),
-          j-expr(j-assign(apploc, j-dot(j-id(ar), "from"))),
-          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(ar), "ans")))
+          j-expr(j-assign(step, j-dot(j-id(first-arg), "step"))),
+          j-expr(j-assign(apploc, j-dot(j-id(first-arg), "from"))),
+          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans")))
         ] +
         for map_n(i from 0, arg from args):
-          j-expr(j-assign(js-id-of(arg.id), j-bracket(j-dot(j-id(ar), "args"), j-num(i))))
+          j-expr(j-assign(js-id-of(arg.id), j-bracket(j-dot(j-id(first-arg), "args"), j-num(i))))
         end +
         for map_n(i from 0, v from vars):
-          j-expr(j-assign(v, j-bracket(j-dot(j-id(ar), "vars"), j-num(i))))
+          j-expr(j-assign(v, j-bracket(j-dot(j-id(first-arg), "vars"), j-num(i))))
         end)
     cases(Option) opt-arity:
       | some(arity) =>
         j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
           restorer,
           j-block(
-            [list: arity-check(local-compiler.get-loc(l), arity)] +
+            arity-check(local-compiler.get-loc(l), arity) +
+            copy-formals-to-args +
             if show-stack-trace:
               [list: rt-method("traceEnter", entryExit)]
             else:
@@ -396,10 +422,10 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         if show-stack-trace:
           j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
             restorer,
-            j-block([list: rt-method("traceEnter", entryExit)]))
+            j-block([list: rt-method("traceEnter", entryExit)] + copy-formals-to-args))
         else:
-          j-if1(rt-method("isActivationRecord", [list: j-id(first-arg)]),
-            restorer)
+          j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+            restorer, j-block(copy-formals-to-args))
         end
     end
   end
@@ -689,7 +715,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     [list:
       j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
       j-var(temp-branch,
-        j-fun(branch-args.map(lam(arg): js-id-of(arg.id) end), compiled-branch-fun)),
+        j-fun(branch-args.map(lam(arg): formal-shadow-name(arg.id) end), compiled-branch-fun)),
       deref-fields,
       j-break]
 
@@ -941,31 +967,27 @@ compiler-visitor = {
   a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = fresh-id(compiler-name("step"))
     temp = fresh-id(compiler-name("temp_lam"))
+    len = args.length()
     # NOTE: args may be empty, so we need at least one name ("resumer") for the stack convention
     effective-args =
-      if args.length() > 0: args
+      if len > 0: args
       else: [list: N.a-bind(l, self.resumer, A.a-blank)]
       end
     c-exp(
       rt-method("makeFunction", [list: j-id(temp)]),
       [list:
         j-var(temp,
-          j-fun(effective-args.map(lam(arg): js-id-of(arg.id) end),
-                compile-fun-body(l, new-step, temp, self, effective-args, some(args.length()), body, true)))])
+          j-fun(effective-args.map(lam(arg): formal-shadow-name(arg.id) end),
+                compile-fun-body(l, new-step, temp, self, effective-args, some(len), body, true)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     step = fresh-id(compiler-name("step"))
     temp-full = fresh-id(compiler-name("temp_full"))
     len = args.length()
-    # NOTE: excluding self, args may be empty, so we need at least one name ("resumer") for the stack convention
-    effective-curry-args =
-      if len > 1: args.rest
-      else: [list: N.a-bind(l, self.resumer, A.a-blank)]
-      end
     full-var = 
       j-var(temp-full,
-        j-fun(args.map(lam(a): js-id-of(a.id) end),
-          compile-fun-body(l, step, temp-full, self, args, some(args.length()), body, true)
+        j-fun(args.map(lam(a): formal-shadow-name(a.id) end),
+          compile-fun-body(l, step, temp-full, self, args, some(len), body, true)
         ))
     method-expr = if len < 9:
       rt-method("makeMethod" + tostring(len - 1), [list: j-id(temp-full)])
@@ -1042,10 +1064,10 @@ compiler-visitor = {
         rt-method("makeFunction", [list: 
             j-fun(
               [list: val],
-              j-block([list:
-                  arity-check(self.get-loc(loc), 1),
-                  j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id(val), b])]))
-                ])
+              j-block(
+                arity-check(self.get-loc(loc), 1) +
+                [list: j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id(val), b])]))]
+                )
               )
           ])
         )
@@ -1078,7 +1100,7 @@ compiler-visitor = {
             self.get-loc(l2),
             # NOTE(joe): Thunked at the JS level because compiled-anns might contain
             # references to rec ids that should be resolved later
-            j-fun([list: ], j-block([list: j-return(j-list(false, compiled-anns.anns.reverse()))])),
+            j-fun(empty, j-block([list: j-return(j-list(false, compiled-anns.anns.reverse()))])),
             j-list(false, compiled-vals),
             j-list(false, compiled-locs),
             j-list(false, for map(m from members):
@@ -1198,10 +1220,10 @@ compiler-visitor = {
 
     variant-pieces = variants.map(compile-variant)
 
-    header-stmts = for fold(acc from [list: ], piece from variant-pieces):
+    header-stmts = for fold(acc from empty, piece from variant-pieces):
       piece.stmts.reverse() + acc
     end.reverse()
-    obj-fields = for fold(acc from [list: ], piece from variant-pieces):
+    obj-fields = for fold(acc from empty, piece from variant-pieces):
       [list: piece.constructor] + [list: piece.predicate] + acc
     end.reverse()
 
@@ -1355,7 +1377,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   visited-body = compile-fun-body(l, step, toplevel-name,
     self.{get-loc: get-loc, cur-apploc: apploc, resumer: resumer}, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true)
-  toplevel-fun = j-fun([list: js-id-of(resumer)], visited-body)
+  toplevel-fun = j-fun([list: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations.to-list()))
   j-app(j-id(const-id("define")), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
             j-return(j-fun([list: RUNTIME.id, NAMESPACE.id],
