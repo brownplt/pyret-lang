@@ -95,7 +95,7 @@ check "File locators":
       | else =>
         file-loc(dep.arguments.get(0), CM.standard-globals)
     end
-    CL.found(l, nothing)
+    CL.located(l, nothing)
   end
 
   clib = CL.make-compile-lib(dfind)

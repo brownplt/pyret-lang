@@ -156,11 +156,12 @@ fun string-to-locator(name :: String):
 end
 
 fun dfind(ctxt, dep):
-  cases(CM.Dependency) dep:
+  l = cases(CM.Dependency) dep:
     | dependency(_, _) => string-to-locator(dep.arguments.get(0))
     | builtin(modname) =>
       BL.make-builtin-locator(modname)
   end
+  CL.located(l, ctxt)
 end
 
 clib = CL.make-compile-lib(dfind)

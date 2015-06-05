@@ -35,7 +35,7 @@ check:
     ```)
 
   fun string-to-locator(name :: String):
-    CL.located({
+    {
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self):
@@ -52,14 +52,15 @@ check:
       set-compiled(self, ctxt, provs): nothing end,
       get-compiled(self): none end,
       _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
-    }, nothing)
+    }
   end
 
   fun dfind(ctxt, dep):
-    cases(CM.Dependency) dep:
+    l = cases(CM.Dependency) dep:
       | builtin(name) => B.make-builtin-locator(name)
       | dependency(_, args) => string-to-locator(args.get(0))
     end
+    CL.located(l, nothing)
   end
 
   clib = CL.make-compile-lib(dfind)

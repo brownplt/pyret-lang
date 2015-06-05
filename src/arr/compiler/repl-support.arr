@@ -222,7 +222,7 @@ end
 
 fun make-definitions-finder(import-types :: SD.StringDict):
   fun definitions-finder(context, dep):
-    cases(C.Dependency) dep:
+    l = cases(C.Dependency) dep:
       | builtin(name) => B.make-builtin-locator(name)
       | dependency(protocol, arguments) =>
         cases(Option) import-types.get(protocol):
@@ -230,6 +230,7 @@ fun make-definitions-finder(import-types :: SD.StringDict):
           | some(handler) => handler(context, arguments)
         end
     end
+    CL.located(l, context)
   end
   definitions-finder
 end

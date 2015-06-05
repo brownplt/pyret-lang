@@ -34,11 +34,11 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, g :: CS
   end
 end
 
-fun make-repl(
+fun make-repl<a>(
     runtime :: R.Runtime,
     defs-locator :: CL.Locator,
-    compile-context :: CL.CompileContext,
-    finder :: (CL.CompileContext, CS.Dependency -> CL.Locator)):
+    compile-context :: a,
+    finder :: (a, CS.Dependency -> CL.Located<a>)):
 
   var nspace = defs-locator.get-namespace(runtime)
   var globals = defs-locator.get-globals()
