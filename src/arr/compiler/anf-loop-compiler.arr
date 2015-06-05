@@ -1357,7 +1357,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
   var loc-cache = D.make-mutable-string-dict()
   LOCS = const-id("L")
   fun get-loc(shadow l :: Loc):
-    as-str = torepr(l)
+    as-str = l.key()
     if loc-cache.has-key-now(as-str):
       loc-cache.get-value-now(as-str)
     else:
