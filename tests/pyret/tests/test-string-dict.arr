@@ -182,3 +182,7 @@ check "duplicate":
   [SD.string-dict: "x", 6, "y", 10, "x", 22] raises "duplicate key x"
   [SD.string-dict: "x", 6, "y", 10, "z", 22] does-not-raise
 end
+
+check "sdo":
+  SD.string-dict-of([list: "x", "y", "z"], 5) is [SD.string-dict: "x", 5, "y", 5, "z", 5]
+end
