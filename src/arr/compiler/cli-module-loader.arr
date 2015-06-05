@@ -11,18 +11,32 @@ import "compiler/locators/builtin.arr" as BL
 
 type Either = E.Either
 
-fun module-finder(ctxt, dep :: CS.Dependency):
+type CLIContext = {
+  current-load-path :: List<String>
+}
+
+fun add-to-load-path(current-load-path, path):
+  split = string-split-all(path, "/")
+  print(split)
+  print(current-load-path + split.take(split.length() - 1))
+end
+
+fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
-        FL.file-locator(dep.arguments.get(0), CS.standard-globals)
+        clp = ctxt.current-load-path
+        this-path = dep.arguments.get(0)
+        real-path = clp.join-str("/") + "/" + this-path
+        new-context = ctxt.{current-load-path: add-to-load-path(clp, this-path)}
+        CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
       else if protocol == "legacy-path":
-        LP.legacy-path-locator(dep.arguments.get(0))
+        CL.located(LP.legacy-path-locator(dep.arguments.get(0)), ctxt)
       else:
         raise("Unknown import type: " + protocol)
       end
     | builtin(modname) =>
-      BL.make-builtin-locator(modname)
+      CL.located(BL.make-builtin-locator(modname), ctxt)
   end
 end
 
@@ -33,8 +47,8 @@ end
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
   cl = get-compiler()
-  base = module-finder({}, base-module)
-  wl = cl.compile-worklist(base, {})
+  base = module-finder({current-load-path: [list: "./"]}, base-module)
+  wl = cl.compile-worklist(base.locator, base.context)
   compiled = cl.compile-program(wl, options)
   compiled
 end
@@ -42,8 +56,8 @@ end
 fun run(path, options):
   base-module = CS.dependency("file", [list: path])
   cl = get-compiler()
-  base = module-finder({}, base-module)
-  wl = cl.compile-worklist(base, {})
+  base = module-finder({current-load-path:[list: "./"]}, base-module)
+  wl = cl.compile-worklist(base.locator, base.context)
   r = R.make-runtime()
   result = CL.compile-and-run-worklist(cl, wl, r, options)
   cases(Either) result:

@@ -45,7 +45,7 @@ check "Worklist generation (simple)":
     }
   end
 
-  fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
+  fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
   clib = CL.make-compile-lib(dfind)
 
@@ -114,7 +114,7 @@ check "Worklist generation (DAG)":
     }
   end
 
-  fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
+  fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
   clib = CL.make-compile-lib(dfind)
 
@@ -177,7 +177,7 @@ check "Worklist generation (Cycle)":
     }
   end
 
-  fun dfind(ctxt, dep): string-to-locator(dep.arguments.get(0)) end
+  fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
   clib = CL.make-compile-lib(dfind)
 

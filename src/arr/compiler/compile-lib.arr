@@ -39,8 +39,6 @@ end
 
 type Provides = CS.Provides
 
-type CompileContext = Any
-
 type Locator = {
  
   # Could either have needs-provide be implicitly stateful, and cache
@@ -80,6 +78,11 @@ type Locator = {
   # _equals should compare uris for locators
   _equals :: Method
 }
+
+data Located<a>:
+  | located(locator :: Locator, context :: a)
+end
+
 
 fun get-ast(p :: PyretCode, uri :: URI):
   cases(PyretCode) p:
@@ -150,27 +153,27 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-fun make-compile-lib(dfind :: (CompileContext, CS.Dependency -> Locator)) -> { compile-worklist: Function, compile-program: Function }:
+fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-worklist: Function, compile-program: Function }:
 
-  fun compile-worklist(locator :: Locator, context :: CompileContext) -> List<ToCompile>:
-    fun add-preds-to-worklist(shadow locator :: Locator, curr-path :: List<ToCompile>) -> List<ToCompile>:
+  fun compile-worklist(locator :: Locator, context :: a) -> List<ToCompile>:
+    fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
       when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
         raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
       end
       pmap = SD.make-mutable-string-dict()
       deps = locator.get-dependencies()
-      dlocs = for map(d from deps):
-        dloc = dfind(context, d)
-        pmap.set-now(d.key(), dloc)
-        dloc
+      found-mods = for map(d from deps):
+        found = dfind(context, d)
+        pmap.set-now(d.key(), found.locator)
+        found
       end
       tocomp = {locator: locator, dependency-map: pmap, path: curr-path}
-      for fold(ret from [list: tocomp], dloc from dlocs):
-        pret = add-preds-to-worklist(dloc, curr-path + [list: tocomp])
+      for fold(ret from [list: tocomp], f from found-mods):
+        pret = add-preds-to-worklist(f.locator, f.context, curr-path + [list: tocomp])
         pret + ret
       end
     end
-    add-preds-to-worklist(locator, empty)
+    add-preds-to-worklist(locator, context, empty)
   end
 
   fun compile-program(worklist :: List<ToCompile>, options) -> List<Loadable>:

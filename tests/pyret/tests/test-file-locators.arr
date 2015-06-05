@@ -89,12 +89,13 @@ check "File locators":
   bar.close-file()
 
   fun dfind(ctxt, dep):
-    cases(CM.Dependency) dep:
+    l = cases(CM.Dependency) dep:
       | builtin(modname) =>
         BL.make-builtin-locator(modname)
       | else =>
         file-loc(dep.arguments.get(0), CM.standard-globals)
     end
+    CL.found(l, nothing)
   end
 
   clib = CL.make-compile-lib(dfind)
