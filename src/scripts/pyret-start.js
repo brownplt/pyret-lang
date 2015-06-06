@@ -25,11 +25,10 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
             rt.loadModulesNew(rt.namespace, [rendererrorLib], function(rendererrorLib) {
               var rendererror = rt.getField(rendererrorLib, "values");
               var displayToString = rt.getField(rendererror, "display-to-string");
-              var torepr = rt.namespace.get("torepr");
               rt.run(function(_, _) {
                 return rt.getField(rendererror, "display-to-string").app(
                   outputResult.result, 
-                  rt.namespace.get("torepr"), 
+                  rt.namespace.get("tostring"), 
                   rt.ffi.makeList(pyretStack.map(rt.makeSrcloc)));
               }, rt.namespace, {sync: true}, function(printResult) {
                 if(rt.isFailureResult(printResult)) {

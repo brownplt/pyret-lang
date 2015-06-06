@@ -250,6 +250,9 @@ data RuntimeError:
     render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
+
+  | user-exception(value :: Any) with:
+    render-reason(self): ED.embed(self.value) end
 end
 
 data ParseError:

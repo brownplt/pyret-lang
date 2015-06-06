@@ -1621,7 +1621,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         throw new PyretFailException(val);
       };
     /** type {!PFunction} */
-    var raisePyPy = makeFunction(raiseJSJS);
+    // function raiseUserException(err) {
+    //   ffi.throwUserException(err);
+    // }
 
     /** type {!PFunction} */
     var hasField =
@@ -2976,6 +2978,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             BOUNCES++;
             thisRuntime.GAS = initialGas;
             for(var i = e.stack.length - 1; i >= 0; i--) {
+//              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
             }
             // console.log("The new stack height is ", theOneTrueStackHeight);
@@ -3426,7 +3429,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var raw_array_to_list = function(arr) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-to-list"], 1, $a); }
       thisRuntime.checkArray(arr);
-      return ffi.makeList(arr);
+      return thisRuntime.ffi.makeList(arr);
     };
 
     var raw_array_constructor = function(arr) {
@@ -4110,7 +4113,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'print-error': print_error,
           'display-error': display_error,
           'brander': brander,
-          'raise': raisePyPy,
+          'raise': makeFunction(raiseJSJS), //raiseUserException),
           'builtins': builtins,
           'nothing': nothing,
           'is-nothing': mkPred(isNothing),

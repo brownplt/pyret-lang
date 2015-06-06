@@ -146,6 +146,15 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return err("message-exception")(message);
       }
 
+      function throwUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        raise(err("user-exception")(errVal));
+      }
+      function makeUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        return err("user-exception")(errVal);
+      }
+
       function throwEqualityException(reason, v1, v2) {
         runtime.checkString(reason);
         runtime.checkPyretVal(v1);
@@ -333,6 +342,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwUserException: throwUserException,
         throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
@@ -376,6 +386,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isEqualityResult: isEqualityResult,
 
         makeMessageException: makeMessageException,
+        makeUserException: makeUserException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
 
         userBreak: gf(ERR, "user-break"),
