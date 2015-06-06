@@ -1,5 +1,6 @@
 const R = require("requirejs");
-R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-parser", "fs"], function(T, G, fs) {
+var build = process.env["PHASE"] || "build/phase1";
+R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret-parser", "fs"], function(T, G, fs) {
   _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
