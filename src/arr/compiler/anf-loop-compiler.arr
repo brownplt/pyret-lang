@@ -84,13 +84,20 @@ make-label-sequence = J.make-label-sequence
 
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
+effective-ids = D.make-mutable-string-dict()
 fun fresh-id(id :: A.Name) -> A.Name:
   base-name = if A.is-s-type-global(id): id.tosourcestring() else: id.toname() end
   no-hyphens = string-replace(base-name, "-", "$")
-  js-names.make-atom(no-hyphens)
+  n = js-names.make-atom(no-hyphens)
+  if effective-ids.has-key-now(n.tosourcestring()): #awkward name collision!
+    fresh-id(id)
+  else:
+    effective-ids.set-now(n.tosourcestring(), true)
+    n
+  end
 end
 fun js-id-of(id :: A.Name) -> A.Name:
-  s = id.tosourcestring()
+  s = id.key()
   if js-ids.has-key-now(s):
     js-ids.get-value-now(s)
   else:
