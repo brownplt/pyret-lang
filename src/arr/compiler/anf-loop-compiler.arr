@@ -13,7 +13,8 @@ import srcloc as SL
 import sets as S
 
 type Loc = SL.Srcloc
-type ConcatList = CL.ConcatList
+type CList = CL.ConcatList
+clist = CL.clist
 
 fun get-exp(o): o.exp end
 fun get-id(o): o.id end
@@ -22,11 +23,11 @@ fun get-l(o): o.l end
 fun get-bind(o): o.bind end
 fun o-get-field(o): o.field end
 
-concat-empty = CL.concat-empty
-concat-singleton = CL.concat-singleton
-concat-append = CL.concat-append
-concat-cons = CL.concat-cons
-concat-snoc = CL.concat-snoc
+cl-empty = CL.concat-empty
+cl-sing = CL.concat-singleton
+cl-append = CL.concat-append
+cl-cons = CL.concat-cons
+cl-snoc = CL.concat-snoc
 
 fun type-name(str):
   "$type$" + str
@@ -135,9 +136,9 @@ end
 
 fun obj-of-loc(l):
   cases(Loc) l:
-    | builtin(name) => j-list(false, [list: j-str(name)])
+    | builtin(name) => j-list(false, [clist: j-str(name)])
     | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
-      j-list(false, [list: 
+      j-list(false, [clist: 
           j-id(const-id("M")),
           j-num(start-line),
           j-num(start-col),
@@ -154,19 +155,19 @@ fun get-dict-field(obj, field):
 end
 
 fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
-  j-app(get-field-loc, [list: obj, field, loc])
+  j-app(get-field-loc, [clist: obj, field, loc])
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
-  rt-method("getFieldRef", [list: obj, field, loc])
+  rt-method("getFieldRef", [clist: obj, field, loc])
 end
 
 fun raise-id-exn(loc, name):
-  j-app(throw-uninitialized, [list: loc, j-str(name)])
+  j-app(throw-uninitialized, [clist: loc, j-str(name)])
 end
 
 fun add-stack-frame(exn-id, loc):
-  j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [list: loc])
+  j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [clist: loc])
 end
 
 fun rt-field(name): j-dot(RUNTIME, name);
@@ -177,16 +178,16 @@ fun app(l, f, args):
 end
 
 fun check-fun(l, f):
-  j-if1(j-unop(j-parens(rt-method("isFunction", [list: f])), j-not),
-    j-block([list: j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [list: l, f]))]))
+  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
+    j-block([clist: j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))]))
 end
 
 fun thunk-app(block):
-  j-app(j-parens(j-fun(empty, block)), empty)
+  j-app(j-parens(j-fun(cl-empty, block)), cl-empty)
 end
 
 fun thunk-app-stmt(stmt):
-  thunk-app(j-block([list: stmt]))
+  thunk-app(j-block([clist: stmt]))
 end
 
 c-exp = DAG.c-exp
@@ -199,28 +200,30 @@ is-c-block = DAG.is-c-block
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
-    | a-name(_, n) => c-exp(j-id(js-id-of(n)), empty)
-    | a-type-var(_, _) => c-exp(rt-field("Any"), empty)
-    | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), empty)
-    | a-method(_, _, _) => c-exp(rt-field("Method"), empty)
+    | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
+    | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
+    | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
+    | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
     | a-app(l, base, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>
-      names = j-list(false, fields.map(get-name).map(j-str))
-      locs = j-list(false, fields.map(get-l).map(visitor.get-loc))
-      anns = for fold(acc from {fields: empty, others: empty}, f from fields):
-        compiled = compile-ann(f.ann, visitor)
-        {
-          fields: j-field(f.name, compiled.exp) ^ link(_, acc.fields),
-          others: compiled.other-stmts.reverse() + acc.others
-        }
-      end
+      comp-fields =
+        for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
+            field from fields):
+          compiled = compile-ann(field.ann, visitor)
+          {
+            names: cl-snoc(acc.names, j-str(field.name)),
+            locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
+            fields: cl-snoc(acc.fields, j-field(field.name, compiled.exp)),
+            others: acc.others + compiled.other-stmts
+          }
+        end
       c-exp(
-        rt-method("makeRecordAnn", [list:
-            names,
-            locs,
-            j-obj(anns.fields.reverse())
+        rt-method("makeRecordAnn", [clist:
+            j-list(false, comp-fields.names),
+            j-list(false, comp-fields.locs),
+            j-obj(comp-fields.fields)
           ]),
-        anns.others.reverse()
+        comp-fields.others
         )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
@@ -234,20 +237,20 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
       compiled-base = compile-ann(base, visitor)
       compiled-exp = expr-to-compile.visit(visitor)
       c-exp(
-        rt-method("makePredAnn", [list: compiled-base.exp, compiled-exp.exp, j-str(name)]),
+        rt-method("makePredAnn", [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
         compiled-base.other-stmts +
         compiled-exp.other-stmts
         )
     | a-dot(l, m, field) =>
       c-exp(
-        rt-method("getDotAnn", [list:
+        rt-method("getDotAnn", [clist:
             visitor.get-loc(l),
             j-str(m.toname()),
             j-id(js-id-of(m)),
             j-str(field)]),
-        empty)
-    | a-blank => c-exp(rt-field("Any"), empty)
-    | a-any => c-exp(rt-field("Any"), empty)
+        cl-empty)
+    | a-blank => c-exp(rt-field("Any"), cl-empty)
+    | a-any => c-exp(rt-field("Any"), cl-empty)
   end
 end
 
@@ -260,14 +263,14 @@ fun arity-check(loc-expr, arity :: Number):
   len = j-id(compiler-name("l"))
   iter = j-id(compiler-name("i"))
   t = j-id(compiler-name("t"))
-  [list:
+  [clist:
     j-var(len.id, j-dot(ARGUMENTS, "length")),
     j-if1(j-binop(len, j-neq, j-num(arity)),
-      j-block([list:
-          j-var(t.id, j-new(j-id(const-id("Array")), [list: len])),
+      j-block([clist:
+          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
           j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
-            j-block([list: j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter)))])),
-          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), t]))]))]
+            j-block([clist: j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter)))])),
+          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
 end
 
 no-vars = D.make-string-dict()
@@ -278,8 +281,8 @@ local-bound-vars-visitor = {
   j-unop(self, exp, op): exp.visit(self) end,
   j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
   j-fun(self, args, body): no-vars end,
-  j-new(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
-  j-app(self, func, args): args.foldl(lam(arg, base): base.merge(arg.visit(self)) end, func.visit(self)) end,
+  j-new(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
+  j-app(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
   j-method(self, obj, meth, args): no-vars end,
   j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
   j-assign(self, name, rhs): rhs.visit(self) end,
@@ -288,9 +291,9 @@ local-bound-vars-visitor = {
   j-dot(self, obj, name): obj.visit(self) end,
   j-bracket(self, obj, field): obj.visit(self).merge(field.visit(self)) end,
   j-list(self, multi-line, elts):
-    elts.foldl(lam(arg, base): base.merge(arg.visit(self)) end, no-vars)
+    elts.foldl(lam(base, arg): base.merge(arg.visit(self)) end, no-vars)
   end,
-  j-obj(self, fields): fields.foldl(lam(f, base): base.merge(f.visit(self)) end, no-vars) end,
+  j-obj(self, fields): fields.foldl(lam(base, f): base.merge(f.visit(self)) end, no-vars) end,
   j-id(self, id): no-vars end,
   j-str(self, s): no-vars end,
   j-num(self, n): no-vars end,
@@ -301,7 +304,7 @@ local-bound-vars-visitor = {
   j-label(self, label): no-vars end,
   j-case(self, exp, body): exp.visit(self).merge(body.visit(self)) end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts): stmts.foldl(lam(s, base): base.merge(s.visit(self)) end, no-vars) end,
+  j-block(self, stmts): stmts.foldl(lam(base, s): base.merge(s.visit(self)) end, no-vars) end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
     if A.is-s-atom(name) and (name.base == "$underscore"): rhs.visit(self)
@@ -317,7 +320,7 @@ local-bound-vars-visitor = {
   j-break(self): no-vars end,
   j-continue(self): no-vars end,
   j-switch(self, exp, branches):
-    branches.foldl(lam(b, base): base.merge(b.visit(self)) end, exp.visit(self))
+    branches.foldl(lam(base, b): base.merge(b.visit(self)) end, exp.visit(self))
   end,
   j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end,
   j-for(self, create-var, init, cond, update, body):
@@ -341,15 +344,20 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   formal-args = for map(arg from args):
     N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
   end
-  copy-formals-to-args = for map2(formal-arg from formal-args, arg from args):
-    j-var(js-id-of(arg.id), j-id(formal-arg.id))
-  end
+  no-real-args = (args.first.id == compiler.resumer)
+  copy-formals-to-args =
+    if no-real-args: cl-empty
+    else:
+      for CL.map_list2(formal-arg from formal-args, arg from args):
+        j-var(js-id-of(arg.id), j-id(formal-arg.id))
+      end
+    end
   ann-cases = compile-anns(local-compiler, step, args, local-compiler.make-label())
   main-body-cases =
-    concat-empty
-  ^ concat-append(_, ann-cases.new-cases)
-  ^ concat-snoc(_, j-case(ann-cases.new-label, visited-body.block))
-  ^ concat-append(_, visited-body.new-cases)
+    cl-empty
+  ^ cl-append(_, ann-cases.new-cases)
+  ^ cl-snoc(_, j-case(ann-cases.new-label, visited-body.block))
+  ^ cl-append(_, visited-body.new-cases)
   # Initialize the case numbers, for more legible output...
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
   main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
@@ -363,15 +371,15 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   vars = all-needed-vars.keys-list().map(all-needed-vars.get-value(_))
   switch-cases =
     main-body-cases
-  ^ concat-snoc(_, j-case(local-compiler.cur-target, j-block(
+  ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
         if show-stack-trace:
-          [list: j-expr(rt-method("traceExit", [list: j-str(tostring(l)), j-num(vars.length())]))]
+          [clist: j-expr(rt-method("traceExit", [clist: j-str(tostring(l)), j-num(vars.length())]))]
         else:
-          empty
-        end + [list:
+          cl-empty
+        end + [clist:
           j-expr(j-unop(rt-field("GAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
-  ^ concat-snoc(_, j-default(j-block([list:
+  ^ cl-snoc(_, j-default(j-block([clist:
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
               j-str(" in " + fun-name.tosourcestring())))])))
   # fun check-no-dups(seen, kases):
@@ -386,117 +394,119 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   #   end
   # end        
   # check-no-dups(sets.empty-tree-set, switch-cases.to-list())
-  act-record = rt-method("makeActivationRecord", [list:
+  act-record = rt-method("makeActivationRecord", [clist:
       j-id(apploc),
       j-id(fun-name),
       j-id(step),
-      j-list(false, args.map(lam(a): j-id(js-id-of(a.id)) end)),
-      j-list(false, vars.map(lam(v): j-id(v) end))
+      j-list(false, if no-real-args: cl-empty else: CL.map_list(lam(a): j-id(js-id-of(a.id)) end, args) end),
+      j-list(false, CL.map_list(lam(v): j-id(v) end, vars))
     ])  
   e = fresh-id(compiler-name("e"))
   first-arg = formal-args.first.id
-  entryExit = [list:
+  entryExit = [clist:
     j-str(tostring(l)),
     j-num(vars.length())
   ]
   preamble = block:
     restorer =
       j-block(
-        [list:
+        [clist:
           j-expr(j-assign(step, j-dot(j-id(first-arg), "step"))),
           j-expr(j-assign(apploc, j-dot(j-id(first-arg), "from"))),
           j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans")))
         ] +
-        for map_n(i from 0, arg from args):
+        for CL.map_list_n(i from 0, arg from args):
           j-expr(j-assign(js-id-of(arg.id), j-bracket(j-dot(j-id(first-arg), "args"), j-num(i))))
         end +
-        for map_n(i from 0, v from vars):
+        for CL.map_list_n(i from 0, v from vars):
           j-expr(j-assign(v, j-bracket(j-dot(j-id(first-arg), "vars"), j-num(i))))
         end)
     cases(Option) opt-arity:
       | some(arity) =>
-        j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+        j-if(rt-method("isActivationRecord", [clist: j-id(first-arg)]),
           restorer,
           j-block(
             arity-check(local-compiler.get-loc(l), arity) +
             copy-formals-to-args +
             if show-stack-trace:
-              [list: rt-method("traceEnter", entryExit)]
+              [clist: rt-method("traceEnter", entryExit)]
             else:
-              empty
+              cl-empty
             end))
       | none =>
         if show-stack-trace:
-          j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+          j-if(rt-method("isActivationRecord", [clist: j-id(first-arg)]),
             restorer,
-            j-block([list: rt-method("traceEnter", entryExit)] + copy-formals-to-args))
+            j-block([clist: rt-method("traceEnter", entryExit)] + copy-formals-to-args))
+        else if no-real-args:
+          j-if1(rt-method("isActivationRecord", [clist: j-id(first-arg)]), restorer)
         else:
-          j-if(rt-method("isActivationRecord", [list: j-id(first-arg)]),
+          j-if(rt-method("isActivationRecord", [clist: j-id(first-arg)]),
             restorer, j-block(copy-formals-to-args))
         end
     end
   end
   stack-attach-guard =
     if compiler.options.proper-tail-calls:
-      j-binop(rt-method("isCont", [list: j-id(e)]),
+      j-binop(rt-method("isCont", [clist: j-id(e)]),
         j-and,
         j-parens(j-binop(j-id(step), j-neq, ret-label)))
     else:
-      rt-method("isCont", [list: j-id(e)])
+      rt-method("isCont", [clist: j-id(e)])
     end
 
     
-  j-block([list:
+  j-block([clist:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
       j-try-catch(
-        j-block([list:
+        j-block([clist:
             preamble,
             j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
-              j-block([list: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+              j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
                   # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
                   # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
-                  j-throw(rt-method("makeCont", empty))])),
+                  j-throw(rt-method("makeCont", cl-empty))])),
             j-while(j-true,
-              j-block([list:
+              j-block([clist:
                   # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
-                  j-switch(j-id(step), switch-cases.to-list())]))]),
+                  j-switch(j-id(step), switch-cases)]))]),
         e,
         j-block(
-          [list:
+          [clist:
             j-if1(stack-attach-guard,
-              j-block([list: 
+              j-block([clist: 
                   j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                       j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
               ]))] +
           if should-report-error-frame:
-            [list:
-              j-if1(rt-method("isPyretException", [list: j-id(e)]),
+            [clist:
+              j-if1(rt-method("isPyretException", [clist: j-id(e)]),
                 j-block(
-                  [list: j-expr(add-stack-frame(e, j-id(apploc)))] +
+                  [clist: j-expr(add-stack-frame(e, j-id(apploc)))] +
                   if show-stack-trace:
-                    [list: j-expr(rt-method("traceErrExit", entryExit))]
+                    [clist: j-expr(rt-method("traceErrExit", entryExit))]
                   else:
-                    empty
+                    cl-empty
                   end
                   ))]
           else if show-stack-trace:
-            [list:
-              j-if1(rt-method("isPyretException", [list: j-id(e)]),
-                j-block([list: 
+            [clist:
+              j-if1(rt-method("isPyretException", [clist: j-id(e)]),
+                j-block([clist: 
                     j-expr(add-stack-frame(e, j-id(apploc)))
                 ]))]
           else:
-            empty
+            cl-empty
           end +
-          [list: j-throw(j-id(e))]))
+          [clist: j-throw(j-id(e))]))
   ])
 end
 
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
-  new-cases = for lists.fold(acc from concat-empty, b from binds):
+  new-cases = for lists.fold(acc from cl-empty, b from binds):
     if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
       acc
     else:
@@ -504,13 +514,13 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
         j-block(compiled-ann.other-stmts +
-          [list:
+          [clist:
             j-expr(j-assign(step, new-label)),
             j-expr(rt-method("_checkAnn",
-              [list: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+              [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
             j-break]))
       cur-target := new-label
-      concat-snoc(acc, new-case)
+      cl-snoc(acc, new-case)
     end
   end
   { new-cases: new-cases, new-label: cur-target }
@@ -521,10 +531,8 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(
     c-block(
       j-block(
         compiled-e.other-stmts +
-        link(
-          j-var(js-id-of(b.id), compiled-e.exp),
-          compiled-body.block.stmts
-          )
+        cl-sing(j-var(js-id-of(b.id), compiled-e.exp)) +
+        compiled-body.block.stmts
         ),
       compiled-body.new-cases
       )
@@ -536,17 +544,17 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(
     c-block(
       j-block(
         compiled-e.other-stmts +
-        [list: j-var(js-id-of(b.id), compiled-e.exp)]  +
+        cl-sing(j-var(js-id-of(b.id), compiled-e.exp))  +
         compiled-ann.other-stmts +
-        [list:
+        [clist:
           j-expr(j-assign(step, after-ann)),
-          j-expr(rt-method("_checkAnn", [list:
+          j-expr(rt-method("_checkAnn", [clist:
                 visitor.get-loc(b.ann.l),
                 compiled-ann.exp,
                 j-id(js-id-of(b.id))])),
           j-break
         ]),
-      concat-cons(after-ann-case, compiled-body.new-cases))
+      cl-cons(after-ann-case, compiled-body.new-cases))
   end
 end
 
@@ -556,8 +564,8 @@ fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
     | some(dest) =>
       cases(Option) opt-compiled-body:
         | some(compiled-body) =>
-          compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), empty), compiled-body)
-          concat-cons(
+          compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
+          cl-cons(
             j-case(after-label, compiled-binding.block),
             compiled-binding.new-cases)
         | none => raise("Impossible: compile-split-app can't have a dest without a body")
@@ -565,8 +573,8 @@ fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
     | none =>
       cases(Option) opt-compiled-body:
         | some(compiled-body) =>
-          concat-cons(j-case(after-label, compiled-body.block), compiled-body.new-cases)
-        | none => concat-empty
+          cl-cons(j-case(after-label, compiled-body.block), compiled-body.new-cases)
+        | none => cl-empty
       end
   end
 end
@@ -575,17 +583,17 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
-  compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   num-args = args.length()
 
   if J.is-j-id(compiled-obj):
-    colon-field = rt-method("getColonField", [list: compiled-obj, j-str(methname)])
+    colon-field = rt-method("getColonField", [clist: compiled-obj, j-str(methname)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
-    check-method = rt-method("isMethod", [list: colon-field-id])
+    check-method = rt-method("isMethod", [clist: colon-field-id])
     after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
     new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
     c-block(
-      j-block([list:
+      j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
@@ -594,11 +602,11 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(j-id(colon-field-id), link(compiled-obj, compiled-args))))))
           # else:
-            j-if(check-method, j-block([list: 
+            j-if(check-method, j-block([clist: 
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                        link(compiled-obj, compiled-args))))
+                        cl-cons(compiled-obj, compiled-args))))
                 ]),
-              j-block([list:
+              j-block([clist:
                   check-fun(compiler.get-loc(l), colon-field-id),
                   j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
                 ]))
@@ -608,13 +616,13 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
       new-cases)
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
-    colon-field = rt-method("getColonField", [list: obj-id, j-str(methname)])
+    colon-field = rt-method("getColonField", [clist: obj-id, j-str(methname)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
-    check-method = rt-method("isMethod", [list: colon-field-id])
+    check-method = rt-method("isMethod", [clist: colon-field-id])
     after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
     new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
     c-block(
-      j-block([list:
+      j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
@@ -624,11 +632,11 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-            j-if(check-method, j-block([list: 
+            j-if(check-method, j-block([clist: 
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                        link(obj-id, compiled-args))))
+                        cl-cons(obj-id, compiled-args))))
                 ]),
-              j-block([list:
+              j-block([clist:
                   check-fun(compiler.get-loc(l), colon-field-id),
                   j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
                 ]))
@@ -643,15 +651,15 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
-  compiled-args = args.map(lam(a): a.visit(compiler).exp end)
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
   c-block(
-    j-block([list:
-        check-fun(compiler.get-loc(l), compiled-f),
+    j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-app-label)),
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+        check-fun(j-id(compiler.cur-apploc), compiled-f),
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         j-break]),
     new-cases)
@@ -666,71 +674,110 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   compiled-consq = consq.visit(compiler-after-if)
   compiled-alt = alt.visit(compiler-after-if)
   new-cases =
-    concat-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
-    + concat-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
+    cl-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
+    + cl-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
     + get-new-cases(compiler, opt-dest, opt-body, after-if-label, ans)
   c-block(
-    j-block([list: 
-        j-if(rt-method("isPyretTrue", [list: cond.visit(compiler).exp]),
-          j-block([list: j-expr(j-assign(compiler.cur-step, consq-label))]),
-          j-block([list: j-expr(j-assign(compiler.cur-step, alt-label))])),
+    j-block([clist: 
+        j-if(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
+          j-block([clist: j-expr(j-assign(compiler.cur-step, consq-label))]),
+          j-block([clist: j-expr(j-assign(compiler.cur-step, alt-label))])),
         j-break
       ]),
     new-cases)
 end
 fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
-  temp-branch = fresh-id(compiler-name("temp_branch"))
-  branch-args =
-    if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(get-bind)
-    else: [list: N.a-bind(branch.body.l, compiler.resumer, A.a-blank)]
-    end
-  step = fresh-id(compiler-name("step"))
-  ref-binds-mask = if N.is-a-cases-branch(branch):
-    j-list(false, for map(cb from branch.args):
-      j-bool(A.is-s-cases-bind-ref(cb.field-type))
-    end)
+  if compiled-body.new-cases.length() < 5:
+    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body)
   else:
-    j-list(false, [list:])
+    temp-branch = fresh-id(compiler-name("temp_branch"))
+    branch-args =
+      if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(get-bind)
+      else: [list: N.a-bind(branch.body.l, compiler.resumer, A.a-blank)]
+      end
+    step = fresh-id(compiler-name("step"))
+    ref-binds-mask = if N.is-a-cases-branch(branch):
+      j-list(false, for CL.map_list(cb from branch.args):
+          j-bool(A.is-s-cases-bind-ref(cb.field-type))
+        end)
+    else:
+      j-list(false, cl-empty)
+    end
+    compiled-branch-fun =
+      compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
+    preamble = cases-preamble(compiler, compiled-val, branch)
+    deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
+    actual-app =
+      [clist:
+        j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+        j-var(temp-branch,
+          j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
+        deref-fields,
+        j-break]
+    
+    c-block(
+      j-block(preamble + actual-app),
+      cl-empty)
   end
-  compiled-branch-fun =
-    compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-  preamble = cases(N.ACasesBranch) branch:
+end
+fun cases-preamble(compiler, compiled-val, branch):
+  cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
       checker = j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
-        j-block([list:
+        j-block([clist:
             j-if1(j-binop(branch-given-arity, j-neq, obj-expected-arity),
-              j-block([list:
+              j-block([clist:
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [list: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity]))]))]),
-        j-block([list:
+                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity]))]))]),
+        j-block([clist:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [list: compiler.get-loc(pat-loc), j-true]))]))
-      [list: checker]
+                [clist: compiler.get-loc(pat-loc), j-true]))]))
+      [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
-          j-block([list:
+          j-block([clist:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [list: compiler.get-loc(pat-loc), j-false]))]))
-      [list: checker]
+                  [clist: compiler.get-loc(pat-loc), j-false]))]))
+      [clist: checker]
   end
-  deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [list: j-id(temp-branch), ref-binds-mask])))
-  actual-app =
-    [list:
-      j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
-      j-var(temp-branch,
-        j-fun(branch-args.map(lam(arg): formal-shadow-name(arg.id) end), compiled-branch-fun)),
-      deref-fields,
-      j-break]
-
-  c-block(
-    j-block(preamble + actual-app),
-    concat-empty)
 end
-
+fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body):
+  preamble = cases-preamble(compiler, compiled-val, branch)
+  if N.is-a-cases-branch(branch):
+    branch-args = branch.args.map(get-bind)
+    entry-label = compiler.make-label()
+    ann-cases = compile-anns(compiler, compiler.cur-step, branch-args, entry-label)
+    field-names = j-id(js-id-of(compiler-name("fn")))
+    get-field-names = j-var(field-names.id, j-dot(j-dot(compiled-val, "$constructor"), "$fieldNames"))
+    deref-fields =
+      for CL.map_list_n(i from 0, arg from branch-args):
+        j-var(js-id-of(arg.id), j-bracket(j-dot(compiled-val, "dict"), j-bracket(field-names, j-str(tostring(i)))))
+      end
+    if ann-cases.new-cases == cl-empty:
+      c-block(j-block(preamble
+            ^ cl-snoc(_, get-field-names)
+            ^ cl-append(_, deref-fields)
+            ^ cl-append(_, compiled-body.block.stmts)),
+        compiled-body.new-cases)
+    else:
+      c-block(j-block(
+          preamble
+            ^ cl-snoc(_, get-field-names)
+            ^ cl-append(_, deref-fields)
+            ^ cl-snoc(_, j-expr(j-assign(compiler.cur-step, entry-label)))
+            ^ cl-snoc(_, j-break)),
+        ann-cases.new-cases
+          ^ cl-append(_, compiled-body.new-cases)
+          ^ cl-snoc(_, j-case(ann-cases.new-label, compiled-body.block)))
+    end
+  else:
+    c-block(j-block(preamble + compiled-body.block.stmts), compiled-body.new-cases)
+  end
+end
 fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
@@ -739,23 +786,23 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
   compiled-else = _else.visit(compiler-after-cases)
   branch-labels = branches.map(lam(_): compiler.make-label() end)
   else-label = compiler.make-label()
-  branch-cases = for fold2(acc from concat-empty, label from branch-labels, branch from compiled-branches):
+  branch-cases = for fold2(acc from cl-empty, label from branch-labels, branch from compiled-branches):
     acc
-    ^ concat-snoc(_, j-case(label, branch.block))
-    ^ concat-append(_, branch.new-cases)
+    ^ cl-snoc(_, j-case(label, branch.block))
+    ^ cl-append(_, branch.new-cases)
   end
   branch-else-cases =
     (branch-cases
-      ^ concat-snoc(_, j-case(else-label, compiled-else.block))
-      ^ concat-append(_, compiled-else.new-cases))
-  dispatch-table = j-obj(for map2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
+      ^ cl-snoc(_, j-case(else-label, compiled-else.block))
+      ^ cl-append(_, compiled-else.new-cases))
+  dispatch-table = j-obj(for CL.map_list2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
   dispatch = j-id(fresh-id(compiler-name("cases_dispatch")))
   # NOTE: Ignoring typ for the moment!
   new-cases =
     branch-else-cases
     + get-new-cases(compiler, opt-dest, opt-body, after-cases-label, compiler.cur-ans)
   c-block(
-    j-block([list:
+    j-block([clist:
         j-var(dispatch.id, dispatch-table),
         # j-expr(j-app(j-dot(j-id("console"), "log"),
         #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
@@ -772,16 +819,16 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
-  compiled-field-vals = fields.map(lam(a): a.value.visit(compiler).exp end)
-  field-names = fields.map(lam(f): j-str(f.name) end)
-  field-locs = fields.map(lam(f): compiler.get-loc(f.l) end)
+  compiled-field-vals = CL.map_list(lam(a): a.value.visit(compiler).exp end, fields)
+  field-names = CL.map_list(lam(f): j-str(f.name) end, fields)
+  field-locs = CL.map_list(lam(f): compiler.get-loc(f.l) end, fields)
   after-update-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   new-cases = get-new-cases(compiler, opt-dest, opt-body, after-update-label, ans)
   c-block(
-    j-block([list:
+    j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-update-label)),
-        j-expr(j-assign(ans, rt-method("checkRefAnns", [list: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
+        j-expr(j-assign(ans, rt-method("checkRefAnns", [clist: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
         j-break]),
     new-cases)
 
@@ -789,11 +836,11 @@ end
 
 compiler-visitor = {
   a-module(self, l, answer, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: empty, others: empty}, ann from types):
+    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
       compiled = compile-ann(ann.ann, self)
       {
-        fields: j-field(ann.name, compiled.exp) ^ link(_, acc.fields),
-        others: compiled.other-stmts.reverse() + acc.others
+        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
+        others: acc.others + compiled.other-stmts
       }
     end
 
@@ -801,13 +848,13 @@ compiler-visitor = {
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)
     c-exp(
-      rt-method("makeObject", [list:
-          j-obj([list:
+      rt-method("makeObject", [clist:
+          j-obj([clist:
               j-field("answer", compiled-answer.exp),
               j-field("provide-plus-types",
-                rt-method("makeObject", [list: j-obj([list:
+                rt-method("makeObject", [clist: j-obj([clist:
                         j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields.reverse()))
+                        j-field("types", j-obj(types-obj-fields.fields))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
       types-obj-fields.others
@@ -821,7 +868,7 @@ compiler-visitor = {
         c-block(
           j-block(
             compiled-ann.other-stmts +
-            [list: j-var(js-id-of(name), compiled-ann.exp)] +
+            [clist: j-var(js-id-of(name), compiled-ann.exp)] +
             visited-body.block.stmts
             ),
           visited-body.new-cases)
@@ -830,9 +877,9 @@ compiler-visitor = {
         visited-body = body.visit(self)
         c-block(
           j-block(
-            [list:
-              j-var(brander-id, rt-method("namedBrander", [list: j-str(name.toname())])),
-              j-var(js-id-of(name), rt-method("makeBranderAnn", [list: j-id(brander-id), j-str(name.toname())]))
+            [clist:
+              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname())])),
+              j-var(js-id-of(name), rt-method("makeBranderAnn", [clist: j-id(brander-id), j-str(name.toname())]))
             ] +
             visited-body.block.stmts),
           visited-body.new-cases)
@@ -863,11 +910,11 @@ compiler-visitor = {
     c-block(
       j-block(
         j-var(js-id-of(b.id),
-          j-obj([list: j-field("$var", compiled-e.exp)
-# NOTE(joe): This can be useful to turn on for debugging
-#                     , j-field("$name", j-str(b.id.toname()))
-                ]))
-        ^ link(_, compiled-body.block.stmts)),
+          j-obj([clist: j-field("$var", compiled-e.exp)
+              # NOTE(joe): This can be useful to turn on for debugging
+              #                     , j-field("$name", j-str(b.id.toname()))
+            ]))
+        ^ cl-cons(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
   a-seq(self, l, e1, e2):
@@ -887,7 +934,7 @@ compiler-visitor = {
         e2-visit = e2.visit(self)
         first-stmt = if J.JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
         c-block(
-          j-block(e1-visit.other-stmts + link(first-stmt, e2-visit.block.stmts)),
+          j-block(e1-visit.other-stmts + cl-cons(first-stmt, e2-visit.block.stmts)),
           e2-visit.new-cases
         )
     end
@@ -914,15 +961,15 @@ compiler-visitor = {
       | a-update(l, obj, fields) =>
         compile-split-update(self, none, obj, fields, none)
       | else =>
-         visit-e = e.visit(self)
-         c-block(
-           j-block(
-             j-expr(j-assign(self.cur-step, self.cur-target))
-             ^ link(_, visit-e.other-stmts
-                 + [list:
-                 j-expr(j-assign(self.cur-ans, visit-e.exp)),
-                 j-break])),
-           concat-empty)
+        visit-e = e.visit(self)
+        c-block(
+          j-block(
+            cl-sing(j-expr(j-assign(self.cur-step, self.cur-target)))
+              + visit-e.other-stmts
+              + [clist:
+              j-expr(j-assign(self.cur-ans, visit-e.exp)),
+              j-break]),
+          cl-empty)
     end
   end,
   a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
@@ -934,33 +981,33 @@ compiler-visitor = {
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     visit-args = args.map(_.visit(self))
-    set-loc = [list:
+    set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
     other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, set-loc)
-    c-exp(rt-method(f, visit-args.map(get-exp)), other-stmts)
+    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), other-stmts)
   end,
   
   a-ref(self, l, maybe-ann):
     cases(Option) maybe-ann:
-      | none => c-exp(rt-method("makeGraphableRef", empty), empty)
+      | none => c-exp(rt-method("makeGraphableRef", cl-empty), cl-empty)
       | some(ann) => raise("Cannot handle annotations in refs yet")
     end
   end,
   a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
-    other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
-    c-exp(rt-method("makeObject", [list: j-obj(visit-fields.map(o-get-field))]), other-stmts)
+    other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, cl-empty)
+    c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), other-stmts)
   end,
   a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(rt-method("getFieldRef", [list: visit-obj.exp, j-str(field), self.get-loc(l)]), visit-obj.other-stmts)
+    c-exp(rt-method("getFieldRef", [clist: visit-obj.exp, j-str(field), self.get-loc(l)]), visit-obj.other-stmts)
   end,
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
     other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, visit-obj.other-stmts)
-    c-exp(rt-method("extendObj", [list: self.get-loc(l), visit-obj.exp, j-obj(visit-fields.map(o-get-field))]),
+    c-exp(rt-method("extendObj", [clist: self.get-loc(l), visit-obj.exp, j-obj(CL.map_list(o-get-field, visit-fields))]),
       other-stmts)
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
@@ -969,7 +1016,7 @@ compiler-visitor = {
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(rt-method("getColonField", [list: visit-obj.exp, j-str(field)]), visit-obj.other-stmts)
+    c-exp(rt-method("getColonField", [clist: visit-obj.exp, j-str(field)]), visit-obj.other-stmts)
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = fresh-id(compiler-name("step"))
@@ -981,10 +1028,10 @@ compiler-visitor = {
       else: [list: N.a-bind(l, self.resumer, A.a-blank)]
       end
     c-exp(
-      rt-method("makeFunction", [list: j-id(temp)]),
-      [list:
+      rt-method("makeFunction", [clist: j-id(temp)]),
+      [clist:
         j-var(temp,
-          j-fun(effective-args.map(lam(arg): formal-shadow-name(arg.id) end),
+          j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
                 compile-fun-body(l, new-step, temp, self, effective-args, some(len), body, true)))])
   end,
   a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
@@ -993,15 +1040,15 @@ compiler-visitor = {
     len = args.length()
     full-var = 
       j-var(temp-full,
-        j-fun(args.map(lam(a): formal-shadow-name(a.id) end),
+        j-fun(CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
           compile-fun-body(l, step, temp-full, self, args, some(len), body, true)
         ))
     method-expr = if len < 9:
-      rt-method("makeMethod" + tostring(len - 1), [list: j-id(temp-full)])
+      rt-method("makeMethod" + tostring(len - 1), [clist: j-id(temp-full)])
     else:
-      rt-method("makeMethodN", [list: j-id(temp-full)])
+      rt-method("makeMethodN", [clist: j-id(temp-full)])
     end
-    c-exp(method-expr, [list: full-var])
+    c-exp(method-expr, [clist: full-var])
   end,
   a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)
@@ -1012,45 +1059,45 @@ compiler-visitor = {
   end,
   a-array(self, l, values):
     visit-vals = values.map(_.visit(self))
-    other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, empty)
-    c-exp(j-list(false, visit-vals.map(get-exp)), other-stmts)
+    other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, cl-empty)
+    c-exp(j-list(false, CL.map_list(get-exp, visit-vals)), other-stmts)
   end,
   a-srcloc(self, l, loc):
-    c-exp(self.get-loc(loc), empty)
+    c-exp(self.get-loc(loc), cl-empty)
   end,
   a-num(self, l :: Loc, n :: Number):
     if num-is-fixnum(n):
-      c-exp(j-parens(j-num(n)), empty)
+      c-exp(j-parens(j-num(n)), cl-empty)
     else:
-      c-exp(rt-method("makeNumberFromString", [list: j-str(tostring(n))]), empty)
+      c-exp(rt-method("makeNumberFromString", [clist: j-str(tostring(n))]), cl-empty)
     end
   end,
   a-str(self, l :: Loc, s :: String):
-    c-exp(j-parens(j-str(s)), empty)
+    c-exp(j-parens(j-str(s)), cl-empty)
   end,
   a-bool(self, l :: Loc, b :: Boolean):
-    c-exp(j-parens(if b: j-true else: j-false end), empty)
+    c-exp(j-parens(if b: j-true else: j-false end), cl-empty)
   end,
   a-undefined(self, l :: Loc):
-    c-exp(undefined, empty)
+    c-exp(undefined, cl-empty)
   end,
   a-id(self, l :: Loc, id :: A.Name):
-    c-exp(j-id(js-id-of(id)), empty)
+    c-exp(j-id(js-id-of(id)), cl-empty)
   end,
   a-id-var(self, l :: Loc, id :: A.Name):
-    c-exp(j-dot(j-id(js-id-of(id)), "$var"), empty)
+    c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,
   a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = j-id(js-id-of(id))
     if safe:
-      c-exp(j-dot(s, "$var"), empty)
+      c-exp(j-dot(s, "$var"), cl-empty)
     else:
       c-exp(
         j-ternary(
           j-binop(j-dot(s, "$var"), j-eq, undefined),
           raise-id-exn(self.get-loc(l), id.toname()),
           j-dot(s, "$var")),
-        empty)
+        cl-empty)
     end
   end,
 
@@ -1059,21 +1106,21 @@ compiler-visitor = {
       js-id-of(compiler-name("brand-" + base)).toname()
     end
 
-    visit-shared-fields = shared.map(_.visit(self))
+    visit-shared-fields = CL.map_list(_.visit(self), shared)
     shared-fields = visit-shared-fields.map(o-get-field)
-    shared-stmts = visit-shared-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, empty)
+    shared-stmts = visit-shared-fields.foldr(lam(acc, vf): vf.other-stmts + acc end, cl-empty)
     external-brand = j-id(js-id-of(namet))
 
     fun make-brand-predicate(loc :: Loc, b :: J.JExpr, pred-name :: String):
       val = fresh-id(compiler-name("val"))
       j-field(
         pred-name,
-        rt-method("makeFunction", [list: 
+        rt-method("makeFunction", [clist: 
             j-fun(
-              [list: val],
+              [clist: val],
               j-block(
                 arity-check(self.get-loc(loc), 1) +
-                [list: j-return(rt-method("makeBoolean", [list: rt-method("hasBrand", [list: j-id(val), b])]))]
+                [clist: j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])]))]
                 )
               )
           ])
@@ -1085,35 +1132,33 @@ compiler-visitor = {
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
-      compiled-anns = for fold(acc from {anns: empty, others: empty}, m from nonblank-anns):
+      compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
         compiled = compile-ann(m.bind.ann, self)
         {
-          anns: compiled.exp ^ link(_, acc.anns),
-          others: compiled.other-stmts.reverse() + acc.others
+          anns: cl-snoc(acc.anns, compiled.exp),
+          others: acc.others + compiled.other-stmts
         }
       end
-      compiled-locs = for map(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
-      compiled-vals = for map(m from nonblank-anns): j-str(js-id-of(m.bind.id).tosourcestring()) end
-      
+      compiled-locs = for CL.map_list(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
+      compiled-vals = for CL.map_list(m from nonblank-anns): j-str(js-id-of(m.bind.id).tosourcestring()) end
+
       # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
       # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
       # a continuation and manages all of the stack safety of annotation checking itself.
-
+    
       # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic solution by
       # passing the check off to a runtime function that uses JavaScript's Function
       # to only do the refinement check once.
       c-exp(
-        rt-method("makeVariantConstructor", [list:
+        rt-method("makeVariantConstructor", [clist:
             self.get-loc(l2),
             # NOTE(joe): Thunked at the JS level because compiled-anns might contain
             # references to rec ids that should be resolved later
-            j-fun(empty, j-block([list: j-return(j-list(false, compiled-anns.anns.reverse()))])),
+            j-fun(cl-empty, j-block([clist: j-return(j-list(false, compiled-anns.anns))])),
             j-list(false, compiled-vals),
             j-list(false, compiled-locs),
-            j-list(false, for map(m from members):
-              j-bool(N.is-a-mutable(m.member-type))
-            end),
-            j-list(false, members.map(lam(m): j-str(js-id-of(m.bind.id).tosourcestring()) end)),
+            j-list(false, CL.map_list(lam(m): j-bool(N.is-a-mutable(m.member-type)) end, members)),
+            j-list(false, CL.map_list(lam(m): j-str(js-id-of(m.bind.id).tosourcestring()) end, members)),
             refl-ref-fields-mask,
             j-id(base-id),
             j-id(brands-id),
@@ -1122,7 +1167,7 @@ compiler-visitor = {
             refl-fields,
             constructor-id
           ]),
-        empty)
+        cl-empty)
     end
 
     fun compile-variant(v :: N.AVariant):
@@ -1130,18 +1175,18 @@ compiler-visitor = {
       variant-base-id = js-id-of(compiler-name(vname + "-base"))
       variant-brand = brand-name(vname)
       variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
-      variant-brands = j-obj([list: 
+      variant-brands = j-obj([clist: 
           j-field(variant-brand, j-true)
         ])
       visit-with-fields = v.with-members.map(_.visit(self))
 
       refl-base-fields =
         cases(N.AVariant) v:
-          | a-singleton-variant(_, _, _) => empty
+          | a-singleton-variant(_, _, _) => cl-empty
           | a-variant(_, _, _, members, _) =>
-            [list:
+            [clist:
               j-field("$fieldNames",
-                j-list(false, members.map(lam(m): j-str(m.bind.id.toname()) end)))]
+                j-list(false, CL.map_list(lam(m): j-str(m.bind.id.toname()) end, members)))]
         end
 
       f-id = const-id("f")
@@ -1151,34 +1196,35 @@ compiler-visitor = {
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
             refmask-id = const-id("refmask")
-            j-fun([list: f-id, refmask-id], j-block([list: j-return(j-app(j-id(f-id), 
-                for map_n(n from 0, m from members):
+            j-fun([clist: f-id, refmask-id], j-block([clist: j-return(j-app(j-id(f-id), 
+                for CL.map_list_n(n from 0, m from members):
                   field = get-dict-field(THIS, j-str(m.bind.id.toname()))
                   mask = j-bracket(j-id(refmask-id), j-num(n))
-                  rt-method("derefField", [list: field, j-bool(N.is-a-mutable(m.member-type)), mask])
+                  rt-method("derefField", [clist: field, j-bool(N.is-a-mutable(m.member-type)), mask])
                 end))]))
           | a-singleton-variant(_, _, _) =>
-            j-fun([list: f-id], j-block([list: j-return(j-app(j-id(f-id), empty))]))
+            j-fun([clist: f-id], j-block([clist: j-return(j-app(j-id(f-id), cl-empty))]))
         end
 
       refl-ref-fields-mask-id = js-id-of(compiler-name(vname + "_mutablemask"))
       refl-ref-fields-mask =
         cases(N.AVariant) v:
-          | a-singleton-variant(_, _, _) => j-list(false, empty)
+          | a-singleton-variant(_, _, _) => j-list(false, cl-empty)
           | a-variant(_, _, _, members, _) =>
-            j-list(false, members.map(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end))
+            j-list(false,
+              CL.map_list(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end, members))
         end
       
       refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-fields =
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
-            j-fun([list: const-id("f")], j-block([list: j-return(j-app(j-id(f-id), 
-                      members.map(lam(m):
+            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id), 
+                      CL.map_list(lam(m):
                           get-dict-field(THIS, j-str(m.bind.id.toname()))
-                        end)))]))
+                        end, members)))]))
           | a-singleton-variant(_, _, _) =>
-            j-fun([list: const-id("f")], j-block([list: j-return(j-app(j-id(f-id), empty))]))
+            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id), cl-empty))]))
         end
 
       fun member-count(shadow v):
@@ -1188,17 +1234,17 @@ compiler-visitor = {
         end
       end
 
-      match-field = j-field("_match", rt-method("makeMatch", [list: refl-name, j-num(member-count(v))]))
+      match-field = j-field("_match", rt-method("makeMatch", [clist: refl-name, j-num(member-count(v))]))
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
-          [list: 
-            j-var(refl-fields-id, refl-fields),
-            j-var(refl-ref-fields-id, refl-ref-fields),
-            j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
-            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + visit-with-fields.map(o-get-field) + [list: match-field])),
-            j-var(variant-brand-obj-id, variant-brands),
-            j-expr(j-bracket-assign(
+        [clist: 
+          j-var(refl-fields-id, refl-fields),
+          j-var(refl-ref-fields-id, refl-ref-fields),
+          j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
+          j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
+          j-var(variant-brand-obj-id, variant-brands),
+          j-expr(j-bracket-assign(
               j-id(variant-brand-obj-id),
               j-dot(external-brand, "_brand"),
               j-true))
@@ -1212,14 +1258,14 @@ compiler-visitor = {
             make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
               refl-name, j-id(refl-ref-fields-id), j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
           {
-            stmts: stmts + compiled-constr.other-stmts + [list: j-var(constr-vname, compiled-constr.exp)],
+            stmts: stmts + compiled-constr.other-stmts + [clist: j-var(constr-vname, compiled-constr.exp)],
             constructor: j-field(vname, j-id(constr-vname)),
             predicate: predicate
           }
         | a-singleton-variant(_, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue", [list: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-ref-fields-id), j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id)])),
             predicate: predicate
           }
       end
@@ -1227,16 +1273,16 @@ compiler-visitor = {
 
     variant-pieces = variants.map(compile-variant)
 
-    header-stmts = for fold(acc from empty, piece from variant-pieces):
-      piece.stmts.reverse() + acc
-    end.reverse()
-    obj-fields = for fold(acc from empty, piece from variant-pieces):
-      [list: piece.constructor] + [list: piece.predicate] + acc
-    end.reverse()
+    header-stmts = for fold(acc from cl-empty, piece from variant-pieces):
+      acc + piece.stmts
+    end
+    obj-fields = for fold(acc from cl-empty, piece from variant-pieces):
+      acc + [clist: piece.predicate, piece.constructor]
+    end
 
     data-predicate = make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
-    data-object = rt-method("makeObject", [list: j-obj([list: data-predicate] + obj-fields)])
+    data-object = rt-method("makeObject", [clist: j-obj([clist: data-predicate] + obj-fields)])
 
     c-exp(data-object, shared-stmts + header-stmts)
   end
@@ -1281,11 +1327,11 @@ end
 fun mk-abbrevs(l):
   loc = const-id("loc")
   name = const-id("name")
-  [list: 
+  [clist: 
     j-var(const-id("G"), rt-field("getFieldLoc")),
-    j-var(const-id("U"), j-fun([list: loc, name],
-        j-block([list: j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
-                          [list: j-id(loc), j-id(name)])]))),
+    j-var(const-id("U"), j-fun([clist: loc, name],
+        j-block([clist: j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
+                          [clist: j-id(loc), j-id(name)])]))),
     j-var(const-id("M"), j-str(l.source)),
     j-var(const-id("D"), rt-field("undefined"))
   ]
@@ -1293,7 +1339,7 @@ end
 
 
 fun compile-program(self, l, imports, prog, freevars, env):
-  fun inst(id): j-app(j-id(id), [list: RUNTIME, NAMESPACE]);
+  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
   remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
     freevars.remove(elt.key())
   end
@@ -1301,12 +1347,12 @@ fun compile-program(self, l, imports, prog, freevars, env):
     freevars.remove(elt.key())
   end
   free-ids = remove-types.keys-list().map(remove-types.get-value(_))
-  namespace-binds = for map(n from free-ids):
+  namespace-binds = for CL.map_list(n from free-ids):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
       | s-type-global(s) => type-name(n.toname())
     end
-    j-var(js-id-of(n), j-method(NAMESPACE, "get", [list: j-str(bind-name)]))
+    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
   end
   ids = imports.map(lam(i): js-id-of(i.name) end)
   type-imports = imports.filter(N.is-a-import-types)
@@ -1332,34 +1378,35 @@ fun compile-program(self, l, imports, prog, freevars, env):
   # this needs to be freshened to support multiple repl interactions with the "same" source
   module-id = fresh-id(compiler-name(l.source)).tosourcestring()
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = imports.map(lam(i): js-id-of(compiler-name(i.name.toname())) end)
-  fun wrap-modules(mod-val-ids, mod-input-names, body-name, body-fun):
+  input-ids = CL.map_list(lam(i): js-id-of(compiler-name(i.name.toname())) end, imports)
+  fun wrap-modules(mod-val-ids :: List<A.Name>, mod-input-names :: CList<A.Name>, body-name, body-fun):
     mod-input-ids = mod-input-names.map(j-id)
+    mod-input-ids-list = mod-input-ids.to-list()
     moduleVal = const-id("moduleVal")
     j-return(rt-method("loadModulesNew",
-        [list: NAMESPACE, j-list(false, mod-input-ids),
+        [clist: NAMESPACE, j-list(false, mod-input-ids),
           j-fun(mod-input-names,
             j-block(
-              for map2(m from mod-val-ids, in from mod-input-ids):
-                j-var(m, rt-method("getField", [list: in, j-str("values")]))
+              for CL.map_list2(m from mod-val-ids, in from mod-input-ids-list):
+                j-var(m, rt-method("getField", [clist: in, j-str("values")]))
               end +
-              for map2(mt from type-ids, in from mod-input-ids):
-                j-var(mt, rt-method("getField", [list: in, j-str("types")]))
+              for CL.map_list2(mt from type-ids, in from mod-input-ids-list):
+                j-var(mt, rt-method("getField", [clist: in, j-str("types")]))
               end +
-              [list: 
+              [clist: 
                 j-var(body-name, body-fun),
                 j-return(rt-method(
-                    "safeCall", [list: 
+                    "safeCall", [clist: 
                       j-id(body-name),
-                      j-fun([list: moduleVal],
-                        j-block([list: 
+                      j-fun([clist: moduleVal],
+                        j-block([clist: 
                             j-expr(j-bracket-assign(rt-field("modules"), j-str(module-id), j-id(moduleVal))),
                             j-return(j-id(moduleVal))
                           ])),
                       j-str("Evaluating " + body-name.toname())
                 ]))]))]))
   end
-  var locations = concat-empty
+  var locations = cl-empty
   var loc-count = 0
   var loc-cache = D.make-mutable-string-dict()
   LOCS = const-id("L")
@@ -1371,7 +1418,7 @@ fun compile-program(self, l, imports, prog, freevars, env):
       ans = j-bracket(j-id(LOCS), j-num(loc-count))
       loc-cache.set-now(as-str, ans)
       loc-count := loc-count + 1
-      locations := concat-snoc(locations, obj-of-loc(l))
+      locations := cl-snoc(locations, obj-of-loc(l))
       ans
     end
   end
@@ -1384,18 +1431,19 @@ fun compile-program(self, l, imports, prog, freevars, env):
   visited-body = compile-fun-body(l, step, toplevel-name,
     self.{get-loc: get-loc, cur-apploc: apploc, resumer: resumer}, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true)
-  toplevel-fun = j-fun([list: formal-shadow-name(resumer)], visited-body)
-  define-locations = j-var(LOCS, j-list(true, locations.to-list()))
-  j-app(j-id(const-id("define")), [list: j-list(true, filenames.map(j-str)), j-fun(input-ids, j-block([list: 
-            j-return(j-fun([list: RUNTIME.id, NAMESPACE.id],
-                j-block([list: 
+  toplevel-fun = j-fun([clist: formal-shadow-name(resumer)], visited-body)
+  define-locations = j-var(LOCS, j-list(true, locations))
+  j-app(j-id(const-id("define")),
+    [clist: j-list(true, CL.map_list(j-str, filenames)), j-fun(input-ids, j-block([clist: 
+            j-return(j-fun([clist: RUNTIME.id, NAMESPACE.id],
+                j-block([clist: 
                     #j-expr(j-str("use strict")),
                     j-if(module-ref(module-id),
-                      j-block([list: j-return(module-ref(module-id))]),
+                      j-block([clist: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
-                        [list: define-locations] + 
+                        [clist: define-locations] + 
                         namespace-binds +
-                        [list: wrap-modules(ids, input-ids, toplevel-name, toplevel-fun)]))])))]))])
+                        [clist: wrap-modules(ids, input-ids, toplevel-name, toplevel-fun)]))])))]))])
 end
 
 fun non-splitting-compiler(env, options):

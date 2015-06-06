@@ -5,6 +5,10 @@ provide-types *
 import pprint as PP
 import format as F
 import ast as A
+import "compiler/concat-lists.arr" as CL
+
+type CList = CL.ConcatList
+clist = CL.clist
 
 format = F.format
 
@@ -23,20 +27,14 @@ end
 type Label = { get :: ( -> Number) }
 
 data JBlock:
-  | j-block(stmts :: List<JStmt>) with:
+  | j-block(stmts :: CList<JStmt>) with:
     label(self): "j-block" end,
     print-ugly-source(self, printer):
-      when is-link(self.stmts):
-        self.stmts.first.print-ugly-source(printer)
-        for each(s from self.stmts.rest):
-          s.print-ugly-source(printer)
-        end
-      end
+      self.stmts.each(_.print-ugly-source(printer))
     end,
     tosource(self):
-      cases(List) self.stmts:
-        | empty => PP.mt-doc
-        | else => PP.flow-map(PP.hardline, _.tosource(), self.stmts)
+      if self.stmts.is-empty(): PP.mt-doc
+      else: PP.vert(self.stmts.map-to-list(_.tosource()))
       end
     end
 sharing:
@@ -147,7 +145,7 @@ data JStmt:
     label(self): "j-continue" end,
     print-ugly-source(self, printer): printer("continue;\n") end,
     tosource(self): PP.str("continue;") end
-  | j-switch(exp :: JExpr, branches :: List<JCase>) with:
+  | j-switch(exp :: JExpr, branches :: CList<JCase>) with:
     label(self): "j-switch" end,
     print-ugly-source(self, printer):
       printer("switch(")
@@ -158,7 +156,7 @@ data JStmt:
     end,
     tosource(self):
       PP.surround(0, 1, PP.group(PP.str("switch") + PP.parens(self.exp.tosource()) + PP.sbreak(1) + PP.lbrace),
-        PP.flow-map(PP.hardline, _.tosource(), self.branches), PP.rbrace)
+        PP.flow-map(PP.hardline, _.tosource(), self.branches.to-list()), PP.rbrace)
     end
   | j-while(cond :: JExpr, body :: JBlock) with:
     label(self): "j-while" end,
@@ -329,7 +327,7 @@ data JExpr:
       self.right.print-ugly-source(printer)
     end,
     tosource(self): PP.flow([list: self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
-  | j-fun(args :: List<A.Name>, body :: JBlock) with:
+  | j-fun(args :: CList<A.Name>, body :: JBlock) with:
     label(self): "j-fun" end,
     print-ugly-source(self, printer):
       printer("function(")
@@ -339,19 +337,20 @@ data JExpr:
       printer("}")
     end,
     tosource(self):
-      arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map(_.tosource())))
+      arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map-to-list(_.tosource())))
       header = PP.group(PP.str("function") + arglist)
       PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
     end
-  | j-new(func :: JExpr, args :: List<JExpr>) with:
+  | j-new(func :: JExpr, args :: CList<JExpr>) with:
     label(self): "j-new" end,
     print-ugly-source(self, printer):
       printer("new ")
       self.func.print-ugly-source(printer)
       printer("(")
-      when is-link(self.args):
-        self.args.first.print-ugly-source(printer)
-        for each(a from self.args.rest):
+      args = self.args.to-list()
+      when is-link(args):
+        args.first.print-ugly-source(printer)
+        for each(a from args.rest):
           printer(",")
           a.print-ugly-source(printer)
         end
@@ -361,16 +360,17 @@ data JExpr:
     tosource(self):
       PP.group(PP.str("new ") + self.func.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+            PP.separate(PP.commabreak, self.args.map-to-list(_.tosource())))))
     end
-  | j-app(func :: JExpr, args :: List<JExpr>) with:
+  | j-app(func :: JExpr, args :: CList<JExpr>) with:
     label(self): "j-app" end,
     print-ugly-source(self, printer):
       self.func.print-ugly-source(printer)
       printer("(")
-      when is-link(self.args):
-        self.args.first.print-ugly-source(printer)
-        for each(a from self.args.rest):
+      args = self.args.to-list()
+      when is-link(args):
+        args.first.print-ugly-source(printer)
+        for each(a from args.rest):
           printer(",")
           a.print-ugly-source(printer)
         end
@@ -380,18 +380,19 @@ data JExpr:
     tosource(self):
       PP.group(self.func.tosource()
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+            PP.separate(PP.commabreak, self.args.map-to-list(_.tosource())))))
     end
-  | j-method(obj :: JExpr, meth :: String, args :: List<JExpr>) with:
+  | j-method(obj :: JExpr, meth :: String, args :: CList<JExpr>) with:
     label(self): "j-method" end,
     print-ugly-source(self, printer):
       self.obj.print-ugly-source(printer)
       printer(".")
       printer(self.meth)
       printer("(")
-      when is-link(self.args):
-        self.args.first.print-ugly-source(printer)
-        for each(a from self.args.rest):
+      args = self.args.to-list()
+      when is-link(args):
+        args.first.print-ugly-source(printer)
+        for each(a from args.rest):
           printer(",")
           a.print-ugly-source(printer)
         end
@@ -401,7 +402,7 @@ data JExpr:
     tosource(self):
       PP.group(PP.infix(INDENT, 0, PP.str("."), self.obj.tosource(), PP.str(self.meth))
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+            PP.separate(PP.commabreak, self.args.map-to-list(_.tosource())))))
     end
   | j-ternary(test :: JExpr, consq :: JExpr, altern :: JExpr) with:
     label(self): "j-ternary" end,
@@ -473,13 +474,14 @@ data JExpr:
     tosource(self): PP.group(self.obj.tosource() +
       PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
-  | j-list(multi-line :: Boolean, elts :: List<JExpr>) with:
+  | j-list(multi-line :: Boolean, elts :: CList<JExpr>) with:
     label(self): "j-list" end,
     print-ugly-source(self, printer):
       printer("[")
-      when is-link(self.elts):
-        self.elts.first.print-ugly-source(printer)
-        for each(f from self.elts.rest):
+      elts = self.elts.to-list()
+      when is-link(elts):
+        elts.first.print-ugly-source(printer)
+        for each(f from elts.rest):
           printer(",")
           when self.multi-line: printer("\n");
           f.print-ugly-source(printer)
@@ -489,15 +491,16 @@ data JExpr:
     end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrack + PP.rbrack,
-        PP.lbrack, PP.commabreak, PP.rbrack, self.elts.map(_.tosource()))
+        PP.lbrack, PP.commabreak, PP.rbrack, self.elts.map-to-list(_.tosource()))
     end
-  | j-obj(fields :: List<JField>) with:
+  | j-obj(fields :: CList<JField>) with:
     label(self): "j-obj" end,
     print-ugly-source(self, printer):
       printer("{")
-      when is-link(self.fields):
-        self.fields.first.print-ugly-source(printer)
-        for each(f from self.fields.rest):
+      fields = self.fields.to-list()
+      when is-link(fields):
+        fields.first.print-ugly-source(printer)
+        for each(f from fields.rest):
           printer(",\n")
           f.print-ugly-source(printer)
         end
@@ -506,7 +509,7 @@ data JExpr:
     end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
+        PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map-to-list(_.tosource()))
     end
   | j-id(id :: A.Name) with:
     label(self): "j-id" end,
@@ -567,13 +570,13 @@ sharing:
 
 where:
   fun j-n-id(name): j-id(A.s-name(A.dummy-loc, name)) end
-  j-fun([list: j-n-id("a").id,j-n-id("b").id],
-    j-block([list: j-app(j-n-id("a"), [list: j-n-id("b")])])).tosource().pretty(80)
+  j-fun([clist: j-n-id("a").id,j-n-id("b").id],
+    j-block([clist: j-app(j-n-id("a"), [clist: j-n-id("b")])])).tosource().pretty(80)
     is [list: "function(a, b) { a(b) }"]
 
-  j-fun([list: j-n-id("RUNTIME").id, j-n-id("NAMESPACE").id], j-block([list: 
-      j-var(j-n-id("print").id, j-method(j-n-id("NAMESPACE"), "get", [list: j-str("print")])),
-      j-var(j-n-id("brand").id, j-method(j-n-id("NAMESPACE"), "get", [list: j-str("brand")]))
+  j-fun([clist: j-n-id("RUNTIME").id, j-n-id("NAMESPACE").id], j-block([clist: 
+      j-var(j-n-id("print").id, j-method(j-n-id("NAMESPACE"), "get", [clist: j-str("print")])),
+      j-var(j-n-id("brand").id, j-method(j-n-id("NAMESPACE"), "get", [clist: j-str("brand")]))
     ])).tosource().pretty(80)
     is
     [list: 
@@ -585,7 +588,7 @@ where:
 
   j-null.tosource().pretty(5) is [list: "null"]
 
-  j-if(j-true, j-block([list: j-return(j-false)]), j-block([list: j-return(j-num(5))]))
+  j-if(j-true, j-block([clist: j-return(j-false)]), j-block([clist: j-return(j-num(5))]))
     .tosource().pretty(80) is
     [list: "if(true) { return false; } else { return 5; }"]
 
