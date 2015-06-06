@@ -75,7 +75,7 @@ check:
   string-replace("", "long-string", "replace") is ""
   string-replace("abcd", "abcd", "") is ""
   string-replace("abcdabcd", "abcd", "") is ""
-  string-replace("abc", "", "empty") is "emptyaemptybemptycempty"
+  string-replace("abc", "", "empty") is "aemptybemptyc"
 
   string-split-all("abc", "") is [list: "a", "b", "c"]
   string-split-all("abc", "b") is [list: "a", "c"]
