@@ -962,7 +962,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
        A PArray is simply a JavaScript array
     */
     function isArray(val) {
-      return val instanceof Array;
+      return Array.isArray(val);
     }
     function makeArray(arr) {
       return arr;
