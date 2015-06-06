@@ -23,11 +23,11 @@ language: node_js
 node_js:
 - 0.10.26
 install:
-- sudo ./setup.sh < setup_commands
-- make install
+  - sudo ./setup.sh < setup_commands 
+  - make install
 before_script: make -j3
 script:
-  - make -j3 test-all
+  - make -j3 test
   - make horizon-gzip
 deploy:
   provider: s3

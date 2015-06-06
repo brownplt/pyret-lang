@@ -9,6 +9,7 @@ compile-str = lam(str):
           str,
           "test",
           CS.standard-builtins,
+          CS.standard-imports,
           {
             check-mode : true,
             allow-shadowed : false,

@@ -1,4 +1,3 @@
-
 define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton"],
        function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
@@ -404,6 +403,10 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         makeTreeSet: makeTreeSet,
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
+
+        isEither: runtime.getField(E, "is-Either"),
+        isLeft: function(l) { return runtime.getField(E, "is-left").app(v); },
+        isRight: function(l) { return runtime.getField(E, "is-right").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
         makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 

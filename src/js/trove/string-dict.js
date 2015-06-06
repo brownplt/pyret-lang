@@ -1,5 +1,15 @@
 define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
-  return util.memoModule("string-dict2", function(runtime, namespace) {
+  return util.definePyretModule(
+    "string-dict",
+    [],
+    {
+      values:
+        ["make-string-dict", "string-dict", "string-dict-of",
+         "make-mutable-string-dict", "mutable-string-dict"],
+      types:
+        ["MutableStringDict", "StringDict"]
+     },
+     function(runtime, namespace /* no pyret dependencies */) {
     return runtime.loadJSModules(namespace, [ffi], function(F) {
     return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 
@@ -467,6 +477,17 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         return makeImmutableStringDict(dict);
       }
 
+      function createConstImmutableStringDict(names, val) {
+        arity(2, arguments, "string-dict-of");
+        runtime.checkList(names);
+        var arr = runtime.ffi.toArray(names);
+        var dict = Object.create(null);
+        arr.forEach(function(k) {
+          dict[internalKey(k)] = val;
+        });
+        return makeImmutableStringDict(dict);
+      }
+
       var NYIF = F(function() {
         runtime.ffi.throwMessageException("Not yet implemented");
       });
@@ -485,7 +506,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
             "make-string-dict": F(createImmutableStringDict),
             "string-dict": O({
               make: F(createImmutableStringDictFromArray)
-            })
+            }),
+            "string-dict-of": F(createConstImmutableStringDict)
           })
         }),
         "answer": runtime.nothing

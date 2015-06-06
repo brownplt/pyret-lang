@@ -312,9 +312,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("0/00000", err);
         P.wait(done);
       });
-      it("special imports", function(done) {
+      xit("special imports", function(done) {
         var err = "Unsupported import type";
-        //P.checkCompileErrorMsg("import mydrive('foo') as D", err);
+        P.checkCompileErrorMsg("import mydrive('foo') as D", err);
         P.checkNoCompileError("import my-gdrive('foo') as F");
         P.checkCompileErrorMsg("import my-gdrive('a', 'b') as D", "one argument");
         P.checkCompileErrorMsg("import shared-gdrive('a') as D", "two arguments");

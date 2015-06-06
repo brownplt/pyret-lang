@@ -3,39 +3,25 @@
 provide *
 import srcloc as S
 import "compiler/compile-structs.arr" as C
+import "compiler/compile-lib.arr" as CL
+import "compiler/locators/builtin.arr" as B
 import ast as A
 import error as E
+import parse-pyret as P
+import string-dict as SD
+import namespace-lib as N
 
-fun drop-module-bindings(env :: C.CompileEnvironment):
-  fun negate(f): lam(x): not(f(x));;
-  C.compile-env(
-    env.bindings.filter(negate(C.is-module-bindings)),
-    env.types.filter(negate(C.is-type-module-bindings))
-  )
-where:
-  drop-module-bindings(C.compile-env([list:
-    C.builtin-id("x"),
-    C.module-bindings("list", [list:])
-  ], [list:
-    C.type-id("Number"),
-    C.type-module-bindings("lists", [list: "List"])
-  ])) is
-    C.compile-env([list: C.builtin-id("x")], [list: C.type-id("Number")])
-
-end
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
-  cases(C.CompileEnvironment) env:
-    | compile-env(bindings, types) =>
-      C.compile-env(link(C.builtin-id(name), bindings), types)
-  end
+  C.compile-env(
+    C.globals(env.globals.values.set(name, C.v-just-there), env.globals.types),
+    env.mods)
 end
 
 fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
-  cases(C.CompileEnvironment) env:
-    | compile-env(bindings, types) =>
-      C.compile-env(bindings, link(C.type-id(name), types))
-  end
+  C.compile-env(
+    C.globals(env.globals.values, env.globals.types.set(name, C.t-just-there)),
+    env.mods)
 end
 
 ok-imports = [list:
@@ -73,14 +59,22 @@ fun get-special-imports(program):
   end
 end
 
+fun get-imp-dependency(imp):
+  cases(A.Import) imp:
+    | s-include(_, mod) => mod
+    | else => imp.file
+  end
+end
+
 fun make-safe-imports(imps):
   imps.each(lam(i):
-    cases(A.ImportType) i.file:
+    d = get-imp-dependency(i)
+    cases(A.ImportType) d:
       | s-special-import(_, _, _) => nothing
       | s-file-import(l, f) =>
         raise(E.module-load-failure([list: f]))
       | s-const-import(l, m) =>
-        when not(ok-imports.member(i.file.mod)):
+        when not(ok-imports.member(m)):
           raise(E.module-load-failure([list: m]))
         end
     end
@@ -103,6 +97,7 @@ fun get-defined-ids(p, imports, body):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names + imp-names
+      | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
@@ -112,6 +107,7 @@ fun get-defined-ids(p, imports, body):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names
+      | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
@@ -145,40 +141,22 @@ fun make-provide-for-repl(p :: A.Program):
   end
 end
 
-fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironment):
+fun make-provide-for-repl-main-env(p :: A.Program, env :: C.CompileEnvironment):
+  make-provide-for-repl-main(p, env.globals)
+end
+
+fun make-provide-for-repl-main(p :: A.Program, globals :: C.Globals):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
     | s-program(l, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      env-provide = for fold(flds from repl-provide, elt from compile-env.bindings):
-        cases(C.CompileBinding) elt:
-          | builtin-id(name) =>
-            shadow l = S.builtin(name)
-            link(df(l, A.s-name(l, name)), flds)
-          | module-bindings(name, fields) =>
-            shadow l = S.builtin(name)
-            [list: df(l, A.s-name(l, name))] +
-              for map(f from fields):
-                df(l, A.s-name(l, f))
-              end +
-              flds
-        end
+      env-provide = for fold(flds from repl-provide, name from globals.values.keys-list()):
+        link(df(l, A.s-name(l, name)), flds)
       end
-      env-type-provide = for fold(flds from repl-type-provide, elt from compile-env.types):
-        cases(C.CompileTypeBinding) elt:
-          | type-id(name) =>
-            shadow l = S.builtin(name)
-            link(af(l, A.s-name(l, name)), flds)
-          | type-module-bindings(name, fields) =>
-            shadow l = S.builtin(name)
-            [list: af(l, A.s-name(l, name))] +
-              for map(f from fields):
-                af(l, A.s-name(l, f))
-              end +
-              flds
-        end
+      env-type-provide = for fold(flds from repl-type-provide, name from globals.types.keys-list()):
+        link(af(l, A.s-name(l, name)), flds)
       end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
@@ -186,5 +164,74 @@ fun make-provide-for-repl-main(p :: A.Program, compile-env :: C.CompileEnvironme
           defined-ids.imports,
           body)
   end
+end
+
+fun make-repl-definitions-locator(name, uri, get-definitions, globals):
+  fun get-ast():
+    initial-definitions = get-definitions()
+    parsed = P.surface-parse(initial-definitions, name)
+    make-provide-for-repl-main(parsed, globals)
+  end
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
+    get-dependencies(self):
+      CL.get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+    get-globals(self): globals end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
+fun make-repl-interaction-locator(name, uri, get-interactions, repl):
+  fun get-ast():
+    interactions = get-interactions()
+    parsed = P.surface-parse(interactions, name)
+    make-provide-for-repl(parsed)
+  end
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
+    get-dependencies(self):
+      CL.get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+    get-globals(self): repl.get-current-globals() end,
+    get-namespace(self, runtime): repl.get-current-namespace() end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
+fun make-definitions-finder(import-types :: SD.StringDict):
+  fun definitions-finder(context, dep):
+    l = cases(C.Dependency) dep:
+      | builtin(name) => B.make-builtin-locator(name)
+      | dependency(protocol, arguments) =>
+        cases(Option) import-types.get(protocol):
+          | none => raise("Cannot find module: " + torepr(dep))
+          | some(handler) => handler(context, arguments)
+        end
+    end
+    CL.located(l, context)
+  end
+  definitions-finder
 end
 

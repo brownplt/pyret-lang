@@ -37,6 +37,7 @@ str-spaceequal = PP.str(" =")
 str-import = PP.str("import")
 str-provide = PP.str("provide")
 str-as = PP.str("as")
+str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
@@ -71,15 +72,22 @@ data AImportType:
 end
 
 data AImport:
-  | a-import(l :: Loc, import-type :: AImportType, name :: A.Name) with:
-    label(self): "a-import" end,
+  | a-import-complete(
+      l :: Loc,
+      values :: List<A.Name>,
+      types :: List<A.Name>,
+      import-type :: AImportType,
+      vals-name :: A.Name,
+      types-name :: A.Name) with:
+    label(self): "a-import-complete" end,
     tosource(self):
-      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource()])
-    end
-  | a-import-types(l :: Loc, import-type :: AImportType, name :: A.Name, types :: A.Name) with:
-    label(self): "a-import-types" end,
-    tosource(self):
-      PP.flow([list: str-import, self.import-type.tosource(), str-as, self.name.tosource(), PP.commabreak, self.types.tosource()])
+      PP.flow([list: str-import,
+          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
+          str-from,
+          self.import-type.tosource(),
+          str-as,
+          self.vals-name.tosource(),
+          self.types-name.tosource()])
     end
 sharing:
   visit(self, visitor):
@@ -246,15 +254,49 @@ sharing:
   end
 end
 
+data ADefinedValue:
+  | a-defined-value(name :: String, value :: AVal) with:
+    label(self): "a-defined-value" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data ADefinedType:
+  | a-defined-type(name :: String, typ :: A.Ann) with:
+    label(self): "a-defined-type" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data ALettable:
-  | a-module(l :: Loc, answer :: AVal, provides :: AVal, types, checks :: AVal) with:
+  | a-module(
+      l :: Loc,
+      answer :: AVal,
+      defined-values :: List<ADefinedValue>,
+      defined-types :: List<ADefinedType>,
+      provided-values :: AVal,
+      provided-types,
+      checks :: AVal) with:
     label(self): "a-module" end,
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provides.tosource()),
-            PP.infix(INDENT, 1, str-colon, PP.str("Types"), 
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.types))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
+            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | a-cases(l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr) with:
@@ -421,11 +463,8 @@ end
 
 fun strip-loc-import(i :: AImport):
   cases(AImport) i:
-    | a-import(_, import-type, name) =>
-      a-import(dummy-loc, strip-loc-import-type(import-type), name.visit(A.dummy-loc-visitor))
-    | a-import-types(_, import-type, name, types) =>
-      a-import-types(dummy-loc, strip-loc-import-type(import-type),
-        name.visit(A.dummy-loc-visitor), types.visit(A.dummy-loc-visitor))
+    | a-import-complete(_, vns, tns, imp, vn, tn) =>
+      a-import-complete(dummy-loc, vns, tns, imp, vn, tn)
   end
 end
 
@@ -459,8 +498,8 @@ end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
-    | a-module(_, answer, provides, types, checks) =>
-      a-module(dummy-loc, strip-loc-val(answer), strip-loc-val(provides),
+    | a-module(_, answer, dv, dt, provides, types, checks) =>
+      a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(provides),
         types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
@@ -513,17 +552,11 @@ fun strip-loc-val(val :: AVal):
 end
 
 default-map-visitor = {
-  a-module(self, l :: Loc, answer :: AVal, provides :: AVal, types :: List<A.AField>, checks :: AVal):
-    a-module(l, answer.visit(self), provides.visit(self), types, checks.visit(self))
+  a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
+    a-module(l, answer.visit(self), dv, dt, provides.visit(self), types, checks.visit(self))
   end,
   a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
     a-program(l, imports.map(_.visit(self)), body.visit(self))
-  end,
-  a-import(self, l :: Loc, import-type :: AImportType, name :: A.Name):
-    a-import(l, import-type.visit(self), name.visit(self))
-  end,
-  a-import-types(self, l :: Loc, import-type :: AImportType, name :: A.NAme, types :: A.Name):
-    a-import-types(l, import-type.visit(self), name.visit(self), types.visit(self))
   end,
   a-import-file(self, l :: Loc, file :: String, name :: A.Name):
     a-import-file(l, file, name)
@@ -756,7 +789,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: StringD
 end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: StringDict<A.Name>) -> StringDict<A.Name>:
   cases(ALettable) e:
-    | a-module(_, ans, provs, types, checks) =>
+    | a-module(_, ans, dv, dt, provs, types, checks) =>
       freevars-v-acc(ans,
         freevars-v-acc(provs,
           freevars-list-acc(types.map(_.ann),
@@ -860,6 +893,18 @@ end
 
 fun freevars-v(v :: AVal) -> StringDict<A.Name>:
   freevars-v-acc(v, empty-dict)
+end
+
+fun freevars-prog(p :: AProg) -> StringDict<A.Name>:
+  cases(AProg) p:
+    | a-program(l, imports, body) =>
+      body-vars = freevars-e(body)
+      for fold(d from body-vars, i from imports):
+        for fold(shadow d from d, n from i.values + i.types):
+          d.remove(n.key())
+        end
+      end
+  end
 end
 
 rec empty-dict = [SD.string-dict:]

@@ -60,7 +60,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
   end
 end
 
-fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
+fun desugar(program :: A.Program):
   doc: ```
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
@@ -304,8 +304,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dv, dt, provides, types, checks) =>
+      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>

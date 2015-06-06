@@ -8,9 +8,12 @@ import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as CS
 import "compiler/concat-lists.arr" as CL
 import "compiler/js-dag-utils.arr" as DAG
+import "compiler/ast-util.arr" as AU
 import string-dict as D
 import srcloc as SL
 import sets as S
+
+string-dict = D.string-dict
 
 type Loc = SL.Srcloc
 type CList = CL.ConcatList
@@ -835,7 +838,7 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
 end
 
 compiler-visitor = {
-  a-module(self, l, answer, provides, types, checks):
+  a-module(self, l, answer, dvs, dts, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
       compiled = compile-ann(ann.ann, self)
       {
@@ -851,6 +854,19 @@ compiler-visitor = {
       rt-method("makeObject", [clist:
           j-obj([clist:
               j-field("answer", compiled-answer.exp),
+              j-field("namespace", NAMESPACE),
+              j-field("defined-values",
+                j-obj(
+                  for CL.map_list(dv from dvs):
+                    compiled-val = dv.value.visit(self).exp
+                    j-field(dv.name, compiled-val)
+                  end)),
+              j-field("defined-types",
+                j-obj(
+                  for CL.map_list(dt from dts):
+                    compiled-ann = compile-ann(dt.typ, self).exp
+                    j-field(dt.name, compiled-ann)
+                  end)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
                         j-field("values", compiled-provides.exp),
@@ -1337,26 +1353,50 @@ fun mk-abbrevs(l):
   ]
 end
 
+fun import-key(i): AU.import-to-dep-anf(i).key() end
 
-fun compile-program(self, l, imports, prog, freevars, env):
+fun compile-program(self, l, imports-in, prog, freevars, env):
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
-  remove-imports = for fold(shadow freevars from freevars, elt from imports.map(get-name)):
-    freevars.remove(elt.key())
+  imports = imports-in.sort-by(
+      lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
+      lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
+    )
+  shadow freevars =
+    for fold(fv from freevars, i from imports):
+      fv.remove(i.vals-name.key()).remove(i.types-name.key())
+    end
+  import-keys = for fold(vt from {vs: [string-dict:], ts: [string-dict:]}, i from imports):
+    new-vals = for fold(vs from vt.vs, v from i.values):
+      vs.set(v.key(), v)
+    end
+    new-types = for fold(ts from vt.ts, t from i.types):
+      ts.set(t.key(), t)
+    end
+    { vs: new-vals, ts: new-types }
   end
-  remove-types = for fold(shadow freevars from remove-imports, elt from imports.map(_.types)):
-    freevars.remove(elt.key())
-  end
-  free-ids = remove-types.keys-list().map(remove-types.get-value(_))
-  namespace-binds = for CL.map_list(n from free-ids):
+  free-ids = freevars.keys-list().map(freevars.get-value(_))
+  module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
+  global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     bind-name = cases(A.Name) n:
       | s-global(s) => n.toname()
       | s-type-global(s) => type-name(n.toname())
     end
     j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
   end
-  ids = imports.map(lam(i): js-id-of(i.name) end)
-  type-imports = imports.filter(N.is-a-import-types)
-  type-ids = type-imports.map(lam(i): js-id-of(i.types) end)
+  module-binds = for CL.map_list(n from module-and-global-binds.is-true):
+    bind-name = cases(A.Name) n:
+      | s-atom(_, _) =>
+        if import-keys.vs.has-key(n.key()):
+          n.toname()
+        else if import-keys.ts.has-key(n.key()):
+          type-name(n.toname())
+        end
+    end
+    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+  end
+  ids = imports.map(lam(i): js-id-of(i.vals-name) end)
+  type-imports = imports.filter(N.is-a-import-complete)
+  type-ids = type-imports.map(lam(i): js-id-of(i.types-name) end)
   filenames = imports.map(lam(i):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
@@ -1371,17 +1411,20 @@ fun compile-program(self, l, imports, prog, freevars, env):
           else if typ == "gdrive-js":
             "@gdrive-js/" + args.first + "/" + args.rest.first
           else:
-            raise("Should have been caught earlier: unhandled import-special-type")
+            # NOTE(joe): under new module loading, this doesn't actually matter
+            CS.dependency(typ, args).key()
           end
       end
     end)
   # this needs to be freshened to support multiple repl interactions with the "same" source
   module-id = fresh-id(compiler-name(l.source)).tosourcestring()
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = CL.map_list(lam(i): js-id-of(compiler-name(i.name.toname())) end, imports)
-  fun wrap-modules(mod-val-ids :: List<A.Name>, mod-input-names :: CList<A.Name>, body-name, body-fun):
+  input-ids = CL.map_list(lam(i): js-id-of(compiler-name(i.toname())) end, ids)
+  fun wrap-modules(modules, body-name, body-fun):
+    mod-input-names = CL.map_list(_.input-id, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
+    mod-val-ids = modules.map(get-id)
     moduleVal = const-id("moduleVal")
     j-return(rt-method("loadModulesNew",
         [clist: NAMESPACE, j-list(false, mod-input-ids),
@@ -1393,6 +1436,15 @@ fun compile-program(self, l, imports, prog, freevars, env):
               for CL.map_list2(mt from type-ids, in from mod-input-ids-list):
                 j-var(mt, rt-method("getField", [clist: in, j-str("types")]))
               end +
+              for CL.map_list(m from modules):
+                j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",
+                  [clist:
+                    NAMESPACE,
+                    j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.values)),
+                    j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
+                    j-id(m.input-id)])))
+              end +
+              module-binds +
               [clist: 
                 j-var(body-name, body-fun),
                 j-return(rt-method(
@@ -1405,6 +1457,9 @@ fun compile-program(self, l, imports, prog, freevars, env):
                           ])),
                       j-str("Evaluating " + body-name.toname())
                 ]))]))]))
+  end
+  module-specs = for map3(i from imports, id from ids, in-id from input-ids.to-list()):
+    { id: id, input-id: in-id, imp: i}
   end
   var locations = cl-empty
   var loc-count = 0
@@ -1442,8 +1497,8 @@ fun compile-program(self, l, imports, prog, freevars, env):
                       j-block([clist: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
                         [clist: define-locations] + 
-                        namespace-binds +
-                        [clist: wrap-modules(ids, input-ids, toplevel-name, toplevel-fun)]))])))]))])
+                        global-binds +
+                        [clist: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
 end
 
 fun non-splitting-compiler(env, options):

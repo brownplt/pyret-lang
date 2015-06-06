@@ -16,14 +16,6 @@ function(util,
           UnGrammar: PG.PyretGrammar,
           makeNamespace: function(rt) { return rt.namespace; },
           compileEnv: get(pcs, "standard-builtins")
-        },
-        "Bootstrap": { 
-          Tokenizer: BT.Tokenizer, 
-          UnTokenizer: BUT.Tokenizer,
-          Grammar: BG.BootstrapGrammar, 
-          UnGrammar: BUG.BootstrapGrammar,
-          makeNamespace: BN.create,
-          compileEnv: get(pcs, "bootstrap-builtins")
         }
       }
 

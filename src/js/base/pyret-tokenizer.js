@@ -208,6 +208,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LPAREN?", val: lparen, parenIsForExp: true},
 
     {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
+    {name: "INCLUDE", val: new RegExp(kw("include"), STICKY_REGEXP)},
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
