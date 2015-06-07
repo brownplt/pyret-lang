@@ -4,6 +4,8 @@
 *.out
 *.err
 *.bak
+.DS_Store
+*.log
 
 # benchmark
 tools/benchmark/TODO
