@@ -8,7 +8,6 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
         runtime.runThunk(f, then);
       });
     }
-    var dialect = options.dialect || "Pyret";
     var mainName = options.name || "repl-main";
     var typeCheck = options.typeCheck || false;
     return runtime.loadModules(namespace, [rs], function(replSupport) {
@@ -59,7 +58,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function restartInteractions(code) {
         var deferred = Q.defer();
         toRun = [];
-        eval.runParsePyret(runtime, code, { name: mainName, dialect: dialect, typeCheck: typeCheck }, function(astResult) {
+        eval.runParsePyret(runtime, code, { name: mainName, typeCheck: typeCheck }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runImmediate(function() {
               return get(replSupport, "make-provide-for-repl-main-env").app(astResult.result, initialCompileEnv);
@@ -90,7 +89,7 @@ define(["q", "js/eval-lib", "compiler/repl-support.arr"], function(Q, eval, rs) 
       function run(code, name) {
         var deferred = Q.defer();
         if (typeof name === "undefined") { name = "interactions "; }
-        eval.runParsePyret(runtime, code, { name: name, dialect: dialect, typeCheck: typeCheck }, function(astResult) {
+        eval.runParsePyret(runtime, code, { name: name, typeCheck: typeCheck }, function(astResult) {
           if(runtime.isSuccessResult(astResult)) {
             runImmediate(function() {
               return get(replSupport, "make-provide-for-repl").app(astResult.result);

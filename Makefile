@@ -302,7 +302,6 @@ parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1
 TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
 REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
-BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
 
 tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
@@ -312,9 +311,6 @@ tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
 
 tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
-
-tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : regression-test
 regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
@@ -344,13 +340,6 @@ compiler-test: $(PYRET_TEST_PREREQ)
 lib-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     -check-all tests/lib-test/lib-test-main.arr
-
-.PHONY : bootstrap-test
-bootstrap-test: $(PYRET_TEST_PREREQ) $(BS_TEST_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    --dialect Bootstrap \
-    -check-all tests/pyret/bootstrap-main.arr
 
 .PHONY : benchmark-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)

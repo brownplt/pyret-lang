@@ -116,13 +116,13 @@ check:
     e12.fun-loc.module-name is "num-tostring"
   end
   
-  e13 = get-err(lam(): P.parse-dialect("missing", "argument") end)
+  e13 = get-err(lam(): P.surface-parse("missing argument") end)
   e13 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e13):
-    e13.expected-arity is 3
-    e13.args.length() is 2
+    e13.expected-arity is 2
+    e13.args.length() is 1
     e13.fun-loc satisfies S.is-builtin
-    e13.fun-loc.module-name is "parse-dialect"
+    e13.fun-loc.module-name is "surface-parse"
   end
   
   e14 = get-err(lam(): P.surface-parse("too", "many", "arguments") end)
@@ -132,15 +132,6 @@ check:
     e14.args.length() is 3
     e14.fun-loc satisfies S.is-builtin
     e14.fun-loc.module-name is "surface-parse"
-  end
-  
-  e15 = get-err(lam(): P.parse-bootstrap("too", "many", "arguments") end)
-  e15 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e15):
-    e15.expected-arity is 2
-    e15.args.length() is 3
-    e15.fun-loc satisfies S.is-builtin
-    e15.fun-loc.module-name is "parse-bootstrap"
   end
   
   e16 = get-err(lam(): F.format("too", "many", "arguments") end)

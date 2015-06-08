@@ -18,12 +18,6 @@ left = E.left
 right = E.right
 
 
-fun parse-dialects(arg-index, name, val):
-  if (val == "Pyret") or (val == "Bootstrap"): left(val)
-  else: right(format("~a expected a dialect, got ~a", [list: name, torepr(val)]))
-  end
-end
-
 fun main(args):
   options = [D.string-dict:
     "compile-module-js",
@@ -45,10 +39,7 @@ fun main(args):
     "improper-tail-calls",
       C.flag(C.once, "Run without proper tail calls"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation"),
-    "dialect",
-        C.next-val-default(C.Custom("Pyret|Bootstrap", parse-dialects),
-          "Pyret", some("d"), C.once, "Dialect of Pyret to use when compiling")
+      C.flag(C.once, "Type-check the program during compilation")
   ]
   
   params-parsed = C.parse-args(options, args)
@@ -75,7 +66,6 @@ fun main(args):
         program-name = rest.first
         result = CM.compile-js(
           CM.start,
-          r.get-value("dialect"),
           F.file-to-string(program-name),
           program-name,
           CS.standard-builtins,
@@ -91,7 +81,7 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(comp-object) =>
-            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, r.get-value("dialect"), rest)
+            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
             if (exec-result.success):
               when check-mode:
                 results-str = exec-result.render-check-results()
@@ -144,7 +134,6 @@ fun main(args):
         else if r.has-key("compile-module-js"):
           result = CM.compile-js(
             CM.start,
-            r.get-value("dialect"),
             F.file-to-string(r.get-value("compile-module-js")),
             r.get-value("compile-module-js"),
             CS.standard-builtins,

@@ -2,7 +2,6 @@ define([
     "q",
     "js/secure-loader",
     "js/runtime-anf",
-    "js/dialects-lib",
     "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
@@ -10,7 +9,7 @@ define([
     "trove/parse-pyret",
     "trove/checker",
     "js/runtime-util"],
-function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib, util) {
+function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib, util) {
   if(util.isBrowser()) {
     var r = requirejs;
   }
@@ -32,7 +31,7 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
-    return runtime.loadJSModules(runtime.namespace, [ffiHelpersLib, dialectsLib], function(ffi, dialects) {
+    return runtime.loadJSModules(runtime.namespace, [ffiHelpersLib], function(ffi) {
       return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
         var name = options.name || randomName();
         var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
@@ -95,13 +94,10 @@ function(q, loader, rtLib, dialectsLib, ffiHelpersLib, csLib, compLib, replLib, 
   function parsePyret(runtime, src, options) {
     return runtime.loadModulesNew(runtime.namespace, [parseLib], function(parseLib) {
       var pp = runtime.getField(parseLib, "values");
-      return runtime.loadJSModules(runtime.namespace, [dialectsLib], function(dialects) {
-        if (!options.name) { options.name = randomName(); }
-          return runtime.getField(pp, "parse-dialect").app(
-                    runtime.makeString(options.dialect || dialects.defaultDialect), 
-                    runtime.makeString(src), 
-                    runtime.makeString(options.name));
-      });
+      if (!options.name) { options.name = randomName(); }
+        return runtime.getField(pp, "surface-parse").app(
+                  runtime.makeString(src), 
+                  runtime.makeString(options.name));
     });
   }
 

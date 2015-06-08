@@ -19,8 +19,6 @@ import file as F
 options = [SD.string-dict:
   "width",
     C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
-  "dialect",
-    C.next-val-default(C.String, "Pyret", some("d"), C.once, "Dialect to use"),
   "standard-builtins",
     C.flag(C.once, "Use standard buildins instead of minimal builtins"),
   "check-mode",
@@ -34,7 +32,6 @@ parsed-options = C.parse-cmdline(options)
 cases (C.ParsedArguments) parsed-options:
   | success(opts, rest) =>
     print-width = opts.get-value("width")
-    dialect = opts.get-value("dialect")
     libs =
       if opts.has-key("standard-builtins"):
         CS.standard-imports
@@ -51,7 +48,7 @@ cases (C.ParsedArguments) parsed-options:
         file-contents = F.file-to-string(file)
         print("")
 
-        comp = CM.compile-js(CM.start, dialect, file-contents, file, CS.standard-builtins, libs,
+        comp = CM.compile-js(CM.start, file-contents, file, CS.standard-builtins, libs,
           {
             check-mode: check-mode,
             collect-all: true,
