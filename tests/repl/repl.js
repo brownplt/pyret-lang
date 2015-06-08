@@ -1,6 +1,5 @@
 var r = require("requirejs")
-define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "js/ffi-helpers", 
-       "js/dialects-lib"], function(Q, rtLib, e, repl, ffiLib, dialectsLib) {
+define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "js/ffi-helpers", "compiler/compile-structs.arr"], function(Q, rtLib, e, repl, ffiLib, compileStructs) {
 
   var J = require('jasmine-node');
   var rt;
@@ -26,7 +25,6 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
   }
 
   function performTest() {
-    var dialect;
 
     beforeEach(function(done) {
       rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
@@ -34,15 +32,13 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       same = P.checkEvalsTo;
       err = P.checkError;
       ffi = ffiLib(rt, rt.namespace);
-      var dialectP = Q.defer();
-      rt.runThunk(function() {
-        return dialectsLib(rt, rt.namespace);
-      }, function(dResult) {
-        dialectP.resolve(dResult.result.dialects["Pyret"]);
+      var envP = Q.defer();
+      rt.loadModules(rt.namespace, [compileStructs], function(cs) {
+        envP.resolve(rt.getField(cs, "standard-builtins"));
       });
-      aRepl = dialectP.promise.then(function(dialectConfig) {
+      aRepl = envP.promise.then(function(env) {
         done();
-        return repl.create(rt, dialectConfig.makeNamespace(rt), dialectConfig.compileEnv, { name: "repl-test" + replCount++, dialect: "Pyret"});
+        return repl.create(rt, rt.namespace, env, { name: "repl-test" + replCount++});
       });
       aRepl.fail(function(err) {
         console.error("Failed to create repl: ", err);

@@ -199,7 +199,6 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
         | pyret-string(module-string) =>
           CM.compile-js(
             CM.start,
-            "Pyret",
             module-string,
             locator.uri(),
             ce,

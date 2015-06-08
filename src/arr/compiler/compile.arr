@@ -85,11 +85,11 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
   end
 end
 
-fun compile-js(trace, dialect, code, name, env :: C.CompileEnvironment, libs :: C.ExtraImports, options)
+fun compile-js(trace, code, name, env :: C.CompileEnvironment, libs :: C.ExtraImports, options)
   -> CompilationPhase<C.CompileResult<P.CompiledCodePrinter, Any>>:
   var ret = trace
-  ast = PP.parse-dialect(dialect, code, name)
-  when options.collect-all: ret := phase("Parsed (" + dialect + " dialect)", ast, ret) end
+  ast = PP.surface-parse(code, name)
+  when options.collect-all: ret := phase("Parsed", ast, ret) end
   compile-js-ast(ret, ast, name, env, libs, options)
 end
 

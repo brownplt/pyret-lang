@@ -8,7 +8,7 @@ compile-str = C.compile-str
 
 exec-result = lam(result):
   str = result.code.pyret-to-js-runnable()
-  X.exec(str, "test", ".", true, "Pyret", [list:])
+  X.exec(str, "test", ".", true, [list:])
 end
 run-str = lam(str):
   compiled = C.compile-str(str)
