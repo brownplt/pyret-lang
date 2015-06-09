@@ -64,7 +64,7 @@ fun main(args):
       tail-calls = not(r.has-key("improper-tail-calls"))
       if not(is-empty(rest)):
         program-name = rest.first
-        result = CM.compile-js(
+        var result = CM.compile-js(
           CM.start,
           F.file-to-string(program-name),
           program-name,
@@ -80,8 +80,11 @@ fun main(args):
           }
           ).result
         cases(CS.CompileResult) result:
-          | ok(comp-object) =>
-            exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
+          | ok(_) =>
+            var comp-object = result.code
+            result := nothing
+            var exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
+            comp-object := nothing
             if (exec-result.success):
               when check-mode:
                 results-str = exec-result.render-check-results()
@@ -132,7 +135,7 @@ fun main(args):
               proper-tail-calls: true,
             })
         else if r.has-key("compile-module-js"):
-          result = CM.compile-js(
+          var result = CM.compile-js(
             CM.start,
             F.file-to-string(r.get-value("compile-module-js")),
             r.get-value("compile-module-js"),
@@ -148,7 +151,10 @@ fun main(args):
             }
             ).result
           cases(CS.CompileResult) result:
-            | ok(comp-object) => comp-object.print-js-runnable(display)
+            | ok(_) =>
+              comp-object = result.code
+              result := nothing
+              comp-object.print-js-runnable(display)
             | err(errors) =>
               print-error("Compilation errors:")
               for lists.each(e from errors):

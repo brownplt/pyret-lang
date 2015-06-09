@@ -31,43 +31,58 @@ end
 
 fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
   var ret = phases
-  ast-ended = U.append-nothing-if-necessary(ast)
+  var ast-ended = U.append-nothing-if-necessary(ast)
   when options.collect-all:
     when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
   end
-  wf = W.check-well-formed(ast-ended.or-else(ast))
+  var wf = W.check-well-formed(ast-ended.or-else(ast))
+  ast-ended := nothing
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
   cases(C.CompileResult) wf:
-    | ok(wf-ast) =>
-      checked = checker(wf-ast)
+    | ok(_) =>
+      var wf-ast = wf.code
+      wf := nothing
+      var checked = checker(wf-ast)
+      wf-ast := nothing
       when options.collect-all:
         ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
           checked, ret)
       end
-      imported = U.wrap-extra-imports(checked, libs)
+      var imported = U.wrap-extra-imports(checked, libs)
+      checked := nothing
       when options.collect-all: ret := phase("Added imports", imported, ret) end
-      scoped = R.desugar-scope(imported, env)
+      var scoped = R.desugar-scope(imported, env)
+      imported := nothing
       when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
-      named-result = R.resolve-names(scoped, env)
+      var named-result = R.resolve-names(scoped, env)
+      scoped := nothing
       when options.collect-all: ret := phase("Resolved names", named-result, ret) end
-      named-ast = named-result.ast
+      var named-ast = named-result.ast
       named-errors = named-result.errors
-      desugared = D.desugar(named-ast)
+      named-result := nothing
+      var desugared = D.desugar(named-ast)
+      named-ast := nothing
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
-      type-checked =
+      var type-checked =
         if options.type-check: T.type-check(desugared, env)
         else: C.ok(desugared);
+      desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
-        | ok(tc-ast) =>
-          dp-ast = DP.desugar-post-tc(tc-ast, env)
-          cleaned = dp-ast.visit(U.merge-nested-blocks)
+        | ok(_) =>
+          var tc-ast = type-checked.code
+          type-checked := nothing
+          var dp-ast = DP.desugar-post-tc(tc-ast, env)
+          tc-ast := nothing
+          var cleaned = dp-ast.visit(U.merge-nested-blocks)
                           .visit(U.flatten-single-blocks)
                           .visit(U.link-list-visitor(env))
                           .visit(U.letrec-visitor)
+          dp-ast := nothing
           when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
           inlined = cleaned.visit(U.inline-lams)
+          cleaned := nothing
           when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
           any-errors = named-errors + U.check-unbound(env, inlined) + U.bad-assignments(env, inlined)
           if is-empty(any-errors):
