@@ -41,9 +41,9 @@ str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
-
+is-s-provide-complete = A.is-s-provide-complete
 data AProg:
-  | a-program(l :: Loc, imports :: List<AImport>, body :: AExpr) with:
+  | a-program(l :: Loc, provides :: A.Provide%(is-s-provide-complete), imports :: List<AImport>, body :: AExpr) with:
     label(self): "a-program" end,
     tosource(self):
       PP.group(
@@ -456,8 +456,8 @@ end
 
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
-    | a-program(_, imports, body) =>
-      a-program(dummy-loc, imports.map(strip-loc-import), body ^ strip-loc-expr)
+    | a-program(_, prov, imports, body) =>
+      a-program(dummy-loc, prov, imports.map(strip-loc-import), body ^ strip-loc-expr)
   end
 end
 
@@ -555,8 +555,8 @@ default-map-visitor = {
   a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
     a-module(l, answer.visit(self), dv, dt, provides.visit(self), types, checks.visit(self))
   end,
-  a-program(self, l :: Loc, imports :: List<AImport>, body :: AExpr):
-    a-program(l, imports.map(_.visit(self)), body.visit(self))
+  a-program(self, l :: Loc, p, imports :: List<AImport>, body :: AExpr):
+    a-program(l, p, imports.map(_.visit(self)), body.visit(self))
   end,
   a-import-file(self, l :: Loc, file :: String, name :: A.Name):
     a-import-file(l, file, name)
@@ -897,7 +897,7 @@ end
 
 fun freevars-prog(p :: AProg) -> StringDict<A.Name>:
   cases(AProg) p:
-    | a-program(l, imports, body) =>
+    | a-program(l, _, imports, body) =>
       body-vars = freevars-e(body)
       for fold(d from body-vars, i from imports):
         for fold(shadow d from d, n from i.values + i.types):

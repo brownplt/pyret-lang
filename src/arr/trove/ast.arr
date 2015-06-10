@@ -264,15 +264,33 @@ end
 data ProvidedValue:
   # INVARIANT(joe): all a-names in Ann are defined in the lists of
   # ProvidedAlias or ProvidedDatatype
-  | p-value(l :: Loc, v :: Name, ann :: Ann)
+  | p-value(l :: Loc, v :: Name, ann :: Ann) with:
+    label(self):
+      "p-value"
+    end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name.toname()), self.ann.tosource())
+    end
 end
 
 data ProvidedAlias:
-  | p-alias(l :: Loc, in-name :: Name, out-name :: Name, mod :: Option<ImportType>)
+  | p-alias(l :: Loc, in-name :: Name, out-name :: Name, mod :: Option<ImportType>) with:
+    label(self):
+      "p-alias"
+    end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-as, PP.str(self.in-name.toname()), PP.str(self.out-name.toname()))
+    end
 end
 
 data ProvidedDatatype:
-  | p-data(l :: Loc, d :: Name, mod :: Option<ImportType>)
+  | p-data(l :: Loc, d :: Name, mod :: Option<ImportType>) with:
+    label(self):
+      "p-data"
+    end,
+    tosource(self):
+      PP.str(self.name.toname())
+    end
 end
 
 data Provide:
@@ -290,8 +308,13 @@ data Provide:
     ) with:
     label(self): "s-provide" end,
     tosource(self):
-      PP.soft-surround(INDENT, 1, str-provide,
-        self.block.tosource(), str-end)
+      PP.str("provide-complete") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
+            PP.infix(INDENT, 1, str-colon,PP.str("Values"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
+            PP.infix(INDENT, 1, str-colon,PP.str("Data"), 
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
     end
   | s-provide-all(l :: Loc) with:
     label(self): "s-provide-all" end,
@@ -1406,6 +1429,9 @@ default-map-visitor = {
   s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
+  s-provide-complete(self, l, vals, typs, datas):
+    s-provide-complete(l, vals, typs, datas)
+  end,
   s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
   end,
@@ -1885,6 +1911,9 @@ default-iter-visitor = {
   s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
+  s-provide-complete(self, l, vals, typs, datas):
+    true
+  end,
   s-provide(self, l, expr):
     expr.visit(self)
   end,
@@ -2358,6 +2387,9 @@ dummy-loc-visitor = {
   end,
   s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
+  end,
+  s-provide-complete(self, l, vals, typs, datas):
+    s-provide-complete(dummy-loc, vals, typs, datas)
   end,
   s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))

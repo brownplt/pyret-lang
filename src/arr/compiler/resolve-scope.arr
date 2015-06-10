@@ -418,10 +418,10 @@ data ScopeBinding:
 end
 
 data TypeBinding:
-  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
   | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
   | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
 end
 
 fun scope-env-from-env(initial :: C.CompileEnvironment):
@@ -635,26 +635,59 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
-      #|
       var vals = nothing
       var typs = nothing
-      module-result = A.default-iter-visitor.{
-        s-module(_, _, dv, dt, _, _, _):
+      visit-body.visit(A.default-iter-visitor.{
+        s-module(_, _, _, dv, dt, _, _, _):
           vals := dv
           typs := dt
+          true
         end
-      }
+      })
       data-and-vals = for partition(v from vals):
-        e = bindings.get-now(v.value.name.key())
-        is-let-bind(e) and is-some(e.expr) and A.is-data-expr(e.expr.val)
+        e = bindings.get-value-now(v.value.id.key())
+        is-let-bind(e) and is-some(e.expr) and A.is-s-data-expr(e.expr.value)
       end
       data-defs = for map(dd from data-and-vals.is-true):
-        
+        d-binding = bindings.get-value-now(dd.value.id.key())
+        cases(ScopeBinding) d-binding:
+          # can't determine this yet
+          # | module-bind(loc, atom, 
+          | let-bind(loc, atom, ann, expr) =>
+            A.p-data(loc, atom, none)
+          | letrec-bind(loc, atom, ann, expr) =>
+            A.p-data(loc, atom, none)
+        end
       end
-      val-defs = data-and-vals.is-false
-      |#
+      val-defs = for map(vd from data-and-vals.is-false):
+        v-binding = bindings.get-value-now(vd.value.id.key())
+        cases(ScopeBinding) v-binding:
+          | letrec-bind(loc, atom, ann, expr) =>
+            A.p-value(loc, atom, ann)
+          | let-bind(loc, atom, ann, expr) =>
+            A.p-value(loc, atom, ann)
+          | var-bind(loc, atom, ann, expr) =>
+            A.p-value(loc, atom, ann)
+          | else => raise("Shouldn't happen, defined-value is global or module-defined: " + torepr(v-binding))
+        end
+      end
+      alias-defs = for map(td from typs):
+        t-binding = type-bindings.get-value-now(td.typ.id.key())
+        cases(TypeBinding) t-binding:
+          | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>) =>
+            A.p-alias(loc, atom, atom, none)
+          | else => raise("Shouldn't happen, defined-alias is not let-bound type: " + torepr(t-binding))
+        end
+      end
+      one-true-provide = A.s-provide-complete(
+        l,
+        data-defs,
+        val-defs,
+        alias-defs
+      )
       
-      A.s-program(l, _provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
+      
+      A.s-program(l, one-true-provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
