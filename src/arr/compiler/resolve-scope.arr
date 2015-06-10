@@ -646,7 +646,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       })
       data-and-vals = for partition(v from vals):
         e = bindings.get-value-now(v.value.id.key())
-        is-let-bind(e) and is-some(e.expr) and A.is-s-data-expr(e.expr.value)
+        is-let-bind(e) and is-some(e.expr) and A.is-data-expr(e.expr.value)
       end
       data-defs = for map(dd from data-and-vals.is-true):
         d-binding = bindings.get-value-now(dd.value.id.key())
