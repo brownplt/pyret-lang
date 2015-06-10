@@ -261,8 +261,33 @@ sharing:
   end
 end
 
+data ProvidedValue:
+  # INVARIANT(joe): all a-names in Ann are defined in the lists of
+  # ProvidedAlias or ProvidedDatatype
+  | p-value(l :: Loc, v :: Name, ann :: Ann)
+end
+
+data ProvidedAlias:
+  | p-alias(l :: Loc, in-name :: Name, out-name :: Name, mod :: Option<ImportType>)
+end
+
+data ProvidedDatatype:
+  | p-data(l :: Loc, d :: Name, mod :: Option<ImportType>)
+end
+
 data Provide:
   | s-provide(l :: Loc, block :: Expr) with:
+    label(self): "s-provide" end,
+    tosource(self):
+      PP.soft-surround(INDENT, 1, str-provide,
+        self.block.tosource(), str-end)
+    end
+  | s-provide-complete(
+      l :: Loc,
+      values :: List<ProvidedValue>,
+      aliases :: List<ProvidedAlias>,
+      data-definitions :: List<ProvidedDatatype>
+    ) with:
     label(self): "s-provide" end,
     tosource(self):
       PP.soft-surround(INDENT, 1, str-provide,

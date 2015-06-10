@@ -6,7 +6,9 @@ import ast as A
 import srcloc as SL
 import error-display as ED
 import string-dict as SD
+import "compiler/type-structs.arr" as TS
 
+type URI = String
 type StringDict = SD.StringDict
 string-dict = SD.string-dict
 
@@ -62,6 +64,25 @@ data Provides:
       types :: StringDict<TypeInfo>
       )
 end
+
+#|
+  data Globals:
+    | globals(
+        values :: StringDict<TS.Type>,
+        aliases :: StringDict<TS.Type>,
+        data-definitions :: StringDict<TS.DataType>
+      )
+  end
+
+  data Provides:
+    | provides(
+        from-uri :: URI,
+        values :: StringDict<TS.Type>,
+        aliases :: StringDict<TS.Type>,
+        data-definitions :: StringDict<TS.DataType>
+      )
+  end
+|#
 
 data CompileResult<C>:
   | ok(code :: C)

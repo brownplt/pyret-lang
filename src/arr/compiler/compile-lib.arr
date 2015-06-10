@@ -13,6 +13,12 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 import "compiler/ast-util.arr" as AU
+import "compiler/well-formed.arr" as W
+import "compiler/desugar.arr" as D
+import "compiler/desugar-post-tc.arr" as DP
+import "compiler/type-check.arr" as T
+import "compiler/desugar-check.arr" as CH
+import "compiler/resolve-scope.arr" as RS
 
 left = E.left
 right = E.right
@@ -32,9 +38,9 @@ data PyretCode:
 end
 
 data Loadable:
-  | module-as-string(compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
+  | module-as-string(#|provides :: CS.Provides,|# compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
   # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(compile-env :: CS.CompileEnvironment, internal-mod :: Any)
+  | pre-loaded(#|provides :: CS.Provides,|# compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
 
 type Provides = CS.Provides
@@ -155,6 +161,7 @@ end
 
 fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-worklist :: Function, compile-program :: Function }:
 
+  # Use ConcatList if it's easy
   fun compile-worklist(locator :: Locator, context :: a) -> List<ToCompile>:
     fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
       when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
@@ -181,7 +188,8 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
     for map(w from worklist):
       uri = w.locator.uri()
       if not(cache.has-key-now(uri)):
-        cr = compile-module(w.locator, w.dependency-map, options)
+        provide-map = dict-map(w.dependency-map, lam(_, v): v.get-provides() end)
+        cr = compile-module(w.locator, provide-map, options)
         cache.set-now(uri, cr)
         cr
       else:
@@ -190,33 +198,74 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
     end
   end
 
-  fun compile-module(locator :: Locator, dependencies :: SD.MutableStringDict<Locator>, options) -> Loadable:
-    provide-map = dict-map(dependencies, lam(_, v): v.get-provides() end)
+  fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, options) -> Loadable:
     if locator.needs-compile(provide-map):
+      env = CS.compile-env(locator.get-globals(), provide-map)
+      libs = locator.get-extra-imports()
       mod = locator.get-module()
-      ce = CS.compile-env(locator.get-globals(), provide-map)
-      cr = cases(PyretCode) mod:
+      ast = cases(PyretCode) mod:
         | pyret-string(module-string) =>
-          CM.compile-js(
-            CM.start,
-            module-string,
-            locator.uri(),
-            ce,
-            locator.get-extra-imports(),
-            options
-            ).result
+          P.surface-parse(module-string, locator.uri())
         | pyret-ast(module-ast) =>
-          CM.compile-js-ast(
-            CM.start,
-            module-ast,
-            locator.uri(),
-            ce,
-            locator.get-extra-imports(),
-            options
-            ).result
+          module-ast
       end
-      locator.set-compiled(module-as-string(ce, cr), provide-map)
-      module-as-string(ce, cr)
+      var ret = CM.start
+      phase = CM.phase
+      ast-ended = AU.append-nothing-if-necessary(ast)
+      when options.collect-all:
+        when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
+      end
+      wf = W.check-well-formed(ast-ended.or-else(ast))
+      when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
+      checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
+      cases(CS.CompileResult) wf:
+        | ok(wf-ast) =>
+          checked = checker(wf-ast)
+          when options.collect-all:
+            ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
+              checked, ret)
+          end
+          imported = AU.wrap-extra-imports(checked, libs)
+          when options.collect-all: ret := phase("Added imports", imported, ret) end
+          scoped = RS.desugar-scope(imported, env)
+          when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
+          named-result = RS.resolve-names(scoped, env)
+          when options.collect-all: ret := phase("Resolved names", named-result, ret) end
+          named-ast = named-result.ast
+          named-errors = named-result.errors
+          desugared = D.desugar(named-ast)
+          when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
+          type-checked =
+            if options.type-check: T.type-check(desugared, env)
+            else: CS.ok(desugared);
+          when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
+          cr = cases(CS.CompileResult) type-checked:
+            | ok(tc-ast) =>
+              dp-ast = DP.desugar-post-tc(tc-ast, env)
+              cleaned = dp-ast.visit(AU.merge-nested-blocks)
+                              .visit(AU.flatten-single-blocks)
+                              .visit(AU.link-list-visitor(env))
+                              .visit(AU.letrec-visitor)
+              when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
+              inlined = cleaned.visit(AU.inline-lams)
+              when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
+              any-errors = named-errors + AU.check-unbound(env, inlined) + AU.bad-assignments(env, inlined)
+              if is-empty(any-errors):
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, options)), ret)
+                end
+              else:
+                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                else: phase("Result", CS.err(any-errors), ret)
+                end
+              end
+            | err(_) => phase("Result", type-checked, ret)
+          end
+          mod-result = module-as-string(#|provides, |#env, cr.result)
+          locator.set-compiled(mod-result, provide-map)
+          mod-result
+        | err(_) => phase("Result", wf, ret)
+      end
     else:
       locator.get-compiled().value
     end
