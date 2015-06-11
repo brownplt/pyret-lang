@@ -16,8 +16,12 @@ mtd = [string-dict:]
 names = A.global-names
 
 data NameResolution:
-  | resolved(ast :: A.Program, errors :: List<C.CompileError>,
-      bindings :: SD.MutableStringDict, type-bindings :: SD.MutableStringDict)
+  | resolved(
+      ast :: A.Program,
+      errors :: List<C.CompileError>,
+      bindings :: SD.MutableStringDict,
+      type-bindings :: SD.MutableStringDict,
+      datatypes :: SD.MutableStringDict)
 end
 
 fun mk-bind(l, id) -> A.Expr: A.s-bind(l, false, id, A.a-blank);
@@ -453,6 +457,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   var name-errors = [list: ]
   bindings = SD.make-mutable-string-dict()
   type-bindings = SD.make-mutable-string-dict()
+  datatypes = SD.make-mutable-string-dict()
 
   fun make-anon-import-for(l, s, env, shadow bindings, b):
     atom = names.make-atom(s)
@@ -477,6 +482,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # NOTE(joe): an s-atom is pre-resolved to all its uses, so no need to add
       # it or do any more work.
       | s-atom(_, _) =>
+        binding = make-binding(A.dummy-loc, name)
+        env.set(name.key(), binding)
+        bindings.set-now(name.key(), binding)
         { atom: name, env: env }
       | else => raise("Unexpected atom type: " + torepr(name))
     end
@@ -522,6 +530,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: bind-env-and-atoms.env}))
           visit-expr = expr.visit(new-visitor)
           update-binding-expr(a, some(visit-expr))
+          when A.is-s-data-expr(visit-expr):
+            datatypes.set-now(a.key(), A.s-letrec-bind(l2, new-bind, visit-expr))
+          end
           A.s-letrec-bind(l2, new-bind, visit-expr)
       end
     end
@@ -644,22 +655,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           true
         end
       })
-      data-and-vals = for partition(v from vals):
-        e = bindings.get-value-now(v.value.id.key())
-        is-let-bind(e) and is-some(e.expr) and A.is-data-expr(e.expr.value)
+      data-defs = for map(ddk from datatypes.keys-list-now()):
+        dd = datatypes.get-value-now(ddk) 
+        A.p-data(dd.l, dd.b.id, none)
       end
-      data-defs = for map(dd from data-and-vals.is-true):
-        d-binding = bindings.get-value-now(dd.value.id.key())
-        cases(ScopeBinding) d-binding:
-          # can't determine this yet
-          # | module-bind(loc, atom, 
-          | let-bind(loc, atom, ann, expr) =>
-            A.p-data(loc, atom, none)
-          | letrec-bind(loc, atom, ann, expr) =>
-            A.p-data(loc, atom, none)
-        end
-      end
-      val-defs = for map(vd from data-and-vals.is-false):
+      val-defs = for map(vd from vals):
         v-binding = bindings.get-value-now(vd.value.id.key())
         cases(ScopeBinding) v-binding:
           | letrec-bind(loc, atom, ann, expr) =>
@@ -681,11 +681,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       one-true-provide = A.s-provide-complete(
         l,
-        data-defs,
         val-defs,
-        alias-defs
+        alias-defs,
+        data-defs
       )
-      
       
       A.s-program(l, one-true-provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
     end,
@@ -921,6 +920,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
   }
-  resolved(p.visit(names-visitor), name-errors, bindings, type-bindings)
+  resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end
 
