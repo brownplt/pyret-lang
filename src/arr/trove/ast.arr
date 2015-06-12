@@ -269,7 +269,7 @@ data ProvidedValue:
       "p-value"
     end,
     tosource(self):
-      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name.toname()), self.ann.tosource())
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
     end
 end
 
@@ -289,7 +289,7 @@ data ProvidedDatatype:
       "p-data"
     end,
     tosource(self):
-      PP.str(self.name.toname())
+      PP.str(self.d.toname())
     end
 end
 
