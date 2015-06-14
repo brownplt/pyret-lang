@@ -3,8 +3,10 @@ var ALLWIDTH = 601;
 var MARGIN = {'top': 30, 'left': 100, 'bottom': 45, 'right': 100};
 var NOMARGIN = {'top': 0, 'left': 0, 'bottom': 0, 'right': 0};
 
-define(["js/js-numbers", "d3"],
-    function (jsnums, d3) {
+define(["js/js-numbers"],
+    function (jsnums) {
+
+    return function(d3) {
 
     function assert(val, msg) {
         if (!val) { throw new Error("Assertion failed: " + (msg || "")); }
@@ -640,6 +642,12 @@ define(["js/js-numbers", "d3"],
             });
     }
 
+    function d3tipBuilder(d3tipLib) {
+      return function(detached) {
+        return d3tipLib(d3, detached);
+      }
+    }
+
     var d3common = {
         'getMargin': getMargin,
         'getDimension': getDimension,
@@ -647,7 +655,8 @@ define(["js/js-numbers", "d3"],
         'createDiv': createDiv,
         'createCanvas': createCanvas,
         'callBigBang': callBigBang,
-        'stylizeTip': stylizeTip
+        'stylizeTip': stylizeTip,
+        'd3tipBuilder': d3tipBuilder
     }
 
     return {
@@ -658,5 +667,7 @@ define(["js/js-numbers", "d3"],
         'libCheck': libCheck,
         'd3common': d3common,
         'assert': assert
+    };
+
     }
 });

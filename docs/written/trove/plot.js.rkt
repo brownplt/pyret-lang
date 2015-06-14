@@ -88,7 +88,7 @@
     A graph of a function of one variable.
 
     @member-spec["f" #:type "normal" #:contract (a-arrow N N)]{
-      A function to be graphed. It can yield error for some `x`
+      A function to be graphed. It can yield error for some @pyret{x}
       (such as division by zero or resulting in imaginary number).
     }
     @member-spec["options" #:type "normal" #:contract (type "PlotOptions")]
@@ -155,7 +155,7 @@
     #:return (L-of N)
   ]{
 
-  Display a histogram using data from `lst` with `n` bins. Range of the histogram is automatically inferred from the data.
+  Display a histogram using data from @pyret{lst} with @pyret{n} bins. Range of the histogram is automatically inferred from the data.
   }
 
   @function["pie-chart"
@@ -164,6 +164,6 @@
     #:return (SD-of N)
   ]{
 
-  Display a pie chart with texts being the key of `sd`
+  Display a pie chart with texts being the key of @pyret{sd}
   }
 }

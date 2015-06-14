@@ -84,13 +84,13 @@
                                        `("target" ("type" "normal") ("contract" ,(Vertex-of "a")))
                                        `("value" ("type" "normal") ("contract" ,"a"))
                                        `("options" ("type" "normal") ("contract" ,(type "EdgeOptions")))) (Edge-of "a" "b")]{
-    An edge of a graph. This could be both undirected edge or directed edge, depending on its `options`.
+    An edge of a graph. This could be both undirected edge or directed edge, depending on its @pyret{options}.
     @member-spec["source" #:type "normal" #:contract (Vertex-of "a")]{
-      A vertex. This must a reference of an existing @pyret-id{Vertex}. If the edge's `options` specifies that this edge
+      A vertex. This must a reference of an existing @pyret-id{Vertex}. If the edge's @pyret{options} specifies that this edge
       is directed, this vertex is the source of the edge.
     }
     @member-spec["target" #:type "normal" #:contract (Vertex-of "a")]{
-      A vertex. This must a reference of an existing @pyret-id{Vertex}. If the edge's `options` specifies that this edge
+      A vertex. This must a reference of an existing @pyret-id{Vertex}. If the edge's @pyret{options} specifies that this edge
       is directed, this vertex is the target of the edge.
     }
     @member-spec["value" #:type "normal" #:contract "b"]{
@@ -130,8 +130,8 @@
       A list of vertices.
     }
     @member-spec["edges" #:type "normal" #:contract (L-of (Edge-of "a" "b"))]{
-      A list of edges. Edges' `source` and `target` must be references of @pyret-id{Vertex} in the `vertices` list. In other words,
-      For all `a` which is Edges' `source` and `target`, there must be a @pyret-id{Vertex} `b` in `vertices` such that
+      A list of edges. Edges' @pyret{source} and @pyret{target} must be references of @pyret-id{Vertex} in the @pyret{vertices} list. In other words,
+      For all @pyret{a} which is Edges' @pyret{source} and @pyret{target}, there must be a @pyret-id{Vertex} @pyret{b} in @pyret{vertices} such that
       @pyret{identical(a, b)}.
     }
   }

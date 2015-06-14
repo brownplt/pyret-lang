@@ -1,31 +1,29 @@
-requirejs.config({
-  paths: {
-    "d3": "https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min"
-  }
-});
-define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
+define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         "trove/image-lib", "trove/d3-lib", "trove/plot-structs",
-        "d3", "../../../node_modules/d3-tip/index"],
-       function(util, jsnums, sdLib, imageLib, clib, structsLib, d3, d3tip) {
-         
+        "../../../node_modules/d3/d3", "../../../node_modules/d3-tip/index"],
+       function(util, jsnums, eitherLib, sdLib, imageLib,
+                clib, structsLib, d3, d3tipLib) {
+
   var HISTOGRAM_N = 100;
   var CError = {
     "RANGE": "x-min and y-min must be strictly less than " +
     "x-max and y-max respectively."
   };
-  var libData = clib.libData,
-    libNum = clib.libNum,
-    libJS = clib.libJS,
-    libColor = clib.libColor,
-    libCheck = clib.libCheck,
-    getMargin = clib.d3common.getMargin,
-    getDimension = clib.d3common.getDimension,
-    svgTranslate = clib.d3common.svgTranslate,
-    createDiv = clib.d3common.createDiv,
-    createCanvas = clib.d3common.createCanvas,
-    callBigBang = clib.d3common.callBigBang,
-    stylizeTip = clib.d3common.stylizeTip;
-    
+  var libs = clib(d3);
+  var libData =    libs.libData,
+    libNum =       libs.libNum,
+    libJS =        libs.libJS,
+    libColor =     libs.libColor,
+    libCheck =     libs.libCheck,
+    getMargin =    libs.d3common.getMargin,
+    getDimension = libs.d3common.getDimension,
+    svgTranslate = libs.d3common.svgTranslate,
+    createDiv =    libs.d3common.createDiv,
+    createCanvas = libs.d3common.createCanvas,
+    callBigBang =  libs.d3common.callBigBang,
+    stylizeTip =   libs.d3common.stylizeTip;
+    d3tip =        libs.d3common.d3tipBuilder(d3tipLib);
+
   function appendAxis(xMin, xMax, yMin, yMax, width, height, canvas) {
     /*
      * Appends axes to canvas
@@ -124,7 +122,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
       'opacity': 0.6
     });
   }
-  
+
   function plotBar(xMin, xMax, yMin, yMax, width, height, data, histogramn, detached, canvas) {
 
     /*
@@ -184,7 +182,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
 
     stylizeTip(detached);
   }
-  
+
   function putLabel(label, width, height, detached, margin) {
     var supportedTags = [
       ["<sup>", "<tspan baseline-shift='super'>"],
@@ -210,23 +208,28 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
       'text-anchor': 'middle'
     });
   }
-  
+
   return function(rt, namespace) {
-    var gf = rt.getField;
-    var SD = sdLib(rt, rt.namespace);
-    var IMAGE = imageLib(rt, rt.namespace);
-    var STRUCTS = structsLib(rt, rt.namespace);
-    
+
+  var gf = rt.getField;
+  var IMAGE = imageLib(rt, rt.namespace);
+
+  return rt.loadModulesNew(namespace, [structsLib, sdLib, eitherLib], function(STRUCTS, SD, EITHER) {
+    var Either = gf(gf(EITHER, "values"), "is-Either");
+    var structFuns = gf(STRUCTS, "values");
+    var PlotInt = gf(structFuns, "is-PlotInt");
+    var Plot = gf(structFuns, "is-Plot");
+
     function parsePoints(points) {
       return rt.ffi.toArray(points).map(
         function (e) { return {'x': gf(e, "x"), 'y': gf(e, "y")}; }
       );
     }
-    
+
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-    
+
     function histogramPlot(lst, n) {
       rt.checkArity(2, arguments, "histogram-plot");
       rt.checkList(lst);
@@ -279,7 +282,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
 
       callBigBang(rt, detached);
     }
-    
+
     function pieChart(sdValue) {
       /*
        * Part of this function is adapted from:
@@ -287,7 +290,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
        */
       rt.checkArity(1, arguments, "pie-chart");
 
-      var annImmutable = SD.dict["provide-plus-types"].dict.types.StringDict;
+      var annImmutable = gf(SD, "types").StringDict;
 
       var checkISD = function (v) {
         rt._checkAnn(["string-dict"], annImmutable, v);
@@ -379,14 +382,12 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
           d3.select(this.parentNode)
             .selectAll(".path")
             .style('opacity', '0.4');
-          console.log('in', e)
           tip.show(e);
         })
         .on("mouseout", function (e) {
           d3.select(this.parentNode)
             .selectAll(".path")
             .style('opacity', '0.9');
-            console.log('out', e);
           tip.hide(e);
         });
 
@@ -394,7 +395,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
       canvas.selectAll('text').style({'font-size': '15px'});
       callBigBang(rt, detached);
     }
-    
+
     function genericPlot(lst, windowOption, plotOptions, allID) {
       rt.checkArity(4, arguments, "generic-plot");
       rt.checkList(lst);
@@ -423,17 +424,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
       appendAxis(xMin, xMax, yMin, yMax, width, height, canvas);
 
       var colorConverter = libColor.convertColor(rt, IMAGE);
-
-      var plots = rt.ffi.toArray(lst).map(
-        function (e) {
-          return {
-            'points': parsePoints(gf(e, "points")),
-            'id': gf(e, "id"),
-            'type': e["$name"]
-          };
-        }
-      );
-
       var colors = rt.ffi.toArray(plotOptions).map(
         function (e) {
           return colorConverter(gf(e, "color"));
@@ -499,21 +489,18 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
         stylizeTip(detached);
       }
 
-      plots.forEach(function (e) {
-        // would be nice to use cases like in
-        // http://cs.brown.edu/~joe/public/docs/ffi.html#%28part._.F.F.I_cases%29
-        // But HOW?
-        if (e.type === "line-plot-int") {
-          plotLine(e.points, e.id, xMin, xMax, yMin, yMax,
-               width, height, canvas);
-        } else if (e.type == "scatter-plot-int") {
-          plotPoints(e.points, e.id, xMin, xMax, yMin, yMax,
-                 width, height, canvas, detached);
-        } else {
-          throw "plot model not supported";
-        }
+      rt.ffi.toArray(lst).forEach(function (e) {
+        rt.ffi.cases(PlotInt, "PlotInt", e, {
+          "line-plot-int": function(pts, id) {
+            plotLine(parsePoints(pts), id, xMin, xMax, yMin, yMax,
+              width, height, canvas);
+          },
+          "scatter-plot-int": function(pts, id) {
+            plotPoints(parsePoints(pts), id, xMin, xMax, yMin, yMax,
+              width, height, canvas, detached);
+          }
+        });
       });
-
 
       libData.fill(allID, 0).forEach(function (e, i) {
         canvas.selectAll('.plotting' + i.toString()).style(
@@ -531,19 +518,20 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
 
       callBigBang(rt, detached);
     }
-    
+
     function inferBounds(lst) {
       rt.checkArity(1, arguments, "infer-bounds");
       rt.checkList(lst);
 
-      // TODO: check if all are Plot
+      function returnPts(pts, _) { return parsePoints(pts); }
+
       var dataPoints = libData.flatten(rt.ffi.toArray(lst).map(
-        function (pts) {
-          if (rt.hasField(pts, "points")) {
-            return parsePoints(gf(pts, "points"));
-          } else {
-            return [];
-          }
+        function (obj) {
+          return rt.ffi.cases(Plot, "Plot", obj, {
+            'line-plot': returnPts,
+            'scatter-plot': returnPts,
+            'xy-plot': function(_, _){ return []; }
+          });
         }));
 
       var xMin, xMax, yMin, yMax;
@@ -596,7 +584,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
         'y-max': yMax
       });
     }
-    
+
     function generateXY(f, xMin, xMax, yMin, yMax) {
       rt.checkArity(5, arguments, "generate-xy");
       rt.checkFunction(f);
@@ -811,9 +799,10 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
               });
             });
           }).map(rt.ffi.makeList);
+
       return rt.ffi.makeList(ans);
     }
-    
+
     return util.makeModuleReturn(rt, {}, {
       "generic-plot": rt.makeFunction(genericPlot),
       "infer-bounds": rt.makeFunction(inferBounds),
@@ -821,5 +810,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/string-dict",
       "histogram-plot": rt.makeFunction(histogramPlot),
       "pie-chart": rt.makeFunction(pieChart)
     });
+  });
+
   };
 });

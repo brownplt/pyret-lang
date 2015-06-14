@@ -1,24 +1,22 @@
-requirejs.config({
-  paths: {
-    "d3": "https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min"
-  }
-});
 define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/d3-lib",
-        "d3", "../../../node_modules/d3-tip/index"],
-       function(util, jsnums, imageLib, clib, d3, d3tip){
-  var libData = clib.libData,
-    libNum = clib.libNum,
-    libJS = clib.libJS,
-    libColor = clib.libColor,
-    libCheck = clib.libCheck,
-    getMargin = clib.d3common.getMargin,
-    getDimension = clib.d3common.getDimension,
-    svgTranslate = clib.d3common.svgTranslate,
-    createDiv = clib.d3common.createDiv,
-    createCanvas = clib.d3common.createCanvas,
-    callBigBang = clib.d3common.callBigBang,
-    stylizeTip = clib.d3common.stylizeTip,
-    assert = clib.assert;
+        "../../../node_modules/d3/d3", "../../../node_modules/d3-tip/index"],
+       function(util, jsnums, imageLib, clib, d3, d3tipLib){
+
+  var libs = clib(d3);
+  var libData =    libs.libData,
+    libNum =       libs.libNum,
+    libJS =        libs.libJS,
+    libColor =     libs.libColor,
+    libCheck =     libs.libCheck,
+    getMargin =    libs.d3common.getMargin,
+    getDimension = libs.d3common.getDimension,
+    svgTranslate = libs.d3common.svgTranslate,
+    createDiv =    libs.d3common.createDiv,
+    createCanvas = libs.d3common.createCanvas,
+    callBigBang =  libs.d3common.callBigBang,
+    stylizeTip =   libs.d3common.stylizeTip,
+    assert =       libs.assert,
+    d3tip =        libs.d3common.d3tipBuilder(d3tipLib);
 
   return function(rt, namespace) {
     var IMAGE = imageLib(rt, rt.namespace);
