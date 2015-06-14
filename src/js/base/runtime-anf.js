@@ -1390,9 +1390,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
        function(val){
         thisRuntime.checkArity(1, arguments, "print");
-        display.app(val);
-        theOutsideWorld.stdout("\n");
-        return val;
+        return thisRuntime.safeCall(function() {
+          display.app(val);
+          theOutsideWorld.stdout("\n");
+        }, function(_) {
+          return val;
+        });
     });
 
     var display = makeFunction(
@@ -1405,13 +1408,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
        function(val){
         thisRuntime.checkArity(1, arguments, "display");
         if (isString(val)) {
-          var repr = val;
+          theOutsideWorld.stdout(val);
+          return val;
         }
         else {
-          var repr = toReprJS(val, ReprMethods._tostring);
+          return thisRuntime.safeCall(function() {
+            return toReprJS(val, ReprMethods._tostring);
+          }, function(repr) {
+            theOutsideWorld.stdout(repr);
+            return val;
+          });
         }
-        theOutsideWorld.stdout(repr);
-        return val;
     });
 
     var print_error = makeFunction(
