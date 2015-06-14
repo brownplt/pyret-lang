@@ -1392,8 +1392,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         thisRuntime.checkArity(1, arguments, "print");
         return thisRuntime.safeCall(function() {
           display.app(val);
-          theOutsideWorld.stdout("\n");
         }, function(_) {
+          theOutsideWorld.stdout("\n");
           return val;
         });
     });
