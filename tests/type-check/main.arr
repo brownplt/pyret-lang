@@ -14,7 +14,6 @@ end
 compile-str = lam(filename, str):
   CM.compile-js(
           CM.start,
-          "Pyret",
           str,
           filename,
           CS.minimal-builtins,
