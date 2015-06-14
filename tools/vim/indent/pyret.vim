@@ -1,7 +1,7 @@
 " Vim indent file
 " Language:    Pyret
 " Maintainer:  Dorai Sitaram, ds26gte.github.io
-" Last Change: 2015-06-03
+" Last Change: 2015-06-12
 
 if exists("b:did_indent")
   finish
@@ -16,7 +16,7 @@ if exists("*GetPyretIndent")
   finish
 endif
 
-let s:pyretIndentOpeningWords = 'ask\|cases\|catch\|check\|data\|for\|fun\|if\|sharing\|switch\|try\|while'
+let s:pyretIndentOpeningWords = 'ask\|cases\|catch\|check\|data\|for\|fun\|if\|sharing\|switch\|try\|when\|while'
 
 let s:pyretIndentMiddleWords = 'case\|catch\|else\|elseif\|sharing\|where'
 
@@ -26,20 +26,32 @@ let s:pyretIndentClosingWords = 'end'
 
 let s:pyretIndentOpeningBrace = '\(#.*\)\@<!{\s*$'
 
-let s:pyretIndentClosingBrace = '\(#.*\)\@<!}\s*$'
+"let s:pyretIndentClosingBrace = '\(#.*\)\@<!}\s*$'
 
-let s:pyretIndentFunctionStart = '\(#.*\)\@<!):\s*$'
+let s:pyretIndentClosingBrace = '^\s*}\s*$'
+
+let s:pyretIndentClosingStruct = '\(#.*\)\@<!\]\s*$'
+
+let s:pyretIndentOpeningStruct = '\(#.*\)\@<!\[[-[:alpha:]]\+:\s*$'
+
+let s:pyretIndentClosingStruct = '\(#.*\)\@<!\]\s*$'
+
+let s:pyretIndentOpeningFunction = '\(#.*\)\@<!):\s*$'
 
 let s:pyretIndentPipe = '^\s*|'
 
-let s:pyretIndentOpeners = '^\s*\(' . s:pyretIndentOpeningWords . '\>\)'
-      \. '\|' . s:pyretIndentMiddleWords
-      \. '\|' . s:pyretIndentOpeningBrace
-      \. '\|' . s:pyretIndentFunctionStart
+let s:pyretIndentOpeners =
+      \  '^\s*\(' . s:pyretIndentOpeningWords . '\)\>\|'
+      \. '^\s*\(' . s:pyretIndentMiddleWords . '\)\>\|'
+      \. s:pyretIndentOpeningBrace . '\|'
+      \. s:pyretIndentOpeningFunction . '\|'
+      \. s:pyretIndentOpeningStruct
 
-let s:pyretIndentClosers = '^\s*\(' . s:pyretIndentClosingWords . '\>\)'
-      \. '\|' . s:pyretIndentMiddleWords
-      \. '\|' . s:pyretIndentClosingBrace
+let s:pyretIndentClosers =
+      \  '^\s*\(' . s:pyretIndentClosingWords . '\)\>\|'
+      \. '^\s*\(' . s:pyretIndentMiddleWords . '\)\>\|'
+      \. s:pyretIndentClosingBrace . '\|'
+      \. s:pyretIndentClosingStruct
 
 func! s:PyretIndentClosingPipe(cnum)
   let l:pnum = a:cnum - 1
