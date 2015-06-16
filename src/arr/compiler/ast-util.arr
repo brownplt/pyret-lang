@@ -875,25 +875,25 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
       cases(A.Provide) provide-complete:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = for fold(sd from [SD.string-dict:], v from values):
-            sd.set(v.v.key(), typed.info.typs.get-value-now(v.v.key()))
+            sd.set(v.v.toname(), typed.info.typs.get-value-now(v.v.key()))
           end
           alias-typs = for fold(sd from [SD.string-dict:], a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
             print(typed.info)
             cases(Option) typed.info.data-exprs.get-now(a.in-name.key()):
-              | some(typ) => sd.set(a.out-name.key(), typ)
+              | some(typ) => sd.set(a.out-name.toname(), typ)
               | none => 
                 cases(Option) typed.info.branders.get-now(a.in-name.key()):
-                  | some(typ) => sd.set(a.out-name.key(), typ)
+                  | some(typ) => sd.set(a.out-name.toname(), typ)
                   | else =>
                     typ = typed.info.aliases.get-value-now(a.in-name.key())
-                    sd.set(a.out-name.key(), typ)
+                    sd.set(a.out-name.toname(), typ)
                 end
             end
           end
           data-typs = for fold(sd from [SD.string-dict:], d from datas):
             print(typed.info.data-exprs)
-            sd.set(d.d.key(), typed.info.data-exprs.get-value-now(d.d.key()))
+            sd.set(d.d.toname(), typed.info.data-exprs.get-value-now(d.d.key()))
           end
           CS.provides(
               uri,

@@ -652,7 +652,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         dd = datatypes.get-value-now(ddk) 
         A.p-data(dd.l, dd.namet, none)
       end
-      val-defs = for map(vd from vals):
+      non-module-vals = for filter(vd from vals):
+        binding = bindings.get-value-now(vd.value.id.key())
+        not(is-some(binding.expr) and is-s-import-complete(binding.expr.value))
+      end
+      val-defs = for map(vd from non-module-vals):
         v-binding = bindings.get-value-now(vd.value.id.key())
         cases(ScopeBinding) v-binding:
           | letrec-bind(loc, atom, ann, expr) =>

@@ -794,6 +794,7 @@ fun lookup-id(blame-loc :: A.Loc, id, info :: TCInfo) -> FoldResult<Type>:
               else:
                 A.s-id(blame-loc, A.s-global(tostring(id)))
               end
+    raise(id-expr)
     fold-errors([list: C.unbound-id(id-expr)])
   end
 end
@@ -1244,22 +1245,25 @@ end
 fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, typs, checks) =>
-      synthesis(provides, info).check-bind(
-        lam(new-provides, provides-loc, provides-typ):
-          for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
-            wrapped = for foldl-result(base from fold-result(SD.make-string-dict()),
-                                                  tm from new-typs):
-              for bind(dt from as-datatype(tm.field-name, tm.typ, info)):
-                fold-result(base.set(tm.field-name, dt))
-              end
-            end
-            for check-bind(to-export from wrapped):
-              info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
-              checking(answer, expect-loc, expect-typ, info)
-                .map(A.s-module(l, _, dvs, dts, provides, typs, checks))
-            end
-          end
-        end)
+      checking(answer, expect-loc, expect-typ, info)
+        .map(A.s-module(l, _, dvs, dts, provides, typs, checks))
+      #synthesis(provides, info).check-bind(
+      #  lam(new-provides, provides-loc, provides-typ):
+      #    print(typs)
+      #    for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
+      #      wrapped = for foldl-result(base from fold-result(SD.make-string-dict()),
+      #                                            tm from new-typs):
+      #        print(tm.field-name)
+      #        print(tm.typ)
+      #        for bind(dt from as-datatype(tm.field-name, tm.typ, info)):
+      #          fold-result(base.set(tm.field-name, dt))
+      #        end
+      #      end
+      #      for check-bind(to-export from wrapped):
+      #        info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
+      #      end
+      #    end
+      #  end)
     | s-type-let-expr(l, binds, body) =>
       for check-bind(_ from handle-type-let-binds(binds, info)):
         checking(body, expect-loc, expect-typ, info)
@@ -1511,7 +1515,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
                 info.typs.set-now(vname.key(), mod.provides)
               | none =>
                 mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
-                val-provides = t-record(for map(k from mod.values.keys-list()): TS.t-member(k, mod.values.get-value(k)) end)
+                val-provides = t-record(for map(v from vals): TS.t-member(v.toname(), mod.values.get-value(v.toname())) end)
                 module-type = TS.t-module(
                     key,
                     val-provides,
@@ -1519,12 +1523,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
                     mod.aliases)
                 info.modules.set-now(key, module-type)
                 info.typs.set-now(vname.key(), val-provides)
+                info.aliases.set-now(tname.key(), TS.t-top)
                 for each(d from mod.data-definitions.keys-list()):
                   info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
                 end
-                for each(a from mod.aliases.keys-list()):
-                  info.aliases.set-now(a, mod.aliases.get-value(a))
-                end
+                #for each(a from mod.aliases.keys-list()):
+                #  info.aliases.set-now(a, mod.aliases.get-value(a))
+                #end
             end
           | else => raise("typechecker received incomplete import")
         end
