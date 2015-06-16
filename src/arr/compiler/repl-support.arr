@@ -131,13 +131,12 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
     get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
     name(self): name end,
-    set-compiled(self, ctxt, provs): nothing end,
+    set-compiled(self, env, result): nothing end,
     get-compiled(self): none end,
     _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
@@ -158,13 +157,12 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
     get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): repl.get-current-globals() end,
     get-namespace(self, runtime): repl.get-current-namespace() end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
     name(self): name end,
-    set-compiled(self, ctxt, provs): nothing end,
+    set-compiled(self, env, result): nothing end,
     get-compiled(self): none end,
     _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }

@@ -28,6 +28,10 @@ t-module                  = TS.t-module
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.make-string-dict()
 
+data Typed:
+  | typed(ast :: A.Program, info :: TCInfo)
+end
+
 data TCInfo:
   | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
             aliases    :: SD.MutableStringDict<TS.Type>,
@@ -43,13 +47,13 @@ sharing:
   _output(self):
     VS.vs-constr("tc-info",
       [list:
-        VS.value(mut-dict-to-string(self.typs)),
-        VS.value(mut-dict-to-string(self.aliases)),
-        VS.value(mut-dict-to-string(self.data-exprs)),
-        VS.value(mut-dict-to-string(self.branders)),
-        VS.value(mut-dict-to-string(self.modules)),
-        VS.value(self.binds),
-        VS.value(self.errors.get())])
+        VS.vs-value(mut-dict-to-string(self.typs)),
+        VS.vs-value(mut-dict-to-string(self.aliases)),
+        VS.vs-value(mut-dict-to-string(self.data-exprs)),
+        VS.vs-value(mut-dict-to-string(self.branders)),
+        VS.vs-value(mut-dict-to-string(self.modules)),
+        VS.vs-value(self.binds),
+        VS.vs-value(self.errors.get())])
   end
 end
 

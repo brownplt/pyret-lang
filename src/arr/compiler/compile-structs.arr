@@ -28,6 +28,16 @@ data Dependency:
     key(self): "builtin(" + self.modname + ")" end
 end
 
+data NameResolution:
+  | resolved(
+      ast :: A.Program,
+      errors :: List<CompileError>,
+      bindings :: SD.MutableStringDict,
+      type-bindings :: SD.MutableStringDict,
+      datatypes :: SD.MutableStringDict)
+end
+
+
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
 data ExtraImports:
@@ -58,6 +68,7 @@ data TypeInfo:
   | t-just-there
 end
 
+#|
 data Provides:
   | provides(
       values :: StringDict<ValInfo>,
@@ -65,7 +76,6 @@ data Provides:
       )
 end
 
-#|
   data Globals:
     | globals(
         values :: StringDict<TS.Type>,
@@ -73,16 +83,16 @@ end
         data-definitions :: StringDict<TS.DataType>
       )
   end
-
-  data Provides:
-    | provides(
-        from-uri :: URI,
-        values :: StringDict<TS.Type>,
-        aliases :: StringDict<TS.Type>,
-        data-definitions :: StringDict<TS.DataType>
-      )
-  end
 |#
+
+data Provides:
+  | provides(
+      from-uri :: URI,
+      values :: StringDict<TS.Type>,
+      aliases :: StringDict<TS.Type>,
+      data-definitions :: StringDict<TS.DataType>
+    )
+end
 
 data CompileResult<C>:
   | ok(code :: C)

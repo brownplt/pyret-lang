@@ -14,6 +14,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
           "is-failure-result",
           "get-result-answer",
           "get-result-compile-env",
+          "get-result-provides",
           "render-check-results",
           "render-error-message"
         ],
@@ -74,6 +75,9 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       }
       function getResultCompileEnv(mr) {
         return mr.val.compileEnv;
+      }
+      function getResultProvides(mr) {
+        return mr.val.provides;
       }
       function getModuleResultRuntime(mr) {
         return mr.val.runtime;

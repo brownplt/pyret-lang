@@ -48,20 +48,20 @@ fun make-repl<a>(
   fun update-env(result, loc):
     nspace := N.make-namespace-from-result(result)
     globals := filter-env-by-imports(L.get-result-compile-env(result), loc, globals)
-    provided = loc.get-provides().values.keys-list()
-    new-vals = for fold(vs from globals.values, provided-name from provided):
-      vs.set(provided-name, CS.v-just-there)
-    end
-    tprovided = loc.get-provides().types.keys-list()
-    new-types = for fold(ts from globals.types, provided-name from tprovided):
-      ts.set(provided-name, CS.t-just-there)
-    end
-    globals := CS.globals(new-vals, new-types)
+    #provided = loc.get-provides().values.keys-list()
+    #new-vals = for fold(vs from globals.values, provided-name from provided):
+    #  vs.set(provided-name, CS.v-just-there)
+    #end
+    #tprovided = loc.get-provides().types.keys-list()
+    #new-types = for fold(ts from globals.types, provided-name from tprovided):
+    #  ts.set(provided-name, CS.t-just-there)
+    #end
+    #globals := CS.globals(new-vals, new-types)
   end
 
   fun restart-interactions():
     worklist = compile-lib.compile-worklist(defs-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
+    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options.{type-check: true})
     globals := defs-locator.get-globals()
     cases(Either) result:
       | right(answer) =>
@@ -76,7 +76,7 @@ fun make-repl<a>(
 
   fun run-interaction(repl-locator :: CL.Locator):
     worklist = compile-lib.compile-worklist(repl-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options)
+    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options.{type-check: true})
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):

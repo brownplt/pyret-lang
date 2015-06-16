@@ -47,6 +47,9 @@ fun mockable-file-locator(file-ops):
     end,
     needs-compile(self, provides):
       # does not handle provides from dependencies currently
+      # NOTE(joe): Until we serialize provides correctly, just return false here
+      false
+      #|
       cpath = self.path + ".js"
       if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
         stimes = file-ops.file-times(self.path)
@@ -55,6 +58,7 @@ fun mockable-file-locator(file-ops):
       else:
         true
       end
+      |#
     end,
     get-compiled(self):
       cpath = self.path + ".js"

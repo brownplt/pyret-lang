@@ -38,9 +38,9 @@ data PyretCode:
 end
 
 data Loadable:
-  | module-as-string(#|provides :: CS.Provides,|# compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
+  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
   # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(#|provides :: CS.Provides,|# compile-env :: CS.CompileEnvironment, internal-mod :: Any)
+  | pre-loaded(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
 
 type Provides = CS.Provides
@@ -62,10 +62,6 @@ type Locator = {
 
   # Post- or pre- compile
   # get-import-names :: ( -> List<String>),
-
-  # Pre-compile (so other modules can know what this module provides
-  # type-wise)
-  get-provides :: ( -> Provides),
 
   # Pre-compile, specification of available globals
   get-globals :: ( -> CS.Globals),
@@ -188,10 +184,13 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
     for map(w from worklist):
       uri = w.locator.uri()
       if not(cache.has-key-now(uri)):
-        provide-map = dict-map(w.dependency-map, lam(_, v): v.get-provides() end)
-        cr = compile-module(w.locator, provide-map, options)
-        cache.set-now(uri, cr)
-        cr
+        provide-map = dict-map(
+            w.dependency-map,
+            lam(_, v): cache.get-value-now(v.uri()).provides
+          end)
+        loadable = compile-module(w.locator, provide-map, options)
+        cache.set-now(uri, loadable)
+        loadable
       else:
         cache.get-value-now(uri)
       end
@@ -233,13 +232,21 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
           when options.collect-all: ret := phase("Resolved names", named-result, ret) end
           named-ast = named-result.ast
           named-errors = named-result.errors
+          var provides = AU.get-named-provides(named-result, locator.uri(), env)
           desugared = D.desugar(named-ast)
           when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
           type-checked =
-            if options.type-check: T.type-check(desugared, env)
+            if options.type-check:
+              type-checked = T.type-check(desugared, env)
+              if CS.is-ok(type-checked):
+                provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
+                CS.ok(type-checked.code.ast)
+              else:
+                type-checked
+              end
             else: CS.ok(desugared);
           when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-          cr = cases(CS.CompileResult) type-checked:
+          cases(CS.CompileResult) type-checked:
             | ok(tc-ast) =>
               dp-ast = DP.desugar-post-tc(tc-ast, env)
               cleaned = dp-ast.visit(AU.merge-nested-blocks)
@@ -250,7 +257,7 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
               inlined = cleaned.visit(AU.inline-lams)
               when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
               any-errors = named-errors + AU.check-unbound(env, inlined) + AU.bad-assignments(env, inlined)
-              if is-empty(any-errors):
+              cr = if is-empty(any-errors):
                 if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
                 else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, options)), ret)
                 end
@@ -259,15 +266,18 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
+              mod-result = module-as-string(provides, env, cr.result)
+              locator.set-compiled(mod-result, provide-map)
+              mod-result
             | err(_) => phase("Result", type-checked, ret)
           end
-          mod-result = module-as-string(#|provides, |#env, cr.result)
-          locator.set-compiled(mod-result, provide-map)
-          mod-result
         | err(_) => phase("Result", wf, ret)
       end
     else:
-      locator.get-compiled().value
+      cases(Option) locator.get-compiled():
+        | none => raise("No precompiled module found for " + locator.uri())
+        | some(v) => v
+      end
     end
   end
 

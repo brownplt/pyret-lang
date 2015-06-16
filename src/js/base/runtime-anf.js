@@ -3203,6 +3203,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if(!isOpaque(v) && !isPyretException(v.val)) {
         ffi.throwMessageException("Got non-exception value in getExnVal");
       }
+      console.error(v.val.pyretStack);
       return v.val.exn;
     }
 
