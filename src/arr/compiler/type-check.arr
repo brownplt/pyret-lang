@@ -794,7 +794,6 @@ fun lookup-id(blame-loc :: A.Loc, id, info :: TCInfo) -> FoldResult<Type>:
               else:
                 A.s-id(blame-loc, A.s-global(tostring(id)))
               end
-    raise(id-expr)
     fold-errors([list: C.unbound-id(id-expr)])
   end
 end
@@ -1536,6 +1535,12 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
             for each(a from types):
               info.aliases.set-now(a.key(), thismod.aliases.get-value(a.toname()))
             end
+            mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
+            for each(v from vals):
+              info.typs.set-now(v.key(), mod.values.get-value(v.toname()))
+            end
+            print("typs are:")
+            print(info.typs)
           | else => raise("typechecker received incomplete import")
         end
       end
