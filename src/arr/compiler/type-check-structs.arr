@@ -87,19 +87,37 @@ fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
 end
 
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
+  print("Getting type for " + torepr(typ))
   cases(Type) typ:
     | t-name(module-name, name) =>
       cases(Option<String>) module-name:
         | some(mod) =>
           cases(Option<ModuleType>) info.modules.get-now(mod):
             | some(t-mod) =>
-              t-mod.types.get(name.tosourcestring())
+              print(t-mod)
+              cases(Option<DataType>) t-mod.types.get(name.toname()):
+                | some(shadow typ) => some(typ)
+                | none =>
+                  cases(Option<Type>) t-mod.aliases.get(name.toname()):
+                    | some(shadow typ) => get-data-type(typ, info)
+                    | none =>
+                      raise("No type " + torepr(typ) + " available on `" + torepr(t-mod) + "'")
+                  end
+              end
             | none =>
               raise("No module available with the name `" + mod + "'")
           end
         | none =>
           key = typ.key()
-          info.data-exprs.get-now(key)
+          cases(Option<DataType>) info.data-exprs.get-now(key):
+            | some(shadow typ) => some(typ)
+            | none =>
+              cases(Option<Type>) info.aliases.get-now(name.tosourcestring()):
+                | some(shadow typ) => get-data-type(typ, info)
+                | none =>
+                  raise("No type " + torepr(typ) + " available in this module")
+              end
+          end
       end
     | t-app(base-typ, args) =>
       cases(Option<DataType>) get-data-type(base-typ, info):

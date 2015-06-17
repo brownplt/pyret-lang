@@ -557,7 +557,7 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
           fold-result(typ)
         end
       | s-newtype-bind(l, name, namet) =>
-        typ = t-name(none, name)
+        typ = t-name(none, namet)
         namet-key = namet.key()
         info.branders.set-now(namet-key, typ)
         info.aliases.set-now(name.key(), typ)
@@ -1238,6 +1238,8 @@ fun check-and-return(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-
   if satisfies-type(typ, expect-typ, info):
     checking-result(value)
   else:
+    print(typ)
+    print(typ)
     checking-err([list: C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc)])
   end
 end
@@ -1510,26 +1512,29 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
           | s-import-complete(_, vals, types, file, vname, tname) =>
             key = import-to-string(file, compile-env)
             info.mod-names.set-now(tname.key(), key)
-            cases(Option<ModuleType>) info.modules.get-now(key):
-              | some(mod) =>
-                info.typs.set-now(vname.key(), mod.provides)
-              | none =>
-                mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
-                val-provides = t-record(for map(v from vals): TS.t-member(v.toname(), mod.values.get-value(v.toname())) end)
-                module-type = TS.t-module(
-                    key,
-                    val-provides,
-                    mod.data-definitions,
-                    mod.aliases)
-                info.modules.set-now(key, module-type)
-                info.typs.set-now(vname.key(), val-provides)
-                info.aliases.set-now(tname.key(), TS.t-top)
-                for each(d from mod.data-definitions.keys-list()):
-                  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
-                end
-                #for each(a from mod.aliases.keys-list()):
-                #  info.aliases.set-now(a, mod.aliases.get-value(a))
-                #end
+            when not(info.modules.has-key-now(key)):
+              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
+              val-provides = t-record(
+                for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
+              )
+              module-type = TS.t-module(
+                  key,
+                  val-provides,
+                  mod.data-definitions,
+                  mod.aliases)
+
+              print("Module added as ")
+              print(module-type)
+              info.modules.set-now(key, module-type)
+              for each(d from mod.data-definitions.keys-list()):
+                info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+              end
+            end
+            thismod = info.modules.get-value-now(key)
+            info.typs.set-now(vname.key(), thismod.provides)
+            info.aliases.set-now(tname.key(), TS.t-top)
+            for each(a from types):
+              info.aliases.set-now(a.key(), thismod.aliases.get-value(a.toname()))
             end
           | else => raise("typechecker received incomplete import")
         end

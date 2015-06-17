@@ -334,8 +334,12 @@ data CompileError:
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("Expected to find " + self.expected-name + " (declared at " + tostring(self.expected-loc)
-        + ") on line " + tostring(self.bad-loc) + ", but instead found " + self.bad-name + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
+          ED.text(" (declared at "), draw-and-highlight(self.expected-loc),
+          ED.text(") at "), draw-and-highlight(self.bad-loc),
+          ED.text(" but instead found "), ED.code(ED.text(self.bad-name))]]
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
     #### TODO ###

@@ -91,7 +91,7 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
       | s-data(l, name, params, mixins, variants, shared, _check) =>
-        namet = names.make-atom(name + "T")
+        namet = names.make-atom(name)
         rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), namet), rev-type-binds)
         rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check), rev-stmts)
       | else =>

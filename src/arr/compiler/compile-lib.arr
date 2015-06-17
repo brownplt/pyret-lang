@@ -155,6 +155,8 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
+dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
+
 fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-worklist :: Function, compile-program :: Function }:
 
   # Use ConcatList if it's easy
@@ -269,9 +271,9 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
               mod-result = module-as-string(provides, env, cr.result)
               locator.set-compiled(mod-result, provide-map)
               mod-result
-            | err(_) => phase("Result", type-checked, ret)
+            | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
           end
-        | err(_) => phase("Result", wf, ret)
+        | err(_) => module-as-string(dummy-provides(locator.uri()), env, wf) #phase("Result", wf, ret)
       end
     else:
       cases(Option) locator.get-compiled():

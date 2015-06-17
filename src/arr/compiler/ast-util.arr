@@ -774,7 +774,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       | a-any => T.t-top
       | a-name(l, id) => T.t-name(some(uri), id)
       | a-type-var(l, id) =>
-        raise("Cannot provide a free type var")
+        T.t-var(id)
       | a-arrow(l, args, ret, use-parens) =>
         T.t-arrow(map(ann-to-typ, args), ann-to-typ(ret))
       | a-method(l, args, ret) =>
@@ -859,6 +859,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             exp = resolved.datatypes.get-value-now(d.d.key())
             sd.set(d.d.key(), data-expr-to-datatype(exp))
           end
+          print("Defined in provides as: ")
+          print(data-typs)
           CS.provides(
               uri,
               val-typs,
@@ -869,31 +871,79 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
 end
 
+fun canonicalize-members(ms :: T.TypeMembers, uri :: URI) -> T.TypeMembers:
+  for map(f from ms):
+    T.t-member(f.field-name, canonicalize-names(f.typ, uri))
+  end
+end
+
+fun canonicalize-variant(v :: T.TypeVariant, uri :: URI) -> T.TypeVariant:
+  c = canonicalize-members(_, uri)
+  cases(T.TypeVariant) v:
+    | t-variant(l, name, fields, with-fields) =>
+      T.t-variant(l, name, c(fields), c(with-fields))
+    | t-singleton-variant(l, name, with-fields) =>
+      T.t-singleton-variant(l, name, c(with-fields))
+  end
+end
+
+fun canonicalize-datatype(dtyp :: T.DataType, uri :: URI) -> T.DataType:
+  cases(T.DataType) dtyp:
+    | t-datatype(name, params, variants, fields) =>
+      T.t-datatype(
+          name,
+          params,
+          map(canonicalize-variant(_, uri), variants),
+          canonicalize-members(fields, uri))
+  end
+end
+
+fun canonicalize-names(typ :: T.Type, uri :: URI) -> T.Type:
+  c = canonicalize-names(_, uri)
+  cases(T.Type) typ:
+    | t-name(module-name, id) =>
+      cases(Option<String>) module-name:
+        | none => T.t-name(some(uri), id)
+        | some(other-uri) => typ
+      end
+    | t-var(id) => typ
+    | t-arrow(args, ret) => T.t-arrow(map(c, args), c(ret))
+    | t-app(onto, args) => T.t-app(c(onto), map(c, args))
+    | t-top => T.t-top
+    | t-bot => T.t-bot
+    | t-record(fields) =>
+      T.t-record(canonicalize-members(fields, uri))
+    | t-forall(introduces, onto) => T.t-forall(introduces, c(onto))
+    | t-ref(t) => T.t-ref(c(t))
+  end
+end
+
 fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
+  c = canonicalize-names(_, uri)
   cases(A.Program) typed.ast:
     | s-program(_, provide-complete, _, _, _) =>
       cases(A.Provide) provide-complete:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = for fold(sd from [SD.string-dict:], v from values):
-            sd.set(v.v.toname(), typed.info.typs.get-value-now(v.v.key()))
+            sd.set(v.v.toname(), c(typed.info.typs.get-value-now(v.v.key())))
           end
           alias-typs = for fold(sd from [SD.string-dict:], a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
             print(typed.info)
             cases(Option) typed.info.data-exprs.get-now(a.in-name.key()):
-              | some(typ) => sd.set(a.out-name.toname(), typ)
+              | some(typ) => sd.set(a.out-name.toname(), c(typ))
               | none => 
                 cases(Option) typed.info.branders.get-now(a.in-name.key()):
-                  | some(typ) => sd.set(a.out-name.toname(), typ)
+                  | some(typ) => sd.set(a.out-name.toname(), c(typ))
                   | else =>
                     typ = typed.info.aliases.get-value-now(a.in-name.key())
-                    sd.set(a.out-name.toname(), typ)
+                    sd.set(a.out-name.toname(), c(typ))
                 end
             end
           end
           data-typs = for fold(sd from [SD.string-dict:], d from datas):
             print(typed.info.data-exprs)
-            sd.set(d.d.toname(), typed.info.data-exprs.get-value-now(d.d.key()))
+            sd.set(d.d.toname(), canonicalize-datatype(typed.info.data-exprs.get-value-now(d.d.key()), uri))
           end
           CS.provides(
               uri,

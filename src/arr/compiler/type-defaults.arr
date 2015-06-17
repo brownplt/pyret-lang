@@ -324,6 +324,7 @@ module-const-arrays = t-module("const:arrays",
       )
   end,
   SD.make-string-dict()
+    .set("Array", t-name(none, A.s-name(A.dummy-loc, "Array")))
 )
 
 fun set-constructor(tva :: A.Name):
@@ -382,6 +383,7 @@ module-const-sets = t-module("const:sets",
       )
   end,
   SD.make-string-dict()
+    .set("Set", t-name(none, A.s-name(A.dummy-loc, "Set")))
 )
 
 module-const-lists = t-module("const:lists",
@@ -471,6 +473,7 @@ module-const-lists = t-module("const:lists",
       )
   end,
   SD.make-string-dict()
+    .set("List", t-name(none, A.s-name(A.dummy-loc, "List")))
 )
 
 t-option = lam(param :: A.Name):
@@ -530,6 +533,7 @@ module-const-option = t-module("const:option",
       ])
     ),
   SD.make-string-dict()
+    .set("Option", t-name(none, A.s-name(A.dummy-loc, "Option")))
 )
 
 module-const-error = t-module("const:error",
@@ -661,6 +665,7 @@ module-const-error = t-module("const:error",
       ])
     ),
   SD.make-string-dict()
+    .set("Error", t-name(none, A.s-name(A.dummy-loc, "Error")))
 )
 
 module-const-either = t-module("const:either",
@@ -705,6 +710,7 @@ module-const-either = t-module("const:either",
       ])
     ),
   SD.make-string-dict()
+    .set("Either", t-name(none, A.s-name(A.dummy-loc, "Either")))
 )
 
 t-s-exp = t-name(some("const:s-exp-structs"), A.s-global("S-Exp"))
