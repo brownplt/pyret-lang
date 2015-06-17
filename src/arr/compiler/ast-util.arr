@@ -839,7 +839,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       cases(A.Provide) provide-complete:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = for fold(sd from [SD.string-dict:], v from values):
-            sd.set(v.v.key(), ann-to-typ(v.ann))
+            sd.set(v.v.toname(), ann-to-typ(v.ann))
           end
           alias-typs = for fold(sd from [SD.string-dict:], a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
@@ -853,7 +853,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                   T.t-top
                 end
             end
-            sd.set(a.out-name.key(), typ)
+            sd.set(a.out-name.toname(), typ)
           end
           data-typs = for fold(sd from [SD.string-dict:], d from datas):
             exp = resolved.datatypes.get-value-now(d.d.key())
