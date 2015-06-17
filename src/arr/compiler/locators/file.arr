@@ -31,9 +31,6 @@ fun mockable-file-locator(file-ops):
     get-extra-imports(self):
       CS.standard-imports
     end,
-    get-provides(self):
-      CL.get-provides(self.get-module(), self.uri())
-    end,
     get-globals(self): self.globals end,
     set-compiled(self, cr, deps):
       cases(CS.CompileResult) cr.result-printer:
@@ -48,7 +45,7 @@ fun mockable-file-locator(file-ops):
     needs-compile(self, provides):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
-      false
+      true
       #|
       cpath = self.path + ".js"
       if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
