@@ -207,6 +207,9 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-letrec-binds(binding-group, all-binds, rest-stmts)
         | s-contract(l, name, ann) =>
           desugar-scope-block(rest-stmts, binding-group)
+        | s-check(l, name, body, keyword) =>
+          fun b(loc): A.s-bind(loc, false, A.s-underscore(l), A.a-blank);
+          add-letrec-binds(binding-group, [list: A.s-letrec-bind(l, b(l), A.s-check(l, name, body, keyword))], rest-stmts)
         | else =>
           cases(List) rest-stmts:
             | empty => bind-wrap(binding-group, f)
