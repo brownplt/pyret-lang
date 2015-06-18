@@ -68,6 +68,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       }
       function getAnswerForPyret(mr) {
         var a = getModuleResultAnswer(mr);
+        console.log("Answer: ", a);
         if(isPrimitive(mr.val.runtime, a)) { return runtime.ffi.makeSome(a); }
         else {
           return runtime.ffi.makeNone();
@@ -176,7 +177,6 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
                 if(execRt.isSuccessResult(v)) {
                   return restarter.resume(v.result)
                 } else {
-                  debugger;
                   console.error("load error");
                   console.error("There was an exception while rendering the exception: ",  r.exn, v.exn);
 

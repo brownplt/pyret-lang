@@ -45,6 +45,7 @@ fun make-repl<a>(
 
   var nspace = defs-locator.get-namespace(runtime)
   var globals = defs-locator.get-globals()
+  var modules = SD.make-mutable-string-dict()
 
   fun update-env(result, loc):
     nspace := N.make-namespace-from-result(result)
@@ -72,8 +73,10 @@ fun make-repl<a>(
   end
 
   fun restart-interactions():
+    modules := SD.make-mutable-string-dict()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
-    result = CL.compile-and-run-worklist(worklist, runtime, CS.default-compile-options.{type-check: true})
+    compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: true})
+    result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: true})
     globals := defs-locator.get-globals()
     cases(Either) result:
       | right(answer) =>
@@ -88,7 +91,8 @@ fun make-repl<a>(
 
   fun run-interaction(repl-locator :: CL.Locator):
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
-    result = CL.compile-and-run-worklist(worklist, runtime, CS.default-compile-options.{type-check: true})
+    compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: true})
+    result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: true})
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):

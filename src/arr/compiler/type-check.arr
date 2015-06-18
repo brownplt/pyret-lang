@@ -1500,7 +1500,7 @@ fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
   end
 end
 
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
   info = TCS.empty-tc-info("default")
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
@@ -1512,8 +1512,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
   for each(g from globts.keys-list()):
     info.aliases.set-now(A.s-global(g).key(), globts.get-value(g))
   end
-  for each(k from compile-env.mods.keys-list()):
-    mod = compile-env.mods.get-value(k)
+  for each(k from modules.keys-list-now()):
+    mod = modules.get-value-now(k).provides
     print(mod)
     key = mod.from-uri
     val-provides = t-record(

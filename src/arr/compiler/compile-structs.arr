@@ -482,7 +482,7 @@ runtime-builtins = [string-dict:
   "is-string", T.t-top,
   "is-boolean", T.t-top,
   "is-object", T.t-top,
-  "is-function", T.t-top,
+  "is-function", T.t-arrow([list: T.t-top], T.t-name(none, A.s-global("Boolean"))),
   "is-raw-array", T.t-top,
   "gensym", T.t-top,
   "random", T.t-top,

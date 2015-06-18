@@ -50,16 +50,25 @@ check:
 
   current-defs := "import string-dict from string-dict\n55"
   result7 = repl.restart-interactions()
-  L.get-result-answer(result7.v) is some(55)
+  print(result7)
+  cases(Either) result7:
+    | right(v) =>
+      L.get-result-answer(result7.v) is some(55)
+    | left(err) =>
+      print(err)
+  end
 
   # should fail because y no longer bound
   result8 = next-interaction("y")
+  print(result8)
   result8 satisfies E.is-left
 
   result9 = next-interaction("is-function(string-dict.make)")
+  print(result9)
   L.get-result-answer(result9.v) is some(true)
 
   result10 = next-interaction("import string-dict as SD")
+  print(result10)
   result10 satisfies E.is-right
 
   result11 = next-interaction(```

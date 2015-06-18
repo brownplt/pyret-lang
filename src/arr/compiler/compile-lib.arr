@@ -179,25 +179,32 @@ fun compile-worklist<a>(dfind, locator :: Locator, context :: a) -> List<ToCompi
   add-preds-to-worklist(locator, context, empty)
 end
 
-fun compile-program(worklist :: List<ToCompile>, options) -> List<Loadable>:
-  cache = SD.make-mutable-string-dict()
-  for map(w from worklist):
+type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
+
+fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram:
+  cache = modules
+  loadables = for map(w from worklist):
     uri = w.locator.uri()
     if not(cache.has-key-now(uri)):
       provide-map = dict-map(
           w.dependency-map,
           lam(_, v): cache.get-value-now(v.uri()).provides
         end)
-      loadable = compile-module(w.locator, provide-map, options)
+      loadable = compile-module(w.locator, provide-map, cache, options)
       cache.set-now(uri, loadable)
       loadable
     else:
       cache.get-value-now(uri)
     end
   end
+  { loadables: loadables, modules: cache }
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, options) -> Loadable:
+fun compile-program(worklist, options):
+  compile-program-with(worklist, SD.make-mutable-string-dict(), options)
+end
+
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable:
   if locator.needs-compile(provide-map):
     env = CS.compile-env(locator.get-globals(), provide-map)
     libs = locator.get-extra-imports()
@@ -237,7 +244,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
         type-checked =
           if options.type-check:
-            type-checked = T.type-check(desugared, env)
+            type-checked = T.type-check(desugared, env, modules)
             if CS.is-ok(type-checked):
               provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
               CS.ok(type-checked.code.ast)
@@ -285,26 +292,41 @@ type PyretAnswer = Any
 type PyretMod = Any
 
 fun compile-and-run-worklist(ws :: List<ToCompile>, runtime :: R.Runtime, options):
-  compile-and-run-worklist-with(ws, runtime, SD.make-string-dict(), options)
+  compile-and-run-worklist-with(ws, runtime, SD.make-mutable-string-dict(), options)
 end
 
 fun is-error-compilation(cr):
   is-module-as-string(cr) and CS.is-err(cr.result-printer)
 end
 
-fun compile-and-run-worklist-with(ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.StringDict<PyretMod>, options):
-  compiled-mods = compile-program(ws, options)
+fun compile-and-run-worklist-with(ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.MutableStringDict<Loadable>, options):
+  compiled-mods = compile-program-with(ws, initial, options).loadables
   errors = compiled-mods.filter(is-error-compilation)
   cases(List) errors:
     | empty =>
       load-infos = for map2(tc from ws, cm from compiled-mods):
         { to-compile: tc, compiled-mod: cm }
       end
-      right(load-worklist(load-infos, initial, L.make-loader(runtime), runtime))
+      right(load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime))
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
 end
+
+fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, runtime :: R.Runtime, options):
+  compiled-mods = prog.loadables
+  errors = compiled-mods.filter(is-error-compilation)
+  cases(List) errors:
+    | empty =>
+      load-infos = for map2(tc from ws, cm from compiled-mods):
+        { to-compile: tc, compiled-mod: cm }
+      end
+      right(load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime))
+    | link(_, _) =>
+      left(errors.map(_.result-printer))
+  end
+end
+
 
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
   doc: "Assumes topo-sorted worklist in ws"
