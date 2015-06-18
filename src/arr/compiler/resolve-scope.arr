@@ -9,6 +9,7 @@ import string-dict as SD
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 import "compiler/gensym.arr" as G
+import "compiler/type-structs.arr" as T
 
 string-dict = SD.string-dict
 mtd = [string-dict:]
@@ -426,7 +427,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     acc.set(name, global-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
   end
 where:
-  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", C.v-just-there], mtd), mtd))
+  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top], mtd), mtd))
     .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 

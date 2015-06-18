@@ -8,6 +8,7 @@ import "compiler/repl-support.arr" as RS
 
 type Either = E.Either
 
+
 check:
   r = RT.make-runtime()
   var current-defs = "5"
@@ -30,6 +31,7 @@ check:
   end
 
   result3 = next-interaction("y = 10\nx")
+  print(result3)
   L.get-result-answer(result3.v) is some(5)
 
   result4 = next-interaction("y")

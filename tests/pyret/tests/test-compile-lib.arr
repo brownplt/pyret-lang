@@ -47,16 +47,14 @@ check "Worklist generation (simple)":
 
   fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("foo")
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
-  wlist = clib.compile-worklist(floc, {})
+  wlist = CL.compile-worklist(dfind, floc, {})
   wlist.length() is 2
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
+  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies L.is-success-result
 end
 
@@ -116,12 +114,10 @@ check "Worklist generation (DAG)":
 
   fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("A")
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "B"]), CM.dependency("file", [list: "C"])]
 
-  wlist = clib.compile-worklist(floc, {})
+  wlist = CL.compile-worklist(dfind, floc, {})
 
   # Don't want to be too specific, just make sure they're in the checklist at least once.
   wlist-checker = worklist-contains-checker(wlist)
@@ -134,7 +130,7 @@ check "Worklist generation (DAG)":
   # This way, we can make sure that we only get one retrieval during actual compilation of each module.
   for each(s from retrievals.keys-now().to-list()): retrievals.set-now(s, 0) end
 
-  results = clib.compile-program(wlist, CM.default-compile-options)
+  results = CL.compile-program(wlist, CM.default-compile-options)
 
   # Are we respecting needs-compile?
   retrievals.get-value-now("A") is 1
@@ -179,12 +175,10 @@ check "Worklist generation (Cycle)":
 
   fun dfind(ctxt, dep): CL.located(string-to-locator(dep.arguments.get(0)), nothing) end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("A")
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "B"])]
   gloc = string-to-locator("B")
   CL.get-dependencies(gloc.get-module(), gloc.uri()) is [list: CM.dependency("file", [list: "A"])]
 
-  clib.compile-worklist(floc, {}) raises "cycle"
+  CL.compile-worklist(dfind, floc, {}) raises "cycle"
 end

@@ -859,8 +859,6 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             exp = resolved.datatypes.get-value-now(d.d.key())
             sd.set(d.d.key(), data-expr-to-datatype(exp))
           end
-          print("Defined in provides as: ")
-          print(data-typs)
           CS.provides(
               uri,
               val-typs,

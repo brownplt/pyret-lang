@@ -211,8 +211,6 @@ fun resolve-alias(t :: Type, info) -> Type:
               resolve-alias(aliased, info)
           end
         | some(mod) =>
-          print(info.modules.get-value-now(mod).types)
-          print(info.modules.get-value-now(mod).aliases)
           cases(Option) info.modules.get-value-now(mod).aliases.get(a-id.toname()):
             | none => t
             | some(aliased) => aliased

@@ -11,6 +11,8 @@ import "compiler/resolve-scope.arr" as RN
 import "compiler/compile-structs.arr" as CS
 import "compiler/compile-lib.arr" as CL
 import "compiler/repl-support.arr" as RS
+import "compiler/type-structs.arr" as TS
+import "compiler/ast-util.arr" as AU
 
 type Either = E.Either
 
@@ -19,16 +21,17 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, g :: CS
     | s-program(_, _, _, imports, _) =>
       for fold(shadow g from g, i from imports):
         cases(A.Import) RN.expand-import(i, env):
-          | s-import-complete(_, values, types, mode, vals-name, type-name) =>
+          | s-import-complete(_, values, types, file, vals-name, type-name) =>
+            mod = env.mods.get-value(AU.import-to-dep(file).key())
             new-vals = for fold(vs from g.values, k from values.map(_.toname())):
-              vs.set(k, CS.v-just-there)
+              vs.set(k, mod.values.get-value(k))
             end
             new-types = for fold(ts from g.types, k from types.map(_.toname())):
-              ts.set(k, CS.t-just-there)
+              ts.set(k, mod.aliases.get-value(k))
             end
             CS.globals(
-              new-vals.set(vals-name.toname(), CS.v-just-there),
-              new-types.set(type-name.toname(), CS.t-just-there))
+              new-vals.set(vals-name.toname(), TS.t-top),
+              new-types.set(type-name.toname(), TS.t-top))
         end
       end
   end
@@ -43,11 +46,21 @@ fun make-repl<a>(
   var nspace = defs-locator.get-namespace(runtime)
   var globals = defs-locator.get-globals()
 
-  compile-lib = CL.make-compile-lib(finder)
-
   fun update-env(result, loc):
     nspace := N.make-namespace-from-result(result)
-    globals := filter-env-by-imports(L.get-result-compile-env(result), loc, globals)
+    cr = L.get-result-compile-result(result)
+    globals := filter-env-by-imports(cr.compile-env, loc, globals)
+    provided = cr.provides.values.keys-list()
+    print(cr.provides.values)
+    new-vals = for fold(vs from globals.values, provided-name from provided):
+      vs.set(provided-name, cr.provides.values.get-value(provided-name))
+    end
+    tprovided = cr.provides.aliases.keys-list()
+    new-types = for fold(ts from globals.values, provided-name from tprovided):
+      ts.set(provided-name, cr.provides.aliases.get-value(provided-name))
+    end
+    globals := CS.globals(new-vals, new-types)
+
     #provided = loc.get-provides().values.keys-list()
     #new-vals = for fold(vs from globals.values, provided-name from provided):
     #  vs.set(provided-name, CS.v-just-there)
@@ -56,12 +69,11 @@ fun make-repl<a>(
     #new-types = for fold(ts from globals.types, provided-name from tprovided):
     #  ts.set(provided-name, CS.t-just-there)
     #end
-    #globals := CS.globals(new-vals, new-types)
   end
 
   fun restart-interactions():
-    worklist = compile-lib.compile-worklist(defs-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options.{type-check: true})
+    worklist = CL.compile-worklist(finder, defs-locator, compile-context)
+    result = CL.compile-and-run-worklist(worklist, runtime, CS.default-compile-options.{type-check: true})
     globals := defs-locator.get-globals()
     cases(Either) result:
       | right(answer) =>
@@ -75,8 +87,8 @@ fun make-repl<a>(
   end
 
   fun run-interaction(repl-locator :: CL.Locator):
-    worklist = compile-lib.compile-worklist(repl-locator, compile-context)
-    result = CL.compile-and-run-worklist(compile-lib, worklist, runtime, CS.default-compile-options.{type-check: true})
+    worklist = CL.compile-worklist(finder, repl-locator, compile-context)
+    result = CL.compile-and-run-worklist(worklist, runtime, CS.default-compile-options.{type-check: true})
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):

@@ -62,14 +62,12 @@ check:
     CL.located(l, nothing)
   end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("foo")
   CL.get-dependencies(floc.get-module(), floc.uri()) is
     [list:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
-  wlist = clib.compile-worklist(floc, {})
+  wlist = CL.compile-worklist(dfind, floc, {})
   wlist.length() is 4
   wlist.get(3).locator is floc
   wlist.get(2).locator.uri() is "protocol://bar"
@@ -79,6 +77,6 @@ check:
   wlist.get(0).locator.uri() is "pyret-builtin://string-dict"
   wlist.get(0).locator.name() is "string-dict"
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
+  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies L.is-success-result
 end

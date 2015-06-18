@@ -1501,9 +1501,36 @@ fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
 end
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
+  info = TCS.empty-tc-info("default")
+  globvs = compile-env.globals.values
+  globts = compile-env.globals.types
+  print(globvs)
+  for each(g from globvs.keys-list()):
+    info.typs.set-now(A.s-global(g).key(), globvs.get-value(g))
+  end
+  print(info.typs)
+  for each(g from globts.keys-list()):
+    info.aliases.set-now(A.s-global(g).key(), globts.get-value(g))
+  end
+  for each(k from compile-env.mods.keys-list()):
+    mod = compile-env.mods.get-value(k)
+    print(mod)
+    key = mod.from-uri
+    val-provides = t-record(
+      for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
+    )
+    module-type = TS.t-module(
+        key,
+        val-provides,
+        mod.data-definitions,
+        mod.aliases)
+    info.modules.set-now(mod.from-uri, module-type)
+    #for each(d from mod.data-definitions.keys-list()):
+    #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+    #end
+  end
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = TCS.empty-tc-info("default")
       for each(_import from imports):
         cases(A.Import) _import:
           | s-import(_, file, name) =>
@@ -1535,12 +1562,15 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
             for each(a from types):
               info.aliases.set-now(a.key(), thismod.aliases.get-value(a.toname()))
             end
-            mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
-            for each(v from vals):
-              info.typs.set-now(v.key(), mod.values.get-value(v.toname()))
+            # TODO(joe): This is kinda gross, skipping the name binding based on
+            # built-in vs non-built-in module for now, until builtins can accurately
+            # report their types programmatically
+            when not(A.is-s-const-import(file)):
+              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
+              for each(v from vals):
+                info.typs.set-now(v.key(), mod.values.get-value(v.toname()))
+              end
             end
-            print("typs are:")
-            print(info.typs)
           | else => raise("typechecker received incomplete import")
         end
       end
