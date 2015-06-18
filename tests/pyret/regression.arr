@@ -10,4 +10,5 @@ import "./regression/random-bogus-range.arr" as _
 import "./regression/seq-of-lettable.arr" as _
 import "./regression/cases-expr-parse.arr" as _
 import "./regression/method-scope.arr" as _
+import "./regression/check-scope.arr" as _
 
