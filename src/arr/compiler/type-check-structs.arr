@@ -70,7 +70,7 @@ fun empty-tc-info(mod-name :: String) -> TCInfo:
       end
     }
   end
-  tc-info(TD.make-default-typs(), SD.make-mutable-string-dict(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
+  tc-info(TD.make-default-typs(), TD.make-default-aliases(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
@@ -105,7 +105,11 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
                   end
               end
             | none =>
-              raise("No module available with the name `" + mod + "'")
+              if mod == "builtin":
+                info.data-exprs.get-now(name.toname())
+              else:
+                raise("No module available with the name `" + mod + "'")
+              end
           end
         | none =>
           key = typ.key()

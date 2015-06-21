@@ -285,8 +285,8 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id) =>
         cases(Option<String>) module-name:
-          | none    => VS.vs-str(id.toname())
-          | some(m) => VS.vs-str(m + "." + id.toname())
+          | none    => VS.vs-value(id.tosourcestring())
+          | some(m) => VS.vs-value(m + id.tosourcestring())
         end
       | t-var(id) => VS.vs-str(id.toname())
       | t-arrow(args, ret) =>
@@ -486,11 +486,13 @@ sharing:
   end
 end
 
-t-array-name = t-name(none, A.s-type-global("RawArray"))
+builtin-uri = some("builtin")
 
-t-number  = t-name(none, A.s-type-global("Number"))
-t-string  = t-name(none, A.s-type-global("String"))
-t-boolean = t-name(none, A.s-type-global("Boolean"))
-t-nothing = t-name(none, A.s-type-global("Nothing"))
-t-srcloc  = t-name(none, A.s-global("Loc"))
+t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"))
+
+t-number  = t-name(builtin-uri, A.s-type-global("Number"))
+t-string  = t-name(builtin-uri, A.s-type-global("String"))
+t-boolean = t-name(builtin-uri, A.s-type-global("Boolean"))
+t-nothing = t-name(builtin-uri, A.s-type-global("Nothing"))
+t-srcloc  = t-name(builtin-uri, A.s-global("Loc"))
 t-array   = lam(v): t-app(t-array-name, [list: v]);

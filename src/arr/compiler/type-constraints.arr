@@ -211,10 +211,17 @@ fun resolve-alias(t :: Type, info) -> Type:
               resolve-alias(aliased, info)
           end
         | some(mod) =>
-          cases(Option) info.modules.get-value-now(mod).aliases.get(a-id.toname()):
-            | none => t
-            | some(aliased) => aliased
-              # resolve-alias(aliased, info)
+          if mod == "builtin":
+            cases(Option) info.aliases.get-now(a-id.key()):
+              | none => t
+              | some(aliased) => aliased
+            end
+          else:
+            cases(Option) info.modules.get-value-now(mod).aliases.get(a-id.toname()):
+              | none => t
+              | some(aliased) => aliased
+                # resolve-alias(aliased, info)
+            end
           end
       end
     | else => t

@@ -60,23 +60,6 @@ data Globals:
   | globals(values :: StringDict<T.Type>, types :: StringDict<T.Type>)
 end
 
-#|
-data Provides:
-  | provides(
-      values :: StringDict<ValInfo>,
-      types :: StringDict<TypeInfo>
-      )
-end
-
-  data Globals:
-    | globals(
-        values :: StringDict<TS.Type>,
-        aliases :: StringDict<TS.Type>,
-        data-definitions :: StringDict<TS.DataType>
-      )
-  end
-|#
-
 data Provides:
   | provides(
       from-uri :: URI,
@@ -85,6 +68,94 @@ data Provides:
       data-definitions :: StringDict<T.DataType>
     )
 end
+
+fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
+  tfr = type-from-raw(uri, _, tyvar-env)
+  t = typ.tag
+  ask:
+    | t == "any" then: T.t-top
+    | t == "record" then:
+      T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end)
+    | t == "name" then:
+      modname = if typ.module == "LOCAL": uri else: typ.module end
+      T.t-name(some(modname), A.s-global(typ.name))
+    | t == "tyvar" then:
+      cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
+        | none => raise("Unbound type variable " + typ.name + " in provided type.")
+        | some(tv) => T.t-var(tv)
+      end
+    | t == "forall" then:
+      new-env = for fold(new-env from tyvar-env, a from typ.args):
+        tvn = A.global-names.make-atom(a)
+        new-env.set(a, tvn)
+      end
+      params = for map(k from new-env.keys-list()):
+        T.t-variable(A.dummy-loc, new-env.get-value(k), T.t-top, T.invariant)
+      end
+      T.t-forall(params, type-from-raw(uri, typ.onto, new-env))
+    | t == "tyapp" then:
+      T.t-app(tfr(typ.onto), map(tfr, typ.args))
+    | t == "arrow" then:
+      T.t-arrow(map(tfr, typ.args), tfr(typ.ret))
+    | otherwise: raise("Unkonwn raw tag for type: " + t)
+  end
+end
+
+fun tvariant-from-raw(uri, tvariant, env):
+  t = tvariant.tag
+  ask:
+    | t == "variant" then:
+      members = for map(tm from tvariant.vmembers):
+        # TODO(joe): Exporting ref fields?
+        T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
+      end
+      T.t-variant(A.dummy-loc, tvariant.name, members, empty)
+    | t == "singleton-variant" then:
+      T.t-singleton-variant(A.dummy-loc, tvariant.name, empty)
+    | otherwise: raise("Unkonwn raw tag for variant: " + t)
+  end
+end
+
+fun datatype-from-raw(uri, datatyp):
+  pdict = for fold(pdict from SD.make-string-dict(), a from datatyp.params):
+    tvn = A.global-names.make-atom(a)
+    pdict.set(a, tvn)
+  end
+  params = for map(k from pdict.keys-list()):
+    T.t-variable(A.dummy-loc, pdict.get-value(k), T.t-top, T.invariant)
+  end
+  variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
+  members = for map(tm from datatyp.methods):
+    # TODO(joe): Exporting ref fields?
+    T.t-member(tm.name, type-from-raw(uri, tm.value, pdict))
+  end
+  T.t-datatype(datatyp.name, params, variants, members)
+end
+
+fun provides-from-raw-provides(uri, raw):
+  values = raw.values
+  vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
+    if is-string(v):
+      vdict.set(v, T.t-top)
+    else:
+      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+    end
+  end
+  aliases = raw.aliases
+  adict = for fold(adict from SD.make-string-dict(), a from raw.aliases):
+    if is-string(a):
+      adict.set(a, T.t-top)
+    else:
+      adict.set(a.name, type-from-raw(uri, a.typ, SD.make-string-dict()))
+    end
+  end
+  datas = raw.datatypes
+  ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
+    ddict.set(d.name, datatype-from-raw(uri, d.typ))
+  end
+  provides(uri, vdict, adict, ddict)
+end
+
 
 data CompileResult<C>:
   | ok(code :: C)
@@ -453,9 +524,13 @@ default-compile-options = {
   proper-tail-calls: true
 }
 
+t-nothing = T.t-nothing
+t-str = T.t-string
+t-bool = T.t-boolean
+
 runtime-types = [string-dict:
   "Number", T.t-top,
-  "String", T.t-top,
+  "String", t-str,
   "Function", T.t-top,
   "Boolean", T.t-top,
   "Object", T.t-top,
@@ -464,26 +539,34 @@ runtime-types = [string-dict:
   "RawArray", T.t-top
 ]
 
+fun t-forall1(f):
+  n = A.global-names.make-atom("a")
+  T.t-forall([list: T.t-variable(A.dummy-loc, n, T.t-top, T.invariant)], f(T.t-var(n)))
+end
+
+t-pred = T.t-arrow([list: T.t-top], t-bool)
+t-pred2 = T.t-arrow([list: T.t-top, T.t-top], t-bool)
+
 runtime-builtins = [string-dict: 
-  "test-print", T.t-top,
-  "print", T.t-top,
-  "display", T.t-top,
-  "print-error", T.t-top,
-  "display-error", T.t-top,
-  "tostring", T.t-top,
-  "torepr", T.t-top,
+  "test-print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
+  "print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
+  "display", t-forall1(lam(a): T.t-arrow([list: a], a) end),
+  "print-error", t-forall1(lam(a): T.t-arrow([list: a], a) end),
+  "display-error", t-forall1(lam(a): T.t-arrow([list: a], a) end),
+  "tostring", T.t-arrow([list: T.t-top], t-str),
+  "torepr", T.t-arrow([list: T.t-top], t-str),
   "brander", T.t-top,
-  "raise", T.t-top,
-  "nothing", T.t-top,
+  "raise", T.t-arrow([list: T.t-top], T.t-bot),
+  "nothing", t-nothing,
   "builtins", T.t-top,
-  "not", T.t-top,
-  "is-nothing", T.t-top,
-  "is-number", T.t-top,
-  "is-string", T.t-top,
-  "is-boolean", T.t-top,
-  "is-object", T.t-top,
-  "is-function", T.t-arrow([list: T.t-top], T.t-name(none, A.s-global("Boolean"))),
-  "is-raw-array", T.t-top,
+  "not", T.t-arrow([list: t-bool], t-bool),
+  "is-nothing", t-pred,
+  "is-number", t-pred,
+  "is-string", t-pred,
+  "is-boolean", t-pred,
+  "is-object", t-pred,
+  "is-function", t-pred,
+  "is-raw-array", t-pred,
   "gensym", T.t-top,
   "random", T.t-top,
   "run-task", T.t-top,
@@ -566,15 +649,18 @@ runtime-builtins = [string-dict:
   "raw-array-length", T.t-top,
   "raw-array-to-list", T.t-top,
   "raw-array-fold", T.t-top,
-  "raw-array", T.t-top,
+  "raw-array", T.t-record(
+    [list:
+      T.t-member("make", t-forall1(lam(a): T.t-arrow([list: T.t-array(a)], T.t-array(a)) end))
+    ]),
   "ref-get", T.t-top,
   "ref-set", T.t-top,
   "ref-freeze", T.t-top,
-  "equal-always", T.t-top,
+  "equal-always", t-pred2,
   "equal-always3", T.t-top,
-  "equal-now", T.t-top,
+  "equal-now", t-pred2,
   "equal-now3", T.t-top,
-  "identical", T.t-top,
+  "identical", t-pred2,
   "identical3", T.t-top,
   "exn-unwrap", T.t-top,
   "_empty", T.t-top,

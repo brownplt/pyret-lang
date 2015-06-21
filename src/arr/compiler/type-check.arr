@@ -1237,8 +1237,6 @@ fun check-and-return(typ-loc :: A.Loc, typ :: Type, expect-loc :: A.Loc, expect-
   if satisfies-type(typ, expect-typ, info):
     checking-result(value)
   else:
-    print(typ)
-    print(typ)
     checking-err([list: C.incorrect-type(tostring(typ), typ-loc, tostring(expect-typ), expect-loc)])
   end
 end
@@ -1492,42 +1490,36 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
 end
 
 fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
-  cases(A.ImportType) i:
-    | s-const-import(_, mod) =>
-      "const:" + mod
-    | else =>
-      c.mods.get-value(AU.import-to-dep(i).key()).from-uri
-  end
+  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
 end
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
   info = TCS.empty-tc-info("default")
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
-  print(globvs)
   for each(g from globvs.keys-list()):
     info.typs.set-now(A.s-global(g).key(), globvs.get-value(g))
   end
-  print(info.typs)
   for each(g from globts.keys-list()):
     info.aliases.set-now(A.s-global(g).key(), globts.get-value(g))
   end
   for each(k from modules.keys-list-now()):
-    mod = modules.get-value-now(k).provides
-    print(mod)
-    key = mod.from-uri
-    val-provides = t-record(
-      for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
-    )
-    module-type = TS.t-module(
-        key,
-        val-provides,
-        mod.data-definitions,
-        mod.aliases)
-    info.modules.set-now(mod.from-uri, module-type)
-    #for each(d from mod.data-definitions.keys-list()):
-    #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
-    #end
+    when not(info.modules.has-key-now(k)):
+      mod = modules.get-value-now(k).provides
+      key = mod.from-uri
+      val-provides = t-record(
+        for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
+      )
+      module-type = TS.t-module(
+          key,
+          val-provides,
+          mod.data-definitions,
+          mod.aliases)
+      info.modules.set-now(mod.from-uri, module-type)
+      #for each(d from mod.data-definitions.keys-list()):
+      #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+      #end
+    end
   end
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
@@ -1549,8 +1541,6 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
                   mod.data-definitions,
                   mod.aliases)
 
-              print("Module added as ")
-              print(module-type)
               info.modules.set-now(key, module-type)
               for each(d from mod.data-definitions.keys-list()):
                 info.data-exprs.set-now(d, mod.data-definitions.get-value(d))

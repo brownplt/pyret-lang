@@ -49,6 +49,14 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
+fun make-default-aliases():
+  default-aliases = [SD.mutable-string-dict:
+    A.s-type-global("Number").key(), TS.t-number,
+    A.s-type-global("String").key(), TS.t-string,
+    A.s-type-global("Boolean").key(), TS.t-boolean]
+  default-aliases
+end
+
 fun make-default-typs():
   default-typs = SD.make-mutable-string-dict()
   default-typs.set-now(A.s-global("builtins").key(), t-record([list:
@@ -228,17 +236,17 @@ fun make-default-data-exprs():
 end
 
 # Begin hard-coded module types
-rec t-list = t-name(some("const:lists"), A.s-global("List"))
+rec t-list = t-name(some("pyret-builtin://lists"), A.s-global("List"))
 fun mk-list(a :: Type) -> Type:
   t-app(t-list, [list: a])
 end
 
-t-big-array = t-name(some("const:arrays"), A.s-global("Array"))
+t-big-array = t-name(some("pyret-builtin://arrays"), A.s-global("Array"))
 fun mk-array(typ :: Type):
   t-app(t-big-array, [list: typ])
 end
 
-t-set = t-name(some("const:sets"), A.s-global("Set"))
+t-set = t-name(some("pyret-builtin://sets"), A.s-global("Set"))
 fun mk-set(typ :: Type):
   t-app(t-set, [list: typ])
 end
@@ -246,10 +254,10 @@ end
 t-torepr   = t-arrow([list: ], t-string)
 t-tostring = t-arrow([list: ], t-string)
 
-eq-EqualityResult = t-name(some("const:equality"), A.s-global("EqualityResult"))
+eq-EqualityResult = t-name(some("pyret-builtin://equality"), A.s-global("EqualityResult"))
 
 # Functions for adding hard-coded modules
-module-const-equality = t-module("const:equality",
+module-const-equality = t-module("pyret-builtin://equality",
   t-record([list:
     t-member("EqualityResult", t-arrow([list: t-top], t-boolean)),
     t-member("is-EqualityResult", t-arrow([list: t-top], t-boolean)),
@@ -276,7 +284,7 @@ module-const-equality = t-module("const:equality",
   SD.make-string-dict()
 )
 
-module-const-arrays = t-module("const:arrays",
+module-const-arrays = t-module("pyret-builtin://arrays",
   t-record([list:
     t-member("array", let tv = t-var(s-atom("A", 1)):
         t-top
@@ -342,7 +350,7 @@ fun mk-list-to-set(tva :: A.Name):
   t-forall([list: t-variable(A.dummy-loc, tva, t-top, covariant)], t-arrow([list: mk-list(tv)], mk-set(tv)))
 end
 
-module-const-sets = t-module("const:sets",
+module-const-sets = t-module("pyret-builtin://sets",
   t-record([list:
     t-member("set", set-constructor(s-atom("A", 11))),
     t-member("list-set", set-constructor(s-atom("A", 12))),
@@ -365,7 +373,7 @@ module-const-sets = t-module("const:sets",
         [list: ],
         [list:
             t-member("length", t-arrow(empty, t-number)),
-            t-member("pick", t-arrow(empty, t-app(t-name(some("const:pick"), A.s-global("Pick")), [list: tv, mk-list(tv)]))),
+            t-member("pick", t-arrow(empty, t-app(t-name(some("pyret-builtin://pick"), A.s-global("Pick")), [list: tv, mk-list(tv)]))),
             t-member("_torepr", t-torepr),
             t-member("fold", let otva = s-atom("B", 21),
                                  otv  = t-var(otva):
@@ -386,7 +394,7 @@ module-const-sets = t-module("const:sets",
     .set("Set", t-name(none, A.s-name(A.dummy-loc, "Set")))
 )
 
-module-const-lists = t-module("const:lists",
+module-const-lists = t-module("pyret-builtin://lists",
   t-record([list:
     t-member("List", t-arrow([list: t-top], t-boolean)),
     t-member("is-List", t-arrow([list: t-top], t-boolean)),
@@ -399,12 +407,12 @@ module-const-lists = t-module("const:lists",
     t-member("repeat", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 157), t-top, invariant)], t-arrow([list: t-number, t-var(s-atom("A", 157))], mk-list(t-var(s-atom("A", 157)))))),
     t-member("filter", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 160), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 160))], t-boolean), mk-list(t-var(s-atom("A", 160)))], mk-list(t-top)))),
     t-member("partition", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 165), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 165))], t-boolean), mk-list(t-var(s-atom("A", 165)))], t-record([list: t-member("is-true", mk-list(t-var(s-atom("A", 165)))), t-member("is-false", mk-list(t-var(s-atom("A", 165))))])))),
-    t-member("find", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 174), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 174))], t-boolean), mk-list(t-var(s-atom("A", 174)))], t-app(t-name(some("const:option"), A.s-global("Option")), [list: t-var(s-atom("A", 174))])))),
+    t-member("find", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 174), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 174))], t-boolean), mk-list(t-var(s-atom("A", 174)))], t-app(t-name(some("pyret-builtin://option"), A.s-global("Option")), [list: t-var(s-atom("A", 174))])))),
     t-member("split-at", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 179), t-top, invariant)], t-arrow([list: t-number, mk-list(t-var(s-atom("A", 179)))], t-record([list: t-member("prefix", mk-list(t-var(s-atom("A", 179)))), t-member("suffix", mk-list(t-var(s-atom("A", 179))))])))),
     t-member("any", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 189), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 189))], t-boolean), mk-list(t-var(s-atom("A", 189)))], t-boolean))),
     t-member("all", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 192), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 192))], t-boolean), mk-list(t-var(s-atom("A", 192)))], t-boolean))),
     t-member("all2", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 199), t-top, invariant), t-variable(A.dummy-loc, s-atom("B", 200), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 199)), t-var(s-atom("B", 200))], t-boolean), mk-list(t-var(s-atom("A", 199))), mk-list(t-var(s-atom("B", 200)))], t-boolean))),
-    t-member("map", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 211), t-top, invariant), t-variable(A.dummy-loc, s-atom("B", 212), t-top, contravariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 211))], t-var(s-atom("B", 212))), mk-list(t-var(s-atom("A", 211)))], mk-list(t-top)))),
+    t-member("map", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 211), t-top, invariant), t-variable(A.dummy-loc, s-atom("B", 212), t-top, contravariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 211))], t-var(s-atom("B", 212))), mk-list(t-var(s-atom("A", 211)))], mk-list(t-var(s-atom("B", 212)))))),
     t-member("map2", t-top),
     t-member("map3", t-top),
     t-member("map4", t-top),
@@ -473,11 +481,11 @@ module-const-lists = t-module("const:lists",
       )
   end,
   SD.make-string-dict()
-    .set("List", t-name(none, A.s-name(A.dummy-loc, "List")))
+    .set("List", t-name(some("pyret-builtin://lists"), A.s-name(A.dummy-loc, "List")))
 )
 
 t-option = lam(param :: A.Name):
-  t-app(t-name(some("const:option"), A.s-global("Option")), [list: t-var(param)])
+  t-app(t-name(some("pyret-builtin://option"), A.s-global("Option")), [list: t-var(param)])
 end
 
 t-and-then = lam(from-param, to-param :: A.Name):
@@ -492,7 +500,7 @@ t-and-then = lam(from-param, to-param :: A.Name):
   )
 end
 
-module-const-option = t-module("const:option",
+module-const-option = t-module("pyret-builtin://option",
   t-record([list:
     t-member("Option", t-arrow([list: t-top], t-boolean)),
     t-member("is-Option", t-arrow([list: t-top], t-boolean)),
@@ -533,80 +541,80 @@ module-const-option = t-module("const:option",
       ])
     ),
   SD.make-string-dict()
-    .set("Option", t-name(none, A.s-name(A.dummy-loc, "Option")))
+    .set("Option", t-name(some("pyret-builtin://option"), A.s-name(A.dummy-loc, "Option")))
 )
 
-module-const-error = t-module("const:error",
+module-const-error = t-module("pyret-builtin://error",
   t-record([list:
     t-member("RuntimeError", t-arrow([list: t-top], t-boolean)),
     t-member("is-RuntimeError", t-arrow([list: t-top], t-boolean)),
-    t-member("message-exception", t-arrow([list: t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("message-exception", t-arrow([list: t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-message-exception", t-arrow([list: t-top], t-boolean)),
-    t-member("no-branches-matched", t-arrow([list: t-top, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("no-branches-matched", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-no-branches-matched", t-arrow([list: t-top], t-boolean)),
-    t-member("internal-error", t-arrow([list: t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("internal-error", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-internal-error", t-arrow([list: t-top], t-boolean)),
-    t-member("field-not-found", t-arrow([list: t-top, t-top, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("field-not-found", t-arrow([list: t-top, t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-field-not-found", t-arrow([list: t-top], t-boolean)),
-    t-member("lookup-non-object", t-arrow([list: t-top, t-top, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("lookup-non-object", t-arrow([list: t-top, t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-lookup-non-object", t-arrow([list: t-top], t-boolean)),
-    t-member("extend-non-object", t-arrow([list: t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("extend-non-object", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-extend-non-object", t-arrow([list: t-top], t-boolean)),
-    t-member("non-boolean-condition", t-arrow([list: t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("non-boolean-condition", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-non-boolean-condition", t-arrow([list: t-top], t-boolean)),
-    t-member("non-boolean-op", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("non-boolean-op", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-non-boolean-op", t-arrow([list: t-top], t-boolean)),
-    t-member("generic-type-mismatch", t-arrow([list: t-top, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("generic-type-mismatch", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-generic-type-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("outside-numeric-range", t-arrow([list: t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("outside-numeric-range", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-outside-numeric-range", t-arrow([list: t-top], t-boolean)),
-    t-member("plus-error", t-arrow([list: t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("plus-error", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-plus-error", t-arrow([list: t-top], t-boolean)),
-    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-numeric-binop-error", t-arrow([list: t-top], t-boolean)),
-    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-cases-arity-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("cases-singleton-mismatch", t-arrow([list: t-top, t-boolean], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("cases-singleton-mismatch", t-arrow([list: t-top, t-boolean], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-cases-singleton-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-arity-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("non-function-app", t-arrow([list: t-top, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("non-function-app", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-non-function-app", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-app", t-arrow([list: t-top, t-string, t-string, t-number, t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("bad-app", t-arrow([list: t-top, t-string, t-string, t-number, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-bad-app", t-arrow([list: t-top], t-boolean)),
-    t-member("uninitialized-id", t-arrow([list: t-top, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("uninitialized-id", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-uninitialized-id", t-arrow([list: t-top], t-boolean)),
-    t-member("module-load-failure", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("module-load-failure", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-module-load-failure", t-arrow([list: t-top], t-boolean)),
-    t-member("invalid-array-index", t-arrow([list: t-string, t-top, t-number, t-string], t-name(some("const:error"), A.s-global("RuntimeError")))),
+    t-member("invalid-array-index", t-arrow([list: t-string, t-top, t-number, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-invalid-array-index", t-arrow([list: t-top], t-boolean)),
-    t-member("user-break", t-name(some("const:error"), A.s-global("RuntimeError"))),
+    t-member("user-break", t-name(some("pyret-builtin://error"), A.s-global("RuntimeError"))),
     t-member("is-user-break", t-arrow([list: t-top], t-boolean)),
     t-member("ParseError", t-arrow([list: t-top], t-boolean)),
     t-member("is-ParseError", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-next-token", t-arrow([list: t-top, t-string], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("parse-error-next-token", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-parse-error-next-token", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-eof", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("parse-error-eof", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-parse-error-eof", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-unterminated-string", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("parse-error-unterminated-string", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-parse-error-unterminated-string", t-arrow([list: t-top], t-boolean)),
-    t-member("empty-block", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("empty-block", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-empty-block", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-block-stmt", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("bad-block-stmt", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-bad-block-stmt", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-check-block-stmt", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("bad-check-block-stmt", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-bad-check-block-stmt", t-arrow([list: t-top], t-boolean)),
-    t-member("fun-missing-colon", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("fun-missing-colon", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-fun-missing-colon", t-arrow([list: t-top], t-boolean)),
-    t-member("fun-missing-end", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("fun-missing-end", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-fun-missing-end", t-arrow([list: t-top], t-boolean)),
-    t-member("args-missing-comma", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("args-missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-args-missing-comma", t-arrow([list: t-top], t-boolean)),
-    t-member("app-args-missing-comma", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("app-args-missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-app-args-missing-comma", t-arrow([list: t-top], t-boolean)),
-    t-member("missing-end", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("missing-end", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-missing-end", t-arrow([list: t-top], t-boolean)),
-    t-member("missing-comma", t-arrow([list: t-top], t-name(some("const:error"), A.s-global("ParseError")))),
+    t-member("missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-global("ParseError")))),
     t-member("is-missing-comma", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
@@ -668,13 +676,13 @@ module-const-error = t-module("const:error",
     .set("Error", t-name(none, A.s-name(A.dummy-loc, "Error")))
 )
 
-module-const-either = t-module("const:either",
+module-const-either = t-module("pyret-builtin://either",
   t-record([list:
     t-member("Either", t-arrow([list: t-top], t-boolean)),
     t-member("is-Either", t-arrow([list: t-top], t-boolean)),
-    t-member("left", t-forall([list: t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("a792", 10), t-top, covariant), t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("b793", 11), t-top, covariant)], t-arrow([list: t-var(s-atom("a792", 10))], t-app(t-name(some("const:either"), A.s-global("Either")), [list: t-var(s-atom("a792", 10)), t-var(s-atom("b793", 11))])))),
+    t-member("left", t-forall([list: t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("a792", 10), t-top, covariant), t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("b793", 11), t-top, covariant)], t-arrow([list: t-var(s-atom("a792", 10))], t-app(t-name(some("pyret-builtin://either"), A.s-global("Either")), [list: t-var(s-atom("a792", 10)), t-var(s-atom("b793", 11))])))),
     t-member("is-left", t-arrow([list: t-top], t-boolean)),
-    t-member("right", t-forall([list: t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("a794", 10), t-top, covariant), t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("b795", 11), t-top, covariant)], t-arrow([list: t-var(s-atom("b795", 11))], t-app(t-name(some("const:either"), A.s-global("Either")), [list: t-var(s-atom("a794", 10)), t-var(s-atom("b795", 11))])))),
+    t-member("right", t-forall([list: t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("a794", 10), t-top, covariant), t-variable(SL.srcloc("src/arr/base/either.arr", 6, 0, 40, 9, 3, 96), s-atom("b795", 11), t-top, covariant)], t-arrow([list: t-var(s-atom("b795", 11))], t-app(t-name(some("pyret-builtin://either"), A.s-global("Either")), [list: t-var(s-atom("a794", 10)), t-var(s-atom("b795", 11))])))),
     t-member("is-right", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
@@ -713,7 +721,7 @@ module-const-either = t-module("const:either",
     .set("Either", t-name(none, A.s-name(A.dummy-loc, "Either")))
 )
 
-t-s-exp = t-name(some("const:s-exp-structs"), A.s-global("S-Exp"))
+t-s-exp = t-name(some("pyret-builtin://s-exp-structs"), A.s-global("S-Exp"))
 
 s-exp-struct-mems = [list:
   t-member("s-list", t-arrow([list: mk-list(t-s-exp)], t-s-exp)),
@@ -726,7 +734,7 @@ s-exp-struct-mems = [list:
   t-member("is-s-sym", t-arrow([list: t-top], t-boolean))
 ]
 
-module-const-s-exp = t-module("const:s-exp",
+module-const-s-exp = t-module("pyret-builtin://s-exp",
   t-record(s-exp-struct-mems + [list:
     t-member("read-s-exp", t-arrow([list: t-string], t-s-exp))
   ]),
@@ -735,7 +743,7 @@ module-const-s-exp = t-module("const:s-exp",
     .set("S-Exp", t-s-exp)
 )
 
-module-const-s-exp-structs = t-module("const:s-exp-structs",
+module-const-s-exp-structs = t-module("pyret-builtin://s-exp-structs",
   t-record(s-exp-struct-mems),
   SD.make-string-dict()
     .set("S-Exp", t-datatype("S-Exp",
@@ -787,14 +795,14 @@ module-const-s-exp-structs = t-module("const:s-exp-structs",
 
 fun make-default-modules():
   default-modules = SD.make-mutable-string-dict()
-  default-modules.set-now("const:equality", module-const-equality)
-  default-modules.set-now("const:lists", module-const-lists)
-  default-modules.set-now("const:option", module-const-option)
-  default-modules.set-now("const:error", module-const-error)
-  default-modules.set-now("const:either", module-const-either)
-  default-modules.set-now("const:arrays", module-const-arrays)
-  default-modules.set-now("const:sets", module-const-sets)
-  default-modules.set-now("const:s-exp", module-const-s-exp)
-  default-modules.set-now("const:s-exp-structs", module-const-s-exp-structs)
+  default-modules.set-now("pyret-builtin://equality", module-const-equality)
+  default-modules.set-now("pyret-builtin://lists", module-const-lists)
+  default-modules.set-now("pyret-builtin://option", module-const-option)
+  default-modules.set-now("pyret-builtin://error", module-const-error)
+  default-modules.set-now("pyret-builtin://either", module-const-either)
+  default-modules.set-now("pyret-builtin://arrays", module-const-arrays)
+  default-modules.set-now("pyret-builtin://sets", module-const-sets)
+  default-modules.set-now("pyret-builtin://s-exp", module-const-s-exp)
+  default-modules.set-now("pyret-builtin://s-exp-structs", module-const-s-exp-structs)
   default-modules
 end

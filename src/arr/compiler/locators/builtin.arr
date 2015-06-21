@@ -24,6 +24,10 @@ fun make-dep(raw-dep):
   end
 end
 
+fun convert-provides(uri, provides):
+  CM.provides-from-raw-provides(uri, provides)
+end
+
 fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   for fold(d from mtd, s from strs):
     d.set(s, val)
@@ -56,13 +60,12 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
 
     set-compiled(_, _): nothing end,
     get-compiled(self):
-      vprovides = raw.get-raw-value-provides()
-      tprovides = raw.get-raw-type-provides()
-      provs = CM.provides(
-        self.uri(),
-        const-dict(raw-array-to-list(vprovides), T.t-top),
-        const-dict(raw-array-to-list(tprovides), T.t-top),
-        mtd) # TODO(joe): provide datatypes
+      provs = convert-provides(self.uri(), {
+        uri: self.uri(),
+        values: raw-array-to-list(raw.get-raw-value-provides()),
+        aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+        datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+      })
       some(CL.pre-loaded(provs, CM.minimal-builtins, raw.get-raw-compiled()))
     end,
 
