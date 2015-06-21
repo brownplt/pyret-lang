@@ -199,8 +199,6 @@ fun arrow-constraints(blame-loc :: A.Loc, a-forall :: List<TypeVariable>,
 end
 
 fun resolve-alias(t :: Type, info) -> Type:
-  print("Resolving alias")
-  print(t)
   cases(Type) t:
     | t-name(a-mod, a-id) =>
       cases(Option) a-mod:
@@ -326,15 +324,11 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-app(b-onto, b-args) =>
-          print(a-onto)
-          print(b-onto)
-          print(a-onto == b-onto)
           shadow a-onto = resolve-alias(a-onto, info)
           shadow b-onto = resolve-alias(b-onto, info)
           (a-onto == b-onto) and
           cases(Option<DataType>) TCS.get-data-type(a-onto, info):
             | some(data-type) =>
-              print(data-type)
               params-length = data-type.params.length()
               a-args-length = a-args.length()
               b-args-length = b-args.length()
