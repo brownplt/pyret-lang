@@ -756,7 +756,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-member(name, T.t-ref(ann-to-typ(ann)))
       | s-method-field(l, name, params, args, ann, _, _, _) =>
         arrow-part = 
-          T.t-arrow(map(ann-to-typ, map(args, _.ann)), ann-to-typ(ann))
+          T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann))
         typ =
           if is-empty(params): arrow-part
           else:
