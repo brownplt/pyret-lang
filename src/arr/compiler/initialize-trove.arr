@@ -32,6 +32,4 @@ import repl as _
 # eventually be loaded somewhere appropriate once we're using it.
 import "compiler/locators/file.arr" as _
 import plot as _
-import plot-structs as _
 import graph as _
-import graph-structs as _

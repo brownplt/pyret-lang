@@ -645,7 +645,7 @@ define(["js/js-numbers"],
     function d3tipBuilder(d3tipLib) {
       return function(detached) {
         return d3tipLib(d3, detached);
-      }
+      };
     }
 
     var d3common = {
@@ -657,7 +657,7 @@ define(["js/js-numbers"],
         'callBigBang': callBigBang,
         'stylizeTip': stylizeTip,
         'd3tipBuilder': d3tipBuilder
-    }
+    };
 
     return {
         'libData': libData,

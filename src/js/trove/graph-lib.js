@@ -1,5 +1,5 @@
 define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/d3-lib",
-        "../../../node_modules/d3/d3", "../../../node_modules/d3-tip/index"],
+        "../../../node_modules/d3/d3.min", "../../../node_modules/d3-tip/index"],
        function(util, jsnums, imageLib, clib, d3, d3tipLib){
 
   var libs = clib(d3);

@@ -1,6 +1,6 @@
 define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         "trove/image-lib", "trove/d3-lib", "trove/plot-structs",
-        "../../../node_modules/d3/d3", "../../../node_modules/d3-tip/index"],
+        "../../../node_modules/d3/d3.min", "../../../node_modules/d3-tip/index"],
        function(util, jsnums, eitherLib, sdLib, imageLib,
                 clib, structsLib, d3, d3tipLib) {
 
@@ -56,7 +56,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
     }
 
     var xAxisConf = getAxisConf(yMin, yMax),
-      yAxisConf = getAxisConf(xMin, xMax);
+        yAxisConf = getAxisConf(xMin, xMax);
     xAxisConf.pos = 1 - xAxisConf.pos;
 
     var tickNum = 7;
@@ -212,6 +212,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
   return function(rt, namespace) {
 
   var gf = rt.getField;
+  var mo = rt.makeObject;
+  var ml = rt.ffi.makeList;
   var IMAGE = imageLib(rt, rt.namespace);
 
   return rt.loadModulesNew(namespace, [structsLib, sdLib, eitherLib], function(STRUCTS, SD, EITHER) {
@@ -584,9 +586,9 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         'y-max': yMax
       });
     }
-
-    function generateXY(f, xMin, xMax, yMin, yMax) {
-      rt.checkArity(5, arguments, "generate-xy");
+    
+    function generateXY(f, xMin, xMax, yMin, yMax, leftRaw, rightRaw) {
+      rt.checkArity(7, arguments, "generate-xy");
       rt.checkFunction(f);
       rt.checkNumber(xMin);
       rt.checkNumber(xMax);
@@ -613,62 +615,29 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true);
       var yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
-
-      function PointCoord(x) {
-        this.x = x;
-        this.px = xToPixel(x);
-
-        // TODO: replace try block with this when
-        // execThunk is available
-
-        /*
-        rt.safeCall(function(){
-          return rt.execThunk(function(){
-            return f.app(x);
-          });
-        }, function(answer){
-          if(rt.isSuccessResult(answer)){
-            this.y = answer.result;
-
-            // below will cause an exception
-            // if y is a complex number
-
-            if (!jsnums.isReal(this.y) ||
-              jsnums.lessThan(this.y, yMin) ||
-              jsnums.lessThan(yMax, this.y)) {
-              this.y = NaN;
-              this.py = NaN;
-            } else {
-              this.py = yToPixel(this.y);
-            }
-
-          }else{
-            this.y = NaN;
-            this.py = NaN;
-          }
-        });
-        */
-
-        try {
-          this.y = f.app(x);
-
-          // below will cause an exception
-          // if y is a complex number
-
-          if (jsnums.lessThan(this.y, yMin) ||
-            jsnums.lessThan(yMax, this.y)) {
-            this.y = NaN;
-            this.py = NaN;
-          } else {
-            this.py = yToPixel(this.y);
-          }
-        } catch(e) {
-          this.y = NaN;
-          this.py = NaN;
-        }
-        return this;
+      
+      var isProper = function(val){
+        return jsnums.isReal(val) &&
+               jsnums.lessThanOrEqual(yMin, val) &&
+               jsnums.lessThanOrEqual(val, yMax)
+      }
+      
+      var left = {x: gf(leftRaw, "x"), y: gf(leftRaw, "y")};
+      left.px = xToPixel(left.x)
+      left.py = yToPixel(left.y)
+      if (!isProper(left.y)){
+        left.y = NaN;
+        left.py = NaN;
       }
 
+      var right = {x: gf(rightRaw, "x"), y: gf(rightRaw, "y")};
+      right.px = xToPixel(right.x)
+      right.py = yToPixel(right.y)
+      if (!isProper(right.y)){
+        right.y = NaN;
+        right.py = NaN;
+      }
+      
       function isSamePX(coordA, coordB) {
         return Math.floor(coordA.px) == Math.floor(coordB.px);
       }
@@ -708,99 +677,69 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         return logtable[Math.floor(left.px)].isRangedOccupied(
           Math.floor(left.py), Math.floor(right.py));
       }
-
+      
       function divideSubinterval(left, right, depth) {
-        /*
-        Input: two X values
-        Output: list of [2-length long list of points]
-        Note: invalid for two ends is still okay
-        invalid for K points indicate that it should not be plotted!
-        */
-
+        // Input: two X values
+        // Output: list of [2-length long list of points]
+        // Note: invalid for two ends is still okay
+        // invalid for K points indicate that it should not be plotted!
+        
         occupy(left);
         occupy(right);
 
-        if (closeEnough(left, right)) {
-          return [[left, right]];
-        } else if (tooClose(left, right)) {
-          return [];
-        } else if (isSamePX(left, right) &&
-          isAllOccupied(left, right)) {
-            return [[left, right]];
-        } else {
-          var scalerSubinterval = libNum.scaler(
-            0, K - 1, left.x, right.x, false);
-
-          var points = libData.range(0, K).map(function (i) {
-            return new PointCoord(scalerSubinterval(i));
+        if (closeEnough(left, right))                            return [ml([mo(left), mo(right)])];
+        if (tooClose(left, right))                               return [];
+        if (isSamePX(left, right) && isAllOccupied(left, right)) return [ml([mo(left), mo(right)])];
+        
+        var scalerSubinterval = libNum.scaler(0, K - 1, left.x, right.x, false);
+        
+        function makePoints(i, done) {
+          if(i >= K) return done([]);
+          var pt = {y: NaN, py: NaN};
+          pt.x = scalerSubinterval(i);
+          pt.px = xToPixel(pt.x);
+          return rt.safeCall(function() {
+            return rt.execThunk({ app: function(){ return f.app(pt.x); }});
+          }, function(result) {
+            rt.ffi.cases(Either, "Either", result, {
+              'left': function(val){
+                if (isProper(val)) {
+                    pt.y = val;
+                    pt.py = yToPixel(val);
+                }
+                return 0;
+              },
+              'right': function(_){ return 0; }
+            });
+            return makePoints(i + 1, function(points) {
+              points.push(pt);
+              return done(points);
+            });
           });
-
-          if (allInvalid(points)) {
-            return [];
-          } else {
-            var intervals = [];
-            var shuffled = libData.shuffle(
-              libData.range(0, K - 1));
-            for (var i = 0; i < K - 1; i++) {
-              var v = shuffled[i];
-              intervals.push(divideSubinterval(
-                points[v], points[v + 1], depth + 1
-              ));
-              if (isSamePX(left, right) &&
-                isAllOccupied(left, right)) {
-                  return [[left, right]];
-              }
-            }
-            return libData.flatten(intervals);
-          }
         }
-      }
-
-      var ans = divideSubinterval(new PointCoord(xMin),
-                    new PointCoord(xMax), 0)
-
-      ans.sort(function(a, b) {
-        if (a[0].px == b[0].px) {
-          return a[0].py - b[0].py;
-        }
-        return a[0].px - b[0].px;
-      });
-
-      ans = ans.reduce(
-        function(dataPoints, val) {
-          if (dataPoints.length > 0) {
-            var prev = dataPoints.pop();
-            if (prev.length > 0 && val.length > 0) {
-              if (closeEnough(
-                libData.lastElement(prev), val[0])) {
-                val.shift();
-                dataPoints.push(
-                  prev.concat(val));
-              } else {
-                dataPoints.push(prev);
-                dataPoints.push(val);
+           
+        return makePoints(0, function(points) {
+          if(allInvalid(points)) return [];
+          function makeIntervals(i, done) {
+            if(i >= K - 1) return done([]);
+            return rt.safeCall(function() {
+              return divideSubinterval(points[i], points[i + 1], depth + 1)
+            }, function(divided) {
+              if (isSamePX(left, right) && isAllOccupied(left, right)) {
+                return [ml([mo(left), mo(right)])];
               }
-            } else {
-              dataPoints.push(prev);
-              dataPoints.push(val);
-            }
-          } else {
-            dataPoints.push(val);
-          }
-          return dataPoints;
-      }, []);
-
-      ans = ans.map(
-        function (lst) {
-            return lst.map(function (dp) {
-              return rt.makeObject({
-                'x': dp.x,
-                'y': dp.y
+              return makeIntervals(i + 1, function(interv) {
+                interv.push(divided);
+                return done(interv);
               });
             });
-          }).map(rt.ffi.makeList);
-
-      return rt.ffi.makeList(ans);
+          }
+          return makeIntervals(0, function(intervals) {
+            return libData.flatten(intervals);
+          });
+        });
+      }
+      return divideSubinterval(left, right, 0);
     }
 
     return util.makeModuleReturn(rt, {}, {

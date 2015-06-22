@@ -131,9 +131,9 @@
 
   These functions are available on the @tt{plot} module object.  So, for
   example, if you used @pyret{import plot as P}, you would write
-  @pyret{P.plot} to access @pyret{plot} below.
+  @pyret{P.plot-multi} to access @pyret{plot-multi} below.
 
-  @function["plot"
+  @function["plot-multi"
     #:contract (a-arrow (L-of (type "Plot")) (type "PlotWindowOptions") (L-of (type "Plot")))
     #:args (list (list "lst" #f) (list "options" #f))
     #:return (L-of (type "Plot"))
@@ -145,7 +145,7 @@
   import image-structs as I
   p1 = xy-plot(lam(x): x * x end, plot-options.{color: I.red})
   p2 = line-plot([list: posn(1, 1), posn(2, 4), posn(3, 9), posn(4, 16)], plot-options.{color: I.green})
-  plot([list: p1, p2], plot-window-options.{x-min: 0, x-max: 20, y-min: 0, y-max: 20})
+  plot-multi([list: p1, p2], plot-window-options.{x-min: 0, x-max: 20, y-min: 0, y-max: 20})
   }
   }
 
