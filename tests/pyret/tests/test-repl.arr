@@ -31,7 +31,6 @@ check:
   end
 
   result3 = next-interaction("y = 10\nx")
-  print(result3)
   L.get-result-answer(result3.v) is some(5)
 
   result4 = next-interaction("y")
@@ -50,7 +49,6 @@ check:
 
   current-defs := "import string-dict from string-dict\n55"
   result7 = repl.restart-interactions(false)
-  print(result7)
   cases(Either) result7:
     | right(v) =>
       L.get-result-answer(result7.v) is some(55)
@@ -60,11 +58,9 @@ check:
 
   # should fail because y no longer bound
   result8 = next-interaction("y")
-  print(result8)
   result8 satisfies E.is-left
 
   result9 = next-interaction("is-function(string-dict.make)")
-  print(result9)
   L.get-result-answer(result9.v) is some(true)
 
   result10 = next-interaction("import string-dict as SD")
