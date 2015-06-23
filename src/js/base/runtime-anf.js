@@ -3952,6 +3952,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return num_random(max);
     }
 
+    var time_now = function() {
+      if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["time-now"], 0, $a); }
+      return new Date().getTime();
+    }
+
     function loadBuiltinModules(modules, startName, withModules) {
       function loadWorklist(startMod) {
         function addMod(curMod, curPath, curName) {
@@ -4294,6 +4299,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'string-from-code-point': makeFunction(string_from_code_point),
           'string-to-code-points': makeFunction(string_to_code_points),
           'string-from-code-points': makeFunction(string_from_code_points),
+
+          'time-now': makeFunction(time_now),
 
           'raw-array-of': makeFunction(raw_array_of),
           'raw-array-get': makeFunction(raw_array_get),
