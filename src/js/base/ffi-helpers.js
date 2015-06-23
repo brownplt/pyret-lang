@@ -9,6 +9,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
       var mt = gf(L, "empty");
       function makeList(arr) {
+        if (!arr || typeof arr.length !== "number") {
+          throw "Non-array given to makeList " + JSON.stringify(arr);
+        }
         var lst = mt;
         for(var i = arr.length - 1; i >= 0; i--) {
           lst = lnk(arr[i], lst);
@@ -179,12 +182,14 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         raise(err("invalid-array-index")(methodName, array, index, reason));
       }
 
-      function throwPlusError(left, right) {
+      function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
-        raise(err("plus-error")(left, right));
+        runtime.checkString(opname);
+        runtime.checkString(opdesc);
+        runtime.checkString(methodname);
+        raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
-
       function throwNumericBinopError(left, right, opname, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
@@ -332,7 +337,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
-        throwPlusError: throwPlusError,
+        throwNumStringBinopError: throwNumStringBinopError,
         throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
@@ -433,7 +438,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
           var isStr = runtime.getField(VS, "is-vs-str");
           var isSeq = runtime.getField(VS, "is-vs-seq");
           if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
-            throw "Non-value-skeleton given to skeletonValues " + String(skel);
+            throwTypeMismatch(skel, "ValueSkeleton");
           }
           var arr = [];
           var worklist = [skel];
@@ -451,7 +456,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
               } else if (runtime.unwrap(isSeq.app(cur)) === true) {
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else {
-                throw "Non-value appeared in skeleton: " + String(cur);
+                throwMessageException("Non-value appeared in skeleton: " + String(cur));
               }
             }
           } catch(e) {

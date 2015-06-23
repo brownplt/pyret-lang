@@ -107,18 +107,19 @@ data RuntimeError:
           ED.text(" and "), ED.embed(self.high),
           ED.text(", but got"), ED.embed(self.val)]]
     end
-  | plus-error(val1, val2) with:
+  | num-string-binop-error(val1, val2, opname, opdesc, methodname) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Invalid use of"), ED.code(ED.text("+")), ED.text("for these values:")],
+          ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
-        ED.text("Plus takes one of:"),
+        ED.text(self.opdesc + "requires:"),
         [ED.bulleted:
-          ED.text("Two numbers"),
-          ED.text("Two strings"),
-          [ED.para: ED.text("A left-hand operand that has a"), ED.code(ED.text("_plus")), ED.text("method")]]]
+          ED.text("Two numbers,"),
+          ED.text("Two strings, or"),
+          [ED.para:
+            ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, methodname) with:
     render-reason(self):

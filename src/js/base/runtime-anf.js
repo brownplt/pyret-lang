@@ -3261,25 +3261,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var plus = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_plus"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.add(l, r));
-      } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkString(r);
+      } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
         return thisRuntime.makeString(l.concat(r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_plus").app(r);
           });
       } else {
-        ffi.throwPlusError(l, r);
+        ffi.throwNumStringBinopError(l, r, "+", "Plus", "_plus");
       }
     };
 
     var minus = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_minus"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r)
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
         return safeTail(function() {
@@ -3292,8 +3289,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var times = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_times"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
         return safeTail(function() {
@@ -3306,8 +3302,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var divide = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_divide"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         if (jsnums.equalsAnyZero(r)) {
           throw makeMessageException("Division by zero");
         }
@@ -3323,69 +3318,61 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var lessthan = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessthan"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.lessThan(l, r));
-      } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkString(r);
+      } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_lessthan").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "<", "_lessthan");
+        ffi.throwNumStringBinopError(l, r, "<", "Less-than", "_lessthan");
       }
     };
 
     var greaterthan = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterthan"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.greaterThan(l, r));
-      } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkString(r);
+      } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_greaterthan").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, ">", "_greaterthan");
+        ffi.throwNumStringBinopError(l, r, ">", "Greater-than", "_greaterthan");
       }
     };
 
     var lessequal = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessequal"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r));
-      } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkString(r);
+      } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_lessequal").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "<=", "_lessequal");
+        ffi.throwNumStringBinopError(l, r, "<=", "Less-than-or-equal", "_lessequal");
       }
     };
 
     var greaterequal = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterequal"], 2, $a); }
-      if (thisRuntime.isNumber(l)) {
-        thisRuntime.checkNumber(r);
+      if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r));
-      } else if (thisRuntime.isString(l)) {
-        thisRuntime.checkString(r);
+      } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
         return safeTail(function() {
             return thisRuntime.getField(l, "_greaterequal").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, ">=", "_greaterequal");
+        ffi.throwNumStringBinopError(l, r, ">=", "Greater-than-or-equal", "_greaterequal");
       }
     };
 
