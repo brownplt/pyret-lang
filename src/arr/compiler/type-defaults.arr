@@ -180,6 +180,9 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-random").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-random-seed").key(), t-arrow([list: t-number], t-nothing))
 
+  # Time functions
+  default-typs.set-now(A.s-global("time-now").key(), t-arrow(empty, t-number))
+  
   # String functions
   default-typs.set-now(A.s-global("gensym").key(), t-arrow(empty, t-string))
   default-typs.set-now(A.s-global("string-repeat").key(), t-arrow([list: t-string, t-number], t-string))
