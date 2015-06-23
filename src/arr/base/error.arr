@@ -114,7 +114,7 @@ data RuntimeError:
           ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
-        ED.text(self.opdesc + "requires:"),
+        ED.text(self.opdesc + " requires:"),
         [ED.bulleted:
           ED.text("Two numbers,"),
           ED.text("Two strings, or"),
@@ -297,6 +297,20 @@ data ParseError:
           ED.text("Pyret thinks your program has an incomplete string literal around "),
           draw-and-highlight(self.loc),
           ED.text("; you may be missing closing punctuation.")]]
+    end
+  | parse-error-bad-operator(loc) with:
+    render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("The operator at "),
+          draw-and-highlight(self.loc),
+          ED.text(" has no surrounding whitespace.")]]
+    end
+  | parse-error-bad-number(loc) with:
+    render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("Pyret thinks your program probably has a number at "),
+          draw-and-highlight(self.loc),
+          ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
   | empty-block(loc) with:
     _tostring(self, shadow tostring):

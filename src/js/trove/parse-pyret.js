@@ -1036,6 +1036,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
               RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
             else if (nextTok.name === "UNTERMINATED-STRING")
               RUNTIME.ffi.throwParseErrorUnterminatedString(makePyretPos(fileName, nextTok.pos));
+            else if (nextTok.name === "BAD-NUMBER")
+              RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
+            else if (nextTok.name === "BAD-OPER")
+              RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
             else
               RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
           }
