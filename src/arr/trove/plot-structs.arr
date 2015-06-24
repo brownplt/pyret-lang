@@ -1,3 +1,5 @@
+#lang pyret
+
 provide *
 provide-types *
 
@@ -18,6 +20,11 @@ type PlotWindowOptions = {
   y-max :: Number,
   infer-bounds :: Boolean,
   label :: String
+}
+
+type PointInt = {
+  x :: Number,
+  y :: Option<Number>
 }
 
 data Plot:

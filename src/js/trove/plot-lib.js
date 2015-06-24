@@ -1,7 +1,8 @@
-define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
-        "trove/image-lib", "trove/d3-lib", "trove/plot-structs",
-        "../../../node_modules/d3/d3.min", "../../../node_modules/d3-tip/index"],
-       function(util, jsnums, eitherLib, sdLib, imageLib,
+define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
+				"trove/string-dict", "trove/image-lib", "trove/d3-lib",
+				"trove/plot-structs", "../../../node_modules/d3/d3.min",
+				"../../../node_modules/d3-tip/index"],
+       function(util, jsnums, eitherLib, optionLib, sdLib, imageLib,
                 clib, structsLib, d3, d3tipLib) {
 
   var HISTOGRAM_N = 100;
@@ -216,8 +217,11 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
   var ml = rt.ffi.makeList;
   var IMAGE = imageLib(rt, rt.namespace);
 
-  return rt.loadModulesNew(namespace, [structsLib, sdLib, eitherLib], function(STRUCTS, SD, EITHER) {
-    var Either = gf(gf(EITHER, "values"), "is-Either");
+  return rt.loadModulesNew(namespace, [structsLib, sdLib, eitherLib, optionLib],
+		function(STRUCTS, SD, EITHER, OPTION) {
+			
+		var OptionT = gf(gf(OPTION, "values"), "is-Option");
+    var EitherT = gf(gf(EITHER, "values"), "is-Either");
     var structFuns = gf(STRUCTS, "values");
     var PlotInt = gf(structFuns, "is-PlotInt");
     var Plot = gf(structFuns, "is-Plot");
@@ -399,6 +403,9 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
     }
 
     function genericPlot(lst, windowOption, plotOptions, allID) {
+			
+			console.log('start JS')
+			
       rt.checkArity(4, arguments, "generic-plot");
       rt.checkList(lst);
       rt.checkObject(windowOption);
@@ -586,14 +593,18 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         'y-max': yMax
       });
     }
-    
-    function generateXY(f, xMin, xMax, yMin, yMax, leftRaw, rightRaw) {
-      rt.checkArity(7, arguments, "generate-xy");
+
+    function generateXY(f, option, leftRaw, rightRaw) {
+      rt.checkArity(4, arguments, "generate-xy");
       rt.checkFunction(f);
-      rt.checkNumber(xMin);
-      rt.checkNumber(xMax);
-      rt.checkNumber(yMin);
-      rt.checkNumber(yMax);
+			rt.checkObject(option);
+			rt.checkObject(leftRaw);
+			rt.checkObject(rightRaw);
+			var xMin = gf(option, "x-min");
+			var xMax = gf(option, "x-max");
+			var yMin = gf(option, "y-min");
+			var yMax = gf(option, "y-max");
+			
       if (jsnums.greaterThanOrEqual(xMin, xMax) ||
         jsnums.greaterThanOrEqual(yMin, yMax)) {
         rt.throwMessageException(CError.RANGE);
@@ -615,29 +626,14 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true);
       var yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
-      
+
       var isProper = function(val){
-        return jsnums.isReal(val) &&
+        return !Number.isNaN(val) &&
+				       jsnums.isReal(val) &&
                jsnums.lessThanOrEqual(yMin, val) &&
                jsnums.lessThanOrEqual(val, yMax)
-      }
-      
-      var left = {x: gf(leftRaw, "x"), y: gf(leftRaw, "y")};
-      left.px = xToPixel(left.x)
-      left.py = yToPixel(left.y)
-      if (!isProper(left.y)){
-        left.y = NaN;
-        left.py = NaN;
-      }
+      };
 
-      var right = {x: gf(rightRaw, "x"), y: gf(rightRaw, "y")};
-      right.px = xToPixel(right.x)
-      right.py = yToPixel(right.y)
-      if (!isProper(right.y)){
-        right.y = NaN;
-        right.py = NaN;
-      }
-      
       function isSamePX(coordA, coordB) {
         return Math.floor(coordA.px) == Math.floor(coordB.px);
       }
@@ -677,22 +673,22 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
         return logtable[Math.floor(left.px)].isRangedOccupied(
           Math.floor(left.py), Math.floor(right.py));
       }
-      
+
       function divideSubinterval(left, right, depth) {
         // Input: two X values
         // Output: list of [2-length long list of points]
         // Note: invalid for two ends is still okay
         // invalid for K points indicate that it should not be plotted!
-        
+
         occupy(left);
         occupy(right);
 
         if (closeEnough(left, right))                            return [ml([mo(left), mo(right)])];
         if (tooClose(left, right))                               return [];
         if (isSamePX(left, right) && isAllOccupied(left, right)) return [ml([mo(left), mo(right)])];
-        
+
         var scalerSubinterval = libNum.scaler(0, K - 1, left.x, right.x, false);
-        
+
         function makePoints(i, done) {
           if(i >= K) return done([]);
           var pt = {y: NaN, py: NaN};
@@ -701,7 +697,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
           return rt.safeCall(function() {
             return rt.execThunk({ app: function(){ return f.app(pt.x); }});
           }, function(result) {
-            rt.ffi.cases(Either, "Either", result, {
+            rt.ffi.cases(EitherT, "Either", result, {
               'left': function(val){
                 if (isProper(val)) {
                     pt.y = val;
@@ -717,7 +713,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
             });
           });
         }
-           
+
         return makePoints(0, function(points) {
           if(allInvalid(points)) return [];
           function makeIntervals(i, done) {
@@ -735,11 +731,27 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/string-dict",
             });
           }
           return makeIntervals(0, function(intervals) {
+						console.log('flatten')
             return libData.flatten(intervals);
           });
         });
       }
-      return divideSubinterval(left, right, 0);
+			
+			var getPoint = function(obj) {
+				var ret = {x: gf(obj, "x"), y: NaN, px: NaN, py: NaN};
+				ret.px = xToPixel(ret.x);
+				ret.y = rt.ffi.cases(OptionT, "Option", gf(obj, "y"), {
+					'some': function(v){ return v; },
+					'none': function(){ return NaN; }
+				});
+				
+				if(isProper(ret.y)){
+					ret.py = yToPixel(ret.y);
+				}
+				return ret;
+			};
+			
+      return divideSubinterval(getPoint(leftRaw), getPoint(rightRaw), 0);
     }
 
     return util.makeModuleReturn(rt, {}, {
