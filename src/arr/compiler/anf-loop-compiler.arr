@@ -590,7 +590,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   num-args = args.length()
 
   if J.is-j-id(compiled-obj):
-    colon-field = rt-method("getColonField", [clist: compiled-obj, j-str(methname)])
+    colon-field = rt-method("getColonFieldLoc", [clist: compiled-obj, j-str(methname), compiler.get-loc(l)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
     check-method = rt-method("isMethod", [clist: colon-field-id])
     after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
@@ -619,7 +619,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
       new-cases)
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
-    colon-field = rt-method("getColonField", [clist: obj-id, j-str(methname)])
+    colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(methname), compiler.get-loc(l)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
     check-method = rt-method("isMethod", [clist: colon-field-id])
     after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
@@ -1032,7 +1032,8 @@ compiler-visitor = {
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(rt-method("getColonField", [clist: visit-obj.exp, j-str(field)]), visit-obj.other-stmts)
+    c-exp(rt-method("getColonFieldLoc", [clist: visit-obj.exp, j-str(field), self.get-loc(l)]),
+      visit-obj.other-stmts)
   end,
   a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = fresh-id(compiler-name("step"))

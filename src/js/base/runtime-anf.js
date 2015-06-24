@@ -412,11 +412,14 @@ function extendObj(loc, val, extension) {
   @return {!PBase}
 **/
 function getColonField(val, field) {
+  return getColonFieldLoc(val, field, ["runtime"]);
+}
+function getColonFieldLoc(val, field, loc) {
   if(val === undefined) { ffi.throwInternalError("Field lookup on undefined ", [field]); }
-  if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(["runtime"]), val, field); }
+  if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
   var fieldVal = val.dict[field];
   if(fieldVal === undefined) {
-    ffi.throwFieldNotFound(makeSrcloc(["runtime"]), val, field);
+    ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
   }
   else {
     return fieldVal;
@@ -4381,12 +4384,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'schedulePause'  : schedulePause,
         'breakAll' : breakAll,
 
-        'getField'      : getField,
-        'getFieldLoc'   : getFieldLoc,
-        'getFieldRef'   : getFieldRef,
-        'getFields'     : getFields,
-        'getColonField' : getColonField,
-        'extendObj'     : extendObj,
+        'getField'         : getField,
+        'getFieldLoc'      : getFieldLoc,
+        'getFieldRef'      : getFieldRef,
+        'getFields'        : getFields,
+        'getColonField'    : getColonField,
+        'getColonFieldLoc' : getColonFieldLoc,
+        'extendObj'        : extendObj,
 
         'hasBrand' : hasBrand,
 

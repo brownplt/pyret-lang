@@ -474,10 +474,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
-          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "make")),
+          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
             [list: A.s-array(l, elts.map(desugar-expr))])
         | s-construct-lazy =>
-          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "lazy-make")),
+          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
