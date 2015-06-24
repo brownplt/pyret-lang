@@ -244,7 +244,9 @@ fun ignorable(rhs):
   else if J.is-j-method(rhs):
     (J.is-j-id(rhs.obj) and (rhs.obj.id.toname() == "R") and ((rhs.meth == "getFieldRef") or (rhs.meth == "getDotAnn")))
   else:
-    false
+    J.is-j-id(rhs)
+    or (J.is-j-dot(rhs) and ignorable(rhs.obj))
+    or (J.is-j-bracket(rhs) and ignorable(rhs.obj) and ignorable(rhs.field))
   end
 end
 
