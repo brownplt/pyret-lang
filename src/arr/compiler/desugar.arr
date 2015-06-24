@@ -90,33 +90,6 @@ end
 
 fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank);
 
-fun make-torepr(l, vname, fields, is-singleton):
-  self = mk-id(l, "self")
-  fun str(s): A.s-str(l, s) end
-  fun call-torepr(val):
-    A.s-app(l, gid(l, "torepr"), [list: A.s-dot(l, self.id-e, val.bind.id.toname())])
-  end
-  fun concat(v1, v2):
-    A.s-op(l, "op+", v1, v2)
-  end
-  argstrs = cases(List) fields:
-    | empty => str("")
-    | link(f, r) =>
-      r.foldl(
-          lam(val, acc): concat(acc, concat(str(", "), call-torepr(val))) end,
-          call-torepr(f)
-        )
-  end
-  if is-singleton:
-    A.s-method(l, empty, [list: self.id-b], A.a-blank, "", str(vname), none)
-  else:
-    A.s-method(l, empty, [list: self.id-b], A.a-blank, "",
-      concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
-      none)
-  end
-end
-
-
 fun get-arith-op(str):
   if str == "op+": some("_plus")
   else if str == "op-": some("_minus")

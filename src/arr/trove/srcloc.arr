@@ -10,6 +10,7 @@ data Srcloc:
     format(self, _):
       "<builtin " + self.module-name + ">"
     end,
+    key(self): self.module-name end,
     same-file(self, other):
       is-builtin(other) and (other.module-name == self.module-name)
     end,
@@ -35,6 +36,7 @@ data Srcloc:
         + "line " + tostring(self.start-line)
         + ", column " + tostring(self.start-column)
     end,
+    key(self): self.source + ":" + tostring(self.start-char) + "-" + tostring(self.end-char) end,
     same-file(self, other :: Srcloc):
       is-srcloc(other) and (self.source == other.source)
     end,
@@ -77,7 +79,6 @@ data Srcloc:
     end,
     is-builtin(self): false end
 sharing:
-  _tostring(self, shadow tostring): self.format(true) end,
   _output(self): VS.vs-value(self.format(true)) end,
   after(self, other): other.before(self) end
 end

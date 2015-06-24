@@ -276,12 +276,26 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-special-import(self, l, kind, args):
     if kind == "my-gdrive":
-      when args.length() <> 1:
+      if args.length() <> 1:
         wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+        false
+      else:
+        true
       end
     else if kind == "shared-gdrive":
-      when args.length() <> 2:
+      if args.length() <> 2:
         wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+        false
+      else:
+        true
+      end
+    else if kind == "js-http":
+      true
+    else if kind == "gdrive-js":
+      if args.length() <> 2:
+        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
+      else:
+        true
       end
     else if kind == "gdrive-js":
       when args.length() <> 2:
@@ -291,7 +305,6 @@ well-formed-visitor = A.default-iter-visitor.{
       true
       #wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
-    true
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     wf-error("Cannot define a data expression except at the top level of a file", l)

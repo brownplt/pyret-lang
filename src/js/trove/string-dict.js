@@ -48,7 +48,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
       function makeImmutableStringDict(underlyingDict) {
 
         var getISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -63,7 +63,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var getValueISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get-value');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-value'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -77,7 +77,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var setISD = runtime.makeMethod2(function(_, key, val) {
-          runtime.checkArity(3, arguments, 'set');
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['set'], 3, $a); }
           runtime.checkString(key);
           runtime.checkPyretVal(val);
           var newObj = Object.create(underlyingDict);
@@ -87,7 +87,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var mergeISD = runtime.makeMethod1(function(self, other) {
-          runtime.checkArity(2, arguments, "merge");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a); }
           checkISD(other);
           var otherKeys = runtime.getField(other, "keys-list").app();
           var otherKeysArr = runtime.ffi.toArray(otherKeys);
@@ -101,7 +101,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var removeISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'remove');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['remove'], 2, $a); }
           runtime.checkString(key);
           var newObj = Object.create(underlyingDict);
           var mkey = internalKey(key);
@@ -110,7 +110,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var hasKeyISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'has-key');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['has-key'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -135,7 +135,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         }
 
         var keysISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'keys');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a); }
           var keys = getAllKeys();
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
@@ -143,7 +143,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var keysListISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'keys-list');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a); }
           var keys = getAllKeys();
           return runtime.ffi.makeList(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
@@ -151,7 +151,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var countISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'count');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['count'], 1, $a); }
           var num = 0;
           for (var key in underlyingDict) {
             if (underlyingDict[key] !== undefined) {
@@ -162,7 +162,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var outputISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, '_output');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
           var elts = [];
           var keys = getAllKeys();
           var vsValue = get(VS, "vs-value");
@@ -176,7 +176,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-          runtime.checkArity(3, arguments, 'equals');
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['equals'], 3, $a); }
           if (!hasBrand(brandImmutable, other)) {
             return runtime.ffi.notEqual.app('', self, other);
           } else {
@@ -213,7 +213,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var unfreezeISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'unfreeze');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
             dict[mkey] = underlyingDict[mkey];
@@ -245,7 +245,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         // makeMutableStringDict because they need to close over underlyingDict
 
         var getMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get-now');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-now'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -257,7 +257,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var getValueMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, "get-value-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["get-value-now"], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -268,7 +268,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var setMSD = runtime.makeMethod2(function(self, key, val) {
-          runtime.checkArity(3, arguments, "set-now");
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["set-now"], 3, $a); }
           if (sealed) {
             runtime.ffi.throwMessageException("Cannot modify sealed string dict");
           }
@@ -279,7 +279,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var removeMSD = runtime.makeMethod1(function(self, key) {
-          runtime.checkArity(2, arguments, "remove-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a); }
           if (sealed) {
             runtime.ffi.throwMessageException("Cannot modify sealed string dict");
           }
@@ -289,7 +289,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var hasKeyMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, "has-key-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["has-key-now"], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           if (mkey in underlyingDict) {
@@ -300,20 +300,28 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var keysMSD = runtime.makeMethod0(function(self) {
-          runtime.checkArity(1, arguments, "keys-now");
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["keys-now"], 1, $a); }
           var keys = Object.keys(underlyingDict);
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
         });
 
+        var keysListMSD = runtime.makeMethod0(function(_) {
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
+          var keys = Object.keys(underlyingDict);
+          return runtime.ffi.makeList(keys.map(function(mkey) {
+            return runtime.makeString(userKey(mkey));
+          }));
+        });
+
         var countMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, "count-now");
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a); }
           return runtime.makeNumber(Object.keys(underlyingDict).length);
         });
 
         var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
-          runtime.checkArity(2, arguments, "torepr");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["torepr"], 2, $a); }
           var keys = Object.keys(underlyingDict);
           var elts = [];
           function combine(elts) {
@@ -342,7 +350,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           return toreprElts();
         });
         var outputMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, '_output');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
           var elts = [];
           var keys = Object.keys(underlyingDict);
           var vsValue = get(VS, "vs-value");
@@ -356,7 +364,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-          runtime.checkArity(3, arguments, "equals");
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["equals"], 3, $a); }
           if (!hasBrand(brandMutable, other)) {
             return runtime.ffi.notEqual.app("", self, other);
           } else {
@@ -393,7 +401,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var freezeMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'freeze');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['freeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
             dict[mkey] = underlyingDict[mkey];
@@ -402,7 +410,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         var sealMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'seal');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['seal'], 1, $a); }
           return makeMutableStringDict(underlyingDict, true);
         });
 
@@ -416,6 +424,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           'set-now': setMSD,
           'remove-now': removeMSD,
           'keys-now': keysMSD,
+          'keys-list-now': keysListMSD,
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
           _equals: equalsMSD,

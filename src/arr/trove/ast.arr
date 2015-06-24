@@ -5,6 +5,7 @@ provide-types *
 import pprint as PP
 import srcloc as S
 import contracts as C
+import valueskeleton as VS
 
 type Loc = S.Srcloc
 
@@ -125,12 +126,14 @@ data Name:
     tosource(self): PP.str(self.to-compiled()) end,
     tosourcestring(self): self.to-compiled() end,
     toname(self): self.base end,
-    key(self): "atom#" + self.base + tostring(self.serial) end
+    key(self): "atom#" + self.base + "#" + tostring(self.serial) end
 sharing:
   _lessthan(self, other): self.key() < other.key() end,
   _lessequal(self, other): self.key() <= other.key() end,
   _greaterthan(self, other): self.key() > other.key() end,
   _greaterequal(self, other): self.key() >= other.key() end,
+  _equals(self, other, eq): eq(self.key(), other.key()) end,
+  _output(self): VS.vs-str(self.tosourcestring()) end,
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + tostring(self)) end)
   end
@@ -138,10 +141,7 @@ end
 
 fun MakeName(start):
   var count = start
-  fun atom(base):
-    when not(is-string(base)):
-      raise("Got a non-string in make-atom: " + torepr(base))
-    end
+  fun atom(base :: String):
     count := 1 + count
     s-atom(base, count)
   end

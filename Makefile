@@ -263,32 +263,6 @@ install:
 	@$(call MKDIR,node_modules)
 	npm install
 
-.PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
-
-.PHONY : test-all
-test-all: test docs-test benchmark-test
-
-.PHONY : runtime-test
-runtime-test : $(PHASE1)/phase1.built
-	cd tests/runtime/ && $(NODE) test.js require-test-runner/
-
-.PHONY : evaluator-test
-evaluator-test: $(PHASE1)/phase1.built
-	cd tests/evaluator/ && $(NODE) test.js require-test-runner/
-
-.PHONY : repl-test
-repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
-	cd tests/repl/ && $(NODE) test.js require-test-runner/
-
-.PHONY : parse-test
-parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
-	cd tests/parse/ && $(NODE) test.js require-test-runner/
-
-TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
-TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
-REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
-
 PYRET_TEST_PHASE=$(P)
 ifeq ($(PYRET_TEST_PHASE),2)
   PYRET_TEST_PHASE=$(PHASE2)
@@ -302,6 +276,32 @@ else
   PYRET_TEST_PREREQ=$(PHASE1)/phase1.built
 endif
 endif
+
+.PHONY : test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+
+.PHONY : test-all
+test-all: test docs-test benchmark-test
+
+.PHONY : runtime-test
+runtime-test : $(PYRET_TEST_PREREQ)
+	cd tests/runtime/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : evaluator-test
+evaluator-test: $(PYRET_TEST_PREREQ)
+	cd tests/evaluator/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : repl-test
+repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
+	cd tests/repl/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : parse-test
+parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
+	cd tests/parse/ && $(NODE) test.js require-test-runner/
+
+TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
+TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
+REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
 
 tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
@@ -342,7 +342,7 @@ lib-test: $(PYRET_TEST_PREREQ)
     -check-all tests/lib-test/lib-test-main.arr
 
 .PHONY : benchmark-test
-benchmark-test: tools/benchmark/*.js $(PHASE1)/phase1.built
+benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
 	cd tools/benchmark && node tests
 
 .PHONY : docs-test

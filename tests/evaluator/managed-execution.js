@@ -35,9 +35,7 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/eval-lib"], func
         rt1.run(function() {
           rt1.run(function() { /* no-op */ }, rt1.namespace, {}, function(fail) {
             expect(fail).toPassPredicate(rt1.isFailureResult);
-            expect(fail.exn).toPassPredicate(function(e) {
-              expect(e).toBeMessageExn(rt1, "already running");
-            });
+            expect(fail.exn).toBeMessageExn(rt1, "already running");
           });
         }, rt1.namespace, {}, function() { });
       });

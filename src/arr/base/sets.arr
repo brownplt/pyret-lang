@@ -15,7 +15,10 @@ provide {
   empty-tree-set: tree-set(leaf),
   list-to-set: list-to-list-set,
   list-to-list-set: list-to-list-set,
-  list-to-tree-set: list-to-tree-set
+  list-to-tree-set: list-to-tree-set,
+  fold: set-fold,
+  all: set-all,
+  any: set-any
 } end
 provide-types *
 
@@ -50,7 +53,9 @@ data AVLTree:
     inorder(self) -> lists.List: empty end,
     postorder(self) -> lists.List: empty end,
     fold(self, f, base): base end,
-    count(self): 0 end
+    count(self): 0 end,
+    all(self, f): true end,
+    any(self, f): false end
 
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
     height(self) -> Number:
@@ -99,7 +104,13 @@ data AVLTree:
             analogous to folding a list```
       self.right.fold(f, self.left.fold(f, f(base, self.value)))
     end,
-    count(self): 1 + self.left.count() + self.right.count() end
+    count(self): 1 + self.left.count() + self.right.count() end,
+    all(self, f):
+      f(self.value) and self.right.all(f) and self.left.all(f)
+    end,
+    any(self, f):
+      f(self.value) or self.right.all(f) or self.left.all(f)
+    end
 sharing:
   to-list(self) -> lists.List:
     doc: "Returns a list of all elements from a inorder traversal"
@@ -115,6 +126,8 @@ sharing:
 end
 
 fun tree-fold(f, base, tree): tree.fold(f, base) end
+fun tree-all(f, tree): tree.all(f) end
+fun tree-any(f, tree): tree.any(f) end
 
 fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
@@ -256,7 +269,7 @@ data Set:
 
     remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
-      list-set(self.elems.filter(lam(x): x <> elem end))
+      list-set(self.elems.remove(elem))
     end,
 
     to-list(self) -> lists.List:
@@ -273,30 +286,47 @@ data Set:
 
     intersect(self :: Set, other :: Set) -> Set:
       doc: 'Compute the intersection of this set and another set.'
-      for fold(u from self, elem from self.elems):
+      new-elems = for fold(elems from self.elems, elem from self.elems):
         if other.member(elem):
-          u
+          elems
         else:
-          u.remove(elem)
+          elems.remove(elem)
         end
       end
+      list-set(new-elems)
     end,
 
+    overlaps(self :: Set, other :: Set) -> Boolean:
+      doc: 'Determines if the intersection of this set and another set is non-empty.'
+      self.any(other.member)
+    end,
+    
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
-      for fold(u from self, elem from self.elems):
+      new-elems = for fold(elems from self.elems, elem from self.elems):
         if other.member(elem):
-          u.remove(elem)
+          elems.remove(elem)
         else:
-          u
+          elems
         end
       end
+      list-set(new-elems)
     end,
 
     size(self :: Set) -> Number:
       self.elems.length()
-    end
+    end,
 
+    is-empty(self): is-empty(self.elems) end,
+
+    all(self, f) -> Boolean:
+      self.elems.all(f)
+    end,
+
+    any(self, f) -> Boolean:
+      self.elems.any(f)
+    end
+    
   | tree-set(elems :: AVLTree) with:
     pick(self):
       t = self.elems
@@ -370,6 +400,11 @@ data Set:
       tree-set(new-elems)
     end,
 
+    overlaps(self :: Set, other :: Set) -> Boolean:
+      doc: 'Determines if the intersection of this set and another set is non-empty.'
+      self.any(other.member)
+    end,
+
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
       new-elems = other.fold(lam(elems, elem):
@@ -384,8 +419,18 @@ data Set:
 
     size(self :: Set) -> Number:
       self.elems.count()
-    end
+    end,
 
+    is-empty(self): is-leaf(self.elems) end,
+
+    all(self, f) -> Boolean:
+      self.elems.all(f)
+    end,
+
+    any(self, f) -> Boolean:
+      self.elems.any(f)
+    end
+    
 sharing:
 
   symmetric_difference(self :: Set, other :: Set) -> Set:
@@ -409,6 +454,18 @@ sharing:
       end
     end
   end
+end
+
+fun set-all(f, s :: Set) -> Boolean:
+  s.all(f)
+end
+
+fun set-any(f, s :: Set) -> Boolean:
+  s.any(f)
+end
+
+fun set-fold(f, base, s :: Set):
+  s.fold(f, base)
 end
 
 fun list-to-set(lst :: lists.List, base-set :: Set) -> Set:

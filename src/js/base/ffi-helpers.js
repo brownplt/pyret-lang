@@ -9,6 +9,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
       var mt = gf(L, "empty");
       function makeList(arr) {
+        if (!arr || typeof arr.length !== "number") {
+          throw "Non-array given to makeList " + JSON.stringify(arr);
+        }
         var lst = mt;
         for(var i = arr.length - 1; i >= 0; i--) {
           lst = lnk(arr[i], lst);
@@ -145,6 +148,15 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return err("message-exception")(message);
       }
 
+      function throwUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        raise(err("user-exception")(errVal));
+      }
+      function makeUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        return err("user-exception")(errVal);
+      }
+
       function throwEqualityException(reason, v1, v2) {
         runtime.checkString(reason);
         runtime.checkPyretVal(v1);
@@ -170,12 +182,14 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         raise(err("invalid-array-index")(methodName, array, index, reason));
       }
 
-      function throwPlusError(left, right) {
+      function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
-        raise(err("plus-error")(left, right));
+        runtime.checkString(opname);
+        runtime.checkString(opdesc);
+        runtime.checkString(methodname);
+        raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
-
       function throwNumericBinopError(left, right, opname, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
@@ -263,6 +277,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function throwParseErrorUnterminatedString(loc) {
         raise(err("parse-error-unterminated-string")(loc));
       }
+      function throwParseErrorBadNumber(loc) {
+        raise(err("parse-error-bad-number")(loc));
+      }
+      function throwParseErrorBadOper(loc) {
+        raise(err("parse-error-bad-operator")(loc));
+      }
 
       function throwModuleLoadFailureL(names) {
         raise(makeModuleLoadFailureL(names));
@@ -323,7 +343,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
-        throwPlusError: throwPlusError,
+        throwNumStringBinopError: throwNumStringBinopError,
         throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
@@ -332,6 +352,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwUserException: throwUserException,
         throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
@@ -351,6 +372,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
         throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
+        throwParseErrorBadNumber: throwParseErrorBadNumber,
+        throwParseErrorBadOper: throwParseErrorBadOper,
 
         makeRecordFieldsFail: makeRecordFieldsFail,
         makeFieldFailure: makeFieldFailure,
@@ -375,6 +398,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isEqualityResult: isEqualityResult,
 
         makeMessageException: makeMessageException,
+        makeUserException: makeUserException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
 
         userBreak: gf(ERR, "user-break"),
@@ -412,13 +436,17 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
         isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
         isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
+        isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
+        isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
         skeletonValues: function(skel) {
           var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
           var isValue = runtime.getField(VS, "is-vs-value");
           var isCollection = runtime.getField(VS, "is-vs-collection");
           var isConstr = runtime.getField(VS, "is-vs-constr");
+          var isStr = runtime.getField(VS, "is-vs-str");
+          var isSeq = runtime.getField(VS, "is-vs-seq");
           if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
-            throw "Non-value-skeleton given to skeletonValues " + String(skel);
+            throwTypeMismatch(skel, "ValueSkeleton");
           }
           var arr = [];
           var worklist = [skel];
@@ -431,8 +459,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else if (runtime.unwrap(isConstr.app(cur)) === true) {
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
+              } else if (runtime.unwrap(isStr.app(cur)) === true) {
+                // nothing
+              } else if (runtime.unwrap(isSeq.app(cur)) === true) {
+                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else {
-                throw "Non-value appeared in skeleton: " + String(cur);
+                throwMessageException("Non-value appeared in skeleton: " + String(cur));
               }
             }
           } catch(e) {

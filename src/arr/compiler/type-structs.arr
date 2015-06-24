@@ -13,20 +13,34 @@ fold2-strict = LA.fold2-strict
 
 type Name = A.Name
 
-fun dict-to-string(dict :: SD.StringDict) -> String:
-  "{"
-    + for map(key from dict.keys().to-list()):
-        key + " => " + torepr(dict.get(key))
-      end.join-str(", ")
-    + "}"
+fun dict-to-string(dict :: SD.StringDict):
+  items = for sets.fold(acc from empty, key from dict.keys()):
+    if is-empty(acc):
+      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value(key))]
+    else:
+      link(VS.vs-value(key),
+        link(VS.vs-str(" => "),
+          link(VS.vs-value(dict.get-value(key)),
+            link(VS.vs-str(", "),
+              acc))))
+    end
+  end
+  VS.vs-seq([list: VS.vs-str("{")] + items + [list: VS.vs-str("}")])
 end
 
 fun mut-dict-to-string(dict :: SD.MutableStringDict) -> String:
-  "{"
-    + for map(key from dict.keys-now().to-list()):
-        key + " => " + torepr(dict.get-now(key))
-      end.join-str(", ")
-    + "}"
+  items = for sets.fold(acc from empty, key from dict.keys-now()):
+    if is-empty(acc):
+      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value(key))]
+    else:
+      link(VS.vs-value(key),
+        link(VS.vs-str(" => "),
+          link(VS.vs-value(dict.get-value(key)),
+            link(VS.vs-str(", "),
+              acc))))
+    end
+  end
+  VS.vs-seq([list: VS.vs-str("{")] + items + [list: VS.vs-str("}")])
 end
 
 data Pair<L,R>:
@@ -154,7 +168,7 @@ data TypeVariable:
   | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
 sharing:
   _output(self):
-    VS.vs-value(self.id.toname() + " <: " + tostring(self.upper-bound))
+    VS.vs-seq([list: VS.vs-str(self.id.toname()), VS.vs-str(" <: "), VS.vs-value(self.upper-bound)])
   end,
   key(self) -> String:
     self.id.key() + " <: " + self.upper-bound.key()
@@ -164,7 +178,7 @@ end
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
     _output(self):
-      VS.vs-value(self.field-name + " : " + tostring(self.typ))
+      VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
     end,
     key(self):
       self.field-name + " : " + self.typ.key()
@@ -243,9 +257,16 @@ sharing:
     VS.vs-constr("t-module",
       [list:
         VS.vs-value(torepr(self.name)),
-        VS.vs-value(torepr(self.provides)),
+        VS.vs-value(self.provides),
         VS.vs-value(dict-to-string(self.types)),
         VS.vs-value(dict-to-string(self.aliases))])
+  end
+end
+
+fun interleave(lst, item):
+  if is-empty(lst): lst
+  else if is-empty(lst.rest): lst
+  else: link(lst.first, link(item, interleave(lst.rest, item)))
   end
 end
 
@@ -264,26 +285,27 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id) =>
         cases(Option<String>) module-name:
-          | none    => VS.vs-value(id.toname())
-          | some(m) => VS.vs-value(m + "." + id.toname())
+          | none    => VS.vs-str(id.toname())
+          | some(m) => VS.vs-str(m + "." + id.toname())
         end
-      | t-var(id) => VS.vs-value(id.toname())
+      | t-var(id) => VS.vs-str(id.toname())
       | t-arrow(args, ret) =>
-        VS.vs-value("("
-          + args.map(tostring).join-str(", ")
-          + " -> " + tostring(ret) + ")")
+        VS.vs-seq([list: VS.vs-str("(")]
+            + interleave(args.map(VS.vs-value), VS.vs-str(", "))
+            + [list: VS.vs-str(" -> "), VS.vs-value(ret), VS.vs-str(")")])
       | t-app(onto, args) =>
-        VS.vs-value(tostring(onto) + "<" + args.map(tostring).join-str(", ") + ">")
-      | t-top => VS.vs-value("Any")
-      | t-bot => VS.vs-value("Bot")
+        VS.vs-seq([list: VS.vs-value(onto), VS.vs-str("<")] + interleave(args.map(VS.vs-value), VS.vs-str(", "))
+            + [list: VS.vs-str(">")])
+      | t-top => VS.vs-str("Any")
+      | t-bot => VS.vs-str("Bot")
       | t-record(fields) =>
-        VS.vs-value("{"
-          + fields.map(tostring).join-str(", ")
-          + "}")
+        VS.vs-seq([list: VS.vs-str("{")]
+            + interleave(fields.map(VS.vs-value), VS.vs-value(", "))
+            + [list: VS.vs-str("}")])
       | t-forall(introduces, onto) =>
-        VS.vs-value(tostring(onto))
+        VS.vs-value(onto)
       | t-ref(typ) =>
-        VS.vs-value("ref " + tostring(typ))
+        VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
     end
   end,
   key(self) -> String:

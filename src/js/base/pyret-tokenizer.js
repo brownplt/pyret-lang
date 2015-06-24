@@ -114,6 +114,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
   const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
@@ -156,6 +157,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
+
+  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>)", STICKY_REGEXP);
 
   // English ops don't require whitespace. That way it is possible to catch them in ID position
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
@@ -250,6 +253,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
 
+    {name: "BAD-NUMBER", val: badNumber},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},
@@ -308,6 +312,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "RANGLE", val: rangle},
 
     {name: "EQUALS", val: equals, parenIsForExp: true},
+
+    {name: "BAD-OPER", val: opsNoSpace},
 
     {name: "BLOCKCOMMENT", val: blockcommentstart},
     {name: "COMMENT", val: comment},

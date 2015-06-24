@@ -533,6 +533,7 @@ runtime-builtins = [string-dict:
   "within-abs", v-just-there,
   "within-abs-now", v-just-there,
   "within", v-just-there,
+  "time-now", v-just-there,
   "raw-array-get", v-just-there,
   "raw-array-set", v-just-there,
   "raw-array-of", v-just-there,

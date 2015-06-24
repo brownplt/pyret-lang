@@ -107,18 +107,19 @@ data RuntimeError:
           ED.text(" and "), ED.embed(self.high),
           ED.text(", but got"), ED.embed(self.val)]]
     end
-  | plus-error(val1, val2) with:
+  | num-string-binop-error(val1, val2, opname, opdesc, methodname) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Invalid use of"), ED.code(ED.text("+")), ED.text("for these values:")],
+          ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
-        ED.text("Plus takes one of:"),
+        ED.text(self.opdesc + " requires:"),
         [ED.bulleted:
-          ED.text("Two numbers"),
-          ED.text("Two strings"),
-          [ED.para: ED.text("A left-hand operand that has a"), ED.code(ED.text("_plus")), ED.text("method")]]]
+          ED.text("Two numbers,"),
+          ED.text("Two strings, or"),
+          [ED.para:
+            ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, methodname) with:
     render-reason(self):
@@ -250,6 +251,9 @@ data RuntimeError:
     render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
+
+  | user-exception(value :: Any) with:
+    render-reason(self): ED.embed(self.value) end
 end
 
 data ParseError:
@@ -293,6 +297,20 @@ data ParseError:
           ED.text("Pyret thinks your program has an incomplete string literal around "),
           draw-and-highlight(self.loc),
           ED.text("; you may be missing closing punctuation.")]]
+    end
+  | parse-error-bad-operator(loc) with:
+    render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("The operator at "),
+          draw-and-highlight(self.loc),
+          ED.text(" has no surrounding whitespace.")]]
+    end
+  | parse-error-bad-number(loc) with:
+    render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("Pyret thinks your program probably has a number at "),
+          draw-and-highlight(self.loc),
+          ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
   | empty-block(loc) with:
     _tostring(self, shadow tostring):

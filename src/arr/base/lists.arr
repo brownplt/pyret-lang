@@ -64,6 +64,16 @@ data List<a>:
       base
     end,
 
+    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for every element in this list```
+      true
+    end,
+
+    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for any element in this list```
+      false
+    end,
+
     member(self :: List<a>, elt :: a) -> Boolean:
       doc: "Returns true when the given element is equal to a member of this list"
       false
@@ -159,6 +169,16 @@ data List<a>:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the initial value```
       self.rest.foldl(f, f(self.first, base))
+    end,
+
+    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for every element in this list```
+      f(self.first) and self.rest.all(f)
+    end,
+
+    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for any element in this list```
+      f(self.first) or self.rest.any(f)
     end,
 
     append(self :: List<a>, other :: List<a>) -> List<a>:
@@ -266,6 +286,10 @@ sharing:
   set(self :: List<a>, n :: Number, e :: a) -> List<a>:
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set(self, n, e)
+  end,
+  remove(self :: List<a>, e :: a) -> List<a>:
+    doc: "Returns the list without the element if found, or the whole list if it is not"
+    remove(self, e)
   end
 end
 
@@ -430,17 +454,12 @@ end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  is-some(find(f, lst))
+  lst.any(f)
 end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  fun help(l):
-    if is-empty(l): true
-    else: f(l.first) and help(l.rest)
-    end
-  end
-  help(lst)
+  lst.all(f)
 end
 
 fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
