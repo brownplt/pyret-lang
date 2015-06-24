@@ -338,7 +338,7 @@ data ALettable:
   | a-method-app(l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>) with:
     label(self): "a-app" end,
     tosource(self):
-      PP.group(self.obj.tosource() + PP.str("METHOD")
+      PP.group(PP.infix(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.meth))
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
