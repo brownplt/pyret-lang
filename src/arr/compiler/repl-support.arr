@@ -24,31 +24,6 @@ fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
     env.mods)
 end
 
-ok-imports = [list:
-  "world",
-  "image",
-  "image-structs",
-  "string-dict",
-  "checkers",
-  "lists",
-  "error",
-  "option",
-  "pick",
-  "either",
-  "sets",
-  "arrays",
-  "contracts",
-  "ast",
-  "parse-pyret",
-  "s-exp",
-  "s-exp-structs",
-  "pprint",
-  "srcloc",
-  "format",
-  "equality",
-  "valueskeleton"
-]
-
 fun get-special-imports(program):
   cases(A.Program) program:
     | s-program(l, _, _, imports, _) =>
@@ -66,34 +41,9 @@ fun get-imp-dependency(imp):
   end
 end
 
-fun make-safe-imports(imps):
-  imps.each(lam(i):
-    d = get-imp-dependency(i)
-    cases(A.ImportType) d:
-      | s-special-import(_, _, _) => nothing
-      | s-file-import(l, f) =>
-        raise(E.module-load-failure([list: f]))
-      | s-const-import(l, m) =>
-        when not(ok-imports.member(m)):
-          raise(E.module-load-failure([list: m]))
-        end
-    end
-  end)
-  imps
-end
-
-fun wrap-for-special-import(p :: A.Program):
-  cases(A.Program) p:
-    | s-program(l, _, _, imports, _) =>
-      make-safe-imports(imports)
-      p
-  end
-end
-
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
-  safe-imports = make-safe-imports(imports)
-  import-names = for fold(names from empty, imp from safe-imports):
+  import-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names + imp-names
