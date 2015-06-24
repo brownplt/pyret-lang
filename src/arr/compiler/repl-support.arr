@@ -53,7 +53,7 @@ fun get-defined-ids(p, imports, body):
   end
   ids-plus-import-names = import-names + ids
   type-ids = A.block-type-ids(body)
-  import-type-names = for fold(names from empty, imp from safe-imports):
+  import-type-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
       | s-import(_, _, name) => link(name, names)
       | s-import-fields(_, imp-names, _) => names
@@ -63,7 +63,7 @@ fun get-defined-ids(p, imports, body):
   end
   type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
   {
-    imports: safe-imports.filter(lam(id): not(A.is-s-underscore(id)) end),
+    imports: imports.filter(lam(id): not(A.is-s-underscore(id)) end),
     ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
     type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
