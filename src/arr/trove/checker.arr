@@ -9,6 +9,9 @@ import render-error-display as RED
 type Loc = SL.Srcloc
 type Either = E.Either
 
+is-right = E.is-right
+is-left = E.is-left
+
 
 data CheckBlockResult:
   | check-block-result(
@@ -113,6 +116,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun add-result(t :: TestResult):
     current-results := [list: t] + current-results
   end
+  fun left-right-check(loc, code):
+    lam(with-vals, left, right):
+      run = lam():
+        lv = left()
+        rv = right()
+        with-vals(lv, rv)
+      end
+      cases(Either) run-task(run):
+        | left(v) => v
+        | right(e) => add-result(failure-exn(loc, code, exn-unwrap(e)))
+      end
+    end
+  end
   fun check-bool(loc, code, test-result, on-failure):
     if test-result:
       add-result(success(loc, code))
@@ -138,31 +154,39 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
     end,
     check-is(self, code, left, right, loc):
-      check-bool(loc, code,
-        left == right,
-        lam(): failure-not-equal(loc, code, none, left, right) end)
+      for left-right-check(loc, code)(lv from left, rv from right):
+        check-bool(loc, code,
+          lv == rv,
+          lam(): failure-not-equal(loc, code, none, lv, rv) end)
+      end
     end,
     check-is-not(self, code, left, right, loc):
-      check-bool(loc, code,
-        not(left == right),
-        lam(): failure-not-different(loc, code, none, left, right) end)
+      for left-right-check(loc, code)(lv from left, rv from right):
+        check-bool(loc, code,
+          not(lv == rv),
+          lam(): failure-not-different(loc, code, none, lv, rv) end)
+      end
     end,
     check-is-refinement(self, code, refinement, left, right, loc):
-      test-result = refinement(left, right)
-      if not(is-boolean(test-result)):
-        add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
-      else:
-        check-bool(loc, code, test-result,
-          lam(): failure-not-equal(loc, code, some(refinement), left, right) end)
+      for left-right-check(loc, code)(lv from left, rv from right):
+        test-result = refinement(lv, rv)
+        if not(is-boolean(test-result)):
+          add-result(error-not-boolean(loc, code, refinement, lv, rv, test-result))
+        else:
+          check-bool(loc, code, test-result,
+            lam(): failure-not-equal(loc, code, some(refinement), lv, rv) end)
+        end
       end
     end,
     check-is-not-refinement(self, code, refinement, left, right, loc):
-      test-result = refinement(left, right)
-      if not(is-boolean(test-result)):
-        add-result(error-not-boolean(loc, code, refinement, left, right, test-result))
-      else:
-        check-bool(loc, code, not(test-result),
-          lam(): failure-not-different(loc, code, some(refinement), left, right) end)
+      for left-right-check(loc, code)(lv from left, rv from right):
+        test-result = refinement(lv, rv)
+        if not(is-boolean(test-result)):
+          add-result(error-not-boolean(loc, code, refinement, lv, rv, test-result))
+        else:
+          check-bool(loc, code, not(test-result),
+            lam(): failure-not-different(loc, code, some(refinement), lv, rv) end)
+        end
       end
     end,
     check-satisfies(self, code, left, pred, loc):

@@ -29,11 +29,11 @@ check-stmts-visitor = A.default-map-visitor.{
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), left, right.value, ast-srcloc(l)])
+        [list: ast-pretty(term), ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), refinement, left, right.value, ast-srcloc(l)])
+        [list: ast-pretty(term), refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
       | s-op-is            =>
