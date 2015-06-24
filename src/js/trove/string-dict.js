@@ -307,6 +307,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           }));
         });
 
+        var keysListMSD = runtime.makeMethod0(function(_) {
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
+          var keys = Object.keys(underlyingDict);
+          return runtime.ffi.makeList(keys.map(function(mkey) {
+            return runtime.makeString(userKey(mkey));
+          }));
+        });
+
         var countMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a); }
           return runtime.makeNumber(Object.keys(underlyingDict).length);
@@ -416,6 +424,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           'set-now': setMSD,
           'remove-now': removeMSD,
           'keys-now': keysMSD,
+          'keys-list-now': keysListMSD,
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
           _equals: equalsMSD,
