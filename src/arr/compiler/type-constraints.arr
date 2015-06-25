@@ -7,9 +7,9 @@ provide { generate-constraints   : generate-constraints,
           greatest-lower-bound   : greatest-lower-bound,
           meet-fields            : meet-fields } end
 
-provide-types { TypeConstraint  : TypeConstraint,
-                TypeConstraints : TypeConstraints,
-                Substitutions   : Substitutions }
+provide-types { TypeConstraint  :: TypeConstraint,
+                TypeConstraints :: TypeConstraints,
+                Substitutions   :: Substitutions }
 
 import ast as A
 import string-dict as SD

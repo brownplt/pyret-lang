@@ -145,7 +145,7 @@ fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   CS.provides(vals-part, types-part)
 end
 
-type ToCompile = { locator: Locator, dependency-map: SD.MutableStringDict<Locator>, path :: List<Locator> }
+type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator>, path :: List<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   for fold(sd2 from mtd, k from sd.keys-now().to-list()):
@@ -153,7 +153,7 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-worklist: Function, compile-program: Function }:
+fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-worklist :: Function, compile-program :: Function }:
 
   fun compile-worklist(locator :: Locator, context :: a) -> List<ToCompile>:
     fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
