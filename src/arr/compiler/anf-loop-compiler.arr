@@ -519,6 +519,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
         j-block(compiled-ann.other-stmts +
           [clist:
             j-expr(j-assign(step, new-label)),
+            j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
             j-expr(rt-method("_checkAnn",
               [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
             j-break]))
@@ -551,6 +552,7 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(
         compiled-ann.other-stmts +
         [clist:
           j-expr(j-assign(step, after-ann)),
+          j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
           j-expr(rt-method("_checkAnn", [clist:
                 visitor.get-loc(b.ann.l),
                 compiled-ann.exp,
@@ -714,6 +716,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     actual-app =
       [clist:
         j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(branch.l))),
         j-var(temp-branch,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
