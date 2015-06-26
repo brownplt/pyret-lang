@@ -1950,6 +1950,249 @@ define(function() {
 
   };
 
+  ///////////////////////////////////////////////////////////
+
+  // recognizing numbers in (We)Scheme syntax:
+
+    var hashModifiersRegexp = new RegExp("^(#[ei]#[bodx]|#[bodx]#[ei]|#[bodxei])(.*)$")
+
+    function schemeRationalRegexp(digits) { return new RegExp("^([+-]?["+digits+"]+)/(["+digits+"]+)$"); }
+
+    function matchComplexRegexp(radix, x) {
+	var sign = "[+-]";
+	var maybeSign = "[+-]?";
+	var digits = digitsForRadix(radix)
+	var expmark = "["+expMarkForRadix(radix)+"]"
+	var digitSequence = "["+digits+"]+"
+
+	var unsignedRational = digitSequence+"/"+digitSequence
+	var rational = maybeSign + unsignedRational
+
+	var noDecimal = digitSequence
+	var decimalNumOnRight = "["+digits+"]*\\.["+digits+"]+"
+	var decimalNumOnLeft = "["+digits+"]+\\.["+digits+"]*"
+
+	var unsignedDecimal = "(?:" + noDecimal + "|" + decimalNumOnRight + "|" + decimalNumOnLeft + ")"
+
+	var special = "(?:inf\.0|nan\.0|inf\.f|nan\.f)"
+
+	var unsignedRealNoExp = "(?:" + unsignedDecimal + "|" + unsignedRational + ")"
+	var unsignedReal = unsignedRealNoExp + "(?:" + expmark + maybeSign + digitSequence + ")?"
+	var unsignedRealOrSpecial = "(?:" + unsignedReal + "|" + special + ")"
+	var real = "(?:" + maybeSign + unsignedReal + "|" + sign + special + ")"
+
+	var alt1 = new RegExp("^(" + rational + ")"
+                             + "(" + sign + unsignedRational + "?)"
+                             + "i$");
+	var alt2 = new RegExp("^(" + real + ")?"
+                             + "(" + sign + unsignedRealOrSpecial + "?)"
+                             + "i$");
+	var alt3 = new RegExp("^(" + real + ")@(" + real + ")$");
+
+	var match1 = x.match(alt1)
+	var match2 = x.match(alt2)
+	var match3 = x.match(alt3)
+
+	return match1 ? match1 :
+	       match2 ? match2 :
+	       match3 ? match3 :
+	     /* else */ false
+    }
+
+    function schemeDigitRegexp(digits) { return new RegExp("^[+-]?["+digits+"]+$"); }
+    /**
+    /* NB: !!!! flonum regexp only matches "X.", ".X", or "X.X", NOT "X", this
+    /* must be separately checked with schemeDigitRegexp.
+    /* I know this seems dumb, but the alternative would be that this regexp
+    /* returns six matches, which also seems dumb.
+    /***/
+    function schemeFlonumRegexp(digits) {
+	var decimalNumOnRight = "(["+digits+"]*)\\.(["+digits+"]+)"
+	var decimalNumOnLeft = "(["+digits+"]+)\\.(["+digits+"]*)"
+	return new RegExp("^(?:([+-]?)(" +
+                          decimalNumOnRight+"|"+decimalNumOnLeft +
+                          "))$");
+    }
+    function schemeScientificPattern(digits, exp_mark) {
+	var noDecimal = "["+digits+"]+"
+	var decimalNumOnRight = "["+digits+"]*\\.["+digits+"]+"
+	var decimalNumOnLeft = "["+digits+"]+\\.["+digits+"]*"
+	return new RegExp("^(?:([+-]?" +
+			  "(?:"+noDecimal+"|"+decimalNumOnRight+"|"+decimalNumOnLeft+")" +
+			  ")["+exp_mark+"]([+-]?["+digits+"]+))$");
+    }
+
+    function digitsForRadix(radix) {
+	return radix === 2  ? "01" :
+	       radix === 8  ? "0-7" :
+	       radix === 10 ? "0-9" :
+	       radix === 16 ? "0-9a-fA-F" :
+	       throwRuntimeError("digitsForRadix: invalid radix", this, radix)
+    }
+    function expMarkForRadix(radix) {
+	return (radix === 2 || radix === 8 || radix === 10) ? "defsl" :
+	       (radix === 16)                               ? "sl" :
+	       throwRuntimeError("expMarkForRadix: invalid radix", this, radix)
+    }
+
+    function Exactness(i) {
+      this.defaultp = function () { return i == 0; }
+      this.exactp = function () { return i == 1; }
+      this.inexactp = function () { return i == 2; }
+    }
+
+    Exactness.def = new Exactness(0);
+    Exactness.on = new Exactness(1);
+    Exactness.off = new Exactness(2);
+
+    Exactness.prototype.intAsExactp = function () { return this.defaultp() || this.exactp(); };
+    Exactness.prototype.floatAsInexactp = function () { return this.defaultp() || this.inexactp(); };
+
+    // fromSchemeString: string boolean -> (scheme-number | false)
+    var fromSchemeString = function(x, exactness) {
+
+	var radix = 10
+	var exactness = typeof exactness === 'undefined' ? Exactness.def :
+			exactness === true               ? Exactness.on :
+			exactness === false              ? Exactness.off :
+	   /* else */  throwRuntimeError( "exactness must be true or false"
+                                        , this
+                                        , r) ;
+
+	var hMatch = x.toLowerCase().match(hashModifiersRegexp)
+	if (hMatch) {
+	    var modifierString = hMatch[1].toLowerCase();
+
+	    var exactFlag = modifierString.match(new RegExp("(#[ei])"))
+	    var radixFlag = modifierString.match(new RegExp("(#[bodx])"))
+
+	    if (exactFlag) {
+		var f = exactFlag[1].charAt(1)
+		exactness = f === 'e' ? Exactness.on :
+			    f === 'i' ? Exactness.off :
+			 // this case is unreachable
+			 throwRuntimeError("invalid exactness flag", this, r)
+	    }
+	    if (radixFlag) {
+		var f = radixFlag[1].charAt(1)
+		radix = f === 'b' ? 2 :
+            f === 'o' ? 8 :
+            f === 'd' ? 10 :
+            f === 'x' ? 16 :
+			 // this case is unreachable
+			throwRuntimeError("invalid radix flag", this, r)
+	    }
+	}
+
+	var numberString = hMatch ? hMatch[2] : x
+	// if the string begins with a hash modifier, then it must parse as a
+	// number, an invalid parse is an error, not false. False is returned
+	// when the item could potentially have been read as a symbol.
+	var mustBeANumberp = hMatch ? true : false
+
+	return fromSchemeStringRaw(numberString, radix, exactness, mustBeANumberp)
+    };
+
+    function fromSchemeStringRaw(x, radix, exactness, mustBeANumberp) {
+	var cMatch = matchComplexRegexp(radix, x);
+	if (cMatch) {
+          throw "Complex Numbers are not supported in Pyret";
+	}
+
+        return fromSchemeStringRawNoComplex(x, radix, exactness, mustBeANumberp)
+    }
+
+    function fromSchemeStringRawNoComplex(x, radix, exactness, mustBeANumberp) {
+	var aMatch = x.match(schemeRationalRegexp(digitsForRadix(radix)));
+	if (aMatch) {
+	    return Rational.makeInstance( fromSchemeStringRawNoComplex( aMatch[1]
+                                                                , radix
+                                                                , exactness
+                                                                )
+                                        , fromSchemeStringRawNoComplex( aMatch[2]
+                                                                , radix
+                                                                , exactness
+                                                                ));
+	}
+
+        if (x === '+nan.0' ||
+            x === '-nan.0' ||
+            x === '+inf.0' ||
+            x === '-inf.0' ||
+            x === '-0.0') {
+          return Roughnum.makeInstance(Infinity);
+        }
+
+	var fMatch = x.match(schemeFlonumRegexp(digitsForRadix(radix)))
+	if (fMatch) {
+	    var integralPart = fMatch[3] !== undefined ? fMatch[3] : fMatch[5];
+	    var fractionalPart = fMatch[4] !== undefined ? fMatch[4] : fMatch[6];
+	    return parseFloat( fMatch[1]
+                             , integralPart
+                             , fractionalPart
+                             , radix
+                             , exactness
+                             )
+	}
+
+	var sMatch = x.match(schemeScientificPattern( digitsForRadix(radix)
+					      , expMarkForRadix(radix)
+					      ))
+	if (sMatch) {
+	    var coefficient = fromSchemeStringRawNoComplex(sMatch[1], radix, exactness)
+	    var exponent = fromSchemeStringRawNoComplex(sMatch[2], radix, exactness)
+	    return multiply(coefficient, expt(radix, exponent));
+	}
+
+	// Finally, integer tests.
+	if (x.match(schemeDigitRegexp(digitsForRadix(radix)))) {
+	    var n = parseInt(x, radix);
+	    if (isOverflow(n)) {
+		return makeBignum(x);
+	    } else if (exactness.intAsExactp()) {
+		return n;
+	    } else {
+		return Roughnum.makeInstance(n)
+	    }
+	} else if (mustBeANumberp) {
+	    if(x.length===0) throwRuntimeError("no digits");
+	    throwRuntimeError("bad number: " + x, this);
+	} else {
+	    return false;
+	}
+    };
+
+    function parseFloat(sign, integralPart, fractionalPart, radix, exactness) {
+	var sign = (sign == "-" ? -1 : 1);
+	var integralPartValue = integralPart === ""  ? 0  :
+				exactness.intAsExactp() ? parseExactInt(integralPart, radix) :
+							  parseInt(integralPart, radix)
+
+	var fractionalNumerator = fractionalPart === "" ? 0 :
+				  exactness.intAsExactp() ? parseExactInt(fractionalPart, radix) :
+							    parseInt(fractionalPart, radix)
+	/* unfortunately, for these next two calculations, `expt` and `divide` */
+	/* will promote to Bignum and Rational, respectively, but we only want */
+	/* these if we're parsing in exact mode */
+	var fractionalDenominator = exactness.intAsExactp() ? expt(radix, fractionalPart.length) :
+							      Math.pow(radix, fractionalPart.length)
+	var fractionalPartValue = fractionalPart === "" ? 0 :
+				  exactness.intAsExactp() ? divide(fractionalNumerator, fractionalDenominator) :
+							    fractionalNumerator / fractionalDenominator
+
+	var forceInexact = function(o) {
+	    return typeof o === "number" ? Roughnum.makeInstance(o) :
+					   o.toRoughnum();
+	}
+
+	return exactness.floatAsInexactp() ? forceInexact(multiply(sign, add( integralPartValue, fractionalPartValue))) :
+					     multiply(sign, add(integralPartValue, fractionalPartValue));
+    }
+
+    function parseExactInt(str, radix) {
+	return fromSchemeStringRawNoComplex(str, radix, Exactness.on, true);
+    }
+
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
@@ -3554,6 +3797,7 @@ define(function() {
 
   Numbers['fromFixnum'] = fromFixnum;
   Numbers['fromString'] = fromString;
+  Numbers['fromSchemeString'] = fromSchemeString;
   Numbers['makeBignum'] = makeBignum;
   Numbers['makeRational'] = Rational.makeInstance;
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
@@ -3621,6 +3865,8 @@ define(function() {
   Numbers['BigInteger'] = BigInteger;
   Numbers['Rational'] = Rational;
   Numbers['Roughnum'] = Roughnum;
+  Numbers['FloatPoint'] = Roughnum; //FIXME
+  Numbers['Complex'] = Roughnum; //FIXME
 
   Numbers['MIN_FIXNUM'] = MIN_FIXNUM;
   Numbers['MAX_FIXNUM'] = MAX_FIXNUM;
