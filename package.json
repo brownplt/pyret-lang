@@ -38,7 +38,7 @@
     "functional"
   ],
   "author": "Joe Gibbs Politz",
-  "license": "Apache2",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/brownplt/pyret-lang/issues"
   },
