@@ -119,8 +119,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun left-right-check(loc, code):
     lam(with-vals, left, right):
       run = lam():
-        lv = left()
-        rv = right()
+        # TODO(joe): Once a bootstrap has happened, these ifs can be changed
+        # to just thunk applications.  Need the if-test to accommodate two
+        # desugar styles at once.
+        lv = if is-function(left): left() else: left end
+        rv = if is-function(right): right() else: right end
         with-vals(lv, rv)
       end
       cases(Either) run-task(run):
@@ -187,6 +190,20 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           check-bool(loc, code, not(test-result),
             lam(): failure-not-different(loc, code, some(refinement), lv, rv) end)
         end
+      end
+    end,
+    check-satisfies-delayed(self, code, left, pred, loc):
+      for left-right-check(loc, code)(lv from left, pv from pred):
+        check-bool(loc, code,
+          pv(lv),
+          lam(): failure-not-satisfied(loc, code, lv, pv) end)
+      end
+    end,
+    check-satisfies-not-delayed(self, code, left, pred, loc):
+      for left-right-check(loc, code)(lv from left, pv from pred):
+        check-bool(loc, code,
+          not(pv(lv)),
+          lam(): failure-not-dissatisfied(loc, code, lv, pv) end)
       end
     end,
     check-satisfies(self, code, left, pred, loc):
