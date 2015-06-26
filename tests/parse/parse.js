@@ -394,6 +394,7 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("{ asdf :\n(asdf) }")).not.toBe(false);
       expect(parse("fun f(x):\nx\nwhere:(f(5)) is 5\nend")).not.toBe(false);
       expect(parse("check:(5) is 5 end")).not.toBe(false);
+      expect(parse("examples:(5) is 5 end")).not.toBe(false);
       expect(parse("ask:\n  | false then: 1\n  | otherwise:(true)\nend")).not.toBe(false);
       expect(parse("ask:\n  | true then:(1)\nend")).not.toBe(false);
       expect(parse("if true: 1 else:(1) end")).not.toBe(false);
@@ -488,6 +489,10 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('check: o is-not =~ o2;')).toBe(false);
       expect(parse('check: o is-not<=> o2;')).not.toBe(false);
       expect(parse('check: o is-not <=> o2;')).toBe(false);
+    });
+
+    it("should parse examples", function() {
+      expect(parse('examples: 5 is 5 end')).not.toBe(false);
     });
 
     it("should parse ref cases bindings", function() {

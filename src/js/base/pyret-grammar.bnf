@@ -60,7 +60,7 @@ doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
 check-expr: CHECK STRING COLON block end
-check-expr: CHECKCOLON block end
+check-expr: (CHECKCOLON|EXAMPLESCOLON) block end
 check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
           | binop-expr check-op-postfix
           | binop-expr
