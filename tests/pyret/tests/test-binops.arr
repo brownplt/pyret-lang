@@ -15,7 +15,7 @@ check:
   4 + 5 is 9
   
   e1 = get-err(lam(): {} + "a";)
-  e1 satisfies E.is-plus-error
+  e1 satisfies E.is-num-string-binop-error
   e1.val1 is {}
   e1.val2 is "a"
 
