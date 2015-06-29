@@ -754,14 +754,16 @@ end
 fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body):
   preamble = cases-preamble(compiler, compiled-val, branch)
   if N.is-a-cases-branch(branch):
-    branch-args = branch.args.map(get-bind)
     entry-label = compiler.make-label()
-    ann-cases = compile-anns(compiler, compiler.cur-step, branch-args, entry-label)
+    ann-cases = compile-anns(compiler, compiler.cur-step, branch.args.map(get-bind), entry-label)
     field-names = j-id(js-id-of(compiler-name("fn")))
     get-field-names = j-var(field-names.id, j-dot(j-dot(compiled-val, "$constructor"), "$fieldNames"))
     deref-fields =
-      for CL.map_list_n(i from 0, arg from branch-args):
-        j-var(js-id-of(arg.id), j-bracket(j-dot(compiled-val, "dict"), j-bracket(field-names, j-str(tostring(i)))))
+      for CL.map_list_n(i from 0, arg from branch.args):
+        mask = j-bracket(j-dot(compiled-val, "$mut_fields_mask"), j-num(i))
+        field = get-dict-field(compiled-val, j-bracket(field-names, j-num(i)))
+        j-var(js-id-of(arg.bind.id),
+          rt-method("derefField", [clist: field, mask, j-bool(A.is-s-cases-bind-ref(arg.field-type))]))
       end
     if ann-cases.new-cases == cl-empty:
       c-block(j-block(preamble
@@ -1398,9 +1400,14 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
     end
     j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
   end
-  ids = imports.map(lam(i): js-id-of(i.vals-name) end)
+  fun clean-import-name(name):
+    if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
+    else: js-id-of(name)
+    end
+  end
+  ids = imports.map(lam(i): clean-import-name(i.vals-name) end)
   type-imports = imports.filter(N.is-a-import-complete)
-  type-ids = type-imports.map(lam(i): js-id-of(i.types-name) end)
+  type-ids = type-imports.map(lam(i): clean-import-name(i.types-name) end)
   filenames = imports.map(lam(i):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
@@ -1423,7 +1430,11 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
   # this needs to be freshened to support multiple repl interactions with the "same" source
   module-id = fresh-id(compiler-name(l.source)).tosourcestring()
   module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
-  input-ids = CL.map_list(lam(i): js-id-of(compiler-name(i.toname())) end, ids)
+  input-ids = CL.map_list(lam(i):
+      if A.is-s-atom(i) and (i.base == "$import"): js-names.make-atom("$$import")
+      else: js-id-of(compiler-name(i.toname()))
+      end
+    end, ids)
   fun wrap-modules(modules, body-name, body-fun):
     mod-input-names = CL.map_list(_.input-id, modules)
     mod-input-ids = mod-input-names.map(j-id)
@@ -1434,11 +1445,15 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
         [clist: NAMESPACE, j-list(false, mod-input-ids),
           j-fun(mod-input-names,
             j-block(
-              for CL.map_list2(m from mod-val-ids, in from mod-input-ids-list):
-                j-var(m, rt-method("getField", [clist: in, j-str("values")]))
+              for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
+                if (in.id.base == "$$import"): acc
+                else: acc ^ cl-snoc(_, j-var(m, rt-method("getField", [clist: in, j-str("values")])))
+                end
               end +
-              for CL.map_list2(mt from type-ids, in from mod-input-ids-list):
-                j-var(mt, rt-method("getField", [clist: in, j-str("types")]))
+              for lists.fold2(acc from cl-empty, mt from type-ids, in from mod-input-ids-list):
+                if (in.id.base == "$$import"): acc
+                else: acc ^ cl-snoc(_, j-var(mt, rt-method("getField", [clist: in, j-str("types")])))
+                end
               end +
               for CL.map_list(m from modules):
                 j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",

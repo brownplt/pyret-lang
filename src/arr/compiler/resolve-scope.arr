@@ -453,6 +453,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   bindings = SD.make-mutable-string-dict()
   type-bindings = SD.make-mutable-string-dict()
 
+  fun make-anon-import-for(l, s, env, shadow bindings, typ):
+    atom = names.make-atom(s)
+    bindings.set-now(atom.key(), typ(l, atom, none))
+    { atom: atom, env: env }
+  end
   fun make-atom-for(name, is-shadowing, env, shadow bindings, typ):
     cases(A.Name) name:
       | s-name(l, s) =>
@@ -595,8 +600,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         ):
         cases(A.Import) i:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
-            atom-env = make-atom-for(name-vals, false, acc.e, bindings, let-bind)
-            atom-env-t = make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind)
+            atom-env =
+              if A.is-s-underscore(name-vals):
+                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind)
+              else:
+                make-atom-for(name-vals, false, acc.e, bindings, let-bind)
+              end
+            atom-env-t =
+              if A.is-s-underscore(name-types):
+                make-anon-import-for(name-types.l, "$import", acc.te, type-bindings, let-type-bind)
+              else:
+                make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind)
+              end
             with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
               v-atom-env = make-atom-for(v, false, nv-v.e, bindings, module-bind)
               { e: v-atom-env.env, vn: link(v-atom-env.atom, nv-v.vn) }
