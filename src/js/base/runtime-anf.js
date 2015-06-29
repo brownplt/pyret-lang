@@ -4348,6 +4348,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var thisRuntime = {
         'run': run,
         'runThunk': runThunk,
+        'execThunk': execThunk,
         'safeCall': safeCall,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,

@@ -88,7 +88,6 @@ fun wrap-visit-check(self, target):
   ret
 end
 
-
 is-s-block = A.is-s-block
 fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
@@ -263,6 +262,17 @@ fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
   ensure-unique-bindings(bind-stmts.reverse())
   ensure-distinct-lines(A.dummy-loc, stmts)
   lists.all(_.visit(visitor), stmts)
+end
+
+fun wf-examples-body(visitor, body):
+  for lists.all(b from body.stmts):
+    if not(A.is-s-check-test(b)):
+      wf-error("Found something other than an example.  Example blocks must contain only test statements.", b.l)
+      false
+    else:
+      true
+    end
+  end
 end
 
 
@@ -460,7 +470,12 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   s-check(self, l, name, body, keyword-check):
-    wrap-visit-check(self, some(body))
+    if not(keyword-check):
+      wrap-visit-check(self, some(body))
+      wf-examples-body(self, body)
+    else:
+      wrap-visit-check(self, some(body))
+    end
   end,
   s-if(self, l, branches):
     when branches.length() == 1:
