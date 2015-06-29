@@ -1236,7 +1236,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           },
           check: function(elts, elt) {
             var cur = elts;
-            while (cur && cur.next !== undefined) {
+            while (cur !== undefined) {
               if (cur.elt === elt) {
                 if (cur.name === null) {
                   cur.name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
