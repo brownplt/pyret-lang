@@ -66,34 +66,23 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
 
   function loadSingle(runtime, src, dependencies) {
     var deferred = Q.defer();
-    require.undef(name);
     try {
-      safeEval(src, { define: function(deps, body) {
-          define(name, deps, body);
-          function success(val) {
-            deferred.resolve(val);
+      safeEval(src, {
+        define: function(_, body) {
+          try {
+            var answer = body.apply(null, dependencies);
+            deferred.resolve(answer);
+          } catch(e) {
+            deferred.reject(e);
           }
-          // Since requirejs seems to not call our errback, use its global
-          // error handler.
-          var oldOnError = require.onError;
-          require.onError = function(err) {
-            require.onError = oldOnError;
-            var names = [];
-            for(var i = 0; i < err.requireModules.length; i++) {
-              require.undef(err.requireModules[i]);
-              names.push(err.requireModules[i]);
-            }
-            deferred.reject(runtime.makePyretFailException(runtime.ffi.makeModuleLoadFailureL(names)));
-          };
-          require([name], success);
         }
       });
-    } catch(e) {
-        deferred.reject(e);
+    }
+    catch(e) {
+      deferred.reject(e);
     }
     return deferred.promise;
   }
-
 
   function goodIdea(runtime, name, src) {
     var deferred = Q.defer();
