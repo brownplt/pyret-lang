@@ -87,7 +87,6 @@ fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
 end
 
 fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
-  print("Getting type for " + torepr(typ))
   cases(Type) typ:
     | t-name(module-name, name) =>
       cases(Option<String>) module-name:

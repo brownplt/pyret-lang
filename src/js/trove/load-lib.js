@@ -68,7 +68,6 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       }
       function getAnswerForPyret(mr) {
         var a = getModuleResultAnswer(mr);
-        console.log("Answer: ", a);
         if(isPrimitive(mr.val.runtime, a)) { return runtime.ffi.makeSome(a); }
         else {
           return runtime.ffi.makeNone();

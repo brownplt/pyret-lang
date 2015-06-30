@@ -10,7 +10,7 @@ check:
   sd = B.make-builtin-locator("string-dict")
   sd.get-dependencies() is [list:]
   sd.get-compiled() satisfies is-some
-  sd.get-compiled().value.provides.datatypes.keys() is [tree-set: "MutableStringDict", "StringDict"]
+  sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
   sd.get-compiled().value.provides.values.keys() is [tree-set:
      "make-string-dict", "string-dict", "string-dict-of",
      "make-mutable-string-dict", "mutable-string-dict"]

@@ -5,6 +5,10 @@ define(["js/type-util"], function(t) {
       runtime.pauseStack(function(restarter) {
         // NOTE(joe): This is a bit of requireJS hackery that assumes a
         // certain layout for builtin modules
+        if (name === undefined) {
+          console.error("Got undefined name in builtin locator");
+          console.trace();
+        }
         require(["trove/" + name], function(m) {
           restarter.resume(runtime.makeObject({
             "get-raw-dependencies":

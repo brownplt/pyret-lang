@@ -53,7 +53,6 @@ fun make-repl<a>(
     cr = L.get-result-compile-result(result)
     globals := filter-env-by-imports(cr.compile-env, loc, globals)
     provided = cr.provides.values.keys-list()
-    print(cr.provides.values)
     new-vals = for fold(vs from globals.values, provided-name from provided):
       vs.set(provided-name, cr.provides.values.get-value(provided-name))
     end
