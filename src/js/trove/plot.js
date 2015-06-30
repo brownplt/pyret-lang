@@ -1,8 +1,8 @@
 function Plot(type, points, f, option) {
-	this.type = type;
-	this.points = points;
-	this.f = f;
-	this.option = option;
+  this.type = type;
+  this.points = points;
+  this.f = f;
+  this.option = option;
 }
 
 Plot.LINE =  0;
@@ -10,12 +10,12 @@ Plot.SCATTER = 1;
 Plot.XY = 2;
 
 define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
-				"trove/string-dict", "trove/image-lib", "trove/image-structs",
+        "trove/string-dict", "trove/image-lib", "trove/image-structs",
         "trove/d3-lib", "trove/plot-structs",
         "../../../node_modules/d3/d3.min",
-				"../../../node_modules/d3-tip/index"],
-       function(util, jsnums, eitherLib, optionLib, sdLib, imageLib, imageStructs,
-                clib, plotStructs, d3, d3tipLib) {
+        "../../../node_modules/d3-tip/index"],
+        function(util, jsnums, eitherLib, optionLib, sdLib, imageLib, imageStructs,
+                 clib, plotStructs, d3, d3tipLib) {
 
   var HISTOGRAM_N = 100;
   var CError = {
@@ -225,10 +225,10 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
   function inferBounds(arrOfPlot) {
 
-		var dataPoints = libData.flatten(
-			arrOfPlot
-				.filter(function(plot){ return plot.type != Plot.XY; })
-				.map(function(plot){ return plot.points; }));
+    var dataPoints = libData.flatten(
+      arrOfPlot
+        .filter(function(plot){ return plot.type != Plot.XY; })
+        .map(function(plot){ return plot.points; }));
 
     var xMin, xMax, yMin, yMax;
 
@@ -280,29 +280,29 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
   var gf = rt.getField;
   var IMAGE = imageLib(rt, rt.namespace);
-	var colorConverter = libColor.convertColor(rt, IMAGE);
+  var colorConverter = libColor.convertColor(rt, IMAGE);
 
   return rt.loadModulesNew(namespace, [sdLib, eitherLib, optionLib, imageStructs, plotStructs],
-		function(SD, EITHER, OPTION, IMAGESTRUCTS, STRUCTS) {
+    function(SD, EITHER, OPTION, IMAGESTRUCTS, STRUCTS) {
 
-		function valFromStructs(name){
-			return gf(gf(STRUCTS, "values"), name);
-		}
+    function valFromStructs(name){
+      return gf(gf(STRUCTS, "values"), name);
+    }
 
-		function typeFromStructs(name){
-			return gf(STRUCTS, "types")[name];
-		}
+    function typeFromStructs(name){
+      return gf(STRUCTS, "types")[name];
+    }
 
     var PyretEither = gf(gf(EITHER, "values"), "is-Either");
-		var PyretBlue = gf(gf(IMAGESTRUCTS, "values"), "blue")
-		var PyretPlot = valFromStructs("is-Plot");
+    var PyretBlue = gf(gf(IMAGESTRUCTS, "values"), "blue")
+    var PyretPlot = valFromStructs("is-Plot");
 
     function genericPlot(arrayOfPlot, windowOption) {
 
-			var xMin = windowOption.xMin;
-			var xMax = windowOption.xMax;
-			var yMin = windowOption.yMin;
-			var yMax = windowOption.yMax;
+      var xMin = windowOption.xMin;
+      var xMax = windowOption.xMax;
+      var yMin = windowOption.yMin;
+      var yMax = windowOption.yMax;
 
       var marginType = "normal",
         margin = getMargin(marginType),
@@ -331,7 +331,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
         canvas.append("path")
           .attr("d", line(plot.points))
-					.style({'stroke': plot.option.color, 'stroke-width': 1, 'fill': 'none'});
+          .style({'stroke': plot.option.color, 'stroke-width': 1, 'fill': 'none'});
       }
 
       function plotPoint(plot) {
@@ -362,32 +362,32 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           .attr("cx", function (d) { return xToPixel(d.x); })
           .attr("cy", function (d) { return yToPixel(d.y); })
           .attr("r", 2)
-					.style({'fill': plot.option.color})
+          .style({'fill': plot.option.color})
           .on("mouseover", tip.show)
           .on("mouseout", tip.hide);
       }
 
       arrayOfPlot.forEach(function (plot) {
-				switch (plot.type) {
-				case Plot.LINE:
-					plotLine(plot)
-					break;
-				case Plot.SCATTER:
-					plotPoint(plot)
-					break;
-				}
-			});
+        switch (plot.type) {
+        case Plot.LINE:
+          plotLine(plot)
+          break;
+        case Plot.SCATTER:
+          plotPoint(plot)
+          break;
+        }
+      });
 
       putLabel(windowOption.label, width, height, detached, margin);
-			stylizeTip(detached);
+      stylizeTip(detached);
       callBigBang(rt, detached);
     }
 
-    function generateXY(f, option) {
-			var xMin = option.xMin;
-			var xMax = option.xMax;
-			var yMin = option.yMin;
-			var yMax = option.yMax;
+    function generateXY(f, option, isSafe) {
+      var xMin = option.xMin;
+      var xMax = option.xMax;
+      var yMin = option.yMin;
+      var yMax = option.yMax;
 
       var marginType = "normal",
         margin = getMargin(marginType),
@@ -405,31 +405,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true);
       var yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
-
-			function makePoint(x, done) {
-				// This function create a point `pt`. It then returns done(pt).
-				// x :: Number
-				// done :: (Number -> Any)
-        var pt = {y: NaN, py: NaN, x: x, px: xToPixel(x)};
-        return rt.safeCall(function() {
-          return rt.execThunk({ app: function(){ return f.app(x); }});
-        }, function(result) {
-          rt.ffi.cases(PyretEither, "Either", result, {
-            'left': function(val){
-              if (jsnums.isReal(val) &&
-								  jsnums.lessThanOrEqual(yMin, val) &&
-								  jsnums.lessThanOrEqual(val, yMax)) {
-
-                  pt.y = val;
-                  pt.py = yToPixel(val);
-              }
-              return 0;
-            },
-            'right': function(_){ return 0; }
-          });
-					return done(pt)
-        });
-			}
 
       function allInvalid(points) {
         // consider all invalid if there is no (i, i+1) which are both valid
@@ -450,153 +425,252 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       function isAllOccupied(left, right) {
         return (Math.floor(left.px) == Math.floor(right.px)) &&
-								logtable[Math.floor(left.px)].isRangedOccupied(
-									Math.floor(left.py), Math.floor(right.py)
-								);
+                logtable[Math.floor(left.px)].isRangedOccupied(
+                  Math.floor(left.py), Math.floor(right.py)
+                );
       }
 
-      function makePoints(i, scalerSubinterval, done) {
-        if(i == -1) return done([]);
-        return makePoint(scalerSubinterval(i), function(pt) {
-          return makePoints(i - 1, scalerSubinterval, function(points) {
-						//console.log('push', pt.px);
-            points.push(pt);
-            return done(points);
+      function closeEnough(coordA, coordB) {
+        return ((Math.abs(coordA.py - coordB.py) <= 1) &&
+               (coordB.px - coordA.px <= 1));
+      }
+
+      function tooClose(coordA, coordB) {
+        return jsnums.roughlyEquals(coordA.px, coordB.px, DELTA);
+      }
+
+      if (isSafe) {
+
+        // safe version
+
+        function makePoint(x, done) {
+          // This function create a point `pt`. It then returns done(pt).
+          // x :: Number
+          // done :: (Number -> Any)
+          var pt = {y: NaN, py: NaN, x: x, px: xToPixel(x)};
+          return rt.safeCall(function() {
+            return rt.execThunk({ app: function(){ return f.app(x); }});
+          }, function(result) {
+            rt.ffi.cases(PyretEither, "Either", result, {
+              'left': function(val){
+                if (jsnums.isReal(val) &&
+                    jsnums.lessThanOrEqual(yMin, val) &&
+                    jsnums.lessThanOrEqual(val, yMax)) {
+
+                    pt.y = val;
+                    pt.py = yToPixel(val);
+                }
+                return 0;
+              },
+              'right': function(_){ return 0; }
+            });
+            return done(pt)
           });
-        })
-      }
+        }
 
-      function makeIntervals(i, points, left, right, done) {
-        if(i == -1) return done([]);
-        return rt.safeCall(function() {
-          return divideSubinterval(points[i], points[i + 1])
-        }, function(divided) {
+        function makePoints(i, scalerSubinterval, done) {
+          if(i == -1) return done([]);
+          return makePoint(scalerSubinterval(i), function(pt) {
+            return makePoints(i - 1, scalerSubinterval, function(points) {
+              points.push(pt);
+              return done(points);
+            });
+          })
+        }
+
+        function makeIntervals(i, points, left, right, done) {
+          if(i == -1) return done([]);
+          return rt.safeCall(function() {
+            return divideSubinterval(points[i], points[i + 1])
+          }, function(divided) {
+            if (isAllOccupied(left, right)) return [[left, right]];
+            return makeIntervals(i - 1, points, left, right, function(interv) {
+              interv.push(divided);
+              return done(interv);
+            });
+          });
+        }
+
+        function divideSubinterval(left, right) {
+          // Input: two X values
+          // Output: list of [2-length long list of points]
+          // Note: invalid for two ends is still okay
+          // invalid for K points indicate that it should not be plotted!
+
+          occupy(left);
+          occupy(right);
+
+          if (closeEnough(left, right)) return [[left, right]];
+          if (tooClose(left, right)) return [];
           if (isAllOccupied(left, right)) return [[left, right]];
-          return makeIntervals(i - 1, points, left, right, function(interv) {
-            interv.push(divided);
-            return done(interv);
+
+          return makePoints(K - 1, libNum.scaler(0, K - 1, left.x, right.x, false), function(points) {
+            if(allInvalid(points)) return [];
+            return makeIntervals(K - 2, points, left, right, libData.flatten);
+          });
+        }
+
+        return makePoint(xMin, function(leftPoint) {
+          return makePoint(xMax, function(rightPoint) {
+            return divideSubinterval(leftPoint, rightPoint);
           });
         });
+
+      } else {
+
+        // unsafe version
+
+        function PointCoord(x) {
+          this.x = x;
+          this.px = xToPixel(x);
+          this.y = NaN;
+          this.py = NaN;
+
+          var y;
+
+          try {
+            y = f.app(x);
+            if (jsnums.isReal(y) &&
+                jsnums.lessThan(yMin, y) && jsnums.lessThan(y, yMax)) {
+              this.y = y;
+              this.py = yToPixel(y);
+            }
+          } catch(e) {
+            // ignore error
+          }
+          return this;
+        }
+
+        function divideSubinterval(left, right, depth) {
+          /*
+          Input: two X values
+          Output: list of [2-length long list of points]
+          Note: invalid for two ends is still okay
+          invalid for K points indicate that it should not be plotted!
+          */
+
+          occupy(left);
+          occupy(right);
+
+          if (closeEnough(left, right)) return [[left, right]];
+          if (tooClose(left, right)) return [];
+          if (isAllOccupied(left, right)) return [[left, right]];
+
+          var scalerSubinterval = libNum.scaler(
+            0, K - 1, left.x, right.x, false);
+
+          var points = libData.range(0, K).map(function (i) {
+            return new PointCoord(scalerSubinterval(i));
+          });
+
+          if (allInvalid(points)) return [];
+          var intervals = [];
+          for (var v = 0; v < K - 1; v++) {
+            intervals.push(divideSubinterval(
+              points[v], points[v + 1], depth + 1
+            ));
+            if (isAllOccupied(left, right)) return [[left, right]];
+          }
+          return libData.flatten(intervals);
+        }
+
+        return divideSubinterval(new PointCoord(xMin),
+                                 new PointCoord(xMax), 0)
+
       }
-
-      function divideSubinterval(left, right) {
-        // Input: two X values
-        // Output: list of [2-length long list of points]
-        // Note: invalid for two ends is still okay
-        // invalid for K points indicate that it should not be plotted!
-
-        occupy(left);
-        occupy(right);
-
-        if ((Math.abs(right.py - left.py) <= 1) && (right.px - left.px <= 1)) return [[left, right]];
-        if (jsnums.roughlyEquals(left.px, right.px, DELTA)) return [];
-        if (isAllOccupied(left, right)) return [[left, right]];
-
-        return makePoints(K - 1, libNum.scaler(0, K - 1, left.x, right.x, false), function(points) {
-          if(allInvalid(points)) return [];
-          return makeIntervals(K - 2, points, left, right, libData.flatten);
-        });
-      }
-
-			return makePoint(xMin, function(leftPoint) {
-				return makePoint(xMax, function(rightPoint) {
-					return divideSubinterval(leftPoint, rightPoint);
-				});
-			});
     }
 
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-		function plotMulti(pyretLstOfPlot, pyretWinOptions) {
-			console.log('start plot-multi');
+    function plotMulti(pyretLstOfPlot, pyretWinOptions) {
       rt.checkArity(2, arguments, "plot-multi");
       rt.checkList(pyretLstOfPlot); // TODO: could check inside as well
-			rt.checkObject(pyretWinOptions); // TODO: could be more rigorous
+      rt.checkObject(pyretWinOptions); // TODO: could be more rigorous
 
-			var xMin = gf(pyretWinOptions, "x-min");
-			var xMax = gf(pyretWinOptions, "x-max");
-			var yMin = gf(pyretWinOptions, "y-min");
-			var yMax = gf(pyretWinOptions, "y-max");
+      var xMin = gf(pyretWinOptions, "x-min");
+      var xMax = gf(pyretWinOptions, "x-max");
+      var yMin = gf(pyretWinOptions, "y-min");
+      var yMax = gf(pyretWinOptions, "y-max");
 
       if (jsnums.greaterThanOrEqual(xMin, xMax) ||
           jsnums.greaterThanOrEqual(yMin, yMax)) {
         rt.throwMessageException(CError.RANGE);
       }
 
-			var colorConverter = libColor.convertColor(rt, IMAGE);
+      var colorConverter = libColor.convertColor(rt, IMAGE);
 
-			function toJSPoints(points) {
-				return rt.ffi.toArray(points).map(
-					function (e) { return {'x': gf(e, "x"), 'y': gf(e, "y")}; }
-				);
-			}
+      function toJSPoints(points) {
+        return rt.ffi.toArray(points).map(
+          function (e) { return {'x': gf(e, "x"), 'y': gf(e, "y")}; }
+        );
+      }
 
-			function toJSOption(option) {
-				return { color: colorConverter(gf(option, "color")) }
-			}
+      function toJSOption(option) {
+        return { color: colorConverter(gf(option, "color")) }
+      }
 
-			var arrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
-				.map(function(pyretPlot) {
+      var arrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
+        .map(function(pyretPlot) {
           return rt.ffi.cases(PyretPlot, "Plot", pyretPlot, {
             'line-plot': function(points, option){
-							return new Plot(Plot.LINE, toJSPoints(points), undefined, toJSOption(option));
-						},
+              return new Plot(Plot.LINE, toJSPoints(points), undefined, toJSOption(option));
+            },
             'scatter-plot': function(points, option) {
-            	return new Plot(Plot.SCATTER, toJSPoints(points), undefined, toJSOption(option));
+              return new Plot(Plot.SCATTER, toJSPoints(points), undefined, toJSOption(option));
             },
             'xy-plot': function(f, option){
-							return new Plot(Plot.XY, undefined, f, toJSOption(option));
-						}
-					});
-				});
+              return new Plot(Plot.XY, undefined, f, toJSOption(option));
+            }
+          });
+        });
 
-			var winOptions = {
-				xMin: gf(pyretWinOptions, "x-min"),
-				xMax: gf(pyretWinOptions, "x-max"),
-				yMin: gf(pyretWinOptions, "y-min"),
-				yMax: gf(pyretWinOptions, "y-max"),
-				inferBound: rt.isPyretTrue(gf(pyretWinOptions, "infer-bounds")),
-				label: gf(pyretWinOptions, "label")
-			};
+      var winOptions = {
+        xMin: gf(pyretWinOptions, "x-min"),
+        xMax: gf(pyretWinOptions, "x-max"),
+        yMin: gf(pyretWinOptions, "y-min"),
+        yMax: gf(pyretWinOptions, "y-max"),
+        inferBound: rt.isPyretTrue(gf(pyretWinOptions, "infer-bounds")),
+        label: gf(pyretWinOptions, "label"),
+        safe: gf(pyretWinOptions, "safe")
+      };
 
-			if (rt.isPyretTrue(winOptions.inferBound)) {
-				bound = inferBound(arrOfPlot);
-				winOptions.xMin = bound.xMin;
-				winOptions.xMax = bound.xMax;
-				winOptions.yMin = bound.yMin;
-				winOptions.yMax = bound.yMax;
-			}
+      if (rt.isPyretTrue(winOptions.inferBound)) {
+        bound = inferBound(arrOfPlot);
+        winOptions.xMin = bound.xMin;
+        winOptions.xMax = bound.xMax;
+        winOptions.yMin = bound.yMin;
+        winOptions.yMax = bound.yMax;
+      }
 
-			var nonXY = arrOfPlot.filter(function(plot){ return plot.type != Plot.XY; });
-			var XY =    arrOfPlot.filter(function(plot){ return plot.type == Plot.XY; });
+      var nonXY = arrOfPlot.filter(function(plot){ return plot.type != Plot.XY; });
+      var XY =    arrOfPlot.filter(function(plot){ return plot.type == Plot.XY; });
 
-			function makeXYs(i, done) {
-				if(i === -1) {
-					return done([]);
-				}
-				return rt.safeCall(function(){
-					return generateXY(XY[i].f, winOptions);
-				}, function(plot) {
-					return makeXYs(i - 1, function(XYPlots) {
-						XYPlots.push(plot);
-						return done(XYPlots);
-					});
-				});
-			}
+      function makeXYs(i, done) {
+        if(i === -1) {
+          return done([]);
+        }
+        return rt.safeCall(function(){
+          return generateXY(XY[i].f, winOptions, winOptions.safe);
+        }, function(plot) {
+          return makeXYs(i - 1, function(XYPlots) {
+            XYPlots.push(plot);
+            return done(XYPlots);
+          });
+        });
+      }
 
-			return makeXYs(XY.length - 1, function(XYPlots) {
-				var newXYPlots = XYPlots.map(function(plot, i) {
-					return plot.map(function(points){
-						return new Plot(Plot.LINE, points, undefined, XY[i].option);
-					});
-				});
-			  genericPlot(libData.flatten(newXYPlots).concat(nonXY), winOptions);
-				console.log('end plot-multi');
-				return pyretLstOfPlot;
-			});
-		}
+      return makeXYs(XY.length - 1, function(XYPlots) {
+        var newXYPlots = XYPlots.map(function(plot, i) {
+          return plot.map(function(points){
+            return new Plot(Plot.LINE, points, undefined, XY[i].option);
+          });
+        });
+        genericPlot(libData.flatten(newXYPlots).concat(nonXY), winOptions);
+        return pyretLstOfPlot;
+      });
+    }
 
     function histogram(lst, n) {
       rt.checkArity(2, arguments, "histogram");
@@ -618,7 +692,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       if (data.length === 0) {
         rt.throwMessageException("There must be at least " +
-                        "one Number in the list.");
+                                 "one Number in the list.");
       }
 
       var xMin = data.reduce(libNum.min);
@@ -649,7 +723,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           histogramData, HISTOGRAM_N, detached, canvas);
 
       callBigBang(rt, detached);
-			return lst;
+      return lst;
     }
 
     function pieChart(sdValue) {
@@ -763,34 +837,35 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       canvas.selectAll(".transparent").style('opacity', '0');
       canvas.selectAll('text').style({'font-size': '15px'});
       callBigBang(rt, detached);
-			return sdValue;
+      return sdValue;
     }
 
     return util.makeModuleReturn(rt, {
-			Posn: typeFromStructs("Posn"),
-			Plot: typeFromStructs("Plot"),
-			PlotOptions: typeFromStructs("PlotOptions"),
-			PlotWindowOptions: typeFromStructs("PlotWindowOptions")
-		}, {
-			// TODO: provide is-...?
-			"plot-multi": rt.makeFunction(plotMulti),
+      Posn: typeFromStructs("Posn"),
+      Plot: typeFromStructs("Plot"),
+      PlotOptions: typeFromStructs("PlotOptions"),
+      PlotWindowOptions: typeFromStructs("PlotWindowOptions")
+    }, {
+      // TODO: provide is-...?
+      "plot-multi": rt.makeFunction(plotMulti),
       "histogram": rt.makeFunction(histogram),
       "pie-chart": rt.makeFunction(pieChart),
-			"plot-window-options": rt.makeObject({
-				"x-min": -10,
-				"x-max": 10,
-				"y-min": -10,
-				"y-max": 10,
-				"infer-bounds": rt.pyretFalse,
-				"label": ""
-			}),
-			"plot-options": rt.makeObject({
-				"color": PyretBlue
-			}),
-			"posn": valFromStructs("posn"),
-			"line-plot": valFromStructs("line-plot"),
-			"scatter-plot": valFromStructs("scatter-plot"),
-			"xy-plot": valFromStructs("xy-plot")
+      "plot-window-options": rt.makeObject({
+        "x-min": -10,
+        "x-max": 10,
+        "y-min": -10,
+        "y-max": 10,
+        "infer-bounds": rt.pyretFalse,
+        "label": "",
+        "safe": rt.pyretTrue
+      }),
+      "plot-options": rt.makeObject({
+        "color": PyretBlue
+      }),
+      "posn": valFromStructs("posn"),
+      "line-plot": valFromStructs("line-plot"),
+      "scatter-plot": valFromStructs("scatter-plot"),
+      "xy-plot": valFromStructs("xy-plot")
     });
   });
 
