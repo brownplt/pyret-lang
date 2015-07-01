@@ -183,6 +183,52 @@ define([], function() {
     }
   }
 
+  function providesToPyret(runtime, provides) {
+    if(Array.isArray(provides.values)) {
+      var values = provides.values;
+    }
+    else {
+      var values = Object.keys(provides.values).map(function(k) {
+        return runtime.makeObject({
+          name: k,
+          typ: t.toPyret(runtime, provides.values[k])
+        });
+      });
+    }
+    if(Array.isArray(provides.types)) {
+      var aliases = provides.types;
+    }
+    else if(typeof provides.aliases === "object") {
+      var aliases = Object.keys(provides.aliases).map(function(k) {
+        return runtime.makeObject({
+          name: k,
+          typ: t.toPyret(runtime, provides.aliases[k])
+        });
+      });
+    }
+    if(provides.datatypes) {
+      if(Array.isArray(provides.datatypes)) {
+        var datatypes = provides.datatypes;
+      }
+      else if(typeof provides === "object") {
+        var datatypes = Object.keys(provides.datatypes).map(function(k) {
+          return runtime.makeObject({
+            name: k,
+            typ: t.toPyret(runtime, provides.datatypes[k])
+          });
+        });
+      }
+    }
+    else {
+      var datatypes = [];
+    }
+    return runtime.makeObject({
+      values: runtime.ffi.makeList(values),
+      aliases: runtime.ffi.makeList(aliases),
+      datatypes: runtime.ffi.makeList(datatypes)
+    });
+  }
+
   return {
     any: any,
     string: string,
@@ -198,7 +244,8 @@ define([], function() {
     localType: localType,
     record: record,
     dataType: dataType,
-    toPyret: toPyret
+    toPyret: toPyret,
+    providesToPyret: providesToPyret
   };
 
 });
