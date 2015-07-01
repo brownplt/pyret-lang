@@ -527,6 +527,14 @@ default-compile-options = {
 t-nothing = T.t-nothing
 t-str = T.t-string
 t-bool = T.t-boolean
+t-boolean = T.t-boolean
+
+t-pred = T.t-arrow([list: T.t-top], t-bool)
+t-pred2 = T.t-arrow([list: T.t-top, T.t-top], t-bool)
+t-arrow = T.t-arrow
+t-member = T.t-member
+t-bot = T.t-bot
+t-record = T.t-record
 
 runtime-types = [string-dict:
   "Number", T.t-top,
@@ -544,9 +552,6 @@ fun t-forall1(f):
   T.t-forall([list: T.t-variable(A.dummy-loc, n, T.t-top, T.invariant)], f(T.t-var(n)))
 end
 
-t-pred = T.t-arrow([list: T.t-top], t-bool)
-t-pred2 = T.t-arrow([list: T.t-top, T.t-top], t-bool)
-
 runtime-builtins = [string-dict: 
   "test-print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
   "print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
@@ -558,7 +563,25 @@ runtime-builtins = [string-dict:
   "brander", T.t-top,
   "raise", T.t-arrow([list: T.t-top], T.t-bot),
   "nothing", t-nothing,
-  "builtins", T.t-top,
+  "builtins", t-record([list:
+      t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
+      t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
+          t-member("run-checks", t-bot),
+          t-member("check-is", t-bot),
+          t-member("check-is-refinement", t-bot),
+          t-member("check-is-not", t-bot),
+          t-member("check-is-not-refinement", t-bot),
+          t-member("check-is-refinement", t-bot),
+          t-member("check-is-not-refinement", t-bot),
+          t-member("check-satisfies", t-bot),
+          t-member("check-satisfies-not", t-bot),
+          t-member("check-raises-str", t-bot),
+          t-member("check-raises-not", t-bot),
+          t-member("check-raises-other-str", t-bot),
+          t-member("check-raises-satisfies", t-bot),
+          t-member("check-raises-violates" , t-bot)
+      ])))
+  ]),
   "not", T.t-arrow([list: t-bool], t-bool),
   "is-nothing", t-pred,
   "is-number", t-pred,

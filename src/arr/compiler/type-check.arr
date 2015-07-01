@@ -1384,7 +1384,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
               checking(value, expect-loc, param-typ, info)
             end
           else:
-            checking-err([list: C.incorrect-type("a raw array", l, tostring(expect-typ), expect-loc)])
+            checking-err([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-typ), expect-loc)])
           end
         | t-top =>
           for map-checking(value from values):

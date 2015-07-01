@@ -93,7 +93,6 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
         | some(mod) =>
           cases(Option<ModuleType>) info.modules.get-now(mod):
             | some(t-mod) =>
-              print(t-mod)
               cases(Option<DataType>) t-mod.types.get(name.toname()):
                 | some(shadow typ) => some(typ)
                 | none =>

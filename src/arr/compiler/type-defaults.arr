@@ -718,7 +718,7 @@ module-const-either = t-module("pyret-builtin://either",
       ])
     ),
   SD.make-string-dict()
-    .set("Either", t-name(none, A.s-name(A.dummy-loc, "Either")))
+    .set("Either", t-name(some("pyret-builtin://either"), A.s-name(A.dummy-loc, "Either")))
 )
 
 t-s-exp = t-name(some("pyret-builtin://s-exp-structs"), A.s-global("S-Exp"))

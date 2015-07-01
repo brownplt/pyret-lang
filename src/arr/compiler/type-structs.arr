@@ -28,14 +28,14 @@ fun dict-to-string(dict :: SD.StringDict):
   VS.vs-seq([list: VS.vs-str("{")] + items + [list: VS.vs-str("}")])
 end
 
-fun mut-dict-to-string(dict :: SD.MutableStringDict) -> String:
+fun mut-dict-to-string(dict :: SD.MutableStringDict) -> VS.ValueSkeleton:
   items = for sets.fold(acc from empty, key from dict.keys-now()):
     if is-empty(acc):
-      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value(key))]
+      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value-now(key))]
     else:
       link(VS.vs-value(key),
         link(VS.vs-str(" => "),
-          link(VS.vs-value(dict.get-value(key)),
+          link(VS.vs-value(dict.get-value-now(key)),
             link(VS.vs-str(", "),
               acc))))
     end
@@ -488,7 +488,7 @@ end
 
 builtin-uri = some("builtin")
 
-t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"))
+t-array-name = t-name(none, A.s-type-global("RawArray"))
 
 t-number  = t-name(builtin-uri, A.s-type-global("Number"))
 t-string  = t-name(builtin-uri, A.s-type-global("String"))
