@@ -3,83 +3,100 @@ define([
     "js/js-numbers",
     "js/ffi-helpers",
     "js/runtime-util",
-  ], function(imageLib, jsnums, ffiLib, util) {
+    "js/type-util"
+  ], function(imageLib, jsnums, ffiLib, util, t) {
+
+  var TImage = t.localType("Image");
+  var tscene = t.localType("Scene");
+  var numpred = t.arrow([t.number], t.boolean);
+  var strpred = t.arrow([t.string], t.boolean);
+  var Num = t.number;
+  var Str = t.string;
+  var Color = Str;
+  var Fun = t.arrow
+  var TriangleFun = Fun([Num, Num, Num, Str, Color], TImage);
 
   return util.definePyretModule(
     "image",
     [],
     {
-      values: [
-        "circle",
-        "is-image-color",
-        "is-mode",
-        "is-x-place",
-        "is-y-place",
-        "is-angle",
-        "is-side-count",
-        "is-step-count",
-        "is-image",
-        "bitmap-url",
-        "open-image-url",
-        "image-url",
-        "images-equal",
-        "text",
-        "text-font",
-        "overlay",
-        "overlay-xy",
-        "overlay-align",
-        "underlay",
-        "underlay-xy",
-        "underlay-align",
-        "beside",
-        "beside-align",
-        "above",
-        "above-align",
-        "empty-scene",
-        "put-image",
-        "place-image",
-        "place-image-align",
-        "rotate",
-        "scale",
-        "scale-xy",
-        "flip-horizontal",
-        "flip-vertical",
-        "frame",
-        "crop",
-        "line",
-        "add-line",
-        "scene-line",
-        "square",
-        "rectangle",
-        "regular-polygon",
-        "ellipse",
-        "triangle",
-        "triangle-sas",
-        "triangle-sss",
-        "triangle-ass",
-        "triangle-ssa",
-        "triangle-aas",
-        "triangle-asa",
-        "triangle-saa",
-        "right-triangle",
-        "isosceles-triangle",
-        "star",
-        "star-sized",
-        "radial-star",
-        "star-polygon",
-        "rhombus",
-        "image-to-color-list",
-        "color-list-to-image",
-        "color-list-to-bitmap",
-        "image-width",
-        "image-height",
-        "image-baseline",
-        "name-to-color"
-      ],
-      types: [
-        "Image",
-        "Scene"
-      ]
+      values: {
+        "circle": Fun([Num, Color, Color], TImage),
+        "is-image-color": strpred,
+        "is-mode": strpred,
+        "is-x-place": strpred,
+        "is-y-place": strpred,
+        "is-angle": numpred,
+        "is-side-count": numpred,
+        "is-step-count": numpred,
+        "is-image": Fun([t.any], t.boolean),
+        "bitmap-url": Fun([Str], TImage),
+        "open-image-url": Fun([Str], TImage),
+        "image-url": Fun([Str], TImage),
+        "images-equal": Fun([TImage, TImage], t.boolean),
+        "text": Fun([Str, Num, Color], TImage),
+        "text-font": Fun([Str, Num, Color, Str, Str, Str, Str, t.boolean], TImage),
+        "overlay": Fun([TImage, TImage], TImage),
+        "overlay-xy": Fun([TImage, Num, Num, TImage], TImage),
+        "overlay-align": Fun([Str, Str, TImage, TImage], TImage),
+        "underlay": Fun([TImage, TImage], TImage),
+        "underlay-xy": Fun([TImage, Num, Num, TImage], TImage),
+        "underlay-align": Fun([Str, Str, TImage, TImage], TImage),
+        "beside": Fun([TImage, TImage], TImage),
+        "beside-align": Fun([Str, TImage, TImage], TImage),
+        "above": Fun([TImage, TImage], TImage),
+        "above-align": Fun([Str, TImage, TImage], TImage),
+        "empty-scene": Fun([Num, Num], tscene),
+        "put-image": Fun([TImage, Num, Num, TImage], TImage),
+        "place-image": Fun([TImage, Num, Num, TImage], TImage),
+        "place-image": Fun([TImage, Num, Num, Str, Str, TImage], TImage),
+        "rotate": Fun([Num, TImage], TImage),
+        "scale": Fun([Num, TImage], TImage),
+        "scale-xy": Fun([Num, Num, TImage], TImage),
+        "flip-horizontal": Fun([TImage], TImage),
+        "flip-vertical": Fun([TImage], TImage),
+        "frame": Fun([TImage], TImage),
+        "crop": Fun([Num, Num, Num, Num, TImage], TImage),
+        "line": Fun([Num, Num, Color], TImage),
+        "add-line": Fun([TImage, Num, Num, Num, Num, Color], TImage),
+        "scene-line": Fun([TImage, Num, Num, Num, Num, Color], TImage),
+        "square": Fun([Num, Str, Color], TImage),
+        "rectangle": Fun([Num, Num, Str, Color], TImage),
+        "regular-polygon": Fun([Num, Num, Str, Color], TImage),
+        "ellipse": Fun([Num, Num, Str, Color], TImage),
+        "triangle": Fun([Num, Str, Color], TImage),
+        "triangle-sas": TriangleFun,
+        "triangle-sss": TriangleFun,
+        "triangle-ass": TriangleFun,
+        "triangle-ssa": TriangleFun,
+        "triangle-aas": TriangleFun,
+        "triangle-asa": TriangleFun,
+        "triangle-saa": TriangleFun,
+        "right-triangle": Fun([Num, Num, Str, Color], TImage),
+        "isosceles-triangle": Fun([Num, Num, Str, Color], TImage),
+        "star": Fun([Num, Str, Color], TImage),
+        "star-sized": Fun([Num, Num, Num, Str, Color], TImage),
+        "radial-star": Fun([Num, Num, Num, Str, Color], TImage),
+        "star-polygon": Fun([Num, Num, Num, Str, Color], TImage),
+        "rhombus": Fun([Num, Num, Str, Color], TImage),
+        "image-to-color-list":
+          Fun([TImage], t.tyapp(t.libName("lists", "List"), [Color])),
+        "color-list-to-image":
+          Fun([t.tyapp(t.libName("lists", "List"), [Color])], TImage),
+        "color-list-to-bitmap":
+          Fun([t.tyapp(t.libName("lists", "List"), [Color])], TImage),
+        "image-width": Fun([TImage], Num),
+        "image-height": Fun([TImage], Num),
+        "image-baseline": Fun([TImage], Num),
+        "name-to-color": Fun([Str], Color)
+      },
+      datatypes: {
+        Image: t.dataType("Image", [], [], {}),
+        Scene: t.dataType("Scene", [], [], {})
+      },
+      aliases: {
+        Image: t.localType("Image") 
+      }
     },
     function(runtime, namespace) {
       return runtime.loadJSModules(namespace, [imageLib, ffiLib], function(image, ffi) {

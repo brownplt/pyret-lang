@@ -496,3 +496,4 @@ t-boolean = t-name(builtin-uri, A.s-type-global("Boolean"))
 t-nothing = t-name(builtin-uri, A.s-type-global("Nothing"))
 t-srcloc  = t-name(builtin-uri, A.s-global("Loc"))
 t-array   = lam(v): t-app(t-array-name, [list: v]);
+t-option  = lam(v): t-app(t-name(some("pyret-builtin://option"), A.s-global("Option")), [list: v]);
