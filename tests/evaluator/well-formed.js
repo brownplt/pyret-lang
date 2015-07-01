@@ -320,6 +320,10 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("import shared-gdrive('a') as D", "two arguments");
         P.wait(done);
       });
+      it("examples restriction", function(done) {
+        P.checkCompileErrorMsg("examples: f() end", "must contain only test");
+        P.wait(done);
+      });
       it("underscores", function(done) {
         P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Underscore used as");
         P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Underscore used as");

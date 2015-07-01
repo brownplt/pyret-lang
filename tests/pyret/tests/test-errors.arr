@@ -70,17 +70,17 @@ check:
   end
 
   e6 = get-err(lam(): "a" + 5;)
-  e6 satisfies E.is-generic-type-mismatch
-  when E.is-generic-type-mismatch(e6):
-    e6.val is 5
-    e6.typ is "String"
+  e6 satisfies E.is-num-string-binop-error
+  when E.is-num-string-binop-error(e6):
+    e6.val1 is "a"
+    e6.val2 is 5
   end
 
   e7 = get-err(lam(): 5 + "a";)
-  e7 satisfies E.is-generic-type-mismatch
-  when E.is-generic-type-mismatch(e7):
-    e7.val is "a"
-    e7.typ is "Number"
+  e7 satisfies E.is-num-string-binop-error
+  when E.is-num-string-binop-error(e7):
+    e7.val1 is 5
+    e7.val2 is "a"
   end
 
 #    e4 = get-err(lam(): string-append(5, "a") end)

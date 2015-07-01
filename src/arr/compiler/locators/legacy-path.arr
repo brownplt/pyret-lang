@@ -5,6 +5,9 @@ import namespace-lib as N
 import legacy-path as P
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
+import string-dict as SD
+
+mtd = [SD.string-dict:]
 
 fun make-dep(raw-dep):
   if raw-dep.import-type == "builtin":
@@ -14,8 +17,10 @@ fun make-dep(raw-dep):
   end
 end
 
-fun make-provides(raw-provides):
-  sets.list-to-list-set(raw-array-to-list(raw-provides))
+fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
+  for fold(d from mtd, s from strs):
+    d.set(s, val)
+  end
 end
 
 fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
@@ -36,11 +41,7 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
       end
       mod-deps.append(env-deps)
     end,
-    get-provides(_):
-      provides = raw.get-raw-provides()
-      make-provides(provides) 
-    end,
-    get-global(_):
+    get-globals(_):
       raise("Should never get-globals for legacy module " + builtin-name)
     end,
     get-namespace(_, some-runtime):
@@ -51,7 +52,10 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
     name(_): builtin-name end,
     
     set-compiled(_, _): nothing end,
-    get-compiled(_): some(CL.pre-loaded(CS.minimal-builtins, raw.get-raw-compiled())) end,
+    get-compiled(self):
+      provs = CS.provides(self.uri(), mtd, mtd, mtd)
+      some(CL.pre-loaded(provs, CS.minimal-builtins, raw.get-raw-compiled()))
+    end,
 
     _equals(self, other, req-eq):
       req-eq(self.uri(), other.uri())

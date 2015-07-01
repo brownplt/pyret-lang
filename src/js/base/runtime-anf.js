@@ -1236,7 +1236,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           },
           check: function(elts, elt) {
             var cur = elts;
-            while (cur && cur.next !== undefined) {
+            while (cur !== undefined) {
               if (cur.elt === elt) {
                 if (cur.name === null) {
                   cur.name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
@@ -1336,6 +1336,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else {
               console.log("UNKNOWN VALUE!");
               console.log(next);
+              throw "Found unknown value in loop";
             }
           }
           else {
@@ -3973,7 +3974,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
-            return { dname: d.name, modinfo: require("trove/" + d.name) };
+            if(d.protocol === "legacy-path") {
+              return { dname: d.args[0], modinfo: require(d.args[0]) };
+            }
+            else {
+              return { dname: d.name, modinfo: require("trove/" + d.name) };
+            }
           });
           var tocomp = {mod: curMod, path: curPath};
           return depMods.reduce(function(acc, elt) {
@@ -3984,6 +3990,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       var wl = loadWorklist({name: startName, dependencies: modules });
       var finalModMap = {};
+      function getName(d) {
+        if(d.protocol === "legacy-path") {
+          return d.args[0];
+        }
+        else {
+          return d.name;
+        }
+      }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
         if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
@@ -3991,14 +4005,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         else {
           var rawDeps = m.mod.dependencies.map(function(d) {
-            return finalModMap[d.name];
+            return finalModMap[getName(d)];
           });
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
         finalModMap[m.mod.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
-        return finalModMap[m.name];
+        return finalModMap[getName(m)];
       });
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
@@ -4348,6 +4362,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var thisRuntime = {
         'run': run,
         'runThunk': runThunk,
+        'execThunk': execThunk,
         'safeCall': safeCall,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,

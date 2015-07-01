@@ -75,10 +75,20 @@ define([], function() {
     };
   }
 
+  function makeModuleReturn(runtime, types, values) {
+    return runtime.makeObject({
+      "provide-plus-types": runtime.makeObject({
+        types: types,
+        values: runtime.makeObject(values)
+      })
+    });
+  }
+
   return {
       modBuiltin: modBuiltin,
 
       memoModule: memoModule,
+      makeModuleReturn: makeModuleReturn,
       isBrowser: isBrowser,
       suspend: suspend,
       definePyretModule: definePyretModule,

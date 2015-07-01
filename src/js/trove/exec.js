@@ -80,6 +80,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
                   });
               }
               else if(execRt.isFailureResult(r)) {
+                //console.log("Exn: ", r.exn, r.exn.stack);
                 var isParseError = execRt.getField(error, "ParseError").app(r.exn.exn);
                 var isRuntimeError = execRt.getField(error, "RuntimeError").app(r.exn.exn);
                 var isContractError = 

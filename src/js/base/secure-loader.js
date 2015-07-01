@@ -66,19 +66,23 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
 
   function loadSingle(runtime, src, dependencies) {
     var deferred = Q.defer();
-    safeEval(src, {
-      define: function(_, body) {
-        try {
-          var answer = body.apply(null, dependencies);
-          deferred.resolve(answer);
-        } catch(e) {
-          deferred.reject(e);
+    try {
+      safeEval(src, {
+        define: function(_, body) {
+          try {
+            var answer = body.apply(null, dependencies);
+            deferred.resolve(answer);
+          } catch(e) {
+            deferred.reject(e);
+          }
         }
-      }
-    });
+      });
+    }
+    catch(e) {
+      deferred.reject(e);
+    }
     return deferred.promise;
   }
-
 
   function goodIdea(runtime, name, src) {
     var deferred = Q.defer();

@@ -1,38 +1,49 @@
 #lang pyret
 
 import ast as A
-import exec as X
+import either as E
 import filelib as FL
-import "compiler/compile.arr" as CM
+import namespace-lib as N
+import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/type-defaults.arr" as TD
+import "compiler/locators/builtin.arr" as BL
 
-exec-result = lam(result):
-  str = result.code.pyret-to-js-runnable()
-  X.exec(str, "test", ".", true, "Pyret", [list:])
+fun string-to-locator(name, str :: String):
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-string(str) end,
+    get-extra-imports(self): CS.minimal-imports end,
+    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+    get-globals(self): CS.standard-globals end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    uri(self): "tc-test://" + name end,
+    name(self): name end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
 end
+
+fun dfind(ctxt, dep):
+  l = cases(CS.Dependency) dep:
+    | builtin(modname) =>
+      BL.make-builtin-locator(modname)
+  end
+  CL.located(l, nothing)
+end
+
 compile-str = lam(filename, str):
-  CM.compile-js(
-          CM.start,
-          str,
-          filename,
-          CS.minimal-builtins,
-          CS.minimal-imports,
-          {
-            check-mode : true,
-            allow-shadowed : false,
-            collect-all: false,
-            type-check: true,
-            ignore-unbound: false,
-            proper-tail-calls: true
-          }
-          ).result
-end
-run-str = lam(str):
-  compiled = compile-str(str)
-  cases(CS.CompileResult) compiled:
-    | ok(code) => exec-result(compiled)
-    | err(errs) => raise("Compilation failure when a run was expected " + torepr(errs) + "\n Program was:\n " + str)
+  l = string-to-locator(filename, str)
+  wlist = CL.compile-worklist(dfind, l, {})
+  result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
+  errors = result.loadables.filter(CL.is-error-compilation)
+  cases(List) errors:
+    | empty =>
+      E.right(result.loadables)
+    | link(_, _) =>
+      E.left(errors.map(_.result-printer))
   end
 end
 
@@ -50,8 +61,8 @@ check "These should all be good programs":
       prog-file = FL.open-input-file(filename)
       prog-text = FL.read-file(prog-file)
       result = compile-str(filename, prog-text)
-      result satisfies CS.is-ok
-      when CS.is-err(result):
+      result satisfies E.is-right
+      when E.is-left(result):
         "Should be okay: " is filename
       end
       FL.close-output-file(prog-file)
@@ -68,11 +79,11 @@ check "These should all be bad programs":
       prog-file = FL.open-input-file(filename)
       prog-text = FL.read-file(prog-file)
       result    = compile-str(filename, prog-text)
-      result satisfies CS.is-err
-      cases(CS.CompileResult) result:
-        | ok(_) =>
+      result satisfies E.is-left
+      cases(E.Either) result:
+        | right(_) =>
           "Should be error: " is filename
-        | err(problems) =>
+        | left(problems) =>
           for each(problem from problems):
             tostring(problem) satisfies is-string
           end

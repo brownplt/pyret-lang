@@ -9,11 +9,11 @@ import runtime-lib as R
 check:
   sd = B.make-builtin-locator("string-dict")
   sd.get-dependencies() is [list:]
-  sd.get-provides().values.keys() is [tree-set:
+  sd.get-compiled() satisfies is-some
+  sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
+  sd.get-compiled().value.provides.values.keys() is [tree-set:
      "make-string-dict", "string-dict", "string-dict-of",
      "make-mutable-string-dict", "mutable-string-dict"]
-  sd.get-provides().types.keys() is [tree-set: "MutableStringDict", "StringDict"]
-  sd.get-compiled() satisfies is-some
 end
 
 check:
@@ -44,7 +44,6 @@ check:
       get-dependencies(self):
         CL.get-dependencies(self.get-module(), self.uri())
       end,
-      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
       get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "protocol://" + name end,
@@ -63,14 +62,12 @@ check:
     CL.located(l, nothing)
   end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("foo")
   CL.get-dependencies(floc.get-module(), floc.uri()) is
     [list:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
-  wlist = clib.compile-worklist(floc, {})
+  wlist = CL.compile-worklist(dfind, floc, {})
   wlist.length() is 4
   wlist.get(3).locator is floc
   wlist.get(2).locator.uri() is "protocol://bar"
@@ -80,6 +77,6 @@ check:
   wlist.get(0).locator.uri() is "pyret-builtin://string-dict"
   wlist.get(0).locator.name() is "string-dict"
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
+  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies L.is-success-result
 end

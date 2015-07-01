@@ -1,15 +1,76 @@
-define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
+define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, t, Namespace, ffi, valueskeleton) {
+  var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
+  var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
   return util.definePyretModule(
     "string-dict",
     [],
     {
       values:
-        ["make-string-dict", "string-dict", "string-dict-of",
-         "make-mutable-string-dict", "mutable-string-dict"],
-      types:
-        ["MutableStringDict", "StringDict"]
-     },
-     function(runtime, namespace /* no pyret dependencies */) {
+      {
+        "make-string-dict": t.forall(["a"], sdOfA),
+        "string-dict":
+          t.record({
+            "make":
+              // NOTE(joe): any for RawArray instantiation until we have tuples
+              t.forall(["a"],
+                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA))
+          }),
+        "string-dict-of":
+          t.forall(["a"],
+            t.arrow(
+              [
+                t.tyapp(t.libName("lists", "List"), [t.builtinName("String")]),
+                t.tyvar("a")
+              ],
+              sdOfA)),
+        "make-mutable-string-dict": t.forall(["a"], t.arrow([], msdOfA)),
+        "mutable-string-dict":
+          t.record({
+            "make":
+              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA))
+          })
+      },
+      aliases: {},
+      datatypes: {
+        StringDict: t.dataType(
+          "StringDict",
+          ["a"],
+          [],
+          {
+            "get": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
+            "get-value": t.arrow([t.string], t.tyvar("a")),
+            "set": t.arrow([t.string, t.tyvar("a")], sdOfA),
+            "merge": t.arrow([sdOfA], sdOfA),
+            "remove": t.arrow([t.string], sdOfA),
+            "keys": t.arrow([], t.tyapp(t.libName("sets", "TreeSet"), [t.string])),
+            "keys-list": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
+            "count": t.arrow([], t.number),
+            "has-key": t.arrow([t.string], t.boolean),
+            "unfreeze": t.arrow([], msdOfA),
+            // TODO(joe): _output and _equals
+          }
+        ),
+        MutableStringDict: t.dataType(
+          "MutableStringDict",
+          ["a"],
+          [],
+          {
+            "get-now": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
+            "get-value-now": t.arrow([t.string], t.tyvar("a")),
+            "set-now": t.arrow([t.string, t.tyvar("a")], t.nothing),
+            "remove-now": t.arrow([t.string], t.nothing),
+            "keys-now": t.arrow([], t.tyapp(t.libName("sets", "TreeSet"), [t.string])),
+            "keys-list-now": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
+            "count-now": t.arrow([], t.number),
+            "has-key-now": t.arrow([t.string], t.boolean),
+            "freeze": t.arrow([], sdOfA),
+            "seal": t.arrow([], msdOfA),
+            // TODO(joe): _output and _equals
+          }
+        )
+      }
+    },
+    function(runtime, namespace /* no pyret dependencies */) {
     return runtime.loadJSModules(namespace, [ffi], function(F) {
     return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 

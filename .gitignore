@@ -4,6 +4,8 @@
 *.out
 *.err
 *.bak
+.DS_Store
+*.log
 
 # benchmark
 tools/benchmark/TODO
@@ -34,5 +36,6 @@ node_modules/
 pyret.plt
 tests/pyret/*.arr.js
 tests/pyret/tests/*.arr.js
+tests/type-check/*/*.arr.js
 tests/pyret/regression/*.arr.js
 tests/pyret/bootstrap-tests/*.arr.js
