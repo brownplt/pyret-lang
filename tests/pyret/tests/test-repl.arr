@@ -66,14 +66,12 @@ check:
   result10 = next-interaction("import string-dict as SD")
   result10 satisfies E.is-right
 
-#|
   result11 = next-interaction(```
     sd1 :: SD.StringDict = [string-dict:]
     sd2 = [SD.string-dict:]
     sd1 == sd2
   ```)
   L.get-result-answer(result11.v) is some(true)
-|#
 
 #|
   # fails because shadows string-dict from import ... from
