@@ -68,11 +68,16 @@ check "within-rel":
   ~2  is%(within-rel(0.4))      ~3
   ~20  is-not%(within-rel(~0.3))   ~30
    2  is-not%(within-rel(0.1))    ~3
-   5  is%(within-rel(0.5))         3
+   #5  is%(within-rel(0.5))         3
+   5  is-not%(within-rel(0.5))         3
+   3  is%(within-rel(0.5))       5
 
    within-rel(-0.1)(1, 1.05) raises "tolerance"
-   within-rel(1.1)(~2, ~3)   raises "relative tolerance"
-   within-rel(4)(5, 3)       raises "relative tolerance"
+   # rel tols > 1 are now acceptable
+   #within-rel(1.1)(~2, ~3)   raises "relative tolerance"
+   #within-rel(4)(5, 3)       raises "relative tolerance"
+   within-rel(1.1)(~2, ~3)   is true
+   within-rel(4)(5, 3)       is true
 
    l1 = [list: 1]
    l2 = [list: 1.2]
