@@ -285,8 +285,8 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id) =>
         cases(Option<String>) module-name:
-          | none    => VS.vs-value(id.tosourcestring())
-          | some(m) => VS.vs-value(m + id.tosourcestring())
+          | none    => VS.vs-value(id.toname())
+          | some(m) => VS.vs-value(id.toname())
         end
       | t-var(id) => VS.vs-str(id.toname())
       | t-arrow(args, ret) =>
