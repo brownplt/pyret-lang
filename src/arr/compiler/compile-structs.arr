@@ -395,46 +395,56 @@ data CompileError:
       end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
-          ED.text(" (declared at "), draw-and-highlight(self.expected-loc),
-          ED.text(") at "), draw-and-highlight(self.bad-loc),
-          ED.text(" but instead found "), ED.code(ED.text(self.bad-name))]]
+          ED.text(" at "), draw-and-highlight(self.bad-loc),
+          ED.text(", required by "), draw-and-highlight(self.expected-loc),
+          ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("Expected to receive " + tostring(self.wanted) + " arguments for type instantiation "
-        + " on line " + tostring(self.loc) + ", but instead received " + tostring(self.given) + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
+          ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
+          ED.text(", but instead received "), ED.text(tostring(self.given))]]
     end
   | incorrect-number-of-args(loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("Incorrect number of arguments given to function at line " + tostring(self.loc) + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("Incorrect number of arguments given to function at "),
+          draw-and-highlight(self.loc)]]
     end
-  | apply-non-function(loc :: A.Loc) with:
-    #### TODO ###
+  | apply-non-function(loc :: A.Loc, typ) with:
     render-reason(self):
-      ED.text("The program tried to apply something that is not a function at line " + tostring(self.loc) + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("Tried to apply the non-function type "),
+          ED.embed(self.typ),
+          ED.text(" at "),
+          draw-and-highlight(self.loc)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("The object type " + self.obj
-        + " (defined at " + tostring(self.obj-loc)
-        + ") does not have the field \"" + self.field-name
-        + "\" (accessed at line " + tostring(self.access-loc) + ").")
+      [ED.error:
+        [ED.para:
+          ED.text("The object type " + self.obj + " (at "),
+          draw-and-highlight(self.obj-loc),
+          ED.text(") does not have the field \"" + self.field-name + "\", accessed at "),
+          draw-and-highlight(self.access-loc)]]
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("The branch " + self.branch-name
-        + " (defined at " + tostring(self.branch-loc)
-        + ") is not a variant of " + self.type-name
-        + " (declared at " + tostring(self.type-loc) + ")")
+      [ED.error:
+        [ED.para:
+          ED.text("The branch "), ED.code(ED.text(self.branch-name)),
+          ED.text(" at "), draw-and-highlight(self.branch-loc),
+          ED.text(" is not a variant of "), ED.code(ED.text(self.type-name)),
+          ED.text(" at "),
+          draw-and-highlight(self.type-loc)]]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
@@ -483,21 +493,22 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("The data type " + self.data-type
-        + " does not take any parameters,"
-        + " but is given some at " + tostring(self.loc)
-        + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("The data type "),  ED.code(ED.text(self.data-type)),
+          ED.text(" does not take any parameters, but is given some at "),
+          draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    #### TODO ###
     render-reason(self):
-      ED.text("There is not enough information to instantiate the type at " + tostring(self.loc)
-         + ", or the arguments are incompatible. Please provide more information or do the type instantiation directly.")
+      [ED.error:
+        [ED.para:
+          ED.text("In the type at "), draw-and-highlight(self.loc),
+          ED.text(" there was not enough information to instantiate the type, "
+            + "or the given arguments are incompatible.")]]
     end
   | cant-typecheck(reason :: String) with:
-    #### TODO ###
     render-reason(self):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason)
@@ -537,7 +548,11 @@ t-member = T.t-member
 t-bot = T.t-bot
 t-record = T.t-record
 
-t-number-binop = t-arrow([list: t-number, t-number], t-number)
+t-number-binop = T.t-arrow([list: t-number, t-number], t-number)
+t-number-unop = T.t-arrow([list: t-number], t-number)
+t-number-pred1 = T.t-arrow([list: t-number], t-boolean)
+t-within-num = T.t-arrow([list: T.t-number], T.t-arrow([list: T.t-number, T.t-number], T.t-boolean))
+t-within-any = T.t-arrow([list: T.t-number], T.t-arrow([list: T.t-top, T.t-top], T.t-boolean))
 
 runtime-types = [string-dict:
   "Number", T.t-top,
@@ -624,51 +639,51 @@ runtime-builtins = [string-dict:
   "string-from-code-point", T.t-top,
   "string-to-code-points", T.t-top,
   "string-from-code-points", T.t-top,
-  "num-random", T.t-top,
-  "num-random-seed", T.t-top,
+  "num-random", t-number-unop,
+  "num-random-seed", T.t-arrow([list: T.t-number], T.t-nothing),
   "num-max", t-number-binop,
   "num-min", t-number-binop,
-  "num-equal", T.t-top,
-  "num-within", T.t-top,
-  "num-round", T.t-top,
-  "num-round-even", T.t-top,
-  "num-abs", T.t-top,
-  "num-sin", T.t-top,
-  "num-cos", T.t-top,
-  "num-tan", T.t-top,
-  "num-asin", T.t-top,
-  "num-acos", T.t-top,
-  "num-atan", T.t-top,
-  "num-modulo", T.t-top,
-  "num-truncate", T.t-top,
-  "num-sqrt", T.t-top,
-  "num-sqr", T.t-top,
-  "num-ceiling", T.t-top,
-  "num-floor", T.t-top,
-  "num-log", T.t-top,
-  "num-exp", T.t-top,
-  "num-exact", T.t-top,
-  "num-to-rational", T.t-top,
-  "num-to-roughnum", T.t-top,
-  "num-is-positive", T.t-top,
-  "num-is-negative", T.t-top,
-  "num-is-non-positive", T.t-top,
-  "num-is-non-negative", T.t-top,
-  "num-is-integer", T.t-top,
-  "num-is-fixnum", T.t-top,
-  "num-is-rational", T.t-top,
-  "num-is-roughnum", T.t-top,
-  "num-expt", T.t-top,
-  "num-tostring", T.t-top,
-  "num-to-string", T.t-top,
-  "num-to-string-digits", T.t-top,
-  "num-within-rel", T.t-top,
-  "num-within-abs", T.t-top,
-  "within-rel", T.t-top,
-  "within-rel-now", T.t-top,
-  "within-abs", T.t-top,
-  "within-abs-now", T.t-top,
-  "within", T.t-top,
+  "num-equal", T.t-arrow([list: T.t-number, T.t-number], T.t-boolean),
+  "num-round", t-number-unop,
+  "num-round-even", t-number-unop,
+  "num-abs", t-number-unop,
+  "num-sin", t-number-unop,
+  "num-cos", t-number-unop,
+  "num-tan", t-number-unop,
+  "num-asin", t-number-unop,
+  "num-acos", t-number-unop,
+  "num-atan", t-number-unop,
+  "num-modulo", t-number-binop,
+  "num-truncate", t-number-unop,
+  "num-sqrt", t-number-unop,
+  "num-sqr", t-number-unop,
+  "num-ceiling", t-number-unop,
+  "num-floor", t-number-unop,
+  "num-log", t-number-unop,
+  "num-exp", t-number-unop,
+  "num-exact", t-number-unop,
+  "num-to-rational", t-number-unop,
+  "num-to-roughnum", t-number-unop,
+  "num-is-positive", t-number-pred1,
+  "num-is-negative", t-number-pred1,
+  "num-is-non-positive", t-number-pred1,
+  "num-is-non-negative", t-number-pred1,
+  "num-is-integer", t-number-pred1,
+  "num-is-fixnum", t-number-pred1,
+  "num-is-rational", t-number-pred1,
+  "num-is-roughnum", t-number-pred1,
+  "num-expt", t-number-binop,
+  "num-tostring", T.t-arrow([list: T.t-number], T.t-string),
+  "num-to-string", T.t-arrow([list: T.t-number], T.t-string),
+  "num-to-string-digits", T.t-arrow([list: T.t-number, T.t-number], T.t-string),
+  "num-within", t-within-num,
+  "num-within-rel", t-within-num,
+  "num-within-abs", t-within-num,
+  "within-rel", t-within-any,
+  "within-rel-now", t-within-any,
+  "within-abs", t-within-any,
+  "within-abs-now", t-within-any,
+  "within", t-within-any,
   "raw-array-get", T.t-top,
   "raw-array-set", T.t-top,
   "raw-array-of", T.t-top,
