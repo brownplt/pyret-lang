@@ -1493,6 +1493,12 @@ fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
   c.mods.get-value(AU.import-to-dep(i).key()).from-uri
 end
 
+fun provides-as-dict(provides):
+  for fold(d from SD.make-string-dict(), p from provides.fields):
+    d.set(p.field-name, p.typ)
+  end
+end
+
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
   info = TCS.empty-tc-info("default")
   globvs = compile-env.globals.values
@@ -1559,7 +1565,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
               mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
               for each(v from vals):
                 cases(Option) mod.values.get(v.toname()):
-                  | none => nothing # intentional no-op for now
+                  | none =>
+                    cases(Option) provides-as-dict(thismod.provides).get(v.toname()):
+                      | none => nothing # still skipping complete misses for now
+                      | some(typ) => info.typs.set-now(v.key(), typ)
+                    end
                   | some(typ) => info.typs.set-now(v.key(), typ)
                 end
               end
