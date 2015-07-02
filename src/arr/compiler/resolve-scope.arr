@@ -583,6 +583,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | let-bind(_, atom, _, _) => A.s-id(l, atom)
           | letrec-bind(_, atom, _, _) => A.s-id-letrec(l, atom, true)
           | var-bind(_, atom, _, _) => A.s-id-var(l, atom)
+          | module-bind(_, atom, _, _) => A.s-id(l, atom)
         end
         A.s-defined-value(key, id-exp)
       end
@@ -609,15 +610,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, module-bind(l, _, file, none))
+                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any, none))
               else:
-                make-atom-for(name-vals, false, acc.e, bindings, module-bind(_, _, file, none))
+                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any, none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
-                make-anon-import-for(name-types.l, "$import", acc.te, type-bindings, module-type-bind(l, _, file, none))
+                make-anon-import-for(name-types.l, "$import", acc.te, type-bindings, let-type-bind(l, _, none))
               else:
-                make-atom-for(name-types, false, acc.te, type-bindings, module-type-bind(_, _, file, none))
+                make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind(_, _, none))
               end
             with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
               v-atom-env = make-atom-for(v, false, nv-v.e, bindings, module-bind(_, _, file, none))
@@ -666,7 +667,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             A.p-value(loc, atom, ann)
           | var-bind(loc, atom, ann, expr) =>
             A.p-value(loc, atom, ann)
-          | else => raise("Shouldn't happen, defined-value is global or module-defined: " + torepr(v-binding))
+          | module-bind(loc, atom, mod, expr) =>
+            A.p-value(loc, atom, A.a-any)
+          | else => raise("Shouldn't happen, defined-value is global: " + torepr(v-binding))
         end
       end
       non-module-defs = for filter(td from typs):
