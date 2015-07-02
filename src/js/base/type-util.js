@@ -179,7 +179,7 @@ define([], function() {
         });
       default:
         console.error(typ);
-        throw "No such tag: " + typ.tag;
+        throw new Error("No such tag: " + typ.tag);
     }
   }
 
@@ -191,7 +191,7 @@ define([], function() {
       var values = Object.keys(provides.values).map(function(k) {
         return runtime.makeObject({
           name: k,
-          typ: t.toPyret(runtime, provides.values[k])
+          typ: toPyret(runtime, provides.values[k])
         });
       });
     }
@@ -202,7 +202,7 @@ define([], function() {
       var aliases = Object.keys(provides.aliases).map(function(k) {
         return runtime.makeObject({
           name: k,
-          typ: t.toPyret(runtime, provides.aliases[k])
+          typ: toPyret(runtime, provides.aliases[k])
         });
       });
     }
@@ -214,7 +214,7 @@ define([], function() {
         var datatypes = Object.keys(provides.datatypes).map(function(k) {
           return runtime.makeObject({
             name: k,
-            typ: t.toPyret(runtime, provides.datatypes[k])
+            typ: toPyret(runtime, provides.datatypes[k])
           });
         });
       }

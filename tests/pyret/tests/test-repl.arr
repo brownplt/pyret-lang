@@ -93,4 +93,8 @@ check:
 
   result16 = next-interaction("string-dict")
   L.get-result-answer(result16.v) is some(57)
+
+  current-defs := "include string-dict\nis-object(string-dict)"
+  result17 = repl.restart-interactions(true)
+  L.get-result-answer(result17.v) is some(true)
 end

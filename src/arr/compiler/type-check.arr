@@ -1555,12 +1555,15 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             # TODO(joe): This is kinda gross, skipping the name binding based on
             # built-in vs non-built-in module for now, until builtins can accurately
             # report their types programmatically
-            when not(A.is-s-const-import(file)):
+            #when not(A.is-s-const-import(file)):
               mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
               for each(v from vals):
-                info.typs.set-now(v.key(), mod.values.get-value(v.toname()))
+                cases(Option) mod.values.get(v.toname()):
+                  | none => nothing # intentional no-op for now
+                  | some(typ) => info.typs.set-now(v.key(), typ)
+                end
               end
-            end
+            #end
           | else => raise("typechecker received incomplete import")
         end
       end

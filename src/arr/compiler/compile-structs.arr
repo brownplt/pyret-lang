@@ -78,7 +78,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
       T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end)
     | t == "name" then:
       modname = if typ.module == "LOCAL": uri else: typ.module end
-      T.t-name(some(modname), A.s-global(typ.name))
+      T.t-name(some(modname), A.s-type-global(typ.name))
     | t == "tyvar" then:
       cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
@@ -528,6 +528,7 @@ t-nothing = T.t-nothing
 t-str = T.t-string
 t-bool = T.t-boolean
 t-boolean = T.t-boolean
+t-number = T.t-number
 
 t-pred = T.t-arrow([list: T.t-top], t-bool)
 t-pred2 = T.t-arrow([list: T.t-top, T.t-top], t-bool)
@@ -535,6 +536,8 @@ t-arrow = T.t-arrow
 t-member = T.t-member
 t-bot = T.t-bot
 t-record = T.t-record
+
+t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
 runtime-types = [string-dict:
   "Number", T.t-top,
@@ -606,7 +609,7 @@ runtime-builtins = [string-dict:
   "string-append", T.t-top,
   "string-length", T.t-top,
   "string-tonumber", T.t-top,
-  "string-to-number", T.t-top,
+  "string-to-number", T.t-arrow([list: T.t-string], T.t-option(T.t-number)),
   "string-repeat", T.t-top,
   "string-substring", T.t-top,
   "string-replace", T.t-top,
@@ -623,8 +626,8 @@ runtime-builtins = [string-dict:
   "string-from-code-points", T.t-top,
   "num-random", T.t-top,
   "num-random-seed", T.t-top,
-  "num-max", T.t-top,
-  "num-min", T.t-top,
+  "num-max", t-number-binop,
+  "num-min", t-number-binop,
   "num-equal", T.t-top,
   "num-within", T.t-top,
   "num-round", T.t-top,

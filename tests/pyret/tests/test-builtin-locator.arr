@@ -33,6 +33,13 @@ check:
 
     fun g(x): [SD.string-dict: 'x', x] end
     ```)
+  modules.set-now("baz",
+    ```
+    import string-dict as SD
+    include image
+
+    is-function(image-url)
+    ```)
 
   fun string-to-locator(name :: String):
     {
@@ -79,4 +86,10 @@ check:
 
   ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies L.is-success-result
+
+  bazloc = string-to-locator("baz")
+  wlist2 = CL.compile-worklist(dfind, bazloc, {})
+  wlist2.length() is 3
+  ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  ans2.v satisfies L.is-success-result
 end
