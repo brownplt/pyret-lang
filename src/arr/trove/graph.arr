@@ -11,10 +11,10 @@ provide {
 } end
 
 provide-types {
-  Vertex: Vertex,
-  Edge: Edge,
-  Graph: Graph,
-  Tree: Tree
+  Vertex:: Vertex,
+  Edge:: Edge,
+  Graph:: Graph,
+  Tree:: Tree
 }
 
 import image-structs as I
@@ -42,7 +42,7 @@ tree-options = {
 vertex-options = {
   color: I.gray
 }
-  
+
 edge-options = {
   color: I.gray,
   directed: true
@@ -66,7 +66,7 @@ end
 ####################
 ### force-layout ###
 ####################
-  
+
 fun show-graph<a, b>(g :: Graph<a, b>) -> Graph<a, b>:
   doc: "Show the structure of Graph"
   J.force-layout(g)
