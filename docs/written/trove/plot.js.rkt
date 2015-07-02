@@ -118,14 +118,19 @@
   @no-variant["PlotWindowOptions" "plot-window-options"]
 
   @pyret-id{PlotWindowOptions} consists of the following fields:
-  @a-record[(a-field "x-min" N) (a-field "x-max" N) (a-field "y-min" N) (a-field "y-max" N) (a-field "inferred-bound" B) (a-field "label" S)]
+  @a-record[(a-field "x-min" N) (a-field "x-max" N) (a-field "y-min" N) (a-field "y-max" N) (a-field "infer-bounds" B) (a-field "label" S) (a-field "safe" B)]
 
   The value of @tt{plot-window-options} is @tt{{x-min: -10,
                                                 x-max: 10,
                                                 y-min: -10,
                                                 y-max: 10,
-                                                inferred-bound: false,
-                                                label: ""}}
+                                                infer-bounds: false,
+                                                label: "",
+                                                safe: true}}
+
+  If @pyret{infer-bounds} is true, @pyret{x-min}, @pyret{x-max}, @pyret{y-min}, @pyret{y-max} will be inferred,
+  and old values will be overwritten. If @pyret{safe} is @pyret{false}, plotting will use unsafe version
+  which is much faster but could fail if a function to be plotted consumes a lot of stack.
 
   @section{Plot Functions}
 

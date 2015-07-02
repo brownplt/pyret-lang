@@ -296,9 +296,18 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     var PyretEither = gf(gf(EITHER, "values"), "is-Either");
     var PyretBlue = gf(gf(IMAGESTRUCTS, "values"), "blue")
     var PyretPlot = valFromStructs("is-Plot");
+    var TypePlotWindowOptions = typeFromStructs("PlotWindowOptions");
+    var TypePlotOptions = typeFromStructs("PlotOptions");
+
+    var checkPlotWindowOptions = function(v) {
+      rt._checkAnn(["PlotWindowOptions"], TypePlotWindowOptions, v);
+    };
+
+    var checkPlotOptions = function(v) {
+      rt._checkAnn(["PlotOptions"], TypePlotOptions, v);
+    };
 
     function genericPlot(arrayOfPlot, windowOption) {
-
       var xMin = windowOption.xMin;
       var xMax = windowOption.xMax;
       var yMin = windowOption.yMin;
@@ -442,6 +451,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       if (isSafe) {
 
         // safe version
+        console.log('safe version');
 
         function makePoint(x, done) {
           // This function create a point `pt`. It then returns done(pt).
@@ -452,7 +462,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
             return rt.execThunk({ app: function(){ return f.app(x); }});
           }, function(result) {
             rt.ffi.cases(PyretEither, "Either", result, {
-              'left': function(val){
+              left: function(val){
                 if (jsnums.isReal(val) &&
                     jsnums.lessThanOrEqual(yMin, val) &&
                     jsnums.lessThanOrEqual(val, yMax)) {
@@ -462,7 +472,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
                 }
                 return 0;
               },
-              'right': function(_){ return 0; }
+              right: function(_){ return 0; }
             });
             return done(pt)
           });
@@ -520,6 +530,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
         // unsafe version
 
+        console.log('unsafe version');
+
         function PointCoord(x) {
           this.x = x;
           this.px = xToPixel(x);
@@ -531,7 +543,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           try {
             y = f.app(x);
             if (jsnums.isReal(y) &&
-                jsnums.lessThan(yMin, y) && jsnums.lessThan(y, yMax)) {
+                jsnums.lessThanOrEqual(yMin, y) &&
+                jsnums.lessThanOrEqual(y, yMax)) {
               this.y = y;
               this.py = yToPixel(y);
             }
@@ -541,7 +554,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           return this;
         }
 
-        function divideSubinterval(left, right, depth) {
+        function divideSubintervalUnsafe(left, right, depth) {
           /*
           Input: two X values
           Output: list of [2-length long list of points]
@@ -566,7 +579,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           if (allInvalid(points)) return [];
           var intervals = [];
           for (var v = 0; v < K - 1; v++) {
-            intervals.push(divideSubinterval(
+            intervals.push(divideSubintervalUnsafe(
               points[v], points[v + 1], depth + 1
             ));
             if (isAllOccupied(left, right)) return [[left, right]];
@@ -574,8 +587,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           return libData.flatten(intervals);
         }
 
-        return divideSubinterval(new PointCoord(xMin),
-                                 new PointCoord(xMax), 0)
+        return divideSubintervalUnsafe(new PointCoord(xMin),
+                                       new PointCoord(xMax), 0);
 
       }
     }
@@ -587,7 +600,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     function plotMulti(pyretLstOfPlot, pyretWinOptions) {
       rt.checkArity(2, arguments, "plot-multi");
       rt.checkList(pyretLstOfPlot); // TODO: could check inside as well
-      rt.checkObject(pyretWinOptions); // TODO: could be more rigorous
+      checkPlotWindowOptions(pyretWinOptions);
 
       var xMin = gf(pyretWinOptions, "x-min");
       var xMax = gf(pyretWinOptions, "x-max");
@@ -603,7 +616,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       function toJSPoints(points) {
         return rt.ffi.toArray(points).map(
-          function (e) { return {'x': gf(e, "x"), 'y': gf(e, "y")}; }
+          function (e) { return {x: gf(e, "x"), y: gf(e, "y")}; }
         );
       }
 
@@ -613,6 +626,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       var arrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
         .map(function(pyretPlot) {
+          checkPlotOptions(gf(pyretPlot, "options"))
           return rt.ffi.cases(PyretPlot, "Plot", pyretPlot, {
             'line-plot': function(points, option){
               return new Plot(Plot.LINE, toJSPoints(points), undefined, toJSOption(option));
@@ -712,10 +726,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         width = dimension.width,
         height = dimension.height;
 
-
       var detached = createDiv();
       var canvas = createCanvas(detached, margin, "top-left");
-
 
       appendAxis(xMin, xMax, 0, yMax, width, height, canvas);
 

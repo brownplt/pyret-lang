@@ -22,7 +22,7 @@ type GraphOptions = {
 }
 
 data Tree<a>:
-  | tree-node(value :: a, children :: List<Tree<a>>)  
+  | node(value :: a, children :: List<Tree<a>>)
 end
 
 data Vertex<a>:
