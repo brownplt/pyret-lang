@@ -60,7 +60,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
   end
 end
 
-fun desugar(program :: A.Program, compile-env :: C.CompileEnvironment):
+fun desugar(program :: A.Program):
   doc: ```
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
@@ -89,33 +89,6 @@ fun mk-id-ann(loc, base, ann):
 end
 
 fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank);
-
-fun make-torepr(l, vname, fields, is-singleton):
-  self = mk-id(l, "self")
-  fun str(s): A.s-str(l, s) end
-  fun call-torepr(val):
-    A.s-app(l, gid(l, "torepr"), [list: A.s-dot(l, self.id-e, val.bind.id.toname())])
-  end
-  fun concat(v1, v2):
-    A.s-op(l, "op+", v1, v2)
-  end
-  argstrs = cases(List) fields:
-    | empty => str("")
-    | link(f, r) =>
-      r.foldl(
-          lam(val, acc): concat(acc, concat(str(", "), call-torepr(val))) end,
-          call-torepr(f)
-        )
-  end
-  if is-singleton:
-    A.s-method(l, empty, [list: self.id-b], A.a-blank, "", str(vname), none)
-  else:
-    A.s-method(l, empty, [list: self.id-b], A.a-blank, "",
-      concat(str(vname), concat(str("("), concat(argstrs, str(")")))),
-      none)
-  end
-end
-
 
 fun get-arith-op(str):
   if str == "op+": some("_plus")
@@ -331,8 +304,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dv, dt, provides, types, checks) =>
+      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
@@ -501,10 +474,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
-          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "make")),
+          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
             [list: A.s-array(l, elts.map(desugar-expr))])
         | s-construct-lazy =>
-          A.s-app(l, desugar-expr(A.s-dot(l, constructor, "lazy-make")),
+          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end

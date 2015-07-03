@@ -16,7 +16,8 @@ RELEASE_DIR      = build/release
 DOCS             = docs
 
 # CUSTOMIZE THESE IF NECESSARY
-SRC_JS          := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))
+SRC_JS          := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))\
+ $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/locators/*.arr))
 ROOT_LIBS        = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
 LIBS_JS         := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -262,33 +263,6 @@ install:
 	@$(call MKDIR,node_modules)
 	npm install
 
-.PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
-
-.PHONY : test-all
-test-all: test docs-test benchmark-test
-
-.PHONY : runtime-test
-runtime-test : $(PHASE1)/phase1.built
-	cd tests/runtime/ && $(NODE) test.js require-test-runner/
-
-.PHONY : evaluator-test
-evaluator-test: $(PHASE1)/phase1.built
-	cd tests/evaluator/ && $(NODE) test.js require-test-runner/
-
-.PHONY : repl-test
-repl-test: $(PHASE1)/phase1.built tests/repl/repl.js
-	cd tests/repl/ && $(NODE) test.js require-test-runner/
-
-.PHONY : parse-test
-parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
-	cd tests/parse/ && $(NODE) test.js require-test-runner/
-
-TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
-TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
-REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
-BS_TEST_JS := $(patsubst tests/pyret/bootstrap-tests/%.arr,tests/pyret/bootstrap-tests/%.arr.js,$(wildcard tests/pyret/bootstrap-tests/*.arr))
-
 PYRET_TEST_PHASE=$(P)
 ifeq ($(PYRET_TEST_PHASE),2)
   PYRET_TEST_PHASE=$(PHASE2)
@@ -303,6 +277,32 @@ else
 endif
 endif
 
+.PHONY : test
+test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+
+.PHONY : test-all
+test-all: test docs-test benchmark-test
+
+.PHONY : runtime-test
+runtime-test : $(PYRET_TEST_PREREQ)
+	cd tests/runtime/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : evaluator-test
+evaluator-test: $(PYRET_TEST_PREREQ)
+	cd tests/evaluator/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : repl-test
+repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
+	cd tests/repl/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
+
+.PHONY : parse-test
+parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
+	cd tests/parse/ && $(NODE) test.js require-test-runner/
+
+TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
+TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
+REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
+
 tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
 
@@ -311,9 +311,6 @@ tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
 
 tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
-
-tests/pyret/bootstrap-tests/%.arr.js: tests/pyret/bootstrap-tests/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --dialect Bootstrap --compile-module-js $< > $@
 
 .PHONY : regression-test
 regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
@@ -344,15 +341,8 @@ lib-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
     -check-all tests/lib-test/lib-test-main.arr
 
-.PHONY : bootstrap-test
-bootstrap-test: $(PHASE1)/phase1.built $(BS_TEST_JS)
-	$(NODE) $(PHASE1)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    --dialect Bootstrap \
-    -check-all tests/pyret/bootstrap-main.arr
-
 .PHONY : benchmark-test
-benchmark-test: tools/benchmark/*.js $(PHASE1)/phase1.built
+benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
 	cd tools/benchmark && node tests
 
 .PHONY : docs-test
@@ -380,13 +370,25 @@ release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR)/phase1
 	gzip -c $(PYRET_COMP) > $(RELEASE_DIR)/pyret.js
 	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
 	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
+horizon-gzip: standalone1 $(RELEASE_DIR)/phase1
+	sed "s/define('pyret-start/define('pyret/" $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret-full.js
+	gzip -c $(RELEASE_DIR)/pyret-full.js > $(RELEASE_DIR)/pyret.js
+	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
+	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
 # If you need information on using the s3 script, run `s3 --man'
+horizon-release: horizon-gzip
+	cd $(RELEASE_DIR) && \
+	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-horizon/current/{}' '{}'
 release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
 test-release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
+horizon-docs: docs
+	scp -r build/docs/ $(DOCS_TARGET)/horizon-$(VERSION)/
+	chmod -R a+rx $(DOCS_TARGET)/horizon-$(VERSION)/
+	cd $(DOCS_TARGET) && unlink horizon && ln -s horizon-$(VERSION) horizon
 release-docs: docs
 	scp -r build/docs/ $(DOCS_TARGET)/$(VERSION)/
 	chmod -R a+rx $(DOCS_TARGET)/$(VERSION)/

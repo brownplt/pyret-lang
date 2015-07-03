@@ -88,7 +88,6 @@ fun wrap-visit-check(self, target):
   ret
 end
 
-
 is-s-block = A.is-s-block
 fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
@@ -133,14 +132,14 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
               elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
                 | none => nothing
               end
             | else =>
               elt = lists.find(lam(b): b.id == id end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + tostring(id) + " in list of bindings", l, found.l)
+                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
                 | none => nothing
               end
           end
@@ -162,7 +161,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
           else if shadows: nothing
           else:
             cases(Option) lists.find(lam(b): b.id == id end, rest):
-              | some(found) => duplicate-id(tostring(id), l, found.l)
+              | some(found) => duplicate-id(id.tosourcestring(), l, found.l)
               | none => nothing
             end
           end
@@ -265,6 +264,17 @@ fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
   lists.all(_.visit(visitor), stmts)
 end
 
+fun wf-examples-body(visitor, body):
+  for lists.all(b from body.stmts):
+    if not(A.is-s-check-test(b)):
+      wf-error("Found something other than an example.  Example blocks must contain only test statements.", b.l)
+      false
+    else:
+      true
+    end
+  end
+end
+
 
 fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
@@ -276,21 +286,35 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-special-import(self, l, kind, args):
     if kind == "my-gdrive":
-      when args.length() <> 1:
+      if args.length() <> 1:
         wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+        false
+      else:
+        true
       end
     else if kind == "shared-gdrive":
-      when args.length() <> 2:
+      if args.length() <> 2:
         wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+        false
+      else:
+        true
+      end
+    else if kind == "js-http":
+      true
+    else if kind == "gdrive-js":
+      if args.length() <> 2:
+        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
+      else:
+        true
       end
     else if kind == "gdrive-js":
       when args.length() <> 2:
         wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
       end
     else:
-      wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive, shared-gdrive, or gdrive-js?", l)
+      true
+      #wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
-    true
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     wf-error("Cannot define a data expression except at the top level of a file", l)
@@ -356,8 +380,8 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-bind(self, l, shadows, name, ann):
-    when (reserved-names.has-key(tostring(name))):
-      reserved-name(l, tostring(name))
+    when (reserved-names.has-key(name.tosourcestring())):
+      reserved-name(l, name.tosourcestring())
     end
     when shadows and A.is-s-underscore(name):
       add-error(C.pointless-shadow(l))
@@ -446,7 +470,12 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   s-check(self, l, name, body, keyword-check):
-    wrap-visit-check(self, some(body))
+    if not(keyword-check):
+      wrap-visit-check(self, some(body))
+      wf-examples-body(self, body)
+    else:
+      wrap-visit-check(self, some(body))
+    end
   end,
   s-if(self, l, branches):
     when branches.length() == 1:
@@ -469,8 +498,8 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   s-id(self, l, id):
-    when (reserved-names.has-key(tostring(id))):
-      reserved-name(l, tostring(id))
+    when (reserved-names.has-key(id.tosourcestring())):
+      reserved-name(l, id.tosourcestring())
     end
     true
   end,
@@ -556,6 +585,9 @@ top-level-visitor = A.default-iter-visitor.{
   # Everything else delegates to the non-toplevel visitor
   s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
+  end,
+  s-include(_, l, import-type, name):
+    well-formed-visitor.s-include(l, import-type)
   end,
   s-import-types(_, l, import-type, name, types):
     well-formed-visitor.s-import-types(l, import-type, name, types)

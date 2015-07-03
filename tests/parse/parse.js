@@ -1,5 +1,6 @@
 const R = require("requirejs");
-R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-parser", "fs"], function(T, G, fs) {
+var build = process.env["PHASE"] || "build/phase1";
+R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret-parser", "fs"], function(T, G, fs) {
   _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
@@ -393,6 +394,7 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse("{ asdf :\n(asdf) }")).not.toBe(false);
       expect(parse("fun f(x):\nx\nwhere:(f(5)) is 5\nend")).not.toBe(false);
       expect(parse("check:(5) is 5 end")).not.toBe(false);
+      expect(parse("examples:(5) is 5 end")).not.toBe(false);
       expect(parse("ask:\n  | false then: 1\n  | otherwise:(true)\nend")).not.toBe(false);
       expect(parse("ask:\n  | true then:(1)\nend")).not.toBe(false);
       expect(parse("if true: 1 else:(1) end")).not.toBe(false);
@@ -456,6 +458,15 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
       expect(parse('import gdrive() as G')).toBe(false);
     });
+    
+    it("should parse includes", function() {
+      expect(parse('include modname')).not.toBe(false);
+      expect(parse('include "modname.arr"')).not.toBe(false);
+      expect(parse('include gdrive(a)')).toBe(false);
+      expect(parse('include gdrive("a")')).not.toBe(false);
+      expect(parse('include gdrive("a", "b")')).not.toBe(false);
+      expect(parse('include gdrive()')).toBe(false);
+    });
 
     it("should parse new equality operators", function() {
       expect(parse('o <=> o2')).not.toBe(false);
@@ -478,6 +489,10 @@ R(["../../../build/phase1/js/pyret-tokenizer", "../../../build/phase1/js/pyret-p
       expect(parse('check: o is-not =~ o2;')).toBe(false);
       expect(parse('check: o is-not<=> o2;')).not.toBe(false);
       expect(parse('check: o is-not <=> o2;')).toBe(false);
+    });
+
+    it("should parse examples", function() {
+      expect(parse('examples: 5 is 5 end')).not.toBe(false);
     });
 
     it("should parse ref cases bindings", function() {

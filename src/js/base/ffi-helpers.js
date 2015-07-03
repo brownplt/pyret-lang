@@ -1,14 +1,17 @@
-define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker"],
-       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib) {
+define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton"],
+       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
 
-    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib], function(L, Se, O, E, EQ, ERR, S, CON, CH) {
+    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS) {
 
       var gf = runtime.getField;
 
-      var lnk = gf(L, "link").app;
+      var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
       var mt = gf(L, "empty");
       function makeList(arr) {
+        if (!arr || typeof arr.length !== "number") {
+          throw "Non-array given to makeList " + JSON.stringify(arr);
+        }
         var lst = mt;
         for(var i = arr.length - 1; i >= 0; i--) {
           lst = lnk(arr[i], lst);
@@ -19,10 +22,50 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function makeTreeSet(arr) {
         return gf(Se, 'list-to-tree-set').app(makeList(arr));
       }
-
+      function toArray(list) {
+        var isList = runtime.getField(L, "List");
+        var isEmpty = runtime.getField(L, "is-empty");
+        var isLink = runtime.getField(L, "is-link");
+        // console.error("list is " + JSON.stringify(list).substr(0, 100));
+        // console.error("list is Object? " + runtime.isObject(list));
+        // console.error("list.brands is " + JSON.stringify(list.brands));
+        if(!(runtime.unwrap(isList.app(list)) === true)) {
+          throw "Non-list given to toArray " + String(list);
+        }
+        var arr = [];
+        try {
+          while(!(runtime.unwrap(isEmpty.app(list)) === true)) {
+            try {
+              arr.push(runtime.getField(list, "first"));
+            } catch(e) {
+              console.error("***** getField first failed on list: " + JSON.stringify(list));
+              console.error(e);
+              throw e;
+            }
+            try {
+              list = runtime.getField(list, "rest");
+            } catch(e) {
+              console.error("***** getField rest failed on list: " + JSON.stringify(list));
+              console.error(e);
+              throw e;
+            }
+          }
+        } catch(e) {
+          console.error("******* Calling isEmpty failed on list: " + JSON.stringify(list));
+          console.error(e);
+          throw e;
+        }
+        return arr;
+      }
       var checkSrcloc = runtime.makeCheckType(function(val) {
         return runtime.unwrap(gf(S, "Srcloc").app(val));
       }, "Srcloc");
+
+      function isTestResult(val) { return runtime.unwrap(runtime.getField(CH, "TestResult").app(val)); }
+      var checkTestResult = runtime.makeCheckType(isTestResult, "TestResult");
+
+      function isErrorDisplay(val) { return runtime.unwrap(runtime.getField(ED, "ErrorDisplay").app(val)); }
+      var checkErrorDisplay = runtime.makeCheckType(isErrorDisplay, "ErrorDisplay");
 
       function cases(pred, predName, val, casesObj) {
         if(!pred.app(val)) {
@@ -105,6 +148,15 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return err("message-exception")(message);
       }
 
+      function throwUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        raise(err("user-exception")(errVal));
+      }
+      function makeUserException(errVal) {
+        runtime.checkPyretVal(errVal);
+        return err("user-exception")(errVal);
+      }
+
       function throwEqualityException(reason, v1, v2) {
         runtime.checkString(reason);
         runtime.checkPyretVal(v1);
@@ -130,12 +182,14 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         raise(err("invalid-array-index")(methodName, array, index, reason));
       }
 
-      function throwPlusError(left, right) {
+      function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
-        raise(err("plus-error")(left, right));
+        runtime.checkString(opname);
+        runtime.checkString(opdesc);
+        runtime.checkString(methodname);
+        raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
-
       function throwNumericBinopError(left, right, opname, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
@@ -163,7 +217,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
       function throwArityErrorC(funLoc, arity, args) {
         var loc = runtime.makeSrcloc(funLoc);
-        var argsPyret = makeList(Array.prototype.slice.call(args, 0, args.length));
+        var argsPyret = makeList(args);
         throwArityError(loc, arity, argsPyret);
       }
 
@@ -222,6 +276,12 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       }
       function throwParseErrorUnterminatedString(loc) {
         raise(err("parse-error-unterminated-string")(loc));
+      }
+      function throwParseErrorBadNumber(loc) {
+        raise(err("parse-error-bad-number")(loc));
+      }
+      function throwParseErrorBadOper(loc) {
+        raise(err("parse-error-bad-operator")(loc));
       }
 
       function throwModuleLoadFailureL(names) {
@@ -283,7 +343,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
-        throwPlusError: throwPlusError,
+        throwNumStringBinopError: throwNumStringBinopError,
         throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
@@ -292,6 +352,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwUserException: throwUserException,
         throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,
         throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
@@ -311,6 +372,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwParseErrorNextToken: throwParseErrorNextToken,
         throwParseErrorEOF: throwParseErrorEOF,
         throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
+        throwParseErrorBadNumber: throwParseErrorBadNumber,
+        throwParseErrorBadOper: throwParseErrorBadOper,
 
         makeRecordFieldsFail: makeRecordFieldsFail,
         makeFieldFailure: makeFieldFailure,
@@ -335,6 +398,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isEqualityResult: isEqualityResult,
 
         makeMessageException: makeMessageException,
+        makeUserException: makeUserException,
         makeModuleLoadFailureL: makeModuleLoadFailureL,
 
         userBreak: gf(ERR, "user-break"),
@@ -349,48 +413,67 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         checkResultsSummary: checkResultsSummary,
 
         makeList: makeList,
-          makeTreeSet: makeTreeSet,
+        makeTreeSet: makeTreeSet,
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
+
+        isEither: runtime.getField(E, "is-Either"),
+        isLeft: function(l) { return runtime.getField(E, "is-left").app(v); },
+        isRight: function(l) { return runtime.getField(E, "is-right").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
         makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
-        toArray: function(list) {
-          var isList = runtime.getField(L, "List");
-          var isEmpty = runtime.getField(L, "is-empty");
-          var isLink = runtime.getField(L, "is-link");
-          // console.error("list is " + JSON.stringify(list).substr(0, 100));
-          // console.error("list is Object? " + runtime.isObject(list));
-          // console.error("list.brands is " + JSON.stringify(list.brands));
-          if(!(runtime.unwrap(isList.app(list)) === true)) {
-            throw "Non-list given to toArray " + String(list);
+        toArray: toArray,
+        isList: function(list) { return runtime.unwrap(runtime.getField(L, "List").app(list)); },
+
+        isErrorDisplay: isErrorDisplay,
+        checkErrorDisplay: checkErrorDisplay,
+        isTestResult: isTestResult,
+        checkTestResult: checkTestResult,
+        isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success").app(val)); },
+
+        isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "ValueSkeleton").app(v)); },
+        isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
+        isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
+        isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
+        isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
+        isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+        skeletonValues: function(skel) {
+          var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
+          var isValue = runtime.getField(VS, "is-vs-value");
+          var isCollection = runtime.getField(VS, "is-vs-collection");
+          var isConstr = runtime.getField(VS, "is-vs-constr");
+          var isStr = runtime.getField(VS, "is-vs-str");
+          var isSeq = runtime.getField(VS, "is-vs-seq");
+          if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
+            throwTypeMismatch(skel, "ValueSkeleton");
           }
           var arr = [];
+          var worklist = [skel];
           try {
-            while(!(runtime.unwrap(isEmpty.app(list)) === true)) {
-              try {
-                arr.push(runtime.getField(list, "first"));
-              } catch(e) {
-                console.error("***** getField first failed on list: " + JSON.stringify(list));
-                console.error(e);
-                throw e;
-              }
-              try {
-                list = runtime.getField(list, "rest");
-              } catch(e) {
-                console.error("***** getField rest failed on list: " + JSON.stringify(list));
-                console.error(e);
-                throw e;
+            for (var i = 0; i < worklist.length; i++) { // length changes as the loop iterates
+              var cur = worklist[i];
+              if (runtime.unwrap(isValue.app(cur)) === true) {
+                arr.push(runtime.getField(cur, "v"));
+              } else if (runtime.unwrap(isCollection.app(cur)) === true) {
+                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+              } else if (runtime.unwrap(isConstr.app(cur)) === true) {
+                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
+              } else if (runtime.unwrap(isStr.app(cur)) === true) {
+                // nothing
+              } else if (runtime.unwrap(isSeq.app(cur)) === true) {
+                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+              } else {
+                throwMessageException("Non-value appeared in skeleton: " + String(cur));
               }
             }
           } catch(e) {
-            console.error("******* Calling isEmpty failed on list: " + JSON.stringify(list));
+            console.error("******* Something went wrong in skeletonValues: " + JSON.stringify(skel));
             console.error(e);
             throw e;
           }
           return arr;
-        },
-        isList: function(list) { return runtime.unwrap(runtime.getField(L, "List").app(list)); }
+        }
       };
     });
   });

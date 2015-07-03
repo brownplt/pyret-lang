@@ -70,17 +70,17 @@ check:
   end
 
   e6 = get-err(lam(): "a" + 5;)
-  e6 satisfies E.is-generic-type-mismatch
-  when E.is-generic-type-mismatch(e6):
-    e6.val is 5
-    e6.typ is "String"
+  e6 satisfies E.is-num-string-binop-error
+  when E.is-num-string-binop-error(e6):
+    e6.val1 is "a"
+    e6.val2 is 5
   end
 
   e7 = get-err(lam(): 5 + "a";)
-  e7 satisfies E.is-generic-type-mismatch
-  when E.is-generic-type-mismatch(e7):
-    e7.val is "a"
-    e7.typ is "Number"
+  e7 satisfies E.is-num-string-binop-error
+  when E.is-num-string-binop-error(e7):
+    e7.val1 is 5
+    e7.val2 is "a"
   end
 
 #    e4 = get-err(lam(): string-append(5, "a") end)
@@ -116,13 +116,13 @@ check:
     e12.fun-loc.module-name is "num-tostring"
   end
   
-  e13 = get-err(lam(): P.parse-dialect("missing", "argument") end)
+  e13 = get-err(lam(): P.surface-parse("missing argument") end)
   e13 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e13):
-    e13.expected-arity is 3
-    e13.args.length() is 2
+    e13.expected-arity is 2
+    e13.args.length() is 1
     e13.fun-loc satisfies S.is-builtin
-    e13.fun-loc.module-name is "parse-dialect"
+    e13.fun-loc.module-name is "surface-parse"
   end
   
   e14 = get-err(lam(): P.surface-parse("too", "many", "arguments") end)
@@ -132,15 +132,6 @@ check:
     e14.args.length() is 3
     e14.fun-loc satisfies S.is-builtin
     e14.fun-loc.module-name is "surface-parse"
-  end
-  
-  e15 = get-err(lam(): P.parse-bootstrap("too", "many", "arguments") end)
-  e15 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e15):
-    e15.expected-arity is 2
-    e15.args.length() is 3
-    e15.fun-loc satisfies S.is-builtin
-    e15.fun-loc.module-name is "parse-bootstrap"
   end
   
   e16 = get-err(lam(): F.format("too", "many", "arguments") end)

@@ -1,11 +1,24 @@
-define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Namespace, ffi) {
-  return util.memoModule("string-dict2", function(runtime, namespace) {
+define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
+  return util.definePyretModule(
+    "string-dict",
+    [],
+    {
+      values:
+        ["make-string-dict", "string-dict", "string-dict-of",
+         "make-mutable-string-dict", "mutable-string-dict"],
+      types:
+        ["MutableStringDict", "StringDict"]
+     },
+     function(runtime, namespace /* no pyret dependencies */) {
     return runtime.loadJSModules(namespace, [ffi], function(F) {
+    return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 
       var O = runtime.makeObject;
       var F = runtime.makeFunction;
       var arity = runtime.checkArity;
       var get = runtime.getField;
+
+      var VS = get(VSlib, "values");
 
       var brandMutable = runtime.namedBrander("mutable-string-dict");
       var brandImmutable = runtime.namedBrander("string-dict");
@@ -35,7 +48,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
       function makeImmutableStringDict(underlyingDict) {
 
         var getISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -50,7 +63,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var getValueISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get-value');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-value'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -64,7 +77,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var setISD = runtime.makeMethod2(function(_, key, val) {
-          runtime.checkArity(3, arguments, 'set');
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['set'], 3, $a); }
           runtime.checkString(key);
           runtime.checkPyretVal(val);
           var newObj = Object.create(underlyingDict);
@@ -74,7 +87,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var mergeISD = runtime.makeMethod1(function(self, other) {
-          runtime.checkArity(2, arguments, "merge");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a); }
           checkISD(other);
           var otherKeys = runtime.getField(other, "keys-list").app();
           var otherKeysArr = runtime.ffi.toArray(otherKeys);
@@ -88,7 +101,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var removeISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'remove');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['remove'], 2, $a); }
           runtime.checkString(key);
           var newObj = Object.create(underlyingDict);
           var mkey = internalKey(key);
@@ -97,7 +110,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var hasKeyISD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'has-key');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['has-key'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -122,7 +135,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         }
 
         var keysISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'keys');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a); }
           var keys = getAllKeys();
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
@@ -130,7 +143,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var keysListISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'keys-list');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a); }
           var keys = getAllKeys();
           return runtime.ffi.makeList(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
@@ -138,7 +151,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var countISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'count');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['count'], 1, $a); }
           var num = 0;
           for (var key in underlyingDict) {
             if (underlyingDict[key] !== undefined) {
@@ -148,33 +161,22 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           return runtime.makeNumber(num);
         });
 
-        var toreprISD = runtime.makeMethod1(function(_, recursiveToRepr) {
-          runtime.checkArity(2, arguments, 'torepr');
+        var outputISD = runtime.makeMethod0(function(_) {
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
           var elts = [];
           var keys = getAllKeys();
-          function combine(elts) {
-            return '[string-dict: ' + elts.join(', ') + ']';
+          var vsValue = get(VS, "vs-value");
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(vsValue.app(userKey(keys[i])));
+            elts.push(vsValue.app(underlyingDict[keys[i]]));
           }
-          function toreprElts() {
-            if (keys.length === 0) {
-              return combine(elts);
-            } else {
-              var thisKey = keys.pop();
-              return runtime.safeCall(function() {
-                return recursiveToRepr.app(underlyingDict[thisKey]);
-              },
-              function (result) {
-                elts.push(recursiveToRepr.app(userKey(thisKey)));
-                elts.push(result);
-                return toreprElts();
-              });
-            }
-          }
-          return toreprElts();
+          return get(VS, "vs-collection").app(
+            runtime.makeString("string-dict"),
+            runtime.ffi.makeList(elts));
         });
 
         var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-          runtime.checkArity(3, arguments, 'equals');
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['equals'], 3, $a); }
           if (!hasBrand(brandImmutable, other)) {
             return runtime.ffi.notEqual.app('', self, other);
           } else {
@@ -211,7 +213,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var unfreezeISD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'unfreeze');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
             dict[mkey] = underlyingDict[mkey];
@@ -228,9 +230,9 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           keys: keysISD,
           "keys-list": keysListISD,
           count: countISD,
-            'has-key': hasKeyISD,
+          'has-key': hasKeyISD,
           _equals: equalsISD,
-          _torepr: toreprISD,
+          _output: outputISD,
           unfreeze: unfreezeISD
         });
 
@@ -243,7 +245,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         // makeMutableStringDict because they need to close over underlyingDict
 
         var getMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, 'get-now');
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-now'], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -255,7 +257,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var getValueMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, "get-value-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["get-value-now"], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           var val = underlyingDict[mkey];
@@ -266,7 +268,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var setMSD = runtime.makeMethod2(function(self, key, val) {
-          runtime.checkArity(3, arguments, "set-now");
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["set-now"], 3, $a); }
           if (sealed) {
             runtime.ffi.throwMessageException("Cannot modify sealed string dict");
           }
@@ -277,7 +279,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var removeMSD = runtime.makeMethod1(function(self, key) {
-          runtime.checkArity(2, arguments, "remove-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a); }
           if (sealed) {
             runtime.ffi.throwMessageException("Cannot modify sealed string dict");
           }
@@ -287,7 +289,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var hasKeyMSD = runtime.makeMethod1(function(_, key) {
-          runtime.checkArity(2, arguments, "has-key-now");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["has-key-now"], 2, $a); }
           runtime.checkString(key);
           var mkey = internalKey(key);
           if (mkey in underlyingDict) {
@@ -298,20 +300,28 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var keysMSD = runtime.makeMethod0(function(self) {
-          runtime.checkArity(1, arguments, "keys-now");
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["keys-now"], 1, $a); }
           var keys = Object.keys(underlyingDict);
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(userKey(mkey));
           }));
         });
 
+        var keysListMSD = runtime.makeMethod0(function(_) {
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
+          var keys = Object.keys(underlyingDict);
+          return runtime.ffi.makeList(keys.map(function(mkey) {
+            return runtime.makeString(userKey(mkey));
+          }));
+        });
+
         var countMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, "count-now");
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a); }
           return runtime.makeNumber(Object.keys(underlyingDict).length);
         });
 
         var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
-          runtime.checkArity(2, arguments, "torepr");
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["torepr"], 2, $a); }
           var keys = Object.keys(underlyingDict);
           var elts = [];
           function combine(elts) {
@@ -339,9 +349,22 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           }
           return toreprElts();
         });
+        var outputMSD = runtime.makeMethod0(function(_) {
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
+          var elts = [];
+          var keys = Object.keys(underlyingDict);
+          var vsValue = get(VS, "vs-value");
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(vsValue.app(userKey(keys[i])));
+            elts.push(vsValue.app(underlyingDict[keys[i]]));
+          }
+          return get(VS, "vs-collection").app(
+            runtime.makeString("mutable-string-dict"),
+            runtime.ffi.makeList(elts));
+        });
 
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-          runtime.checkArity(3, arguments, "equals");
+          if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["equals"], 3, $a); }
           if (!hasBrand(brandMutable, other)) {
             return runtime.ffi.notEqual.app("", self, other);
           } else {
@@ -378,7 +401,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var freezeMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'freeze');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['freeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
             dict[mkey] = underlyingDict[mkey];
@@ -387,7 +410,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         });
 
         var sealMSD = runtime.makeMethod0(function(_) {
-          runtime.checkArity(1, arguments, 'seal');
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['seal'], 1, $a); }
           return makeMutableStringDict(underlyingDict, true);
         });
 
@@ -401,10 +424,11 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
           'set-now': setMSD,
           'remove-now': removeMSD,
           'keys-now': keysMSD,
+          'keys-list-now': keysListMSD,
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
           _equals: equalsMSD,
-          _torepr: toreprMSD,
+          _output: outputMSD,
           freeze: freezeMSD,
           seal: sealMSD
         });
@@ -462,6 +486,17 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
         return makeImmutableStringDict(dict);
       }
 
+      function createConstImmutableStringDict(names, val) {
+        arity(2, arguments, "string-dict-of");
+        runtime.checkList(names);
+        var arr = runtime.ffi.toArray(names);
+        var dict = Object.create(null);
+        arr.forEach(function(k) {
+          dict[internalKey(k)] = val;
+        });
+        return makeImmutableStringDict(dict);
+      }
+
       var NYIF = F(function() {
         runtime.ffi.throwMessageException("Not yet implemented");
       });
@@ -480,12 +515,14 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers"], function(util, Nam
             "make-string-dict": F(createImmutableStringDict),
             "string-dict": O({
               make: F(createImmutableStringDictFromArray)
-            })
+            }),
+            "string-dict-of": F(createConstImmutableStringDict)
           })
         }),
         "answer": runtime.nothing
       });
 
+    });
     });
   });
 });

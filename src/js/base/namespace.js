@@ -23,6 +23,8 @@ define(function() {
       this.proto = noProto;
     }
 
+    function typify(key) { return "$type$" + key; }
+
       /**
         Merges this namesspace with another
         @param {!Namespace.<T>} other
@@ -66,6 +68,12 @@ define(function() {
           }
       };
 
+      Namespace.prototype.getType = function(key) {
+          return this.get(typify(key));
+      };
+
+
+
       /**
         Sets the value of the specified binding with key 'key'
 
@@ -84,6 +92,10 @@ define(function() {
             o[key] = value;
             return this.merge(new Namespace(o));
           }
+      };
+
+      Namespace.prototype.setType = function(key, value) {
+          return this.set(typify(key), value);
       };
 
       /**

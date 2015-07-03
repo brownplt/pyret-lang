@@ -14,10 +14,10 @@ end
 compile-str = lam(filename, str):
   CM.compile-js(
           CM.start,
-          "Pyret",
           str,
           filename,
           CS.minimal-builtins,
+          CS.minimal-imports,
           {
             check-mode : true,
             allow-shadowed : false,
@@ -84,8 +84,8 @@ end
 
 check "All builtins should have a type":
   covered = TD.make-default-typs()
-  for each(builtin from CS.runtime-builtins):
-    builtin-typ = covered.get-now(A.s-global(builtin.id).key())
+  for each(builtin from CS.standard-globals.values.keys-list()):
+    builtin-typ = covered.get-now(A.s-global(builtin).key())
     builtin-typ satisfies is-some
     when is-none(builtin-typ):
       "Should have a type: " is builtin

@@ -114,6 +114,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
   const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
@@ -156,6 +157,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
+
+  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>)", STICKY_REGEXP);
 
   // English ops don't require whitespace. That way it is possible to catch them in ID position
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
@@ -208,6 +211,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LPAREN?", val: lparen, parenIsForExp: true},
 
     {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
+    {name: "INCLUDE", val: new RegExp(kw("include"), STICKY_REGEXP)},
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
@@ -226,6 +230,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "DOC", val: new RegExp(colonKw("doc:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "WHERE", val: new RegExp(colonKw("where:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
@@ -249,6 +254,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
 
+    {name: "BAD-NUMBER", val: badNumber},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},
@@ -307,6 +313,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "RANGLE", val: rangle},
 
     {name: "EQUALS", val: equals, parenIsForExp: true},
+
+    {name: "BAD-OPER", val: opsNoSpace},
 
     {name: "BLOCKCOMMENT", val: blockcommentstart},
     {name: "COMMENT", val: comment},

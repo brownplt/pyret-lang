@@ -36,33 +36,62 @@ define([], function() {
     suspend = function(f) { setTimeout(f, 0); };
   }
 
-  function memoModule(name, moduleFun) {
-    var modname = gensym(name);
+  function memoModule(modname, moduleFun) {
     return function(RUNTIME, NAMESPACE) {
 
       if(RUNTIME.modules[modname]) {
         return RUNTIME.modules[modname];
       }
       else {
-        RUNTIME.modules[modname] = moduleFun(RUNTIME, NAMESPACE);
-        return RUNTIME.modules[modname];
-        // TODO(joe): We are *not* safe for deep calls on module loads.
-        // If running the module blows the stack, then we fail to load
-        // the module.
-        /*
         return RUNTIME.safeCall(function() {
             return moduleFun(RUNTIME, NAMESPACE);
           }, function(moduleFunVal) {
             RUNTIME.modules[modname] = moduleFunVal;
             return moduleFunVal;
           });
-        */
       }
     };
   }
+
+  function modBuiltin(name) {
+    return { "import-type": "builtin", name: name };
+  }
+
+  function definePyretModule(name, deps, provides, func) {
+    var modname = gensym(name);
+    return {
+      name: name,
+      dependencies: deps,
+      provides: provides,
+      theModule: function(/* varargs */) {
+        var pyretDependencies = Array.prototype.slice.call(arguments);
+        return memoModule(modname, function(runtime, namespace) {
+          return runtime.loadModulesNew(namespace, pyretDependencies, function(/* instantiated modules */) {
+            var deps = Array.prototype.slice.call(arguments);
+            return func.apply(null, [runtime, namespace].concat(deps));
+          });
+        });
+      }
+    };
+  }
+
+  function makeModuleReturn(runtime, types, values) {
+    return runtime.makeObject({
+      "provide-plus-types": runtime.makeObject({
+        types: types,
+        values: runtime.makeObject(values)
+      })
+    });
+  }
+
   return {
+      modBuiltin: modBuiltin,
+
       memoModule: memoModule,
+      makeModuleReturn: makeModuleReturn,
       isBrowser: isBrowser,
-      suspend: suspend
+      suspend: suspend,
+      definePyretModule: definePyretModule,
+      isBrowser: isBrowser
     };
 });

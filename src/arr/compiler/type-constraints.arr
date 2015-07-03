@@ -7,13 +7,14 @@ provide { generate-constraints   : generate-constraints,
           greatest-lower-bound   : greatest-lower-bound,
           meet-fields            : meet-fields } end
 
-provide-types { TypeConstraint  : TypeConstraint,
-                TypeConstraints : TypeConstraints,
-                Substitutions   : Substitutions }
+provide-types { TypeConstraint  :: TypeConstraint,
+                TypeConstraints :: TypeConstraints,
+                Substitutions   :: Substitutions }
 
 import ast as A
 import string-dict as SD
 import srcloc as SL
+import valueskeleton as VS
 import "compiler/type-structs.arr" as TS
 import "compiler/type-check-structs.arr" as TCS
 import "compiler/list-aux.arr" as LA
@@ -26,6 +27,7 @@ fold2-strict = LA.fold2-strict
 type Name            = A.Name
 
 dict-to-string       = TS.dict-to-string
+mut-dict-to-string   = TS.mut-dict-to-string
 
 type Pair            = TS.Pair
 pair                 = TS.pair
@@ -840,7 +842,7 @@ fun determine-variance(typ, var-id :: Name, info :: TCInfo) -> Variance:
             | none => raise("Internal type-checking error: Please send this program to the developers.")
           end
         | none =>
-          raise("internal type-checking error. This shouldn't ever happen. " + tostring(typ) + " isn't actually a data type! Available data types are: " + dict-to-string(info.data-exprs))
+          raise("internal type-checking error. This shouldn't ever happen. " + tostring(typ) + " isn't actually a data type! Available data types are: " + mut-dict-to-string(info.data-exprs))
       end
     | t-top =>
       constant
@@ -961,10 +963,8 @@ sharing:
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
-  _tostring(self, shadow tostring) -> String:
-    "type-constraints("
-      + dict-to-string(self.dict)
-      + ")"
+  _output(self):
+    VS.vs-constr("type-constraints", [list: VS.vs-value(dict-to-string(self.dict))])
   end
 end
 

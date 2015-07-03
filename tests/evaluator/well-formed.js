@@ -57,9 +57,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("anonymous bindings", function(done) {
-        P.checkCompileErrorMsg("var _ = 5", "anonymous mutable variable");
-        P.checkCompileErrorMsg("shadow _ = 5", "can't actually shadow");
-        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "a is declared twice");
+        P.checkCompileErrorMsg("var _ = 5", "there is no name to modify");
+        P.checkCompileErrorMsg("shadow _ = 5", "there is no name to shadow");
+        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "defined the field name `a` twice");
         P.wait(done);
       });
       it("malformed check-tests", function(done) {
@@ -291,7 +291,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "with"
         ];
         for(var i = 0; i < reservedNames.length; i++) {
-          var err = "cannot use " + reservedNames[i] + " as an identifier";
+          var err = "disallows the use of `" + reservedNames[i] + "` as an identifier";
           P.checkCompileErrorMsg(reservedNames[i], err);
           P.checkCompileErrorMsg(reservedNames[i] + " = 5", err);
           P.checkCompileErrorMsg("fun f(" + reservedNames[i] + "): 5 end", err);
@@ -312,12 +312,16 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("0/00000", err);
         P.wait(done);
       });
-      it("special imports", function(done) {
+      xit("special imports", function(done) {
         var err = "Unsupported import type";
         P.checkCompileErrorMsg("import mydrive('foo') as D", err);
         P.checkNoCompileError("import my-gdrive('foo') as F");
         P.checkCompileErrorMsg("import my-gdrive('a', 'b') as D", "one argument");
         P.checkCompileErrorMsg("import shared-gdrive('a') as D", "two arguments");
+        P.wait(done);
+      });
+      it("examples restriction", function(done) {
+        P.checkCompileErrorMsg("examples: f() end", "must contain only test");
         P.wait(done);
       });
       it("underscores", function(done) {

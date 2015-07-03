@@ -95,22 +95,23 @@ fun anf-program(e :: A.Program):
   end
 end
 
+fun anf-import-type(it :: A.ImportType):
+  cases(A.ImportType) it:
+    | s-file-import(l, fname) => N.a-import-file(l, fname)
+    | s-const-import(l, mod) => N.a-import-builtin(l, mod)
+    | s-special-import(l, kind, args) => N.a-import-special(l, kind, args)
+  end
+end
+
 fun anf-import(i :: A.Import):
   cases(A.Import) i:
-    | s-import(l, f, name) =>
+    | s-import-complete(l, vals, types, f, val-name, types-name) =>
       itype = cases(A.ImportType) f:
         | s-file-import(_, fname) => N.a-import-file(l, fname)
         | s-const-import(_, mod) => N.a-import-builtin(l, mod)
         | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
       end
-      N.a-import(l, itype, name)
-    | s-import-types(l, f, name, types) =>
-      itype = cases(A.ImportType) f:
-        | s-file-import(_, fname) => N.a-import-file(l, fname)
-        | s-const-import(_, mod) => N.a-import-builtin(l, mod)
-        | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
-      end
-      N.a-import-types(l, itype, name, types)
+      N.a-import-complete(l, vals, types, itype, val-name, types-name)
   end
 end
 
@@ -136,11 +137,23 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, provides, types, checks) =>
+    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+      advs = for map(dv from dvs):
+        aval = cases(A.Expr) dv.value:
+          | s-id(shadow l, id) => N.a-id(l, id)
+          | s-id-var(shadow l, id) => N.a-id-var(l, id)
+          | s-id-letrec(shadow l, id, safe) => N.a-id-letrec(l, id, safe)
+          | else => raise("Got non-id in defined-value list " + torepr(dv))
+        end
+        N.a-defined-value(dv.name, aval)
+      end
+      adts = for map(dt from dts):
+        N.a-defined-type(dt.name, dt.typ)
+      end
       anf-name(answer, "answer", lam(ans):
           anf-name(provides, "provides", lam(provs):
               anf-name(checks, "checks", lam(chks):
-                  k.apply(l, N.a-module(l, ans, provs, types, chks))
+                  k.apply(l, N.a-module(l, ans, advs, adts, provs, types, chks))
                 end)
             end)
         end)

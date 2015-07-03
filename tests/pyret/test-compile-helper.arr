@@ -5,10 +5,10 @@ import "compiler/compile-structs.arr" as CS
 compile-str = lam(str):
   CM.compile-js(
           CM.start,
-          "Pyret",
           str,
           "test",
           CS.standard-builtins,
+          CS.standard-imports,
           {
             check-mode : true,
             allow-shadowed : false,

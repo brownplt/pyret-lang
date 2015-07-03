@@ -3,11 +3,14 @@
 provide *
 provide-types *
 
+import valueskeleton as VS
+
 data Srcloc:
   | builtin(module-name) with:
     format(self, _):
       "<builtin " + self.module-name + ">"
     end,
+    key(self): self.module-name end,
     same-file(self, other):
       is-builtin(other) and (other.module-name == self.module-name)
     end,
@@ -16,7 +19,8 @@ data Srcloc:
         | builtin(module-name) => (self.module-name < other.module-name)
         | srcloc(_, _, _, _, _, _, _) => false
       end
-    end
+    end,
+    is-builtin(self): true end
   | srcloc(
         source :: String,
         start-line :: Number,
@@ -32,6 +36,7 @@ data Srcloc:
         + "line " + tostring(self.start-line)
         + ", column " + tostring(self.start-column)
     end,
+    key(self): self.source + ":" + tostring(self.start-char) + "-" + tostring(self.end-char) end,
     same-file(self, other :: Srcloc):
       is-srcloc(other) and (self.source == other.source)
     end,
@@ -71,13 +76,9 @@ data Srcloc:
           other
         end
       end
-    end
+    end,
+    is-builtin(self): false end
 sharing:
-  _tostring(self, shadow tostring): self.format(true) end,
+  _output(self): VS.vs-value(self.format(true)) end,
   after(self, other): other.before(self) end
 end
-
-fun old-srcloc(file, startR, startC, startCh, endR, endC, endCh):
-  raise("Cannot create old-srclocs anymore")
-end
-

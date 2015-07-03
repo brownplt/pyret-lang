@@ -29,11 +29,11 @@ check-stmts-visitor = A.default-map-visitor.{
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), left, right.value, ast-srcloc(l)])
+        [list: ast-pretty(term), ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), refinement, left, right.value, ast-srcloc(l)])
+        [list: ast-pretty(term), refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
       | s-op-is            =>
@@ -51,9 +51,9 @@ check-stmts-visitor = A.default-map-visitor.{
       | s-op-is-not-op(opname) =>
         check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-not-refinement")
       | s-op-satisfies        =>
-        check-op("check-satisfies")
+        check-op("check-satisfies-delayed")
       | s-op-satisfies-not    =>
-        check-op("check-satisfies-not")
+        check-op("check-satisfies-not-delayed")
       | s-op-raises           =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
           [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])

@@ -5,6 +5,7 @@ provide-types *
 import option as O
 import either as E
 import equality as equality
+import valueskeleton as VS
 
 none = O.none
 is-none = O.is-none
@@ -44,7 +45,7 @@ data List<a>:
       none
     end,
 
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true: List<a>, is-false: List<a>}:
+    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
@@ -61,6 +62,16 @@ data List<a>:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the base value```
       base
+    end,
+
+    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for every element in this list```
+      true
+    end,
+
+    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for any element in this list```
+      false
     end,
 
     member(self :: List<a>, elt :: a) -> Boolean:
@@ -131,7 +142,7 @@ data List<a>:
       end
     end,
 
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true: List<a>, is-false: List<a>}:
+    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
@@ -158,6 +169,16 @@ data List<a>:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the initial value```
       self.rest.foldl(f, f(self.first, base))
+    end,
+
+    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for every element in this list```
+      f(self.first) and self.rest.all(f)
+    end,
+
+    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+      doc: ```Returns true if the given predicate is true for any element in this list```
+      f(self.first) or self.rest.any(f)
     end,
 
     append(self :: List<a>, other :: List<a>) -> List<a>:
@@ -235,6 +256,8 @@ data List<a>:
     end,
 
 sharing:
+  _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+  
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
   end,
@@ -243,7 +266,7 @@ sharing:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
   end,
-  split-at(self :: List<a>, n :: Number) -> { prefix: List<a>, suffix: List<a> }:
+  split-at(self :: List<a>, n :: Number) -> { prefix :: List<a>, suffix :: List<a> }:
     doc: "Splits this list into two lists, one containing the first n elements, and the other containing the rest"
     split-at(n, self)
   end,
@@ -263,6 +286,10 @@ sharing:
   set(self :: List<a>, n :: Number, e :: a) -> List<a>:
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
     set(self, n, e)
+  end,
+  remove(self :: List<a>, e :: a) -> List<a>:
+    doc: "Returns the list without the element if found, or the whole list if it is not"
+    remove(self, e)
   end
 end
 
@@ -357,7 +384,7 @@ fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   end
 end
 
-fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true: List<a>, is-false: List<a>}:
+fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>}:
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
   var is-false = empty
@@ -403,7 +430,7 @@ fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   end
 end
 
-fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix: List<a>, suffix: List<a> }:
+fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> }:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
   when n < 0:
     raise("Invalid index")
@@ -427,17 +454,12 @@ end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  is-some(find(f, lst))
+  lst.any(f)
 end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  fun help(l):
-    if is-empty(l): true
-    else: f(l.first) and help(l.rest)
-    end
-  end
-  help(lst)
+  lst.all(f)
 end
 
 fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:

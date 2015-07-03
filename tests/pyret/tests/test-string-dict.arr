@@ -1,4 +1,5 @@
 import string-dict as SD
+import valueskeleton as VS
 
 sd1 = SD.make-mutable-string-dict()
 sd2 = [SD.mutable-string-dict: "a", 15, "b", 10]
@@ -36,16 +37,16 @@ check "basics":
 
   var long-torepr = nothing
   long-torepr := {
-    _torepr(self, tor):
+    _output(self):
       var str = ""
       for each(i from range(0, 10000)):
         str := tostring(i)
       end
-      str
+      VS.vs-value(str)
     end
   }
 
-  torepr([SD.mutable-string-dict: "a", long-torepr]) is "[mutable-string-dict: \"a\", 9999]"
+  torepr([SD.mutable-string-dict: "a", long-torepr]) is "[mutable-string-dict: \"a\", \"9999\"]"
 
   sd2.keys-now() is [tree-set: "a", "b"]
   sd2.keys-now() is [tree-set: "b", "a"]
@@ -180,4 +181,8 @@ check "duplicate":
   [SD.string-dict: "x", 5, "x", 10] raises "duplicate key x"
   [SD.string-dict: "x", 6, "y", 10, "x", 22] raises "duplicate key x"
   [SD.string-dict: "x", 6, "y", 10, "z", 22] does-not-raise
+end
+
+check "sdo":
+  SD.string-dict-of([list: "x", "y", "z"], 5) is [SD.string-dict: "x", 5, "y", 5, "z", 5]
 end

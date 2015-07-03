@@ -44,6 +44,8 @@ provide {
 } end
 provide-types *
 
+import valueskeleton as VS
+
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)
   | str(s :: String, flat-width :: Number, has-hardline :: Boolean)
@@ -65,18 +67,18 @@ sharing:
       end
     end
   end,
-  _tostring(self, shadow tostring):
+  _output(self):
     cases(PPrintDoc) self:
-      | mt-doc(_, _) => "EmptyDoc"
-      | str(s, _, _) => "Str('" + s + "')"
-      | hardline(_, _) => "CRLF"
-      | blank(n, _, _) => "Blank(" + tostring(n) + ")"
-      | concat(fst, snd, _, _) => "Concat(" + tostring(fst) + ", " + tostring(snd) + ")"
-      | nest(indent, d, _, _) => "Nest(" + tostring(indent) + ", " + tostring(d) + ")"
-      | if-flat(flat, vert, _, _) => "IfFlat(" + tostring(flat) + ", " + tostring(vert) + ")"
-      | group(d, _, _) => "Group(" + tostring(d) + ", " + ")"
-      | align(d, _, _) => "Align(" + tostring(d) + ")"
-      | align-spaces(n, _, _) => "AlignSpaces(" + tostring(n) + ")"
+      | mt-doc(_, _) => VS.vs-str("EmptyDoc")
+      | str(s, _, _) => VS.vs-constr("Str", link(VS.vs-value(s), empty))
+      | hardline(_, _) => VS.vs-str("CRLF")
+      | blank(n, _, _) => VS.vs-constr("Blank", link(VS.vs-value(n), empty))
+      | concat(fst, snd, _, _) => VS.vs-constr("Concat", link(VS.vs-value(fst), link(VS.vs-value(snd), empty)))
+      | nest(indent, d, _, _) => VS.vs-constr("Nest", link(VS.vs-value(indent), link(VS.vs-value(d), empty)))
+      | if-flat(flat, vert, _, _) => VS.vs-constr("IfFlat", link(VS.vs-value(flat), link(VS.vs-value(vert), empty)))
+      | group(d, _, _) => VS.vs-constr("Group", link(VS.vs-value(d), empty))
+      | align(d, _, _) => VS.vs-constr("Align", link(VS.vs-value(d), empty))
+      | align-spaces(n, _, _) => VS.vs-constr("AlignSpaces", link(VS.vs-value(n), empty))
     end
   end,
   pretty(self, width):
