@@ -162,6 +162,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           lv == rv,
           lam(): failure-not-equal(loc, code, none, lv, rv) end)
       end
+      nothing
     end,
     check-is-not(self, code, left, right, loc):
       for left-right-check(loc, code)(lv from left, rv from right):
@@ -169,6 +170,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           not(lv == rv),
           lam(): failure-not-different(loc, code, none, lv, rv) end)
       end
+      nothing
     end,
     check-is-refinement(self, code, refinement, left, right, loc):
       for left-right-check(loc, code)(lv from left, rv from right):
@@ -180,6 +182,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             lam(): failure-not-equal(loc, code, some(refinement), lv, rv) end)
         end
       end
+      nothing
     end,
     check-is-not-refinement(self, code, refinement, left, right, loc):
       for left-right-check(loc, code)(lv from left, rv from right):
@@ -191,6 +194,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             lam(): failure-not-different(loc, code, some(refinement), lv, rv) end)
         end
       end
+      nothing
     end,
     check-satisfies-delayed(self, code, left, pred, loc):
       for left-right-check(loc, code)(lv from left, pv from pred):
@@ -198,6 +202,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           pv(lv),
           lam(): failure-not-satisfied(loc, code, lv, pv) end)
       end
+      nothing
     end,
     check-satisfies-not-delayed(self, code, left, pred, loc):
       for left-right-check(loc, code)(lv from left, pv from pred):
@@ -205,16 +210,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           not(pv(lv)),
           lam(): failure-not-dissatisfied(loc, code, lv, pv) end)
       end
+      nothing
     end,
     check-satisfies(self, code, left, pred, loc):
       check-bool(loc, code,
         pred(left),
         lam(): failure-not-satisfied(loc, code, left, pred) end)
+      nothing
     end,
     check-satisfies-not(self, code, left, pred, loc):
       check-bool(loc, code,
         not(pred(left)),
         lam(): failure-not-dissatisfied(loc, code, left, pred) end)
+      nothing
     end,
     check-raises(self, code, thunk, expected, comparator, on-failure, loc):
       result = run-task(thunk)
@@ -227,18 +235,21 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             add-result(on-failure(exn-unwrap(v)))
           end
       end
+      nothing
     end,
     check-raises-str(self, code, thunk, str, loc):
       self.check-raises(code, thunk, str,
         lam(exn, s): string-contains(torepr(exn), s) end,
         lam(exn): failure-wrong-exn(loc, code, str, exn) end,
         loc)
+      nothing
     end,
     check-raises-other-str(self, code, thunk, str, loc):
       self.check-raises(code, thunk, str,
         lam(exn, s): not(string-contains(torepr(exn), s)) end,
         lam(exn): failure-right-exn(loc, code, str, exn) end,
         loc)
+      nothing
     end,
     check-raises-not(self, code, thunk, loc):
       add-result(
@@ -246,6 +257,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           | left(v)    => success(loc, code)
           | right(exn) => failure-exn(loc, code, exn-unwrap(exn))
         end)
+      nothing
     end,
     check-raises-satisfies(self, code, thunk, pred, loc):
       add-result(
@@ -258,6 +270,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               failure-raise-not-satisfied(loc, code, exn-unwrap(exn), pred)
             end
         end)
+      nothing
     end,
     check-raises-violates(self, code, thunk, pred, loc):
       add-result(
@@ -270,6 +283,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               failure-raise-not-dissatisfied(loc, code, exn-unwrap(exn), pred)
             end
         end)
+      nothing
     end,
     summary(self):
       results-summary(block-results)
