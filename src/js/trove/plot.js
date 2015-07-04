@@ -297,15 +297,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     var PyretBlue = gf(gf(IMAGESTRUCTS, "values"), "blue")
     var PyretPlot = valFromStructs("is-Plot");
     var TypePlotWindowOptions = typeFromStructs("PlotWindowOptions");
-    var TypePlotOptions = typeFromStructs("PlotOptions");
-
-    var checkPlotWindowOptions = function(v) {
-      rt._checkAnn(["PlotWindowOptions"], TypePlotWindowOptions, v);
-    };
-
-    var checkPlotOptions = function(v) {
-      rt._checkAnn(["PlotOptions"], TypePlotOptions, v);
-    };
 
     function genericPlot(arrayOfPlot, windowOption) {
       var xMin = windowOption.xMin;
@@ -326,13 +317,15 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true),
           yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
 
-      function plotLine(plot, id) {
+      function plotLine(plot) {
         /*
          * Graph a line
          *
          * Part of this function is adapted from
          * http://jsfiddle.net/christopheviau/Hwpe3/
          */
+
+        // TODO: restrict lines to be in the box!
 
         var line = d3.svg.line()
             .x(function (d) { return xToPixel(d.x); })
@@ -364,8 +357,15 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
         canvas.call(tip);
 
+        var points = plot.points.filter(function(point){
+          return jsnums.lessThanOrEqual(xMin, point.x) &&
+                 jsnums.lessThanOrEqual(point.x, xMax) &&
+                 jsnums.lessThanOrEqual(yMin, point.y) &&
+                 jsnums.lessThanOrEqual(point.y, yMax);
+        })
+
         canvas.selectAll("circle")
-          .data(plot.points)
+          .data(points)
           .enter()
           .append("circle")
           .attr("cx", function (d) { return xToPixel(d.x); })
@@ -599,8 +599,17 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
     function plotMulti(pyretLstOfPlot, pyretWinOptions) {
       rt.checkArity(2, arguments, "plot-multi");
-      rt.checkList(pyretLstOfPlot); // TODO: could check inside as well
+      rt.checkList(pyretLstOfPlot);
+
+      var checkPlotWindowOptions = function(v) {
+        rt._checkAnn(["PlotWindowOptions"], TypePlotWindowOptions, v);
+      };
+
       checkPlotWindowOptions(pyretWinOptions);
+
+      var checkListofPlot = libCheck.checkListGenerator(
+        "Plot", PyretPlot.app, rt);
+      checkListofPlot(pyretLstOfPlot);
 
       var xMin = gf(pyretWinOptions, "x-min");
       var xMax = gf(pyretWinOptions, "x-max");
@@ -626,7 +635,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       var arrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
         .map(function(pyretPlot) {
-          checkPlotOptions(gf(pyretPlot, "options"))
           return rt.ffi.cases(PyretPlot, "Plot", pyretPlot, {
             'line-plot': function(points, option){
               return new Plot(Plot.LINE, toJSPoints(points), undefined, toJSOption(option));

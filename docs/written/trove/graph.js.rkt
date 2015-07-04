@@ -35,7 +35,7 @@
       (variants ("vertex")))
     (data-spec
       (name "Tree")
-      (variants ("tree-node")))
+      (variants ("node")))
   ))
 
 @docmodule["graph"]{
@@ -118,13 +118,12 @@
 
   @data-spec2["Graph" (list "a" "b") (list
   @constructor-spec["Graph" "graph" (list `("vertices" ("type" "normal") ("contract" ,(L-of (Vertex-of "a"))))
-                                          `("edges" ("type" "normal") ("contract" ,(L-of (Edge-of "a" "b"))))
-                                          `("options" ("type" "normal") ("contract" ,(type "GraphOptions"))))])]
+                                          `("edges" ("type" "normal") ("contract" ,(L-of (Edge-of "a" "b")))))])]
 
   @nested[#:style 'inset]{
   @constructor-doc["Graph" "graph" (list `("vertices" ("type" "normal") ("contract" ,(L-of (Vertex-of "a"))))
                                          `("edges" ("type" "normal") ("contract" ,(L-of (Edge-of "a" "b"))))
-                                         `("options" ("type" "normal") ("contract" ,(type "GraphOptions")))) (Graph-of "a" "b")]{
+                                          (Graph-of "a" "b")]{
     A graph.
     @member-spec["vertices" #:type "normal" #:contract (L-of (Vertex-of "a"))]{
       A list of vertices.
@@ -158,11 +157,11 @@
   @section{The Tree Type}
 
   @data-spec2["Tree" (list "a") (list
-  @constructor-spec["Tree" "tree-node" (list `("value" ("type" "normal") ("contract" ,"a"))
+  @constructor-spec["Tree" "node" (list `("value" ("type" "normal") ("contract" ,"a"))
                                              `("children" ("type" "normal") ("contract" ,(L-of (Tree-of "a")))))])]
 
   @nested[#:style 'inset]{
-  @constructor-doc["Tree" "tree-node" (list `("value" ("type" "normal") ("contract" ,"a"))
+  @constructor-doc["Tree" "node" (list `("value" ("type" "normal") ("contract" ,"a"))
                                             `("children" ("type" "normal") ("contract" ,(L-of (Tree-of "a"))))) (Tree-of "a")]{
     A node of a tree.
     @member-spec["value" #:type "normal" #:contract "a"]{
@@ -186,11 +185,28 @@
 
   @function["show-graph"
     #:contract (a-arrow (Graph-of "a" "b") (Graph-of "a" "b"))
-    #:args (list (list "g" #f))
+    #:args (list (list "g" #f) (list "options" #f))
     #:return (Graph-of "a" "b")
   ]{
 
   Display the graph
+
+  @examples{
+  import image-structs as I
+
+  blue-castle = vertex("Blue Castle", vertex-options.{color: I.blue})
+  red-castle = vertex("Red Castle", vertex-options.{color: I.red})
+  church = vertex("Church", vertex-options.{color: I.white})
+  inn = vertex("Inn", vertex-options.{color: I.yellow})
+  e1 = edge(blue-castle, inn, "bridge 1", edge-options.{color: I.black, directed: false})
+  e2 = edge(blue-castle, inn, "bridge 2", edge-options.{color: I.red, directed: false})
+  e3 = edge(blue-castle, church, "bridge 3", edge-options.{color: I.green})
+  e4 = edge(inn, church, "bridge 4", edge-options.{color: I.blue})
+  e5 = edge(red-castle, inn, "bridge 5", edge-options.{color: I.gray})
+  e6 = edge(red-castle, inn, "bridge 6", edge-options.{color: I.gold})
+  e7 = edge(red-castle, church, "bridge 7", edge-options.{color: I.yellow})
+  show-graph(graph([list: church, blue-castle, red-castle, inn], [list: e1, e2, e3, e4, e5, e6, e7]), graph-options)
+  }
 
   }
 
@@ -201,5 +217,16 @@
   ]{
 
   Display the tree in tree structure.
+
+  @examples{
+
+  A = node("Node A", empty)
+  F = node("Node F", empty)
+  E = node("Node E", [list: F])
+  B = node("Node B", [list: E])
+  C = node("Node C", [list: E, B])
+  root = node("This is the root", [list: A, B, C])
+  show-tree(root, tree-options)
+  }
   }
 }

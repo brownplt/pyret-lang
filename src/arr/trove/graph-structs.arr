@@ -40,6 +40,5 @@ end
 data Graph<a, b>:
   | graph(
       vertices :: List<Vertex<a>>,
-      edges :: List<Edge<a, b>>,
-      options :: GraphOptions)
+      edges :: List<Edge<a, b>>)
 end
