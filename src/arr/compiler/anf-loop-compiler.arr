@@ -1523,7 +1523,7 @@ end
 fun non-splitting-compiler(env, options):
   compiler-visitor.{
     options: options,
-    a-program(self, l, imports, body):
+    a-program(self, l, _, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
       compile-program(self, l, imports, simplified, freevars, env)

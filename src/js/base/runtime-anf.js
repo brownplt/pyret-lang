@@ -759,7 +759,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var makeMethodN = makeMethodFromFun;
 
-
     function callIfPossible0(L, fun, obj) {
       if (isMethod(fun)) {
         return fun.full_meth(obj);
@@ -841,7 +840,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwNonFunApp(L, fun);
       }
     }
-
 
     var GRAPHABLE = 0;
     var UNGRAPHABLE = 1;
@@ -1336,6 +1334,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else {
               console.log("UNKNOWN VALUE!");
               console.log(next);
+              throw "Found unknown value in loop";
             }
           }
           else {
@@ -1729,8 +1728,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (tol) {
               if (rel) {
-                var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
-                if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
+                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol)) {
                   continue;
                 } else {
                   toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
@@ -1948,9 +1946,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRelNow3(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a); }
         return equal3(l, r, false, relTol, true);
@@ -1972,9 +1967,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRel3(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a); }
         return equal3(l, r, true, relTol);
@@ -2050,9 +2042,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinRelNowPy = makeFunction(function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a); }
         return makeBoolean(equalWithinRelNow(relTol).app(l, r));
@@ -2076,9 +2065,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinRelPy = makeFunction(function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a); }
         return makeBoolean(equalWithinRel(relTol).app(l, r));
@@ -3737,15 +3723,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_within_rel = function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a); }
         thisRuntime.checkNumber(l);
         thisRuntime.checkNumber(r);
-        var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol));
-        return makeBoolean(jsnums.roughlyEquals(l, r, absTol));
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol));
       });
     }
 
@@ -3973,7 +3955,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
-            return { dname: d.name, modinfo: require("trove/" + d.name) };
+            if(d.protocol === "legacy-path") {
+              return { dname: d.args[0], modinfo: require(d.args[0]) };
+            }
+            else {
+              return { dname: d.name, modinfo: require("trove/" + d.name) };
+            }
           });
           var tocomp = {mod: curMod, path: curPath};
           return depMods.reduce(function(acc, elt) {
@@ -3984,6 +3971,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       var wl = loadWorklist({name: startName, dependencies: modules });
       var finalModMap = {};
+      function getName(d) {
+        if(d.protocol === "legacy-path") {
+          return d.args[0];
+        }
+        else {
+          return d.name;
+        }
+      }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
         if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
@@ -3991,14 +3986,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         else {
           var rawDeps = m.mod.dependencies.map(function(d) {
-            return finalModMap[d.name];
+            return finalModMap[getName(d)];
           });
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
         finalModMap[m.mod.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
-        return finalModMap[m.name];
+        return finalModMap[getName(m)];
       });
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
@@ -4152,7 +4147,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           checksPlusBody += constructorBody;
         }
-        
 
         var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
           "if(arguments.length !== " + allArgs.length + ") {\n" +

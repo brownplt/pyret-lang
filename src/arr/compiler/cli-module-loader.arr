@@ -40,26 +40,20 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   end
 end
 
-fun get-compiler():
-  CL.make-compile-lib(module-finder)
-end
-
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
-  cl = get-compiler()
   base = module-finder({current-load-path: [list: "./"]}, base-module)
-  wl = cl.compile-worklist(base.locator, base.context)
-  compiled = cl.compile-program(wl, options)
+  wl = CL.compile-worklist(module-finder, base.locator, base.context)
+  compiled = CL.compile-program(wl, options)
   compiled
 end
 
 fun run(path, options):
   base-module = CS.dependency("file", [list: path])
-  cl = get-compiler()
   base = module-finder({current-load-path:[list: "./"]}, base-module)
-  wl = cl.compile-worklist(base.locator, base.context)
+  wl = CL.compile-worklist(module-finder, base.locator, base.context)
   r = R.make-runtime()
-  result = CL.compile-and-run-worklist(cl, wl, r, options)
+  result = CL.compile-and-run-worklist(wl, r, options)
   cases(Either) result:
     | right(answer) =>
       if L.is-success-result(answer):

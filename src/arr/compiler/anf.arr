@@ -89,9 +89,10 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s-program(l, _, _, imports, block) =>
-      # Note: provides have been desugared away; if this changes, revise this line
-      N.a-program(l, imports.map(anf-import), anf-term(block))
+    | s-program(l, p, _, imports, block) =>
+      # Note: provides have been desugared to a structure with no expressions, just
+      # names and Ann information
+      N.a-program(l, p, imports.map(anf-import), anf-term(block))
   end
 end
 

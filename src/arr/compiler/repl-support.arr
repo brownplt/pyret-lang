@@ -5,6 +5,7 @@ import srcloc as S
 import "compiler/compile-structs.arr" as C
 import "compiler/compile-lib.arr" as CL
 import "compiler/locators/builtin.arr" as B
+import "compiler/type-structs.arr" as TS
 import ast as A
 import error as E
 import parse-pyret as P
@@ -14,13 +15,13 @@ import namespace-lib as N
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   C.compile-env(
-    C.globals(env.globals.values.set(name, C.v-just-there), env.globals.types),
+    C.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
     env.mods)
 end
 
 fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
   C.compile-env(
-    C.globals(env.globals.values, env.globals.types.set(name, C.t-just-there)),
+    C.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
     env.mods)
 end
 
@@ -131,13 +132,12 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
     get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
     name(self): name end,
-    set-compiled(self, ctxt, provs): nothing end,
+    set-compiled(self, env, result): nothing end,
     get-compiled(self): none end,
     _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
@@ -158,13 +158,12 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
     get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): repl.get-current-globals() end,
     get-namespace(self, runtime): repl.get-current-namespace() end,
     update-compile-context(self, ctxt): ctxt end,
     uri(self): uri end,
     name(self): name end,
-    set-compiled(self, ctxt, provs): nothing end,
+    set-compiled(self, env, result): nothing end,
     get-compiled(self): none end,
     _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }

@@ -5,6 +5,7 @@ provide-types *
 import ast as A
 import string-dict as SD
 import srcloc as SL
+import "compiler/ast-util.arr" as AU
 import "compiler/compile-structs.arr" as C
 import "compiler/type-structs.arr" as TS
 import "compiler/type-check-structs.arr" as TCS
@@ -361,7 +362,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
                       datatype-fields :: TS.TypeMembers
     ) -> DataType:
       tmp-datatype = t-datatype(name, t-vars, variant-typs, datatype-fields)
-      info.data-exprs.set-now(brander-typ.key(), tmp-datatype)
+      info.data-exprs.set-now(namet.key(), tmp-datatype)
       tmp-datatype
     end
 
@@ -556,9 +557,10 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, info :: TCInfo):
           fold-result(typ)
         end
       | s-newtype-bind(l, name, namet) =>
-        typ = t-name(none, name)
+        typ = t-name(none, namet)
         namet-key = namet.key()
         info.branders.set-now(namet-key, typ)
+        info.aliases.set-now(name.key(), typ)
         info.typs.set-now(namet-key, t-record([list:
           t-member("test", t-arrow([list: t-top], t-boolean)),
           t-member("brand", t-arrow([list: t-top], typ))
@@ -844,7 +846,7 @@ end
 
 fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
   cases(A.Expr) e:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
+    | s-module(l, answer, dv, dt, dd, provides, types, checks) =>
       synthesis(answer, info)
         .map-expr(A.s-module(l, _, dv, dt, provides, types, checks))
     | s-type-let-expr(l, binds, body) =>
@@ -1212,7 +1214,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
               pair(checking-map-errors(errors), t-top)
           end
         | else =>
-          pair(checking-map-errors([list: C.apply-non-function(app-loc)]), t-top)
+          pair(checking-map-errors([list: C.apply-non-function(app-loc, arrow-typ)]), t-top)
       end
     | t-bot =>
       new-args = for map-checking(arg from args):
@@ -1220,7 +1222,7 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
       end
       pair(new-args, t-bot)
     | else =>
-      pair(checking-map-errors([list: C.apply-non-function(app-loc)]), t-top)
+      pair(checking-map-errors([list: C.apply-non-function(app-loc, arrow-typ)]), t-top)
   end
 end
 
@@ -1242,22 +1244,25 @@ end
 fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, typs, checks) =>
-      synthesis(provides, info).check-bind(
-        lam(new-provides, provides-loc, provides-typ):
-          for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
-            wrapped = for foldl-result(base from fold-result(SD.make-string-dict()),
-                                                  tm from new-typs):
-              for bind(dt from as-datatype(tm.field-name, tm.typ, info)):
-                fold-result(base.set(tm.field-name, dt))
-              end
-            end
-            for check-bind(to-export from wrapped):
-              info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
-              checking(answer, expect-loc, expect-typ, info)
-                .map(A.s-module(l, _, dvs, dts, provides, typs, checks))
-            end
-          end
-        end)
+      checking(answer, expect-loc, expect-typ, info)
+        .map(A.s-module(l, _, dvs, dts, provides, typs, checks))
+      #synthesis(provides, info).check-bind(
+      #  lam(new-provides, provides-loc, provides-typ):
+      #    print(typs)
+      #    for check-bind(new-typs from map-result(a-field-to-type(_, info), typs)):
+      #      wrapped = for foldl-result(base from fold-result(SD.make-string-dict()),
+      #                                            tm from new-typs):
+      #        print(tm.field-name)
+      #        print(tm.typ)
+      #        for bind(dt from as-datatype(tm.field-name, tm.typ, info)):
+      #          fold-result(base.set(tm.field-name, dt))
+      #        end
+      #      end
+      #      for check-bind(to-export from wrapped):
+      #        info!{modul : t-module(info!modul.name, provides-typ, to-export, SD.make-string-dict())}
+      #      end
+      #    end
+      #  end)
     | s-type-let-expr(l, binds, body) =>
       for check-bind(_ from handle-type-let-binds(binds, info)):
         checking(body, expect-loc, expect-typ, info)
@@ -1379,7 +1384,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
               checking(value, expect-loc, param-typ, info)
             end
           else:
-            checking-err([list: C.incorrect-type("a raw array", l, tostring(expect-typ), expect-loc)])
+            checking-err([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-typ), expect-loc)])
           end
         | t-top =>
           for map-checking(value from values):
@@ -1484,43 +1489,92 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
   end
 end
 
-fun import-to-string(i :: A.ImportType) -> String:
-  cases(A.ImportType) i:
-    | s-file-import(_, file) =>
-      "file:" + file
-    | s-const-import(_, mod) =>
-      "const:" + mod
+fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
+  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
+end
+
+fun provides-as-dict(provides):
+  for fold(d from SD.make-string-dict(), p from provides.fields):
+    d.set(p.field-name, p.typ)
   end
 end
 
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
+  info = TCS.empty-tc-info("default")
+  globvs = compile-env.globals.values
+  globts = compile-env.globals.types
+  for each(g from globvs.keys-list()):
+    info.typs.set-now(A.s-global(g).key(), globvs.get-value(g))
+  end
+  for each(g from globts.keys-list()):
+    info.aliases.set-now(A.s-global(g).key(), globts.get-value(g))
+  end
+  for each(k from modules.keys-list-now()):
+    when not(info.modules.has-key-now(k)):
+      mod = modules.get-value-now(k).provides
+      key = mod.from-uri
+      val-provides = t-record(
+        for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
+      )
+      module-type = TS.t-module(
+          key,
+          val-provides,
+          mod.data-definitions,
+          mod.aliases)
+      info.modules.set-now(mod.from-uri, module-type)
+      #for each(d from mod.data-definitions.keys-list()):
+      #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+      #end
+    end
+  end
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, imports, body) =>
-      info = TCS.empty-tc-info("default")
       for each(_import from imports):
         cases(A.Import) _import:
           | s-import(_, file, name) =>
             raise("NYI")
           | s-import-complete(_, vals, types, file, vname, tname) =>
-            key = import-to-string(file)
+            key = import-to-string(file, compile-env)
             info.mod-names.set-now(tname.key(), key)
-            cases(Option<ModuleType>) info.modules.get-now(key):
-              | some(mod) =>
-                info.typs.set-now(vname.key(), mod.provides)
-              | none =>
-                raise("Can't handle importing " + key + " because it doesn't exist")
+            when not(info.modules.has-key-now(key)):
+              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
+              val-provides = t-record(
+                for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v)) end
+              )
+              module-type = TS.t-module(
+                  key,
+                  val-provides,
+                  mod.data-definitions,
+                  mod.aliases)
+
+              info.modules.set-now(key, module-type)
+              for each(d from mod.data-definitions.keys-list()):
+                info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+              end
             end
-          | s-import-types(_, file, name, types) =>
-            key = import-to-string(file)
-            info.mod-names.set-now(types.key(), key)
-            cases(Option<ModuleType>) info.modules.get-now(key):
-              | some(mod) =>
-                info.typs.set-now(name.key(), mod.provides)
-              | none =>
-                raise("Can't handle importing " + key + " because it doesn't exist")
+            thismod = info.modules.get-value-now(key)
+            info.typs.set-now(vname.key(), thismod.provides)
+            info.aliases.set-now(tname.key(), TS.t-top)
+            for each(a from types):
+              info.aliases.set-now(a.key(), thismod.aliases.get-value(a.toname()))
             end
-          | s-import-fields(_, fields, file) =>
-            raise("NYI")
+            # TODO(joe): This is kinda gross, skipping the name binding based on
+            # built-in vs non-built-in module for now, until builtins can accurately
+            # report their types programmatically
+            #when not(A.is-s-const-import(file)):
+              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
+              for each(v from vals):
+                cases(Option) mod.values.get(v.toname()):
+                  | none =>
+                    cases(Option) provides-as-dict(thismod.provides).get(v.toname()):
+                      | none => nothing # still skipping complete misses for now
+                      | some(typ) => info.typs.set-now(v.key(), typ)
+                    end
+                  | some(typ) => info.typs.set-now(v.key(), typ)
+                end
+              end
+            #end
+          | else => raise("typechecker received incomplete import")
         end
       end
       tc-result = checking(body, A.dummy-loc, t-top, info)
@@ -1528,7 +1582,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment) -> C.C
       cases(CheckingResult) tc-result:
         | checking-result(new-body) =>
           if is-empty(side-errs):
-            C.ok(A.s-program(l, _provide, provided-types, imports, new-body))
+            C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, new-body), info))
           else:
             C.err(side-errs)
           end

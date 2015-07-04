@@ -198,13 +198,46 @@ fun arrow-constraints(blame-loc :: A.Loc, a-forall :: List<TypeVariable>,
   end.bind(create-substitutions(blame-loc, _, unknowns-list, a-ret, info))
 end
 
+fun resolve-alias(t :: Type, info) -> Type:
+  cases(Type) t:
+    | t-name(a-mod, a-id) =>
+      cases(Option) a-mod:
+        | none =>
+          cases(Option) info.aliases.get-now(a-id.key()):
+            | none => t
+            | some(aliased) =>
+              resolve-alias(aliased, info)
+          end
+        | some(mod) =>
+          if mod == "builtin":
+            cases(Option) info.aliases.get-now(a-id.key()):
+              | none => t
+              | some(aliased) => aliased
+            end
+          else:
+            cases(Option) info.modules.get-value-now(mod).aliases.get(a-id.toname()):
+              | none => t
+              | some(aliased) => aliased
+                # resolve-alias(aliased, info)
+            end
+          end
+      end
+    | else => t
+  end
+end
+
 fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
+  shadow here = resolve-alias(here, info)
+  shadow there = resolve-alias(there, info)
   cases(Type) here:
     | t-name(a-mod, a-id) =>
       cases(Type) there:
         | t-top => true
         | t-name(b-mod, b-id) =>
-          (a-mod == b-mod) and (a-id == b-id)
+          if (a-mod == b-mod) and (a-id == b-id): true
+          else:
+            false
+          end
         | t-record(there-fields) =>
           cases(Option<Type>) TCS.get-data-type(here, info):
             | some(data-type) =>
@@ -291,6 +324,8 @@ fun satisfies-type(here :: Type, there :: Type, info :: TCInfo) -> Boolean:
       cases(Type) there:
         | t-top => true
         | t-app(b-onto, b-args) =>
+          shadow a-onto = resolve-alias(a-onto, info)
+          shadow b-onto = resolve-alias(b-onto, info)
           (a-onto == b-onto) and
           cases(Option<DataType>) TCS.get-data-type(a-onto, info):
             | some(data-type) =>

@@ -28,6 +28,10 @@ t-module                  = TS.t-module
 type Bindings              = SD.StringDict<TS.Type>
 empty-bindings :: Bindings = SD.make-string-dict()
 
+data Typed:
+  | typed(ast :: A.Program, info :: TCInfo)
+end
+
 data TCInfo:
   | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
             aliases    :: SD.MutableStringDict<TS.Type>,
@@ -43,13 +47,13 @@ sharing:
   _output(self):
     VS.vs-constr("tc-info",
       [list:
-        VS.value(mut-dict-to-string(self.typs)),
-        VS.value(mut-dict-to-string(self.aliases)),
-        VS.value(mut-dict-to-string(self.data-exprs)),
-        VS.value(mut-dict-to-string(self.branders)),
-        VS.value(mut-dict-to-string(self.modules)),
-        VS.value(self.binds),
-        VS.value(self.errors.get())])
+        VS.vs-value(mut-dict-to-string(self.typs)),
+        VS.vs-value(mut-dict-to-string(self.aliases)),
+        VS.vs-value(mut-dict-to-string(self.data-exprs)),
+        VS.vs-value(mut-dict-to-string(self.branders)),
+        VS.vs-value(mut-dict-to-string(self.modules)),
+        VS.vs-value(self.binds),
+        VS.vs-value(self.errors.get())])
   end
 end
 
@@ -66,7 +70,7 @@ fun empty-tc-info(mod-name :: String) -> TCInfo:
       end
     }
   end
-  tc-info(TD.make-default-typs(), SD.make-mutable-string-dict(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
+  tc-info(TD.make-default-typs(), TD.make-default-aliases(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
 end
 
 fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
@@ -89,13 +93,33 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
         | some(mod) =>
           cases(Option<ModuleType>) info.modules.get-now(mod):
             | some(t-mod) =>
-              t-mod.types.get(name.tosourcestring())
+              cases(Option<DataType>) t-mod.types.get(name.toname()):
+                | some(shadow typ) => some(typ)
+                | none =>
+                  cases(Option<Type>) t-mod.aliases.get(name.toname()):
+                    | some(shadow typ) => get-data-type(typ, info)
+                    | none =>
+                      raise("No type " + torepr(typ) + " available on `" + torepr(t-mod) + "'")
+                  end
+              end
             | none =>
-              raise("No module available with the name `" + mod + "'")
+              if mod == "builtin":
+                info.data-exprs.get-now(name.toname())
+              else:
+                raise("No module available with the name `" + mod + "'")
+              end
           end
         | none =>
           key = typ.key()
-          info.data-exprs.get-now(key)
+          cases(Option<DataType>) info.data-exprs.get-now(key):
+            | some(shadow typ) => some(typ)
+            | none =>
+              cases(Option<Type>) info.aliases.get-now(name.tosourcestring()):
+                | some(shadow typ) => get-data-type(typ, info)
+                | none =>
+                  raise("No type " + torepr(typ) + " available in this module")
+              end
+          end
       end
     | t-app(base-typ, args) =>
       cases(Option<DataType>) get-data-type(base-typ, info):

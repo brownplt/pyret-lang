@@ -534,7 +534,8 @@ is @pyret{within}:
 
 It takes an argument representing the @emph{relative error}, and returns a
 function that can be used to check equality up to that relative error.  For
-example, we can check if an answer is within 10% of a desired result:
+example, we can check if an answer (9.5) is within 10% of a
+desired result (10.5):
 
 @pyret-block{
 check:
@@ -543,13 +544,15 @@ check:
 end
 }
 
-Relative difference is defined by multiplying the @emph{mean} of the two
-numbers by @pyret{tol}, and checking that the result is less than the
-difference between them.  That is, in the expression above, @pyret-id{within}
-checks:
+The relative difference is defined as the absolute difference between the given
+value and the desired value, divided by the absolute desired
+value. The predicate returned by @pyret-id{within} checks that the
+relative difference is no more than the supplied relative error.
+Thus, in the expression above, @pyret-id{within} performs the
+following check:
 
 @pyret-block{
-(((9.5 + 10.5) / 2) * 0.1) < (10.5 - 9.5)
+((10.5 - 9.5) / 10.5) < 0.1
 }
 
 @note{Converting to exact numbers first avoids overflows on computing the
@@ -559,14 +562,13 @@ errors, we could implement the numeric comparison of @pyret-id{within} as:
 
 @pyret-block{
 fun within(tol):
-  lam(left, right):
-    (((num-exact(left) + num-exact(right)) / 2) * num-exact(tol))
-      < num-abs(num-exact(left) - num-exact(right))
+  lam(answer, desired):
+    (num-abs(num-exact(answer) - num-exact(desired)) /
+     num-abs(num-exact(desired))) <
+    tol
   end
 end
 }
-
-The @pyret{tol} argument must be between @pyret{0} and @pyret{1}.
 
 It's common to use @pyret{within} along with @pyret-id["is%" "testing"] to
 define the binary predicate inline with the test:
@@ -582,7 +584,7 @@ Finally, @pyret-id{within} accepts @emph{any} two values, not just numbers.
 On non-numeric arguments, @pyret-id{within} traverses the structures just as
 in @pyret-id{equal-always}, but deferring to the bounds-checking equality when
 a pair of numbers is encountered.  All other values are compared with
-@pyret-id{equal-always}. 
+@pyret-id{equal-always}.
 
 @examples{
 check:
@@ -639,9 +641,6 @@ check:
   aa is-not%(within-abs(2))  ab
 end
 }
-
-
-
 
 @section[#:tag "s:undefined-equalities"]{Undefined Equalities}
 

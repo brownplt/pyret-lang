@@ -1,10 +1,14 @@
-define([], function() {
+define(["js/type-util"], function(t) {
   return function(runtime, ns) {
     var F = runtime.makeFunction;
     function getBuiltinLocator(name) {
       runtime.pauseStack(function(restarter) {
         // NOTE(joe): This is a bit of requireJS hackery that assumes a
         // certain layout for builtin modules
+        if (name === undefined) {
+          console.error("Got undefined name in builtin locator");
+          console.trace();
+        }
         require(["trove/" + name], function(m) {
           restarter.resume(runtime.makeObject({
             "get-raw-dependencies":
@@ -15,10 +19,39 @@ define([], function() {
                   return [];
                 }
               }),
-            "get-raw-type-provides":
+            "get-raw-datatype-provides":
+              F(function() {
+                if(m.provides && m.provides.datatypes) {
+                  if(Array.isArray(m.provides.datatypes)) {
+                    return m.provides.datatypes;
+                  }
+                  else if(typeof m.provides === "object") {
+                    return Object.keys(m.provides.datatypes).map(function(k) {
+                      return runtime.makeObject({
+                        name: k,
+                        typ: t.toPyret(runtime, m.provides.datatypes[k])
+                      });
+                    });
+                  }
+                }
+                else {
+                  return [];
+                }
+              }),
+            "get-raw-alias-provides":
               F(function() {
                 if(m.provides) {
-                  return m.provides.types;
+                  if(Array.isArray(m.provides.types)) {
+                    return m.provides.types;
+                  }
+                  else if(typeof m.provides.aliases === "object") {
+                    return Object.keys(m.provides.aliases).map(function(k) {
+                      return runtime.makeObject({
+                        name: k,
+                        typ: t.toPyret(runtime, m.provides.aliases[k])
+                      });
+                    });
+                  }
                 }
                 else {
                   return [];
@@ -26,8 +59,18 @@ define([], function() {
               }),
             "get-raw-value-provides":
               F(function() {
-                if (m.provides) {
-                  return m.provides.values;
+                if(m.provides) {
+                  if(Array.isArray(m.provides.values)) {
+                    return m.provides.values;
+                  }
+                  else if(typeof m.provides === "object") {
+                    return Object.keys(m.provides.values).map(function(k) {
+                      return runtime.makeObject({
+                        name: k,
+                        typ: t.toPyret(runtime, m.provides.values[k])
+                      });
+                    });
+                  }
                 }
                 else {
                   return [];
