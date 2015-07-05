@@ -193,54 +193,6 @@ define([
           return runtime.isNumber(val) && jsnums.isReal(val) && jsnums.greaterThanOrEqual(val, 0);
         }, "Non-negative Real Number");
 
-        var isPlaceY = function(x) {
-            return (isString(x) &&
-              (x.toString().toLowerCase() == "top"	  ||
-               x.toString().toLowerCase() == "bottom"   ||
-               x.toString().toLowerCase() == "baseline" ||
-               x.toString().toLowerCase() == "center"   ||
-               x.toString().toLowerCase() == "middle"));
-        };
-
-        var isStyle = function(x) {
-            return (isString(x) &&
-              (x.toString().toLowerCase() == "solid" ||
-               x.toString().toLowerCase() == "outline"));
-        };
-
-
-        var less = function(lhs, rhs) {
-          return (rhs - lhs) > 0.00001;
-        }
-
-
-
-        var p = function(pred, name) {
-          return function(val) { runtime.makeCheckType(pred, name)(val); return val; }
-        }
-
-        var checkString = p(runtime.isString, "String");
-        var checkStringOrFalse = p(function(val) { return runtime.isString(val) || runtime.isPyretFalse; }, "String or false");
-
-        var checkByte = p(function(val) {
-            return runtime.isNumber(val) && jsnums.greaterThanOrEqual(val, 0) && jsnums.greaterThanOrEqual(255, val);
-          }, "Number between 0 and 255");
-        var checkReal = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isReal(val);
-          }, "Real Number");
-        var checkBoolean = p(runtime.isBoolean, "Boolean");
-
-        var checkNatural = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
-          }, "Natural Number");
-
-        var checkPositiveInteger = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
-          }, "Positive Integer");
-
-        var checkNonNegativeReal = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isReal(val) && jsnums.greaterThanOrEqual(val, 0);
-          }, "Non-negative Real Number");
 
         var _checkColor = p(image.isColorOrColorString, "Color");
 
