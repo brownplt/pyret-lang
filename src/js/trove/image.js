@@ -214,11 +214,11 @@ define([
         var checkBoolean = p(runtime.isBoolean, "Boolean");
 
         var checkNatural = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
+            return runtime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
           }, "Natural Number");
 
         var checkPositiveInteger = p(function(val) {
-            return runtime.isNumber(val) && jsnums.isExactInteger(val) && jsnums.greaterThanOrEqual(val, 0);
+            return runtime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0);
           }, "Positive Integer");
 
         var checkNonNegativeReal = p(function(val) {
