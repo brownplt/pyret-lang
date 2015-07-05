@@ -224,7 +224,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
   }
 
   function inferBounds(arrOfPlot) {
-
     var dataPoints = libData.flatten(
       arrOfPlot
         .filter(function(plot){ return plot.type != Plot.XY; })
@@ -276,6 +275,39 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     return {xMin: xMin, xMax: xMax, yMin: yMin, yMax: yMax};
   }
 
+  function isInBoundGenerator(xMin, xMax, yMin, yMax){
+    return function(point) {
+      return jsnums.lessThanOrEqual(xMin, point.x) &&
+             jsnums.lessThanOrEqual(point.x, xMax) &&
+             jsnums.lessThanOrEqual(yMin, point.y) &&
+             jsnums.lessThanOrEqual(point.y, yMax);
+    };
+  }
+
+  function adjustLinePlot(points, option, xMin, xMax, yMin, yMax) {
+    var isPointInBound = points.map(isInBoundGenerator(xMin, xMax, yMin, yMax));
+    var newPoints = [[]];
+
+    for(var i = 0; i < points.length; i++) {
+      var subArr = libData.lastElement(newPoints);
+      if (i > 0 && isPointInBound[i - 1] && !isPointInBound[i]) {
+        subArr.push(libNum.calcPointOnEdge(points[i - 1], points[i],
+                                           xMin, xMax, yMin, yMax));
+        newPoints.push([]);
+      } else if (i > 0 && !isPointInBound[i - 1] && isPointInBound[i]) {
+        subArr.push(libNum.calcPointOnEdge(points[i], points[i - 1],
+                                           xMin, xMax, yMin, yMax));
+        subArr.push(points[i]);
+      } else if (isPointInBound[i]) {
+        subArr.push(points[i]);
+      }
+    }
+
+    return newPoints.map(function(pts) {
+      return new Plot(Plot.LINE, pts, undefined, option);
+    });
+  }
+
   return function(rt, namespace) {
 
   var gf = rt.getField;
@@ -298,11 +330,23 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     var PyretPlot = valFromStructs("is-Plot");
     var TypePlotWindowOptions = typeFromStructs("PlotWindowOptions");
 
+    function toJSPoints(points) {
+      return rt.ffi.toArray(points).map(
+        function (e) { return {x: gf(e, "x"), y: gf(e, "y")}; }
+      );
+    }
+
+    function toJSOption(option) {
+      return { color: colorConverter(gf(option, "color")) }
+    }
+
     function genericPlot(arrayOfPlot, windowOption) {
       var xMin = windowOption.xMin;
       var xMax = windowOption.xMax;
       var yMin = windowOption.yMin;
       var yMax = windowOption.yMax;
+
+      var isInBound = isInBoundGenerator(xMin, xMax, yMin, yMax);
 
       var marginType = "normal",
         margin = getMargin(marginType),
@@ -317,6 +361,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true),
           yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
 
+
       function plotLine(plot) {
         /*
          * Graph a line
@@ -325,7 +370,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
          * http://jsfiddle.net/christopheviau/Hwpe3/
          */
 
-        // TODO: restrict lines to be in the box!
 
         var line = d3.svg.line()
             .x(function (d) { return xToPixel(d.x); })
@@ -357,15 +401,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
         canvas.call(tip);
 
-        var points = plot.points.filter(function(point){
-          return jsnums.lessThanOrEqual(xMin, point.x) &&
-                 jsnums.lessThanOrEqual(point.x, xMax) &&
-                 jsnums.lessThanOrEqual(yMin, point.y) &&
-                 jsnums.lessThanOrEqual(point.y, yMax);
-        })
-
         canvas.selectAll("circle")
-          .data(points)
+          .data(plot.points.filter(isInBound))
           .enter()
           .append("circle")
           .attr("cx", function (d) { return xToPixel(d.x); })
@@ -403,8 +440,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         dimension = getDimension(margin),
         width = dimension.width,
         height = dimension.height,
-        K = 70,
-        DELTA = 0.001;
+        K = 702,       // TODO: optimal?
+        DELTA = 0.001; // TODO: not a good treshold
 
       var inputScaler = libNum.scaler(
           0, width - 1, xMin, xMax, false),
@@ -414,14 +451,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true);
       var yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
-
-      function allInvalid(points) {
-        // consider all invalid if there is no (i, i+1) which are both valid
-        return libData.range(0, points.length - 1).every(
-          function (i) {
-            return Number.isNaN(points[i].py) || Number.isNaN(points[i + 1].py);
-        });
-      }
 
       logtable = [];
       for(var i = 0; i < width; ++i) {
@@ -451,7 +480,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       if (isSafe) {
 
         // safe version
-        console.log('safe version');
 
         function makePoint(x, done) {
           // This function create a point `pt`. It then returns done(pt).
@@ -490,6 +518,9 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
         function makeIntervals(i, points, left, right, done) {
           if(i == -1) return done([]);
+          if(Number.isNaN(points[i].y) && Number.isNaN(points[i + 1].y)) {
+            return makeIntervals(i - 1, points, left, right, done);
+          }
           return rt.safeCall(function() {
             return divideSubinterval(points[i], points[i + 1])
           }, function(divided) {
@@ -515,7 +546,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           if (isAllOccupied(left, right)) return [[left, right]];
 
           return makePoints(K - 1, libNum.scaler(0, K - 1, left.x, right.x, false), function(points) {
-            if(allInvalid(points)) return [];
             return makeIntervals(K - 2, points, left, right, libData.flatten);
           });
         }
@@ -529,8 +559,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       } else {
 
         // unsafe version
-
-        console.log('unsafe version');
 
         function PointCoord(x) {
           this.x = x;
@@ -576,9 +604,11 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
             return new PointCoord(scalerSubinterval(i));
           });
 
-          if (allInvalid(points)) return [];
           var intervals = [];
           for (var v = 0; v < K - 1; v++) {
+            if (Number.isNaN(points[v].y) && Number.isNaN(points[v + 1].y)) {
+              continue;
+            }
             intervals.push(divideSubintervalUnsafe(
               points[v], points[v + 1], depth + 1
             ));
@@ -623,30 +653,23 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       var colorConverter = libColor.convertColor(rt, IMAGE);
 
-      function toJSPoints(points) {
-        return rt.ffi.toArray(points).map(
-          function (e) { return {x: gf(e, "x"), y: gf(e, "y")}; }
-        );
-      }
-
-      function toJSOption(option) {
-        return { color: colorConverter(gf(option, "color")) }
-      }
-
-      var arrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
+      var arrOfArrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
         .map(function(pyretPlot) {
           return rt.ffi.cases(PyretPlot, "Plot", pyretPlot, {
             'line-plot': function(points, option){
-              return new Plot(Plot.LINE, toJSPoints(points), undefined, toJSOption(option));
+              return adjustLinePlot(toJSPoints(points), toJSOption(option),
+                                    xMin, xMax, yMin, yMax);
             },
             'scatter-plot': function(points, option) {
-              return new Plot(Plot.SCATTER, toJSPoints(points), undefined, toJSOption(option));
+              return [new Plot(Plot.SCATTER, toJSPoints(points), undefined, toJSOption(option))];
             },
             'xy-plot': function(f, option){
-              return new Plot(Plot.XY, undefined, f, toJSOption(option));
+              return [new Plot(Plot.XY, undefined, f, toJSOption(option))];
             }
           });
         });
+
+      var arrOfPlot = libData.flatten(arrOfArrOfPlot);
 
       var winOptions = {
         xMin: gf(pyretWinOptions, "x-min"),
@@ -690,6 +713,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           });
         });
         genericPlot(libData.flatten(newXYPlots).concat(nonXY), winOptions);
+        // xy-plot should be drawn first (so that scatter-plot is visible)
         return pyretLstOfPlot;
       });
     }
