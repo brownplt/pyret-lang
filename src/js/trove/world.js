@@ -1,21 +1,69 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(util, imageLib, worldLib, ffiLib) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util"], function(util, imageLib, worldLib, ffiLib, t) {
+
+  var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
   return util.definePyretModule(
     "world",
     [],
     {
-      values: [
-        "big-bang",
-        "on-tick",
-        "on-tick-n",
-        "to-draw",
-        "stop-when",
-        "on-key",
-        "on-mouse",
-        "is-world-config",
-        "is-key-equal"
-      ],
-      types: [ ]
+      values: {
+        "big-bang":
+          t.forall(["a"], t.arrow([
+              t.tyvar("a"),
+              t.tyapp(t.libName("lists", "List"), [wcOfA])
+            ],
+            t.tyvar("a"))),
+        "on-tick":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number], t.tyvar("a"))
+              ],
+              wcOfA)),
+        "on-tick-n":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number], t.tyvar("a")),
+                t.number
+              ],
+              wcOfA)),
+        "to-draw":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.libName("image", "Image")),
+              ],
+              wcOfA)),
+        "stop-when":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.boolean),
+              ],
+              wcOfA)),
+        "on-key":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
+              ],
+              wcOfA)),
+        "on-mouse":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
+              ],
+              wcOfA)),
+        "is-world-config": t.arrow([t.any], t.boolean),
+        "is-key-equal": t.arrow([t.string, t.string], t.boolean)
+      },
+      aliases: {
+        "WorldConfig": t.localType("WorldConfig") 
+      },
+      datatypes: {
+        "WorldConfig": t.dataType(
+          "WorldConfig",
+          ["a"],
+          [],
+          {}
+        )
+      }
     },
     function(runtime, namespace) {
       return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib], function(imageLibrary, rawJsworld, ffi) {
