@@ -370,8 +370,8 @@ data CompileError:
             [ED.para:
               ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
               ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
+            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
