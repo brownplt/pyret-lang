@@ -45,7 +45,6 @@ options = {
 
 parsed-options = C.parse-cmdline(options)
 
-
 fun find-result(expr):
   cases(A.Expr) expr:
     | s-obj(_, _) => expr
@@ -135,7 +134,6 @@ no-atoms = A.default-map-visitor.{
   s-id-var(self, l, name): A.s-id(l, A.s-name(l, name.toname())) end
 }
 fun de-atomize(e): e.visit(no-atoms) end
-
 
 fun process-checks(_check):
   cases (Option) _check:
@@ -319,7 +317,7 @@ cases (C.ParsedArguments) parsed-options:
       | empty => print("Require a file name")
       | link(file, more) =>
         file-contents = F.file-to-string(file)
-        parsed = P.parse-dialect(dialect, file-contents, file)
+        parsed = P.surface-parse(file-contents, file)
         scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).or-else(parsed)), CS.standard-builtins)
         named-and-bound = R.resolve-names(scoped, CS.minimal-builtins)
         named = named-and-bound.ast

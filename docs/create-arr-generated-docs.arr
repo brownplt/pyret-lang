@@ -48,7 +48,6 @@ options = [S.string-dict:
 
 parsed-options = C.parse-cmdline(options)
 
-
 fun find-result(expr):
   cases(A.Expr) expr:
     | s-obj(_, _) => expr
@@ -63,7 +62,6 @@ fun find-result(expr):
       raise("Failure?")
   end
 end
-
 
 fun process-module(file, fields, types, bindings, type-bindings):
   split-fields = process-fields(trim-path(file), fields, types, bindings, type-bindings)
@@ -96,7 +94,7 @@ fun process-module(file, fields, types, bindings, type-bindings):
         e = lookup-value(value, bindings)
         cases(Any) e: # Not guaranteed to be an Expr!
           | crossref(modname, as-name) =>
-            sexp("re-export", [list: 
+            sexp("re-export", [list:
                 spair("name", torepr(name)),
                 sexp("cross-ref", [list: leaf(torepr(modname)), leaf(torepr(as-name))])
               ])
@@ -162,7 +160,7 @@ cases (C.ParsedArguments) parsed-options:
       | empty => print("Require a file name")
       | link(file, more) =>
         file-contents = F.file-to-string(file)
-        parsed = P.parse-dialect(dialect, file-contents, file)
+        parsed = P.surface-parse(file-contents, file)
         scoped = R.desugar-scope(DC.desugar-no-checks(U.append-nothing-if-necessary(parsed).or-else(parsed)), CS.standard-builtins)
         named-and-bound = R.resolve-names(scoped, CS.minimal-builtins)
         named = named-and-bound.ast
