@@ -3,7 +3,7 @@
 provide {
   to-ast: to-ast,
   from-ast: from-ast,
-  ast-to-constr: ast-to-constr
+  quote-ast: quote-ast
 } end
 
 import string-dict as D
@@ -70,6 +70,8 @@ end
   # - contains no s-name (e.g. call resolve-names first)
   # - contains no s-for, s-if, s-op, s-method-field,
   #               s-not, s-when, s-if-pipe, s-paren
+  # - And apparently also no:
+  #     s-if-pipe-else, s-construct
   # - contains no s-underscore in expression position (but it may
   #   appear in binding positions as in s-let-bind, s-letrec-bind)
 
@@ -90,6 +92,7 @@ constructors = [D.string-dict:
   "s-special-import", A.s-special-import,
   "s-hint-exp", A.s-hint-exp,
   "s-hint", A.h-use-loc,
+
   # Desugared:
   "s-var", A.s-var,
   "s-fun", A.s-fun,
@@ -113,7 +116,10 @@ constructors = [D.string-dict:
   "s-for-bind", A.s-for-bind,
 
   "s-if", A.s-if,
+  "s-if-branch", A.s-if-branch,
   "s-if-pipe", A.s-if-pipe,
+  "s-if-pipe-else", A.s-if-pipe-else,
+  "s-if-pipe-branch", A.s-if-pipe-branch,
   "s-when", A.s-when,
 
   "s-op-is", A.s-op-is,
@@ -127,7 +133,11 @@ constructors = [D.string-dict:
   "s-op-raises-not", A.s-op-raises-not,
   "s-op-raises-satisfies", A.s-op-raises-satisfies,
   "s-op-raises-violates", A.s-op-raises-violates,
-
+  
+  "s-construct", A.s-construct,
+  "s-construct-normal", A.s-construct-normal,
+  "s-construct-lazy", A.s-construct-lazy,
+  
   "s-let", A.s-let,
 
   "s-lam", A.s-lam,
@@ -135,27 +145,40 @@ constructors = [D.string-dict:
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
   "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
+  "s-bracket", A.s-bracket,
 
   # Done:
+  "s-undefined", A.s-undefined,
   "s-num", A.s-num,
   "s-frac", A.s-frac,
   "s-bool", A.s-bool,
   "s-str", A.s-str,
   "s-if-else", A.s-if-else,
   "s-prim-app", A.s-prim-app,
+  "s-app", A.s-app,
   "s-block", A.s-block,
   "s-id", A.s-id,
   "s-id-var", A.s-id-var,
-  
-  # TODO:
+  "s-dot", A.s-dot,
+  "s-array", A.s-array,
+
+  "s-obj", A.s-obj,
+  "s-data-field", A.s-data-field,
+  "s-mutable-field", A.s-mutable-field,
+
+  "s-let-expr", A.s-let-expr,
   "s-let-bind", A.s-let-bind,
   "s-var-bind", A.s-var-bind,
+
+  "s-extend", A.s-extend,
+  "s-update", A.s-update,
+  
+  # TODO:
   "s-letrec-bind", A.s-letrec-bind,
   "s-type-bind", A.s-type-bind,
   "s-newtype-bind", A.s-newtype-bind,
   "s-module", A.s-module,
   "s-type-let-expr", A.s-type-let-expr,
-  "s-let-expr", A.s-let-expr,
   "s-letrec", A.s-letrec,
   "s-instantiate", A.s-instantiate,
   "s-user-block", A.s-user-block,
@@ -165,36 +188,21 @@ constructors = [D.string-dict:
   "s-ref", A.s-ref,
   "s-contract", A.s-contract,
   "s-assign", A.s-assign,
-  "s-if-pipe-else", A.s-if-pipe-else,
   "s-cases", A.s-cases,
   "s-cases-else", A.s-cases-else,
   "s-method", A.s-method,
-  "s-extend", A.s-extend,
-  "s-update", A.s-update,
-  "s-obj", A.s-obj,
-  "s-array", A.s-array,
-  "s-construct", A.s-construct,
-  "s-app", A.s-app,
   "s-prim-val", A.s-prim-val,
   "s-id-letrec", A.s-id-letrec,
-  "s-undefined", A.s-undefined,
   "s-srcloc", A.s-srcloc,
-  "s-dot", A.s-dot,
   "s-get-bang", A.s-get-bang,
-  "s-bracket", A.s-bracket,
   "s-data-expr", A.s-data-expr,
-  "s-construct-normal", A.s-construct-normal,
-  "s-construct-lazy", A.s-construct-lazy,
   "s-bind", A.s-bind,
-  "s-data-field", A.s-data-field,
-  "s-mutable-field", A.s-mutable-field,
-  "s-if-branch", A.s-if-branch,
-  "s-if-pipe-branch", A.s-if-pipe-branch,
   "s-cases-bind-ref", A.s-cases-bind-ref,
   "s-cases-bind-normal", A.s-cases-bind-normal,
   "s-cases-bind", A.s-cases-bind,
   "s-cases-branch", A.s-cases-branch,
   "s-singleton-cases-branch", A.s-singleton-cases-branch,
+
   "a-blank", A.a-blank,
   "a-any", A.a-any,
   "a-name", A.a-name,
@@ -212,7 +220,7 @@ constructors = [D.string-dict:
 fun from-ast(ast):
   ask:
     | A.is-Name(ast) then:
-      "NYI"
+      raise("Stepper: Name NYI")
     | A.is-s-value(ast) then:
       R.t-val(ast.val)
     | is-boolean(ast) then:
@@ -311,9 +319,9 @@ fun ast-call(l, name, args):
     args)
 end
 
-fun ast-to-constr(ast):
+fun quote-ast(ast):
   doc: "Given an AST, construct an AST that, when executed, produces the first."
-  recur = ast-to-constr
+  recur = quote-ast
   ask:
     | is-boolean(ast) then:  A.s-bool(dummy-loc, ast)
     | is-string(ast) then:   A.s-str(dummy-loc, ast)

@@ -8,7 +8,7 @@ provide {
 
 import ast as A
 import "compiler/compile-structs.arr" as C
-import convert as CV
+import quote as Q
 import srcloc as SL
 
 # NOTES:
@@ -19,8 +19,23 @@ import srcloc as SL
 # TODO:
 # * Builtin functions like _plus don't get wrapped;
 #   this results in missing steps.
+# * Remove s-escape?
+
+# TYPES:
+#         Core    -- A Pyret core-language ast
+#   `q-`  Quoted  -- A Pyret ast that, when run, produces and ast
+#   `v-`  Visited -- A Pyret ast that's been augmented to show evaluation steps
+#
+#   quote         :: Core   -> Quoted
+#   _.visit       :: Core   -> Visited
+#   PRINT_AST     :: Quoted -> Visited
 
 dummy-loc = SL.builtin("dummy location")
+
+fun quote(ast):
+  ### Core -> Quoted
+  Q.quote-ast(ast)
+end
 
 fun pretty-ast(ast):
   "    " + ast.tosource().pretty(80).join-str("\n    ")
@@ -68,10 +83,11 @@ end
 fun BIND(l, v): A.s-bind(l, false, v, A.a-blank);
 
 fun LET(l):
+  ### for LET(X :: Visited): Visited end -> Visited
   v = A.global-names.make-atom("r$let")
-  lam(body, arg):
-    binding = A.s-let-bind(l, BIND(l, v), arg)
-    A.s-let-expr(l, [list: binding], body(v))
+  lam(v-body, v-arg):
+    binding = A.s-let-bind(l, BIND(l, v), v-arg)
+    A.s-let-expr(l, [list: binding], v-body(v))
   end
 end
 
@@ -86,38 +102,43 @@ fun IF(l, _cond, _then, _else):
   A.s-if-else(l, [list: A.s-if-branch(l, _cond, _then)], _else)
 end
 
-fun PRETTY_AST(l, ast):
-  lines = CALL1(l, CALL0(l, ast, "tosource"), "pretty", A.s-num(l, 80))
+fun PRETTY_AST(l, q-ast):
+  lines = CALL1(l, CALL0(l, q-ast, "tosource"), "pretty", A.s-num(l, 80))
   PLUS(l, A.s-str(l, "    "), CALL1(l, lines, "join-str", A.s-str(l, "\n    ")))
 end
 
-fun PRINT_AST(l,  ast):
-  PRINT(l, PRETTY_AST(l, ast))
+fun PRINT_AST(l, q-ast):
+  ### Quoted -> Visited
+  PRINT(l, PRETTY_AST(l, q-ast))
 end
 
 fun PUSH(l, frame): APP1(l, gid(l, "_push"), frame) end
 fun POP(l):         APP0(l, gid(l, "_pop")) end
 fun WRAP(l, expr):  APP1(l, gid(l, "_wrap"), expr) end
 
-fun STEP_TO(l, ast, visited-ast):
+fun STEP_TO(l, ast, v-ast):
+  ### Core -> Visited -> Visited
   BLOCK(l, [list:
       PRINT(l, A.s-str(l, "->")),
-      PRINT_AST(l, WRAP(l, CV.ast-to-constr(ast))),
-      visited-ast])
+      PRINT_AST(l, WRAP(l, quote(ast))),
+      v-ast])
 end
 
 fun STEP(l, self, ast):
+  ### Core -> Visited
   STEP_TO(l, ast, ast.visit(self))
 end
 
 fun STEP_TO_VALUE(l, ast):
+  ### Core/Visited -> Visited
   STEP_TO(l, A.s-value(ast), ast)
 end
 
 fun FRAME(l, self):
+  ### for FRAME(H :: Core): Core end -> Visited
   lam(frame-wrapper, ast):
     frame = for LAM(l)(H from nothing):
-      CV.ast-to-constr(frame-wrapper(A.s-id(l, H)))
+      quote(frame-wrapper(A.s-id(l, H)))
     end
     BLOCK(l, [list:
         PUSH(l, frame),
@@ -151,6 +172,23 @@ fun FRAMES(l, self, frame-wrapper):
   end
   make-frames
 end
+
+fun get-field-value(field):
+  cases(A.Member) field:
+    | s-data-field(_, _, v)       => v
+    | s-mutable-field(_, _, _, v) => v
+    | else => raise("Stepper: s-method-field NYI")
+  end
+end
+
+fun replace-field-value(field, val):
+  cases(A.Member) field:
+    | s-data-field(_l, _n, _)        => A.s-data-field(_l, _n, val)
+    | s-mutable-field(_l, _n, _a, _) => A.s-mutable-field(_l, _n, _a, val)
+    | else => raise("Stepper: s-method-field NYI")
+  end
+end
+
 
 stepify-visitor = A.default-map-visitor.{
   s-bool(self, l, bool):
@@ -206,6 +244,13 @@ stepify-visitor = A.default-map-visitor.{
       end
     end
   end,
+  s-array(self, l, vals):
+    for FRAMES(l, self, A.s-array(l, _))(VALS from vals):
+      for LET(l)(V from A.s-array(l, VALS)):
+        STEP_TO_VALUE(l, ID(l, V))
+      end
+    end
+  end,
   s-app(self, l, _fun, args):
     for LET(l)(F from
         for FRAME(l, self)(F from _fun):
@@ -254,10 +299,75 @@ stepify-visitor = A.default-map-visitor.{
       STEP_TO_VALUE(l, A.s-dot(l, ID(l, O), field))
     end
   end,
+  s-obj(self, l, mems):
+    fun stepify-obj(mems-f, mems-v, shadow mems):
+      cases(List) mems:
+        | empty =>
+          A.s-obj(l, mems-v)
+        | link(mem, shadow mems) =>
+          cases(A.Member) mem:
+            | s-data-field(_l, _name, _val) =>
+              for LET(l)(V from
+                  for FRAME(l, self)(H from _val):
+                    mem-h = A.s-data-field(_l, _name, H)
+                    A.s-obj(l, mems-f + [list: mem-h] + mems)
+                  end):
+                mem-v = A.s-data-field(_l, _name, ID(l, V))
+                mem-f = A.s-data-field(_l, _name, A.s-value(ID(l, V)))
+                stepify-obj(link(mem-f, mems-f), link(mem-v, mems-v), mems)
+              end
+            | s-mutable-field(_l, _name, _ann, _val) =>
+              for LET(l)(V from
+                  for FRAME(l, self)(H from _val):
+                    mem-h = A.s-mutable-field(_l, _name, _ann, H)
+                    A.s-obj(l, mems-f + [list: mem-h] + mems)
+                  end):
+                mem-v = A.s-mutable-field(_l, _name, _ann, ID(l, V))
+                mem-f = A.s-mutable-field(_l, _name, _ann, A.s-value(ID(l, V)))
+                stepify-obj(link(mem-f, mems-f), link(mem-v, mems-v), mems)
+              end
+            | else => error("s-obj: method-fields NYI")
+          end
+      end
+    end
+    stepify-obj(empty, empty, mems)
+  end,
   s-lam(self, l, params, args, ann, doc, body, _check):
     shadow body = STEP(l, self, body)
     A.s-lam(l, params, args, ann, doc, body, _check)
-  end
+  end,
+  s-update(self, l, supe, fields):
+    for LET(l)(S from
+        for FRAME(l, self)(H from supe):
+          A.s-update(l, H, fields)
+        end):
+      fun make-update(_s, _vals):
+        A.s-update(l, _s, map2(replace-field-value, fields, _vals))
+      end
+      for FRAMES(l, self, make-update(A.s-value(ID(l, S)), _))(
+          VALS from map(get-field-value, fields)):
+        for LET(l)(V from make-update(ID(l, S), VALS)):
+          ID(l, V)
+        end
+      end
+    end
+  end,
+  s-extend(self, l, supe, fields):
+    for LET(l)(S from
+        for FRAME(l, self)(H from supe):
+          A.s-extend(l, H, fields)
+        end):
+      fun make-extend(_s, _vals):
+        A.s-extend(l, _s, map2(replace-field-value, fields, _vals))
+      end
+      for FRAMES(l, self, make-extend(A.s-value(ID(l, S)), _))(
+          VALS from map(get-field-value, fields)):
+        for LET(l)(V from make-extend(ID(l, S), VALS)):
+          ID(l, V)
+        end
+      end
+    end
+  end,
 }
 
 fun stepify(expr):
@@ -339,7 +449,7 @@ fun stepify-expr(expr :: A.Expr) -> A.Expr:
   print("end")
   print("")
   stepified = A.s-block(l, [list:
-      PRINT_AST(l, CV.ast-to-constr(expr)),
+      PRINT_AST(l, quote(expr)),
       stepify(expr)])
   print("-------")
   stepified
