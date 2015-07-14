@@ -99,6 +99,7 @@ constructors = [D.string-dict:
   "s-op", A.s-op,
   "s-method-field", A.s-method-field,
   "s-paren", A.s-paren,
+  "s-user-block", A.s-user-block,
 
   "s-data", A.s-data,
   "s-variant-member", A.s-variant-member,
@@ -140,8 +141,6 @@ constructors = [D.string-dict:
   
   "s-let", A.s-let,
 
-  "s-lam", A.s-lam,
-
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
   "s-datatype-singleton-variant", A.s-datatype-singleton-variant,
@@ -161,6 +160,10 @@ constructors = [D.string-dict:
   "s-id-var", A.s-id-var,
   "s-dot", A.s-dot,
   "s-array", A.s-array,
+  "s-assign", A.s-assign,
+  
+  "s-lam", A.s-lam,
+  "s-method", A.s-method,
 
   "s-obj", A.s-obj,
   "s-data-field", A.s-data-field,
@@ -181,22 +184,19 @@ constructors = [D.string-dict:
   "s-type-let-expr", A.s-type-let-expr,
   "s-letrec", A.s-letrec,
   "s-instantiate", A.s-instantiate,
-  "s-user-block", A.s-user-block,
   "s-type", A.s-type,
   "s-newtype", A.s-newtype,
   "s-rec", A.s-rec,
   "s-ref", A.s-ref,
   "s-contract", A.s-contract,
-  "s-assign", A.s-assign,
-  "s-cases", A.s-cases,
-  "s-cases-else", A.s-cases-else,
-  "s-method", A.s-method,
   "s-prim-val", A.s-prim-val,
   "s-id-letrec", A.s-id-letrec,
   "s-srcloc", A.s-srcloc,
   "s-get-bang", A.s-get-bang,
   "s-data-expr", A.s-data-expr,
   "s-bind", A.s-bind,
+  "s-cases", A.s-cases,
+  "s-cases-else", A.s-cases-else,
   "s-cases-bind-ref", A.s-cases-bind-ref,
   "s-cases-bind-normal", A.s-cases-bind-normal,
   "s-cases-bind", A.s-cases-bind,

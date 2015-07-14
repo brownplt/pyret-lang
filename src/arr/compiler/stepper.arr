@@ -303,7 +303,7 @@ stepify-visitor = A.default-map-visitor.{
     fun stepify-obj(mems-f, mems-v, shadow mems):
       cases(List) mems:
         | empty =>
-          A.s-obj(l, mems-v)
+          STEP_TO_VALUE(l, A.s-obj(l, mems-v))
         | link(mem, shadow mems) =>
           cases(A.Member) mem:
             | s-data-field(_l, _name, _val) =>
@@ -335,6 +335,10 @@ stepify-visitor = A.default-map-visitor.{
   s-lam(self, l, params, args, ann, doc, body, _check):
     shadow body = STEP(l, self, body)
     A.s-lam(l, params, args, ann, doc, body, _check)
+  end,
+  s-method(self, l, params, args, ann, doc, body, _check):
+    shadow body = STEP(l, self, body)
+    A.s-method(l, params, args, ann, doc, body, _check)
   end,
   s-update(self, l, supe, fields):
     for LET(l)(S from
