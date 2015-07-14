@@ -368,6 +368,24 @@ stepify-visitor = A.default-map-visitor.{
       end
     end
   end,
+  #
+  # Would be nice to figure out how to have recursive cases like this:
+  #
+  # s-data-field(self, l, name, val):
+  #   for LET(l)(V from
+  #       for FRAME(l, self)(H from val):
+  #         A.s-data-field(l, name, H)
+  #       end):
+  #     STEP_TO(l,
+  #       A.s-data-field(l, name, ID(l, V)),
+  #       A.s-data-field(l, name, ID(l, V)))
+  #   end
+  # end,
+  s-assign(self, l, id, val):
+    for FRAME(l, self)(H from val):
+      A.s-assign(l, id, H)
+    end
+  end,
 }
 
 fun stepify(expr):
