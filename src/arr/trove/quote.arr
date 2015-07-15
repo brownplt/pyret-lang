@@ -92,6 +92,7 @@ constructors = [D.string-dict:
   "s-special-import", A.s-special-import,
   "s-hint-exp", A.s-hint-exp,
   "s-hint", A.h-use-loc,
+  "s-module", A.s-module,
 
   # Desugared:
   "s-var", A.s-var,
@@ -140,6 +141,7 @@ constructors = [D.string-dict:
   "s-construct-lazy", A.s-construct-lazy,
   
   "s-let", A.s-let,
+  "s-type", A.s-type,
 
   # Dead code?:
   "s-datatype-variant", A.s-datatype-variant,
@@ -158,7 +160,6 @@ constructors = [D.string-dict:
   "s-block", A.s-block,
   "s-id", A.s-id,
   "s-id-var", A.s-id-var,
-  "s-dot", A.s-dot,
   "s-array", A.s-array,
   "s-assign", A.s-assign,
   
@@ -173,27 +174,26 @@ constructors = [D.string-dict:
   "s-let-bind", A.s-let-bind,
   "s-var-bind", A.s-var-bind,
 
+  "s-dot", A.s-dot,
+  "s-get-bang", A.s-get-bang,
   "s-extend", A.s-extend,
   "s-update", A.s-update,
 
   "s-type-let-expr", A.s-type-let-expr,
+  "s-type-bind", A.s-type-bind,
   
   # TODO:
-  "s-type", A.s-type,
-  "s-type-bind", A.s-type-bind,
-  "s-newtype-bind", A.s-newtype-bind,
-  "s-module", A.s-module,
   "s-letrec", A.s-letrec,
   "s-letrec-bind", A.s-letrec-bind,
   "s-instantiate", A.s-instantiate,
   "s-newtype", A.s-newtype,
+  "s-newtype-bind", A.s-newtype-bind,
   "s-rec", A.s-rec,
   "s-ref", A.s-ref,
   "s-contract", A.s-contract,
   "s-prim-val", A.s-prim-val,
   "s-id-letrec", A.s-id-letrec,
   "s-srcloc", A.s-srcloc,
-  "s-get-bang", A.s-get-bang,
   "s-data-expr", A.s-data-expr,
   "s-bind", A.s-bind,
   "s-cases", A.s-cases,

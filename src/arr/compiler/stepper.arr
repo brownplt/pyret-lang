@@ -344,6 +344,14 @@ stepify-visitor = A.default-map-visitor.{
     shadow body = STEP(l, self, body)
     A.s-method(l, params, args, ann, doc, body, _check)
   end,
+  s-get-bang(self, l, obj, field):
+    for LET(l)(OBJ from
+        for FRAME(l, self)(H from obj):
+          A.s-get-bang(l, H, field)
+        end):
+      STEP_TO_VALUE(l, A.s-get-bang(l, ID(l, OBJ), field))
+    end
+  end,
   s-update(self, l, supe, fields):
     for LET(l)(S from
         for FRAME(l, self)(H from supe):
