@@ -1,3 +1,3 @@
 
 type N = Number
-type BB = (Bool -> Bool)
+type BB = (Boolean -> Boolean)
