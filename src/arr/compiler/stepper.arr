@@ -291,6 +291,10 @@ stepify-visitor = A.default-map-visitor.{
     end
     stepify-let(binds, empty)
   end,
+  s-type-let-expr(self, l, binds, body):
+    STEP_TO(l, body,
+      A.s-type-let-expr(l, map(_.visit(self), binds), body.visit(self)))
+  end,
   s-dot(self, l, obj, field):
     for LET(l)(O from
         for FRAME(l, self)(O from obj):

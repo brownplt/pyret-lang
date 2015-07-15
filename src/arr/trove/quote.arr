@@ -175,16 +175,17 @@ constructors = [D.string-dict:
 
   "s-extend", A.s-extend,
   "s-update", A.s-update,
+
+  "s-type-let-expr", A.s-type-let-expr,
   
   # TODO:
-  "s-letrec-bind", A.s-letrec-bind,
+  "s-type", A.s-type,
   "s-type-bind", A.s-type-bind,
   "s-newtype-bind", A.s-newtype-bind,
   "s-module", A.s-module,
-  "s-type-let-expr", A.s-type-let-expr,
   "s-letrec", A.s-letrec,
+  "s-letrec-bind", A.s-letrec-bind,
   "s-instantiate", A.s-instantiate,
-  "s-type", A.s-type,
   "s-newtype", A.s-newtype,
   "s-rec", A.s-rec,
   "s-ref", A.s-ref,
@@ -323,6 +324,20 @@ fun quote-ast(ast):
   doc: "Given an AST, construct an AST that, when executed, produces the first."
   recur = quote-ast
   ask:
+    | A.is-Name(ast) then:
+      cases(A.Name) ast:
+        | s-underscore(l) =>
+          ast-call(l, "s-underscore", [list: ast-srcloc(l)])
+        | s-global(s) =>
+          ast-call(dummy-loc, "s-global", [list: A.s-str(dummy-loc, s)])
+        | s-type-global(s) =>
+          ast-call(dummy-loc, "s-type-global", [list: A.s-str(dummy-loc, s)])
+        | s-atom(base, serial) =>
+          l = dummy-loc
+          ast-call(l, "s-atom", [list: A.s-str(l, base), A.s-num(l, serial)])
+        | s-name(l, s) =>
+          raise("Stepper/quote internal error: s-name should have been desugared away.")
+      end
     | is-boolean(ast) then:  A.s-bool(dummy-loc, ast)
     | is-string(ast) then:   A.s-str(dummy-loc, ast)
     | is-number(ast) then:   A.s-num(dummy-loc, ast)
