@@ -41,17 +41,14 @@ The number immediately preceding 'ops/sec' is the main thing to focus on. The hi
 ### Auto Report
 Run `./auto-report.run` from `tools/benchmark`; this will create a file auto-report.csv, which will roughly look like this:
 ```
-name,0_empty.arr
-success,true
-parse,571.2541417487765,11.71407907994302,70
-load,4.372520267342395,7.158870557550586,26
-eval,713.2221905744033,1.279400581680515,84
-name,1_empty-with-comments.arr
-success,true
-parse,9.135781960203424,0.5677335587719914,27
-load,4.628862096483652,3.4233762978341575,28
-eval,670.4431415133222,6.126974521626943,80
+name,success,function,hz,rme,samples
+0_empty.arr,true,parse,249.6111453557809,1.6570118309046231,37
+0_empty.arr,true,load,8.873037616118994,5.045351099815703,46
+0_empty.arr,true,eval,251.99298336529355,10.120326585442323,76
+1_empty-with-comments.arr,true,parse,8.037688242099486,7.707525046697203,23
+1_empty-with-comments.arr,true,load,6.841507799082858,8.419724334489054,39
+1_empty-with-comments.arr,true,eval,222.18062488593227,12.99515319300458,59
 ...
 ```
 
-For example, the fourth line is the measurement of loading the ast into javascript after parsing 0_empty.arr. It was rated at roughly 4.37Hz with a relative margin of error of roughly 7.16%; it sampled 26 runs to determine these data.
+For example, the sixth line is the measurement of loading the ast into javascript after parsing 0_empty.arr. It was rated at roughly 6.84Hz with a relative margin of error of roughly 8.42%; it sampled 39 runs to determine these data.
