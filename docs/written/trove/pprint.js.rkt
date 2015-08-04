@@ -105,7 +105,7 @@
         
       ]
       @method-spec[
-        "_tostring"
+        "_output"
         ;; N.B. Pyret contract: (PPrintDoc -> Any)
         
       ]

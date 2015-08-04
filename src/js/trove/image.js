@@ -49,7 +49,7 @@ define([
         "empty-scene": Fun([Num, Num], tscene),
         "put-image": Fun([TImage, Num, Num, TImage], TImage),
         "place-image": Fun([TImage, Num, Num, TImage], TImage),
-        "place-image": Fun([TImage, Num, Num, Str, Str, TImage], TImage),
+        "place-image-align": Fun([TImage, Num, Num, Str, Str, TImage], TImage),
         "rotate": Fun([Num, TImage], TImage),
         "scale": Fun([Num, TImage], TImage),
         "scale-xy": Fun([Num, Num, TImage], TImage),

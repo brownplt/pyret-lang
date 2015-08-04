@@ -57,7 +57,7 @@
     }
     @shared{
       @method-spec[
-        "_tostring"
+        "_output"
         ;; N.B. Pyret contract: (Srcloc -> Any)
         
       ]

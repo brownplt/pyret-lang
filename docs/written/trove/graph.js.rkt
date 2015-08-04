@@ -122,8 +122,8 @@
 
   @nested[#:style 'inset]{
   @constructor-doc["Graph" "graph" (list `("vertices" ("type" "normal") ("contract" ,(L-of (Vertex-of "a"))))
-                                         `("edges" ("type" "normal") ("contract" ,(L-of (Edge-of "a" "b"))))
-                                          (Graph-of "a" "b"))]{
+                                         `("edges" ("type" "normal") ("contract" ,(L-of (Edge-of "a" "b")))))
+                                          (Graph-of "a" "b")]{
     A graph.
     @member-spec["vertices" #:type "normal" #:contract (L-of (Vertex-of "a"))]{
       A list of vertices.
