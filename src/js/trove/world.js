@@ -50,6 +50,17 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                 t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
               ],
               wcOfA)),
+        "on-event":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.any], t.tyvar("a"))],
+                    wcOfA)),
+        "to-event":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.any),
+                t.string],
+                    wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
         "is-key-equal": t.arrow([t.string, t.string], t.boolean)
       },
@@ -433,7 +444,52 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         };
 
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
+        //////////////////////////////////////////////////////////////////////
 
+        var OnEvent = function(handler, acc, name) {
+            WorldConfigOption.call(this, 'on-event');
+            this.handler = handler;
+            this.acc = acc;
+            this.event = name;
+        };
+
+        OnEvent.prototype = Object.create(WorldConfigOption.prototype);
+
+        OnEvent.prototype.toRawHandler = function(toplevelNode) {
+            var that = this;
+            var worldFunction = adaptWorldFunction(that.handler);
+            return rawJsworld.on_event(worldFunction, that.acc, that.event);
+        };
+
+
+        //////////////////////////////////////////////////////////////////////
+
+        var ToEvent = function(handler, acc, ename) {
+            WorldConfigOption.call(this, 'to-event');
+            this.handler = handler;
+            this.acc = acc;
+            this.event = ename;
+        };
+
+        ToEvent.prototype = Object.create(WorldConfigOption.prototype);
+
+        ToEvent.prototype.toRawHandler = function(toplevelNode) {
+            var that = this;
+            var worldFunction = adaptWorldFunction(that.handler);
+            var eventGen = function(w, k) {
+                worldFunction(w, function(v) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST","https://api.particle.io/v1/devices/events");
+                    xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                    xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + v + "&private=true&ttl=60");
+                    k(w);
+                });
+            };
+            return rawJsworld.on_world_change(eventGen);
+        };
+
+
+        //////////////////////////////////////////////////////////////////////
 
 
         // The default tick delay is 28 times a second.
@@ -484,6 +540,20 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               ffi.checkArity(1, arguments, "on-mouse");
               runtime.checkFunction(onMouse);
               return runtime.makeOpaque(new OnMouse(onMouse));
+            }),
+            "on-event": makeFunction(function(onEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "on-event");
+              runtime.checkFunction(onEvent);
+              runtime.checkString(acc);
+              runtime.checkString(eName);
+              return runtime.makeOpaque(new OnEvent(onEvent,acc,eName));
+            }),
+            "to-event": makeFunction(function(toEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "to-event");
+              runtime.checkFunction(toEvent);
+              runtime.checkString(acc);
+              runtime.checkString(eName);
+              return runtime.makeOpaque(new ToEvent(toEvent,acc,eName));
             }),
             "is-world-config": makeFunction(function(v) {
               ffi.checkArity(1, arguments, "is-world-config");
