@@ -50,12 +50,12 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                 t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
               ],
               wcOfA)),
-        "on-event":
+        "on-particle":
           t.forall(["a"],
             t.arrow([
                 t.arrow([t.tyvar("a"), t.any], t.tyvar("a"))],
                     wcOfA)),
-        "to-event":
+        "to-particle":
           t.forall(["a"],
             t.arrow([
                 t.arrow([t.tyvar("a")], t.any),
@@ -446,34 +446,34 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
         //////////////////////////////////////////////////////////////////////
 
-        var OnEvent = function(handler, acc, name) {
-            WorldConfigOption.call(this, 'on-event');
+        var OnParticle = function(handler, acc, name) {
+            WorldConfigOption.call(this, 'on-particle');
             this.handler = handler;
             this.acc = acc;
             this.event = name;
         };
 
-        OnEvent.prototype = Object.create(WorldConfigOption.prototype);
+        OnParticle.prototype = Object.create(WorldConfigOption.prototype);
 
-        OnEvent.prototype.toRawHandler = function(toplevelNode) {
+        OnParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
             var worldFunction = adaptWorldFunction(that.handler);
-            return rawJsworld.on_event(worldFunction, that.acc, that.event);
+            return rawJsworld.on_particle(worldFunction, that.acc, that.event);
         };
 
 
         //////////////////////////////////////////////////////////////////////
 
-        var ToEvent = function(handler, acc, ename) {
-            WorldConfigOption.call(this, 'to-event');
+        var ToParticle = function(handler, acc, ename) {
+            WorldConfigOption.call(this, 'to-particle');
             this.handler = handler;
             this.acc = acc;
             this.event = ename;
         };
 
-        ToEvent.prototype = Object.create(WorldConfigOption.prototype);
+        ToParticle.prototype = Object.create(WorldConfigOption.prototype);
 
-        ToEvent.prototype.toRawHandler = function(toplevelNode) {
+        ToParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
             var worldFunction = adaptWorldFunction(that.handler);
             var eventGen = function(w, k) {
@@ -541,19 +541,19 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               runtime.checkFunction(onMouse);
               return runtime.makeOpaque(new OnMouse(onMouse));
             }),
-            "on-event": makeFunction(function(onEvent,acc,eName) {
-              ffi.checkArity(3, arguments, "on-event");
+            "on-particle": makeFunction(function(onEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "on-particle");
               runtime.checkFunction(onEvent);
               runtime.checkString(acc);
               runtime.checkString(eName);
-              return runtime.makeOpaque(new OnEvent(onEvent,acc,eName));
+              return runtime.makeOpaque(new OnParticle(onEvent,acc,eName));
             }),
-            "to-event": makeFunction(function(toEvent,acc,eName) {
-              ffi.checkArity(3, arguments, "to-event");
+            "to-particle": makeFunction(function(toEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "to-particle");
               runtime.checkFunction(toEvent);
               runtime.checkString(acc);
               runtime.checkString(eName);
-              return runtime.makeOpaque(new ToEvent(toEvent,acc,eName));
+              return runtime.makeOpaque(new ToParticle(toEvent,acc,eName));
             }),
             "is-world-config": makeFunction(function(v) {
               ffi.checkArity(1, arguments, "is-world-config");

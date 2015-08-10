@@ -804,7 +804,7 @@ define(["js/runtime-util"], function(util) {
     Jsworld.on_mouse = on_mouse;
 
 
-    function on_event(handler, acc, eName) {
+    function on_particle(handler, acc, eName) {
         return function() {
             var evtSource;
             return {
@@ -823,7 +823,7 @@ define(["js/runtime-util"], function(util) {
             };
         };
     }
-    Jsworld.on_event = on_event;
+    Jsworld.on_particle = on_particle;
 
 
 
