@@ -53,12 +53,13 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         "on-particle":
           t.forall(["a"],
             t.arrow([
-                t.arrow([t.tyvar("a"), t.any], t.tyvar("a"))],
+                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
+                t.string],
                     wcOfA)),
         "to-particle":
           t.forall(["a"],
             t.arrow([
-                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.any])),
+                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.string])),
                 t.string],
                     wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),

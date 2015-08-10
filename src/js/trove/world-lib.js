@@ -814,7 +814,7 @@ define(["js/runtime-util"], function(util) {
                                                function(e) {
                                                    data = JSON.parse(e.data);
                                                    change_world(function(w,k) {
-                                                       handler(w, data.data, k);
+                                                       handler(w, JSON.stringify(data.data), k);
                                                    }, doNothing)});
                 },
                 onUnregister: function(top) {
