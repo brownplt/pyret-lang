@@ -58,7 +58,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         "to-particle":
           t.forall(["a"],
             t.arrow([
-                t.arrow([t.tyvar("a")], t.any),
+                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.any])),
                 t.string],
                     wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
@@ -478,10 +478,12 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
             var worldFunction = adaptWorldFunction(that.handler);
             var eventGen = function(w, k) {
                 worldFunction(w, function(v) {
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("POST","https://api.particle.io/v1/devices/events");
-                    xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                    xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + v + "&private=true&ttl=60");
+                    if(ffi.isSome(v)) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("POST","https://api.particle.io/v1/devices/events");
+                        xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                        xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
+                    }
                     k(w);
                 });
             };

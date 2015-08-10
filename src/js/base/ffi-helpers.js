@@ -414,6 +414,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
         makeList: makeList,
         makeTreeSet: makeTreeSet,
+        isNone: function(v) { return runtime.getField(O, "is-none").app(v); },
+        isSome: function(v) { return runtime.getField(O, "is-some").app(v); },
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
 
