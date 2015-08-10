@@ -108,6 +108,27 @@
               (item (pyret "\"leave\"") 
                     " signals that the computer user has moved the mouse out of the canvas area.")]
   }
+  @function["on-particle"
+            #:contract (a-arrow (a-arrow "a" S "a") S WC)
+            #:args (list '("onParticle" "access" ""))]{
+  Consumes a function and a string and returns a handler that, when passed to
+  @secref[(tag-name "world" "big-bang")], will be called on every event
+  received from the Particle private event stream.  The string is your Particle
+  access token.  The function is called with the current world state and a
+  string containing the data associated with the received event.
+  }
+  @function["to-particle"
+            #:contract (a-arrow (a-arrow "a" (O-of S)) S WC)
+            #:args (list '("writer" "access" ""))]{
+            @pyret["access"] is your Particle access token.
+  Consumes a function and a string and returns a handler that, when passed to
+  @secref[(tag-name "world" "big-bang")], will inform the world program what
+  events to send on the Particle private event stream. The string is your
+  Particle access token.  The function is called with the current world state
+  and should return @secref[(tag-name "option" "none")] if no event should be
+  sent, and otherwise should send a @secref[(tag-name "option" "some")] value
+  containing the string data to associate with the new event.
+  }
   @function["stop-when"
             #:contract (a-arrow (a-arrow "a" B)
                                 WC)

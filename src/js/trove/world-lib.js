@@ -804,6 +804,26 @@ define(["js/runtime-util"], function(util) {
     Jsworld.on_mouse = on_mouse;
 
 
+    function on_particle(handler, acc, eName) {
+        return function() {
+            var evtSource;
+            return {
+                onRegister: function(top) {
+                    evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + acc);
+                    evtSource.addEventListener(eName,
+                                               function(e) {
+                                                   data = JSON.parse(e.data);
+                                                   change_world(function(w,k) {
+                                                       handler(w, JSON.stringify(data.data), k);
+                                                   }, doNothing)});
+                },
+                onUnregister: function(top) {
+                    evtSource.close();
+                }
+            };
+        };
+    }
+    Jsworld.on_particle = on_particle;
 
 
 

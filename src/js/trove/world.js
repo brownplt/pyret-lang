@@ -50,6 +50,18 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                 t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
               ],
               wcOfA)),
+        "on-particle":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
+                t.string],
+                    wcOfA)),
+        "to-particle":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.string])),
+                t.string],
+                    wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
         "is-key-equal": t.arrow([t.string, t.string], t.boolean)
       },
@@ -433,7 +445,54 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         };
 
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
+        //////////////////////////////////////////////////////////////////////
 
+        var OnParticle = function(handler, acc, name) {
+            WorldConfigOption.call(this, 'on-particle');
+            this.handler = handler;
+            this.acc = acc;
+            this.event = name;
+        };
+
+        OnParticle.prototype = Object.create(WorldConfigOption.prototype);
+
+        OnParticle.prototype.toRawHandler = function(toplevelNode) {
+            var that = this;
+            var worldFunction = adaptWorldFunction(that.handler);
+            return rawJsworld.on_particle(worldFunction, that.acc, that.event);
+        };
+
+
+        //////////////////////////////////////////////////////////////////////
+
+        var ToParticle = function(handler, acc, ename) {
+            WorldConfigOption.call(this, 'to-particle');
+            this.handler = handler;
+            this.acc = acc;
+            this.event = ename;
+        };
+
+        ToParticle.prototype = Object.create(WorldConfigOption.prototype);
+
+        ToParticle.prototype.toRawHandler = function(toplevelNode) {
+            var that = this;
+            var worldFunction = adaptWorldFunction(that.handler);
+            var eventGen = function(w, k) {
+                worldFunction(w, function(v) {
+                    if(ffi.isSome(v)) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("POST","https://api.particle.io/v1/devices/events");
+                        xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                        xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
+                    }
+                    k(w);
+                });
+            };
+            return rawJsworld.on_world_change(eventGen);
+        };
+
+
+        //////////////////////////////////////////////////////////////////////
 
 
         // The default tick delay is 28 times a second.
@@ -484,6 +543,20 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               ffi.checkArity(1, arguments, "on-mouse");
               runtime.checkFunction(onMouse);
               return runtime.makeOpaque(new OnMouse(onMouse));
+            }),
+            "on-particle": makeFunction(function(onEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "on-particle");
+              runtime.checkFunction(onEvent);
+              runtime.checkString(acc);
+              runtime.checkString(eName);
+              return runtime.makeOpaque(new OnParticle(onEvent,acc,eName));
+            }),
+            "to-particle": makeFunction(function(toEvent,acc,eName) {
+              ffi.checkArity(3, arguments, "to-particle");
+              runtime.checkFunction(toEvent);
+              runtime.checkString(acc);
+              runtime.checkString(eName);
+              return runtime.makeOpaque(new ToParticle(toEvent,acc,eName));
             }),
             "is-world-config": makeFunction(function(v) {
               ffi.checkArity(1, arguments, "is-world-config");
