@@ -185,6 +185,7 @@ constructors = [D.string-dict:
   # TODO:
   "s-letrec", A.s-letrec,
   "s-letrec-bind", A.s-letrec-bind,
+
   "s-instantiate", A.s-instantiate,
   "s-newtype", A.s-newtype,
   "s-newtype-bind", A.s-newtype-bind,
@@ -196,6 +197,7 @@ constructors = [D.string-dict:
   "s-srcloc", A.s-srcloc,
   "s-data-expr", A.s-data-expr,
   "s-bind", A.s-bind,
+
   "s-cases", A.s-cases,
   "s-cases-else", A.s-cases-else,
   "s-cases-bind-ref", A.s-cases-bind-ref,

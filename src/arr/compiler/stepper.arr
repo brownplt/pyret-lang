@@ -291,6 +291,59 @@ stepify-visitor = A.default-map-visitor.{
     end
     stepify-let(binds, empty)
   end,
+  s-letrec(self, l, binds, body):
+    fun replace-bind-value(bind, val):
+      cases(A.LetrecBind) bind:
+        | s-letrec-bind(_l, _b, _) => A.s-letrec-bind(_l, _b, val)
+      end
+    end
+    if binds.length() == 2:
+      x    = binds.get(0).bind
+      xval = binds.get(0).value
+      y    = binds.get(1).bind
+      yval = binds.get(1).value
+      A.s-letrec(l, [list:
+          A.s-letrec-bind(l, x,
+            
+    else:
+      raise("Stepper: letrec NYI")
+    end
+    fun stepify-letrec(remaining-binds, Vs):
+      cases(List) remaining-binds:
+        | empty =>
+          map2(replace-bind-value, binds, Vs.reverse())
+          
+          shadow binds = map2(replace-bind-value, binds, Vs.reverse())
+          A.s-letrec-expr(l, binds, body.visit(self))
+        | link(bind, shadow remaining-binds) =>
+          new-bind = for LET(l)(V from
+              for FRAME(l, self)(V from bind.value):
+                shadow bind = replace-bind-value(bind, V)
+                A.s-letrec-expr(l, link(bind, remaining-binds), body)
+              end):
+            T = if is-empty(remaining-binds): body
+                else: A.s-letrec-expr(l, remaining-binds, body)
+                end
+            STEP_TO(l, T,
+              stepify-letrec(re
+          end
+          
+          for LET(l)(V from
+              for FRAME(l, self)(V from bind.value):
+                shadow bind = replace-bind-value(bind, V)
+                A.s-let-expr(l, link(bind, remaining-binds), body)
+              end):
+            T = if is-empty(remaining-binds): body
+                else: A.s-let-expr(l, remaining-binds, body)
+                end
+            STEP_TO(l, T,
+              stepify-let(remaining-binds, link(ID(l, V), Vs)))
+          end
+      end
+    end
+    result = stepify-letrec(binds, empty)
+    A.s-letrec(l, result.binds, 
+  end,
   s-type-let-expr(self, l, binds, body):
     STEP_TO(l, body,
       A.s-type-let-expr(l, map(_.visit(self), binds), body.visit(self)))
