@@ -366,8 +366,8 @@ $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
 
 ifdef VERSION
-release-gzip: $(PYRET_COMP) phase1 $(RELEASE_DIR)/phase1
-	gzip -c $(PYRET_COMP) > $(RELEASE_DIR)/pyret.js
+release-gzip: $(PYRET_COMP) phase1 standalone1 $(RELEASE_DIR)/phase1
+	gzip -c $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret.js
 	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
 	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
 horizon-gzip: standalone1 $(RELEASE_DIR)/phase1
