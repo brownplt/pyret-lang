@@ -262,13 +262,13 @@ define(["js/runtime-util"], function(util) {
     // Given a native dom node, produces the appropriate tree.
     function node_to_tree(domNode) {
         var result = [domNode], c = domNode.firstChild;
-        if (c === undefined) { return result; {
+        if (c === undefined) { return result; }
         else {
           for (c = domNode.firstChild; c !== null; c = c.nextSibling) {
               result.push(node_to_tree(c));
           }
           return result;
-        {
+        }
     }
     Jsworld.node_to_tree = node_to_tree;
 
