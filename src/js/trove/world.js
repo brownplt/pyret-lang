@@ -418,6 +418,8 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                   return runtime.toReprJS(world, runtime.ReprMethods._torepr);
               }, function(str) {
                   textNode.text(str);
+                  success([toplevelNode,
+-                          rawJsworld.node_to_tree(textNode[0])]);
               });
             };
             var cssFunction = function(w, success) { success([]); }
