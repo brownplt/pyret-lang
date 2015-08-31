@@ -2291,6 +2291,10 @@ define(function() {
                                         subtract(this.i, other.i));
   }
 
+  ComplexRational.prototype.negate = function() {
+    return ComplexRational.makeInstance(negate(this.r), negate(this.i));
+  }
+
   ComplexRational.prototype.multiply = function(other) {
     if (other.isReal()) {
       return ComplexRational.makeInstance(
