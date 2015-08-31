@@ -2199,9 +2199,86 @@ define(function() {
       this.r, negate(this.i))
   }
 
+  ComplexRational.prototype.ceiling = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("ceiling: expects argument to be real number", this);
+    }
+    return ceiling(this.r);
+  }
+
+  ComplexRational.prototype.floor = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("floor: expects argument to be real number", this);
+    }
+    return floor(this.r);
+  }
+
+  ComplexRational.prototype.round = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("round: expects argument to be real number", this); //really?
+    }
+    return round(this.r);
+  }
+
   ComplexRational.prototype.equals = function(other) {
     return (equals(this.r, other.r) &&
       equals(this.i, other.i))
+  }
+
+  ComplexRational.prototype.greaterThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">: expects argument to be real numbers", this, other);
+    }
+    return greaterThan(this.r, other.r);
+  }
+
+  ComplexRational.prototype.greaterThanOrEqual = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">=: expects argument to be real numbers", this, other);
+    }
+    return greaterThanOrEqual(this.r, other.r);
+  }
+
+  ComplexRational.prototype.lessThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError("<: expects argument to be real numbers", this, other);
+    }
+    return lessThan(this.r, other.r);
+  }
+
+  ComplexRational.prototype.lessThanOrEqual = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError("<=: expects argument to be real numbers", this, other);
+    }
+    return lessThanOrEqual(this.r, other.r);
+  }
+
+  ComplexRational.prototype.greaterThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">: expects argument to be real numbers", this, other);
+    }
+    return greaterThan(this.r, other.r);
+  }
+
+  ComplexRational.prototype.abs = function() { // = magnitude?
+    if (!this.isReal()) {
+      throwRuntimeError("abs: expects argument to be real number", this);
+    }
+    return abs(this.r);
+  }
+
+  ComplexRational.prototype.numerator = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("numerator: expects argument to be real number", this);
+    }
+    return numerator(this.r);
+  }
+
+  ComplexRational.prototype.denominator = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("denominator: expects argument to be real number", this);
+    }
+    return denominator(this.r);
   }
 
   ComplexRational.prototype.add = function(other) {
@@ -2236,6 +2313,102 @@ define(function() {
       add(multiply(other.r,other.r), multiply(other.i,other.i)))
   }
 
+  ComplexRational.prototype.integerSqrt = function() {
+    if (this.isInteger()) {
+      return integerSqrt(this.r);
+    } else {
+      throwRuntimeError("integerSqrt: expects argument to be an integer", this);
+    }
+  }
+
+  ComplexRational.prototype.sqrt = function() {
+    if (this.isReal()) {
+      return sqrt(this.r);
+    }
+
+    var rPlusX = add(this.magnitude(), this.r);
+    var r = sqrt(halve(rPlusX));
+    var i = divide(this.i, sqrt(multiply(rPlusX, 2)));
+    return makeComplexNumber(r, i);
+  }
+
+  ComplexRational.prototype.log = function() {
+    var m = this.magnitude(),
+      theta = this.angle;
+    var result = add(log(m), timesI(theta));
+    return result;
+  }
+
+  ComplexRational.prototype.tan = function() {
+    return divide(this.sin(), this.cos());
+  }
+
+  ComplexRational.prototype.atan = function() {
+    if (equals(this, plusI) || equals(this, minusI)) {
+      throwRuntimeError(neginf);
+    }
+    return multiply(plusI,
+                    multiply(Rational.makeInstance(1,2),
+                             log(divide(
+                               add(plusI, this),
+                               add(plusI, negate(this))))));
+  }
+
+  ComplexRational.prototype.cos = function() {
+    if (this.isReal()) {
+      return cos(this.r);
+    }
+    var iz = timesI(this);
+    var izNegate = negate(iz);
+    return halve(add(exp(iz), exp(izNegate)));
+  }
+
+  ComplexRational.prototype.sin = function() {
+    if (this.isReal()) {
+      return sin(this.r);
+    }
+    var iz = timesI(this);
+    var izNegate = negate(iz);
+    var z2 = makeComplexNumber(0, 2);
+    var expNegate = subtract(exp(iz), exp(izNegate));
+    return divide(expNegate, z2);
+  }
+
+  ComplexRational.prototype.expt = function(y) {
+    if (isExactInteger(y) && greaterThanOrEqual(y, 0)) {
+      return fastExpt(this, y);
+    }
+    var expo = multiply(y, this.log());
+    return exp(expo);
+  }
+
+  ComplexRational.prototype.exp = function() {
+    var r = exp(this.r);
+    var cosA = cos(this.i);
+    var sinA = sin(this.i);
+    return multiply(r, makeComplexNumber(cosA, sinA));
+  }
+
+  ComplexRational.prototype.acos = function() {
+    if (this.isReal()) {
+      return acos(this.r);
+    }
+    var piHalf = halve(Roughnum.pi);
+    var iz = timesI(this);
+    var root = sqrt(subtract(1, sqr(this)));
+    var l = timesI(log(add(iz, root)));
+    return add(piHalf, l);
+  }
+
+  ComplexRational.prototype.asin = function() {
+    if (this.isReal()) {
+      return asin(this.r);
+    }
+    var oneNegateThisSq = subtract(1, sqr(this));
+    var sqrtOneNegateThisSq = sqrt(oneNegateThisSq);
+    return multiply(2, atan(divide(this, add(1, sqrtOneNegateThisSq))));
+  }
+
   // ComplexRoughnums
 
   var ComplexRoughnum = function(r, i) {
@@ -2262,7 +2435,7 @@ define(function() {
       this.i.toString() + "i";
   }
 
-  ComplexRoughnum.prototype.toFixnum = function() {
+  ComplexRoughnum.prototype.toFixnum = function() {  // REDO
     throwRuntimeError("can't convert complex to fixnum")
   }
 
@@ -2367,8 +2540,85 @@ define(function() {
       this.r, -this.i)
   }
 
+  ComplexRoughnum.prototype.ceiling = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("ceiling: expects argument to be real number", this);
+    }
+    return ceiling(this.r);
+  }
+
+  ComplexRoughnum.prototype.floor = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("floor: expects argument to be real number", this);
+    }
+    return floor(this.r);
+  }
+
+  ComplexRoughnum.prototype.round = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("round: expects argument to be real number", this); //really?
+    }
+    return round(this.r);
+  }
+
   ComplexRoughnum.prototype.equals = function(other, aUnionFind) {
     throwRuntimeError("complex numbers can't be compared for equality");
+  }
+
+  ComplexRoughnum.prototype.greaterThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">: expects argument to be real numbers", this, other);
+    }
+    return greaterThan(this.r, other.r);
+  }
+
+  ComplexRoughnum.prototype.greaterThanOrEqual = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">=: expects argument to be real numbers", this, other);
+    }
+    return greaterThanOrEqual(this.r, other.r);
+  }
+
+  ComplexRoughnum.prototype.lessThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError("<: expects argument to be real numbers", this, other);
+    }
+    return lessThan(this.r, other.r);
+  }
+
+  ComplexRoughnum.prototype.lessThanOrEqual = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError("<=: expects argument to be real numbers", this, other);
+    }
+    return lessThanOrEqual(this.r, other.r);
+  }
+
+  ComplexRoughnum.prototype.greaterThan = function(other) {
+    if (!this.isReal() || !other.isReal()) {
+      throwRuntimeError(">: expects argument to be real numbers", this, other);
+    }
+    return greaterThan(this.r, other.r);
+  }
+
+  ComplexRoughnum.prototype.abs = function() { // = magnitude?
+    if (!this.isReal()) {
+      throwRuntimeError("abs: expects argument to be real number", this);
+    }
+    return abs(this.r);
+  }
+
+  ComplexRoughnum.prototype.numerator = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("numerator: expects argument to be real number", this);
+    }
+    return numerator(this.r);
+  }
+
+  ComplexRoughnum.prototype.denominator = function() {
+    if (!this.isReal()) {
+      throwRuntimeError("denominator: expects argument to be real number", this);
+    }
+    return denominator(this.r);
   }
 
   ComplexRoughnum.prototype.add = function(other) {
@@ -2398,6 +2648,102 @@ define(function() {
     return toComplexRoughnum(divide(
       multiply(this, conjugate(other)),
       other.r*other.r + other.i*other.i))
+  }
+
+  ComplexRoughnum.prototype.integerSqrt = function() {
+    if (this.isInteger()) {
+      return toComplexRoughnum(integerSqrt(this.r));
+    } else {
+      throwRuntimeError("integerSqrt: expects argument to be an integer", this);
+    }
+  }
+
+  ComplexRoughnum.prototype.sqrt = function() {
+    if (this.isReal()) {
+      return toComplexRoughnum(sqrt(this.r));
+    }
+
+    var rPlusX = add(this.magnitude(), this.r);
+    var r = sqrt(halve(rPlusX));
+    var i = divide(this.i, sqrt(multiply(rPlusX, 2)));
+    return toComplexRoughnum(makeComplexNumber(r, i));
+  }
+
+  ComplexRoughnum.prototype.log = function() {
+    var m = this.magnitude(),
+      theta = this.angle;
+    var result = add(log(m), timesI(theta));
+    return toComplexRoughnum(result);
+  }
+
+  ComplexRoughnum.prototype.tan = function() {
+    return toComplexRoughnum(divide(this.sin(), this.cos()));
+  }
+
+  ComplexRoughnum.prototype.atan = function() {
+    if (equals(this, plusI) || equals(this, minusI)) {
+      throwRuntimeError(neginf);
+    }
+    return toComplexRoughnum(multiply(plusI,
+                    multiply(Rational.makeInstance(1,2),
+                             log(divide(
+                               add(plusI, this),
+                               add(plusI, negate(this)))))));
+  }
+
+  ComplexRoughnum.prototype.cos = function() {
+    if (this.isReal()) {
+      return toComplexRoughnum(cos(this.r));
+    }
+    var iz = timesI(this);
+    var izNegate = negate(iz);
+    return toComplexRoughnum(halve(add(exp(iz), exp(izNegate))));
+  }
+
+  ComplexRoughnum.prototype.sin = function() {
+    if (this.isReal()) {
+      return toComplexRoughnum(sin(this.r));
+    }
+    var iz = timesI(this);
+    var izNegate = negate(iz);
+    var z2 = makeComplexNumber(0, 2);
+    var expNegate = subtract(exp(iz), exp(izNegate));
+    return toComplexRoughnum(divide(expNegate, z2));
+  }
+
+  ComplexRoughnum.prototype.expt = function(y) {
+    if (isExactInteger(y) && greaterThanOrEqual(y, 0)) {
+      return toComplexRoughnum(fastExpt(this, y));
+    }
+    var expo = multiply(y, this.log());
+    return toComplexRoughnum(exp(expo));
+  }
+
+  ComplexRoughnum.prototype.exp = function() {
+    var r = exp(this.r);
+    var cosA = cos(this.i);
+    var sinA = sin(this.i);
+    return toComplexRoughnum(multiply(r, makeComplexNumber(cosA, sinA)));
+  }
+
+  ComplexRoughnum.prototype.acos = function() {
+    if (this.isReal()) {
+      return acos(this.r);
+    }
+    var piHalf = halve(Roughnum.pi);
+    var iz = timesI(this);
+    var root = sqrt(subtract(1, sqr(this)));
+    var l = timesI(log(add(iz, root)));
+    return toComplexRoughnum(add(piHalf, l));
+  }
+
+  ComplexRoughnum.prototype.asin = function() {
+    if (this.isReal()) {
+      return toComplexRoughnum(asin(this.r));
+    }
+    var oneNegateThisSq = subtract(1, sqr(this));
+    var sqrtOneNegateThisSq = sqrt(oneNegateThisSq);
+    return toComplexRoughnum(multiply(2, atan(divide(this, add(1, sqrtOneNegateThisSq)))));
   }
 
   //
