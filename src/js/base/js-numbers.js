@@ -2119,7 +2119,7 @@ define(function() {
   }
 
   ComplexRational.prototype.isInteger = function() {
-    return _integerIsZero(this.i) && this.r.isInteger();
+    return _integerIsZero(this.i) && isInteger(this.r);
   }
 
   ComplexRational.prototype.isRational = function() {
