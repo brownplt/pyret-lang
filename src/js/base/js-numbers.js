@@ -1048,6 +1048,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return -n;
     }
+    console.log('negate of ' + n);
     return n.negate();
   };
 
@@ -2363,7 +2364,9 @@ define(function() {
       return cos(this.r);
     }
     var iz = timesI(this);
+    console.log('calling negate of ' + iz);
     var izNegate = negate(iz);
+    console.log('izNegate is ' +  izNegate);
     return halve(add(exp(iz), exp(izNegate)));
   }
 
@@ -4840,7 +4843,7 @@ define(function() {
   Numbers['ComplexRoughnum'] = ComplexRoughnum;
   Numbers['ComplexRational'] = ComplexRational;
   Numbers['FloatPoint'] = Roughnum; //FIXME
-  Numbers['Complex'] = Roughnum; //FIXME
+  Numbers['Complex'] = ComplexRational; //FIXME
 
   Numbers['MIN_FIXNUM'] = MIN_FIXNUM;
   Numbers['MAX_FIXNUM'] = MAX_FIXNUM;
