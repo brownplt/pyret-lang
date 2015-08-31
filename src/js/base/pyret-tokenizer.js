@@ -91,7 +91,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
     var strLen = str.length;
     while (nestingDepth > 0 && commentLen < strLen) {
-      if (str.substr(commentLen, 2) === "#|") { 
+      if (str.substr(commentLen, 2) === "#|") {
         nestingDepth++;
         commentLen += 2;
       } else if (str.substr(commentLen, 2) === "|#") {
@@ -113,10 +113,56 @@ define(["../../../lib/jglr/jglr"], function(E) {
   function op(str) { return "^\\s+" + str + ws_after; }
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
-  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  //const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
-  const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  //const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  //const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
+
+  // number
+
+  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?"
+
+  const unsigned_rational_part = "[0-9]+/[0-9]+"
+
+  const unsigned_rational_or_decimal_part = "(?:" + unsigned_rational_part + "|" +
+    unsigned_decimal_part + ")"
+
+  const rational_or_decimal_string = "^[-+]?" + unsigned_rational_or_decimal_part
+
+  const roughnum_string = "^~[-+]?" + unsigned_decimal_part
+
+  const real_unsigned_rect_complexrational_part = unsigned_rational_or_decimal_part +
+    "[-+]" + unsigned_rational_or_decimal_part + "[iIjJ]"
+
+  const mod_unsigned_polar_complexrational_part = unsigned_rational_or_decimal_part +
+    "@[-+]?" + unsigned_rational_or_decimal_part
+
+  const complexrational_string = "^[-+]?(?:" +
+    real_unsigned_rect_complexrational_part + "|" +
+    mod_unsigned_polar_complexrational_part + ")"
+
+  const real_unsigned_rect_complexroughnum_part = unsigned_decimal_part +
+    "[-+]" + unsigned_decimal_part + "[iIjJ]"
+
+  const mod_unsigned_polar_complexroughnum_part = unsigned_decimal_part +
+    "@[-+]?" + unsigned_decimal_part
+
+  const complexroughnum_string = "^~[-+]?(?:" +
+    real_unsigned_rect_complexroughnum_part + "|" +
+    mod_unsigned_polar_complexroughnum_part + ")"
+
+  const number = new RegExp(complexrational_string + "|" +
+                            rational_or_decimal_string + "|" +
+                            complexroughnum_string + "|" +
+                            roughnum_string, STICKY_REGEXP)
+
+  // rational is subsumed in number, but we're keeping it separate to
+  // perform some well-formedness tests
   const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
+
+  // end number
+
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
@@ -268,7 +314,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
     {name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
-    {name: "NUMBER", val: roughnum},
+    //{name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},
     {name: "STRING", val: dquot_str},
     {name: "STRING", val: squot_str},
