@@ -878,7 +878,11 @@ define(function() {
     }
     */
     if (typeof(n) === 'number') {
+      if (n > 0) {
       return Roughnum.makeInstance(Math.log(n));
+      } else {
+        return makeComplexNumber(n, 0).log();
+      }
     }
     return n.log();
   };
