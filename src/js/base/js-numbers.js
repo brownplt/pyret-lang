@@ -2088,6 +2088,7 @@ define(function() {
   var plusI = ComplexRational.makeInstance(0, 1);
   var minusI = ComplexRational.makeInstance(0, -1);
   var timesI = function(x) {
+    console.log('timesI of ' + x);
     return multiply(x, plusI);
   };
 
@@ -2348,6 +2349,7 @@ define(function() {
   ComplexRational.prototype.log = function() {
     var m = this.magnitude(),
       theta = this.angle();
+    console.log('log arg; mag, ang = ' + m + ', ' + theta);
     var result = add(log(m), timesI(theta));
     return result;
   }
