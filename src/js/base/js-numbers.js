@@ -1420,6 +1420,7 @@ define(function() {
   // Rationals
 
   var Rational = function(n, d) {
+    if (!d) { d = 1; }
     this.n = n;
     this.d = d;
   };
@@ -2346,7 +2347,7 @@ define(function() {
 
   ComplexRational.prototype.log = function() {
     var m = this.magnitude(),
-      theta = this.angle;
+      theta = this.angle();
     var result = add(log(m), timesI(theta));
     return result;
   }
@@ -2685,7 +2686,7 @@ define(function() {
 
   ComplexRoughnum.prototype.log = function() {
     var m = this.magnitude(),
-      theta = this.angle;
+      theta = this.angle();
     var result = add(log(m), timesI(theta));
     return toComplexRoughnum(result);
   }
