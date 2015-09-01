@@ -152,6 +152,7 @@ define(function() {
           x = x.toComplexRoughnum();
           y = y.toComplexRoughnum();
         } else {
+          console.log('x is ' + x);
           x = x.toComplexRational();
         }
       } else if (x instanceof Roughnum) {
@@ -240,14 +241,14 @@ define(function() {
 
   var liftFixnumInteger = function(x, other) {
     if (other instanceof ComplexRoughnum)
-      return new ComplexRoughnum(x, 0);
+      return new ComplexRoughnum(x);
     if (other instanceof ComplexRational)
-      return new ComplexRational(x, 0);
+      return new ComplexRational(x);
     if (other instanceof Roughnum)
       return new Roughnum(x);
     if (other instanceof BigInteger)
       return makeBignum(x);
-    return new Rational(x, 1);
+    return new Rational(x);
   };
 
   // throwRuntimeError: string (pyretnum | undefined) (pyretnum | undefined) -> void
@@ -872,16 +873,11 @@ define(function() {
     if ( eqv(n, 1) ) {
       return 0;
     }
-    /*
-    if (lessThanOrEqual(n, 0)) {
-      throwRuntimeError('log: non-positive argument ' + n);
-    }
-    */
     if (typeof(n) === 'number') {
       if (n > 0) {
       return Roughnum.makeInstance(Math.log(n));
       } else {
-        return makeComplexNumber(n, 0).log();
+        return makeComplexNumber(n).log();
       }
     }
     return n.log();
@@ -926,11 +922,12 @@ define(function() {
   // acos: pyretnum -> pyretnum
   var acos = function(n) {
     if (eqv(n, 1)) { return 0; }
-    if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('acos: out of domain argument ' + n);
-    }
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(Math.acos(n));
+      if (n >= -1 && n <= 1) {
+        return Roughnum.makeInstance(Math.acos(n));
+      } else {
+        return makeComplexNumber(n).acos();
+      }
     }
     return n.acos();
   };
@@ -942,7 +939,11 @@ define(function() {
       throwRuntimeError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(Math.asin(n));
+      if (n >= -1 && n <= 1) {
+        return Roughnum.makeInstance(Math.asin(n));
+      } else {
+        return makeComplexNumber(n).asin();
+      }
     }
     return n.asin();
   };
@@ -1919,11 +1920,11 @@ define(function() {
   };
 
   Roughnum.prototype.toComplexRoughnum = function() {
-    return new ComplexRoughnum(this.n, 0);
+    return new ComplexRoughnum(this.n);
   };
 
   Roughnum.prototype.toComplexRational = function() {
-    return new ComplexRational(fromString(this.n.toString()), 0);
+    return new ComplexRational(fromString(this.n.toString()));
   };
 
   Roughnum.prototype.toRoughnum = function() {
@@ -4502,7 +4503,7 @@ define(function() {
   }
 
   BigInteger.prototype.toComplexRational = function() {
-    return new ComplexRational(this, 0);
+    return new ComplexRational(this);
   }
 
   BigInteger.prototype.toRoughnum = function() {
