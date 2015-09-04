@@ -146,6 +146,11 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
   default-typs.set-now(A.s-global("num-within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
   default-typs.set-now(A.s-global("num-abs").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-realpart").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-imagpart").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-magnitude").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-angle").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-conjugate").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-sin").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-cos").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-tan").key(), t-arrow([list: t-number], t-number))
@@ -169,6 +174,8 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-roughnum").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-complexrational").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-is-complexroughnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-positive").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-negative").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-non-positive").key(), t-arrow([list: t-number], t-number))
@@ -190,7 +197,7 @@ fun make-default-typs():
 
   # Time functions
   default-typs.set-now(A.s-global("time-now").key(), t-arrow(empty, t-number))
-  
+
   # String functions
   default-typs.set-now(A.s-global("gensym").key(), t-arrow(empty, t-string))
   default-typs.set-now(A.s-global("string-repeat").key(), t-arrow([list: t-string, t-number], t-string))

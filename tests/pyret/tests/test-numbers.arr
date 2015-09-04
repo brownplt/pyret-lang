@@ -81,7 +81,7 @@ check:
   num-floor(5.1) is 5
   num-floor(-5.5) is -6
 
-  num-log(0) raises "non-positive argument"
+  num-log(0) raises "zero argument"
   num-log(1) is 0
   # num-log(num-exp(1)) is 1  # can't compare rough with exact!
   num-log(num-exp(1)) satisfies around(1, 0.0001)

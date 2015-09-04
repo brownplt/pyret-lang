@@ -3751,6 +3751,36 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return thisRuntime.makeNumberBig(jsnums.abs(n));
     }
 
+    var num_realpart = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-realpart"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.realPart(n));
+    }
+
+    var num_imagpart = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-imagpart"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.imagPart(n));
+    }
+
+    var num_magnitude = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-magnitude"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.magnitude(n));
+    }
+
+    var num_angle = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-angle"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.angle(n));
+    }
+
+    var num_conjugate = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-conjugate"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.conjugate(n));
+    }
+
     var num_sin = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sin"], 1, $a); }
       thisRuntime.checkNumber(n);
@@ -3882,6 +3912,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeBoolean(jsnums.isRoughnum(n))
     }
+    var num_is_complexrational = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-complexrational"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isComplexRational(n))
+    }
+    var num_is_complexroughnum = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-complexroughnum"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeBoolean(jsnums.isComplexRoughnum(n))
+    }
     var num_is_positive = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-positive"], 1, $a); }
       thisRuntime.checkNumber(n);
@@ -3936,6 +3976,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return thisRuntime.makeString(s[0] + "." + s[1]);
       }
     }
+
     function random(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a); }
       thisRuntime.checkNumber(max);
@@ -4247,6 +4288,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-within-abs': makeFunction(num_within_abs),
           'num-within-rel': makeFunction(num_within_rel),
           'num-abs': makeFunction(num_abs),
+          'num-realpart': makeFunction(num_realpart),
+          'num-imagpart': makeFunction(num_imagpart),
+          'num-magnitude': makeFunction(num_magnitude),
+          'num-angle': makeFunction(num_angle),
+          'num-conjugate': makeFunction(num_conjugate),
           'num-sin': makeFunction(num_sin),
           'num-cos': makeFunction(num_cos),
           'num-tan': makeFunction(num_tan),
@@ -4270,6 +4316,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-is-integer': makeFunction(num_is_integer),
           'num-is-rational': makeFunction(num_is_rational),
           'num-is-roughnum': makeFunction(num_is_roughnum),
+          'num-is-complexrational': makeFunction(num_is_complexrational),
+          'num-is-complexroughnum': makeFunction(num_is_complexroughnum),
           'num-is-positive': makeFunction(num_is_positive),
           'num-is-negative': makeFunction(num_is_negative),
           'num-is-non-positive': makeFunction(num_is_non_positive),
@@ -4491,6 +4539,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_max': num_max,
         'num_min': num_min,
         'num_abs': num_abs,
+        'num_realpart': num_realpart,
+        'num_imagpart': num_imagpart,
+        'num_magnitude': num_magnitude,
+        'num_angle': num_angle,
+        'num_conjugate': num_conjugate,
         'num_sin': num_sin,
         'num_cos': num_cos,
         'num_tan': num_tan,

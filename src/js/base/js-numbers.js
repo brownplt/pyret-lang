@@ -152,7 +152,6 @@ define(function() {
           x = x.toComplexRoughnum();
           y = y.toComplexRoughnum();
         } else {
-          console.log('x is ' + x);
           x = x.toComplexRational();
         }
       } else if (x instanceof Roughnum) {
@@ -163,10 +162,10 @@ define(function() {
           x = x.toRoughnum();
       } else if (x instanceof Rational) {
         if (!(y instanceof Rational)) {
-          y = Rational.makeInstance(y);
+          y = new Rational(y);
         }
       } else if (y instanceof Rational) {
-        x = Rational.makeInstance(x);
+        x = new Rational(x);
       }
 
       return onBoxednums(x, y);
@@ -241,14 +240,16 @@ define(function() {
 
   var liftFixnumInteger = function(x, other) {
     if (other instanceof ComplexRoughnum)
-      return ComplexRoughnum.makeInstance(x);
+      return new ComplexRoughnum(x, 0);
     if (other instanceof ComplexRational)
-      return ComplexRational.makeInstance(x);
+      return new ComplexRational(x, 0);
     if (other instanceof Roughnum)
-      return Roughnum.makeInstance(x);
+      return new Roughnum(x);
+    if (other instanceof Rational)
+      return new Rational(x);
     if (other instanceof BigInteger)
       return makeBignum(x);
-    return Rational.makeInstance(x);
+    return false; //deadcode
   };
 
   // throwRuntimeError: string (pyretnum | undefined) (pyretnum | undefined) -> void
@@ -309,7 +310,10 @@ define(function() {
     return (isPyretNumber(n) && n.isComplexRoughnum())
   }
 
-  var isExact = isRational;
+  var isExact = function(n) {
+    return (typeof(n) === 'number' ||
+            (isPyretNumber(n) && n.isExact()));
+  }
 
   // isReal: pyretnum -> boolean
   var isReal = function(n) {
@@ -551,13 +555,21 @@ define(function() {
 
   // eqv: pyretnum pyretnum -> boolean
   var eqv = function(x, y) {
-    if (x === y)
-      return true;
+    if (x === y) return true;
+    return equals(x, y);
+    /*
     if (typeof(x) === 'number' && typeof(y) === 'number')
       return x === y;
     var ex = isRational(x), ey = isRational(y);
     return (((ex && ey) || (!ex && !ey)) && equals(x, y));
+    */
   };
+
+  var exactlyEquals = function(x, y) {
+    if (x === y) return true;
+    if (isExact(x) && isExact(y)) return equals(x, y);
+    return false;
+  }
 
   // approxEqual: pyretnum pyretnum pyretnum -> boolean
   var approxEquals = function(x, y, delta) {
@@ -681,27 +693,24 @@ define(function() {
     },
     {
       isXSpecialCase: function(x) {
-        return eqv(x, 0) || eqv(x,1);
+        return (exactlyEquals(x, 0) || exactlyEquals(x,1));
       },
       onXSpecialCase: function(x, y) {
-        if (eqv(x, 0)) {
-          if (eqv(y, 0)) {
-            return 1;
-          } else if (lessThan(y, 0)) {
+        if (exactlyEquals(x, 0)) {
+          if (exactlyEquals(y, 0)) return 1;
+          var yre = realPart(y), yim = imagPart(y);
+          if (lessThan(yre, 0) || (exactlyEquals(yre, 0) && lessThan(yim, 0)))
             throwRuntimeError("expt: division by zero");
-          } else {
-            return 0;
-          }
-        } else { // i.e., x is 1
-          return 1;
+          return 0;
         }
+        return 1;
       },
 
       isYSpecialCase: function(y) {
-        return eqv(y, 0) || lessThan(y, 0);
+        return (exactlyEquals(y, 0) || isReal(y) && lessThan(y, 0));
       },
       onYSpecialCase: function(x, y) {
-        if (eqv(y, 0)) {
+        if (exactlyEquals(y, 0)) {
           return 1;
         } else { // i.e., y is negative
           return expt(divide(1, x), negate(y));
@@ -711,7 +720,7 @@ define(function() {
 
   // exp: pyretnum -> pyretnum
   var exp = function(n) {
-    if ( eqv(n, 0) ) {
+    if ( exactlyEquals(n, 0) ) {
       return 1;
     }
     if (typeof(n) === 'number') {
@@ -783,10 +792,6 @@ define(function() {
 
   // sqrt: pyretnum -> pyretnum
   var sqrt = function(n) {
-    /*
-    if (lessThan(n, 0)) {
-      throwRuntimeError('sqrt: negative argument ' + n);
-    } */
     if (typeof(n) === 'number') {
       if (n >= 0) {
         var result = Math.sqrt(n);
@@ -837,19 +842,19 @@ define(function() {
     return n.roundEven();
   };
 
-  var realPart = function(x) {
-    if (typeof(n) === 'number') { return n; }
-    return n.realPart()
+  var realPart = function(n) {
+    if (typeof(n) === 'number')  return n;
+    return n.realPart();
   }
 
-  var imagPart = function(x) {
-    if (typeof(n) === 'number') { return 0 }
-    return n.imagPart()
+  var imagPart = function(n) {
+    if (typeof(n) === 'number')  return 0;
+    return n.imagPart();
   }
 
   var magnitude = function(n) {
-    if (typeof(n) === 'number') { return Math.abs(n) }
-    return n.magnitude()
+    if (typeof(n) === 'number')  return Math.abs(n);
+    return n.magnitude();
   }
 
   var angle = function(n) {
@@ -870,23 +875,24 @@ define(function() {
 
   // log: pyretnum -> pyretnum
   var log = function(n) {
-    console.log('log of ' + n);
-    if ( eqv(n, 1) ) {
+    if ( exactlyEquals(n, 1) ) {
       return 0;
     }
     if (typeof(n) === 'number') {
-      if (n > 0) {
-      return Roughnum.makeInstance(Math.log(n));
-      } else {
-        return makeComplexNumber(n).log();
+      if (n === 0) {
+        throwRuntimeError('log: zero argument');
       }
+      if (n > 0) {
+        return Roughnum.makeInstance(Math.log(n));
+      }
+      return makeComplexNumber(n).log();
     }
     return n.log();
   };
 
   // tan: pyretnum -> pyretnum
   var tan = function(n) {
-    if (eqv(n, 0)) { return 0; }
+    if (exactlyEquals(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.tan(n));
     }
@@ -895,7 +901,7 @@ define(function() {
 
   // atan: pyretnum -> pyretnum
   var atan = function(n) {
-    if (eqv(n, 0)) { return 0; }
+    if (exactlyEquals(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.atan(n));
     }
@@ -904,7 +910,7 @@ define(function() {
 
   // cos: pyretnum -> pyretnum
   var cos = function(n) {
-    if (eqv(n, 0)) { return 1; }
+    if (exactlyEquals(n, 0)) { return 1; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.cos(n));
     }
@@ -913,7 +919,7 @@ define(function() {
 
   // sin: pyretnum -> pyretnum
   var sin = function(n) {
-    if (eqv(n, 0)) { return 0; }
+    if (exactlyEquals(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.sin(n));
     }
@@ -922,7 +928,7 @@ define(function() {
 
   // acos: pyretnum -> pyretnum
   var acos = function(n) {
-    if (eqv(n, 1)) { return 0; }
+    if (exactlyEquals(n, 1)) { return 0; }
     if (typeof(n) === 'number') {
       if (n >= -1 && n <= 1) {
         return Roughnum.makeInstance(Math.acos(n));
@@ -935,10 +941,7 @@ define(function() {
 
   // asin: pyretnum -> pyretnum
   var asin = function(n) {
-    if (eqv(n, 0)) { return 0; }
-    if (lessThan(n, -1) || greaterThan(n, 1)) {
-      throwRuntimeError('asin: out of domain argument ' + n);
-    }
+    if (exactlyEquals(n, 0)) { return 0; }
     if (typeof(n) === 'number') {
       if (n >= -1 && n <= 1) {
         return Roughnum.makeInstance(Math.asin(n));
@@ -1056,7 +1059,6 @@ define(function() {
     if (typeof(n) === 'number') {
       return -n;
     }
-    console.log('negate of ' + n);
     return n.negate();
   };
 
@@ -1472,7 +1474,9 @@ define(function() {
     return _integerIsOne(this.d);
   };
 
-  Rational.prototype.isExact = Rational.prototype.isRational;
+  Rational.prototype.isExact = function() {
+    return true;
+  }
 
   Rational.prototype.isReal = function() {
     return true;
@@ -1515,7 +1519,7 @@ define(function() {
   }
 
   Rational.prototype.imagPart = function() {
-    return 0
+    return 0;
   }
 
   Rational.prototype.magnitude = function() {
@@ -1616,14 +1620,18 @@ define(function() {
   };
 
   Rational.prototype.sqrt = function() {
-    var newN = sqrt(this.n);
-    var newD = sqrt(this.d);
-    if (isRational(newN) && isRational(newD) &&
-        equals(floor(newN), newN) &&
-        equals(floor(newD), newD)) {
-      return Rational.makeInstance(newN, newD);
+    if (this.isNonNegative()) {
+      var newN = sqrt(this.n);
+      var newD = sqrt(this.d);
+      if (isRational(newN) && isRational(newD) &&
+          equals(floor(newN), newN) &&
+            equals(floor(newD), newD)) {
+        return Rational.makeInstance(newN, newD);
+      } else {
+        return divide(newN, newD);
+      }
     } else {
-      return divide(newN, newD);
+      return timesI(this.negate().sqrt());
     }
   };
 
@@ -1881,7 +1889,7 @@ define(function() {
   }
 
   Roughnum.prototype.imagPart = function() {
-    return 0
+    return 0;
   }
 
   Roughnum.prototype.magnitude = function() {
@@ -2016,7 +2024,11 @@ define(function() {
   };
 
   Roughnum.prototype.sqrt = function() {
-    return Roughnum.makeInstance(Math.sqrt(this.n));
+    if (this.n >= 0) {
+      return Roughnum.makeInstance(Math.sqrt(this.n));
+    } else {
+      return timesI(Roughnum.makeInstance(Math.sqrt(-this.n)));
+    }
   };
 
   Roughnum.prototype.abs = function() {
@@ -2072,13 +2084,13 @@ define(function() {
   // ComplexRational
 
   var ComplexRational = function(r, i) {
+    if (!i) { i = 0; }
     this.r = r;
     this.i = i;
   }
 
   ComplexRational.makeInstance = function(a, b, polarP) {
-    if (!b) { b = 0; }
-    //if (equalsAnyZero(b)) return a;
+    if (b === undefined) b = 0;
     if (!polarP) {
       return new ComplexRational(a, b);
     } else {
@@ -2090,7 +2102,6 @@ define(function() {
   var plusI = ComplexRational.makeInstance(0, 1);
   var minusI = ComplexRational.makeInstance(0, -1);
   var timesI = function(x) {
-    console.log('timesI of ' + x);
     return multiply(x, plusI);
   };
 
@@ -2177,11 +2188,11 @@ define(function() {
   }
 
   ComplexRational.prototype.realPart = function() {
-    return this.r
+    return this.r;
   }
 
   ComplexRational.prototype.imagPart = function() {
-    return this.i
+    return this.i;
   }
 
   ComplexRational.prototype.magnitude = function() {
@@ -2349,10 +2360,8 @@ define(function() {
   }
 
   ComplexRational.prototype.log = function() {
-    console.log('calling ComplexRational.prototype.log of ' + this);
-    var m = this.magnitude(),
-      theta = this.angle();
-    console.log('log arg; mag, ang = ' + m + ', ' + theta);
+    var m = this.magnitude();
+    var theta = this.angle();
     var result = add(log(m), timesI(theta));
     return result;
   }
@@ -2377,9 +2386,7 @@ define(function() {
       return cos(this.r);
     }
     var iz = timesI(this);
-    console.log('calling negate of ' + iz);
     var izNegate = negate(iz);
-    console.log('izNegate is ' +  izNegate);
     return halve(add(exp(iz), exp(izNegate)));
   }
 
@@ -2395,9 +2402,10 @@ define(function() {
   }
 
   ComplexRational.prototype.expt = function(y) {
-    if (isExactInteger(y) && greaterThanOrEqual(y, 0)) {
+    if (isInteger(y) && greaterThanOrEqual(y, 0)) {
       return fastExpt(this, y);
     }
+
     var expo = multiply(y, this.log());
     return exp(expo);
   }
@@ -2424,29 +2432,27 @@ define(function() {
     if (this.isReal()) {
       return asin(this.r);
     }
-    var oneNegateThisSq = subtract(1, sqr(this));
-    var sqrtOneNegateThisSq = sqrt(oneNegateThisSq);
-    return multiply(2, atan(divide(this, add(1, sqrtOneNegateThisSq))));
+    return multiply(2, atan(divide(this,
+                                   add(1, sqrt(subtract(1, sqr(this)))))));
   }
 
   // ComplexRoughnums
 
   var ComplexRoughnum = function(r, i) {
+    if (!i) { i = 0; }
     this.r = r;
     this.i = i;
   }
 
   ComplexRoughnum.makeInstance = function (a, b, polarP) {
-    // if (!a) { a = 0; }
-    if (!b) { b = 0; }
-    if (!(typeof(a) === 'number' && typeof(b) === 'number'))
-      throwRuntimeError('ComplexRoughnum constructor got unsuitable args ' + a + ', ' + b);
-    //if (b === 0) return Roughnum.makeInstance(a);
-    if (!polarP) {
+    if (b === undefined) b = 0;
+    a = toFixnum(a);
+    b = toFixnum(b);
+    if (!isFinite(a) || !isFinite(b))
+      throwRuntimeError('complex roughnum overflow error');
+    if (!polarP)
       return new ComplexRoughnum(a, b);
-    } else {
-      return new ComplexRoughnum(a * cos(b), a * sin(b));
-    }
+    return new ComplexRoughnum(a * cos(b), a * sin(b));
   }
 
   ComplexRoughnum.prototype.toString = function() {
@@ -2524,15 +2530,15 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.realPart = function() {
-    return toComplexRoughnum(this.r)
+    return toRoughnum(this.r);
   }
 
   ComplexRoughnum.prototype.imagPart = function() {
-    return toComplexRoughnum(0)
+    return toRoughnum(this.i);
   }
 
   ComplexRoughnum.prototype.magnitude = function() {
-    return toComplexRoughnum(
+    return toRoughnum(
       sqrt(this.r*this.r + this.i*this.i))
   }
 
@@ -2690,8 +2696,9 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.log = function() {
-    var m = this.magnitude(),
-      theta = this.angle();
+    var m = this.magnitude();
+    var theta = this.angle();
+
     var result = add(log(m), timesI(theta));
     return toComplexRoughnum(result);
   }
@@ -2701,9 +2708,6 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.atan = function() {
-    if (equals(this, plusI) || equals(this, minusI)) {
-      throwRuntimeError(neginf);
-    }
     return toComplexRoughnum(multiply(plusI,
                     multiply(Rational.makeInstance(1,2),
                              log(divide(
@@ -2732,7 +2736,7 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.expt = function(y) {
-    if (isExactInteger(y) && greaterThanOrEqual(y, 0)) {
+    if (isInteger(y) && greaterThanOrEqual(y, 0)) {
       return toComplexRoughnum(fastExpt(this, y));
     }
     var expo = multiply(y, this.log());
@@ -3025,7 +3029,6 @@ define(function() {
     };
 
     function makeComplexNumber(a, b, polarP) {
-      console.log('makeComplexNumber of ' + a + ' ' + b + ' ' + polarP);
       if (isRoughnum(a) || isRoughnum(b)) {
         return ComplexRoughnum.makeInstance(a, b, polarP);
       } else {
@@ -4462,7 +4465,7 @@ define(function() {
   }
 
   BigInteger.prototype.toRational = function() {
-    return this;
+    return new Rational(this);
   };
 
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
@@ -4537,13 +4540,16 @@ define(function() {
   // WARNING NOTE: we override the old version of divide.
   BigInteger.prototype.divide = function(other) {
     var quotientAndRemainder = bnDivideAndRemainder.call(this, other);
+    var q = quotientAndRemainder[0];
+    var r = quotientAndRemainder[1];
+    var result;
     if (quotientAndRemainder[1].compareTo(BigInteger.ZERO) === 0) {
-      return quotientAndRemainder[0];
+      result = quotientAndRemainder[0];
     } else {
-      var result = add(quotientAndRemainder[0],
-                       Rational.makeInstance(quotientAndRemainder[1], other));
-      return result;
+      var frac = Rational.makeInstance(quotientAndRemainder[1], other);
+      result = add(quotientAndRemainder[0], frac);
     }
+    return result;
   };
 
   BigInteger.prototype.numerator = function() {
@@ -4561,9 +4567,10 @@ define(function() {
     var searchIter = function(n, guess) {
       while(!(lessThanOrEqual(sqr(guess),n) &&
               lessThan(n,sqr(add(guess, 1))))) {
-        guess = floor(divide(add(guess,
-                                 floor(divide(n, guess))),
-                             2));
+         guess = floor(divide (add(guess,
+                                 floor(divide(n,
+                                           guess))),
+                      2));
       }
       return guess;
     };
@@ -4583,15 +4590,19 @@ define(function() {
     // Get an approximation using integerSqrt, and then start another
     // Newton-Raphson search if necessary.
     BigInteger.prototype.sqrt = function() {
-      var approx = this.integerSqrt(), fix;
-      if (eqv(sqr(approx), this)) {
-        return approx;
-      }
-      fix = toFixnum(this);
-      if (isFinite(fix)) {
-        return Roughnum.makeInstance(Math.sqrt(fix));
+      if (this.isNonNegative()) {
+        var approx = this.integerSqrt(), fix;
+        if (eqv(sqr(approx), this)) {
+          return approx;
+        }
+        fix = toFixnum(this);
+        if (isFinite(fix)) {
+          return Roughnum.makeInstance(Math.sqrt(fix));
+        } else {
+          return approx;
+        }
       } else {
-        return approx;
+        return timesI(this.negate().sqrt());
       }
     };
   })();
@@ -4793,6 +4804,8 @@ define(function() {
   Numbers['isExact'] = isExact;
   Numbers['isInteger'] = isInteger;
   Numbers['isRoughnum'] = isRoughnum;
+  Numbers['isComplexRational'] = isComplexRational;
+  Numbers['isComplexRoughnum'] = isComplexRoughnum;
   Numbers['isPositive'] = isPositive;
   Numbers['isNegative'] = isNegative;
   Numbers['isNonPositive'] = isNonPositive;
@@ -4826,6 +4839,11 @@ define(function() {
   Numbers['integerSqrt'] = integerSqrt;
   Numbers['sqrt'] = sqrt;
   Numbers['abs'] = abs;
+  Numbers['realPart'] = realPart;
+  Numbers['imagPart'] = imagPart;
+  Numbers['magnitude'] = magnitude;
+  Numbers['angle'] = angle;
+  Numbers['conjugate'] = conjugate;
   Numbers['quotient'] = quotient;
   Numbers['remainder'] = remainder;
   Numbers['floor'] = floor;
@@ -4843,9 +4861,6 @@ define(function() {
   Numbers['sqr'] = sqr;
   Numbers['gcd'] = gcd;
   Numbers['lcm'] = lcm;
-  Numbers['magnitude'] = magnitude;
-  Numbers['angle'] = angle;
-  Numbers['conjugate'] = conjugate;
 
   Numbers['toRepeatingDecimal'] = toRepeatingDecimal;
 

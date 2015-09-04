@@ -37,7 +37,6 @@ data NameResolution:
       datatypes :: SD.MutableStringDict)
 end
 
-
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
 data ExtraImports:
@@ -156,7 +155,6 @@ fun provides-from-raw-provides(uri, raw):
   provides(uri, vdict, adict, ddict)
 end
 
-
 data CompileResult<C>:
   | ok(code :: C)
   | err(problems :: List<CompileError>)
@@ -205,7 +203,7 @@ data CompileError:
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self):
-      [ED.error: 
+      [ED.error:
         [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
         draw-and-highlight(self.l)]
     end
@@ -570,7 +568,7 @@ fun t-forall1(f):
   T.t-forall([list: T.t-variable(A.dummy-loc, n, T.t-top, T.invariant)], f(T.t-var(n)))
 end
 
-runtime-builtins = [string-dict: 
+runtime-builtins = [string-dict:
   "test-print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
   "print", t-forall1(lam(a): T.t-arrow([list: a], a) end),
   "display", t-forall1(lam(a): T.t-arrow([list: a], a) end),
@@ -647,6 +645,11 @@ runtime-builtins = [string-dict:
   "num-round", t-number-unop,
   "num-round-even", t-number-unop,
   "num-abs", t-number-unop,
+  "num-realpart", t-number-unop,
+  "num-imagpart", t-number-unop,
+  "num-magnitude", t-number-unop,
+  "num-angle", t-number-unop,
+  "num-conjugate", t-number-unop,
   "num-sin", t-number-unop,
   "num-cos", t-number-unop,
   "num-tan", t-number-unop,
@@ -672,6 +675,8 @@ runtime-builtins = [string-dict:
   "num-is-fixnum", t-number-pred1,
   "num-is-rational", t-number-pred1,
   "num-is-roughnum", t-number-pred1,
+  "num-is-complexrational", t-number-pred1,
+  "num-is-complexroughnum", t-number-pred1,
   "num-expt", t-number-binop,
   "num-tostring", T.t-arrow([list: T.t-number], T.t-string),
   "num-to-string", T.t-arrow([list: T.t-number], T.t-string),
@@ -718,8 +723,8 @@ standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [strin
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
-   [list: 
-      extra-import(builtin("arrays"), "arrays", [list: 
+   [list:
+      extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",
           "array-from-list",
@@ -731,7 +736,7 @@ standard-imports = extra-imports(
           "array-to-list-now"
         ],
         [list: "Array"]),
-      extra-import(builtin("lists"), "lists", [list: 
+      extra-import(builtin("lists"), "lists", [list:
           "list",
           "is-empty",
           "is-link",
@@ -768,7 +773,7 @@ standard-imports = extra-imports(
           "index"
         ],
         [list: "List"]),
-      extra-import(builtin("option"), "option", [list: 
+      extra-import(builtin("option"), "option", [list:
           "Option",
           "is-none",
           "is-some",
@@ -777,11 +782,10 @@ standard-imports = extra-imports(
         ],
         [list: "Option"]),
       extra-import(builtin("error"), "error", [list: ], [list:]),
-      extra-import(builtin("sets"), "sets", [list: 
+      extra-import(builtin("sets"), "sets", [list:
           "set",
           "tree-set",
           "list-set"
         ],
         [list: "Set"])
     ])
-
