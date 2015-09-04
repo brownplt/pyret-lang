@@ -18,6 +18,16 @@ check "complex-number functions":
   num-magnitude(-3) is 3
   num-angle(-3) is%(within(0.01)) ~3.14
 
+  num-is-complexrational(1+1i) is true
+  num-is-complexroughnum(~1+1i) is true
+  num-is-complexrational(1) is true
+  num-is-complexroughnum(~1) is true
+
+  num-is-complexroughnum(1+1i) is false
+  num-is-complexrational(~1+1i) is false
+  num-is-complexrational(~1) is false
+  num-is-complexroughnum(1) is false
+
   num-sqrt(-1) is 0+1i
 
   num-log(0) raises "zero argument"

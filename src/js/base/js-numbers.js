@@ -301,7 +301,7 @@ define(function() {
   };
 
   var isComplexRational = function(n) {
-    if (typeof(n) === 'number') { return false; }
+    if (typeof(n) === 'number') { return true; }
     return (isPyretNumber(n) && n.isComplexRational())
   }
 
@@ -1868,6 +1868,14 @@ define(function() {
     return true;
   };
 
+  Roughnum.prototype.isComplexRational = function() {
+    return false;
+  }
+
+  Roughnum.prototype.isComplexRoughnum = function() {
+    return true;
+  }
+
   Roughnum.prototype.isPositive = function() {
     return this.n > 0;
   };
@@ -2491,15 +2499,15 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.isRoughnum = function() {
-    return eqv(this.i, 0)
+    return eqv(this.i, 0);
   }
 
   ComplexRoughnum.prototype.isComplexRational = function() {
-    return false
+    return false;
   }
 
   ComplexRoughnum.prototype.isComplexRoughnum = function() {
-    return true
+    return true;
   }
 
   ComplexRoughnum.prototype.isFinite = function() {
