@@ -111,7 +111,7 @@ data CompileError:
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self):
-      [ED.error: 
+      [ED.error:
         [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
         draw-and-highlight(self.l)]
     end
@@ -437,7 +437,7 @@ runtime-types = [string-dict:
   "RawArray", t-just-there
 ]
 
-runtime-builtins = [string-dict: 
+runtime-builtins = [string-dict:
   "test-print", v-just-there,
   "print", v-just-there,
   "display", v-just-there,
@@ -565,8 +565,8 @@ standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [strin
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
-   [list: 
-      extra-import(builtin("arrays"), "arrays", [list: 
+   [list:
+      extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",
           "array-from-list",
@@ -578,8 +578,9 @@ standard-imports = extra-imports(
           "array-to-list-now"
         ],
         [list: "Array"]),
-      extra-import(builtin("lists"), "lists", [list: 
+      extra-import(builtin("lists"), "lists", [list:
           "list",
+          "is-List",
           "is-empty",
           "is-link",
           "empty",
@@ -615,8 +616,9 @@ standard-imports = extra-imports(
           "index"
         ],
         [list: "List"]),
-      extra-import(builtin("option"), "option", [list: 
+      extra-import(builtin("option"), "option", [list:
           "Option",
+          "is-Option",
           "is-none",
           "is-some",
           "none",
@@ -624,11 +626,16 @@ standard-imports = extra-imports(
         ],
         [list: "Option"]),
       extra-import(builtin("error"), "error", [list: ], [list:]),
-      extra-import(builtin("sets"), "sets", [list: 
+      extra-import(builtin("sets"), "sets", [list:
           "set",
           "tree-set",
-          "list-set"
+          "list-set",
+          "empty-set",
+          "empty-list-set",
+          "empty-tree-set",
+          "list-to-set",
+          "list-to-list-set",
+          "list-to-tree-set"
         ],
         [list: "Set"])
     ])
-
