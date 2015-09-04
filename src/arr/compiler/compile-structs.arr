@@ -667,6 +667,8 @@ runtime-builtins = [string-dict:
   "num-exact", t-number-unop,
   "num-to-rational", t-number-unop,
   "num-to-roughnum", t-number-unop,
+  "num-to-complexrational", t-number-unop,
+  "num-to-complexroughnum", t-number-unop,
   "num-is-positive", t-number-pred1,
   "num-is-negative", t-number-pred1,
   "num-is-non-positive", t-number-pred1,

@@ -170,6 +170,8 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-exact").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-to-rational").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-to-roughnum").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-to-complexrational").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-to-complexroughnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-to-fixnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-number))

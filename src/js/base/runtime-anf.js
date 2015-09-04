@@ -4312,6 +4312,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-exact': makeFunction(num_exact),
           'num-to-rational': makeFunction(num_to_rational),
           'num-to-roughnum': makeFunction(num_to_roughnum),
+          'num-to-complexrational': makeFunction(num_to_complexrational),
+          'num-to-complexroughnum': makeFunction(num_to_complexroughnum),
           'num-to-fixnum': makeFunction(num_to_fixnum),
           'num-is-integer': makeFunction(num_is_integer),
           'num-is-rational': makeFunction(num_is_rational),
