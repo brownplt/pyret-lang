@@ -249,7 +249,7 @@ define(function() {
       return new Rational(x);
     if (other instanceof BigInteger)
       return makeBignum(x);
-    return false; //deadcode
+    return x; //deadcode
   };
 
   // throwRuntimeError: string (pyretnum | undefined) (pyretnum | undefined) -> void
@@ -1102,6 +1102,12 @@ define(function() {
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
     return (function(m, n) {
+      if (m instanceof ComplexRational) {
+        m = m.r;
+      }
+      if (n instanceof ComplexRational) {
+        n = n.r;
+      }
       if (m instanceof Rational) {
         m = numerator(m);
       }
@@ -1134,6 +1140,9 @@ define(function() {
   var makeIntegerUnOp = function(onFixnums, onBignums, options) {
     options = options || {};
     return (function(m) {
+      if (m instanceof ComplexRational) {
+        m = m.r;
+      }
       if (m instanceof Rational) {
         m = numerator(m);
       }
@@ -2329,8 +2338,8 @@ define(function() {
   ComplexRational.prototype.multiply = function(other) {
     if (other.isReal()) {
       return ComplexRational.makeInstance(
-        multiply(this.r, other.i),
-        multiply(this.i, other.r));
+        multiply(this.r, other),
+        multiply(this.i, other));
     }
     return ComplexRational.makeInstance(
       subtract(multiply(this.r,other.r), multiply(this.i,other.i)),
