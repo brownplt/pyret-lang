@@ -41,7 +41,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
         function symbol(tok) {
           return RUNTIME.makeString(tok.value);
         }
-        function string(tok) { 
+        function string(tok) {
           if (tok.value.substring(0, 3) === "```")
             return RUNTIME.makeString(tok.value.slice(3, -3).trim());
           else
@@ -288,7 +288,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             // Note that we override the normal name dispatch here, because we don't want
             // to create the default let-expr or var-expr constructions
             return RUNTIME.getField(ast, 's-let-expr')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    makeList(node.kids.slice(1, -3).map(translators["let-binding"])),
                    tr(node.kids[node.kids.length - 2]));
           },
@@ -297,8 +297,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             // Note that we override the normal name dispatch here, because we don't want
             // to create the default let-expr constructions
             return RUNTIME.getField(ast, 's-letrec')
-              .app(pos(node.pos), 
-                   makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])), 
+              .app(pos(node.pos),
+                   makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])),
                    tr(node.kids[node.kids.length - 2]));
           },
           'let-binding': function(node) {
@@ -357,7 +357,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
             return RUNTIME.getField(ast, 's-data')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                   makeList(node.kids.slice(5, -3).map(tr)), 
+                   makeList(node.kids.slice(5, -3).map(tr)),
                    tr(node.kids[node.kids.length - 3]),
                    tr(node.kids[node.kids.length - 2]));
           },
@@ -382,12 +382,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             if (node.kids.length === 3) {
               // (check-expr CHECKCOLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
+                .app(pos(node.pos), F.makeNone(), tr(node.kids[1]),
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
             } else {
               // (check-expr CHECK STRING COLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+                .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]),
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
             }
           },
@@ -502,7 +502,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             if (node.kids.length === 1) {
               // (binding name)
               return RUNTIME.getField(ast, 's-bind')
-                .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
+                .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]),
                      RUNTIME.getField(ast, 'a-blank'));
             } else if (node.kids.length === 3) {
               // (binding name COLONCOLON ann)
@@ -511,7 +511,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             } else if (node.kids.length === 2) {
               // (binding SHADOW name)
               return RUNTIME.getField(ast, 's-bind')
-                .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
+                .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]),
                      RUNTIME.getField(ast, 'a-blank'));
             } else {
               // (binding SHADOW name COLONCOLON ann)
@@ -563,7 +563,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             } else {
               // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
               return makeList(node.kids.slice(1, -1).map(tr));
-            }          
+            }
           },
           'list-variant-member': function(node) {
             // (list-variant-member mem COMMA)
@@ -907,12 +907,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
             return RUNTIME.getField(ast, 's-num')
               .app(pos(node.pos), number(node.kids[0]));
           },
-          'frac-expr': function(node) {
-            // (frac-expr n)
-            var numden = node.kids[0].value.split("/");
-            return RUNTIME.getField(ast, 's-frac')
-              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
-          },
+//          'frac-expr': function(node) {
+//            // (frac-expr n)
+//            var numden = node.kids[0].value.split("/");
+//            return RUNTIME.getField(ast, 's-frac')
+//              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+//          },
           'string-expr': function(node) {
             return RUNTIME.getField(ast, 's-str')
               .app(pos(node.pos), string(node.kids[0]));
@@ -1028,7 +1028,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
           //console.log("Result:");
           var countParses = grammar.countAllParses(parsed);
           if (countParses == 0) {
-            var nextTok = toks.curTok; 
+            var nextTok = toks.curTok;
             console.error("There were " + countParses + " potential parses.\n" +
                           "Parse failed, next token is " + nextTok.toString(true) +
                           " at " + nextTok.pos.toString(true));
@@ -1062,7 +1062,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
           throw e;
         }
       }
-      
+
       function parsePyret(data, fileName) {
         F.checkArity(2, arguments, "surface-parse");
         RUNTIME.checkString(data);
@@ -1079,6 +1079,3 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
     });
   });
 });
-
-
-

@@ -273,7 +273,6 @@ fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):
   end
 end
 
-
 fun desugar-bind(b :: A.Bind):
   cases(A.Bind) b:
     | s-bind(l, shadows, name, ann) =>
@@ -466,7 +465,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
     | s-num(_, _) => expr
-    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
+#    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))

@@ -56,7 +56,6 @@ t-datatype                = TS.t-datatype
 type Pair                 = TS.Pair
 pair                      = TS.pair
 
-
 t-number                  = TS.t-number
 t-string                  = TS.t-string
 t-boolean                 = TS.t-boolean
@@ -581,7 +580,6 @@ fun process-letrec-binding(lrb :: A.LetrecBind, default-typ :: Type, info :: TCI
   process-binding(lrb.b, default-typ, info)
 end
 
-
 fun synthesis-fun(
   l :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann,
   recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), info :: TCInfo
@@ -628,7 +626,6 @@ fun bind-arg(info :: TCInfo, arg :: A.Bind, tm-loc :: A.Loc, tm :: TypeMember) -
     end
   end
 end
-
 
 fun handle-if-branch(branch :: A.IfBranch, info :: TCInfo) -> FoldResult<Pair<A.IfBranch,Type>>:
   for fold-bind(new-test from checking(branch.test, branch.l, t-boolean, info)):
@@ -773,8 +770,6 @@ end
 fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInfo) -> CheckingResult:
   handle-cases(l, ann, val, branches, maybe-else, expect-loc, some(expect-typ), info, check-bind, checking-err, checking-cases-has-else(expect-loc, expect-typ), checking-cases-no-else)
 end
-
-
 
 fun lookup-id(blame-loc :: A.Loc, id, info :: TCInfo) -> FoldResult<Type>:
   id-key = if is-string(id):
@@ -1004,8 +999,8 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       synthesis-result(e, l, t-srcloc)
     | s-num(l, n) =>
       synthesis-result(e, l, t-number)
-    | s-frac(l, num, den) =>
-      synthesis-result(e, l, t-number)
+#    | s-frac(l, num, den) =>
+#      synthesis-result(e, l, t-number)
     | s-bool(l, b) =>
       synthesis-result(e, l, t-boolean)
     | s-str(l, s) =>
@@ -1440,8 +1435,8 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       check-and-return(l, t-srcloc, expect-loc, expect-typ, e, info)
     | s-num(l, n) =>
       check-and-return(l, t-number, expect-loc, expect-typ, e, info)
-    | s-frac(l, num, den) =>
-      check-and-return(l, t-number, expect-loc, expect-typ, e, info)
+#    | s-frac(l, num, den) =>
+#      check-and-return(l, t-number, expect-loc, expect-typ, e, info)
     | s-bool(l, b) =>
       check-and-return(l, t-boolean, expect-loc, expect-typ, e, info)
     | s-str(l, s) =>

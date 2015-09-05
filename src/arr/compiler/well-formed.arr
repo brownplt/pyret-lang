@@ -21,7 +21,7 @@ var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by
 
 is-s-let = A.is-s-let # ANNOYING WORKAROUND
 
-reserved-names = [SD.string-dict: 
+reserved-names = [SD.string-dict:
   "function", true,
   "break", true,
   "return", true,
@@ -61,7 +61,6 @@ reserved-names = [SD.string-dict:
   "with", true,
   "__proto__", true
 ]
-
 
 fun add-error(err):
   errors := err ^ link(_, errors)
@@ -220,7 +219,6 @@ fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Varian
   end
 end
 
-
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
     | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
@@ -274,7 +272,6 @@ fun wf-examples-body(visitor, body):
     end
   end
 end
-
 
 fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
@@ -491,12 +488,12 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-cases(branches)
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  s-frac(self, l, num, den):
-    when den == 0:
-      add-error(C.zero-fraction(l, num))
-    end
-    true
-  end,
+#  s-frac(self, l, num, den):
+#    when den == 0:
+#      add-error(C.zero-fraction(l, num))
+#    end
+#    true
+#  end,
   s-id(self, l, id):
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
@@ -580,7 +577,6 @@ top-level-visitor = A.default-iter-visitor.{
     is-empty(underscores) and
       ret and wrap-visit-check(well-formed-visitor, _check)
   end,
-
 
   # Everything else delegates to the non-toplevel visitor
   s-import(_, l, import-type, name):
@@ -721,9 +717,9 @@ top-level-visitor = A.default-iter-visitor.{
   s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
     well-formed-visitor.s-prim-app(l, _fun, args)
   end,
-  s-frac(_, l :: Loc, num, den):
-    well-formed-visitor.s-frac(l, num, den)
-  end,
+#  s-frac(_, l :: Loc, num, den):
+#    well-formed-visitor.s-frac(l, num, den)
+#  end,
   s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)
   end,

@@ -159,7 +159,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
         end)
     | s-num(l, n) => k.apply(l, N.a-val(l, N.a-num(l, n)))
-    | s-frac(l, num, den) => k.apply(l, N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
+#    | s-frac(l, num, den) => k.apply(l, N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k.apply(l, N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k.apply(l, N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k.apply(l, N.a-val(l, N.a-bool(l, b)))
@@ -411,4 +411,3 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | else => raise("Missed case in anf: " + torepr(e))
   end
 end
-

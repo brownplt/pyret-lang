@@ -159,7 +159,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   // rational is subsumed in number, but we're keeping it separate to
   // perform some well-formedness tests
-  const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
+  //const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
 
   // end number
 
@@ -312,7 +312,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "COLON", val: colon, parenIsForExp: true},
     {name: "BAR", val: bar, parenIsForExp: true},
 
-    {name: "RATIONAL", val: rational},
+    //{name: "RATIONAL", val: rational},
     {name: "NUMBER", val: number},
     //{name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},

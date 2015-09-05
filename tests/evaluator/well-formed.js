@@ -5,8 +5,8 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
   var rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
   var P;
 
-  function wf_check(s) { 
-    return "where: blocks only allowed on named function declarations and data, not on " + s; 
+  function wf_check(s) {
+    return "where: blocks only allowed on named function declarations and data, not on " + s;
   }
   function performTest() {
 
@@ -17,11 +17,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
       it("should be well-formed", function(done) {
         P.checkEvalsTo("true and false and true", rt.makeBoolean(false));
         P.checkEvalsTo("1 + 2 + 3 + 4", rt.makeNumber(10));
-        P.checkEvalsTo("fun foo():\n" + 
-                       " var x = 10\n" + 
-                       " x\n" + 
-                       "end\n" + 
-                       "10", 
+        P.checkEvalsTo("fun foo():\n" +
+                       " var x = 10\n" +
+                       " x\n" +
+                       "end\n" +
+                       "10",
                        rt.makeNumber(10));
         // returns a number because we are really just checking OK parse/wf,
         // and this is (void) otherwise
@@ -100,21 +100,21 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("check: 5 raises-violates%(5) 5 end", "Cannot use refinement syntax `%(...)` with `raises-violates`");
         P.wait(done);
       });
-        
+
       it("malformed blocks", function(done) {
-        P.checkCompileErrorMsg("fun foo():\n" + 
-                               " x = 10\n" + 
-                               "end\n" + 
-                               "10", 
+        P.checkCompileErrorMsg("fun foo():\n" +
+                               " x = 10\n" +
+                               "end\n" +
+                               "10",
                                "Cannot end a block in a let-binding");
-        P.checkCompileErrorMsg("fun foo():\n" + 
-                               " var x = 10\n" + 
-                               "end\n" + 
-                               "10", 
+        P.checkCompileErrorMsg("fun foo():\n" +
+                               " var x = 10\n" +
+                               "end\n" +
+                               "10",
                                "Cannot end a block in a var-binding");
-        P.checkCompileErrorMsg("fun foo():\n" + 
-                               " fun f(): nothing end\n" + 
-                               "end\n" + 
+        P.checkCompileErrorMsg("fun foo():\n" +
+                               " fun f(): nothing end\n" +
+                               "end\n" +
                                "10",
                                "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
@@ -123,31 +123,30 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("lam(): x = 5\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
         P.checkCompileErrorMsg("lam(): var x = 5\n y = 4\n fun f(): nothing end end", "Cannot end a block in a fun-binding");
 
-
-        P.checkCompileErrorMsg("lam():\n" + 
-                               "  data D:\n" + 
-                               "    | var1()\n" + 
-                               "  end\n" + 
+        P.checkCompileErrorMsg("lam():\n" +
+                               "  data D:\n" +
+                               "    | var1()\n" +
+                               "  end\n" +
                                "  42\n" +
                                "end",
                                "top level");
-        P.checkCompileErrorMsg("lam():\n" + 
-                               "  y = 10\n" + 
-                               "  x = 5\n" + 
-                               "  fun f(): nothing end\n" + 
-                               "  data D:\n" + 
-                               "    | var1()\n" + 
-                               "  end\n" + 
+        P.checkCompileErrorMsg("lam():\n" +
+                               "  y = 10\n" +
+                               "  x = 5\n" +
+                               "  fun f(): nothing end\n" +
+                               "  data D:\n" +
+                               "    | var1()\n" +
+                               "  end\n" +
                                "  42\n" +
                                "end",
                                "top level");
-        P.checkCompileErrorMsg("block:\n" + 
-                               "  x = 5\n" + 
-                               "  y = 10\n" + 
+        P.checkCompileErrorMsg("block:\n" +
+                               "  x = 5\n" +
+                               "  y = 10\n" +
                                "end",
                                "Cannot end a block in a let-binding");
-        P.checkCompileErrorMsg("if x < y:\n" + 
-                               "  print('x less than y')\n" + 
+        P.checkCompileErrorMsg("if x < y:\n" +
+                               "  print('x less than y')\n" +
                                "end",
                                "Cannot have an `if` with a single branch");
 
@@ -248,7 +247,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end",
                                "Duplicate case for link");
 
-
         P.wait(done);
       });
       it("reserved words", function(done) {
@@ -304,14 +302,14 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
       });
-      it("fraction literals", function(done) {
-        var err = "fraction literal with zero denominator"
-        P.checkCompileErrorMsg("1/0", err);
-        P.checkCompileErrorMsg("100/0", err);
-        P.checkCompileErrorMsg("0/0", err);
-        P.checkCompileErrorMsg("0/00000", err);
-        P.wait(done);
-      });
+//      it("fraction literals", function(done) {
+//        var err = "fraction literal with zero denominator"
+//        P.checkCompileErrorMsg("1/0", err);
+//        P.checkCompileErrorMsg("100/0", err);
+//        P.checkCompileErrorMsg("0/0", err);
+//        P.checkCompileErrorMsg("0/00000", err);
+//        P.wait(done);
+//      });
       xit("special imports", function(done) {
         var err = "Unsupported import type";
         P.checkCompileErrorMsg("import mydrive('foo') as D", err);
@@ -343,7 +341,3 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
   }
   return { performTest: performTest };
 });
-
-
-
-

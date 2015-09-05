@@ -13,7 +13,7 @@ prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 import-stmt: INCLUDE import-source
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
-import-source: import-special | import-name | import-string 
+import-source: import-special | import-name | import-string
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
 import-string: STRING
@@ -31,7 +31,7 @@ type-expr: TYPE NAME EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
-toplevel-binding: binding 
+toplevel-binding: binding
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding-elt* let-binding COLON block end
 let-binding-elt: let-binding COMMA
@@ -64,7 +64,6 @@ check-expr: (CHECKCOLON|EXAMPLESCOLON) block end
 check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
           | binop-expr check-op-postfix
           | binop-expr
-
 
 data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
 data-mixins: [DERIVING mixins]
@@ -126,10 +125,11 @@ paren-expr: PARENSPACE binop-expr RPAREN
 
 id-expr: NAME
 
-prim-expr: num-expr | frac-expr | bool-expr | string-expr
+#prim-expr: num-expr | frac-expr | bool-expr | string-expr
+prim-expr: num-expr | bool-expr | string-expr
 
 num-expr: NUMBER
-frac-expr: RATIONAL
+#frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
