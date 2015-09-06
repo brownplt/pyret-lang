@@ -4812,6 +4812,8 @@ define(function() {
   Numbers['makeBignum'] = makeBignum;
   Numbers['makeRational'] = Rational.makeInstance;
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
+  Numbers['makeComplexRational'] = ComplexRational.makeInstance;
+  Numbers['makeComplexRoughnum'] = ComplexRoughnum.makeInstance;
 
   Numbers['onThrowRuntimeError'] = onThrowRuntimeError;
   Numbers['setThrowRuntimeError'] = setThrowRuntimeError;
