@@ -2949,7 +2949,7 @@ define(function() {
 	var alt2 = new RegExp("^(" + real + ")?()"
                              + "(" + sign + unsignedRealOrSpecial + "?)"
                              + "i$");
-	var alt3 = new RegExp("^(" + real + ")@(" + real + ")$");
+	var alt3 = new RegExp("^(" + real + ")(@)(" + real + ")$");
 
 	var match1 = x.match(alt1)
 	var match2 = x.match(alt2)
@@ -3066,10 +3066,13 @@ define(function() {
     function fromSchemeStringRaw(x, radix, exactness, mustBeANumberp) {
 	var cMatch = matchComplexRegexp(radix, x);
 	if (cMatch) {
+          var cMatch3 = cMatch[3];
+          if (cMatch3 === "+") cMatch3 = "1";
+          else if (cMatch3 === "-") cMatch3 = "-1";
           return makeComplexNumber(fromSchemeStringRawNoComplex(cMatch[1],
                                                                 radix,
                                                                 exactness),
-                                                                fromSchemeStringRawNoComplex(cMatch[3],
+                                                                fromSchemeStringRawNoComplex(cMatch3,
                                                                                              radix,
                                                                                              exactness),
                                                                                              cMatch[2]);
