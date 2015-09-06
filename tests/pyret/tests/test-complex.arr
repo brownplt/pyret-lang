@@ -28,6 +28,9 @@ check "complex-number functions":
   num-is-complexrational(~1) is false
   num-is-complexroughnum(1) is false
 
+  1 / 1+1i is 1/2-1/2i
+  2+1i * 2 is 4+2i
+
   num-sqrt(-1) is 0+1i
 
   num-log(0) raises "zero argument"

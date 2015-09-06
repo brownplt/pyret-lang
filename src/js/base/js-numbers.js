@@ -2338,8 +2338,8 @@ define(function() {
   ComplexRational.prototype.multiply = function(other) {
     if (other.isReal()) {
       return ComplexRational.makeInstance(
-        multiply(this.r, other),
-        multiply(this.i, other));
+        multiply(this.r, other.r),
+        multiply(this.i, other.r));
     }
     return ComplexRational.makeInstance(
       subtract(multiply(this.r,other.r), multiply(this.i,other.i)),
