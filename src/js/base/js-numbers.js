@@ -1855,6 +1855,10 @@ define(function() {
     return '~' + this.n.toString();
   };
 
+  Roughnum.prototype.toSchemeString = function() {
+    return '#i' + this.n.toString();
+  };
+
   Roughnum.prototype.equals = function(other, aUnionFind) {
     throwRuntimeError("roughnums cannot be compared for equality");
   };
@@ -2476,7 +2480,13 @@ define(function() {
     return "~" + this.r.toString() +
       (this.i < 0 ? "" : "+") +
       this.i.toString() + "i";
-  }
+  };
+
+  ComplexRoughnum.prototype.toSchemeString = function() {
+    return '#i' + this.r.toString() +
+      (this.i < 0 ? "" : "+") +
+      this.i.toString() + "i";
+  };
 
   ComplexRoughnum.prototype.toFixnum = function() {  // REDO
     throwRuntimeError("can't convert complex to fixnum")
