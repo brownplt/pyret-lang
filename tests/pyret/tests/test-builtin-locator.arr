@@ -13,7 +13,7 @@ check:
      "make-string-dict", "string-dict", "string-dict-of",
      "make-mutable-string-dict", "mutable-string-dict"]
   sd.get-provides().types.keys() is [tree-set: "MutableStringDict", "StringDict"]
-  sd.get-compiled() satisfies is-some
+  sd.get-compiled([SD.string-dict:]) satisfies is-some
 end
 
 check:
