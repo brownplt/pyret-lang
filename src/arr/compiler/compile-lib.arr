@@ -218,7 +218,7 @@ fun make-compile-lib<a>(dfind :: (a, CS.Dependency -> Located)) -> { compile-wor
       locator.set-compiled(module-as-string(ce, cr), provide-map)
       module-as-string(ce, cr)
     else:
-      locator.get-compiled().value
+      locator.get-compiled(provide-map).value
     end
   end
 
