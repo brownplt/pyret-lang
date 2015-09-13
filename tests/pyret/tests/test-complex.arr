@@ -28,6 +28,11 @@ check "complex-number functions":
   num-is-complexrational(~1) is false
   num-is-complexroughnum(1) is false
 
+  num-to-rational(num-realpart(num-to-complexroughnum(2.72+3.14i))) is 2.72
+  num-to-rational(num-imagpart(num-to-complexroughnum(2.72+3.14i))) is 3.14
+  num-to-complexrational(~2.72+3.14i) is 2.72+3.14i
+  num-to-complexrational(~2.72+3.14i) is 68/25+157/50i
+
   1 / 1+1i is 1/2-1/2i
   2+1i * 2 is 4+2i
 

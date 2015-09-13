@@ -2615,7 +2615,7 @@ define(function() {
   }
 
   ComplexRoughnum.prototype.equals = function(other, aUnionFind) {
-    throwRuntimeError("complex numbers can't be compared for equality");
+    throwRuntimeError("complex roughnums can't be compared for equality");
   }
 
   ComplexRoughnum.prototype.greaterThan = function(other) {
