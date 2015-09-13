@@ -3885,12 +3885,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_to_complexrational = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-complexrational"], 1, $a); }
       thisRuntime.checkNumber(n);
-      return thisRuntime.makeNumberBig(jsnums.toComplexrational(n));
+      return thisRuntime.makeNumberBig(jsnums.toComplexRational(n));
     }
     var num_to_complexroughnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-complexroughnum"], 1, $a); }
       thisRuntime.checkNumber(n);
-      return thisRuntime.makeNumberBig(jsnums.toComplexroughnum(n));
+      return thisRuntime.makeNumberBig(jsnums.toComplexRoughnum(n));
     }
     var num_to_fixnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a); }
