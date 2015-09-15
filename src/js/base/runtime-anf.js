@@ -3509,6 +3509,31 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(l === r);
     }
+    var string_lessthan = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-less"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l < r);
+    }
+    var string_greaterthan = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-greater"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l > r);
+    }
+    var string_lessequal = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-less-equal"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l <= r);
+    }
+    var string_greaterequal = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-greater-equal"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l >= r);
+    }
+
     var string_append = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-append"], 2, $a); }
       thisRuntime.checkString(l);
@@ -4331,6 +4356,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-to-string-digits': makeFunction(num_tostring_digits),
 
           'string-equal': makeFunction(string_equals),
+          'string-less' : makeFunction(string_lessthan),
+          'string-greater' : makeFunction(string_greaterthan),
+          'string-less-equal' : makeFunction(string_lessequal),
+          'string-greater-equal' : makeFunction(string_greaterequal),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
