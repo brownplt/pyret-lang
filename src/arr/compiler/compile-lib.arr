@@ -236,6 +236,40 @@ fun is-error-compilation(cr):
   is-module-as-string(cr) and CS.is-err(cr.result-printer)
 end
 
+fun compile-to-js-string(dfind, string, uri, context, options) -> String:
+  parsed = P.surface-parse(string, uri)
+  locator = {
+    needs-compile(self, provs): true end,
+    get-module(self): pyret-ast(parsed) end,
+    get-extra-imports(self):
+      CS.standard-imports
+    end,
+    get-dependencies(self):
+      get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-provides(self): get-provides(self.get-module(), self.uri()) end,
+    get-globals(self): CS.standard-globals end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): uri end,
+    set-compiled(self, ctxt, provs): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+  cl = make-compile-lib(dfind)
+  worklist = cl.compile-worklist(locator, context)
+  program = cl.compile-program(worklist, options)
+  cases(Loadable) program.last():
+    | module-as-string(_, ccp) =>
+      cases(CS.CompileResult) ccp:
+        | ok(printer) => printer.pyret-to-js-runnable()
+        | err(errors) => raise(errors)
+      end
+    | else => raise("Cannot create compiled string for " + locator.uri() + ": " + torepr(program.first))
+  end
+end
+
 fun compile-and-run-worklist-with(cl, ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.StringDict<PyretMod>, options):
   compiled-mods = cl.compile-program(ws, options)
   errors = compiled-mods.filter(is-error-compilation)
