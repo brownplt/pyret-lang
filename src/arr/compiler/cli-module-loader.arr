@@ -17,8 +17,7 @@ type CLIContext = {
 
 fun add-to-load-path(current-load-path, path):
   split = string-split-all(path, "/")
-  print(split)
-  print(current-load-path + split.take(split.length() - 1))
+  current-load-path + split.take(split.length() - 1)
 end
 
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
