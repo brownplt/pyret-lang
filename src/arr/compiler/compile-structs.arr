@@ -781,7 +781,12 @@ standard-imports = extra-imports(
           "fold2",
           "fold3",
           "fold4",
-          "index"
+          "index",
+          "list-first",
+          "list-rest",
+          "list-ref",
+          "list-length",
+          "list-member"
         ],
         [list: "List"]),
       extra-import(builtin("option"), "option", [list:

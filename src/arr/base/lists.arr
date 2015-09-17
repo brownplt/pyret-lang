@@ -257,7 +257,7 @@ data List<a>:
 
 sharing:
   _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
-  
+
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
   end,
@@ -776,6 +776,30 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
     elt = lst.get(ix)
     link(elt, shuffle(remove(lst, elt)))
   end
+end
+
+fun list-first<a>(lst :: List<a>) -> a:
+  if is-empty(lst): raise("taking first of empty list")
+  else: lst.first
+  end
+end
+
+fun list-rest<a>(lst :: List<a>) -> List<a>:
+  if is-empty(lst): raise("taking rest of empty list")
+  else: lst.rest
+  end
+end
+
+fun list-ref<a>(lst :: List<a>, ix :: Number) -> a:
+  lst.get(ix)
+end
+
+fun list-length<a>(lst :: List<a>) -> Number:
+  lst.length
+end
+
+fun list-member<a>(e :: a, lst :: List<a>) -> Boolean:
+  member-now(lst, e)
 end
 
 index = get
