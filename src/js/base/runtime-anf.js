@@ -3503,7 +3503,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return thisRuntime.makeString(s.split(find).join(replace));
     }
 
-    var string_equals = function(l, r) {
+    var string_equal = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-equals"], 2, $a); }
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
@@ -3532,6 +3532,39 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkString(l);
       thisRuntime.checkString(r);
       return thisRuntime.makeBoolean(l >= r);
+    }
+
+    var string_ci_equal = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ci-equals"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l.toLowerCase() === r.toLowerCase());
+    }
+
+    var string_ci_lessthan = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ci-less"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l.toLowerCase() < r.toLowerCase());
+    }
+    var string_ci_greaterthan = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ci-greater"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l.toLowerCase() > r.toLowerCase());
+    }
+
+    var string_ci_lessequal = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ci-less-equal"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l.toLowerCase() <= r.toLowerCase());
+    }
+    var string_ci_greaterequal = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ci-greater-equal"], 2, $a); }
+      thisRuntime.checkString(l);
+      thisRuntime.checkString(r);
+      return thisRuntime.makeBoolean(l.toLowerCase() >= r.toLowerCase());
     }
 
     var string_append = function(l, r) {
@@ -4355,11 +4388,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-to-string': makeFunction(num_tostring),
           'num-to-string-digits': makeFunction(num_tostring_digits),
 
-          'string-equal': makeFunction(string_equals),
+          'string-equal': makeFunction(string_equal),
           'string-less' : makeFunction(string_lessthan),
           'string-greater' : makeFunction(string_greaterthan),
           'string-less-equal' : makeFunction(string_lessequal),
           'string-greater-equal' : makeFunction(string_greaterequal),
+          'string-ci-equal': makeFunction(string_ci_equal),
+          'string-ci-less' : makeFunction(string_ci_lessthan),
+          'string-ci-greater' : makeFunction(string_ci_greaterthan),
+          'string-ci-less-equal' : makeFunction(string_ci_lessequal),
+          'string-ci-greater-equal' : makeFunction(string_ci_greaterequal),
           'string-contains': makeFunction(string_contains),
           'string-append': makeFunction(string_append),
           'string-length': makeFunction(string_length),
