@@ -795,7 +795,7 @@ fun list-ref<a>(lst :: List<a>, ix :: Number) -> a:
 end
 
 fun list-length<a>(lst :: List<a>) -> Number:
-  lst.length
+  lst.length()
 end
 
 fun list-member<a>(e :: a, lst :: List<a>) -> Boolean:
