@@ -4,6 +4,7 @@ import namespace-lib as N
 import runtime-lib as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
+import "compiler/locators/builtin.arr" as BL
 
 fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
@@ -187,4 +188,75 @@ check "Worklist generation (Cycle)":
   CL.get-dependencies(gloc.get-module(), gloc.uri()) is [list: CM.dependency("file", [list: "A"])]
 
   clib.compile-worklist(floc, {}) raises "cycle"
+end
+
+
+check "Multiple includes":
+  modules = SD.make-mutable-string-dict()
+  modules.set-now("A",
+    ```
+    provide *
+    provide-types *
+    
+    data D:
+      | d(x)
+    end
+    ```)
+  modules.set-now("B",
+    ```
+    provide *
+    import some-protocol("A") as A
+    fun f():
+      A.d(4)
+    end
+    ```)
+  modules.set-now("C",
+    ```
+    import some-protocol("A") as A
+    import some-protocol("B") as B1
+    import some-protocol("B") as B2
+    import some-protocol("B") as B3
+
+    torepr([list:
+      A.d(4) == B1.f(),
+      B1.f() == B2.f(),
+      B2.f() == B3.f()
+    ])
+    ```)
+
+  fun string-to-locator(name :: String):
+    {
+      needs-compile(self, provs): true end,
+      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      get-extra-imports(self): CM.standard-imports end,
+      get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
+      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+      get-globals(self): CM.standard-globals end,
+      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+      uri(self): "file://" + name end,
+      name(self): name end,
+      set-compiled(self, ctxt, provs): nothing end,
+      get-compiled(self): none end,
+      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    }
+  end
+
+  fun dfind(ctxt, dep):
+    l = cases(CM.Dependency) dep:
+      | builtin(modname) =>
+        BL.make-builtin-locator(modname)
+      | else =>
+        string-to-locator(dep.arguments.get(0))
+    end
+    CL.located(l, CM.standard-globals)
+  end
+
+  clib = CL.make-compile-lib(dfind)
+
+  start-loc = string-to-locator("C")
+  wlist = clib.compile-worklist(start-loc, {})
+  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
+
+  ans.v satisfies L.is-success-result
+  L.get-result-answer(ans.v) is some("[list: true, true, true]")
 end
