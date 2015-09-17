@@ -15,6 +15,34 @@ check:
 end
 
 check:
+  string-equal("abc", "abc") is true
+  string-equal("abc", "def") is false
+  string-less("abc", "def") is true
+  string-less("def", "abc") is false
+  string-greater("abc", "def") is false
+  string-greater("def", "abc") is true
+  string-less-equal("abc", "def") is true
+  string-less-equal("abc", "abc") is true
+  string-less-equal("def", "abc") is false
+  string-greater-equal("abc", "def") is false
+  string-greater-equal("abc", "abc") is true
+  string-greater-equal("def", "abc") is true
+
+  string-ci-equal("abc", "ABC") is true
+  string-ci-equal("abc", "DEF") is false
+  string-ci-less("abc", "DEF") is true
+  string-ci-less("def", "ABC") is false
+  string-ci-greater("abc", "DEF") is false
+  string-ci-greater("def", "ABC") is true
+  string-ci-less-equal("abc", "DEF") is true
+  string-ci-less-equal("abc", "ABC") is true
+  string-ci-less-equal("def", "ABC") is false
+  string-ci-greater-equal("abc", "DEF") is false
+  string-ci-greater-equal("abc", "ABC") is true
+  string-ci-greater-equal("def", "ABC") is true
+end
+
+check:
   string-to-number("asdf").or-else("worked") is "worked"
   string-to-number("100").or-else("failed") is 100
 end
@@ -31,7 +59,6 @@ check:
 
   string-contains("", "") is true
 
-
   string-append("", "") is ""
   string-append(" ", "") is " "
   string-append("", " ") is " "
@@ -44,7 +71,7 @@ check:
   string-length("a") is 1
   string-length("\n\r \t") is 4
   string-length("λjs") is 3
-  
+
   string-tonumber("45") is 45
   # TODO(joe): some string-to-number parsing issue on the number below
   #string-tonumber("100000000000000000000000000000000000001")
@@ -79,21 +106,19 @@ check:
 
   string-split-all("abc", "") is [list: "a", "b", "c"]
   string-split-all("abc", "b") is [list: "a", "c"]
-  string-split-all("sentence is a typical use case", " ") is [list: 
+  string-split-all("sentence is a typical use case", " ") is [list:
       "sentence", "is", "a", "typical", "use", "case"
     ]
   string-split-all("aabcb", "b") is [list: "aa", "c", ""]
 
   string-split("abc", "") is [list: "", "abc"]
   string-split("abc", "b") is [list: "a", "c"]
-  string-split("sentence is a typical use case", " ") is [list: 
+  string-split("sentence is a typical use case", " ") is [list:
       "sentence", "is a typical use case"
     ]
   string-split("aabcb", "b") is [list: "aa", "cb"]
 
 end
-
-
 
 check:
   string-to-code-point("a", "b") raises-satisfies E.is-arity-mismatch
@@ -137,7 +162,7 @@ check:
   string-from-code-point(65534) is "\uFFFE"
   string-from-code-point(65536) raises "Invalid code point"
   string-from-code-point(65537) raises "Invalid code point"
-  
+
   for each(i from range(0, 1000)):
     ix1 = random(65535)
     ix2 = random(65535)
@@ -149,4 +174,3 @@ check:
   end
 
 end
-
