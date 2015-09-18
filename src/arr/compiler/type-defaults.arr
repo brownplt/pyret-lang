@@ -159,6 +159,8 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("num-atan").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-modulo").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-truncate").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-add1").key(), t-arrow([list: t-number], t-number))
+  default-typs.set-now(A.s-global("num-sub1").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-sqrt").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-sqr").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-ceiling").key(), t-arrow([list: t-number], t-number))

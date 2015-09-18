@@ -667,6 +667,8 @@ runtime-builtins = [string-dict:
   "num-atan", t-number-unop,
   "num-modulo", t-number-binop,
   "num-truncate", t-number-unop,
+  "num-add1", t-number-unop,
+  "num-sub1", t-number-unop,
   "num-sqrt", t-number-unop,
   "num-sqr", t-number-unop,
   "num-ceiling", t-number-unop,

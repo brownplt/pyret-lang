@@ -3885,6 +3885,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return thisRuntime.makeNumberBig(jsnums.ceiling(n));
       }
     }
+
+    var num_add1 = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-add1"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.add(n, 1));
+    }
+    var num_sub1 = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sub1"], 1, $a); }
+      thisRuntime.checkNumber(n);
+      return thisRuntime.makeNumberBig(jsnums.subtract(n, 1));
+    }
+
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a); }
       thisRuntime.checkNumber(n);
@@ -4359,6 +4371,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'num-atan': makeFunction(num_atan),
           'num-modulo': makeFunction(num_modulo),
           'num-truncate': makeFunction(num_truncate),
+          'num-add1': makeFunction(num_add1),
+          'num-sub1': makeFunction(num_sub1),
           'num-sqrt': makeFunction(num_sqrt),
           'num-sqr': makeFunction(num_sqr),
           'num-ceiling': makeFunction(num_ceiling),
@@ -4621,6 +4635,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_atan': num_atan,
         'num_modulo': num_modulo,
         'num_truncate': num_truncate,
+        'num-add1': num_add1,
+        'num-sub1': num_sub1,
         'num_sqrt': num_sqrt,
         'num_ceiling': num_ceiling,
         'num_floor': num_floor,
