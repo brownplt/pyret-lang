@@ -81,10 +81,25 @@ type Locator = {
   _equals :: Method
 }
 
+fun string-locator(uri :: URI, s :: String):
+  {
+    needs-compile(self, _): true end,
+    get-module(self): pyret-string(s) end,
+    get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
+    get-extra-imports(self): CS.standard-imports end,
+    get-globals(self): CS.standard-globals end,
+    get-namespace(self, r): N.make-base-namespace(r) end,
+    uri(self): uri end,
+    name(self): uri end,
+    set-compiled(self, _, _): nothing end,
+    get-compiled(self): none end,
+    _equals(self, other, rec-eq): rec-eq(other.uri(), self.uri()) end
+  }
+end
+
 data Located<a>:
   | located(locator :: Locator, context :: a)
 end
-
 
 fun get-ast(p :: PyretCode, uri :: URI):
   cases(PyretCode) p:
@@ -158,7 +173,7 @@ end
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 # Use ConcatList if it's easy
-fun compile-worklist<a>(dfind, locator :: Locator, context :: a) -> List<ToCompile>:
+fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
   fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
     when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
       raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
@@ -354,3 +369,7 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
   end
 end
 
+fun compile-and-run-locator(locator, finder, context, runtime, options):
+  wl = compile-worklist(finder, locator, context)
+  compile-and-run-worklist(wl, runtime, options)
+end
