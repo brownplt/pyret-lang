@@ -112,7 +112,20 @@ define(["../../../lib/jglr/jglr"], function(E) {
   function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
   function op(str) { return "^\\s+" + str + ws_after; }
 
-  const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
+  //const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
+  const extended_latin_character = // letters only from
+    "_a-zA-Z" +        // ascii
+    "\u00C0-\u00D6" + // latin1 supplement
+    "\u00D8-\u00F6" + // ,,
+    "\u00F8-\u00FF" + // ,,
+    "\u0100-\u0148" + // latin extended A
+    "\u014A-\u017F" + // ,,
+    "\u0180-\u01BF" + // latin extended B
+    "\u01CD-\u024F";  // ,,
+
+  const name = new RegExp("^[" + extended_latin_character + "]" +
+                          "[" + extended_latin_character + "0-9]*" +
+                          "(?:-+[" + extended_latin_character + "0-9]+)*", STICKY_REGEXP);
 
   //const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
