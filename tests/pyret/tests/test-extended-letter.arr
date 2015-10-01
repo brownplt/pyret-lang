@@ -8,7 +8,11 @@ check "that-identifiers-with-common-unicode-letters-work":
   R-in-μΩ is 3e6
 
   π = 4 * num-atan(1)
-  ν = 100
+  ν = 100e6
   ω = 2 * π * ν
-  ω is%(within(1)) 628
+  ω is%(within(0.1e6)) 628e6
+
+  c = 299792458
+  λ = c / ν
+  λ is%(within(0.01)) 3
 end
