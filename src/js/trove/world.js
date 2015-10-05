@@ -1,4 +1,4 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, ffiLib, t, strDictLib) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict", "trove/particle-shim-structs"], function(util, imageLib, worldLib, ffiLib, t, strDictLib, pShimStruct) {
 
   var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
@@ -81,6 +81,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
     },
     function(runtime, namespace) {
         return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib, strDictLib], function(imageLibrary, rawJsworld, ffi, strDict) {
+        return runtime.loadModulesNew(namespace, [pShimStruct], function(pStruct) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////
@@ -513,6 +514,19 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
 
         //////////////////////////////////////////////////////////////////////
 
+        var configCore = function(coreid, acc, configs) {
+          var config_str = configs.map(function(c){
+              return runtime.getField(c, "_shim-convert").app();}).join("");
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST","https://api.particle.io/v1/devices/events");
+          xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+          xhr.send("access_token=" + acc + "&name=_config&data=" + config_str + "&private=true&ttl=60");
+        }
+
+        var pStruct_vals = runtime.getField(pStruct, "values");
+
+        //////////////////////////////////////////////////////////////////////
+
 
         // The default tick delay is 28 times a second.
         var DEFAULT_TICK_DELAY = 1/28;
@@ -585,9 +599,46 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               runtime.checkString(key1);
               runtime.checkString(key2);
               return key1.toString().toLowerCase() === key2.toString().toLowerCase();
-            })
+            }),
+            // core configuration
+            "configure-core": makeFunction(function(coreid, acc, config) {
+              ffi.checkArity(3, arguments, "configure-core");
+              runtime.checkString(coreid);
+              runtime.checkString(acc);
+              runtime.checkList(config);
+              configCore(coreid, acc, ffi.toArray(config));
+            }),
+            "ait-enters": runtime.getField(pStruct_vals, "ait-enters"),
+            "ait-exits": runtime.getField(pStruct_vals, "ait-exits"),
+            "ait-crosses": runtime.getField(pStruct_vals, "ait-crosses"),
+            "is-ait-enters": runtime.getField(pStruct_vals, "is-ait-enters"),
+            "is-ait-exits": runtime.getField(pStruct_vals, "is-ait-exits"),
+            "is-ait-crosses": runtime.getField(pStruct_vals, "is-ait-crosses"),
+            "pc-write": runtime.getField(pStruct_vals, "pc-write"),
+            "pc-digital-read": runtime.getField(pStruct_vals, "pc-digital-read"),
+            "pc-analog-read": runtime.getField(pStruct_vals, "pc-analog-read"),
+            "is-pc-write": runtime.getField(pStruct_vals, "is-pc-write"),
+            "is-pc-digital-read": runtime.getField(pStruct_vals, "is-pc-digital-read"),
+            "is-pc-analog-read": runtime.getField(pStruct_vals, "is-pc-analog-read"),
+            "A0": runtime.getField(pStruct_vals, "A0"),
+            "A1": runtime.getField(pStruct_vals, "A1"),
+            "A2": runtime.getField(pStruct_vals, "A2"),
+            "A3": runtime.getField(pStruct_vals, "A3"),
+            "A4": runtime.getField(pStruct_vals, "A4"),
+            "A5": runtime.getField(pStruct_vals, "A5"),
+            "A6": runtime.getField(pStruct_vals, "A6"),
+            "A7": runtime.getField(pStruct_vals, "A7"),
+            "D0": runtime.getField(pStruct_vals, "D0"),
+            "D1": runtime.getField(pStruct_vals, "D1"),
+            "D2": runtime.getField(pStruct_vals, "D2"),
+            "D3": runtime.getField(pStruct_vals, "D3"),
+            "D4": runtime.getField(pStruct_vals, "D4"),
+            "D5": runtime.getField(pStruct_vals, "D5"),
+            "D6": runtime.getField(pStruct_vals, "D6"),
+            "D7": runtime.getField(pStruct_vals, "D7")
           })
         });
       });
     });
+  });
 });
