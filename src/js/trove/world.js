@@ -1,4 +1,4 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util"], function(util, imageLib, worldLib, ffiLib, t) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, ffiLib, t, strDictLib) {
 
   var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
@@ -54,13 +54,15 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
           t.forall(["a"],
             t.arrow([
                 t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
-                t.string],
+                t.string,
+                t.libName("string-dict", "StringDict")],
                     wcOfA)),
         "to-particle":
           t.forall(["a"],
             t.arrow([
                 t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.string])),
-                t.string],
+                t.string,
+                t.libName("string-dict", "StringDict")],
                     wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
         "is-key-equal": t.arrow([t.string, t.string], t.boolean)
@@ -78,7 +80,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
       }
     },
     function(runtime, namespace) {
-      return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib], function(imageLibrary, rawJsworld, ffi) {
+        return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib, strDictLib], function(imageLibrary, rawJsworld, ffi, strDict) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////
@@ -449,11 +451,26 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
         //////////////////////////////////////////////////////////////////////
 
-        var OnParticle = function(handler, acc, name) {
+        var sd_to_js = function(sd) {
+            var ret = {};
+            var arr = ffi.toArray(runtime.getField(sd, "keys-list").app());
+            for(var i in arr) {
+                var k = arr[i];
+                var v = runtime.getField(sd, "get-value").app(k);
+                if(typeof(v) === "string") {
+                    ret[k] = v;
+                } else {
+                    throw new Error('unimplemented value conversion for StringDict');
+                }
+            }
+            return ret;
+        };
+
+        var OnParticle = function(handler, name, sdict) {
             WorldConfigOption.call(this, 'on-particle');
             this.handler = handler;
-            this.acc = acc;
             this.event = name;
+            this.options = sd_to_js(sdict);
         };
 
         OnParticle.prototype = Object.create(WorldConfigOption.prototype);
@@ -461,17 +478,17 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         OnParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
             var worldFunction = adaptWorldFunction(that.handler);
-            return rawJsworld.on_particle(worldFunction, that.acc, that.event);
+            return rawJsworld.on_particle(worldFunction, that.event, that.options);
         };
 
 
         //////////////////////////////////////////////////////////////////////
 
-        var ToParticle = function(handler, acc, ename) {
+        var ToParticle = function(handler, ename, sdict) {
             WorldConfigOption.call(this, 'to-particle');
             this.handler = handler;
-            this.acc = acc;
             this.event = ename;
+            this.options = sd_to_js(sdict);
         };
 
         ToParticle.prototype = Object.create(WorldConfigOption.prototype);
@@ -485,7 +502,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                         var xhr = new XMLHttpRequest();
                         xhr.open("POST","https://api.particle.io/v1/devices/events");
                         xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                        xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
+                        xhr.send("access_token=" + that.options.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
                     }
                     k(w);
                 });
@@ -546,19 +563,17 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               runtime.checkFunction(onMouse);
               return runtime.makeOpaque(new OnMouse(onMouse));
             }),
-            "on-particle": makeFunction(function(onEvent,acc,eName) {
+            "on-particle": makeFunction(function(onEvent,eName,sd) {
               ffi.checkArity(3, arguments, "on-particle");
               runtime.checkFunction(onEvent);
-              runtime.checkString(acc);
               runtime.checkString(eName);
-              return runtime.makeOpaque(new OnParticle(onEvent,acc,eName));
+              return runtime.makeOpaque(new OnParticle(onEvent,eName,sd));
             }),
-            "to-particle": makeFunction(function(toEvent,acc,eName) {
+            "to-particle": makeFunction(function(toEvent,eName,sd) {
               ffi.checkArity(3, arguments, "to-particle");
               runtime.checkFunction(toEvent);
-              runtime.checkString(acc);
               runtime.checkString(eName);
-              return runtime.makeOpaque(new ToParticle(toEvent,acc,eName));
+              return runtime.makeOpaque(new ToParticle(toEvent,eName,sd));
             }),
             "is-world-config": makeFunction(function(v) {
               ffi.checkArity(1, arguments, "is-world-config");
