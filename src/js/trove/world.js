@@ -502,7 +502,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                         var xhr = new XMLHttpRequest();
                         xhr.open("POST","https://api.particle.io/v1/devices/events");
                         xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                        xhr.send("access_token=" + that.options.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
+                        xhr.send("access_token=" + that.options.acc + "&name=_event&data=" + that.event + ":" + runtime.getField(v, "value") + "&private=true&ttl=60");
                     }
                     k(w);
                 });
