@@ -39,15 +39,15 @@ end
 data PinConfig:
   | pc-write(pin :: Pin, event :: String) with:
     _shim-convert(self):
-      self.pin + ":" + self.event + "\n"
+      self.event + ":" + self.pin + ":O" + "\n"
     end
   | pc-digital-read(pin :: Pin, event :: String) with:
     _shim-convert(self):
-      self.pin + ":" + self.event + "\n"
+      self.event + ":" + self.pin + ":I" + "\n"
     end
   | pc-analog-read(pin :: Pin, event :: String, trigger :: AnalogInputTrigger) with:
     _shim-convert(self):
-      self.pin + ":" + self.event + ":" + self.trigger._shim-convert() + "\n"
+      self.event + ":" + self.pin + ":I:" + self.trigger._shim-convert() + "\n"
     end
 end
 
