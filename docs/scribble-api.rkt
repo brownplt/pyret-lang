@@ -101,7 +101,6 @@
 ;; Maybe something like this could be put in the Racket standard library?
 (define-runtime-path HERE ".")
 
-(define GEN-BASE (build-path (path-only HERE) "generated" "trove"))
 (define curr-doc-checks #f)
 
 ;; print a warning message, optionally with name of issuing function
@@ -140,21 +139,6 @@
                                 (format "Undocumented export ~s from module ~s"
                                         key modname)))))
         (warning 'report-undocumented (format "Unknown module ~s" modname)))))
-
-(define (load-gen-docs)
-  (let ([all-docs (filter (lambda(f)
-                            (let ([str (path->string f)])
-                              (and
-                                (not (string=? (substring str (- (string-length str) 4)) ".bak"))
-                                (not (string=? (substring str (- (string-length str) 1)) "~"))
-                                (not (string=? (substring str 0 1) "."))
-                                ))
-                            ) (directory-list GEN-BASE))])
-    (let ([read-docs
-           (map (lambda (f) (with-input-from-file (build-path GEN-BASE f) read)) all-docs)])
-      (set! curr-doc-checks (init-doc-checker read-docs))
-      ;(printf "Modules are ~s~n" (map first curr-doc-checks))
-      read-docs)))
 
 ;;;;;;;;;;; Functions to extract information from generated documentation ;;;;;;;;;;;;;;
 
@@ -730,7 +714,8 @@
      (set-documented! (curr-module-name) name)
      ans))
 
-(define ALL-GEN-DOCS (load-gen-docs))
+;; starts empty, different modules will add bindings
+(define ALL-GEN-DOCS (list))
 
 ;; finds module with given name within all files in docs/generated/arr/*
 ;; mname is string naming the module

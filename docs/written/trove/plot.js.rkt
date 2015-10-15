@@ -14,6 +14,7 @@
 @(append-gen-docs
   `(module "plot"
     (path "src/js/base/runtime-anf.js")
+    (fun-spec (name "plot-multi") (arity 2))
     (fun-spec (name "histogram"))
     (fun-spec (name "pie-chart"))
     (fun-spec (name "plot"))
