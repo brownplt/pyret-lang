@@ -1,4 +1,4 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict", "trove/particle-shim-structs"], function(util, imageLib, worldLib, ffiLib, t, strDictLib, pShimStruct) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, ffiLib, t, strDictLib) {
 
   var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
@@ -50,20 +50,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                 t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
               ],
               wcOfA)),
-        "on-particle":
-          t.forall(["a"],
-            t.arrow([
-                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
-                t.string,
-                t.libName("string-dict", "StringDict")],
-                    wcOfA)),
-        "to-particle":
-          t.forall(["a"],
-            t.arrow([
-                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.string])),
-                t.string,
-                t.libName("string-dict", "StringDict")],
-                    wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
         "is-key-equal": t.arrow([t.string, t.string], t.boolean)
       },
@@ -81,7 +67,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
     },
     function(runtime, namespace) {
         return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib, strDictLib], function(imageLibrary, rawJsworld, ffi, strDict) {
-        return runtime.loadModulesNew(namespace, [pShimStruct], function(pStruct) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////
@@ -522,7 +507,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               adaptWorldFunction: adaptWorldFunction
             }
           })
-        });
       });
     });
   });
