@@ -25,6 +25,24 @@
         (method-spec (name "to-list-now"))
         )))
     (fun-spec
+      (name "build-array")
+      (arity 2)
+      (params [list: leaf("a")])
+      (args ("f" "len"))
+      (return "Any")
+      (contract
+        (a-arrow
+          (a-arrow (a-id "Number" (xref "<global>" "Number")) "a")
+          (a-id "Number" (xref "<global>" "Number"))
+          "Any")))
+    (fun-spec
+      (name "array-from-list")
+      (arity 1)
+      (params [list: ])
+      (args ("l"))
+      (return "Any")
+      (contract (a-arrow "Any" "Any")))
+    (fun-spec
       (name "array-of")
       (arity 2)
       (args ("value" "count"))

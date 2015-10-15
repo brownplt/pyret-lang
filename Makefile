@@ -183,29 +183,8 @@ $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
 .PHONY : docs
-docs: $(DOCS_DEPS)
+docs:
 	cd docs/written && make VERSION=$(VERSION)
-
-$(DOCS_DEPS): | $(PHASE1)/phase1.built docs-trove
-
-docs-trove: $(DOCS)/doc-utils.arr.js
-	@$(call MKDIR,$(DOCS_DIRS))
-
-$(DOCS)/%.arr.js : $(DOCS)/%.arr $(PHASE1_ALL_DEPS)
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-
-$(DOCS)/generated/trove/%.js.rkt : src/$(JSTROVE)/%.js docs/create-js-generated-docs.js
-	$(NODE) docs/create-js-generated-docs.js $(patsubst src/$(JSTROVE)/%,$(PHASE1)/trove/%,$<) > $@
-
-$(DOCS)/generated/js/%.js.rkt : src/$(JSBASE)/%.js docs/create-js-generated-docs.js
-	$(NODE) docs/create-js-generated-docs.js $(patsubst src/$(JSBASE)/%,$(PHASE1)/js/%,$<) > $@
-
-$(DOCS)/generated/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-generated-docs.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< $@
-$(DOCS)/generated/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-generated-docs.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< $@
-$(DOCS)/generated/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-generated-docs.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-generated-docs.arr $< $@
 
 docs-skel: $(DOCS_SKEL_DEPS)
 $(DOCS_SKEL_DEPS): | $(PHASE1)/phase1.built docs-trove
