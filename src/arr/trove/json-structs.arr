@@ -20,7 +20,7 @@ data JSON:
       end
       "{" + l.join-str(", ") + "}"
     end
-  | j-arr(l :: List) with:
+  | j-arr(l :: List<JSON>) with:
     native(self):
       self.l.map(lam(x): x.native() end)
     end,
