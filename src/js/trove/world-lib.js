@@ -807,12 +807,12 @@ define(["js/runtime-util"], function(util) {
     Jsworld.on_mouse = on_mouse;
 
 
-    function on_particle(handler, acc, eName) {
+      function on_particle(handler, eName, options) {
         return function() {
             var evtSource;
             return {
                 onRegister: function(top) {
-                    evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + acc);
+                    evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + options.acc);
                     evtSource.addEventListener(eName,
                                                function(e) {
                                                    data = JSON.parse(e.data);

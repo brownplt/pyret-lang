@@ -1,4 +1,4 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util"], function(util, imageLib, worldLib, ffiLib, t) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, ffiLib, t, strDictLib) {
 
   var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
@@ -50,18 +50,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
                 t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
               ],
               wcOfA)),
-        "on-particle":
-          t.forall(["a"],
-            t.arrow([
-                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
-                t.string],
-                    wcOfA)),
-        "to-particle":
-          t.forall(["a"],
-            t.arrow([
-                t.arrow([t.tyvar("a")], t.tyapp(t.libName("option", "Option"), [t.string])),
-                t.string],
-                    wcOfA)),
         "is-world-config": t.arrow([t.any], t.boolean),
         "is-key-equal": t.arrow([t.string, t.string], t.boolean)
       },
@@ -78,7 +66,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
       }
     },
     function(runtime, namespace) {
-      return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib], function(imageLibrary, rawJsworld, ffi) {
+        return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib, strDictLib], function(imageLibrary, rawJsworld, ffi, strDict) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////
@@ -449,53 +437,6 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
         //////////////////////////////////////////////////////////////////////
 
-        var OnParticle = function(handler, acc, name) {
-            WorldConfigOption.call(this, 'on-particle');
-            this.handler = handler;
-            this.acc = acc;
-            this.event = name;
-        };
-
-        OnParticle.prototype = Object.create(WorldConfigOption.prototype);
-
-        OnParticle.prototype.toRawHandler = function(toplevelNode) {
-            var that = this;
-            var worldFunction = adaptWorldFunction(that.handler);
-            return rawJsworld.on_particle(worldFunction, that.acc, that.event);
-        };
-
-
-        //////////////////////////////////////////////////////////////////////
-
-        var ToParticle = function(handler, acc, ename) {
-            WorldConfigOption.call(this, 'to-particle');
-            this.handler = handler;
-            this.acc = acc;
-            this.event = ename;
-        };
-
-        ToParticle.prototype = Object.create(WorldConfigOption.prototype);
-
-        ToParticle.prototype.toRawHandler = function(toplevelNode) {
-            var that = this;
-            var worldFunction = adaptWorldFunction(that.handler);
-            var eventGen = function(w, k) {
-                worldFunction(w, function(v) {
-                    if(ffi.isSome(v)) {
-                        var xhr = new XMLHttpRequest();
-                        xhr.open("POST","https://api.particle.io/v1/devices/events");
-                        xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                        xhr.send("access_token=" + that.acc + "&name=" + that.event + "&data=" + runtime.getField(v, "value") + "&private=true&ttl=60");
-                    }
-                    k(w);
-                });
-            };
-            return rawJsworld.on_world_change(eventGen);
-        };
-
-
-        //////////////////////////////////////////////////////////////////////
-
 
         // The default tick delay is 28 times a second.
         var DEFAULT_TICK_DELAY = 1/28;
@@ -504,75 +445,69 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         var makeFunction = runtime.makeFunction;
 
         return makeObject({
-          "provide": makeObject({
-            "big-bang": makeFunction(function(init, handlers) {
-              ffi.checkArity(2, arguments, "big-bang");
-              runtime.checkList(handlers);
-              var arr = ffi.toArray(handlers);
-              var initialWorldValue = init;
-              arr.map(function(h) { checkHandler(h); });
-              bigBang(initialWorldValue, arr);
-              ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
+          "provide-plus-types": makeObject({
+            "values": makeObject({
+              "big-bang": makeFunction(function(init, handlers) {
+                ffi.checkArity(2, arguments, "big-bang");
+                runtime.checkList(handlers);
+                var arr = ffi.toArray(handlers);
+                var initialWorldValue = init;
+                arr.map(function(h) { checkHandler(h); });
+                bigBang(initialWorldValue, arr);
+                ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
+              }),
+              "on-tick": makeFunction(function(handler) {
+                ffi.checkArity(1, arguments, "on-tick");
+                runtime.checkFunction(handler);
+                return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+              }),
+              "on-tick-n": makeFunction(function(handler, n) {
+                ffi.checkArity(2, arguments, "on-tick-n");
+                runtime.checkFunction(handler);
+                runtime.checkNumber(n);
+                var fixN = typeof n === "number" ? fixN : n.toFixnum();
+                return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
+              }),
+              "to-draw": makeFunction(function(drawer) {
+                ffi.checkArity(1, arguments, "to-draw");
+                runtime.checkFunction(drawer);
+                return runtime.makeOpaque(new ToDraw(drawer));
+              }),
+              "stop-when": makeFunction(function(stopper) {
+                ffi.checkArity(1, arguments, "stop-when");
+                runtime.checkFunction(stopper);
+                return runtime.makeOpaque(new StopWhen(stopper));
+              }),
+              "on-key": makeFunction(function(onKey) {
+                ffi.checkArity(1, arguments, "on-key");
+                runtime.checkFunction(onKey);
+                return runtime.makeOpaque(new OnKey(onKey));
+              }),
+              "on-mouse": makeFunction(function(onMouse) {
+                ffi.checkArity(1, arguments, "on-mouse");
+                runtime.checkFunction(onMouse);
+                return runtime.makeOpaque(new OnMouse(onMouse));
+              }),
+              "is-world-config": makeFunction(function(v) {
+                ffi.checkArity(1, arguments, "is-world-config");
+                if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
+                return runtime.makeBoolean(isWorldConfigOption(v.val));
+              }),
+              "is-key-equal": makeFunction(function(key1, key2) {
+                ffi.checkArity(2, arguments, "is-key-equal");
+                runtime.checkString(key1);
+                runtime.checkString(key2);
+                return key1.toString().toLowerCase() === key2.toString().toLowerCase();
+              })
             }),
-            "on-tick": makeFunction(function(handler) {
-              ffi.checkArity(1, arguments, "on-tick");
-              runtime.checkFunction(handler);
-              return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+            "types": makeObject({
             }),
-            "on-tick-n": makeFunction(function(handler, n) {
-              ffi.checkArity(2, arguments, "on-tick-n");
-              runtime.checkFunction(handler);
-              runtime.checkNumber(n);
-              var fixN = typeof n === "number" ? fixN : n.toFixnum();
-              return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
-            }),
-            "to-draw": makeFunction(function(drawer) {
-              ffi.checkArity(1, arguments, "to-draw");
-              runtime.checkFunction(drawer);
-              return runtime.makeOpaque(new ToDraw(drawer));
-            }),
-            "stop-when": makeFunction(function(stopper) {
-              ffi.checkArity(1, arguments, "stop-when");
-              runtime.checkFunction(stopper);
-              return runtime.makeOpaque(new StopWhen(stopper));
-            }),
-            "on-key": makeFunction(function(onKey) {
-              ffi.checkArity(1, arguments, "on-key");
-              runtime.checkFunction(onKey);
-              return runtime.makeOpaque(new OnKey(onKey));
-            }),
-            "on-mouse": makeFunction(function(onMouse) {
-              ffi.checkArity(1, arguments, "on-mouse");
-              runtime.checkFunction(onMouse);
-              return runtime.makeOpaque(new OnMouse(onMouse));
-            }),
-            "on-particle": makeFunction(function(onEvent,acc,eName) {
-              ffi.checkArity(3, arguments, "on-particle");
-              runtime.checkFunction(onEvent);
-              runtime.checkString(acc);
-              runtime.checkString(eName);
-              return runtime.makeOpaque(new OnParticle(onEvent,acc,eName));
-            }),
-            "to-particle": makeFunction(function(toEvent,acc,eName) {
-              ffi.checkArity(3, arguments, "to-particle");
-              runtime.checkFunction(toEvent);
-              runtime.checkString(acc);
-              runtime.checkString(eName);
-              return runtime.makeOpaque(new ToParticle(toEvent,acc,eName));
-            }),
-            "is-world-config": makeFunction(function(v) {
-              ffi.checkArity(1, arguments, "is-world-config");
-              if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
-              return runtime.makeBoolean(isWorldConfigOption(v.val));
-            }),
-            "is-key-equal": makeFunction(function(key1, key2) {
-              ffi.checkArity(2, arguments, "is-key-equal");
-              runtime.checkString(key1);
-              runtime.checkString(key2);
-              return key1.toString().toLowerCase() === key2.toString().toLowerCase();
-            })
+            "internal": {
+              WorldConfigOption: WorldConfigOption,
+              adaptWorldFunction: adaptWorldFunction
+            }
           })
-        });
       });
     });
+  });
 });
