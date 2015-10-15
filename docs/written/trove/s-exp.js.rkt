@@ -2,6 +2,21 @@
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 @(define (sref s)
   (a-id s (xref "s-exp-structs" s)))
+
+@(append-gen-docs
+'(module "s-exp"
+  (path "build/phase1/trove/s-exp.js")
+  (fun-spec (name "s-list") (arity 0))
+  (fun-spec (name "s-num") (arity 0))
+  (fun-spec (name "s-str") (arity 0))
+  (fun-spec (name "s-sym") (arity 0))
+  (fun-spec (name "is-s-list") (arity 1))
+  (fun-spec (name "is-s-num") (arity 1))
+  (fun-spec (name "is-s-str") (arity 1))
+  (fun-spec (name "is-s-sym") (arity 1))
+  (fun-spec (name "read-s-exp") (arity 1))
+))
+
 @docmodule["s-exp"]{
 @ignore[(list "s-sym" "s-str" "s-num" "s-list")]
   @para{
