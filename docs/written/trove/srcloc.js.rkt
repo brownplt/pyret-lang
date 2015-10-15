@@ -246,11 +246,6 @@
     }
     @shared{
       @method-spec[
-        "_tostring"
-        ;; N.B. Pyret contract: (Srcloc -> Any)
-        
-      ]
-      @method-spec[
         "after"
         ;; N.B. Pyret contract: (Srcloc, Any -> Any)
         
