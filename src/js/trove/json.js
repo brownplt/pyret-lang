@@ -66,7 +66,8 @@ define(["js/runtime-util", "trove/string-dict", "trove/json-structs"], function(
             "is-j-str": gf(vals, "is-j-str"),
             "is-j-bool": gf(vals, "is-j-bool"),
             "is-j-null": gf(vals, "is-j-null"),
-            "read-json": RUNTIME.makeFunction(readJSON)
+            "read-json": RUNTIME.makeFunction(readJSON),
+            "tojson": gf(vals, "tojson")
           }),
           "types": {
             "JSON": typs["JSON"]
