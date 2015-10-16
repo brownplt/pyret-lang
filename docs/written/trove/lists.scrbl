@@ -1490,6 +1490,18 @@ These methods are available on all lists (both @(tt "link") and @(tt "empty")
 instances).  The examples show how to use the dot operator to access and call
 them on particular lists.
 
+@list-method["_plus"]
+
+Appends the list with the given list, similar to the @pyret{append} method.
+
+@examples{
+check:
+  [list: 1, 2] + [list: 3] is [list: 1, 2, 3]
+  [list: ] + [list: 1, 2]  is [list: 1, 2]
+  [list: 1, 2] + [list: ]  is [list: 1, 2]
+  [list: 'a', 'b'] + [list: 'c'] is [list: 'a', 'b'].append([list: 'c'])
+end
+}
 
 @list-method["length"]
 
