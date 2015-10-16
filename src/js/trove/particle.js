@@ -56,9 +56,9 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
                   evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + options.acc);
                   evtSource.addEventListener(eName,
                                              function(e) {
-                                               data = JSON.parse(e.data)
+                                               data = read_json(JSON.parse(e.data).data)
                                                rawJsworld.change_world(function(w,k) {
-                                                 handler(w, read_json(data.data), k);
+                                                 handler(w, data, k);
                                                }, rawJsworld.doNothing)});
                 },
                 onUnregister: function(top) {
