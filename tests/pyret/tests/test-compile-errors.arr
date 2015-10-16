@@ -49,4 +49,17 @@ check:
     c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-wf-err
     c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-wf-err
   end
+
+  check "unbound type ids":
+    c("link<NotDefined>(1, empty)") satisfies CS.is-unbound-type-id
+    c(```
+fun test<A>(a :: A):
+ a
+end
+
+check:
+ test<A>(1) is 1
+end    
+```) satisfies CS.is-unbound-type-id
+  end
 end
