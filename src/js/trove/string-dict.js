@@ -497,6 +497,11 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
         return applyBrand(brandMutable, obj);
       }
 
+      function isMutableStringDict(obj) {
+        arity(1, arguments, "is-mutable-string-dict")
+        return runtime.makeBoolean(hasBrand(brandMutable, obj))
+      }
+
       function createMutableStringDict() {
         arity(0, arguments, "make-mutable-string-dict");
         var dict = Object.create(null);
@@ -518,6 +523,11 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           dict[internalKey(key)] = val;
         }
         return makeMutableStringDict(dict);
+      }
+
+      function isImmutableStringDict(obj) {
+        arity(1, arguments, "is-immutable-string-dict")
+        return runtime.makeBoolean(hasBrand(brandImmutable, obj))
       }
 
       function createImmutableStringDict() {
@@ -573,11 +583,13 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
             "mutable-string-dict": O({
               make: F(createMutableStringDictFromArray)
             }),
+            "is-mutable-string-dict": F(isMutableStringDict),
             "make-string-dict": F(createImmutableStringDict),
             "string-dict": O({
               make: F(createImmutableStringDictFromArray)
             }),
-            "string-dict-of": F(createConstImmutableStringDict)
+            "string-dict-of": F(createConstImmutableStringDict),
+            "is-string-dict": F(isImmutableStringDict)
           })
         }),
         "answer": runtime.nothing

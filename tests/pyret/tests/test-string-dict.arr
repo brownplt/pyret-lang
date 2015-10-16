@@ -186,3 +186,12 @@ end
 check "sdo":
   SD.string-dict-of([list: "x", "y", "z"], 5) is [SD.string-dict: "x", 5, "y", 5, "z", 5]
 end
+
+check "predicates":
+  SD.is-mutable-string-dict(sd1) is true
+  SD.is-string-dict(sd1) is false
+  SD.is-mutable-string-dict(isd2) is false
+  SD.is-string-dict(isd2) is true
+  SD.is-mutable-string-dict(1) is false
+  SD.is-string-dict(1) is false
+end
