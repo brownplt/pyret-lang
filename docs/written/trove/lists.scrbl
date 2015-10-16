@@ -1490,6 +1490,18 @@ These methods are available on all lists (both @(tt "link") and @(tt "empty")
 instances).  The examples show how to use the dot operator to access and call
 them on particular lists.
 
+@list-method["_plus"]
+
+Appends the list with the given list, similar to the @pyret{append} method.
+
+@examples{
+check:
+  [list: 1, 2] + [list: 3] is [list: 1, 2, 3]
+  [list: ] + [list: 1, 2]  is [list: 1, 2]
+  [list: 1, 2] + [list: ]  is [list: 1, 2]
+  [list: 'a', 'b'] + [list: 'c'] is [list: 'a', 'b'].append([list: 'c'])
+end
+}
 
 @list-method["length"]
 
@@ -1623,13 +1635,104 @@ end
 }
 
 @list-method["member"]
+
+Returns true if the @pyret{elt} is located somewhere in the list.
+
+@examples{
+check:
+  [list: 'a', 'b', 'c'].member('a') is true
+  [list: 'a', 'b', 'c'].member( 1 ) is false
+  [list: ].member('a') is false
+end
+}
+
 @list-method["append"]
+
+Creates a list with the list's elements followed by all of those
+in @pyret{other}.
+
+@examples{
+check:
+  [list: 1, 2].append([list: 3]) is [list: 1, 2, 3]
+  [list: ].append([list: 1, 2])  is [list: 1, 2]
+  [list: 1, 2].append([list: ])  is [list: 1, 2]
+end
+}
+
 @list-method["last"]
+
+Returns the last element in the list. For @pyret-id{empty},
+raises an error.
+
+@examples{
+check:
+  [list: 1, 2].last() is 2
+  [list: 1, 2, 3].last() is 3
+  [list: ].last() raises "last: took last of empty list"
+end
+}
+
 @list-method["reverse"]
+
+Returns the list with all of its elements in reverse order.
+
+@examples{
+check:
+  [list: 1, 2].reverse() is [list: 2, 1]
+  [list: 1].reverse()    is [list: 1]
+  [list:  ].reverse()    is [list:  ]
+end
+}
+
 @list-method["sort"]
+
+Sorts the list in ascending order using @pyret{<}. Note that
+this means that the list must only contain numbers, strings,
+or data which has the @pyret{_lessthan} method defined.
+
+@examples{
+import is-num-string-binop-error from error
+check:
+  [list: 3, 1, 2].sort() is [list: 1, 2, 3]
+  [list: "o", "o", "f"].sort() is [list: "f", "o", "o"]
+  [list: true, false].sort() raises-satisfies is-num-string-binop-error
+end
+}
+
 @list-method["sort-by"]
+
+Similar to @pyret{sort}, but additionally takes in two functions
+describing how to compare items in the list when sorting and how to check
+them for equality (respectively). When @pyret{cmp(a1,a2)} is true,
+@pyret{a1} is placed before @pyret{a2} in the resulting list.
+
+@examples{
+check:
+  ascending = lam(a, b): a < b end
+  descending = lam(a, b): a > b end
+  are-equal = lam(a, b): a == b end
+  [list: 3, 1, 2].sort-by(ascending, are-equal) is [list: 1, 2, 3]
+  [list: 3, 1, 2].sort-by(descending, are-equal) is [list: 3, 2, 1]
+  bool-sort = lam(a, b): not(a) and b end
+  [list: false, true, false, true].sort-by(bool-sort, are-equal) is
+    [list: false, false, true, true]
+end
+}
+
 @list-method["join-str"]
 
+Calls @pyret{tostring} on each element in the list, and joins them
+together into one string separated by @pyret{str}.
+
+@examples{
+check:
+  [list: 1, 2, 3].join-str(", ") is "1, 2, 3"
+  [list: false, true].join-str(" => ") is "false => true"
+  [list: "foo", "bar"].join-str("") is "foobar"
+  [list: "foo"].join-str("bar") is "foo"
+  [list: ].join-str("--") is ""
+end
+}
 
 
 @section{List Functions}
@@ -1931,13 +2034,40 @@ end
   ]
   @function[
     "member"
-  ]
+    #:examples
+    '@{
+    check:
+      member([list: 1, 2, 3], 2) is [list: 1, 2, 3].member(2)
+      member([list: 1, 2], "a") is [list: 1, 2].member("a") 
+    end
+    }
+  ]{
+  The function version of the @pyret{member} method on lists.
+  }
   @function[
     "member-with"
-  ]
+    #:examples
+    '@{
+    check:
+      member-with([list: 1, 2], 3, lam(x,y): x == y end) is false
+      member-with([list: 1, 2], 3, lam(x,y): x <> y end) is true
+    end
+    }
+  ]{
+  Like @pyret-id{member}, but takes a function which describes when two
+  items in the list are equal.
+  }
   @function[
     "reverse"
-  ]
+    #:examples
+    '@{
+    check:
+      reverse([list: 1, 2, 3]) is [list: 1, 2, 3].reverse()
+    end
+    }
+  ]{
+  The function version of the @pyret{reverse} method on lists.
+  }
 
 
   @function[
