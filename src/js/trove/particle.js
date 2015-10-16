@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/ffi-helpers", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, ffiLib, world, worldLib, pShimStruct) {
+define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, ffiLib, json, world, worldLib, pShimStruct) {
 
   return util.definePyretModule(
     "particle",
@@ -13,9 +13,12 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/world", "trove/world-lib", "
     },
     function(runtime, namespace) {
       return runtime.loadJSModules(namespace, [worldLib, ffiLib], function(rawJsworld, ffi) {
-        return runtime.loadModulesNew(namespace, [world, pShimStruct], function(pWorld, pStruct) {
+        return runtime.loadModulesNew(namespace, [world, json, pShimStruct], function(pWorld, pJSON, pStruct) {
           var WorldConfigOption = runtime.getField(pWorld, "internal").WorldConfigOption;
           var adaptWorldFunction = runtime.getField(pWorld, "internal").adaptWorldFunction;
+          var p_read_json = runtime.getField(runtime.getField(pJSON, "values"),"read-json")
+          var read_json = function(s) { return p_read_json.app(s) }
+          var serialize = function(j) { return runtime.getField(j, "serialize").app() }
 
           var sd_to_js = function(sd) {
             var ret = {};
@@ -43,8 +46,26 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/world", "trove/world-lib", "
 
           OnParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
-            var worldFunction = adaptWorldFunction(that.handler);
-            return rawJsworld.on_particle(worldFunction, that.event, that.options);
+            var handler = adaptWorldFunction(that.handler);
+            var eName = that.event;
+            var options = that.options;
+            return function() {
+              var evtSource;
+              return {
+                onRegister: function(top) {
+                  evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + options.acc);
+                  evtSource.addEventListener(eName,
+                                             function(e) {
+                                               data = JSON.parse(e.data)
+                                               rawJsworld.change_world(function(w,k) {
+                                                 handler(w, read_json(data.data), k);
+                                               }, rawJsworld.doNothing)});
+                },
+                onUnregister: function(top) {
+                  evtSource.close();
+                }
+              };
+            };
           };
 
 
@@ -70,7 +91,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/world", "trove/world-lib", "
                   xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
                   xhr.send("access_token=" + that.options.acc +
                            "&name=_event&data=" + that.event + ":" +
-                           runtime.getField(v, "value") + "&private=true&ttl=60");
+                           serialize(runtime.getField(v, "value")) + "&private=true&ttl=60");
                 }
                 k(w);
               });
