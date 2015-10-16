@@ -270,6 +270,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
         cases(CS.CompileResult) type-checked:
           | ok(tc-ast) =>
+            any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
             dp-ast = DP.desugar-post-tc(tc-ast, env)
             cleaned = dp-ast.visit(AU.merge-nested-blocks)
                             .visit(AU.flatten-single-blocks)
@@ -278,7 +279,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
             inlined = cleaned.visit(AU.inline-lams)
             when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-            any-errors = named-errors + AU.check-unbound(env, inlined) + AU.bad-assignments(env, inlined)
             cr = if is-empty(any-errors):
               if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
               else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, options)), ret)

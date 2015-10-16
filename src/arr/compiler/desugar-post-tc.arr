@@ -32,9 +32,6 @@ desugar-visitor = A.default-map-visitor.{
       A.s-cases-else(l, A.a-blank, val-id, branches.map(_.visit(self)),
         A.s-block(l, [list: no-cases-exn(l, val-id)])))
   end,
-  s-instantiate(self, l, body, args):
-    body.visit(self)
-  end,
   s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-global("nothing"))
   end
