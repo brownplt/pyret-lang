@@ -28,6 +28,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
               var v = runtime.getField(sd, "get-value").app(k);
               if(typeof(v) === "string") {
                 ret[k] = v;
+              } else if(v === runtime.pyretTrue) {
+                ret[k] = true;
+              } else if(v === runtime.pyretFalse) {
+                ret[k] = false;
               } else {
                 throw new Error('unimplemented value conversion for StringDict');
               }
@@ -83,15 +87,24 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
           ToParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
             var worldFunction = adaptWorldFunction(that.handler);
+            var options = that.options;
             var eventGen = function(w, k) {
               worldFunction(w, function(v) {
                 if(ffi.isSome(v)) {
                   var xhr = new XMLHttpRequest();
+                  var contents = "";
+                  if(typeof options.raw != 'undefined' && options.raw) {
+                    contents = "&name=" + that.event + "&data=" +
+                      serialize(runtime.getField(v, "value"));
+                  } else {
+                    contents = "&name=_event&data=" + that.event + ":" +
+                      serialize(runtime.getField(v, "value"));
+                  }
+                  contents = "access_token=" + options.acc +
+                    contents + "&private=true&ttl=60";
                   xhr.open("POST","https://api.particle.io/v1/devices/events");
                   xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                  xhr.send("access_token=" + that.options.acc +
-                           "&name=_event&data=" + that.event + ":" +
-                           serialize(runtime.getField(v, "value")) + "&private=true&ttl=60");
+                  xhr.send(contents);
                 }
                 k(w);
               });
