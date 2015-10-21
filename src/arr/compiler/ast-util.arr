@@ -196,7 +196,7 @@ fun default-env-map-visitor<a, c>(
         new-bind = b.visit(visit-envs)
         updated.{ bs: link(new-bind, acc.bs) }
       end
-      A.s-type-let-expr(l, bound-env.bs, body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env }))
+      A.s-type-let-expr(l, bound-env.bs.reverse(), body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env }))
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
