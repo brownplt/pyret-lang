@@ -428,6 +428,14 @@ default-compile-options = {
 
 runtime-types = [string-dict:
   "Number", t-just-there,
+  "Exactnum", t-just-there,
+  "Roughnum", t-just-there,
+  "NumInteger", t-just-there,
+  "NumRational", t-just-there,
+  "NumPositive", t-just-there,
+  "NumNegative", t-just-there,
+  "NumNonPositive", t-just-there,
+  "NumNonNegative", t-just-there,
   "String", t-just-there,
   "Function", t-just-there,
   "Boolean", t-just-there,
