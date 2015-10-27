@@ -1,4 +1,3 @@
-
 provide { make-repl: make-repl } end
 import either as E
 import load-lib as L
@@ -73,6 +72,7 @@ fun make-repl<a>(
   end
 
   fun restart-interactions(type-check :: Boolean):
+    defs-locator.restarting-interactions()
     current-type-check := type-check
     modules := SD.make-mutable-string-dict()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
