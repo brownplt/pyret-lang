@@ -258,7 +258,8 @@ end
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts.reverse())
-  ensure-distinct-lines(A.dummy-loc, stmts)
+  #comment out next statement for Spyret @ds26gte
+  #ensure-distinct-lines(A.dummy-loc, stmts)
   lists.all(_.visit(visitor), stmts)
 end
 
