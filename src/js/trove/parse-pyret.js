@@ -28,6 +28,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
         // if a todo item is a Pyret value, it just gets pushed across to done
         // if a todo item is an array, then doing = RUNTIME.makeList and it creates a stack frame
         function tr(node) {
+          //console.log('tr node of name ' + node.name);
           return translators[node.name](node);
         }
         var pos = function(p) { return makePyretPos(fileName, p); };
@@ -1018,6 +1019,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
       }
 
       function parseDataRaw(data, fileName) {
+        //console.log('parseDataRaw ' + data + ', ' + fileName);
         try {
           const toks = tokenizer.Tokenizer;
           const grammar = parser.PyretGrammar;
@@ -1025,8 +1027,10 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
           // while (toks.hasNext())
           //   console.log(toks.next().toString(true));
           var parsed = grammar.parse(toks);
+          //console.log('parsed = ' + parsed);
           //console.log("Result:");
           var countParses = grammar.countAllParses(parsed);
+          //console.log('countParses = ' + countParses);
           if (countParses == 0) {
             var nextTok = toks.curTok;
             console.error("There were " + countParses + " potential parses.\n" +
@@ -1045,9 +1049,22 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
           }
           //console.log("There were " + countParses + " potential parses");
           if (countParses === 1) {
+            /*
+               var parsed_j = JSON.stringify(parsed);
+               console.log('parsed_j = ' + parsed_j);
+             */
             var ast = grammar.constructUniqueParse(parsed);
-            //          console.log(ast.toString());
-            return translate(ast, fileName);
+
+            /*
+            var ast_j = JSON.stringify(ast);
+            console.log('Py_ast_j = ' + ast_j);
+           */
+
+            var xlated = translate(ast, fileName);
+            //var xlated_j = JSON.stringify(xlated);
+            //console.log('xlated_j = ' + xlated_j);
+            //return translate(ast, fileName);
+            return xlated;
           } else {
             var asts = grammar.constructAllParses(parsed);
             throw "Non-unique parse";
@@ -1065,14 +1082,24 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
 
       function parsePyret(data, fileName) {
         F.checkArity(2, arguments, "surface-parse");
+        //console.log('parsePyret ' + data + ', ' + fileName);
         RUNTIME.checkString(data);
         RUNTIME.checkString(fileName);
         return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
       }
 
+      function parseSpyret(data, fileName) {
+        F.checkArity(2, arguments, "wescheme-surface-parse");
+        RUNTIME.checkString(data);
+        RUNTIME.checkString(fileName);
+        var data_unser = JSON.parse(RUNTIME.unwrap(data));
+        return translate(data_unser, RUNTIME.unwrap(fileName));
+      }
+
       return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
-          'surface-parse': RUNTIME.makeFunction(parsePyret)
+          'surface-parse': RUNTIME.makeFunction(parsePyret),
+          'wescheme-surface-parse': RUNTIME.makeFunction(parseSpyret)
         }),
         answer: NAMESPACE.get("nothing")
       });
