@@ -12,7 +12,6 @@ import parse-pyret as P
 import string-dict as SD
 import namespace-lib as N
 
-
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   C.compile-env(
     C.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
@@ -118,12 +117,19 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: C.Globals):
 end
 
 fun make-repl-definitions-locator(name, uri, get-definitions, globals):
+  var ast-not-yet-memoized = true
+  var memoized-ast = false
   fun get-ast():
-    initial-definitions = get-definitions()
-    parsed = P.surface-parse(initial-definitions, name)
-    make-provide-for-repl-main(parsed, globals)
+    when ast-not-yet-memoized:
+      initial-definitions = get-definitions()
+      parsed = P.surface-parse(initial-definitions, name)
+      memoized-ast := make-provide-for-repl-main(parsed, globals)
+      ast-not-yet-memoized := false
+    end
+    memoized-ast
   end
   {
+    restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
     get-extra-imports(self):
@@ -169,6 +175,65 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
   }
 end
 
+fun make-wescheme-repl-definitions-locator(name, uri, get-definitions, globals):
+  var ast-not-yet-memoized = true
+  var memoized-ast = false
+  fun get-ast():
+    when ast-not-yet-memoized:
+      initial-definitions = get-definitions()
+      parsed = P.wescheme-surface-parse(initial-definitions, name)
+      memoized-ast := make-provide-for-repl-main(parsed, globals)
+      ast-not-yet-memoized := false
+    end
+    memoized-ast
+  end
+  {
+    restarting-interactions(self): ast-not-yet-memoized := true end,
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
+    get-dependencies(self):
+      CL.get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-globals(self): globals end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, env, result): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
+fun make-wescheme-repl-interaction-locator(name, uri, get-interactions, repl):
+  fun get-ast():
+    interactions = get-interactions()
+    parsed = P.wescheme-surface-parse(interactions, name)
+    make-provide-for-repl(parsed)
+  end
+  {
+    needs-compile(self, provs): true end,
+    get-module(self): CL.pyret-ast(get-ast()) end,
+    get-extra-imports(self):
+      C.standard-imports
+    end,
+    get-dependencies(self):
+      CL.get-standard-dependencies(self.get-module(), self.uri())
+    end,
+    get-globals(self): repl.get-current-globals() end,
+    get-namespace(self, runtime): repl.get-current-namespace() end,
+    update-compile-context(self, ctxt): ctxt end,
+    uri(self): uri end,
+    name(self): name end,
+    set-compiled(self, env, result): nothing end,
+    get-compiled(self): none end,
+    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+  }
+end
+
 fun make-definitions-finder(import-types :: SD.StringDict):
   fun definitions-finder(context, dep):
     l = cases(C.Dependency) dep:
@@ -183,4 +248,3 @@ fun make-definitions-finder(import-types :: SD.StringDict):
   end
   definitions-finder
 end
-
