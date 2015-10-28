@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, ffiLib, json, world, worldLib, pShimStruct) {
+define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, ffiLib, json, sDictLib, world, worldLib, pShimStruct) {
 
   return util.definePyretModule(
     "particle",
@@ -13,33 +13,18 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
     },
     function(runtime, namespace) {
       return runtime.loadJSModules(namespace, [worldLib, ffiLib], function(rawJsworld, ffi) {
-        return runtime.loadModulesNew(namespace, [world, json, pShimStruct], function(pWorld, pJSON, pStruct) {
+        return runtime.loadModulesNew(namespace, [world, json, sDictLib, pShimStruct], function(pWorld, pJSON, sDict, pStruct) {
           var WorldConfigOption = runtime.getField(pWorld, "internal").WorldConfigOption;
           var adaptWorldFunction = runtime.getField(pWorld, "internal").adaptWorldFunction;
           var p_read_json = runtime.getField(runtime.getField(pJSON, "values"),"read-json")
           var read_json = function(s) { return p_read_json.app(s) }
           var serialize = function(j) { return runtime.getField(j, "serialize").app() }
 
-          var sd_to_js = function(sd) {
-            var ret = {};
-            var arr = ffi.toArray(runtime.getField(sd, "keys-list").app());
-            for(var i in arr) {
-              var k = arr[i];
-              var v = runtime.getField(sd, "get-value").app(k);
-              if(typeof(v) === "string") {
-                ret[k] = v;
-              } else {
-                throw new Error('unimplemented value conversion for StringDict');
-              }
-            }
-            return ret;
-          };
-
-          var OnParticle = function(handler, name, sdict) {
+          var OnParticle = function(handler, name, options) {
             WorldConfigOption.call(this, 'on-particle');
             this.handler = handler;
             this.event = name;
-            this.options = sd_to_js(sdict);
+            this.options = options;
           };
 
           OnParticle.prototype = Object.create(WorldConfigOption.prototype);
@@ -49,11 +34,23 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
             var handler = adaptWorldFunction(that.handler);
             var eName = that.event;
             var options = that.options;
+            var uri = "";
+            if(typeof options.host == "string") {
+              uri = "https://" + host
+            } else {
+              uri = "https://api.particle.io"
+            }
+            if(typeof options.core == "string") {
+              uri += "/v1/devices/" + options.core + "/events/"
+            } else {
+              uri += "/v1/devices/events/"
+            }
+            uri += "?access_token=" + options.acc;
             return function() {
               var evtSource;
               return {
                 onRegister: function(top) {
-                  evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + options.acc);
+                  evtSource = new EventSource(uri);
                   evtSource.addEventListener(eName,
                                              function(e) {
                                                data = read_json(JSON.parse(e.data).data)
@@ -70,12 +67,38 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
 
 
           //////////////////////////////////////////////////////////////////////
-          
-          var ToParticle = function(handler, ename, sdict) {
+
+          var sendEvent = function(ename, data, options) {
+            var xhr = new XMLHttpRequest();
+            var uri = "";
+            var contents = "";
+            if(typeof options.host == "string") {
+              uri = "https://" + host
+            } else {
+              uri = "https://api.particle.io"
+            }
+            uri += "/v1/devices/events/";
+            if(typeof options.raw != 'undefined' && options.raw) {
+              contents = "&name=" + ename + "&data=" +
+                data;
+            } else if (typeof options.core == "string") {
+              contents = "&name=" + options.core + "_event&data=" +
+                ename + ":" + data;
+            } else {
+              contents = "&name=_event&data=" + ename + ":" + data;
+            }
+            contents = "access_token=" + options.acc +
+              contents + "&private=true&ttl=60";
+            xhr.open("POST", uri);
+            xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+            xhr.send(contents);
+          }
+
+          var ToParticle = function(handler, ename, options) {
             WorldConfigOption.call(this, 'to-particle');
             this.handler = handler;
             this.event = ename;
-            this.options = sd_to_js(sdict);
+            this.options = options;
           };
           
           ToParticle.prototype = Object.create(WorldConfigOption.prototype);
@@ -83,15 +106,13 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
           ToParticle.prototype.toRawHandler = function(toplevelNode) {
             var that = this;
             var worldFunction = adaptWorldFunction(that.handler);
+            var options = that.options;
             var eventGen = function(w, k) {
               worldFunction(w, function(v) {
                 if(ffi.isSome(v)) {
-                  var xhr = new XMLHttpRequest();
-                  xhr.open("POST","https://api.particle.io/v1/devices/events");
-                  xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                  xhr.send("access_token=" + that.options.acc +
-                           "&name=_event&data=" + that.event + ":" +
-                           serialize(runtime.getField(v, "value")) + "&private=true&ttl=60");
+                  sendEvent(that.event,
+                            serialize(runtime.getField(v, "value")),
+                            options);
                 }
                 k(w);
               });
@@ -102,13 +123,17 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
 
           //////////////////////////////////////////////////////////////////////
           
-          var configCore = function(coreid, acc, configs) {
+          var configCore = function(configs, options) {
             var config_str = configs.map(function(c){
               return runtime.getField(c, "_shim-convert").app();}).join("");
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST","https://api.particle.io/v1/devices/events");
-            xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-            xhr.send("access_token=" + acc + "&name=_config&data=" + config_str + "&private=true&ttl=60");
+            var ename = ""
+            if(typeof options.core == "string") {
+              ename = options.core + "_config"
+            } else {
+              ename = "_config"
+            }
+            options.raw = true;
+            sendEvent(ename, config_str, options);
           }
           
           var pStruct_vals = runtime.getField(pStruct, "values");
@@ -117,27 +142,56 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/world", "trove
           var makeObject = runtime.makeObject;
           var makeFunction = runtime.makeFunction;
           
+          var sd_to_js = function(sd) {
+            var ret = {};
+            var arr = ffi.toArray(runtime.getField(sd, "keys-list").app());
+            for(var i in arr) {
+              var k = arr[i];
+              var v = runtime.getField(sd, "get-value").app(k);
+              if(typeof(v) === "string") {
+                ret[k] = v;
+              } else if(v === runtime.pyretTrue) {
+                ret[k] = true;
+              } else if(v === runtime.pyretFalse) {
+                ret[k] = false;
+              } else {
+                throw new Error('unimplemented value conversion for StringDict');
+              }
+            }
+            return ret;
+          };
+
+          var is_string_dict = runtime.getField(
+            runtime.getField(sDict, "values"), "is-string-dict");
+          var checkStringDict = runtime.makeCheckType(function(val) {
+            return (is_string_dict.app(val) === runtime.pyretTrue) ? true : false;
+          }, "StringDict");
+
           return makeObject({
             "provide": makeObject({
               "on-particle": makeFunction(function(onEvent,eName,sd) {
                 ffi.checkArity(3, arguments, "on-particle");
                 runtime.checkFunction(onEvent);
                 runtime.checkString(eName);
-                return runtime.makeOpaque(new OnParticle(onEvent,eName,sd));
+                checkStringDict(sd);
+                var options = sd_to_js(sd);
+                return runtime.makeOpaque(new OnParticle(onEvent,eName,options));
               }),
               "to-particle": makeFunction(function(toEvent,eName,sd) {
                 ffi.checkArity(3, arguments, "to-particle");
                 runtime.checkFunction(toEvent);
                 runtime.checkString(eName);
-                return runtime.makeOpaque(new ToParticle(toEvent,eName,sd));
+                checkStringDict(sd);
+                var options = sd_to_js(sd);
+                return runtime.makeOpaque(new ToParticle(toEvent,eName,options));
               }),
               // core configuration
-              "configure-core": makeFunction(function(coreid, acc, config) {
-                ffi.checkArity(3, arguments, "configure-core");
-                runtime.checkString(coreid);
-                runtime.checkString(acc);
+              "configure-core": makeFunction(function(config, sd) {
+                ffi.checkArity(2, arguments, "configure-core");
                 runtime.checkList(config);
-                configCore(coreid, acc, ffi.toArray(config));
+                checkStringDict(sd);
+                var options = sd_to_js(sd);
+                configCore(ffi.toArray(config), options);
               }),
               "ait-enters": runtime.getField(pStruct_vals, "ait-enters"),
               "ait-exits": runtime.getField(pStruct_vals, "ait-exits"),
