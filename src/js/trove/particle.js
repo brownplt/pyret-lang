@@ -161,11 +161,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
             return ret;
           };
 
-          var is_string_dict = runtime.getField(
-            runtime.getField(sDict, "values"), "is-string-dict");
-          var checkStringDict = runtime.makeCheckType(function(val) {
-            return (is_string_dict.app(val) === runtime.pyretTrue) ? true : false;
-          }, "StringDict");
+          var checkStringDict = runtime.getField(sDict, "internal").checkISD;
 
           return makeObject({
             "provide": makeObject({
