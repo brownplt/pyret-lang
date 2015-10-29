@@ -12,7 +12,6 @@ fun vert-list-values(vals):
   ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
 end
 
-
 data RuntimeError:
   | message-exception(message :: String) with:
     render-reason(self):
@@ -125,7 +124,7 @@ data RuntimeError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
+          ED.text("ds26gte Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
         ED.text("Either:"),
