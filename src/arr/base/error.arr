@@ -110,7 +110,7 @@ data RuntimeError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
+          ED.text("ds26gte 1 Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
         ED.text(self.opdesc + " requires:"),
@@ -124,7 +124,7 @@ data RuntimeError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("ds26gte Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
+          ED.text("ds26gte 2 Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
         [ED.para: ED.embed(self.val1)],
         [ED.para: ED.embed(self.val2)],
         ED.text("Either:"),
