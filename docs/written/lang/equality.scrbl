@@ -714,20 +714,20 @@ check:
 end
 }
 
-@note{This example is not Pyret-specific, but matches the behavior of IEEE
-floating point.}
+@note{This example is not Pyret-specific, but matches the behavior of
+@link["https://en.wikipedia.org/wiki/IEEE_floating_point"]{IEEE
+floating point}.}
 Returning either @pyret{true} or @pyret{false} in this case would be
-misleading.  This is due to the fact that because of unavoidable inaccuracies,
-both of these expressions evaluate to @pyret{~0.1}, even though
-mathematically only one of them does:
+misleading, as because of unavoidable inaccuracies,
+both of the following expressions evaluate to @pyret{~0.1}:
 
 @pyret-block{
 (~1 - ~0.9) + 0.00000000000000003
 ~0.2 - ~0.1
 }
 
-So in this check block, if we chose either @pyret{true} or @pyret{false} for
-the result of @pyret{~0.1 == 0.1}, one test would be incorrect:
+So in the following check block, if we chose either @pyret{true} or @pyret{false} for
+the result of @pyret{~0.1 == 0.1}, one of the tests would have a misleading failure:
 
 @pyret-block{
 check:
@@ -736,8 +736,8 @@ check:
 end
 }
 
-If Pyret answered @pyret{true} for @pyret{~0.1 == ~0.1} (the rough
-equivalent), then this test would pass when, mathematically, it ought to fail:
+For example, if Pyret answered @pyret{true} for the rough equivalent,
+@pyret{~0.1 == ~0.1}, then this test would pass:
 
 @pyret-block{
 check:
@@ -747,7 +747,7 @@ end
 
 To avoid giving misleading answers in cases like these, Pyret triggers an
 error on any number-to-number comparison that involves a @pyret-id["Roughnum"
-"numbers"].  So, if you see an error like
+"numbers"], which looks like:
 
 @verbatim{
 These two values cannot be compared for direct equality:
@@ -759,10 +759,10 @@ Approximations of numbers (Roughnums) cannot be compared for equality. The
 program may need to use within().
 }
 
-It's a hint that the program should be using an equality from the
-@pyret-id["within"] family of functions to do a relative comparison, rather
-than a direct equality comparison.  So in this case, we could check that the
-answer is equal up to an absolute error of @pyret{0.001}:
+If you see this erorr, it's a hint that the program should be using an
+equality from the @pyret-id["within"] family of functions to do a relative
+comparison, rather than a direct equality comparison.  So in this case, we
+could check that the answer is equal up to an relative error of @pyret{0.001}:
 
 @pyret-block{
 check:
@@ -770,10 +770,10 @@ check:
 end
 }
 
-If a program needs to check that two @pyret-id["Roughnum" "numbers"]s are
-actually indistinguishable in their representation (even though they may be
-approximating different values), it can do so by checking that the numbers are
-within a tolerance of @pyret{~0}:
+It can be useful to check that two @pyret-id["Roughnum" "numbers"]s are
+actually indistinguishable, even though they may be approximating different
+values.  This can be expressed by checking that the numbers are within a
+tolerance of @pyret{~0}:
 
 @pyret-block{
 check:
