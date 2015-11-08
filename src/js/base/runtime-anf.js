@@ -2832,6 +2832,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var currentThreadId = 0;
     var activeThreads = {};
 
+    var PAUSE_DURATION_BOTTOM = 500;
+    var PAUSE_DURATION_TOP = 1000;
+
   function run(program, namespace, options, onDone) {
     // console.log("In run2");
     if(RUN_ACTIVE) {
@@ -3008,10 +3011,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
             BOUNCES++;
             var afterPause = window.performance.now() - beforePause;
             console.log("Run took ", afterPause, " millis with ", runGas, " calls");
-            if(afterPause <= 500) {
+            if(afterPause <= PAUSE_DURATION_BOTTOM) {
               runGas = runGas * 2;
             }
-            else if(afterPause > 1000) {
+            else if(afterPause > PAUSE_DURATION_TOP) {
               runGas = runGas / 2;
             }
             thisRuntime.GAS = initialGas;
