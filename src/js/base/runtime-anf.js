@@ -2842,23 +2842,24 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return;
     }
     RUN_ACTIVE = true;
-    var start;
+
     function startTimer() {
       if (typeof window !== "undefined" && window.performance) {
-        start = window.performance.now();
+        return window.performance.now();
       } else if (typeof process !== "undefined" && process.hrtime) {
-        start = process.hrtime();
+        return process.hrtime();
       }
     }
-    function endTimer() {
+    function endTimer(start) {
       if (typeof window !== "undefined" && window.performance) {
         return window.performance.now() - start;
       } else if (typeof process !== "undefined" && process.hrtime) {
-        return process.hrtime(start);
+        var end = process.hrtime(start);
+        return (end[0] * 1000000000 + end[1]) / 1000000;
       }
     }
     function getStats() {
-      return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+      return { bounces: BOUNCES, tos: TOS, time: endTimer(start) };
     }
     function finishFailure(exn) {
       RUN_ACTIVE = false;
@@ -2870,8 +2871,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       delete activeThreads[thisThread.id];
       onDone(new SuccessResult(answer, getStats()));
     }
+    var start = startTimer();
 
-    startTimer();
     var that = this;
     var theOneTrueStackTop = ["top-of-stack"]
     var kickoff = makeActivationRecord(
@@ -2964,7 +2965,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if (threadIsCurrentlyPaused) { throw new Error("iter entered during stopped execution"); }
       var loop = true;
       while (loop) {
-        var beforePause = window.performance.now();
+        var beforePause = startTimer();
         loop = false;
         try {
           if (manualPause !== null) {
@@ -3009,13 +3010,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
           if(thisRuntime.isCont(e)) {
             // console.log("BOUNCING");
             BOUNCES++;
-            var afterPause = window.performance.now() - beforePause;
+            var afterPause = endTimer(beforePause);
             console.log("Run took ", afterPause, " millis with ", runGas, " calls");
-            if(afterPause <= PAUSE_DURATION_BOTTOM) {
-              runGas = runGas * 2;
-            }
-            else if(afterPause > PAUSE_DURATION_TOP) {
-              runGas = runGas / 2;
+            // Only recalculate runGas if we paused because of a RUNGAS
+            // exhaustion
+            if(thisRuntime.RUNGAS <= 0) {
+              if(afterPause <= PAUSE_DURATION_BOTTOM) {
+                runGas = runGas * 2;
+              }
+              else if(afterPause > PAUSE_DURATION_TOP) {
+                runGas = runGas / 2;
+              }
             }
             thisRuntime.GAS = initialGas;
             thisRuntime.RUNGAS = initialRungas;
