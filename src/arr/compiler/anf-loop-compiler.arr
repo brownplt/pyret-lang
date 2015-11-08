@@ -386,7 +386,6 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           cl-empty
         end + [clist:
           j-expr(j-unop(rt-field("GAS"), j-incr)),
-          j-expr(j-unop(rt-field("STACKGAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
   ^ cl-snoc(_, j-default(j-block([clist:
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
