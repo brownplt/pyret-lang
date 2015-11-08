@@ -16,7 +16,7 @@ data Test:
   | three(e :: Test, n :: Number)
 end
 
-fun f<a>(t :: Test) -> Number:
+fun foo<a>(t :: Test) -> Number:
   rec help = lam(shadow t :: Test, acc :: Number) -> Number:
     if is-zero(t):
       acc
@@ -46,13 +46,13 @@ fun f<a>(t :: Test) -> Number:
   end
   help(t, 0)
 where:
-  # Test TCO on a complex function / not complex cases-expr
-  f(zero) is 0
-  f(one(two(one(two(three(three(one(two(three(one(three(one(two(three(zero, 1), 2), 3), 4), 5), 6), 7), 8), 9), 10), 11), 12), 13), 14))
+  # Test TCO on a complex function / not complex cases-expr (test with INLINE-CASE-LIMIT = 10)
+  foo(zero) is 0
+  foo(one(two(one(two(three(three(one(two(three(one(three(one(two(three(zero, 1), 2), 3), 4), 5), 6), 7), 8), 9), 10), 11), 12), 13), 14))
     is (1 + 3 + 5 + 7 + 9 + 11 + 13) - (2 + 4 + 6 + 8 + 10 + 12 + 14)
 end
 
-fun len(l, acc):
+fun len2(l, acc):
   cases (List) l:
     | empty => acc
     | link(_, r) =>
@@ -68,12 +68,12 @@ fun len(l, acc):
       j = i + 10
       k = j + 11
       m = k + 12
-      len(r, 1 + acc)
+      len2(r, 1 + acc)
   end
 where:
   # Test TCO on very complex cases-expr
-  len(empty, 0) is 0
-  len(range(0, 10), 0) is 10
+  len2(empty, 0) is 0
+  len2(range(0, 10), 0) is 10
 end
 
 fun triangle(n :: Number) -> Number:

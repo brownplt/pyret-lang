@@ -69,6 +69,7 @@ j-throw = J.j-throw
 j-expr = J.j-expr
 j-binop = J.j-binop
 j-and = J.j-and
+j-or = J.j-or
 j-lt = J.j-lt
 j-eq = J.j-eq
 j-neq = J.j-neq
@@ -391,6 +392,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           cl-empty
         end + [clist:
           j-expr(j-unop(rt-field("GAS"), j-incr)),
+          j-expr(j-unop(rt-field("STACKGAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
   ^ cl-snoc(_, j-default(j-block([clist:
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
@@ -497,6 +499,13 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-try-catch(
         j-block([clist:
             preamble,
+            j-if1(j-binop(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+                          j-or,
+                          j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
+              j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+                  # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
+                  # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+                  j-throw(rt-method("makeCont", cl-empty))])),
             j-while(j-true,
               j-block([clist:
                   # console-log([clist: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)]),

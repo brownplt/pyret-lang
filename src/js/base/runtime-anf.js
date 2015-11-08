@@ -2792,7 +2792,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         $fun_ans = $ar.vars[0];
       }
       try {
-        if (--thisRuntime.GAS <= 0) {
+        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           throw thisRuntime.makeCont();
         }
@@ -3000,6 +3000,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             // console.log("BOUNCING");
             BOUNCES++;
             thisRuntime.GAS = initialGas;
+            thisRuntime.RUNGAS = initialGas * 10;
             for(var i = e.stack.length - 1; i >= 0; i--) {
 //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
@@ -3048,6 +3049,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return;
     }
     thisRuntime.GAS = initialGas;
+    thisRuntime.RUNGAS = initialGas * 10;
     iter();
   }
 
