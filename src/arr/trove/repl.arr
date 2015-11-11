@@ -91,6 +91,7 @@ fun make-repl<a>(
   end
 
   fun run-interaction(repl-locator :: CL.Locator):
+    repl-locator.restarting-interactions()
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
     compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: current-type-check})
     result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: current-type-check})
