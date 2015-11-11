@@ -150,12 +150,19 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
 end
 
 fun make-repl-interaction-locator(name, uri, get-interactions, repl):
+  var ast-not-yet-memoized = true
+  var memoized-ast = false
   fun get-ast():
-    interactions = get-interactions()
-    parsed = P.surface-parse(interactions, name)
-    make-provide-for-repl(parsed)
+    when ast-not-yet-memoized:
+      interactions = get-interactions()
+      parsed = P.surface-parse(interactions, name)
+      memoized-ast := make-provide-for-repl(parsed)
+      ast-not-yet-memoized := false
+    end
+    memoized-ast
   end
   {
+    restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
     get-extra-imports(self):
@@ -209,12 +216,19 @@ fun make-wescheme-repl-definitions-locator(name, uri, get-definitions, globals):
 end
 
 fun make-wescheme-repl-interaction-locator(name, uri, get-interactions, repl):
+  var ast-not-yet-memoized = true
+  var memoized-ast = false
   fun get-ast():
-    interactions = get-interactions()
-    parsed = P.wescheme-surface-parse(interactions, name)
-    make-provide-for-repl(parsed)
+    when ast-not-yet-memoized:
+      interactions = get-interactions()
+      parsed = P.wescheme-surface-parse(interactions, name)
+      memoized-ast := make-provide-for-repl(parsed)
+      ast-not-yet-memoized := false
+    end
+    memoized-ast
   end
   {
+    restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
     get-extra-imports(self):
