@@ -1443,6 +1443,10 @@ define(function() {
 
     if (d === undefined) { d = 1; }
 
+    if (_integerIsZero(d)) {
+      throwRuntimeError("can't make rational with denominator zero")
+    }
+
     if (_integerLessThan(d, 0)) {
       n = negate(n);
       d = negate(d);
