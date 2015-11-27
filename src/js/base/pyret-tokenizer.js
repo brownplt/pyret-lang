@@ -120,7 +120,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
-  const comment = new RegExp("^(#([^|].*)?(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
+  const comment = new RegExp("^(#((?!\\|).*)?(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
   const blockcommentstart = new RegExp("^(#\\|)", STICKY_REGEXP);
   const bar = new RegExp("^\\|", STICKY_REGEXP);
   const langle = new RegExp("^<", STICKY_REGEXP);
