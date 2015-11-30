@@ -287,7 +287,8 @@ data ParseError:
   | spyret-parse-error(loc, extra) with:
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Spyret error"), draw-and-highlight(self.loc)]]
+        [ED.para: ED.text("Spyret error:"), draw-and-highlight(self.loc)],
+        [ED.para: ED.text(self.extra)]]
     end
   | parse-error-eof(loc) with:
     render-reason(self):
