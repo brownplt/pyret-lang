@@ -1540,8 +1540,10 @@ define(function() {
   }
 
   Rational.prototype.angle = function() {
-    if (this.isNegative()) { return 0 }
-    return Roughnum.pi
+    if (_integerIsZero(this.n) || _integerGreaterThan(this.n, 0))
+      return 0;
+    else
+      return Roughnum.pi;
   }
 
   Rational.prototype.conjugate = function() {
@@ -2430,9 +2432,8 @@ define(function() {
     if (isInteger(y) && greaterThanOrEqual(y, 0)) {
       return fastExpt(this, y);
     }
-
-    var expo = multiply(y, this.log());
-    return exp(expo);
+    var y_log_x = multiply(y, this.log())
+    return exp(y_log_x)
   }
 
   ComplexRational.prototype.exp = function() {
@@ -2770,8 +2771,8 @@ define(function() {
     if (isInteger(y) && greaterThanOrEqual(y, 0)) {
       return toComplexRoughnum(fastExpt(this, y));
     }
-    var expo = multiply(y, this.log());
-    return toComplexRoughnum(exp(expo));
+    var y_log_x = multiply(y, this.log())
+    return toComplexRoughnum(exp(y_log_x))
   }
 
   ComplexRoughnum.prototype.exp = function() {
