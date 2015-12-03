@@ -3,6 +3,8 @@
 provide *
 provide-types *
 
+#import lists as L
+
 data ErrorDisplay:
   | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)
@@ -38,3 +40,13 @@ numbered = {
 opt = {
   make: lam(arr): optional(v-sequence(raw-array-to-list(arr))) end
 }
+list = {
+  make: lam(arr): raw-array-to-list(arr) end
+}
+fun map3(f, la, lb, lc):
+  if la.length() == 0:
+    la
+  else:
+    map3(f, la.rest, lb.rest, lc.rest).push(f(la.first, lb.first, lc.first))
+  end
+end
