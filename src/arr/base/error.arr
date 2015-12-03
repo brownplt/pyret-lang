@@ -284,11 +284,11 @@ data ParseError:
           [ED.para: ED.text("Typical reasons for getting this error are")],
           [ED.bulleted: missing, extra]]]
     end
-  | spyret-parse-error(loc, extra) with:
+  | spyret-parse-error(loc, extra, ls) with:
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("Spyret error:"), draw-and-highlight(self.loc)],
-        [ED.para: ED.text(self.extra)]]
+        [ED.para: ED.text(self.extra) ]]
     end
   | parse-error-eof(loc) with:
     render-reason(self):
