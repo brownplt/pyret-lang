@@ -52,3 +52,6 @@ name,success,function,hz,rme,samples
 ```
 
 For example, the sixth line is the measurement of loading the ast into javascript after parsing 0_empty.arr. It was rated at roughly 6.84Hz with a relative margin of error of roughly 8.42%; it sampled 39 runs to determine these data.
+
+### Visualization
+See this separate repo: [pyret-bencmark-visualization](https://github.com/awstlaur/pyret-benchmark-visualization).
