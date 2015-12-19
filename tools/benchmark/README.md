@@ -53,5 +53,16 @@ name,success,function,hz,rme,samples
 
 For example, the sixth line is the measurement of loading the ast into javascript after parsing 0_empty.arr. It was rated at roughly 6.84Hz with a relative margin of error of roughly 8.42%; it sampled 39 runs to determine these data.
 
+#### Testing progress
+The build phase that the auto-report measures is determined in the file auto-report.js. To compare benchmarks of phase1 and phase2, first run
+```
+node auto-report > phase1.csv
+```
+then, edit the paths in auto-report.js, replacing all instances of 'phase1' with 'phase2'. Then run
+```
+node auto-report > phase2.csv
+```
+Now you have auto reports to compare!
+
 ### Visualization
 See this separate repo: [pyret-bencmark-visualization](https://github.com/awstlaur/pyret-benchmark-visualization).
