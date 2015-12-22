@@ -181,6 +181,16 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
                 var options = sd_to_js(sd);
                 return runtime.makeOpaque(new ToParticle(toEvent,eName,options));
               }),
+              // direct Particle stream access
+              "send-event": makeFunction(function(eName, eData, sd) {
+                ffi.checkArity(3, arguments, "send-event");
+                runtime.checkString(eName);
+                runtime.checkString(eData);
+                checkStringDict(sd);
+                var options = sd_to_js(sd);
+                sendEvent(eName, eData, options);
+                return ffi.makeNone();
+              }
               // core configuration
               "configure-core": makeFunction(function(config, sd) {
                 ffi.checkArity(2, arguments, "configure-core");
