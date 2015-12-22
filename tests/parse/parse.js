@@ -100,7 +100,7 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     const trimmed_tok_words = tok_words.map(function(s) { return s.trim(); });
     const trimmed_tok_opers = tok_opers.map(function(s) { return s.trim(); });
     const all_toks = trimmed_tok_words.slice(0).push.apply(trimmed_tok_opers);
-    const ws = [ "", "   ", "\n", "# comment\n\n", "   \n", "  \n\n   ", "  \n  # comment  \n   \n   " ];
+    const ws = [ "", "   ", "\n", "# comment\n\n", "   \n", "  \n\n   ", "  \n  # comment  \n   \n   ", "#\n" ];
     it("should have tight lexical extents for all tokens", function() {
       lex("");
       expect(numToks).toBe(1);
@@ -576,6 +576,11 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('#| |# |#')).toBe(false);
 
 
+    });
+
+    it("should not ignore the line after an empty hash comment", function(){
+      expect(parse('#\n1')).not.toBe(false);
+      expect(parse('#\n{1:2}')).toBe(false);
     });
   });
 
