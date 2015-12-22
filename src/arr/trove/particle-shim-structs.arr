@@ -49,15 +49,21 @@ data PinConfig:
     _shim-convert(self):
       self.event + ":" + self.pin + ":I" + "\n"
     end
-  | analog-read(pin :: Pin, event :: String, trigger :: AnalogInputTrigger) with:
+  | analog-read(pin :: Pin, event :: String, trigger :: EventCondition) with:
     _shim-convert(self):
       self.event + ":" + self.pin + ":I:" + self.trigger._shim-convert() + "\n"
     end
 end
 
-type CoreConfig = List<PinConfig>
-
 data CoreInfo:
-  | coreinfo(name :: String, access :: String, shim :: Boolean)
-  | nocore
+  | core(name :: String, access :: String, shim :: Boolean)
+  | no-core(access :: String)
+end
+
+data ConfigInfo:
+  | config(core :: CoreInfo, pin :: PinConfig)
+end
+
+data Event:
+  | event(name :: String, body :: String)
 end

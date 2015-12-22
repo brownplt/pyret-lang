@@ -123,9 +123,8 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
 
           //////////////////////////////////////////////////////////////////////
           
-          var configCore = function(configs, options) {
-            var config_str = configs.map(function(c){
-              return runtime.getField(c, "_shim-convert").app();}).join("");
+          var configCore = function(config, options) {
+            var config_str = runtime.getField(config, "_shim-convert").app();
             var ename = ""
             if(typeof options.core == "string") {
               ename = options.core + "_config"
@@ -141,82 +140,134 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
           //////////////////////////////////////////////////////////////////////
           var makeObject = runtime.makeObject;
           var makeFunction = runtime.makeFunction;
-          
-          var sd_to_js = function(sd) {
-            var ret = {};
-            var arr = ffi.toArray(runtime.getField(sd, "keys-list").app());
-            for(var i in arr) {
-              var k = arr[i];
-              var v = runtime.getField(sd, "get-value").app(k);
-              if(typeof(v) === "string") {
-                ret[k] = v;
-              } else if(v === runtime.pyretTrue) {
-                ret[k] = true;
-              } else if(v === runtime.pyretFalse) {
-                ret[k] = false;
-              } else {
-                throw new Error('unimplemented value conversion for StringDict');
-              }
-            }
-            return ret;
-          };
 
-          var checkStringDict = runtime.getField(sDict, "internal").checkISD;
+          var pyIsCore = runtime.getField(pStruct_vals, "is-core");
+          var pyIsNoCore = runtime.getField(pStruct_vals, "is-no-core");
+
+          var pyIsWrite = runtime.getField(pStruct_vals, "is-write");
+          var pyIsDigRead = runtime.getField(pStruct_vals, "is-digital-read");
+          var pyIsAnaRead = runtime.getField(pStruct_vals, "is-analog-read");
+
+          var pyIsEvent = runtime.getField(pStruct_vals, "is-event");
+
+          var pyIsConfig = runtime.getField(pStruct_vals, "is-config");
+
+          var pyConfig = runtime.getField(pStruct_vals, "config");
+
+          var checkCoreInfoType =
+              runtime.makeCheckType(function(v) {
+                return ((pyIsCore.app(v) == runtime.pyretTrue) ||
+                        (pyIsNoCore.app(v) == runtime.pyretTrue)); },
+                                    "CoreInfo");
+          var checkCoreObj =
+              runtime.makeCheckType(function(v) {
+                return (pyIsCore.app(v) == runtime.pyretTrue); },
+                                    "core");
+          var checkPinConfigType =
+              runtime.makeCheckType(function(v) {
+                return ((pyIsWrite.app(v) == runtime.pyretTrue) ||
+                        (pyIsDigRead.app(v) == runtime.pyretTrue) ||
+                        (pyIsAnaRead.app(v) == runtime.pyretTrue)); },
+                                    "PinConfig");
+          var checkEventType =
+              runtime.makeCheckType(function(v) {
+                return (pyIsEvent.app(v) == runtime.pyretTrue); },
+                                    "Event");
+          var checkConfigInfoType =
+              runtime.makeCheckType(function(v) {
+                return (pyIsConfig.app(v) == runtime.pyretTrue); },
+                                    "ConfigInfo");
+          
+          var core_to_options = function(core) {
+            if(pyIsNoCore.app(core) == runtime.pyretTrue) {
+              return {
+                'acc': runtime.getField(core, "access"),
+                'raw': true
+              };
+            } else {
+              return {
+                'core': runtime.getField(core, "name"),
+                'acc': runtime.getField(core, "access"),
+                'raw': runtime.getField(core, "shim") == runtime.pyretFalse
+              };
+            }
+          }
+
 
           return makeObject({
             "provide": makeObject({
-              "on-particle": makeFunction(function(onEvent,eName,sd) {
-                ffi.checkArity(3, arguments, "on-particle");
+              "on-particle": makeFunction(function(onEvent,config) {
+                ffi.checkArity(2, arguments, "on-particle");
                 runtime.checkFunction(onEvent);
-                runtime.checkString(eName);
-                checkStringDict(sd);
-                var options = sd_to_js(sd);
+                checkConfigInfoType(config);
+                core = runtime.getField(config, "core")
+                eName = runtime.getField(runtime.getField(config, "pin"),
+                                         "event");
+                options = core_to_options(core);
                 return runtime.makeOpaque(new OnParticle(onEvent,eName,options));
               }),
-              "to-particle": makeFunction(function(toEvent,eName,sd) {
-                ffi.checkArity(3, arguments, "to-particle");
+              "to-particle": makeFunction(function(toEvent,config) {
+                ffi.checkArity(2, arguments, "to-particle");
                 runtime.checkFunction(toEvent);
-                runtime.checkString(eName);
-                checkStringDict(sd);
-                var options = sd_to_js(sd);
+                checkConfigInfoType(config);
+                core = runtime.getField(config, "core")
+                eName = runtime.getField(runtime.getField(config, "pin"),
+                                         "event");
+                options = core_to_options(core);
                 return runtime.makeOpaque(new ToParticle(toEvent,eName,options));
               }),
               // direct Particle stream access
-              "send-event": makeFunction(function(eName, eData, sd) {
-                ffi.checkArity(3, arguments, "send-event");
-                runtime.checkString(eName);
-                runtime.checkString(eData);
-                checkStringDict(sd);
-                var options = sd_to_js(sd);
+              "send-event": makeFunction(function(core, event) {
+                ffi.checkArity(2, arguments, "send-event");
+                checkCoreInfoType(core);
+                checkEventType(event);
+                eName = runtime.getField(event, "name");
+                eData = runtime.getField(event, "body");
+                options = core_to_options(core);
                 sendEvent(eName, eData, options);
                 return ffi.makeNone();
               }),
               // core configuration
-              "coreinfo": runtime.getfield(pStruct_vals, "coreinfo"),
-              "nocore": runtime.getfield(pStruct_vals, "nocore"),
-              "is-coreinfo": runtime.getfield(pStruct_vals, "is-coreinfo"),
-              "is-nocore": runtime.getfield(pStruct_vals, "is-nocore"),
-              "configure-core": makeFunction(function(config, sd) {
+              "core": runtime.getField(pStruct_vals, "core"),
+              "no-core": runtime.getField(pStruct_vals, "no-core"),
+              "is-core": pyIsCore,
+              "is-no-core": pyIsNoCore,
+              "configure-core": makeFunction(function(core, config) {
                 ffi.checkArity(2, arguments, "configure-core");
-                runtime.checkList(config);
-                checkStringDict(sd);
-                var options = sd_to_js(sd);
-                configCore(ffi.toArray(config), options);
+                checkCoreObj(core);
+                checkPinConfigType(config);
+                options = core_to_options(core);
+                configCore(config, options);
+                return pyConfig.app(core, config);
+              }),
+              "clear-core-config": makeFunction(function(core) {
+                ffi.checkArity(1, arguments, "clear-core-config");
+                checkCoreObj(core);
+                options = {
+                  'acc': runtime.getField(core, "access"),
+                  'raw': true
+                };
+                sendEvent(runtime.getField(core, "name") + "_config", "", options);
+                return ffi.makeNone();
               }),
               "enters": runtime.getField(pStruct_vals, "enters"),
               "exits": runtime.getField(pStruct_vals, "exits"),
               "crosses": runtime.getField(pStruct_vals, "crosses"),
-              "poll": runtime.getField(pStructs_vals, "poll"),
+              "poll": runtime.getField(pStruct_vals, "poll"),
               "is-enters": runtime.getField(pStruct_vals, "is-enters"),
               "is-exits": runtime.getField(pStruct_vals, "is-exits"),
               "is-crosses": runtime.getField(pStruct_vals, "is-crosses"),
-              "is-poll": runtime.getField(pStructs_vals, "is-poll"),
+              "is-poll": runtime.getField(pStruct_vals, "is-poll"),
               "write": runtime.getField(pStruct_vals, "write"),
               "digital-read": runtime.getField(pStruct_vals, "digital-read"),
               "analog-read": runtime.getField(pStruct_vals, "analog-read"),
-              "is-write": runtime.getField(pStruct_vals, "is-write"),
-              "is-digital-read": runtime.getField(pStruct_vals, "is-digital-read"),
-              "is-analog-read": runtime.getField(pStruct_vals, "is-analog-read"),
+              "is-write": pyIsWrite,
+              "is-digital-read": pyIsDigRead,
+              "is-analog-read": pyIsAnaRead,
+              "event": runtime.getField(pStruct_vals, "event"),
+              "is-event": pyIsEvent,
+              "config": runtime.getField(pStruct_vals, "config"),
+              "is-config": pyIsConfig,
               "A0": runtime.getField(pStruct_vals, "A0"),
               "A1": runtime.getField(pStruct_vals, "A1"),
               "A2": runtime.getField(pStruct_vals, "A2"),
