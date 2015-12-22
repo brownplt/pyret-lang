@@ -190,7 +190,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
                 var options = sd_to_js(sd);
                 sendEvent(eName, eData, options);
                 return ffi.makeNone();
-              }
+              }),
               // core configuration
               "configure-core": makeFunction(function(config, sd) {
                 ffi.checkArity(2, arguments, "configure-core");
