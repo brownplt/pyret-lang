@@ -119,6 +119,15 @@ standalone2: phase2 $(PHASE2)/pyret.js
 .PHONY : standalone3
 standalone3: phase3 $(PHASE3)/pyret.js
 
+.PHONY : standalone1-no-minify
+standalone1-no-minify: phase1 $(PHASE1)/pyret-no-minify.js
+
+.PHONY : standalone2-no-minify
+standalone2-no-minify: phase2 $(PHASE2)/pyret-no-minify.js
+
+.PHONY : standalone3-no-minify
+standalone3-no-minify: phase3 $(PHASE3)/pyret-no-minify.js
+
 $(PHASE1):
 	@$(call MKDIR,$(PHASE1_DIRS))
 
@@ -139,6 +148,18 @@ $(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
 $(PHASE3)/pyret.js: $(PHASE3_ALL_DEPS) $(PHASE3)/pyret-start.js
 	cd $(PHASE3) && \
 		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util
+
+$(PHASE1)/pyret-no-minify.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
+	cd $(PHASE1) && \
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build-no-minify.js baseUrl=. name=pyret-start out=pyret-no-minify.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util
+
+$(PHASE2)/pyret-no-minify.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
+	cd $(PHASE2) && \
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build-no-minify.js baseUrl=. name=pyret-start out=pyret-no-minify.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util
+
+$(PHASE3)/pyret-no-minify.js: $(PHASE3_ALL_DEPS) $(PHASE3)/pyret-start.js
+	cd $(PHASE3) && \
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build-no-minify.js baseUrl=. name=pyret-start out=pyret-no-minify.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util
 
 $(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
 	cp $< $@
@@ -340,6 +361,11 @@ new-bootstrap: no-diff-standalone
 	sed "s/define(\"pyret-start/define(\"pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
 no-diff-standalone: standalone2 standalone3
 	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
+
+new-bootstrap-no-minify: no-diff-standalone-no-minify
+	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret-no-minify.js > $(PHASE0)/pyret-no-minify.js
+no-diff-standalone-no-minify: standalone2-no-minify standalone3-no-minify
+	diff $(PHASE2)/pyret-no-minify.js $(PHASE3)/pyret-no-minify.js
 
 $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
