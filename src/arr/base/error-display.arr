@@ -18,6 +18,7 @@ data ErrorDisplay:
   | styled(contents :: ErrorDisplay, style :: String)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
   | optional(contents :: ErrorDisplay)
+  | loc-referenced(contents :: ErrorDisplay, loc #|:: S.Srcloc|#)
 end
 
 shadow error = {
