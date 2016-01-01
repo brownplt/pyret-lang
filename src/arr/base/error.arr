@@ -12,7 +12,6 @@ fun vert-list-values(vals):
   ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
 end
 
-
 data RuntimeError:
   | message-exception(message :: String) with:
     render-reason(self):
@@ -40,8 +39,51 @@ data RuntimeError:
         [ED.para: ED.text("Relevant arguments:")],
         vert-list-values(self.info-args)]
     end
+    
   | field-not-found(loc, obj, field :: String) with:
-    render-reason(self):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      ast-dot = loc-to-ast(self.loc).block.stmts.first
+      txt-obj = loc-to-src(ast-dot.obj.l)
+      fld-loc = ast-dot.field-loc()
+      [ED.error:
+        [ED.para:
+          ED.text("The dot expression"),
+          ED.loc-display(ast-dot.obj.l, "error-highlight", ED.code(ED.text(txt-obj))),
+          ED.code(ED.text(".")),
+          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
+          ED.text("expects the value of the"),
+          ED.loc-display(ast-dot.obj.l, "error-highlight", ED.code(ED.text("object"))),
+          ED.text("to have a field named"),
+          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
+          ED.text("but"),
+          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
+          ED.text("does not appear in the value of the"),
+          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text("object")))],
+        [ED.para: ED.embed(self.obj)]]
+      #|
+      [ED.error:
+        [ED.para:
+          ED.text("The dot expression"),
+          ED.loc-referenced(ED.text(txt-obj), fld-loc),
+          ED.text("."),
+          ED.loc-referenced(ED.text(self.field), fld-loc),
+          ED.text("expects the value of the"),
+          ED.loc-referenced(ED.text("object"), ast-dot.obj.l),
+          ED.text("to have a field named"),
+          ED.loc-referenced(ED.text(self.field), fld-loc),
+          ED.text("but"),
+          ED.loc-referenced(ED.text(self.field), fld-loc),
+          ED.text("does not appear in the value of the"),
+          ED.loc-referenced(ED.text("object"), ast-dot.obj.l)],
+        [ED.para: ED.embed(self.obj)]]
+      [ED.error:
+        [ED.para:
+          ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
+          draw-and-highlight(self.loc)],
+        [ED.para: ED.text("The object was:")],
+        ED.embed(self.obj)]|#
+    end,
+    render-reason(self, loc-to-ast):
       [ED.error:
         [ED.para:
           ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),

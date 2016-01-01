@@ -803,7 +803,18 @@ data Expr:
     tosource(self): PP.str(torepr(self.s)) end
   | s-dot(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-dot" end,
-    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
+    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end,
+    field-loc(self):
+      S.srcloc(
+      self.obj.l.source,
+      self.l.end-line,
+      self.l.end-column - string-length(self.field),
+      self.l.end-char - string-length(self.field),
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+
+    end
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-get-bang" end,
     tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
