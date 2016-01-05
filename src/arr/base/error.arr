@@ -69,7 +69,7 @@ data RuntimeError:
             ED.text("."),
             ED.loc-anchor(ED.text(self.field), fld-loc)]),
           ED.text(" expects the value of the "),
-          ED.loc-anchor(ED.code(ED.text("object")),obj-loc),
+          ED.highlight(ED.code(ED.text("object")),[ED.locs: obj-loc],1),
           ED.text(" to have a "),
           ED.loc-anchor(ED.text("field"), fld-loc),
           ED.text(" named "),
@@ -285,30 +285,56 @@ data RuntimeError:
           fun-app-fun-src = loc-to-src(fun-app-fun-loc)
           fun-app-arg-loc = fun-app-ast.args-loc()
           fun-app-arg-src = loc-to-src(fun-app-arg-loc)
+          
           if self.fun-def-loc.is-builtin():
             [ED.error: ED.text("Batman")]
           else:
             fun-def-ast = loc-to-ast(self.fun-def-loc).block.stmts.first
-            fun-def-arg-loc = fun-def-ast
             [ED.error:
               [ED.para:
-                ED.text("The function application expression "),
+                ED.text("The function application expression ")],
+              [ED.para:
                 ED.code([ED.sequence:
-                  ED.loc-anchor(ED.text(fun-app-fun-src), fun-app-fun-loc),
+                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], 3),
                   ED.text("("),
-                  ED.loc-anchor(ED.text(fun-app-arg-src), fun-app-arg-loc),
-                  ED.text(")")]),
-                ED.text(" expects the expression "),
-                ED.loc-anchor(ED.code(ED.text(fun-app-fun-src)), fun-app-fun-loc),
-                ED.text(" to evaluate to a function accepting exactly the same number of arguments as given in the function application, but the expression "),
-                ED.loc-anchor(ED.code(ED.text(fun-app-fun-src)), fun-app-fun-loc),
-                ED.text(" evaluated to "),
-                ED.loc-anchor(ED.text("a function"), self.fun-def-loc),
-                ED.text(" that accepts "),
-                ED.loc-anchor(ed-args(self.fun-def-arity), fun-app-arg-loc),
-                ED.text(" and "),
-                ED.loc-anchor(ed-args(fun-app-arity), fun-app-arg-loc),
-                ED.text(" "), ed-were(fun-app-arity), ED.text(" applied to it.")]]
+                  ED.h-sequence(
+                    fun-app-ast.args.map(
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], 4);),
+                    ","),
+                  ED.text(")")])],
+              [ED.para:
+                ED.text("expects the "),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+              [ED.para:
+                ED.text("The "),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.text(" evaluated to a "),
+                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], 1),
+                ED.text(" accepting exactly "),
+                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), 2),
+                ED.text(",")],
+              [ED.para:
+                ED.code([ED.sequence:
+                  ED.highlight(ED.text(fun-def-ast.name), [ED.locs: self.fun-def-loc], 1),
+                  ED.text("("),
+                  ED.h-sequence(fun-def-ast.args.map(
+                    lam(arg):
+                      ED.highlight(ED.text("⬜"), [ED.locs: arg.l], 2);),","),
+                  ED.text(")")])],
+              [ED.para:
+                ED.text("but the "),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.text(" had "),
+                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), 4),
+                ED.text(" applied to it:")],
+              vert-list-values(self.fun-app-args)]
+                
+                
+                
+  
+              
+              
           end
         end,
         [ED.error: ED.text("Batman")])

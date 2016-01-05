@@ -21,7 +21,13 @@ data ErrorDisplay:
   | optional(contents :: ErrorDisplay)
   | loc-anchor(contents :: ErrorDisplay, loc)
   | doc-anchor(contents :: ErrorDisplay, href :: String)
+  | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
+  | underline(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
 end
+
+locs = {
+  make: lam(arr): raw-array-to-list(arr) end
+}
 
 shadow error = {
   make: lam(arr): v-sequence(raw-array-to-list(arr)) end
