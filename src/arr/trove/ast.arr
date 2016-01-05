@@ -783,6 +783,18 @@ data Expr:
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
+    args-loc(self):
+      first = self.args.first.l
+      last = self.args.last().l
+      S.srcloc(
+        self.l.source,
+        first.start-line,
+        first.start-column,
+        first.start-char,
+        last.end-line,
+        last.end-column,
+        last.end-char)
+    end,
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,

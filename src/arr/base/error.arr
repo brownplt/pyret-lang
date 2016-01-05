@@ -266,38 +266,114 @@ data RuntimeError:
             ED.text("doesn't have an argument list, but the variant is not a singleton.")]]
       end
     end
-  | arity-mismatch(fun-loc, expected-arity, args) with:
+  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      fun ed-were(n):
+        ED.text(if n == 1: "was" else: "were";)
+      end
+      fun-app-arity = self.fun-app-args.length()
+      ED.maybe-stack-loc(1, true,
+        lam(fun-app-loc):
+          fun-app-ast     = loc-to-ast(fun-app-loc).block.stmts.first
+          fun-app-fun-loc = fun-app-ast._fun.l
+          fun-app-fun-src = loc-to-src(fun-app-fun-loc)
+          fun-app-arg-loc = fun-app-ast.args-loc()
+          fun-app-arg-src = loc-to-src(fun-app-arg-loc)
+          if self.fun-def-loc.is-builtin():
+            [ED.error: ED.text("Batman")]
+          else:
+            fun-def-ast = loc-to-ast(self.fun-def-loc).block.stmts.first
+            fun-def-arg-loc = fun-def-ast
+            [ED.error:
+              [ED.para:
+                ED.text("The function application expression "),
+                ED.code([ED.sequence:
+                  ED.loc-anchor(ED.text(fun-app-fun-src), fun-app-fun-loc),
+                  ED.text("("),
+                  ED.loc-anchor(ED.text(fun-app-arg-src), fun-app-arg-loc),
+                  ED.text(")")]),
+                ED.text(" expects the expression "),
+                ED.loc-anchor(ED.code(ED.text(fun-app-fun-src)), fun-app-fun-loc),
+                ED.text(" to evaluate to a function accepting exactly the same number of arguments as given in the function application, but the expression "),
+                ED.loc-anchor(ED.code(ED.text(fun-app-fun-src)), fun-app-fun-loc),
+                ED.text(" evaluated to "),
+                ED.loc-anchor(ED.text("a function"), self.fun-def-loc),
+                ED.text(" that accepts "),
+                ED.loc-anchor(ed-args(self.fun-def-arity), fun-app-arg-loc),
+                ED.text(" and "),
+                ED.loc-anchor(ed-args(fun-app-arity), fun-app-arg-loc),
+                ED.text(" "), ed-were(fun-app-arity), ED.text(" applied to it.")]]
+          end
+        end,
+        [ED.error: ED.text("Batman")])
+    end,
     render-reason(self):
-      num-args = self.args.length()
+      num-args = self.fun-app-args.length()
       this-str = if num-args == 1: "this" else: "these" end
       arg-str = if num-args == 1: "argument:" else: "arguments:" end
-      exp-arg-str = if self.expected-arity == 1: "argument" else: "arguments" end
+      exp-arg-str = if self.fun-def-arity == 1: "argument" else: "arguments" end
+      
       ED.maybe-stack-loc(0, true,
         lam(caller-loc):
-          if self.fun-loc.is-builtin():
+          if self.fun-def-loc.is-builtin():
             [ED.error:
-              [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
+              [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
               draw-and-highlight(caller-loc),
               [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              vert-list-values(self.args)]
+              vert-list-values(self.fun-app-args)]
           else:
             [ED.error:
-              [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity),
+              [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity),
                 ED.text(exp-arg-str + " when calling the function at")],
-              draw-and-highlight(self.fun-loc),
+              draw-and-highlight(self.fun-def-loc),
               [ED.para: ED.text("from")],
               draw-and-highlight(caller-loc),
               [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              vert-list-values(self.args)]
+              vert-list-values(self.fun-app-args)]
           end
         end,
         [ED.error:
-          [ED.para: ED.text("Expected to get"), ED.embed(self.expected-arity), ED.text(exp-arg-str + " at")],
-          draw-and-highlight(self.fun-loc),
+          [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
+          draw-and-highlight(self.fun-def-loc),
           [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-          vert-list-values(self.args)])
+          vert-list-values(self.fun-app-args)])
     end
   | non-function-app(loc, non-fun-val) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      app-ast = loc-to-ast(self.loc).block.stmts.first
+      fun-loc = app-ast._fun.l
+      fun-src = loc-to-src(fun-loc)
+      arg-loc = app-ast.args-loc()
+      arg-src = loc-to-src(arg-loc)
+      num-args = app-ast.args.length()
+      [ED.error:
+        [ED.para:
+          ED.text("The function application expression "),
+          ED.code([ED.sequence:
+            ED.loc-anchor(ED.text(fun-src), fun-loc),
+            ED.text("("),
+            ED.loc-anchor(ED.text(arg-src), arg-loc),
+            ED.text(")")]),
+          ED.text(" expects "),
+          ED.loc-anchor(ED.text(fun-src), fun-loc),
+          ED.text(" to evaluate to a function accepting "),
+          ED.loc-anchor(
+            [ED.sequence:
+              ED.embed(num-args),
+              ED.text(if num-args == 1: " argument"
+                      else:             " arguments";)],
+            arg-loc),
+          ED.text(", but "),
+          ED.loc-anchor(ED.text(fun-src), fun-loc),
+          ED.text(" evaluated to the non-function value:")],
+        [ED.para: ED.embed(self.non-fun-val)]]
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
