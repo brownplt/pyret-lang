@@ -5,6 +5,7 @@ provide-types *
 
 data ErrorDisplay:
   | v-sequence(contents #|:: List<ErrorDisplay>|#)
+  | paragraph(contents #|:: List<ErrorDisplay>|#)
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)
   | numbered-sequence(contents #|:: List<ErrorDisplay>|#)
   | h-sequence(contents #|:: List<ErrorDisplay>|#, sep :: String)
@@ -18,15 +19,18 @@ data ErrorDisplay:
   | styled(contents :: ErrorDisplay, style :: String)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
   | optional(contents :: ErrorDisplay)
-  | loc-referenced(contents :: ErrorDisplay, loc #|:: S.Srcloc|#)
-  | doc-referenced(contents :: ErrorDisplay, loc #|:: S.Srcloc|#)
+  | loc-anchor(contents :: ErrorDisplay, loc)
+  | doc-anchor(contents :: ErrorDisplay, href :: String)
 end
 
 shadow error = {
   make: lam(arr): v-sequence(raw-array-to-list(arr)) end
 }
 para = {
-  make: lam(arr): h-sequence(raw-array-to-list(arr), " ") end
+  make: lam(arr): paragraph(raw-array-to-list(arr)) end
+}
+sequence = {
+  make: lam(arr): h-sequence(raw-array-to-list(arr), "") end
 }
 para-nospace = {
   make: lam(arr): h-sequence(raw-array-to-list(arr), "") end

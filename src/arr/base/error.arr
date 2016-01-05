@@ -18,6 +18,21 @@ data RuntimeError:
       [ED.error: [ED.para: ED.text(self.message)]]
     end
   | no-cases-matched(loc, val) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      print("no-cases")
+      ast-cse = loc-to-ast(self.loc).block.stmts.first
+      txt-val = loc-to-src(ast-cse.val.l)
+      branches-loc = ast-cse.branches-loc()
+      val-loc = ast-cse.val.l
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.loc-anchor(ED.text("cases-expression"), self.loc),
+          ED.text(" expects there to be a branch matching the value of the expression switched on. But no branches matched the value of "),
+          ED.loc-anchor(ED.code(ED.text(txt-val)), ast-cse.val.l),
+          ED.text(":")],
+        [ED.para: ED.embed(self.val)]]
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -44,45 +59,29 @@ data RuntimeError:
     render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
+      obj-loc = ast-dot.obj.l
       fld-loc = ast-dot.field-loc()
       [ED.error:
         [ED.para:
-          ED.text("The dot expression"),
-          ED.loc-display(ast-dot.obj.l, "error-highlight", ED.code(ED.text(txt-obj))),
-          ED.code(ED.text(".")),
-          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
-          ED.text("expects the value of the"),
-          ED.loc-display(ast-dot.obj.l, "error-highlight", ED.code(ED.text("object"))),
-          ED.text("to have a field named"),
-          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
-          ED.text("but"),
-          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text(self.field))),
-          ED.text("does not appear in the value of the"),
-          ED.loc-display(fld-loc, "error-highlight", ED.code(ED.text("object")))],
+          ED.text("The dot expression "),
+          ED.code([ED.sequence:
+            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.text("."),
+            ED.loc-anchor(ED.text(self.field), fld-loc)]),
+          ED.text(" expects the value of the "),
+          ED.loc-anchor(ED.code(ED.text("object")),obj-loc),
+          ED.text(" to have a "),
+          ED.loc-anchor(ED.text("field"), fld-loc),
+          ED.text(" named "),
+          ED.loc-anchor(ED.code(ED.text(self.field)),fld-loc),
+          ED.text(", but "),
+          ED.loc-anchor(ED.code(ED.text(self.field)),fld-loc),
+          ED.text(" does not appear in the value of the "),
+          ED.loc-anchor(ED.code(ED.text("object")),obj-loc),
+          ED.text(":")],
         [ED.para: ED.embed(self.obj)]]
-      #|
-      [ED.error:
-        [ED.para:
-          ED.text("The dot expression"),
-          ED.loc-referenced(ED.text(txt-obj), fld-loc),
-          ED.text("."),
-          ED.loc-referenced(ED.text(self.field), fld-loc),
-          ED.text("expects the value of the"),
-          ED.loc-referenced(ED.text("object"), ast-dot.obj.l),
-          ED.text("to have a field named"),
-          ED.loc-referenced(ED.text(self.field), fld-loc),
-          ED.text("but"),
-          ED.loc-referenced(ED.text(self.field), fld-loc),
-          ED.text("does not appear in the value of the"),
-          ED.loc-referenced(ED.text("object"), ast-dot.obj.l)],
-        [ED.para: ED.embed(self.obj)]]
-      [ED.error:
-        [ED.para:
-          ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
-          draw-and-highlight(self.loc)],
-        [ED.para: ED.text("The object was:")],
-        ED.embed(self.obj)]|#
     end,
+    
     render-reason(self, loc-to-ast):
       [ED.error:
         [ED.para:
@@ -92,6 +91,25 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      ast-dot = loc-to-ast(self.loc).block.stmts.first
+      txt-obj = loc-to-src(ast-dot.obj.l)
+      obj-loc = ast-dot.obj.l
+      fld-loc = ast-dot.field-loc()
+      [ED.error:
+        [ED.para:
+          ED.text("The dot expression "),
+          ED.code([ED.sequence:
+            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.text("."),
+            ED.loc-anchor(ED.text(self.field), fld-loc)]),
+          ED.text(" expects the "),
+          ED.loc-anchor(ED.text("left hand side"),obj-loc),
+          ED.text(" to evaluate to an object, but the value of "),
+          ED.loc-anchor(ED.text(txt-obj), obj-loc),
+          ED.text(" was not an object, it was:")],
+        [ED.para: ED.embed(self.non-obj)]]
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -102,6 +120,26 @@ data RuntimeError:
         ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      ast-ext = loc-to-ast(self.loc).block.stmts.first
+      txt-obj = loc-to-src(ast-ext.supe.l)
+      obj-loc = ast-ext.supe.l
+      fld-loc = ast-ext.field-loc()
+      txt-fld = loc-to-src(fld-loc)
+      [ED.error:
+        [ED.para:
+          ED.text("The object extension expression "),
+          ED.code([ED.sequence:
+            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.text("."),
+            ED.loc-anchor(ED.text(txt-fld), fld-loc)]),
+          ED.text(" expects the "),
+          ED.loc-anchor(ED.text("left hand side"),obj-loc),
+          ED.text(" to evaluate to an object, but the value of "),
+          ED.loc-anchor(ED.text(txt-obj), obj-loc),
+          ED.text(" was not an object, it was:")],
+        [ED.para: ED.embed(self.non-obj)]]
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -176,7 +214,26 @@ data RuntimeError:
           [ED.para:
             ED.text("The left operand must have a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
-  | cases-arity-mismatch(branch-loc, num-args, actual-arity) with:
+  | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+      ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
+      src-branch = loc-to-src(self.branch-loc)
+      ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
+      [ED.error:
+        [ED.para:
+          ED.text("The cases branch "),
+          ED.code(ED.loc-anchor(ED.text(src-branch), self.branch-loc)),
+          ED.text(" has "),
+          ED.embed(self.num-args),
+          ED.text(" arguments, but the variant "),
+          ED.code(ED.text(ast-branch.name)),
+          ED.text(" of the type "),
+          ED.embed(ast-cases.typ.id),
+          ED.text(" has "),
+          ED.embed(self.actual-arity),
+          ED.text(" arguments.")]]
+    end,
+    
     render-reason(self):
       [ED.error:
         if self.num-args < self.actual-arity:
@@ -195,7 +252,7 @@ data RuntimeError:
             if self.actual-arity == 1: ED.text("field") else: ED.text("fields") end]
         end]
     end
-  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean) with:
+  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, casesLoc) with:
     render-reason(self):
       if self.should-be-singleton:
         [ED.error:
