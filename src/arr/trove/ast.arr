@@ -622,6 +622,19 @@ data Expr:
     end
   | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
     label(self): "s-cases" end,
+    branches-loc(self):
+      first-loc = self.branches.first.l
+      last-loc = self.branches.last().l
+      S.srcloc(
+        self.l.source,
+        first-loc.start-line,
+        first-loc.start-column,
+        first-loc.start-char,
+        last-loc.end-line,
+        last-loc.end-column,
+        last-loc.end-char)
+    end,
+    
     tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -726,7 +739,18 @@ data Expr:
       PP.group(self.supe.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
-    end
+    end,
+    field-loc(self):
+      S.srcloc(
+      self.l.source,
+      self.supe.l.end-line,
+      self.supe.l.end-column + 1,
+      self.supe.l.end-char + 1,
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+    end,
+    
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
     tosource(self):
