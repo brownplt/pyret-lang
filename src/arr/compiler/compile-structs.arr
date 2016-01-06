@@ -226,8 +226,11 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.id.id.toname())), ED.text("is used but not defined at")],
-            draw-and-highlight(self.id.l)]
+              ED.text("The identifier "), 
+              ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 1)),
+              ED.text(" is unbound. It is "),
+              ED.highlight(ED.text("used"), [ED.locs: self.id.l], 1),
+              ED.text(" but not previously defined.")]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
