@@ -346,17 +346,17 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
-              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
-              draw-and-highlight(self.new-loc)]]
+              ED.text("The declaration of the identifier named")
+              ED.highlight(ED.text(self.id), [list: new-loc], 0),
+              ED.text(" shadows the declaration of a built-in identifier named"),
+              ED.highlight(ED.text(self.id), [list: old-loc], 0)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
-              ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
-            [ED.para: ED.text("You need to pick a different name for one of them.")]]
+              ED.text("The declaration of the identifier named")
+              ED.highlight(ED.text(self.id), [list: new-loc], 0),
+              ED.text(" shadows a previous declaration of an identifier named"),
+              ED.highlight(ED.text(self.id), [list: old-loc], 0)]]
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
