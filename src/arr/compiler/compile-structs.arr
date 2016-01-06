@@ -365,17 +365,19 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
-              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
-              draw-and-highlight(self.new-loc)]]
+              ED.text("The declaration of the identifier named"),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
-              ED.text("twice, at")],
-            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
-            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
-            [ED.para: ED.text("You need to pick a different name for one of them.")]]
+              ED.text("The declaration of the identifier named"),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.text(".")]]
       end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
