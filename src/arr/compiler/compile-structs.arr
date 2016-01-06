@@ -348,14 +348,14 @@ data CompileError:
             [ED.para:
               ED.text("The declaration of the identifier named"),
               ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
-              ED.text(" shadows the declaration of a built-in identifier named"),
+              ED.text(" shadows the declaration of a built-in identifier also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
               ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
-              ED.text(" shadows a previous declaration of an identifier named"),
+              ED.text(" shadows a previous declaration of an identifier also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
       end
     end
