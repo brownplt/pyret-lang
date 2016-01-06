@@ -347,16 +347,16 @@ data CompileError:
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: new-loc], 0),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
               ED.text(" shadows the declaration of a built-in identifier named"),
-              ED.highlight(ED.text(self.id), [list: old-loc], 0)]]
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: new-loc], 0),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
               ED.text(" shadows a previous declaration of an identifier named"),
-              ED.highlight(ED.text(self.id), [list: old-loc], 0)]]
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
