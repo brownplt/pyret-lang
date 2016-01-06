@@ -386,16 +386,20 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The field name"), ED.code(ED.text(self.id)), ED.text("is already defined."),
-              ED.text("You need to pick a different name for"), ED.code(ED.text(self.id)), ED.text("at"),
-              draw-and-highlight(self.new-loc)]]
+              ED.text("The declaration of the field named"),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.text("is preceeded by declaration of an field also named "),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.text(".")],
+            [ED.para: ED.text("You need to pick a different name for one of them.")]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("It looks like you've defined the field name"), ED.code(ED.text(self.id)),
-              ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+              ED.text("The declaration of the field named"),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.text("is preceeded by declaration of an field also named "),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
