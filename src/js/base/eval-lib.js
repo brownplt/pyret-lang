@@ -237,6 +237,10 @@ function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, che
         runtime.setParam("current-checker", currentChecker);
         var sync = false;
         var namespace = options.namespace || runtime.namespace;
+        // NOTE(joe): this is temporary until new modules are done
+        if(typeof mod === "object") {
+          mod = mod.theModule.apply(null, mod.oldDependencies);
+        }
         runtime.pauseStack(function(restarter) {
           runtime.run(mod, namespace, {}, function(result) {
             if(runtime.isSuccessResult(result)) { restarter.resume(result.result); }

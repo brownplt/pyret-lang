@@ -75,12 +75,10 @@ check:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is 4
-  wlist.get(3).locator is floc
-  wlist.get(2).locator.uri() is "protocol://bar"
-  wlist.get(2).locator is string-to-locator("bar")
-  wlist.get(1).locator.uri() is "pyret-builtin://string-dict"
-  wlist.get(1).locator.name() is "string-dict"
+  wlist.length() is 3
+  wlist.get(2).locator is floc
+  wlist.get(1).locator.uri() is "protocol://bar"
+  wlist.get(1).locator is string-to-locator("bar")
   wlist.get(0).locator.uri() is "pyret-builtin://string-dict"
   wlist.get(0).locator.name() is "string-dict"
 

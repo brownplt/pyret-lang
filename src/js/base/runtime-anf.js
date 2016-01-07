@@ -3963,7 +3963,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               return { dname: d.name, modinfo: require("trove/" + d.name) };
             }
           });
-          var tocomp = {mod: curMod, path: curPath};
+          var tocomp = {mod: curMod, name: curName, path: curPath};
           return depMods.reduce(function(acc, elt) {
             return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
           }, [tocomp])
@@ -3992,7 +3992,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
-        finalModMap[m.mod.name] = thisRawMod;
+        finalModMap[m.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
         var mod = finalModMap[getName(m)];
@@ -4019,7 +4019,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 return module;
               }
               if(module.oldDependencies) {
-                console.error("Loading old deps: ", module.oldDependencies);
+                //console.error("Loading old deps: ", module.oldDependencies);
                 var innerModule = module.theModule.apply(null, module.oldDependencies);
                 return innerModule(thisRuntime, namespace);
               }
@@ -4072,6 +4072,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         function wrapMod(m) {
           if (typeof m === 'undefined') {
             console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
+            throw new Error("Undefined module")
           }
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");

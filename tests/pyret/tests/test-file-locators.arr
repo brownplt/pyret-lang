@@ -101,6 +101,7 @@ check "File locators":
   floc = file-loc("foo", CM.standard-globals)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = CL.compile-worklist(dfind, floc, {})
+  print(wlist.map(lam(d): d.locator.uri() end))
   wlist.length() is 12
   wlist.get(11).locator is floc
   wlist.get(10).locator is file-loc("bar", CM.standard-globals)

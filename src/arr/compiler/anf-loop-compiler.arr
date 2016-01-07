@@ -1513,6 +1513,7 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
       cases(CS.Dependency) m:
         | builtin(name) =>
           j-obj([clist:
+            j-field("import-type", j-str("builtin")),
             j-field("name", j-str(name))])
         | dependency(protocol, args) =>
           j-obj([clist:

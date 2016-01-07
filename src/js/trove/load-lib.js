@@ -243,6 +243,12 @@ define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(lo
               var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
               loadRuntime.setParam("current-checker", currentChecker);
               runtime.pauseStack(function(restarter) {
+                // NOTE(joe): this will b removed once polyglot is done
+//                console.error("Here: ", modval);
+//                if(modval.val.oldDependencies) {
+//                  modval.val.moduleFun = modval.val.moduleFun.apply(null, modval.val.oldDependencies); 
+//                }
+                console.error("Here: ", modval);
                 loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
                   var modResult = makeModuleResult(loadRuntime, result, compileResult);
                   restarter.resume(modResult);

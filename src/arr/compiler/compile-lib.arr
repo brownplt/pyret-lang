@@ -191,7 +191,15 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
       pret + ret
     end
   end
-  add-preds-to-worklist(locator, context, empty)
+  maybe-duplicated-preds = add-preds-to-worklist(locator, context, empty)
+  fun remove-from-rest(l):
+    cases(List) l:
+      | empty => empty
+      | link(f, r) =>
+        link(f, remove-from-rest(r.filter(lam(d): d.locator.uri() <> f.locator.uri() end)))
+    end
+  end
+  remove-from-rest(maybe-duplicated-preds)
 end
 
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}

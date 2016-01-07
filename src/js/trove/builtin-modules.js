@@ -78,7 +78,13 @@ define(["js/type-util"], function(t) {
               }),
             "get-raw-compiled":
               F(function() {
+//                if(m.oldDependencies) {
+//                   m.theModule = m.theModule.apply(null, m.oldDependencies); 
+//                   return runtime.makeObject(function() { return m.theModule });
+//                }
+//                else
                 if(m.theModule) {
+                  // NOTE(joe): this will b removed once polyglot is done
                   return runtime.makeOpaque(m.theModule);
                 }
                 else {
