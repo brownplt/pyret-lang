@@ -510,7 +510,7 @@ fun bad-assignments(initial-env, ast):
         | none => nothing
         | some(b) =>
           when not(b.mut):
-            add-error(CS.bad-assignment(id.toname(), loc, b.loc))
+            add-error(CS.bad-assignment(A.s-assign(loc, id, value), b.loc))
           end
       end
       value.visit(self)

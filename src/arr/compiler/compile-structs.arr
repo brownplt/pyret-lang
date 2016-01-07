@@ -325,25 +325,21 @@ data CompileError:
               ED.text(" cannot shadow anything: there is no name to shadow.")]]
       end
     end
-  | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
-    render-reason(self):
-      cases(SL.Srcloc) self.prev-loc:
-        | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is defined as an identifier,"),
-              ED.text("but it is assigned as if it were a variable at"),
-              draw-and-highlight(self.loc)]]
-        | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.id)), ED.text("is defined as an identifier,"),
-              ED.text("but it is assigned as if it were a variable at"),
-              draw-and-highlight(self.loc)],
-            [ED.para:
-              ED.text("One possible fix is to change the declaration of"), ED.code(ED.text(self.id)),
-              ED.text("to use"), ED.code(ED.text("var")), ED.text("at"), draw-and-highlight(self.prev-loc)]]
-      end
+  | bad-assignment(iuse :: A.Expr, idef :: Loc) with:
+    render-reason(self, make-pallet):
+      color = make-pallet(3)
+      use-loc-color = color.get(0)
+      def-loc-color = color.get(1)
+      [ED.error:
+        [ED.para:
+          ED.text("The variable assignment expression "),
+          ED.code(ED.highlight(ED.text(self.iuse.tosource().pretty(1000).first), [ED.locs: self.iuse.l], use-loc-color)),
+          ED.text(" expects the name "),
+          ED.code(ED.highlight(ED.text(self.iuse.id.toname()), [ED.locs: self.iuse.l], use-loc-color)),
+          ED.text(" to refer to a variable definition expression, but "),
+          ED.code(ED.text(self.iuse.id.toname())),
+          ED.text(" is declared by an "),
+          ED.highlight(ED.text("identifier definition expression."), [ED.locs: self.idef], def-loc-color)]]
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
