@@ -346,64 +346,71 @@ data CompileError:
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      old-loc-color = pallet.get(0)
+      new-loc-color = pallet.get(1)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text(" shadows the declaration of a built-in identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text(" shadows a previous declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2)]]
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], color),
               ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], color),
               ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], color),
               ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], color),
               ED.text(".")]]
       end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      old-loc-color = pallet.get(0)
+      new-loc-color = pallet.get(1)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the field named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text("is preceeded by declaration of an field also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the field named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], 1),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text("is preceeded by declaration of an field also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], 2),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
