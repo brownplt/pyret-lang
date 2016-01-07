@@ -278,7 +278,8 @@ data CompileError:
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
   | pointless-var(loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -287,9 +288,9 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining an anonymous variable is pointless: there is no name to modify."),
-              ED.text("Either give this expression a name, or bind it to an identifier rather than a variable.")],
-            draw-and-highlight(self.loc)]
+              ED.text("Defining the anonymous variable "),
+              ED.code(ED.highlight(ED.text("var _"), [ED.locs: self.loc], color)),
+              ED.text("is pointless since there is no name that can be used to modify it later on.")]]
       end
     end
   | pointless-rec(loc :: Loc) with:
