@@ -290,7 +290,7 @@ data CompileError:
             [ED.para:
               ED.text("Defining the anonymous variable "),
               ED.code(ED.highlight(ED.text("var _"), [ED.locs: self.loc], color)),
-              ED.text(" is pointless since there is no name that can be used to modify it later on.")]]
+              ED.text(" is pointless since there is no name that can be used to mutate it later on.")]]
       end
     end
   | pointless-rec(loc :: Loc) with:
