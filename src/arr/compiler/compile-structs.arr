@@ -254,7 +254,8 @@ data CompileError:
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.ann.l:
         | builtin(_) =>
           [ED.para:
@@ -264,9 +265,9 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.ann.id.toname())),
-              ED.text("is used as a type but not defined as one, at")],
-            draw-and-highlight(self.ann.l)]
+              ED.text("The name "),
+              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], color)),
+              ED.text(" is used as a type, but not previously defined as one.")]]
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
