@@ -242,14 +242,14 @@ data CompileError:
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
             ED.text(self.id),
-            draw-and-highlight(self.id.l)]
+            draw-and-highlight(self.loc)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The variable "), 
-              ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], color)),
+              ED.code(ED.highlight(ED.text(self.id), [ED.locs: self.loc], color)),
               ED.text(" is unbound. It is "),
-              ED.highlight(ED.text("assigned to"), [ED.locs: self.id.l], color),
+              ED.highlight(ED.text("assigned to"), [ED.locs: self.loc], color),
               ED.text(" but not previously defined.")]]
       end
     end
