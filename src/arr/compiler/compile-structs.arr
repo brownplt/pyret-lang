@@ -213,10 +213,13 @@ data CompileError:
           ED.text("cannot be used where an expression is expected.")]]
     end
   | underscore-as-ann(l :: Loc) with:
-    render-reason(self):
-      [ED.error:
-        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
-        draw-and-highlight(self.l)]
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
+          ED.text("cannot be used where a type annotation is expected.")]]
     end
   | unbound-id(id :: A.Expr) with:
     render-reason(self, make-pallet):

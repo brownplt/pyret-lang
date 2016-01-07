@@ -19,7 +19,7 @@ data RuntimeError:
     end
   | no-cases-matched(loc, val) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      print("no-cases")
+      pallet = make-pallet(2)
       ast-cse = loc-to-ast(self.loc).block.stmts.first
       txt-val = loc-to-src(ast-cse.val.l)
       branches-loc = ast-cse.branches-loc()
@@ -27,9 +27,9 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.loc-anchor(ED.text("cases-expression"), self.loc),
+          ED.highlight(ED.text("cases expression"), [list: self.loc], pallet.get(0)),
           ED.text(" expects there to be a branch matching the value of the expression switched on. But no branches matched the value of "),
-          ED.loc-anchor(ED.code(ED.text(txt-val)), ast-cse.val.l),
+          ED.highlight(ED.text(txt-val), [list: ast-cse.val.l], pallet.get(1)),
           ED.text(":")],
         [ED.para: ED.embed(self.val)]]
     end,
