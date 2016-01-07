@@ -216,7 +216,8 @@ data CompileError:
         draw-and-highlight(self.l)]
     end
   | unbound-id(id :: A.Expr) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
           [ED.para:
@@ -227,14 +228,15 @@ data CompileError:
           [ED.error:
             [ED.para:
               ED.text("The identifier "), 
-              ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 1)),
+              ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], color)),
               ED.text(" is unbound. It is "),
-              ED.highlight(ED.text("used"), [ED.locs: self.id.l], 1),
+              ED.highlight(ED.text("used"), [ED.locs: self.id.l], color),
               ED.text(" but not previously defined.")]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -244,8 +246,11 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The variable"), ED.code(ED.text(self.id)), ED.text("is assigned to, but not defined, at")],
-            draw-and-highlight(self.loc)]
+              ED.text("The variable "), 
+              ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], color)),
+              ED.text(" is unbound. It is "),
+              ED.highlight(ED.text("assigned to"), [ED.locs: self.id.l], color),
+              ED.text(" but not previously defined.")]]
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
