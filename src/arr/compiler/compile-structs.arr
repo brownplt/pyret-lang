@@ -204,10 +204,13 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | underscore-as-expr(l :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       [ED.error: 
-        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
-        draw-and-highlight(self.l)]
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
+          ED.text("cannot be used where an expression is expected.")]]
     end
   | underscore-as-ann(l :: Loc) with:
     render-reason(self):
@@ -348,6 +351,8 @@ data CompileError:
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+    # TODO: disambiguate what is doing the shadowing and what is being shadowed.
+    # it's not necessarily a binding; could be a function definition.
     render-reason(self, make-pallet):
       pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
