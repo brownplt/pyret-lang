@@ -310,7 +310,8 @@ data CompileError:
       end
     end
   | pointless-shadow(loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -319,9 +320,10 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Anonymous identifier cannot shadow anything: there is no name to shadow."),
-              ED.text("Either give this expression a name, or remove the shadow annotation.")],
-            draw-and-highlight(self.loc)]
+              ED.text("The anonymous identifier "),
+              ED.code(ED.highlight(ED.text("shadow _"), [ED.locs: self.loc], color)),
+              ED.text(" cannot shadow anything: there is no name to shadow."),
+              ED.text("Either give this expression a name, or remove the shadow annotation.")]]
       end
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
