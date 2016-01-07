@@ -400,7 +400,7 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the field named"),
+              ED.text("The declaration of the field named "),
               ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text("is preceeded by declaration of an field also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
@@ -409,7 +409,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the field named"),
+              ED.text("The declaration of the field named "),
               ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text("is preceeded by declaration of an field also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
