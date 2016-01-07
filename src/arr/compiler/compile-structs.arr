@@ -294,7 +294,8 @@ data CompileError:
       end
     end
   | pointless-rec(loc :: Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -303,9 +304,9 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining an anonymous recursive identifier is pointless: there is no name to call recursively."),
-              ED.text("Either give this expression a name, or remove the rec annotation.")],
-            draw-and-highlight(self.loc)]
+              ED.text("Defining the anonymous recursive identifier "), 
+              ED.code(ED.highlight(ED.text("rec _"), [ED.locs: self.loc], color)),
+              ED.text("is pointless: there is no name to call recursively.")]]
       end
     end
   | pointless-shadow(loc :: Loc) with:
