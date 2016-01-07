@@ -369,7 +369,7 @@ data CompileError:
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self, make-pallet):
-      pallet = make-pallet(1)
+      pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
       new-loc-color = pallet.get(1)
       cases(SL.Srcloc) self.old-loc:
