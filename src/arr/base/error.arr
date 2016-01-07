@@ -27,9 +27,9 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("cases expression"), [list: self.loc], pallet.get(0)),
+          ED.highlight(ED.text("cases expression"), [ED.locs: self.loc], pallet.get(0)),
           ED.text(" expects there to be a branch matching the value of the expression switched on. But no branches matched the value of "),
-          ED.highlight(ED.text(txt-val), [list: ast-cse.val.l], pallet.get(1)),
+          ED.highlight(ED.text(txt-val), [ED.locs: ast-cse.val.l], pallet.get(1)),
           ED.text(":")],
         [ED.para: ED.embed(self.val)]]
     end,
@@ -41,6 +41,18 @@ data RuntimeError:
         ED.embed(self.val)]
     end
   | no-branches-matched(loc, expression :: String) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.text(self.expression),
+          ED.text(" expression")],
+        [ED.para:
+          ED.code(
+            ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], make-pallet(1).get(0)))],
+        [ED.para:
+          ED.text("expects that the condition of at least one branch be satisfied, but no branches matched.")]]
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
