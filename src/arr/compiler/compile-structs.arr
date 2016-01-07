@@ -290,7 +290,7 @@ data CompileError:
             [ED.para:
               ED.text("Defining the anonymous variable "),
               ED.code(ED.highlight(ED.text("var _"), [ED.locs: self.loc], color)),
-              ED.text("is pointless since there is no name that can be used to modify it later on.")]]
+              ED.text(" is pointless since there is no name that can be used to modify it later on.")]]
       end
     end
   | pointless-rec(loc :: Loc) with:
@@ -306,7 +306,7 @@ data CompileError:
             [ED.para:
               ED.text("Defining the anonymous recursive identifier "), 
               ED.code(ED.highlight(ED.text("rec _"), [ED.locs: self.loc], color)),
-              ED.text("is pointless: there is no name to call recursively.")]]
+              ED.text(" is pointless since there is no name to call recursively.")]]
       end
     end
   | pointless-shadow(loc :: Loc) with:
@@ -322,8 +322,7 @@ data CompileError:
             [ED.para:
               ED.text("The anonymous identifier "),
               ED.code(ED.highlight(ED.text("shadow _"), [ED.locs: self.loc], color)),
-              ED.text(" cannot shadow anything: there is no name to shadow."),
-              ED.text("Either give this expression a name, or remove the shadow annotation.")]]
+              ED.text(" cannot shadow anything: there is no name to shadow.")]]
       end
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
