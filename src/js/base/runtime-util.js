@@ -57,7 +57,7 @@ define([], function() {
     return { "import-type": "builtin", name: name };
   }
 
-  function definePyretModule(name, deps, provides, func) {
+  function definePyretModule(name, oldDeps, deps, provides, func) {
     var modname = gensym(name);
     return {
       name: name,

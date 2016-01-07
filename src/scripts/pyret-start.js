@@ -5,6 +5,11 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     stderr: function(str) { process.stderr.write(str); }
   });
   rt.setParam("command-line-arguments", process.argv.slice(1));
+
+  // NOTE(joe): will just be pyret when the world is sane
+  if(typeof pyret === "object") {
+    pyret = pyret.theModule.apply(null, pyret.oldDependencies);
+  }
   rt.run(pyret, rt.namespace, {sync: true}, function(result) {
     if(rt.isSuccessResult(result)) {
       process.exit(0);

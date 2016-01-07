@@ -19,6 +19,7 @@ define([
   return util.definePyretModule(
     "image",
     [],
+    [],
     {
       values: {
         "circle": Fun([Num, Color, Color], TImage),

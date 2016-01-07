@@ -4,6 +4,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
   return util.definePyretModule(
     "string-dict",
     [],
+    [],
     {
       values:
       {

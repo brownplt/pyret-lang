@@ -5,6 +5,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
   return util.definePyretModule(
     "world",
     [],
+    [],
     {
       values: {
         "big-bang":

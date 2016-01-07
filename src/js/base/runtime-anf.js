@@ -3982,6 +3982,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
+        // NOTE(joe): yes this is depressing.  I know.
         if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
           var thisRawMod = m.mod.theModule;
         }
@@ -3994,7 +3995,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
         finalModMap[m.mod.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
-        return finalModMap[getName(m)];
+        var mod = finalModMap[getName(m)];
+        if(typeof mod === "undefined") {
+          console.error("FinalModMap: ", finalModMap);
+          throw Error("Unable to find module: " + getName(m));
+        }
+        return mod;
       });
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
@@ -4012,11 +4018,28 @@ function isMethod(obj) { return obj instanceof PMethod; }
 //                console.error("Undefined dependencies remain: ", module);
                 return module;
               }
+              if(module.oldDependencies) {
+                console.error("Loading old deps: ", module.oldDependencies);
+                var innerModule = module.theModule.apply(null, module.oldDependencies);
+                return innerModule(thisRuntime, namespace);
+              }
+              else {
               return loadBuiltinModules(module.dependencies, module.name,
-                function(/* varargs */) {
+                function() {
                   var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
                   return innerModule(thisRuntime, namespace);
                 });
+
+              //  console.error("Cannot load this module: ", module);
+              }
+              /*
+              return loadBuiltinModules(module.dependencies, module.name,
+                function() {
+                  var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                  return innerModule(thisRuntime, namespace);
+                });
+
+                */
           }
           else {
             console.log("Unkown module type: ", module);

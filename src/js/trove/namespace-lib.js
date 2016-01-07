@@ -1,5 +1,6 @@
-define(["js/runtime-util", "js/namespace"], function(util, namespace) {
+define(["js/runtime-util", "js/namespace", "trove/load-lib"], function(util, namespace, ll) {
 return util.definePyretModule("namespace-lib",
+  [ll],
   [util.modBuiltin("load-lib")],
   {
     values: ["make-empty-namespace", "make-base-namespace"],

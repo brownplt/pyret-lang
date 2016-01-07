@@ -1410,6 +1410,13 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
   ids = imports.map(lam(i): clean-import-name(i.vals-name) end)
   type-imports = imports.filter(N.is-a-import-complete)
   type-ids = type-imports.map(lam(i): clean-import-name(i.types-name) end)
+  module-locators = imports.map(lam(i):
+    cases(N.AImportType) i.import-type:
+      | a-import-builtin(_, name) => CS.builtin(name)
+      | a-import-file(_, file) => CS.dependency("legacy-path", [list: file])
+      | a-import-special(_, typ, args) => CS.dependency(typ, args)
+    end
+  end)
   filenames = imports.map(lam(i):
       cases(N.AImportType) i.import-type:
         | a-import-builtin(_, name) => "trove/" + name
@@ -1425,6 +1432,8 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
             "@gdrive-js/" + args.first + "/" + args.rest.first
           else:
             # NOTE(joe): under new module loading, this doesn't actually matter
+            # NOTE(joe): yes it does, this is how we get a serialized rep of
+            # the dependencies for the next time we need to check it
             CS.dependency(typ, args).key()
           end
       end
@@ -1499,6 +1508,37 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
     end
   end
 
+  fun wrap-new-module(runtime-fun):
+    module-locators-as-js = for CL.map_list(m from module-locators):
+      cases(CS.Dependency) m:
+        | builtin(name) =>
+          j-obj([clist:
+            j-field("name", j-str(name))])
+        | dependency(protocol, args) =>
+          j-obj([clist:
+            j-field("protocol", j-str(protocol)),
+            j-field("args", j-list(true, CL.map_list(j-str, args)))])
+      end
+    end
+    # NOTE(joe): intentionally empty until we can generate the right
+    # type information
+    provides-obj = j-obj([clist:
+      j-field("values", j-obj([clist:])),
+      j-field("aliases", j-obj([clist:])),
+      j-field("datatypes", j-obj([clist:]))
+    ])
+    j-return(j-obj([clist:
+        j-field("name", j-str(module-id)),
+        j-field("oldDependencies", j-list(true, CL.map(j-id, input-ids))),
+        j-field("dependencies", j-list(true, module-locators-as-js)),
+        j-field("provides", provides-obj),
+        j-field(
+            "theModule",
+            j-fun(input-ids,
+              j-block([clist: j-return(runtime-fun)])))
+      ]))
+  end
+
   step = fresh-id(compiler-name("step"))
   toplevel-name = fresh-id(compiler-name("toplevel"))
   apploc = fresh-id(compiler-name("al"))
@@ -1509,17 +1549,19 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
     [list: resumer-bind], none, prog, true)
   toplevel-fun = j-fun([clist: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
-  j-app(j-id(const-id("define")),
-    [clist: j-list(true, CL.map_list(j-str, filenames)), j-fun(input-ids, j-block([clist: 
-            j-return(j-fun([clist: RUNTIME.id, NAMESPACE.id],
-                j-block([clist: 
+  module-body = j-block([clist: 
                     #j-expr(j-str("use strict")),
                     j-if(module-ref(module-id),
                       j-block([clist: j-return(module-ref(module-id))]),
                       j-block(mk-abbrevs(l) +
                         [clist: define-locations] + 
                         global-binds +
-                        [clist: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])))]))])
+                        [clist: wrap-modules(module-specs, toplevel-name, toplevel-fun)]))])
+  j-app(j-id(const-id("define")),
+    [clist:
+      j-list(true, CL.map_list(j-str, filenames)),
+      j-fun(input-ids, j-block([clist: 
+        wrap-new-module(j-fun([clist: RUNTIME.id, NAMESPACE.id], module-body))]))])
 end
 
 fun non-splitting-compiler(env, options):

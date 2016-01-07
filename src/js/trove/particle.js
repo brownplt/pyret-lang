@@ -3,6 +3,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
   return util.definePyretModule(
     "particle",
     [],
+    [],
     {
       values: {
       },

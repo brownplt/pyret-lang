@@ -1,8 +1,11 @@
-define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
+define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(loader, util, rt) {
 
   var mb = util.modBuiltin;
   
   return util.definePyretModule("load-lib",
+    [
+      rt
+    ],
     [
       mb("runtime-lib")
     ],
