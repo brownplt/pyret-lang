@@ -369,23 +369,25 @@ data CompileError:
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+      pallet = make-pallet(1)
+      old-loc-color = pallet.get(0)
+      new-loc-color = pallet.get(1)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
             [ED.para:
               ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], color),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
               ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], color),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named"),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], color),
-              ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], color),
+              ED.text("The declaration of the identifier named "),
+              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
+              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
       end
     end
