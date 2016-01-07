@@ -18,7 +18,7 @@ data RuntimeError:
       [ED.error: [ED.para: ED.text(self.message)]]
     end
   | no-cases-matched(loc, val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       print("no-cases")
       ast-cse = loc-to-ast(self.loc).block.stmts.first
       txt-val = loc-to-src(ast-cse.val.l)
@@ -56,7 +56,7 @@ data RuntimeError:
     end
     
   | field-not-found(loc, obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
@@ -91,7 +91,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
@@ -120,7 +120,7 @@ data RuntimeError:
         ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       ast-ext = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-ext.supe.l)
       obj-loc = ast-ext.supe.l
@@ -215,7 +215,7 @@ data RuntimeError:
             ED.text("The left operand must have a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
       ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
@@ -267,7 +267,7 @@ data RuntimeError:
       end
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       fun ed-args(n):
         [ED.sequence:
           ED.embed(n),
@@ -371,7 +371,7 @@ data RuntimeError:
           vert-list-values(self.fun-app-args)])
     end
   | non-function-app(loc, non-fun-val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, srcloc):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       app-ast = loc-to-ast(self.loc).block.stmts.first
       fun-loc = app-ast._fun.l
       fun-src = loc-to-src(fun-loc)
