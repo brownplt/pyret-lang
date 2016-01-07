@@ -267,7 +267,9 @@ data CompileError:
             [ED.para:
               ED.text("The name "),
               ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], color)),
-              ED.text(" is used as a type, but not previously defined as one.")]]
+              ED.text(" is used to indicate a type, but a definition of a type named "),
+              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], color)),
+              ED.text(" could not be found.")]]
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
