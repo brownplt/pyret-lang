@@ -123,7 +123,7 @@ data Name:
   | s-atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
-    tosource(self): PP.str(self.to-compiled()) end,
+    tosource(self): PP.str(self.toname()) end,
     tosourcestring(self): self.to-compiled() end,
     toname(self): self.base end,
     key(self): "atom#" + self.base + "#" + tostring(self.serial) end
