@@ -413,6 +413,13 @@ data RuntimeError:
     end
   | non-function-app(loc, non-fun-val) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      pallet = make-pallet(2)
       app-ast = loc-to-ast(self.loc).block.stmts.first
       fun-loc = app-ast._fun.l
       fun-src = loc-to-src(fun-loc)
@@ -421,23 +428,23 @@ data RuntimeError:
       num-args = app-ast.args.length()
       [ED.error:
         [ED.para:
-          ED.text("The function application expression "),
+          ED.text("The function application expression ")],
+        [ED.para:
           ED.code([ED.sequence:
-            ED.loc-anchor(ED.text(fun-src), fun-loc),
+            ED.highlight(ED.text(fun-src), [ED.locs: fun-loc], pallet.get(0)),
             ED.text("("),
-            ED.loc-anchor(ED.text(arg-src), arg-loc),
-            ED.text(")")]),
-          ED.text(" expects "),
-          ED.loc-anchor(ED.text(fun-src), fun-loc),
+            ED.h-sequence(
+              app-ast.args.map(
+                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(1));),
+              ","),
+            ED.text(")")])],
+        [ED.para:
+          ED.text("expects the applicant"),
+          ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" to evaluate to a function accepting "),
-          ED.loc-anchor(
-            [ED.sequence:
-              ED.embed(num-args),
-              ED.text(if num-args == 1: " argument"
-                      else:             " arguments";)],
-            arg-loc),
-          ED.text(", but "),
-          ED.loc-anchor(ED.text(fun-src), fun-loc),
+          ED.highlight(ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
+          ED.text(", but the expression "),
+          ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" evaluated to the non-function value:")],
         [ED.para: ED.embed(self.non-fun-val)]]
     end,
