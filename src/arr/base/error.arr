@@ -359,46 +359,40 @@ data RuntimeError:
                 ED.text("The function application expression ")],
               [ED.para:
                 ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], pallet.get(2)),
+                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                   ED.text("("),
                   ED.h-sequence(
                     fun-app-ast.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(1));),
                     ","),
                   ED.text(")")])],
               [ED.para:
                 ED.text("expects the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                 ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                 ED.text(" evaluated to a "),
-                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], pallet.get(0)),
+                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], pallet.get(2)),
                 ED.text(" accepting exactly "),
-                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), pallet.get(1)),
+                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), pallet.get(3)),
                 ED.text(",")],
               [ED.para:
                 ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-def-ast.name), [ED.locs: self.fun-def-loc], pallet.get(0)),
+                  ED.highlight(ED.text(fun-def-ast.name), [ED.locs: self.fun-def-loc], pallet.get(2)),
                   ED.text("("),
                   ED.h-sequence(fun-def-ast.args.map(
                     lam(arg):
-                      ED.highlight(ED.text("⬜"), [ED.locs: arg.l], pallet.get(1));),","),
+                      ED.highlight(ED.text("⬜"), [ED.locs: arg.l], pallet.get(3));),","),
                   ED.text(")")])],
               [ED.para:
                 ED.text("but the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                 ED.text(" had "),
-                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(3)),
+                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(1)),
                 ED.text(" applied to it:")],
               vert-list-values(self.fun-app-args)]
-                
-                
-                
-  
-              
-              
           end
         end,
         [ED.error: ED.text("Batman")])
