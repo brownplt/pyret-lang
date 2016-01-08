@@ -250,7 +250,7 @@ data RuntimeError:
                 ED.text("two Numbers,"),
                 ED.text("two Strings, or"),
                 [ED.sequence: 
-                  ED.text("A "),
+                  ED.text("a "),
                   ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
                   ED.text(" that has a method named "), 
                   ED.code(ED.text(self.methodname))]]],
@@ -281,6 +281,46 @@ data RuntimeError:
             ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, methodname) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      # TODO: breaks on multi-operator expression chains
+      pallet = make-pallet(3)
+      ED.maybe-stack-loc(0, true,
+        lam(binop-loc):
+          binop-ast = loc-to-ast(binop-loc).block.stmts.first
+          [ED.error:
+            [ED.para:
+              ED.text("The binary "),
+              ED.highlight(ED.text(self.opname),[ED.locs: binop-ast.op-l], pallet.get(1)),
+              ED.text(" operator expression ")],
+            [ED.para:
+              ED.code([ED.sequence:
+                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], pallet.get(0)),
+                ED.text(" "),
+                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], pallet.get(1)),
+                ED.text(" "),
+                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], pallet.get(2))])],
+            [ED.para:
+              ED.text("expects to be given:"),
+              [ED.bulleted:
+                ED.text("two Numbers, or"),
+                [ED.sequence: 
+                  ED.text("a "),
+                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+                  ED.text(" that has a method named "), 
+                  ED.code(ED.text(self.methodname))]]],
+            [ED.para:
+              ED.text("However, the expression's "),
+              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+              ED.text(" evaluated to")],
+            ED.embed(self.val1),
+            [ED.para:
+              ED.text("and its "),
+              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], pallet.get(2)),
+              ED.text(" evaluated to")],
+            ED.embed(self.val2)]
+        end, 
+        self.render-reason())
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
