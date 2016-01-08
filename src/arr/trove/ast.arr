@@ -651,7 +651,7 @@ data Expr:
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
-  | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+  | s-op(l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
     label(self): "s-op" end,
     tosource(self):
@@ -1629,8 +1629,8 @@ default-map-visitor = {
     s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(l, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(l, op-l, op, left.visit(self), right.visit(self))
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
@@ -2112,7 +2112,7 @@ default-iter-visitor = {
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
   
@@ -2588,8 +2588,8 @@ dummy-loc-visitor = {
     s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
   end,
 
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(dummy-loc, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):

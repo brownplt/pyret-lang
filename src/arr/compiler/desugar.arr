@@ -385,7 +385,7 @@ fun desugar-expr(expr :: A.Expr):
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-op(l, op, left, right) =>
+    | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
           ds-curry-binop(l, desugar-expr(left), desugar-expr(right),

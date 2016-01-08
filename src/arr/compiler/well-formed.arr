@@ -242,7 +242,7 @@ end
 fun opname(op): string-substring(op, 2, string-length(op)) end
 fun reachable-ops(self, l, op, ast):
   cases(A.Expr) ast:
-    | s-op(l2, op2, left2, right2) =>
+    | s-op(l2, _, op2, left2, right2) =>
       if (op == op2):
         reachable-ops(self, l, op, left2)
         reachable-ops(self, l, op, right2)
@@ -336,7 +336,7 @@ well-formed-visitor = A.default-iter-visitor.{
     wf-error("Cannot define newtypes or type aliases except at the top level of a file", l)
     false
   end,
-  s-op(self, l, op, left, right):
+  s-op(self, l, _, op, left, right):
     reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
   end,
   s-cases-branch(self, l, pat-loc, name, args, body):
@@ -685,8 +685,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else)
   end,
-  s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
-    well-formed-visitor.s-op(l, op, left, right)
+  s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
+    well-formed-visitor.s-op(l, op-loc, op, left, right)
   end,
   s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
     well-formed-visitor.s-check-test(l, op, refinement, left, right)

@@ -420,9 +420,9 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
               return tr(node.kids[0]);
             } else {
               var mkOp = RUNTIME.getField(ast, 's-op').app;
-              var expr = mkOp(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2]));
+              var expr = mkOp(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2]));
               for(var i = 4; i < node.kids.length; i += 2) {
-                expr = mkOp(pos(node.pos), tr(node.kids[i - 1]), expr, tr(node.kids[i]));
+                expr = mkOp(pos(node.pos), pos(node.kids[i - 1].pos), tr(node.kids[i - 1]), expr, tr(node.kids[i]));
               }
               return expr;
             }
