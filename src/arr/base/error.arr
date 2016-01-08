@@ -164,6 +164,7 @@ data RuntimeError:
         ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
+    # TODO : is this error even used?
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -183,6 +184,28 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | generic-type-mismatch(val, typ :: String) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      ED.maybe-stack-loc(0, true,
+        lam(loc):
+          src = loc-to-src(loc)
+          [ED.error:
+            [ED.para:
+              ED.text("The expression")],
+            [ED.para:
+              ED.code(ED.highlight(ED.text(src), [ED.locs: loc], make-pallet(1).get(0)))],
+            [ED.para:
+              ED.text("was expected to evaluate to a "),
+              ED.embed(self.typ),
+              ED.text(" but it evaluated to the non-"),
+              ED.embed(self.typ),
+              ED.text(" value:")],
+            [ED.para:
+              ED.embed(self.val)]]
+        end,
+        [ED.error:
+          [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
+    end,
+      
     render-reason(self):
       ED.maybe-stack-loc(0, true,
         lam(loc):
