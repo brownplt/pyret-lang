@@ -3379,13 +3379,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwInvalidArrayIndex(methodName, arr, ix, reason);
       };
       if(ix >= arr.length) {
-        throwErr("index too large; array length was " + arr.length);
+        throwErr("is too large; the array length is " + arr.length);
       }
       if(ix < 0) {
-        throwErr("negative index");
+        throwErr("is a negative number.");
       }
       if(!(num_is_integer(ix))) {
-        throwErr("non-integer index");
+        throwErr("is not an integer.");
       }
     }
 

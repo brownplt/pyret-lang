@@ -479,7 +479,6 @@ data RuntimeError:
   | uninitialized-id(loc, name) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       pallet = make-pallet(1)
-      print(self.def-loc)
       [ED.error:
         [ED.para:
           ED.text("The identifier "), 
@@ -503,6 +502,28 @@ data RuntimeError:
         ED.h-sequence(self.names.map(ED.text), ", ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      pallet = make-pallet(1)
+      ED.maybe-stack-loc(0, true,
+        lam(loc):
+          ast-dot = loc-to-ast(loc).block.stmts.first
+          dot-ast = ast-dot._fun
+          [ED.error:
+            [ED.para: 
+              ED.text("The array interaction "),
+              ED.code(ED.highlight(ED.text(self.method-name), [ED.locs: loc], pallet.get(0)))],
+            [ED.para:
+              ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0)))],
+            [ED.para:
+              ED.text("expects that the index passed to it is an integer within the bounds of the array, but "),
+              ED.embed(self.index),
+              ED.text(" "),
+              ED.text(self.reason)]]
+        end,
+        [ED.error:
+          [ED.para: ED.text("Invalid array index"), ED.code(ED.embed(self.index)),
+            ED.text("because:"), ED.text(self.reason)]])
+    end,
     render-reason(self):
       ED.maybe-stack-loc(0, true,
         lam(loc):
@@ -516,10 +537,12 @@ data RuntimeError:
             ED.text("because:"), ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
+    # TODO
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("Attempted to compare the following two incomparable values:")],
         ED.embed(self.value1),
+        ED.text(" "),
         ED.embed(self.value2),
         [ED.para: ED.text(self.reason)]]
     end
