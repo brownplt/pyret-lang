@@ -69,6 +69,7 @@ data RuntimeError:
     
   | field-not-found(loc, obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      pallet = make-pallet(2)
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
@@ -77,19 +78,19 @@ data RuntimeError:
         [ED.para:
           ED.text("The dot expression "),
           ED.code([ED.sequence:
-            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
             ED.text("."),
-            ED.loc-anchor(ED.text(self.field), fld-loc)]),
+            ED.highlight(ED.text(self.field), [ED.locs: fld-loc], pallet.get(1))]),
           ED.text(" expects the value of the "),
-          ED.highlight(ED.code(ED.text("object")),[ED.locs: obj-loc],1),
+          ED.highlight(ED.code(ED.text("object")),[ED.locs: obj-loc],pallet.get(0)),
           ED.text(" to have a "),
-          ED.loc-anchor(ED.text("field"), fld-loc),
+          ED.highlight(ED.text("field"), [ED.locs: fld-loc], pallet.get(1)),
           ED.text(" named "),
-          ED.loc-anchor(ED.code(ED.text(self.field)),fld-loc),
+          ED.highlight(ED.code(ED.text(self.field)),[ED.locs: fld-loc], pallet.get(1)),
           ED.text(", but "),
-          ED.loc-anchor(ED.code(ED.text(self.field)),fld-loc),
+          ED.highlight(ED.code(ED.text(self.field)), [ED.locs: fld-loc],pallet.get(1)),
           ED.text(" does not appear in the value of the "),
-          ED.loc-anchor(ED.code(ED.text("object")),obj-loc),
+          ED.highlight(ED.code(ED.text("object")), [ED.locs: obj-loc],  pallet.get(0)),
           ED.text(":")],
         [ED.para: ED.embed(self.obj)]]
     end,
@@ -104,6 +105,7 @@ data RuntimeError:
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      pallet = make-pallet(2)
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
@@ -112,13 +114,13 @@ data RuntimeError:
         [ED.para:
           ED.text("The dot expression "),
           ED.code([ED.sequence:
-            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
             ED.text("."),
-            ED.loc-anchor(ED.text(self.field), fld-loc)]),
+            ED.highlight(ED.text(self.field), [ED.locs: fld-loc], pallet.get(1))]),
           ED.text(" expects the "),
-          ED.loc-anchor(ED.text("left hand side"),obj-loc),
+          ED.highlight(ED.text("left hand side"),[ED.locs: obj-loc], pallet.get(0)),
           ED.text(" to evaluate to an object, but the value of "),
-          ED.loc-anchor(ED.text(txt-obj), obj-loc),
+          ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
           ED.text(" was not an object, it was:")],
         [ED.para: ED.embed(self.non-obj)]]
     end,
@@ -133,6 +135,7 @@ data RuntimeError:
     end
   | extend-non-object(loc, non-obj) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      pallet = make-pallet(2)
       ast-ext = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-ext.supe.l)
       obj-loc = ast-ext.supe.l
@@ -142,13 +145,13 @@ data RuntimeError:
         [ED.para:
           ED.text("The object extension expression "),
           ED.code([ED.sequence:
-            ED.loc-anchor(ED.text(txt-obj), obj-loc),
+            ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
             ED.text("."),
-            ED.loc-anchor(ED.text(txt-fld), fld-loc)]),
+            ED.highlight(ED.text(txt-fld), [ED.locs: fld-loc], pallet.get(1))]),
           ED.text(" expects the "),
-          ED.loc-anchor(ED.text("left hand side"),obj-loc),
+          ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], pallet.get(0)),
           ED.text(" to evaluate to an object, but the value of "),
-          ED.loc-anchor(ED.text(txt-obj), obj-loc),
+          ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
           ED.text(" was not an object, it was:")],
         [ED.para: ED.embed(self.non-obj)]]
     end,
@@ -228,22 +231,47 @@ data RuntimeError:
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      pallet = make-pallet(4)
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
       ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
       [ED.error:
         [ED.para:
-          ED.text("The cases branch "),
-          ED.code(ED.loc-anchor(ED.text(src-branch), self.branch-loc)),
-          ED.text(" has "),
-          ED.embed(self.num-args),
-          ED.text(" arguments, but the variant "),
+          ED.text("The cases branch pattern")],
+        [ED.para:
+          ED.code([ED.sequence:
+            ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2)),
+            ED.text("("),
+            ED.h-sequence(
+              ast-branch.args.map(
+                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
+              ","),
+            ED.text(")")])],
+        [ED.para:
+          ED.text("expects that the pattern for the "),
+          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
+          ED.text(" branch has exactly the same number of arguments as the"),
           ED.code(ED.text(ast-branch.name)),
-          ED.text(" of the type "),
+          ED.text(" variant of "),
           ED.embed(ast-cases.typ.id),
-          ED.text(" has "),
-          ED.embed(self.actual-arity),
-          ED.text(" arguments.")]]
+          ED.text(" accepts.")],
+        [ED.para:
+          ED.text("The cases pattern for "),
+          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
+          ED.text(" accepts "),
+          ED.highlight(ed-args(self.num-args), ast-branch.args.map(_.l), pallet.get(3)),
+          ED.text(" but the "),
+          ED.code(ED.text(ast-branch.name)),
+          ED.text(" variant of the "),
+          ED.embed(ast-cases.typ.id),
+          ED.text(" datatype accepts "),
+          ed-args(self.num-args)]]
     end,
     
     render-reason(self):
@@ -280,6 +308,7 @@ data RuntimeError:
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      pallet = make-pallet(4)
       fun ed-args(n):
         [ED.sequence:
           ED.embed(n),
@@ -307,38 +336,38 @@ data RuntimeError:
                 ED.text("The function application expression ")],
               [ED.para:
                 ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], 3),
+                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], pallet.get(2)),
                   ED.text("("),
                   ED.h-sequence(
                     fun-app-ast.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], 4);),
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
                     ","),
                   ED.text(")")])],
               [ED.para:
                 ED.text("expects the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
                 ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
                 ED.text(" evaluated to a "),
-                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], 1),
+                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], pallet.get(0)),
                 ED.text(" accepting exactly "),
-                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), 2),
+                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), pallet.get(1)),
                 ED.text(",")],
               [ED.para:
                 ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-def-ast.name), [ED.locs: self.fun-def-loc], 1),
+                  ED.highlight(ED.text(fun-def-ast.name), [ED.locs: self.fun-def-loc], pallet.get(0)),
                   ED.text("("),
                   ED.h-sequence(fun-def-ast.args.map(
                     lam(arg):
-                      ED.highlight(ED.text("⬜"), [ED.locs: arg.l], 2);),","),
+                      ED.highlight(ED.text("⬜"), [ED.locs: arg.l], pallet.get(1));),","),
                   ED.text(")")])],
               [ED.para:
                 ED.text("but the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], 3),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(2)),
                 ED.text(" had "),
-                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), 4),
+                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(3)),
                 ED.text(" applied to it:")],
               vert-list-values(self.fun-app-args)]
                 
