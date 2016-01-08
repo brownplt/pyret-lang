@@ -476,14 +476,15 @@ data RuntimeError:
     render-reason(self):
       [ED.error: ED.text(tostring(self))]
     end
-  | uninitialized-id(loc, name :: String) with:
+  | uninitialized-id(loc, name) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       pallet = make-pallet(1)
+      print(self.def-loc)
       [ED.error:
         [ED.para:
           ED.text("The identifier "), 
           ED.code(ED.highlight(ED.text(self.name), [ED.locs: self.loc], pallet.get(0))),
-          ED.text(" is unbound. It is "),
+          ED.text(" is unbound. Although it has been previously defined, it is being "),
           ED.highlight(ED.text("used"), [ED.locs: self.loc], pallet.get(0)),
           ED.text(" before it has been is initialized to a value.")]]
     end,
