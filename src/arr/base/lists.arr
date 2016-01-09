@@ -290,6 +290,17 @@ sharing:
   remove(self :: List<a>, e :: a) -> List<a>:
     doc: "Returns the list without the element if found, or the whole list if it is not"
     remove(self, e)
+  end,
+  join-str2(self :: List<a>, str :: String) -> String:
+    doc: ```Returns a string containing the tostring() forms of the elements of this list,
+          joined by the provided separator string.```
+    # Note: use array's join string for performance
+    before-to-string = raw-array-from-list(self)
+    init-array = raw-array-of("", raw-array-length(before-to-string))
+    for raw-array-fold(result from init-array, elt from before-to-string, index from 0):
+      raw-array-set(result, index, tostring(elt))
+    end
+      ^ raw-array-join-str(_, str)
   end
 end
 

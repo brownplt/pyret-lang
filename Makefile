@@ -1,6 +1,7 @@
 PYRET_COMP       = build/phase0/pyret.js
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
 NODE             = node -max-old-space-size=8192
+SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
 JSTROVE          = $(JS)/trove
@@ -180,7 +181,7 @@ $(PHASE3)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokeniz
 	$(NODE) $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
 
 $(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 .PHONY : docs
 docs:
@@ -196,19 +197,19 @@ $(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-ar
 	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
 
 $(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 $(PHASE3)/$(JS)/%.js : src/$(JSBASE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 $(PHASE1)/trove/%.js : src/$(JSTROVE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 $(PHASE2)/trove/%.js : src/$(JSTROVE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 $(PHASE3)/trove/%.js : src/$(JSTROVE)/%.js
-	cp $< $@
+	$(SWEETJS) --output $@ $<
 
 $(PHASE1)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PYRET_COMP)
 	$(NODE) $(PHASE0)/main-wrapper.js --compile-module-js $< > $@

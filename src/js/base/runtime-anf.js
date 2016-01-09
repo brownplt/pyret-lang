@@ -3442,6 +3442,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return thisRuntime.ffi.makeList(arr);
     };
 
+    var raw_array_from_list = function(lst) {
+      checkArityM(thisRuntime, 1, "raw-array-from-list");
+      thisRuntime.checkList(lst);
+      return thisRuntime.ffi.toArray(lst);
+    };
+
+    var raw_array_join_str = function(arr, str) {
+      checkArityM(thisRuntime, 2, "raw-array-join-str");
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkString(str);
+      return arr.join(str);
+    };
+
     var raw_array_constructor = function(arr) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array"], 1, $a); }
       thisRuntime.checkArray(arr);
@@ -4305,6 +4318,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-set': makeFunction(raw_array_set),
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
+          'raw-array-join-str': makeFunction(raw_array_join_str),
+          'raw-array-from-list': makeFunction(raw_array_from_list),
           'raw-array-fold': makeFunction(raw_array_fold),
           'raw-array': makeObject({
               make: makeFunction(raw_array_constructor)
@@ -4528,6 +4543,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'raw_array_set': raw_array_set,
         'raw_array_length': raw_array_length,
         'raw_array_to_list': raw_array_to_list,
+        'raw_array_join_str': raw_array_join_str,
+        'raw_array_from_list': raw_array_from_list,
 
         'not': bool_not,
 

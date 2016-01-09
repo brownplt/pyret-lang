@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "jasmine-node": "1.14.5",
-    "sweet.js": "~0.4.2",
+    "sweet.js": "0.7.3",
     "jquery": "~2.1.0",
     "ses": "~0.0.0",
     "requirejs": "~2.1.15",

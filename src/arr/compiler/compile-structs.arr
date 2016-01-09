@@ -548,6 +548,8 @@ runtime-builtins = [string-dict:
   "raw-array-length", v-just-there,
   "raw-array-to-list", v-just-there,
   "raw-array-fold", v-just-there,
+  "raw-array-from-list", v-just-there,
+  "raw-array-join-str", v-just-there,
   "raw-array", v-just-there,
   "ref-get", v-just-there,
   "ref-set", v-just-there,
