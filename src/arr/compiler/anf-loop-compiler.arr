@@ -207,7 +207,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
-    | a-app(l, base, _, _) => compile-ann(base, visitor)
+    | a-app(l, base, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>
       comp-fields =
         for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
