@@ -186,13 +186,12 @@ data CompileError:
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
-          ED.text("Well-formedness: Pyret disallows the use of"),
-          ED.code(ED.text(self.id)),
-          ED.text("as an identifier")],
-        draw-and-highlight(self.loc)]
+          ED.text("Pyret disallows the use of"),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.loc], make-pallet(1).get(0))),
+          ED.text("as an identifier.")]]
     end
   | zero-fraction(loc, numerator) with:
     render-reason(self):
