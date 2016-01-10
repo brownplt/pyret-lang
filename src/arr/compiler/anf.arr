@@ -92,7 +92,7 @@ fun anf-program(e :: A.Program):
   cases(A.Program) e:
     | s-program(l, _, _, imports, block) =>
       # Note: provides have been desugared away; if this changes, revise this line
-      print(N.a-program(l, imports.map(anf-import), finalize-tail-call(anf-term(block))))
+      N.a-program(l, imports.map(anf-import), finalize-tail-call(anf-term(block)))
   end
 end
 
