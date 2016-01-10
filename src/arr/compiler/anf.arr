@@ -5,6 +5,7 @@ provide-types *
 
 import ast as A
 import srcloc as SL
+import string-dict as SD
 import "compiler/ast-anf.arr" as N
 
 type Loc = SL.Srcloc
@@ -25,12 +26,12 @@ data ANFCont:
     apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(l2, v) =>
-          N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: v]))
+          N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: v], false))
         | else =>
           e-name = mk-id(l, "cont_tail_arg")
           name = mk-id(l, "cont_tail_app")
           N.a-let(l, e-name.id-b, expr,
-            N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e])))
+            N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: e-name.id-e], false)))
       end
     end
 end
@@ -91,7 +92,7 @@ fun anf-program(e :: A.Program):
   cases(A.Program) e:
     | s-program(l, _, _, imports, block) =>
       # Note: provides have been desugared away; if this changes, revise this line
-      N.a-program(l, imports.map(anf-import), anf-term(block))
+      print(N.a-program(l, imports.map(anf-import), finalize-tail-call(anf-term(block))))
   end
 end
 
@@ -339,7 +340,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | else =>
           anf-name(f, "anf_fun", lam(v):
               anf-name-rec(args, "anf_arg", lam(vs):
-                  k.apply(l, N.a-app(l, v, vs))
+                  k.apply(l, N.a-app(l, v, vs, false))
                 end)
             end)
       end
@@ -411,3 +412,52 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   end
 end
 
+fun collect-binding-maps(e :: N.AExpr) -> SD.MutableStringDict<A.Name>:
+  doc: "Get the map from fun name to symbol name"
+  cases (N.AExpr) e:
+    | a-type-let(_, _, _) => [SD.mutable-string-dict: ]
+    | a-let(_, _, _, body) => collect-binding-maps(body)
+    | a-var(_, _, _, body) => collect-binding-maps(body)
+    | a-seq(_, e1, e2) =>
+      rest = collect-binding-maps(e2)
+      if N.is-a-assign(e1) and N.is-a-id(e1.value): # order matters
+        rest.set-now(tostring(e1.id), e1.value.id)
+      else:
+        nothing
+      end
+      rest
+    | a-lettable(_, _) => [SD.mutable-string-dict: ]
+  end
+end
+
+
+fun finalize-tail-call(e :: N.AExpr) -> N.AExpr:
+  doc: "Correct tail-position field in `a-app`"
+
+  binding-maps = collect-binding-maps(e)
+
+  fun process(shadow e :: N.AExpr) -> N.AExpr:
+    cases (N.AExpr) e:
+      | a-type-let(_, _, _) => e
+      | a-let(l, binding, val, body) =>
+        N.a-let(
+          l,
+          binding,
+          if N.is-a-bind(binding) and N.is-a-lam(val):
+            N.a-lam(val.l, val.args, val.ret, process-fun(val.body, binding.id))
+          else:
+            val
+          end,
+          process(body))
+      | a-var(l, binding, ep, body) => N.a-var(l, binding, ep, process(body))
+      | a-seq(l, e1, e2) => N.a-seq(l, e1, process(e2))
+      | a-lettable(_, _) => e
+    end
+  end
+
+  fun process-fun(shadow e :: N.AExpr, fun-name :: A.Name) -> N.AExpr:
+    e # TODO
+  end
+
+  process(e)
+end

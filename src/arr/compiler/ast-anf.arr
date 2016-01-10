@@ -328,7 +328,7 @@ data ALettable:
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
+  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>, tail-position :: Boolean) with:
     label(self): "a-app" end,
     tosource(self):
       PP.group(self._fun.tosource()
@@ -504,8 +504,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
-    | a-app(_, f, args) =>
-      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
+    | a-app(_, f, args, tail-position) =>
+      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), tail-position)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
@@ -616,8 +616,8 @@ default-map-visitor = {
   a-assign(self, l :: Loc, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-app(l, _fun.visit(self), args.map(_.visit(self)))
+  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>, tail-position :: Boolean):
+    a-app(l, _fun.visit(self), args.map(_.visit(self)), tail-position)
   end,
   a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
@@ -806,7 +806,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: StringDict<A.Name>) -> StringD
         freevars-v-acc(v, acc)
       end
     | a-assign(_, id, v) => freevars-v-acc(v, seen-so-far.set(id.key(), id))
-    | a-app(_, f, args) =>
+    | a-app(_, f, args, _) =>
       from-f = freevars-v-acc(f, seen-so-far)
       for fold(acc from from-f, arg from args):
         freevars-v-acc(arg, acc)

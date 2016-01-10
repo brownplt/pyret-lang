@@ -207,7 +207,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
-    | a-app(l, base, _) => compile-ann(base, visitor)
+    | a-app(l, base, _, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>
       comp-fields =
         for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
@@ -908,7 +908,7 @@ compiler-visitor = {
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     cases(N.ALettable) e:
-      | a-app(l2, f, args) =>
+      | a-app(l2, f, args, tail-position) => # TODO
         compile-split-app(l2, self, some(b), f, args, some(body))
       | a-method-app(l2, obj, m, args) =>
         compile-split-method-app(l2, self, some(b), obj, m, args, some(body))
@@ -938,9 +938,9 @@ compiler-visitor = {
         ^ cl-cons(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
-  a-seq(self, l, e1, e2):
+  a-seq(self, l, e1  :: N.ALettable, e2):
     cases(N.ALettable) e1:
-      | a-app(l2, f, args) =>
+      | a-app(l2, f, args, tail-position) => # TODO
         compile-split-app(l2, self, none, f, args, some(e2))
       | a-method-app(l2, obj, m, args) =>
         compile-split-method-app(l2, self, none, obj, m, args, some(e2))
@@ -971,7 +971,7 @@ compiler-visitor = {
   end,
   a-lettable(self, _, e :: N.ALettable):
     cases(N.ALettable) e:
-      | a-app(l, f, args) =>
+      | a-app(l, f, args, tail-position) => # TODO
         compile-split-app(l, self, none, f, args, none)
       | a-method-app(l2, obj, m, args) =>
         compile-split-method-app(l2, self, none, obj, m, args, none)
@@ -997,7 +997,7 @@ compiler-visitor = {
     visit-value = value.visit(self)
     c-exp(j-dot-assign(j-id(js-id-of(id)), "$var", visit-value.exp), visit-value.other-stmts)
   end,
-  a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
+  a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>, tail-position :: Boolean):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
   a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
