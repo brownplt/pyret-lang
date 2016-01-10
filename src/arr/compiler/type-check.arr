@@ -1214,7 +1214,7 @@ fun check-app(app-loc :: Loc, app-expr :: A.Expr, args :: List<A.Expr>, arrow-ty
               pair(checking-map-errors(errors), t-top)
           end
         | else =>
-          pair(checking-map-errors([list: C.apply-non-function(app-loc, arrow-typ)]), t-top)
+          pair(checking-map-errors([list: C.apply-non-function(app-expr, arrow-typ)]), t-top)
       end
     | t-bot =>
       new-args = for map-checking(arg from args):
@@ -1222,7 +1222,7 @@ fun check-app(app-loc :: Loc, app-expr :: A.Expr, args :: List<A.Expr>, arrow-ty
       end
       pair(new-args, t-bot)
     | else =>
-      pair(checking-map-errors([list: C.apply-non-function(app-loc, arrow-typ)]), t-top)
+      pair(checking-map-errors([list: C.apply-non-function(app-expr, arrow-typ)]), t-top)
   end
 end
 

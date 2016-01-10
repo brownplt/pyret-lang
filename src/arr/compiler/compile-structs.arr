@@ -497,14 +497,27 @@ data CompileError:
           ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end
-  | apply-non-function(loc :: A.Loc, typ) with:
+  | apply-non-function(app-expr :: A.Expr, typ) with:
     render-reason(self, make-pallet):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      pallet = make-pallet(2)
+      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
       [ED.error:
         [ED.para:
-          ED.text("Tried to apply the non-function type "),
-          ED.embed(self.typ),
-          ED.text(" at "),
-          draw-and-highlight(self.loc)]]
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("expects the "), ed-applicant,
+          ED.text(" to evaluate to a function value. However, the type of the "), 
+          ed-applicant,
+          ED.text(" is "),
+          ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-reason(self, make-pallet):
