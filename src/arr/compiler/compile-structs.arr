@@ -168,7 +168,7 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -177,7 +177,7 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -282,7 +282,7 @@ data CompileError:
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       #### TODO ###
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
@@ -352,7 +352,7 @@ data CompileError:
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
@@ -431,7 +431,8 @@ data CompileError:
       end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
+      pallet = make-pallet(2)
       [ED.error:
         [ED.para:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
@@ -439,23 +440,65 @@ data CompileError:
           ED.text(", required by "), draw-and-highlight(self.expected-loc),
           ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
+  | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
+    render-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected the expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.e.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("because the expression at "),
+          ED.embed(self.bad-loc),
+          ED.text(" was of type " + self.bad-name),
+          ED.text(" but it was expected to be of type "),
+          ED.embed(self.expected-name),
+          ED.text(" because "),
+          draw-and-highlight(self.expected-loc)]]
+    end
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
           ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
           ED.text(", but instead received "), ED.text(tostring(self.given))]]
     end
-  | incorrect-number-of-args(loc :: A.Loc) with:
-    render-reason(self):
+  | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
+    render-reason(self, make-pallet):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      pallet = make-pallet(2)
+      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
       [ED.error:
         [ED.para:
-          ED.text("Incorrect number of arguments given to function at "),
-          draw-and-highlight(self.loc)]]
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("expects the "), ed-applicant,
+          ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
+        [ED.para:
+          ED.text("However, the "), 
+          ed-applicant,
+          ED.text(" is given "),
+          ED.highlight(ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), pallet.get(1)), 
+          ED.text(" and the type signature of "),
+          ed-applicant],
+        [ED.para:
+          ED.embed(self.fun-typ)],
+        [ED.para:
+          ED.text("indicates that it evaluates to a function accepting exactly "),
+          ed-args(self.fun-typ.args.length()),
+          ED.text(".")]]
     end
   | apply-non-function(loc :: A.Loc, typ) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Tried to apply the non-function type "),
@@ -464,7 +507,7 @@ data CompileError:
           draw-and-highlight(self.loc)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("The object type " + self.obj + " (at "),
@@ -473,7 +516,7 @@ data CompileError:
           draw-and-highlight(self.access-loc)]]
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("The branch "), ED.code(ED.text(self.branch-name)),
@@ -484,27 +527,27 @@ data CompileError:
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted.")
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("The type specified " + self.type-name
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression.")
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("Incorrect number of bindings given to "
         + "the variant " + self.variant-name
         + " at " + tostring(self.loc) + ". "
@@ -513,7 +556,7 @@ data CompileError:
         + ".")
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
@@ -529,7 +572,7 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("The data type "),  ED.code(ED.text(self.data-type)),
@@ -537,7 +580,7 @@ data CompileError:
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("In the type at "), draw-and-highlight(self.loc),
@@ -545,18 +588,18 @@ data CompileError:
             + "or the given arguments are incompatible.")]]
     end
   | cant-typecheck(reason :: String) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason)
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
-    render-reason(self):
+    render-reason(self, make-pallet):
       ED.text("There is no module imported with the name " + self.mod-name
         + " (used at " + tostring(self.loc) + ")")
     end

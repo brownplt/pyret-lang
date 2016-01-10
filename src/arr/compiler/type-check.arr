@@ -963,9 +963,9 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
     | s-construct(l, modifier, constructor, values) =>
       synthesis-err([list: C.unsupported("s-construct is currently unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
-      synthesis-app-fun(l, _fun, args, info).bind(
+      synthesis-app-fun(e, info).bind(
       lam(new-fun, arrow-typ-loc, arrow-typ):
-        result = check-app(l, args, arrow-typ, t-top, info)
+        result = check-app(l, e, args, arrow-typ, t-top, info)
         for synth-bind(new-args from result.left):
           ast = A.s-app(l, new-fun, new-args)
           synthesis-result(ast, l, result.right)
@@ -973,7 +973,7 @@ fun synthesis(e :: A.Expr, info :: TCInfo) -> SynthesisResult:
       end)
     | s-prim-app(l, _fun, args) =>
       for synth-bind(arrow-typ from lookup-id(l, _fun, info)):
-        result = check-app(l, args, arrow-typ, t-top, info)
+        result = check-app(l, e, args, arrow-typ, t-top, info)
         for synth-bind(new-args from result.left):
           ast = A.s-prim-app(l, _fun, new-args)
           synthesis-result(ast, l, result.right)
@@ -1123,14 +1123,14 @@ fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: 
   end
 end
 
-fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info :: TCInfo) -> SynthesisResult:
-  cases(A.Expr) _fun:
+fun synthesis-app-fun(fun-app :: A.Expr, info :: TCInfo) -> SynthesisResult:
+  cases(A.Expr) fun-app._fun:
     | s-id(fun-loc, id) =>
-      result = synthesis-result(_fun, _, _)
+      result = synthesis-result(fun-app._fun, _, _)
       fun pick2(num-typ :: Type, rec-typ :: Type):
-        cases(List<A.Expr>) args:
+        cases(List<A.Expr>) fun-app.args:
           | empty      =>
-            synthesis-err([list: C.incorrect-number-of-args(app-loc)])
+            synthesis-err([list: C.incorrect-number-of-args(fun-app.l, 42)])
           | link(f, r) =>
             synthesis(f, info).bind(
               lam(_, l, f-typ):
@@ -1138,15 +1138,15 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info
                   | f-typ == t-number  then: result(l, num-typ)
                   | is-t-record(f-typ) then: result(l, rec-typ)
                   | otherwise: synthesis-err([list:
-                      C.incorrect-type(tostring(f-typ), l, "Number or an object with the field " + id.toname(), app-loc)])
+                      C.incorrect-type(tostring(f-typ), l, "Number or an object with the field " + id.toname(), fun-app.l)])
                 end
               end)
         end
       end
       fun pick3(num-typ :: Type, str-typ :: Type, rec-typ :: Type):
-        cases(List<A.Expr>) args:
+        cases(List<A.Expr>) fun-app.args:
           | empty      =>
-            synthesis-err([list: C.incorrect-number-of-args(app-loc)])
+            synthesis-err([list: C.incorrect-number-of-args(fun-app.l, 42)])
           | link(f, r) =>
             synthesis(f, info).bind(
               lam(_, l, f-typ):
@@ -1155,7 +1155,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info
                   | f-typ == t-string  then: result(l, str-typ)
                   | is-t-record(f-typ) then: result(l, rec-typ)
                   | otherwise: synthesis-err([list:
-                    C.incorrect-type(tostring(f-typ), l, "Number, String or an object with the field " + id.toname(), app-loc)])
+                    C.incorrect-type(tostring(f-typ), l, "Number, String or an object with the field " + id.toname(), fun-app.l)])
                 end
               end)
         end
@@ -1171,15 +1171,15 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, info
         | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
         | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
         | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
-        | otherwise: synthesis(_fun, info)
+        | otherwise: synthesis(fun-app._fun, info)
       end
     | else =>
-      synthesis(_fun, info)
+      synthesis(fun-app._fun, info)
   end
 end
 
-fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-typ :: Type, info :: TCInfo) -> Pair<CheckingMapResult,Type>:
-  bad-args    = C.incorrect-number-of-args(app-loc)
+fun check-app(app-loc :: Loc, app-expr :: A.Expr, args :: List<A.Expr>, arrow-typ :: Type, expect-typ :: Type, info :: TCInfo) -> Pair<CheckingMapResult,Type>:
+  bad-args    = C.incorrect-number-of-args(app-expr, arrow-typ)
   args-map2   = map2-checking(bad-args)
   args-foldl2 = foldl2-result(bad-args)
   cases(Type) arrow-typ:
@@ -1399,9 +1399,9 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
     | s-construct(l, modifier, constructor, values) =>
       checking-err([list: C.unsupported("s-construct is unsupported by the type checker", l)])
     | s-app(l, _fun, args) =>
-      synthesis-app-fun(l, _fun, args, info).check-bind(
+      synthesis-app-fun(e, info).check-bind(
       lam(new-fun, new-fun-loc, new-fun-typ):
-        result = check-app(l, args, new-fun-typ, expect-typ, info)
+        result = check-app(l, e, args, new-fun-typ, expect-typ, info)
         for check-bind(new-args from result.left):
           ast = A.s-app(l, new-fun, new-args)
           check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
@@ -1409,7 +1409,7 @@ fun checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, info :: TCInf
       end)
     | s-prim-app(l, _fun, args) =>
       for check-bind(arrow-typ from lookup-id(l, _fun, info)):
-        result = check-app(l, args, arrow-typ, expect-typ, info)
+        result = check-app(l, e, args, arrow-typ, expect-typ, info)
         for check-bind(new-args from result.left):
           ast = A.s-prim-app(l, _fun, new-args)
           check-and-return(l, result.right, expect-loc, expect-typ, ast, info)
