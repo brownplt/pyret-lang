@@ -521,12 +521,14 @@ data CompileError:
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-reason(self, make-pallet):
+      pallet = make-pallet(2)
       [ED.error:
         [ED.para:
-          ED.text("The object type " + self.obj + " (at "),
-          draw-and-highlight(self.obj-loc),
-          ED.text(") does not have the field \"" + self.field-name + "\", accessed at "),
-          draw-and-highlight(self.access-loc)]]
+          ED.text("The type checker rejected your program because the object type")],
+         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], pallet.get(0)),
+        [ED.para:
+          ED.text("does not have a field named "),
+          ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], pallet.get(1)))]]
     end
   | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
     render-reason(self, make-pallet):
