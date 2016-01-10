@@ -189,18 +189,22 @@ data CompileError:
     render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
-          ED.text("Pyret disallows the use of"),
+          ED.text("Pyret disallows the use of "),
           ED.code(ED.highlight(ED.text(self.id), [list: self.loc], make-pallet(1).get(0))),
-          ED.text("as an identifier.")]]
+          ED.text(" as an identifier because it is reserved.")]]
     end
   | zero-fraction(loc, numerator) with:
-    render-reason(self):
+    render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
-          ED.text("Well-formedness: fraction literal with zero denominator (numerator was"),
-          ED.val(self.numerator),
-          ED.text(") at")],
-        draw-and-highlight(self.loc)]
+          ED.text("Pyret disallows the fraction literal expression")],
+        [ED.para:
+          ED.code(ED.highlight([ED.sequence: 
+                                  ED.embed(self.numerator),
+                                  ED.text(" / 0")], 
+                               [list: self.loc], make-pallet(1).get(0)))],
+        [ED.para:
+          ED.text("because its denominator is zero.")]]
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self, make-pallet):
