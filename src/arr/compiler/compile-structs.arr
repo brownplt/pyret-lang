@@ -582,8 +582,7 @@ data CompileError:
         [ED.para:
           ED.text("The type checker expects that the "),
           ED.highlight(ED.text("pattern"), [list: self.branch.pat-loc], pallet.get(0)),
-          ED.text(" in the cases branch,"),
-          ED.text("has the same number of "),
+          ED.text(" in the cases branch has the same number of "),
           ED.highlight(ED.text("field bindings"), self.branch.args.map(_.l), pallet.get(1)),
           ED.text(" as the data variant "),
           ED.code(ED.highlight(ED.text(self.variant.name), [list: self.variant.l], pallet.get(2))),
