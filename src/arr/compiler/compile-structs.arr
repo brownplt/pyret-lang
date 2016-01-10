@@ -530,15 +530,24 @@ data CompileError:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], pallet.get(1)))]]
     end
-  | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
+  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     render-reason(self, make-pallet):
+      pallet = make-pallet(3)
       [ED.error:
         [ED.para:
-          ED.text("The branch "), ED.code(ED.text(self.branch-name)),
-          ED.text(" at "), draw-and-highlight(self.branch-loc),
-          ED.text(" is not a variant of "), ED.code(ED.text(self.type-name)),
-          ED.text(" at "),
-          draw-and-highlight(self.type-loc)]]
+          ED.text("The type checker rejected your program because the "),
+          ED.highlight(ED.text("cases expression"),[list: self.cases-loc], pallet.get(0)),
+          ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
+          ED.text(self.data-type.name), 
+          ED.text(". However, no variant named "),
+          ED.code(ED.highlight(ED.text(self.branch.name), [list: self.branch.pat-loc], pallet.get(1))),
+          ED.text(" exists in "),
+          ED.text(self.data-type.name), 
+          ED.text("'s "),
+          ED.highlight(ED.text("variants"),self.data-type.variants.map(_.l), pallet.get(2)),
+          ED.text(":")],
+         ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
+          ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], pallet.get(2)));))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###

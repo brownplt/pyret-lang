@@ -682,7 +682,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
           end
       end
     | none =>
-      fold-errors([list: C.unneccesary-branch(branch.name, branch.l, data-type.name, cases-loc)])
+      fold-errors([list: C.unneccesary-branch(branch, data-type, cases-loc)])
   end
 end
 
