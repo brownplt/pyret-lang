@@ -663,7 +663,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
                 new-branch = A.s-cases-branch(l, pat-loc, name, args, new-body)
                 fold-result(pair(new-branch, typ))
               end
-              bind-args = foldl2-result(C.incorrect-number-of-bindings(name, l, args.length(), fields.length()))
+              bind-args = foldl2-result(C.incorrect-number-of-bindings(branch, tv))
               bind-args(bind-arg(_, _, variant-loc, _), fold-result(info), args.map(_.bind), fields)
                 .bind(handle-body(name, body, process, _))
             | s-singleton-cases-branch(l, _, name, _) =>

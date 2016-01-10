@@ -569,30 +569,46 @@ data CompileError:
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression.")
     end
-  | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
-    #### TODO ###
+  | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
     render-reason(self, make-pallet):
-      ED.text("Incorrect number of bindings given to "
-        + "the variant " + self.variant-name
-        + " at " + tostring(self.loc) + ". "
-        + "Given " + num-tostring(self.given)
-        + ", but expected " + num-tostring(self.expected)
-        + ".")
+      fun ed-fields(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " field"
+                  else:      " fields";)]
+      end
+      pallet = make-pallet(4)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker expects that the "),
+          ED.highlight(ED.text("pattern"), [list: self.branch.pat-loc], pallet.get(0)),
+          ED.text(" in the cases branch,"),
+          ED.text("has the same number of "),
+          ED.highlight(ED.text("field bindings"), self.branch.args.map(_.l), pallet.get(1)),
+          ED.text(" as the data variant "),
+          ED.code(ED.highlight(ED.text(self.variant.name), [list: self.variant.l], pallet.get(2))),
+          ED.text(" has "),
+          ED.highlight(ED.text("fields"), [list: A.dummy-loc], pallet.get(3)),
+          ED.text(". However, the branch pattern binds "),
+          ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), pallet.get(1)),
+          ED.text(" and the variant is declared as having "),
+          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], pallet.get(3))]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-reason(self, make-pallet):
+      pallet = make-pallet(1)
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
-            ED.text("The cases branch named"), ED.code(ED.text(self.name)),
-            ED.text("at"), draw-and-highlight(self.branch-loc),
-            ED.text("has an argument list, but the variant is a singleton.")]]
+            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], pallet.get(0))),
+            ED.text(" has an argument list, but the variant is a singleton.")]]
       else:
         [ED.error:
           [ED.para:
-            ED.text("The cases branch named"), ED.code(ED.text(self.name)),
-            ED.text("at"), draw-and-highlight(self.branch-loc),
-            ED.text("doesn't have an argument list, but the variant is not a singleton.")]]
+            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], pallet.get(0))),
+            ED.text(" has an argument list, but the variant is not a singleton.")]]
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
