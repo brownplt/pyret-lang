@@ -402,6 +402,22 @@ data CompileError:
               ED.code(ED.highlight(ED.text("var _"), [ED.locs: self.loc], color)),
               ED.text(" is pointless since there is no name that can be used to mutate it later on.")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("Defining the anonymous variable "),
+              ED.code(ED.text("var _")),
+              ED.text(" at "),
+              ED.loc(self.loc),
+              ED.text(" is pointless since there is no name that can be used to mutate it later on.")]]
+      end
     end
   | pointless-rec(loc :: Loc) with:
     render-fancy-reason(self, make-pallet):
