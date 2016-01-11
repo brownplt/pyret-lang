@@ -220,6 +220,19 @@ data CompileError:
                                [list: self.loc], make-pallet(1).get(0)))],
         [ED.para:
           ED.text("because its denominator is zero.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret disallows the fraction literal expression")],
+        [ED.para:
+          ED.code([ED.sequence: 
+                    ED.embed(self.numerator),
+                    ED.text(" / 0")])],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.loc),
+          ED.text(" because its denominator is zero.")]]
     end
   | underscore-as-expr(l :: Loc) with:
     render-fancy-reason(self, make-pallet):
