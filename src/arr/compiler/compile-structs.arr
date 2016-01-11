@@ -703,6 +703,27 @@ data CompileError:
           ED.text(", but the type accepts "),
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
+    end,
+    render-reason(self):
+      fun ed-params(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " parameter"
+                  else:      " parameters";)]
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the type instantiation")],
+       [ED.para:
+          ED.code(ED.v-sequence(self.ann.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text(" at "),
+          ED.loc(self.ann.l),
+          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
+          ed-params(self.given.length()),
+          ED.text(", but the type accepts "),
+          ED.embed(self.expected.length()),
+          ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
     render-fancy-reason(self, make-pallet):
