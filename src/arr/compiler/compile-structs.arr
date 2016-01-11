@@ -169,7 +169,7 @@ end
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
-      render-reason(self)
+      self.render-reason()
     end,
     render-reason(self):
       [ED.error:
@@ -181,7 +181,7 @@ data CompileError:
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     render-fancy-reason(self, make-pallet):
-      render-reason(self)
+      self.render-reason()
     end,
     render-reason(self):
       [ED.error:
@@ -303,7 +303,7 @@ data CompileError:
               ED.code(ED.text(self.id.id.toname())),
               ED.text(" at "),
               ED.loc(self.id.l),
-              Ed.text(" is unbound. It is "),
+              ED.text(" is unbound. It is "),
               ED.text("used but not previously defined.")]]
       end
     end
@@ -340,7 +340,7 @@ data CompileError:
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.loc),
-              Ed.text(" is unbound. It is "),
+              ED.text(" is unbound. It is "),
               ED.text("used but not previously defined.")]]
       end
     end
@@ -503,7 +503,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The variable assignment expression "),
-          ED.code(ED.text(self.iuse.tosource().pretty(1000).first), use-loc-color),
+          ED.code(ED.text(self.iuse.tosource().pretty(1000).first)),
           ED.text(" at "),
           ED.loc(self.iuse.l),
           ED.text(" expects the name "),
@@ -649,7 +649,7 @@ data CompileError:
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
-      render-reason(self)
+      self.render-reason()
     end,
     render-reason(self):
       [ED.error:
@@ -770,7 +770,7 @@ data CompileError:
         [ED.para:
           ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
         [ED.para:
-          ED.text("expects the applicant at ")
+          ED.text("expects the applicant at "),
           ED.loc(self.app-expr._fun.l),
           ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
         [ED.para:
@@ -835,7 +835,7 @@ data CompileError:
           ED.text("The type checker rejected your program because the object type ")],
           ED.embed(self.obj),
           ED.text(" at "),
-          ED.loc(self.obj-loc)
+          ED.loc(self.obj-loc),
           ED.text(" does not have a field named "),
           ED.code(ED.text(self.field-name)),
           ED.text(" as indicated by the access of that field at "),
@@ -868,7 +868,7 @@ data CompileError:
           ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
           ED.text(self.data-type.name), 
           ED.text(". However, no variant named "),
-          ED.code(ED.text(self.branch.name),
+          ED.code(ED.text(self.branch.name)),
           ED.text(" (mentioned in the branch at "),
           ED.loc(self.branch.pat-loc),
           ED.text(")"),
@@ -933,7 +933,7 @@ data CompileError:
           ED.text("The type checker expects that the pattern at "),
           ED.loc(self.branch.pat-loc),
           ED.text(" in the cases branch has the same number of field bindings as the data variant "),
-          ED.code(ED.text(self.variant.name),
+          ED.code(ED.text(self.variant.name)),
           ED.text(" at "),
           ED.loc(self.variant.l),
           ED.text(" has fields. However, the branch pattern binds "),
