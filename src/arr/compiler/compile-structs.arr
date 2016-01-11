@@ -498,6 +498,20 @@ data CompileError:
           ED.code(ED.text(self.iuse.id.toname())),
           ED.text(" is declared by an "),
           ED.highlight(ED.text("identifier definition expression."), [ED.locs: self.idef], def-loc-color)]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variable assignment expression "),
+          ED.code(ED.text(self.iuse.tosource().pretty(1000).first), use-loc-color),
+          ED.text(" at "),
+          ED.loc(self.iuse.l),
+          ED.text(" expects the name "),
+          ED.code(ED.text(self.iuse.id.toname())),
+          ED.text(" to refer to a variable definition expression, but "),
+          ED.code(ED.text(self.iuse.id.toname())),
+          ED.text(" is declared by an identifier definition expression at "),
+          ED.loc(self.idef)]]
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
