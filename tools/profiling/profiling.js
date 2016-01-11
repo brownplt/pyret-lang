@@ -1,11 +1,11 @@
-if (process.argv.length === 3) {
-  r = require("requirejs");
-  
+if (process.argv.length === 4) {
+  var r = require("requirejs");
+  var phase = process.argv[3];
   r.config({
     paths: {
-      trove: "../../build/phase1/trove",
-      js: "../../build/phase1/js",
-      compiler: "../../build/phase1/arr/compiler"
+      trove: "../../build/" + phase + "/trove",
+      js: "../../build/" + phase + "/js",
+      compiler: "../../build/" + phase + "/arr/compiler"
     }
   });
 
@@ -13,7 +13,7 @@ if (process.argv.length === 3) {
   r(["profiling-run"], function (p) {});
 
 } else {
-  console.error('Usage: node profiling.js <file.arr>');
+  console.error('Usage: node profiling.js <file.arr> phase<X>');
 }
 
 
