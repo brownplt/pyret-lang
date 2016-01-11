@@ -957,6 +957,25 @@ data CompileError:
             ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], pallet.get(0))),
             ED.text(" has an argument list, but the variant is not a singleton.")]]
       end
+    end,
+    render-reason(self):
+      if self.should-be-singleton:
+        [ED.error:
+          [ED.para:
+            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.code(ED.text(self.name)),
+            ED.text(" at "),
+            ED.loc(self.branch-loc),
+            ED.text(" has an argument list, but the variant is a singleton.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.code(ED.text(self.name)),
+            ED.text(" at "),
+            ED.loc(self.branch-loc),
+            ED.text(" has an argument list, but the variant is not a singleton.")]]
+      end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     # duplicate of `bad-type-instantiation` ?
