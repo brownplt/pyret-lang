@@ -420,15 +420,15 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
   end
 end
 
-fun instantiate(l :: A.Loc, base-typ :: Type, data-type :: DataType, args :: List<Type>, info :: TCInfo) -> FoldResult<Option<Type>>:
+fun instantiate(a :: A.Ann, base-typ :: Type, data-type :: DataType, args :: List<Type>, info :: TCInfo) -> FoldResult<Option<Type>>:
   bound = for map2-strict(param from data-type.params, arg from args):
-    check-and-log(l, arg, param.l, param.upper-bound, arg, info)
+    check-and-log(a.l, arg, param.l, param.upper-bound, arg, info)
   end
   cases(Option<List<Type>>) bound:
     | some(lst) =>
       fold-result(some(t-app(base-typ, lst)))
     | none =>
-      fold-errors([list: C.bad-type-instantiation(data-type.params.length(), args.length(), l)])
+      fold-errors([list: C.bad-type-instantiation(data-type.params, args, a)])
   end
 end
 
@@ -488,7 +488,7 @@ fun to-type(in-ann :: A.Ann, info :: TCInfo) -> FoldResult<Option<Type>>:
         cases(Option<DataType>) TCS.get-data-type(base-typ, info):
           | some(data-type) =>
             map-result(to-type-std(_, info), args)
-              .bind(instantiate(l, base-typ, data-type, _, info))
+              .bind(instantiate(in-ann, base-typ, data-type, _, info))
           | none =>
             fold-errors([list: C.given-parameters(tostring(base-typ), l)])
         end
@@ -820,7 +820,7 @@ fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, inf
             | none =>
               nt-l = new-typs.length()
               i-l   = introduces.length()
-              synthesis-err([list: C.bad-type-instantiation(i-l, nt-l, l)])
+              synthesis-err([list: C.bad-type-instantiation(introduces, new-typs, new-expr)])
           end
         end
       | t-bot =>

@@ -457,13 +457,31 @@ data CompileError:
           ED.text(" because "),
           draw-and-highlight(self.expected-loc)]]
     end
-  | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
+  | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
     render-reason(self, make-pallet):
+      fun ed-params(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " parameter"
+                  else:      " parameters";)]
+      end
+      pallet = make-pallet(2)
       [ED.error:
         [ED.para:
-          ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
-          ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
-          ED.text(", but instead received "), ED.text(tostring(self.given))]]
+          ED.text("The type checker rejected your program because the type instantiation")],
+       [ED.para:
+          ED.code([ED.sequence:
+            ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], pallet.get(0)),
+            ED.text("<"),
+            ED.h-sequence(self.ann.args.map(lam(ann):
+              ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], pallet.get(1));), ","),
+            ED.text(">")])],
+        [ED.para:
+          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
+          ED.highlight(ed-params(self.given.length()), self.ann.args.map(_.l), pallet.get(1)),
+          ED.text(", but the type accepts "),
+          ED.embed(self.expected.length()),
+          ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
     render-reason(self, make-pallet):
