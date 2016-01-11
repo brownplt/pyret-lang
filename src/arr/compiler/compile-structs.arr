@@ -644,6 +644,20 @@ data CompileError:
               ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The declaration of the field named "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.new-loc),
+          ED.text(" is preceeded in the same object by a field of an identifier also named "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.old-loc),
+          ED.text(".")],
+        [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
