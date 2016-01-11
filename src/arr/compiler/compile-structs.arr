@@ -748,8 +748,35 @@ data CompileError:
           ed-applicant,
           ED.text(" is given "),
           ED.highlight(ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), pallet.get(1)), 
-          ED.text(" and the type signature of "),
+          ED.text(" and the type signature of the "),
           ed-applicant],
+        [ED.para:
+          ED.embed(self.fun-typ)],
+        [ED.para:
+          ED.text("indicates that it evaluates to a function accepting exactly "),
+          ed-args(self.fun-typ.args.length()),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      fun ed-args(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " argument"
+                  else:      " arguments";)]
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("expects the applicant at ")
+          ED.loc(self.app-expr._fun.l),
+          ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
+        [ED.para:
+          ED.text("However, the applicant is given "),
+          ed-args(self.app-expr.args.length()), 
+          ED.text(" and the type signature of the applicant")],
         [ED.para:
           ED.embed(self.fun-typ)],
         [ED.para:
