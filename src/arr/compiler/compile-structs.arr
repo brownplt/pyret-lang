@@ -920,6 +920,26 @@ data CompileError:
           ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), pallet.get(1)),
           ED.text(" and the variant is declared as having "),
           ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], pallet.get(3))]]
+    end,
+    render-reason(self):
+      fun ed-fields(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " field"
+                  else:      " fields";)]
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker expects that the pattern at "),
+          ED.loc(self.branch.pat-loc),
+          ED.text(" in the cases branch has the same number of field bindings as the data variant "),
+          ED.code(ED.text(self.variant.name),
+          ED.text(" at "),
+          ED.loc(self.variant.l),
+          ED.text(" has fields. However, the branch pattern binds "),
+          ed-fields(self.branch.args.length()),
+          ED.text(" and the variant is declared as having "),
+          ed-fields(self.variant.fields.length())]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-fancy-reason(self, make-pallet):
