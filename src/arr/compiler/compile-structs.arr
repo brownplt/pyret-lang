@@ -288,6 +288,24 @@ data CompileError:
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], color),
               ED.text(" but not previously defined.")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.id.l:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
+            ED.text(self.id.id.toname()),
+            draw-and-highlight(self.id.l)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The identifier "), 
+              ED.code(ED.text(self.id.id.toname())),
+              ED.text(" at "),
+              ED.loc(self.id.l),
+              Ed.text(" is unbound. It is "),
+              ED.text("used but not previously defined.")]]
+      end
     end
   | unbound-var(id :: String, loc :: Loc) with:
     render-fancy-reason(self, make-pallet):
