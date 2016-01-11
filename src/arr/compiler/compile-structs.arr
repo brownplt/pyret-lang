@@ -988,6 +988,9 @@ data CompileError:
     end
   | unable-to-instantiate(loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("In the type at "), draw-and-highlight(self.loc),
