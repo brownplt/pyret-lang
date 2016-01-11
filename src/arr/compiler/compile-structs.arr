@@ -434,6 +434,22 @@ data CompileError:
               ED.code(ED.highlight(ED.text("rec _"), [ED.locs: self.loc], color)),
               ED.text(" is pointless since there is no name to call recursively.")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("Defining the anonymous recursive identifier "), 
+              ED.code(ED.text("rec _")),
+              ED.text(" at "),
+              ED.loc(self.loc),
+              ED.text(" is pointless since there is no name to call recursively.")]]
+      end
     end
   | pointless-shadow(loc :: Loc) with:
     render-fancy-reason(self, make-pallet):
