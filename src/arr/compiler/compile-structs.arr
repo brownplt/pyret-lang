@@ -661,7 +661,9 @@ data CompileError:
     end
   | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
     render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+      self.render-reason()
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected the expression")],
