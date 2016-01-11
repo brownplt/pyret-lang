@@ -592,6 +592,32 @@ data CompileError:
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.old-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The declaration of the identifier named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.new-loc),
+              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.old-loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The declaration of the identifier named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.new-loc),
+              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.old-loc)]]
+      end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-fancy-reason(self, make-pallet):
