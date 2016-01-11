@@ -629,6 +629,7 @@ data CompileError:
       end
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
+    # duplicate of `bad-type-instantiation` ?
     render-reason(self, make-pallet):
       [ED.error:
         [ED.para:
