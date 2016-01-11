@@ -542,6 +542,32 @@ data CompileError:
               ED.text(" shadows a previous declaration of an identifier also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.old-loc:
+        | builtin(_) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The declaration of the identifier named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.new-loc),
+              ED.text(" shadows the declaration of a built-in identifier also named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.old-loc)]]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The declaration of the identifier named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.new-loc),
+              ED.text(" shadows the declaration of a built-in identifier also named "),
+              ED.code(ED.text(self.id)),
+              ED.text(" at "),
+              ED.loc(self.old-loc)]]
+      end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-fancy-reason(self, make-pallet):
