@@ -805,6 +805,18 @@ data CompileError:
           ed-applicant,
           ED.text(" is "),
           ED.embed(self.typ)]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.app-expr._fun.l),
+          ED.text(" expects the applicant to evaluate to a function value. However, the type of the applicant is "), 
+          ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
@@ -816,6 +828,18 @@ data CompileError:
         [ED.para:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], pallet.get(1)))]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the object type ")],
+          ED.embed(self.obj),
+          ED.text(" at "),
+          ED.loc(self.obj-loc)
+          ED.text(" does not have a field named "),
+          ED.code(ED.text(self.field-name)),
+          ED.text(" as indicated by the access of that field at "),
+          ED.loc(self.access-loc)]
     end
   | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
