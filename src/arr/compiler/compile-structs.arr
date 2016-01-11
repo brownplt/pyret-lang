@@ -362,6 +362,25 @@ data CompileError:
               ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], color)),
               ED.text(" could not be found.")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.ann.l:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
+            ED.text(self.ann.tosource().pretty(1000)),
+            draw-and-highlight(self.id.l)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name "),
+              ED.code(ED.text(self.ann.id.toname())),
+              ED.text(" at "),
+              ED.loc(self.ann.l),
+              ED.text(" is used to indicate a type, but a definition of a type named "),
+              ED.code(ED.text(self.ann.id.toname())),
+              ED.text(" could not be found.")]]
+      end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     render-fancy-reason(self, make-pallet):
