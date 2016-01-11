@@ -10,7 +10,7 @@ var DEFAULT_FILE = '(unknown)';
 var DEFAULT_LINE = '(?)';
 
 var NO_DIFFERENCE = 'NO_DIFFERENCE';
-var THRESHOLD_FACTOR = .05;
+var THRESHOLD_FACTOR = .08;
 
 
 var fs = require('fs');
@@ -137,17 +137,10 @@ function diff (file1, file2) {
   var relMsDiffABS   = Math.abs(relMsDiff);
   var relHitsDiffABS = Math.abs(relHitsDiff);
 
-  // console.log('absolute ms diff:  ', ms2 - ms1);
-  // console.log('absolute hits diff:', hits2 - hits1);
-  // console.log('relative ms diff:  ', relMsDiff.toFixed(2) + '%');
-  // console.log('relative hits diff:', relHitsDiff.toFixed(2) + '%');
-
   var difference = new StringMap();
 
   var thresholdMs   = THRESHOLD_FACTOR * Math.abs(ms2 - ms1);
   var thresholdHits = THRESHOLD_FACTOR * Math.abs(hits2 - hits1);
-
-  // console.log('thresholds:', thresholdMs, thresholdHits);
 
   functions1.forEach(function (v1, k) {
     var obj1 = v1[0];
@@ -162,7 +155,11 @@ function diff (file1, file2) {
           file: obj1.file,
           line: obj1.line,
           self_ms_diff: obj2.self_ms - obj1.self_ms,
-          self_hits_diff: obj2.self_hits - obj1.self_hits
+          self_hits_diff: obj2.self_hits - obj1.self_hits,
+          ms1: obj1.self_ms,
+          ms2: obj2.self_ms,
+          hits1: obj1.self_hits,
+          hits2: obj2.self_hits
         };
 
       var msPercentDiff   = Math.abs(percentageDiff(obj1.self_ms, obj2.self_ms));
@@ -185,9 +182,39 @@ function diff (file1, file2) {
       //console.log('Function <' + k + '> missing from second profile.');
     }
   });
-
+  
+  console.log();
+  console.log('ms:   %s', formatChange(ms1, ms2));
+  console.log('hits: %s', formatChange(hits1, hits2));
+  // console.log('absolute ms diff:  ', formatSignNum(ms2 - ms1));
+  // console.log('absolute hits diff:', formatSignNum(hits2 - hits1));
+  // console.log('relative ms diff:  ', formatSignPercent(relMsDiff));
+  // console.log('relative hits diff:', formatSignPercent(relHitsDiff));
+  // console.log('thresholds: %s ms    %s hits', thresholdMs, thresholdHits);
+  console.log();
   return difference;
 
+}
+
+function formatChange(x1, x2) {
+  return [
+    x1.toString(), '=>', x2.toString(),
+    '...',
+    formatSignNum(x2 - x1),
+    '(' + formatSignPercent(percentageDiff(x1, x2)) + ')'].join(' ')
+}
+
+// <number> -> <string>
+function formatSignNum (num) {
+  if (num > 0) {
+    return '+' + num.toString();
+  } else {
+    return num.toString();
+  }
+}
+
+function formatSignPercent (percent, decPlaces) {
+  return formatSignNum(percent.toFixed(decPlaces || 2)) + '%';
 }
 
 /******************************************************************************/
@@ -209,13 +236,14 @@ if (numArgs === 3) {
 
   var difference = diff(file1, file2);
 
-  console.log(difference.items());
-
-  // difference.forEach(function (obj, k) {
-  //   if (obj !== NO_DIFFERENCE) {
-  //    console.log(obj);  
-  //   };
-  // });
+  difference.forEach(function (obj, k) {
+    console.log(k);
+    console.log('ms:   %s', formatChange(obj.ms1, obj.ms2));
+    console.log('hits: %s', formatChange(obj.hits1, obj.hits2));
+    // console.log('ms:   %s (%s)', formatSignNum(obj.self_ms_diff), formatSignPercent(obj.ms_percent_diff));
+    // console.log('hits: %s (%s)', formatSignNum(obj.self_hits_diff), formatSignPercent(obj.hits_percent_diff));
+    console.log('');
+  });
 
 } else {
   console.log('Usage: node analyze-callgrind.js <file.profile>+')
