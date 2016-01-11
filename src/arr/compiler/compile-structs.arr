@@ -624,26 +624,14 @@ data CompileError:
       pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
       new-loc-color = pallet.get(1)
-      cases(SL.Srcloc) self.old-loc:
-        | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the field named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text("is preceeded by declaration of an field also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
-              ED.text(".")],
-            [ED.para: ED.text("You need to pick a different name for one of them.")]]
-        | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the field named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text("is preceeded by declaration of an field also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
-              ED.text(".")],
-            [ED.para: ED.text("You need to pick a different name for one of them.")]]
-      end
+      [ED.error:
+        [ED.para:
+          ED.text("The declaration of the field named "),
+          ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
+          ED.text("is preceeded by declaration of an field also named "),
+          ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
+          ED.text(".")],
+        [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end,
     render-reason(self):
       [ED.error:
@@ -661,7 +649,9 @@ data CompileError:
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+      render-reason(self)
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
