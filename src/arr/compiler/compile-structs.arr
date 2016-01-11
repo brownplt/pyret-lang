@@ -649,7 +649,15 @@ data CompileError:
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
-      self.render-reason()
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because it found a "), 
+          ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], pallet.get(0)),
+          ED.text(" but it "),
+          ED.highlight(ED.text("expected"), [list: self.expected-loc], pallet.get(1)),
+          ED.text(" a "),
+          ED.text(self.expected-name)]]
     end,
     render-reason(self):
       [ED.error:
