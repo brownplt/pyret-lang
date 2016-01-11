@@ -168,7 +168,10 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
+      render-reason(self)
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -177,7 +180,10 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
+      render-reason(self)
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -186,7 +192,7 @@ data CompileError:
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the use of "),
@@ -194,7 +200,7 @@ data CompileError:
           ED.text(" as an identifier because it is reserved.")]]
     end
   | zero-fraction(loc, numerator) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
@@ -207,7 +213,7 @@ data CompileError:
           ED.text("because its denominator is zero.")]]
     end
   | underscore-as-expr(l :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       [ED.error: 
         [ED.para: 
@@ -216,7 +222,7 @@ data CompileError:
           ED.text("cannot be used where an expression is expected.")]]
     end
   | underscore-as-ann(l :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       [ED.error: 
         [ED.para: 
@@ -225,7 +231,7 @@ data CompileError:
           ED.text("cannot be used where a type annotation is expected.")]]
     end
   | unbound-id(id :: A.Expr) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
@@ -244,7 +250,7 @@ data CompileError:
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
@@ -263,7 +269,7 @@ data CompileError:
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.ann.l:
         | builtin(_) =>
@@ -282,12 +288,12 @@ data CompileError:
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       #### TODO ###
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
   | pointless-var(loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
@@ -303,7 +309,7 @@ data CompileError:
       end
     end
   | pointless-rec(loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
@@ -319,7 +325,7 @@ data CompileError:
       end
     end
   | pointless-shadow(loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
@@ -335,7 +341,7 @@ data CompileError:
       end
     end
   | bad-assignment(iuse :: A.Expr, idef :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       color = make-pallet(3)
       use-loc-color = color.get(0)
       def-loc-color = color.get(1)
@@ -352,14 +358,14 @@ data CompileError:
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
       new-loc-color = pallet.get(1)
@@ -381,7 +387,7 @@ data CompileError:
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
       new-loc-color = pallet.get(1)
@@ -405,7 +411,7 @@ data CompileError:
       end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       old-loc-color = pallet.get(0)
       new-loc-color = pallet.get(1)
@@ -431,7 +437,7 @@ data CompileError:
       end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       [ED.error:
         [ED.para:
@@ -441,7 +447,7 @@ data CompileError:
           ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
   | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       [ED.error:
         [ED.para:
@@ -458,7 +464,7 @@ data CompileError:
           draw-and-highlight(self.expected-loc)]]
     end
   | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       fun ed-params(n):
         [ED.sequence:
           ED.embed(n),
@@ -484,7 +490,7 @@ data CompileError:
           ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       fun ed-args(n):
         [ED.sequence:
           ED.embed(n),
@@ -516,7 +522,7 @@ data CompileError:
           ED.text(".")]]
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       fun ed-args(n):
         [ED.sequence:
           ED.embed(n),
@@ -538,7 +544,7 @@ data CompileError:
           ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       [ED.error:
         [ED.para:
@@ -549,7 +555,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], pallet.get(1)))]]
     end
   | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(3)
       [ED.error:
         [ED.para:
@@ -569,26 +575,26 @@ data CompileError:
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text("The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted.")
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text("The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text("The type specified " + self.type-name
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression.")
     end
   | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
@@ -612,7 +618,7 @@ data CompileError:
           ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], pallet.get(3))]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       pallet = make-pallet(1)
       if self.should-be-singleton:
         [ED.error:
@@ -630,7 +636,7 @@ data CompileError:
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     # duplicate of `bad-type-instantiation` ?
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("The data type "),  ED.code(ED.text(self.data-type)),
@@ -638,7 +644,7 @@ data CompileError:
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       [ED.error:
         [ED.para:
           ED.text("In the type at "), draw-and-highlight(self.loc),
@@ -646,18 +652,18 @@ data CompileError:
             + "or the given arguments are incompatible.")]]
     end
   | cant-typecheck(reason :: String) with:
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason)
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
-    render-reason(self, make-pallet):
+    render-fancy-reason(self, make-pallet):
       ED.text("There is no module imported with the name " + self.mod-name
         + " (used at " + tostring(self.loc) + ")")
     end
