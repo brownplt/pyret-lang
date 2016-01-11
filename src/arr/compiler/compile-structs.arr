@@ -260,6 +260,15 @@ data CompileError:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
           ED.text("cannot be used where a type annotation is expected.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.text("_")),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" cannot be used where a type annotation is expected.")]]
     end
   | unbound-id(id :: A.Expr) with:
     render-fancy-reason(self, make-pallet):
