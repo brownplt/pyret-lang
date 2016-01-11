@@ -859,6 +859,23 @@ data CompileError:
           ED.text(":")],
          ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
           ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], pallet.get(2)));))]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the cases expression at "),
+          ED.loc(self.cases-loc),
+          ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
+          ED.text(self.data-type.name), 
+          ED.text(". However, no variant named "),
+          ED.code(ED.text(self.branch.name),
+          ED.text(" (mentioned in the branch at "),
+          ED.loc(self.branch.pat-loc),
+          ED.text(")"),
+          ED.text(" exists in the type "),
+          ED.text(self.data-type.name), 
+          ED.text("'s variants:")],
+         ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
