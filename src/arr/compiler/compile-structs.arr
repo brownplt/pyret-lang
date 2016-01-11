@@ -466,6 +466,22 @@ data CompileError:
               ED.code(ED.highlight(ED.text("shadow _"), [ED.locs: self.loc], color)),
               ED.text(" cannot shadow anything: there is no name to shadow.")]]
       end
+    end,
+    render-reason(self):
+      cases(SL.Srcloc) self.loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+            draw-and-highlight(self.loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The anonymous identifier "),
+              ED.code(ED.text("shadow _")),
+              ED.text(" at "),
+              ED.loc(self.loc),
+              ED.text(" cannot shadow anything: there is no name to shadow.")]]
+      end
     end
   | bad-assignment(iuse :: A.Expr, idef :: Loc) with:
     render-fancy-reason(self, make-pallet):
