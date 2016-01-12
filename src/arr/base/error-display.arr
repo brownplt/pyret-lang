@@ -4,10 +4,10 @@ provide *
 provide-types *
 
 data ErrorDisplay:
-  | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | paragraph(contents #|:: List<ErrorDisplay>|#)
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)
   | numbered-sequence(contents #|:: List<ErrorDisplay>|#)
+  | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | h-sequence(contents #|:: List<ErrorDisplay>|#, sep :: String)
   | embed(val :: Any)
   | text(str :: String)
@@ -19,10 +19,7 @@ data ErrorDisplay:
   | styled(contents :: ErrorDisplay, style :: String)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
   | optional(contents :: ErrorDisplay)
-  | loc-anchor(contents :: ErrorDisplay, loc)
-  | doc-anchor(contents :: ErrorDisplay, href :: String)
   | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
-  | underline(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
 end
 
 locs = {
