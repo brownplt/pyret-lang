@@ -79,29 +79,18 @@ data TestResult:
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is => [ED.sequence:
-              ED.text("because it reports success if and only if the "), 
-              ed-lhs, ED.text(" and the "), ed-rhs, 
+              ED.text("because it reports success if and only if the predicate "), 
               cases(Option) test-ast.refinement:
-                | none => [ED.sequence: ED.text(" are "), 
-                                        ED.code(ED.text("equal-always"))]
-                | some(e) => 
-                  [ED.sequence: 
-                    ED.text(" both satisfy the "),
-                    ED.highlight(ED.text("predicate"), [list: e.l], pallet.get(1))]
-              end, ED.text(".")]
+                | none => ED.code(ED.text("equal-always"))
+                | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], pallet.get(1))
+              end,
+              ED.text(" is satisfied when the "),
+               ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
             | s-op-is-op(op) => 
-            [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "),
-              get-op-fun-name(op), ED.text(" is satisfied when the "), 
-              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-            | s-op-is-not => [ED.sequence:
-              ED.text("because it reports success if and only if the "), 
-              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are not "), 
-              ED.code(ED.text("equal-always")), ED.text(". ")]
-            | s-op-is-not-op(op) => [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "),
-              get-op-fun-name(op), ED.text(" is not satisfied when the "), 
-              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
+              [ED.sequence:
+                ED.text("because it reports success if and only if the predicate "),
+                get-op-fun-name(op), ED.text(" is satisfied when the "), 
+                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
           report-value(ed-lhs, self.refinement, self.left),
           report-value(ed-rhs, self.refinement, self.right)]
