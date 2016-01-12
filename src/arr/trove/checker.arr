@@ -12,7 +12,6 @@ type Either = E.Either
 is-right = E.is-right
 is-left = E.is-left
 
-
 data CheckBlockResult:
   | check-block-result(
       name :: String,
@@ -22,20 +21,93 @@ data CheckBlockResult:
     )
 end
 
+# copied from ast.arr, remove once import situation is resolved
+fun get-op-fun-name(opname):
+  ask:
+    | opname == "op==" then: ED.code(ED.text("equal-always"))
+    | opname == "op=~" then: ED.code(ED.text("equal-now"))
+    | opname == "op<=>" then: ED.code(ED.text("identical"))
+    | otherwise: raise("Unknown op: " + opname)
+  end
+end
+
+fun report-value(operand, refinement, value):
+  [ED.sequence:
+    [ED.para:
+      ED.text("The "),
+      operand,
+      ED.text(" evaluated to:")],
+    ED.embed(value)]
+end
+
 data TestResult:
   | success(loc :: Loc, code :: String)
   | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
-    render-fancy-reason(self):
-      print("failure-not-equal")
-      [ED.error: 
-        [ED.para: cases(Option) self.refinement:
-            | none    => ED.text("Values not equal")
-            | some(_) => ED.text("Values not equal (using custom equality):")
+    render-fancy-reason(self, PP, AST, make-pallet):
+      pallet = make-pallet(3)
+      test-ast =
+        PP.surface-parse(
+            range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
+          + range(0, self.loc.start-column).map(lam(_):" ";).foldl(string-append,"")
+          + self.code,
+          self.loc.source).block.stmts.first
+      lhs-ast = test-ast.left
+      rhs-ast = test-ast.right.value
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
+      ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], pallet.get(2))
+      
+      ed-op = cases(Option) test-ast.refinement:
+        | none    => 
+          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")   
+        | some(e) => 
+          [ED.sequence:
+            ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
+            ED.text("%("),
+            ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], pallet.get(1)),
+            ED.text(")")];
+          
+      [ED.error:
+        [ED.para:
+          ED.text("The binary test operator "),
+          ED.code(ed-op),
+          ED.text(" reported failure for the test ")],
+        [ED.para:
+          ED.code([ED.sequence:
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.text(" "), ed-op, ED.text(" "),
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+        [ED.para:
+          cases(Any) test-ast.op:
+            | s-op-is => [ED.sequence:
+              ED.text("because it reports success if and only if the "), 
+              ed-lhs, ED.text(" and the "), ed-rhs, 
+              cases(Option) test-ast.refinement:
+                | none => [ED.sequence: ED.text(" are "), 
+                                        ED.code(ED.text("equal-always"))]
+                | some(e) => 
+                  [ED.sequence: 
+                    ED.text(" both satisfy the "),
+                    ED.highlight(ED.text("predicate"), [list: e.l], pallet.get(1))]
+              end, ED.text(".")]
+            | s-op-is-op(op) => 
+            [ED.sequence:
+              ED.text("because it reports success if and only if the predicate "),
+              get-op-fun-name(op), ED.text(" is satisfied when the "), 
+              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
+            | s-op-is-not => [ED.sequence:
+              ED.text("because it reports success if and only if the "), 
+              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are not "), 
+              ED.code(ED.text("equal-always")), ED.text(". ")]
+            | s-op-is-not-op(op) => [ED.sequence:
+              ED.text("because it reports success if and only if the predicate "),
+              get-op-fun-name(op), ED.text(" is not satisfied when the "), 
+              ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
-        [ED.para: ED.embed(self.left)],
-        [ED.para: ED.embed(self.right)]]
+          report-value(ed-lhs, self.refinement, self.left),
+          report-value(ed-rhs, self.refinement, self.right)]
     end,
     render-reason(self):
+      print(self.code)
       print("failure-not-equal")
       [ED.error: 
         [ED.para: cases(Option) self.refinement:
