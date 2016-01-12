@@ -1,25 +1,26 @@
 'use strict';
 
-var StringMap = require('./lib/stringmap/stringmap.js');
-var config    = require('./config');
-var fs        = require('fs');
+var StringMap        = require('./lib/stringmap/stringmap.js');
+var fs               = require('fs');
 
-var FUNC_REGEX    = /^fn=(.+)$/;
-var FN_INDEX      = 1; // indexes into the match array of FUNC_REGEX
-var MS_INDEX      = 1;
-var HITS_INDEX    = 2; // indexes into subsequent line
-var NAME_REGEX    = /^(.*)\s([^\s]*):(\d+)$/;
-var NAME_INDEX    = 1;
-var FILE_INDEX    = 2;
-var LINE_INDEX    = 3; // these index into the match array of NAME_REGEX
-var NEWLINE       = '\n';
-var DEFAULT_NAME  = '(anonymous function)';
-var DEFAULT_FILE  = '(unknown)';
-var DEFAULT_LINE  = '(?)';
-var NO_DIFFERENCE = 'NO_DIFFERENCE';
+var CONFIG           = require('./config');
 
-var THRESHOLD_FACTOR = config.THRESHOLD_FACTOR;
-var MIN_THRESHOLD    = config.MIN_THRESHOLD;
+var FUNC_REGEX       = /^fn=(.+)$/;
+var FN_INDEX         = 1; // indexes into the match array of FUNC_REGEX
+var MS_INDEX         = 1;
+var HITS_INDEX       = 2; // indexes into subsequent line
+var NAME_REGEX       = /^(.*)\s([^\s]*):(\d+)$/;
+var NAME_INDEX       = 1;
+var FILE_INDEX       = 2;
+var LINE_INDEX       = 3; // these index into the match array of NAME_REGEX
+var NEWLINE          = '\n';
+var DEFAULT_NAME     = '(anonymous function)';
+var DEFAULT_FILE     = '(unknown)';
+var DEFAULT_LINE     = '(?)';
+var NO_DIFFERENCE    = 'NO_DIFFERENCE';
+
+var THRESHOLD_FACTOR = CONFIG.THRESHOLD_FACTOR;
+var MIN_THRESHOLD    = CONFIG.MIN_THRESHOLD;
 
 
 
@@ -69,6 +70,19 @@ function readFile(filename, keepUnknowns) {
     }
   }
   return new StringMap(functionMap);  
+}
+
+function logMissing (k, p) {
+  var name;
+  switch (p) {
+    case 1: name = 'first'; break;
+    case 2: name = 'second'; break;
+    default: name = p.toString();
+  }
+  //var msg = ['Function', k, 'missing from', name, 'profile.'].join(' ');
+  var msg = k;
+  console.log(msg);
+  return msg;
 }
 
 // @param functions :: StringMap
@@ -131,10 +145,27 @@ function diff (file1, file2) {
   var relMsDiffABS   = Math.abs(relMsDiff);
   var relHitsDiffABS = Math.abs(relHitsDiff);
 
-  var difference = new StringMap();
+  var functions = new StringMap();
 
   var thresholdMs   = Math.max(MIN_THRESHOLD, THRESHOLD_FACTOR * Math.abs(ms2 - ms1));
   var thresholdHits = Math.max(MIN_THRESHOLD, THRESHOLD_FACTOR * Math.abs(hits2 - hits1));
+
+  var onlyIn1_ms   = 0;
+  var onlyIn1_hits = 0;
+  var onlyIn2_ms   = 0;
+  var onlyIn2_hits = 0;
+
+  // console.log('MISSING FROM FIRST PROFILE:');
+
+  functions2.forEach(function (v1, k) {
+    if (!functions1.has(k)) { 
+      onlyIn2_ms   += v1[0].self_ms;
+      onlyIn2_hits += v1[0].self_hits;
+      //logMissing(k, 1);
+    }
+  });
+
+  // console.log('\nMISSING FROM SECOND PROFILE:');
 
   functions1.forEach(function (v1, k) {
     var obj1 = v1[0];
@@ -166,24 +197,37 @@ function diff (file1, file2) {
           && Math.abs(newObj.self_hits_diff) > thresholdHits;
 
       if (includeMe) {
-        difference.set(k, newObj);  
+        functions.set(k, newObj);  
       };
     } else {
-      //console.log('Function <' + k + '> missing from second profile.');
+      onlyIn1_ms   += v1[0].self_ms;
+      onlyIn1_hits += v1[0].self_hits;
+      //logMissing(k, 2);
     }
   });
-  
-  console.log();
-  console.log('ms:   %s', formatChange(ms1, ms2));
-  console.log('hits: %s', formatChange(hits1, hits2));
-  // console.log('absolute ms diff:  ', formatSignNum(ms2 - ms1));
-  // console.log('absolute hits diff:', formatSignNum(hits2 - hits1));
-  // console.log('relative ms diff:  ', formatSignPercent(relMsDiff));
-  // console.log('relative hits diff:', formatSignPercent(relHitsDiff));
-  // console.log('thresholds: %s ms    %s hits', thresholdMs, thresholdHits);
-  console.log();
-  return difference;
 
+  var out = {
+    functions: functions,
+    ms1: ms1,
+    ms2: ms2,
+    hits1: hits1,
+    hits2: hits2,
+    onlyIn1_ms: onlyIn1_ms,
+    onlyIn1_hits: onlyIn1_hits,
+    onlyIn2_ms: onlyIn2_ms,
+    onlyIn2_hits: onlyIn2_hits
+  }
+
+  return out;
+
+}
+
+function formatPercent (num, total) {
+  return [(100 * num / total).toFixed(2).toString(), '%'].join('');
+}
+
+function formatSignPercent (percent, decPlaces) {
+  return formatSignNum(percent.toFixed(decPlaces || 2)) + '%';
 }
 
 function formatChange(x1, x2) {
@@ -203,9 +247,7 @@ function formatSignNum (num) {
   }
 }
 
-function formatSignPercent (percent, decPlaces) {
-  return formatSignNum(percent.toFixed(decPlaces || 2)) + '%';
-}
+
 
 /******************************************************************************/
 
@@ -223,19 +265,34 @@ if (numArgs === 3) {
   var file1 = process.argv[2];
   var file2 = process.argv[3];
 
-
   var difference = diff(file1, file2);
 
-  difference.forEach(function (obj, k) {
+  printInfo(difference);
+
+} else {
+  console.log('Usage: node analyze-callgrind.js <file.profile>+')
+}
+
+function printInfo (difference) {
+  var ms1   = difference.ms1;
+  var ms2   = difference.ms2;
+  var hits1 = difference.hits1;
+  var hits2 = difference.hits2;
+  console.log('ms:   %s', formatChange(ms1, ms2));
+  console.log('hits: %s', formatChange(hits1, hits2));
+  console.log();
+  console.log('Not called in profile 1:\nms:   %s (%s of profile 2)\nhits: %s (%s of profile 2)',
+    difference.onlyIn2_ms, formatPercent(difference.onlyIn2_ms, ms2), difference.onlyIn2_hits, formatPercent(difference.onlyIn2_hits, hits2));
+  console.log('Not called in profile 2:\nms:   %s (%s of profile 1)\nhits: %s (%s of profile 1)', 
+    difference.onlyIn1_ms, formatPercent(difference.onlyIn1_ms, ms1), difference.onlyIn1_hits, formatPercent(difference.onlyIn1_hits, hits1));
+  console.log();
+
+  difference.functions.forEach(function (obj, k) {
     console.log(k);
     console.log('ms:   %s', formatChange(obj.ms1, obj.ms2));
     console.log('hits: %s', formatChange(obj.hits1, obj.hits2));
     console.log('');
   });
 
-} else {
-  console.log('Usage: node analyze-callgrind.js <file.profile>+')
 }
-
-
 
