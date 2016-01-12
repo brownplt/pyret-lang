@@ -38,5 +38,8 @@ artifacts: callgrind.profile
 	cp callgrind.profile    $(ARTIFACTS)$(THIS_FILE).callgrind.profile
 	cp processed.cpuprofile $(ARTIFACTS)$(THIS_FILE).processed.cpuprofile
 
+artifacts-and-cleanup: artifacts
+	rm -f processed.cpuprofile	callgrind.profile 
+
 clean:
 	rm -f processed.cpuprofile	callgrind.profile
