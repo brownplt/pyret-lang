@@ -1,34 +1,28 @@
 'use strict';
 
 var StringMap = require('./lib/stringmap/stringmap.js');
+var config    = require('./config');
+var fs        = require('fs');
 
-var FUNC_REGEX   = /^fn=(.+)$/;
-var NAME_REGEX   = /^(.*)\s([^\s]*):(\d+)$/;
-var NEWLINE      = '\n';
-var DEFAULT_NAME = '(anonymous function)';
-var DEFAULT_FILE = '(unknown)';
-var DEFAULT_LINE = '(?)';
-
+var FUNC_REGEX    = /^fn=(.+)$/;
+var FN_INDEX      = 1; // indexes into the match array of FUNC_REGEX
+var MS_INDEX      = 1;
+var HITS_INDEX    = 2; // indexes into subsequent line
+var NAME_REGEX    = /^(.*)\s([^\s]*):(\d+)$/;
+var NAME_INDEX    = 1;
+var FILE_INDEX    = 2;
+var LINE_INDEX    = 3; // these index into the match array of NAME_REGEX
+var NEWLINE       = '\n';
+var DEFAULT_NAME  = '(anonymous function)';
+var DEFAULT_FILE  = '(unknown)';
+var DEFAULT_LINE  = '(?)';
 var NO_DIFFERENCE = 'NO_DIFFERENCE';
-var THRESHOLD_FACTOR = .08;
+
+var THRESHOLD_FACTOR = config.THRESHOLD_FACTOR;
+var MIN_THRESHOLD    = config.MIN_THRESHOLD;
 
 
-var fs = require('fs');
-// var _  = require('lodash');
 
-// var compareHits = function (a, b) {
-//   return b.self_hits - a.self_hits;
-// }
-
-// var compareNames = function (a, b) {
-//   if (a.full_name < b.full_name) {
-//     return -1;
-//   }
-//   if (a.full_name > b.full_name) {
-//     return 1;
-//   }
-//   return 0;
-// }
 
 // return StringMap :: keys -> values,
 //   keys:   full_name :: <string>
@@ -44,14 +38,14 @@ function readFile(filename, keepUnknowns) {
     var match = lines[i].match(FUNC_REGEX);
     if (match) {
       var theseData = lines[i+1].split(' ');
-      var selfMs    = parseInt(theseData[1]);
-      var selfHits  = parseInt(theseData[2]);
+      var selfMs    = parseInt(theseData[MS_INDEX]);
+      var selfHits  = parseInt(theseData[HITS_INDEX]);
 
-      var fnName    = match[1];
+      var fnName    = match[FN_INDEX];
       var nameData  = fnName.match(NAME_REGEX);
-      var name      = nameData[1] || DEFAULT_NAME;
-      var file      = nameData[2] || DEFAULT_FILE;
-      var line      = nameData[3] || DEFAULT_LINE;
+      var name      = nameData[NAME_INDEX] || DEFAULT_NAME;
+      var file      = nameData[FILE_INDEX] || DEFAULT_FILE;
+      var line      = nameData[LINE_INDEX] || DEFAULT_LINE;
 
       var includeMe = keepUnknowns ||
         ((file !== DEFAULT_FILE) && (line !== DEFAULT_LINE));
@@ -139,8 +133,8 @@ function diff (file1, file2) {
 
   var difference = new StringMap();
 
-  var thresholdMs   = THRESHOLD_FACTOR * Math.abs(ms2 - ms1);
-  var thresholdHits = THRESHOLD_FACTOR * Math.abs(hits2 - hits1);
+  var thresholdMs   = Math.max(MIN_THRESHOLD, THRESHOLD_FACTOR * Math.abs(ms2 - ms1));
+  var thresholdHits = Math.max(MIN_THRESHOLD, THRESHOLD_FACTOR * Math.abs(hits2 - hits1));
 
   functions1.forEach(function (v1, k) {
     var obj1 = v1[0];
@@ -171,12 +165,8 @@ function diff (file1, file2) {
           && hitsPercentDiff > relHitsDiffABS
           && Math.abs(newObj.self_hits_diff) > thresholdHits;
 
-      // console.log(msPercentDiff, relMsDiffABS.toFixed(2), newObj.self_ms_diff, thresholdMs);
-
       if (includeMe) {
         difference.set(k, newObj);  
-      } else {
-        // difference.set(k, NO_DIFFERENCE);
       };
     } else {
       //console.log('Function <' + k + '> missing from second profile.');
@@ -240,8 +230,6 @@ if (numArgs === 3) {
     console.log(k);
     console.log('ms:   %s', formatChange(obj.ms1, obj.ms2));
     console.log('hits: %s', formatChange(obj.hits1, obj.hits2));
-    // console.log('ms:   %s (%s)', formatSignNum(obj.self_ms_diff), formatSignPercent(obj.ms_percent_diff));
-    // console.log('hits: %s (%s)', formatSignNum(obj.self_hits_diff), formatSignPercent(obj.hits_percent_diff));
     console.log('');
   });
 
