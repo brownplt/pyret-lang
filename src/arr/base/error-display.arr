@@ -22,20 +22,6 @@ data ErrorDisplay:
   | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
 end
 
-fun ed-args(n):
-  [sequence:
-    embed(n),
-    text(if n == 1: " argument"
-            else:      " arguments";)]
-end
-
-fun ed-params(n):
-  [sequence:
-    embed(n),
-    text(if n == 1: " parameter"
-            else:      " parameters";)]
-end
-
 locs = {
   make: lam(arr): raw-array-to-list(arr) end
 }
@@ -61,3 +47,17 @@ numbered = {
 opt = {
   make: lam(arr): optional(v-sequence(raw-array-to-list(arr))) end
 }
+
+fun ed-args(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " argument"
+            else:      " arguments";)]
+end
+
+fun ed-params(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " parameter"
+            else:      " parameters";)]
+end
