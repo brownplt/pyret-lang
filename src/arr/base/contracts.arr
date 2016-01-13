@@ -38,9 +38,6 @@ data FieldFailure:
         self.reason.render-reason(loc, from-fail-arg)]
     end
   | missing-field(loc, field) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      self.render-reason(loc, from-fail-arg)
-    end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para: ED.text("Missing field"), ED.code(ED.text(self.field)),
@@ -151,8 +148,45 @@ data FailureReason:
     end
   | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      print("record-fields-fail")
-      self.render-reason(loc, from-fail-arg)
+      pallet = make-pallet(1 + self.field-failures.length())
+      var n = 0
+      reasons =
+        self.field-failures.map(lam(failure):
+          cases(FieldFailure) failure:
+            | missing-field(fl, ff) =>
+              n := n + 1
+              [ED.error:
+                [ED.para:
+                  ED.text("The value was excepted to have a field named "),
+                  ED.code(ED.text(ff)),
+                  ED.text(" because of the annotation ")],
+                ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], pallet.get(n)))]
+            | field-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
+          end;) ^ ED.bulleted-sequence
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the "),
+              ED.text("record annotation"),
+              ED.text(" was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], pallet.get(0))),
+            [ED.para:
+              ED.text("because:")],
+            reasons]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the "),
+            ED.text("record annotation"),
+            ED.text(" was not satisfied by the value")],
+           ED.embed(self.val),
+          [ED.para:
+            ED.text("because:")],
+          reasons])
     end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
