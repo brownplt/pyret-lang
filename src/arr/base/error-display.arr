@@ -23,16 +23,16 @@ data ErrorDisplay:
 end
 
 fun ed-args(n):
-  [ED.sequence:
-    ED.embed(n),
-    ED.text(if n == 1: " argument"
+  [sequence:
+    embed(n),
+    text(if n == 1: " argument"
             else:      " arguments";)]
 end
 
 fun ed-params(n):
-  [ED.sequence:
-    ED.embed(n),
-    ED.text(if n == 1: " parameter"
+  [sequence:
+    embed(n),
+    text(if n == 1: " parameter"
             else:      " parameters";)]
 end
 
