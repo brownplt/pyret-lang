@@ -351,11 +351,38 @@ data TestResult:
         [ED.para: ED.embed(self.exn)]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, code :: String, exn, pred) with:
-    render-fancy-reason(self):
-      print("failure-raise-not-dissatisfied")
+    render-fancy-reason(self, PP, AST, make-pallet):
+      pallet = make-pallet(3)
+      test-ast =
+        PP.surface-parse(
+            range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
+          + range(0, self.loc.start-column).map(lam(_):" ";).foldl(string-append,"")
+          + self.code,
+          self.loc.source).block.stmts.first
+      lhs-ast = test-ast.left
+      rhs-ast = test-ast.right.value
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
+      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], pallet.get(2))
+        
       [ED.error:
-        [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
-        [ED.para: ED.embed(self.exn)]]
+        [ED.para:
+          ED.text("The binary test operator "),
+          ED.code(ED.text("raises-satisfies")),
+          ED.text(" reported failure for the test ")],
+        [ED.para:
+          ED.code([ED.sequence:
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.text(" raises-satisfies "),
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+        [ED.para:
+          ED.text("because it reports success if and only if the "),
+          ed-rhs,
+          ED.text(" is not satisfied when the value of the exception raised by the "),
+          ed-lhs,
+          ED.text(" is applied to it. The value of the "),
+          ed-lhs,
+          ED.text(" is:")],
+        ED.embed(self.exn)]
     end,
     render-reason(self):
       print("failure-raise-not-dissatisfied")
