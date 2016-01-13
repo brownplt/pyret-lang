@@ -223,6 +223,8 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
             # ASSUMES that the dispatch table is assigned two statements before this one
             looking-for := some(expr.rhs.left.obj.id)
             cl-snoc(acc, expr.rhs.right.label)
+          else if J.is-j-num(expr.rhs):
+            acc
           else:
             raise("Should not happen")
           end

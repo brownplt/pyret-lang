@@ -70,8 +70,8 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
       desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
-        | ok(_) =>
-          var tc-ast = type-checked.code
+        | ok(code) =>
+          var tc-ast = code
           any-errors = named-errors + U.check-unbound(env, tc-ast) + U.bad-assignments(env, tc-ast)
           type-checked := nothing
           var dp-ast = DP.desugar-post-tc(tc-ast, env)
