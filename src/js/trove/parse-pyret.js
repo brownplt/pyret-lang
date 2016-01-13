@@ -1,7 +1,13 @@
-define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, astLib, srclocLib, tokenizer, parser) {
-  return util.memoModule("parse-pyret", function(RUNTIME, NAMESPACE) {
-    var F = ffi(RUNTIME, NAMESPACE);
-    return RUNTIME.loadModulesNew(NAMESPACE, [srclocLib, astLib], function(srclocLib, astLib) {
+define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, tokenizer, parser) {
+  return util.definePyretModule("parse-pyret",
+    [],
+    [
+      util.modBuiltin("srcloc"),
+      util.modBuiltin("ast")
+    ],
+    {},
+    function(RUNTIME, NAMESPACE, srclocLib, astLib) {
+      var F = ffi(RUNTIME, NAMESPACE);
       var srcloc = RUNTIME.getField(srclocLib, "values");
       var ast = RUNTIME.getField(astLib, "values");
 
@@ -1077,7 +1083,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
         answer: NAMESPACE.get("nothing")
       });
     });
-  });
 });
 
 

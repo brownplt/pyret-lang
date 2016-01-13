@@ -3956,10 +3956,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
+            console.error("Going to load: ", d);
             if(d.protocol === "legacy-path") {
               return { dname: d.args[0], modinfo: require(d.args[0]) };
             }
             else {
+              if(d.name.indexOf("/") !== -1) {
+                console.error("Builtin names should not contain paths: ", d.name)
+                throw d;
+              }
               return { dname: d.name, modinfo: require("trove/" + d.name) };
             }
           });
@@ -3980,10 +3985,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return d.name;
         }
       }
+      function isProbablyOldStyleRNSFunction(moduleFun) {
+        var len2 = moduleFun.length === 2;
+        var funSpace = String(moduleFun).indexOf("function (R") >= 0;
+        var funNoSpace = String(moduleFun).indexOf("function(R") >= 0;
+        return len2 && (funSpace || funNoSpace);
+      }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
         // NOTE(joe): yes this is depressing.  I know.
-        if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
+        if(isProbablyOldStyleRNSFunction(m.mod.theModule)) { // Already a runtime/namespace function
           var thisRawMod = m.mod.theModule;
         }
         else {
@@ -4021,12 +4032,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(module.oldDependencies) {
                 //console.error("Loading old deps: ", module.oldDependencies);
                 var innerModule = module.theModule.apply(null, module.oldDependencies);
+                console.error(String(innerModule).substring(0, 200));
                 return innerModule(thisRuntime, namespace);
               }
               else {
               return loadBuiltinModules(module.dependencies, module.name,
                 function() {
                   var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                  console.error(String(innerModule).substring(0, 200));
                   return innerModule(thisRuntime, namespace);
                 });
 
@@ -4070,11 +4083,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var ms = new Array(arguments.length);
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
+          console.error("The module is: ", m);
           if (typeof m === 'undefined') {
             console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
             throw new Error("Undefined module")
           }
-          if (hasField(m, "provide-plus-types")) {
+          // NOTE(joe): These following tests should be coalesced into one
+          // type that covers the JS and Pyret cases (and unifies the Pyret
+          // representations for typed and untyped)
+          else if (typeof m === "object" && !isObject(m)) {
+            return m;
+          }
+          else if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
           }
           else if (hasField(m, "values")) {
@@ -4601,7 +4621,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'nothing': nothing,
 
         'makeSrcloc': makeSrcloc,
-        '_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
@@ -4646,13 +4665,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
       isOk: function() { return true; }
     }
 
-    var list;
     var srcloc;
     var ffi;
     loadModulesNew(thisRuntime.namespace,
-      [require("trove/lists"), require("trove/srcloc")],
-      function(listsLib, srclocLib) {
-        list = getField(listsLib, "values");
+      [require("trove/srcloc")],
+      function(srclocLib) {
         srcloc = getField(srclocLib, "values");
       });
     loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
@@ -4667,11 +4684,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
     thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
-
-    var ns = thisRuntime.namespace;
-    var nsWithList = ns.set("_link", getField(list, "link"))
-                       .set("_empty", getField(list, "empty"));
-    thisRuntime.namespace = nsWithList;
 
     var checkList = makeCheckType(ffi.isList, "List");
     thisRuntime["checkList"] = checkList;

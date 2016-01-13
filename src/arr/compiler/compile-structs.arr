@@ -703,9 +703,7 @@ runtime-builtins = [string-dict:
   "equal-now3", T.t-top,
   "identical", t-pred2,
   "identical3", T.t-top,
-  "exn-unwrap", T.t-top,
-  "_empty", T.t-top,
-  "_link", T.t-top
+  "exn-unwrap", T.t-top
 ]
 
 no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])

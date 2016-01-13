@@ -199,7 +199,7 @@ define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(lo
           mb("checker")],
           "load-lib",
           function(checkerLib) {
-            function load(compileResult, listOfMods, namespace) {
+            function load(compileResult, listOfMods, namespace, locator) {
               // TODO(joe): check for compileResult annotation
               runtime.checkList(listOfMods);
               var modArr = runtime.ffi.toArray(listOfMods);
@@ -213,11 +213,13 @@ define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(lo
                   return runtime.getField(compileResult, "internal-mod");
                 }
               }, function(toExec) {
+                console.error("About to load: ", runtime.getField(locator, "uri").app());
                 runtime.pauseStack(function(restart) {
                   if (typeof toExec === "string") {
                     var loaded = loader.loadSingle(loadRuntime, toExec, dependencies);
                   }
                   else {
+                    
                     var loaded = loader.loadClosure(loadRuntime, toExec.val, dependencies);
                   }
                   loaded.fail(function(err) {

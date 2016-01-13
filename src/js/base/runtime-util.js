@@ -57,6 +57,12 @@ define([], function() {
     return { "import-type": "builtin", name: name };
   }
 
+  // NOTE(joe): This should become a flagged structure that explicitly
+  // allows Pyret-tainted JS modules to be imported, which cannot be done from
+  // pure Pyret imports (they cannot generate this kind of dependency
+  // description).
+  var modBuiltinJS = modBuiltin;
+
   function definePyretModule(name, oldDeps, deps, provides, func) {
     var modname = gensym(name);
     return {
@@ -86,6 +92,7 @@ define([], function() {
 
   return {
       modBuiltin: modBuiltin,
+      modBuiltinJS: modBuiltinJS,
 
       memoModule: memoModule,
       makeModuleReturn: makeModuleReturn,

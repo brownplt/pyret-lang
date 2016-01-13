@@ -1,7 +1,15 @@
-define(["js/runtime-util", "trove/string-dict", "trove/json-structs"], function(util, sDict, jsonStruct) {
-  return util.memoModule("json", function(RUNTIME, NAMESPACE) {
-    var gf = RUNTIME.getField;
-    return RUNTIME.loadModulesNew(NAMESPACE, [sDict, jsonStruct], function(sdict, jstruct) {
+define(["js/runtime-util"], function(util) {
+  return util.definePyretModule("json",
+    [],
+    [
+      util.modBuiltin("string-dict"),
+      util.modBuiltin("json-structs")
+    ],
+    {},
+    function(RUNTIME, NAMESPACE, sdict, jstruct) {
+      console.error("sdict: ", sdict);
+      console.error("jstruct: ", jstruct);
+      var gf = RUNTIME.getField;
       var vals = gf(jstruct, "values");
       var typs = gf(jstruct, "types");
       var sdvals = gf(sdict, "values");
@@ -75,5 +83,4 @@ define(["js/runtime-util", "trove/string-dict", "trove/json-structs"], function(
         })
       });
     });
-  });
 });

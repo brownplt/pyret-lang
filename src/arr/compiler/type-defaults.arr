@@ -105,12 +105,6 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("string-index-of").key(), t-top)
   default-typs.set-now(A.s-global("string-to-code-points").key(), t-top)
   default-typs.set-now(A.s-global("string-from-code-points").key(), t-top)
-  default-typs.set-now(A.s-global("_empty").key(), let tva = s-atom("A", 37):
-    t-forall([list: t-variable(SL.builtin("lists"), tva, t-top, covariant)], mk-list(t-var(tva)))
-  end)
-  default-typs.set-now(A.s-global("_link").key(), let tva = s-atom("A", 37), tv = t-var(tva):
-    t-forall([list: t-variable(SL.builtin("lists"), tva, t-top, covariant)], t-arrow([list: tv, mk-list(tv)], mk-list(tv)))
-  end)
 
   default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))

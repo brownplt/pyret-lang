@@ -367,7 +367,7 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
       when is-module-as-string(m) and CS.is-err(m):
         raise(m.result-printer.problems)
       end
-      ans = loader.load(m, depvals, load-info.to-compile.locator.get-namespace(runtime))
+      ans = loader.load(m, depvals, load-info.to-compile.locator.get-namespace(runtime), load-info.to-compile.locator)
       modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
       answer = loader.run(ans, m, load-info.to-compile.locator.uri())
       cases(List) r:

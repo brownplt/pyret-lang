@@ -1517,6 +1517,7 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
             j-field("name", j-str(name))])
         | dependency(protocol, args) =>
           j-obj([clist:
+            j-field("import-type", j-str("dependency")),
             j-field("protocol", j-str(protocol)),
             j-field("args", j-list(true, CL.map_list(j-str, args)))])
       end
