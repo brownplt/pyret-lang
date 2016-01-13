@@ -335,12 +335,6 @@ data RuntimeError:
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
       pallet = make-pallet(4)
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
@@ -369,13 +363,13 @@ data RuntimeError:
           ED.text("The cases pattern for "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
           ED.text(" accepts "),
-          ED.highlight(ed-args(self.num-args), ast-branch.args.map(_.l), pallet.get(3)),
+          ED.highlight(ED.ed-args(self.num-args), ast-branch.args.map(_.l), pallet.get(3)),
           ED.text(" but the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
           ED.text(" datatype accepts "),
-          ed-args(self.num-args)]]
+          ED.ed-args(self.num-args)]]
     end,
     
     render-reason(self):
@@ -413,12 +407,7 @@ data RuntimeError:
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       pallet = make-pallet(4)
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
+      
       fun ed-were(n):
         ED.text(if n == 1: "was" else: "were";)
       end
@@ -457,7 +446,7 @@ data RuntimeError:
                 ED.text(" evaluated to a "),
                 ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], pallet.get(2)),
                 ED.text(" accepting exactly "),
-                ED.highlight(ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), pallet.get(3)),
+                ED.highlight(ED.ed-args(self.fun-def-arity), fun-def-ast.args.map(_.l), pallet.get(3)),
                 ED.text(",")],
               [ED.para:
                 ED.code([ED.sequence:
@@ -471,7 +460,7 @@ data RuntimeError:
                 ED.text("but the "),
                 ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                 ED.text(" had "),
-                ED.highlight(ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(1)),
+                ED.highlight(ED.ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(1)),
                 ED.text(" applied to it:")],
               vert-list-values(self.fun-app-args)]
           end
@@ -511,12 +500,6 @@ data RuntimeError:
     end
   | non-function-app(loc, non-fun-val) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
       pallet = make-pallet(2)
       app-ast = loc-to-ast(self.loc).block.stmts.first
       fun-loc = app-ast._fun.l
@@ -540,7 +523,7 @@ data RuntimeError:
           ED.text("expects the applicant"),
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" to evaluate to a function accepting "),
-          ED.highlight(ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
+          ED.highlight(ED.ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
           ED.text(", but the expression "),
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" evaluated to the non-function value:")],

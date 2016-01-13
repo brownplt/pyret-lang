@@ -688,12 +688,6 @@ data CompileError:
     end
   | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
     render-fancy-reason(self, make-pallet):
-      fun ed-params(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " parameter"
-                  else:      " parameters";)]
-      end
       pallet = make-pallet(2)
       [ED.error:
         [ED.para:
@@ -707,18 +701,12 @@ data CompileError:
             ED.text(">")])],
         [ED.para:
           ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.highlight(ed-params(self.given.length()), self.ann.args.map(_.l), pallet.get(1)),
+          ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), pallet.get(1)),
           ED.text(", but the type accepts "),
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
     end,
     render-reason(self):
-      fun ed-params(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " parameter"
-                  else:      " parameters";)]
-      end
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type instantiation")],
@@ -728,19 +716,13 @@ data CompileError:
           ED.text(" at "),
           ED.loc(self.ann.l),
           ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ed-params(self.given.length()),
+          ED.ed-params(self.given.length()),
           ED.text(", but the type accepts "),
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
     render-fancy-reason(self, make-pallet):
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
       pallet = make-pallet(2)
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
       [ED.error:
@@ -755,23 +737,17 @@ data CompileError:
           ED.text("However, the "), 
           ed-applicant,
           ED.text(" is given "),
-          ED.highlight(ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), pallet.get(1)), 
+          ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), pallet.get(1)), 
           ED.text(" and the type signature of the "),
           ed-applicant],
         [ED.para:
           ED.embed(self.fun-typ)],
         [ED.para:
           ED.text("indicates that it evaluates to a function accepting exactly "),
-          ed-args(self.fun-typ.args.length()),
+          ED.ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end,
     render-reason(self):
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
@@ -783,23 +759,17 @@ data CompileError:
           ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
         [ED.para:
           ED.text("However, the applicant is given "),
-          ed-args(self.app-expr.args.length()), 
+          ED.ed-args(self.app-expr.args.length()), 
           ED.text(" and the type signature of the applicant")],
         [ED.para:
           ED.embed(self.fun-typ)],
         [ED.para:
           ED.text("indicates that it evaluates to a function accepting exactly "),
-          ed-args(self.fun-typ.args.length()),
+          ED.ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
     render-fancy-reason(self, make-pallet):
-      fun ed-args(n):
-        [ED.sequence:
-          ED.embed(n),
-          ED.text(if n == 1: " argument"
-                  else:      " arguments";)]
-      end
       pallet = make-pallet(2)
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
       [ED.error:

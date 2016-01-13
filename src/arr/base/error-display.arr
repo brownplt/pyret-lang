@@ -22,6 +22,20 @@ data ErrorDisplay:
   | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
 end
 
+fun ed-args(n):
+  [ED.sequence:
+    ED.embed(n),
+    ED.text(if n == 1: " argument"
+            else:      " arguments";)]
+end
+
+fun ed-params(n):
+  [ED.sequence:
+    ED.embed(n),
+    ED.text(if n == 1: " parameter"
+            else:      " parameters";)]
+end
+
 locs = {
   make: lam(arr): raw-array-to-list(arr) end
 }
