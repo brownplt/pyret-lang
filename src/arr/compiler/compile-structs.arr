@@ -520,7 +520,7 @@ data CompileError:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
       self.render-reason()
-    end
+    end,
     render-reason(self):
       ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
