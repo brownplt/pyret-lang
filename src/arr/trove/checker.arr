@@ -283,11 +283,33 @@ data TestResult:
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
   | failure-exn(loc :: Loc, code :: String, actual-exn) with:
-    render-fancy-reason(self):
-      print("failure-exn")
+    render-fancy-reason(self, PP, AST, make-pallet):
+      pallet = make-pallet(3)
+      test-ast =
+        PP.surface-parse(
+            range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
+          + range(0, self.loc.start-column).map(lam(_):" ";).foldl(string-append,"")
+          + self.code,
+          self.loc.source).block.stmts.first
+      lhs-ast = test-ast.left
+      rhs-ast = test-ast.right.value
+      ed-op = ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"") 
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
       [ED.error:
-        [ED.para: ED.text("Got unexpected exception ")],
-        [ED.para: ED.embed(self.actual-exn)]]
+        [ED.para:
+          ED.text("The binary test operator "),
+          ED.code(ED.text("raises-satisfies")),
+          ED.text(" reported failure for the test ")],
+        [ED.para:
+          ED.code([ED.sequence:
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.text(" raises-satisfies "),
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+        [ED.para:
+          ED.text("because it did not expect the evaluation of the "),
+          ed-lhs,
+          ED.text(" to raise an exception:")],
+        ED.embed(self.actual-exn)]
     end,
     render-reason(self):
       print("failure-exn")
