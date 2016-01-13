@@ -204,3 +204,34 @@ check "predicates":
   SD.is-mutable-string-dict(1) is false
   SD.is-string-dict(1) is false
 end
+
+check "merge-now":
+  s1 = [SD.mutable-string-dict: "a", 5, "c", 4]
+  s2 = [SD.mutable-string-dict: "a", 10, "b", 6]
+
+  isd9 = s1.freeze()
+  isd10 = s2.freeze()
+
+  s1.merge-now(s2) is nothing
+  s1 is=~ [SD.mutable-string-dict: "a", 10, "b", 6, "c", 4]
+
+  orig-s1 = isd9.unfreeze()
+  s2.merge-now(orig-s1) is nothing
+  s2 is=~ [SD.mutable-string-dict: "a", 5, "b", 6, "c", 4]
+
+  isd9.keys-list()  is%(one-of) [list: [list: "a", "c"], [list: "c", "a"]]
+  isd10.keys-list() is%(one-of) [list: [list: "a", "b"], [list: "b", "a"]]
+
+  orig-s2 = isd10.unfreeze()
+  new-s1 = orig-s1
+  new-s1.merge-now(orig-s2) is nothing
+  new-s1 is=~ [SD.mutable-string-dict: "a", 10, "b", 6, "c", 4]
+
+  s4 = [SD.mutable-string-dict: "a", 5]
+  s5 = [SD.mutable-string-dict:]
+  s4.merge-now(s5) is nothing
+  s4 is=~ [SD.mutable-string-dict: "a", 5]
+  s5.merge-now(s4) is nothing
+  s5 is=~ [SD.mutable-string-dict: "a", 5]
+end
+
