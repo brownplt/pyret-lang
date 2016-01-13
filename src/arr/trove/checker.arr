@@ -282,7 +282,7 @@ data TestResult:
         [ED.para: ED.text("and expected it not to contain ")],
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
-  | failure-exn(loc :: Loc, code :: String, actual-exn) with:
+  | failure-exn(loc :: Loc, code :: String, actual-exn, l-operand) with:
     render-fancy-reason(self, PP, AST, make-pallet):
       pallet = make-pallet(3)
       test-ast =
@@ -309,7 +309,7 @@ data TestResult:
             else: ED.text("");])],
         [ED.para:
           ED.text("because it did not expect the evaluation of the "),
-          ed-lhs,
+          if self.l-operand: ed-lhs else: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.value.l], pallet.get(2));,
           ED.text(" to raise an exception:")],
         ED.embed(self.actual-exn)]
     end,
@@ -452,7 +452,9 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       cases(Either) run-task(run):
         | left(v) => v
-        | right(e) => add-result(failure-exn(loc, code, exn-unwrap(e)))
+        | right(e) => add-result(failure-exn(loc, code, exn-unwrap(e),
+            E.is-right(run-task(lam():if is-function(left):left() else: left;;))
+        ))
       end
     end
   end
@@ -578,7 +580,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc, code)
-          | right(exn) => failure-exn(loc, code, exn-unwrap(exn))
+          | right(exn) => failure-exn(loc, code, exn-unwrap(exn), true)
         end)
       nothing
     end,
