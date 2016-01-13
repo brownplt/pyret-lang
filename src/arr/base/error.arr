@@ -520,7 +520,7 @@ data RuntimeError:
               ","),
             ED.text(")")])],
         [ED.para:
-          ED.text("expects the applicant"),
+          ED.text("expects the applicant "),
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" to evaluate to a function accepting "),
           ED.highlight(ED.ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
