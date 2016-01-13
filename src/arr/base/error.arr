@@ -60,6 +60,9 @@ data RuntimeError:
           ED.text("expression at"), draw-and-highlight(self.loc)]]
     end
   | internal-error(message, info-args) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("Internal error:"), ED.text(self.message)],
@@ -94,7 +97,6 @@ data RuntimeError:
           ED.text(":")],
         [ED.para: ED.embed(self.obj)]]
     end,
-    
     render-reason(self, loc-to-ast):
       [ED.error:
         [ED.para:
@@ -165,6 +167,9 @@ data RuntimeError:
     end
   | non-boolean-condition(loc, typ, value) with:
     # TODO : is this error even used?
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -174,6 +179,9 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -204,8 +212,7 @@ data RuntimeError:
         end,
         [ED.error:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
-    end,
-      
+    end, 
     render-reason(self):
       ED.maybe-stack-loc(0, true,
         lam(loc):
@@ -219,6 +226,9 @@ data RuntimeError:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
     end
   | outside-numeric-range(val, low, high) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para-nospace: ED.text("expected a number between "), ED.embed(self.low),
@@ -345,12 +355,17 @@ data RuntimeError:
         [ED.para:
           ED.code([ED.sequence:
             ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2)),
-            ED.text("("),
-            ED.h-sequence(
-              ast-branch.args.map(
-                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
-              ","),
-            ED.text(")")])],
+            cases(Any) ast-branch:
+              | s-cases-branch(loc, pat-loc, name, args, _) =>
+                [ED.sequence:
+                  ED.text("("),
+                  ED.h-sequence(
+                    ast-branch.args.map(
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
+                    ","),
+                  ED.text(")")]
+              | s-singleton-cases-branch(loc, pat-loc, name, _) => ED.text("")
+            end])],
         [ED.para:
           ED.text("expects that the pattern for the "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
@@ -363,15 +378,14 @@ data RuntimeError:
           ED.text("The cases pattern for "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
           ED.text(" accepts "),
-          ED.highlight(ED.ed-args(self.num-args), ast-branch.args.map(_.l), pallet.get(3)),
+          ED.ed-args(self.num-args),
           ED.text(" but the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
           ED.text(" datatype accepts "),
-          ED.ed-args(self.num-args)]]
+          ED.ed-args(self.actual-arity)]]
     end,
-    
     render-reason(self):
       [ED.error:
         if self.num-args < self.actual-arity:
@@ -389,20 +403,6 @@ data RuntimeError:
             ED.text("but the actual value has only"), ED.embed(self.actual-arity),
             if self.actual-arity == 1: ED.text("field") else: ED.text("fields") end]
         end]
-    end
-  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, casesLoc) with:
-    render-reason(self):
-      if self.should-be-singleton:
-        [ED.error:
-          [ED.para:
-            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
-            ED.text("has an argument list, but the variant is a singleton.")]]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The cases branch at"), draw-and-highlight(self.branch-loc),
-            ED.text("doesn't have an argument list, but the variant is not a singleton.")]]
-      end
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
@@ -537,6 +537,9 @@ data RuntimeError:
         ED.embed(self.non-fun-val)]
     end
   | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error: ED.text(tostring(self))]
     end
@@ -557,6 +560,9 @@ data RuntimeError:
           draw-and-highlight(self.loc), ED.text("before it was defined.")]]
     end
   | module-load-failure(names) with: # names is List<String>
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -601,6 +607,9 @@ data RuntimeError:
             ED.text("because:"), ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     # TODO
     render-reason(self):
       [ED.error:
@@ -612,11 +621,17 @@ data RuntimeError:
     end
 
   | user-break with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
 
   | user-exception(value :: Any) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason()
+    end,
     render-reason(self): ED.embed(self.value) end
 end
 
