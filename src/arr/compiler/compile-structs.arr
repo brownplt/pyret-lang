@@ -241,7 +241,7 @@ data CompileError:
         [ED.para: 
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
-          ED.text("cannot be used where an expression is expected.")]]
+          ED.text(" cannot be used where an expression is expected.")]]
     end,
     render-reason(self):
       [ED.error: 
@@ -384,6 +384,9 @@ data CompileError:
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       #### TODO ###
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
@@ -516,6 +519,9 @@ data CompileError:
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end
+    render-reason(self):
       ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
           + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
     end
@@ -858,12 +864,18 @@ data CompileError:
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text("The else branch for the cases expression at " + tostring(self.loc)
         + " is not needed since all variants of " + self.type-name + " have been exhausted.")
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text("The cases expression at " + tostring(self.loc)
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + ".")
@@ -871,6 +883,9 @@ data CompileError:
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text("The type specified " + self.type-name
         + " at " + tostring(self.loc)
         + " cannot be used in a cases expression.")
@@ -958,6 +973,9 @@ data CompileError:
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     # duplicate of `bad-type-instantiation` ?
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The data type "),  ED.code(ED.text(self.data-type)),
@@ -977,17 +995,26 @@ data CompileError:
     end
   | cant-typecheck(reason :: String) with:
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
         "The reason that it cannot be type-checked is: " + self.reason)
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
+      self.render-reason()
+    end,
+    render-reason(self):
       ED.text("There is no module imported with the name " + self.mod-name
         + " (used at " + tostring(self.loc) + ")")
     end
