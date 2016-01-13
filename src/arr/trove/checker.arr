@@ -292,7 +292,7 @@ data TestResult:
           + self.code,
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
-      rhs-ast = test-ast.right.value
+      rhs-ast = test-ast.right
       ed-op = ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"") 
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
       [ED.error:
@@ -303,8 +303,10 @@ data TestResult:
         [ED.para:
           ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
-            ED.text(" raises-satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.text(" "), ed-op, ED.text(" "),
+            if is-some(rhs-ast):
+              ED.highlight(ED.h-sequence(rhs-ast.value.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.value.l], pallet.get(2))
+            else: ED.text("");])],
         [ED.para:
           ED.text("because it did not expect the evaluation of the "),
           ed-lhs,
