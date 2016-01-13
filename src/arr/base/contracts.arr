@@ -13,15 +13,22 @@ data ContractResult:
   | ok with:
     render-reason(self): ED.text("There were no errors") end
   | fail(loc, reason :: FailureReason) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.reason.render-fancy-reason(self.loc, false, loc-to-ast, loc-to-src, make-pallet)
+    end,
     render-reason(self):
       self.reason.render-reason(self.loc, false)
     end
   | fail-arg(loc, reason :: FailureReason) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+      self.reason.render-fancy-reason(self.loc, true, loc-to-ast, loc-to-src, make-pallet)
+    end,
     render-reason(self):
       self.reason.render-reason(self.loc, true)
     end
 end
 
+# these don't seem to be used in native pyret
 data FieldFailure:
   | field-failure(loc, field, reason) with:
     render-reason(self, loc, from-fail-arg):
@@ -31,6 +38,9 @@ data FieldFailure:
         self.reason.render-reason(loc, from-fail-arg)]
     end
   | missing-field(loc, field) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para: ED.text("Missing field"), ED.code(ED.text(self.field)),
@@ -40,6 +50,10 @@ end
 
 data FailureReason:
   | ref-init(loc, reason :: FailureReason) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      print("ref-init")
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       ED.maybe-stack-loc(0, true,
         lam(user-loc):
@@ -53,6 +67,10 @@ data FailureReason:
           self.reason.render-reason(loc, false)])
     end
   | type-mismatch(val, name :: String) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      print("type-mismatch")
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       message = [ED.para:
         ED.text("Expected to get"), ED.code(ED.text(self.name)),
@@ -70,6 +88,10 @@ data FailureReason:
       end
     end
   | predicate-failure(val, pred-name) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      print("predicate-failure")
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       message = [ED.para:
         ED.text("The predicate"), ED.code(ED.text(self.pred-name)),
@@ -86,6 +108,10 @@ data FailureReason:
       end
     end
   | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      print("record-fields-fail")
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para:
@@ -98,6 +124,10 @@ data FailureReason:
       ]
     end
   | dot-ann-not-present(name, field) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+      print("dot-ann-not-present")
+      self.render-reason(loc, from-fail-arg)
+    end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para: ED.text("Couldn't find"),
