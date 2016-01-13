@@ -108,8 +108,31 @@ data FailureReason:
     end
   | predicate-failure(val, pred-name) with:
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      print("predicate-failure")
-      self.render-reason(loc, from-fail-arg)
+      pallet = make-pallet(2)
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the predicate "),
+              ED.code(ED.text(self.pred-name)),
+              ED.text(" in the annotation ")],
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+            [ED.para:
+              ED.text("was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], pallet.get(1)))]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the predicate "),
+            ED.code(ED.text(self.pred-name)),
+            ED.text(" in the annotation ")],
+           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+          [ED.para:
+            ED.text("was not satisfied by the value")],
+           ED.embed(self.val)])
     end,
     render-reason(self, loc, from-fail-arg):
       message = [ED.para:
