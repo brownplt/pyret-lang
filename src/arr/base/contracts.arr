@@ -200,10 +200,27 @@ data FailureReason:
       ]
     end
   | dot-ann-not-present(name, field) with:
-    # not used?
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      print("dot-ann-not-present")
-      self.render-reason(loc, from-fail-arg)
+      pallet = make-pallet(1)
+      [ED.error:
+        [ED.para:
+          ED.text("The runtime contract checker halted execution because the "),
+          ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], pallet.get(0))],
+         # can't highlight individual components since non-top-level
+         # expressions can't presently be parsed
+         ED.code(
+          [ED.sequence:
+            ED.text(self.name),
+            ED.text("."),
+            ED.text(self.field)]),
+        [ED.para:
+          ED.text("expects that the type named "),
+          ED.code(ED.text(self.field)),
+          ED.text(" exists in the object named "),
+          ED.code(ED.text(self.name)),
+          ED.text(", but "),
+          ED.code(ED.text(self.field)),
+          ED.text(" could not be found.")]]
     end,
     render-reason(self, loc, from-fail-arg):
       [ED.error:
