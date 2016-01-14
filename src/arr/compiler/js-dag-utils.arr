@@ -14,17 +14,36 @@ import string-dict as D
 import srcloc as SL
 
 type ConcatList = CL.ConcatList
-type NameSet = D.StringDict<A.Name>
+type NameSet = D.MutableStringDict<A.Name>
+type FrozenNameSet = D.StringDict<A.Name>
 
 cl-sing = CL.concat-singleton
 cl-empty = CL.concat-empty
 cl-snoc = CL.concat-snoc
 cl-cons = CL.concat-cons
-ns-empty = D.make-string-dict()
+ns-empty = D.make-mutable-string-dict
 
-fun difference(s1 :: NameSet, s2 :: NameSet):
-  for fold(acc from s1, k2 from s2.keys-list()):
-    acc.remove(k2)
+fun difference(s1 :: FrozenNameSet, s2 :: FrozenNameSet):
+  s1-unfrozen-copy = s1.unfreeze()
+  remove-overlap-now(s1-unfrozen-copy, s2.unfreeze())
+  s1-unfrozen-copy.freeze()
+end
+
+fun copy-nameset(s :: NameSet) -> NameSet:
+  s.freeze().unfreeze()
+end
+
+# does NOT mutate s1 or s2
+fun difference-now(s1 :: NameSet, s2 :: NameSet) -> NameSet:
+  s1-copy = copy-nameset(s1)
+  remove-overlap-now(s1-copy, s2)
+  s1-copy
+end
+
+# !mutates s1
+fun remove-overlap-now(s1 :: NameSet, s2 :: NameSet) -> Nothing:
+  for each(k2 from s2.keys-list-now()):
+    s1.remove-now(k2)
   end
 end
 
@@ -47,115 +66,177 @@ data CaseResults:
 end
 
 data RegisterAllocation:
-  | results(body :: ConcatList<J.JCase>, discardable-vars :: NameSet)
+  | results(body :: ConcatList<J.JCase>, discardable-vars :: FrozenNameSet)
 end
 
 fun used-vars-jblock(b :: J.JBlock) -> NameSet:
-  for CL.foldl(acc from ns-empty, s from b.stmts):
-    acc.merge(used-vars-jstmt(s))
+  acc = ns-empty()
+  for CL.each(s from b.stmts):
+    acc.merge-now(used-vars-jstmt(s))
   end
+  acc
 end
 fun declared-vars-jblock(b :: J.JBlock) -> NameSet:
-  for CL.foldl(acc from ns-empty, s from b.stmts):
-    acc.merge(declared-vars-jstmt(s))
+  acc = ns-empty()
+  for CL.each(s from b.stmts):
+    acc.merge-now(declared-vars-jstmt(s))
   end
+  acc
 end
 fun declared-vars-jstmt(s :: J.JStmt) -> NameSet:
   cases(J.JStmt) s:
-    | j-var(name, rhs) => ns-empty.set(name.key(), name)
+    | j-var(name, rhs) => [D.mutable-string-dict: name.key(), name]
     | j-if1(cond, consq) => declared-vars-jblock(consq)
-    | j-if(cond, consq, alt) => declared-vars-jblock(consq).merge(declared-vars-jblock(alt))
-    | j-return(expr) => ns-empty
-    | j-try-catch(body, exn, catch) => declared-vars-jblock(body).merge(declared-vars-jblock(catch))
-    | j-throw(exp) => ns-empty
-    | j-expr(expr) => ns-empty
-    | j-break => ns-empty
-    | j-continue => ns-empty
+    | j-if(cond, consq, alt) => 
+      ans = declared-vars-jblock(consq)
+      ans.merge-now(declared-vars-jblock(alt))
+      ans
+    | j-return(expr) => ns-empty()
+    | j-try-catch(body, exn, catch) => 
+      ans = declared-vars-jblock(body)
+      ans.merge-now(declared-vars-jblock(catch))
+      ans
+    | j-throw(exp) => ns-empty()
+    | j-expr(expr) => ns-empty()
+    | j-break => ns-empty()
+    | j-continue => ns-empty()
     | j-switch(exp, branches) =>
-      for CL.foldl(acc from ns-empty, b from branches):
-        acc.merge(declared-vars-jcase(b))
+      acc = ns-empty()
+      for CL.each(b from branches):
+        acc.merge-now(declared-vars-jcase(b))
       end
+      acc
     | j-while(cond, body) => declared-vars-jblock(body)
     | j-for(create-var, init, cont, update, body) =>
       ans = declared-vars-jblock(body)
-      if create-var and J.is-j-assign(init): ans.set(init.name.key(), init.name)
-      else: ans
+      when create-var and J.is-j-assign(init):
+        ans.set-now(init.name.key(), init.name)
       end
+      ans
   end
 end
 fun used-vars-jstmt(s :: J.JStmt) -> NameSet:
   cases(J.JStmt) s:
-    | j-var(name, rhs) => used-vars-jexpr(rhs).remove(name.key())
-    | j-if1(cond, consq) => used-vars-jexpr(cond).merge(used-vars-jblock(consq))
+    | j-var(name, rhs) => 
+      ans = used-vars-jexpr(rhs)
+      ans.remove-now(name.key())
+      ans
+    | j-if1(cond, consq) => 
+      ans = used-vars-jexpr(cond)
+      ans.merge-now(used-vars-jblock(consq))
+      ans
     | j-if(cond, consq, alt) =>
-      used-vars-jexpr(cond).merge(used-vars-jblock(consq)).merge(used-vars-jblock(alt))
+      ans = used-vars-jexpr(cond)
+      ans.merge-now(used-vars-jblock(consq))
+      ans.merge-now(used-vars-jblock(alt))
+      ans
     | j-return(expr) => used-vars-jexpr(expr)
-    | j-try-catch(body, exn, catch) => used-vars-jblock(body).merge(used-vars-jblock(catch).remove(exn.key()))
+    | j-try-catch(body, exn, catch) =>
+      ns-catch = used-vars-jblock(catch)
+      ns-catch.remove-now(exn.key())
+      ans = used-vars-jblock(body)
+      ans.merge-now(ns-catch)
+      ans
     | j-throw(exp) => used-vars-jexpr(exp)
     | j-expr(expr) => used-vars-jexpr(expr)
-    | j-break => ns-empty
-    | j-continue => ns-empty
+    | j-break => ns-empty()
+    | j-continue => ns-empty()
     | j-switch(exp, branches) =>
-      for CL.foldl(acc from used-vars-jexpr(exp), b from branches):
-        acc.merge(used-vars-jcase(b))
+      acc = used-vars-jexpr(exp)
+      for CL.each(b from branches):
+        acc.merge-now(used-vars-jcase(b))
       end
-    | j-while(cond, body) => used-vars-jexpr(cond).merge(used-vars-jblock(body))
+      acc
+    | j-while(cond, body) =>
+      ans = used-vars-jexpr(cond)
+      ans.merge-now(used-vars-jblock(body))
+      ans
     | j-for(create-var, init, cont, update, body) =>
       ans = used-vars-jexpr(init)
-        .merge(used-vars-jexpr(cont))
-        .merge(used-vars-jexpr(update))
-        .merge(used-vars-jblock(body))
-      if create-var and J.is-j-assign(init): ans.remove(init.name.key())
-      else: ans
+      ans.merge-now(used-vars-jexpr(cont))
+      ans.merge-now(used-vars-jexpr(update))
+      ans.merge-now(used-vars-jblock(body))
+      when create-var and J.is-j-assign(init):
+        ans.remove-now(init.name.key())
       end
+      ans
   end
 end
 fun used-vars-jexpr(e :: J.JExpr) -> NameSet:
   cases(J.JExpr) e:
     | j-parens(exp) => used-vars-jexpr(exp)
     | j-unop(exp, op) => used-vars-jexpr(exp)
-    | j-binop(left, op, right) => used-vars-jexpr(left).merge(used-vars-jexpr(right))
+    | j-binop(left, op, right) => 
+      ans = used-vars-jexpr(left)
+      ans.merge-now(used-vars-jexpr(right))
+      ans
     | j-fun(args, body) =>
-      used = difference(used-vars-jblock(body), declared-vars-jblock(body))
-      for CL.foldl(acc from used, a from args):
-        acc.remove(a.key())
+      acc = difference-now(used-vars-jblock(body), declared-vars-jblock(body))
+      for CL.each(a from args):
+        acc.remove-now(a.key())
       end
+      acc
     | j-new(func, args) =>
-      for CL.foldl(acc from used-vars-jexpr(func), a from args):
-        acc.merge(used-vars-jexpr(a))
+      acc = used-vars-jexpr(func)
+      for CL.each(a from args):
+        acc.merge-now(used-vars-jexpr(a))
       end
+      acc
     | j-app(func, args) =>
-      for CL.foldl(acc from used-vars-jexpr(func), a from args):
-        acc.merge(used-vars-jexpr(a))
+      acc = used-vars-jexpr(func)
+      for CL.each(a from args):
+        acc.merge-now(used-vars-jexpr(a))
       end
+      acc
     | j-method(obj, meth, args) =>
-      for CL.foldl(acc from used-vars-jexpr(obj), a from args):
-        acc.merge(used-vars-jexpr(a))
+      acc = used-vars-jexpr(obj)
+      for CL.each(a from args):
+        acc.merge-now(used-vars-jexpr(a))
       end
+      acc
     | j-ternary(test, consq, altern) =>
-      used-vars-jexpr(test).merge(used-vars-jexpr(consq)).merge(used-vars-jexpr(altern))
-    | j-assign(name, rhs) => used-vars-jexpr(rhs).set(name.key(), name)
+      ans = used-vars-jexpr(test)
+      ans.merge-now(used-vars-jexpr(consq))
+      ans.merge-now(used-vars-jexpr(altern))
+      ans
+    | j-assign(name, rhs) => 
+      ans = used-vars-jexpr(rhs)
+      ans.set-now(name.key(), name)
+      ans
     | j-bracket-assign(obj, field, rhs) =>
-      used-vars-jexpr(obj).merge(used-vars-jexpr(field)).merge(used-vars-jexpr(rhs))
-    | j-dot-assign(obj, name, rhs) => used-vars-jexpr(obj).merge(used-vars-jexpr(rhs))
+      ans = used-vars-jexpr(obj)
+      ans.merge-now(used-vars-jexpr(field))
+      ans.merge-now(used-vars-jexpr(rhs))
+      ans
+    | j-dot-assign(obj, name, rhs) =>
+      ans = used-vars-jexpr(obj)
+      ans.merge-now(used-vars-jexpr(rhs))
+      ans
     | j-dot(obj, field) => used-vars-jexpr(obj)
-    | j-bracket(obj, field) => used-vars-jexpr(obj).merge(used-vars-jexpr(field))
+    | j-bracket(obj, field) => 
+      ans = used-vars-jexpr(obj)
+      ans.merge-now(used-vars-jexpr(field))
+      ans
     | j-list(_, elts) =>
-      for CL.foldl(acc from ns-empty, elt from elts):
-        acc.merge(used-vars-jexpr(elt))
+      acc = ns-empty()
+      for CL.each(elt from elts):
+        acc.merge-now(used-vars-jexpr(elt))
       end
+      acc
     | j-obj(fields) =>
-      for CL.foldl(acc from ns-empty, f from fields):
-        acc.merge(used-vars-jfield(f))
+      acc = ns-empty()
+      for CL.each(f from fields):
+        acc.merge-now(used-vars-jfield(f))
       end
-    | j-id(id) => ns-empty.set(id.key(), id)
-    | j-str(_) => ns-empty
-    | j-num(_) => ns-empty
-    | j-true => ns-empty
-    | j-false => ns-empty
-    | j-null => ns-empty
-    | j-undefined => ns-empty
-    | j-label(_) => ns-empty
+      acc
+    | j-id(id) => [D.mutable-string-dict: id.key(), id]
+    | j-str(_) => ns-empty()
+    | j-num(_) => ns-empty()
+    | j-true => ns-empty()
+    | j-false => ns-empty()
+    | j-null => ns-empty()
+    | j-undefined => ns-empty()
+    | j-label(_) => ns-empty()
   end
 end
 fun declared-vars-jcase(c :: J.JCase) -> NameSet:
@@ -166,7 +247,10 @@ fun declared-vars-jcase(c :: J.JCase) -> NameSet:
 end
 fun used-vars-jcase(c :: J.JCase) -> NameSet:
   cases(J.JCase) c:
-    | j-case(exp, body) => used-vars-jexpr(exp).merge(used-vars-jblock(body))
+    | j-case(exp, body) => 
+      ans = used-vars-jexpr(exp)
+      ans.merge-now(used-vars-jblock(body))
+      ans
     | j-default(body) => used-vars-jblock(body)
   end
 end
@@ -174,22 +258,43 @@ fun used-vars-jfield(f :: J.JField) -> NameSet:
   used-vars-jexpr(f.value)
 end
 
-fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>):
+fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet:
+  #print('n!live-vars')
+  #print(n!live-vars)
   cases(Option) n!live-vars:
-    | some(live) => live
+    | some(live) => 
+      #print('live: keys are...')
+      #print(live.keys-list())
+      live
     | none =>
-      live-after = for CL.foldl(acc from n!free-vars, follow from n._to):
-        cases(Option) dag.get(tostring(follow.get())):
-          | none => acc
-          | some(next) => acc.merge(compute-live-vars(next, dag))
+      live-after = copy-nameset(n!free-vars)
+      for CL.each(follow from n._to):
+        next-opt = dag.get(tostring(follow.get()))
+        when is-some(next-opt):
+          next = next-opt.value
+          #print(gensym('***recur START_'))
+          next-vars = compute-live-vars(next, dag)
+          #print(gensym('***recur  STOP_'))
+          #print('')
+
+          live-after.merge-now(next-vars)
         end
       end
       decls = n!decl-vars
-      live = difference(live-after, decls)
-      dead-after = difference(decls, live-after)
-      dead = difference(dead-after, n!used-vars)
+      live = difference-now(live-after, decls)
+      dead-after = difference-now(decls, live-after)
+      dead = difference-now(dead-after, n!used-vars)
+
       n!{live-after-vars: some(live-after), live-vars: some(live),
         dead-after-vars: some(dead-after), dead-vars: some(dead)}
+
+      #print('!!!mutating the graph node')
+      #print('!!!new value of n!live-vars is...')
+      #print(some(live))
+      #print('!!!and if we unfreeze it right now, we get:')
+      #print(live.unfreeze().keys-list-now())
+      #print('***this call is returning an ISD with the following keys:')
+      #print(live.keys-list())
       live
   end
 end
@@ -251,10 +356,10 @@ fun ignorable(rhs):
 end
 
 
-fun elim-dead-vars-jblock(block :: J.JBlock, dead-vars :: NameSet):
+fun elim-dead-vars-jblock(block :: J.JBlock, dead-vars :: FrozenNameSet):
   J.j-block(elim-dead-vars-jstmts(block.stmts, dead-vars))
 end
-fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: NameSet):
+fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet):
   for CL.foldl(acc from cl-empty, s from stmts):
     cases(J.JStmt) s:
       | j-var(name, rhs) =>
@@ -290,7 +395,7 @@ fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: NameSet):
     end
   end
 end
-fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: NameSet):
+fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: FrozenNameSet):
   cases(J.JCase) c:
     | j-default(body) => J.j-default(elim-dead-vars-jblock(body, dead-vars))
     | j-case(exp, body) => J.j-case(exp, elim-dead-vars-jblock(body, dead-vars))
@@ -312,18 +417,17 @@ end
 #   ranges
 # end
 fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation:
-  # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
-  dag = (for CL.foldl(acc from D.make-mutable-string-dict(), body-case from body-cases):
-      if J.is-j-case(body-case):
-        acc.set-now(tostring(body-case.exp.label.get()),
-          node(body-case.exp.label, find-steps-to(body-case.body.stmts, step), body-case,
-            ns-empty, ns-empty, ns-empty, none, none, none, none))
-        acc
-      else:
-        acc
-      end
-    end).freeze()
-  # print("Step 2")
+  # #print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
+  acc-dag = D.make-mutable-string-dict()
+  for CL.each(body-case from body-cases):
+    when J.is-j-case(body-case):
+      acc-dag.set-now(tostring(body-case.exp.label.get()),
+        node(body-case.exp.label, find-steps-to(body-case.body.stmts, step), body-case,
+          ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
+    end
+  end
+  dag = acc-dag.freeze()
+  # #print("Step 2")
   labels = for CL.foldr(acc from empty, body-case from body-cases):
     if J.is-j-case(body-case): link(body-case.exp.label.get(), acc)
     else: acc
@@ -332,15 +436,15 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   str-labels = dag.keys-list()
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
-  #   print(tostring(n._from.get()) + " ==> " + tostring(n._to.to-list().map(_.get())))
-  #   print("\n" + n.case-body.to-ugly-source())
+  #   #print(tostring(n._from.get()) + " ==> " + tostring(n._to.to-list().map(_.get())))
+  #   #print("\n" + n.case-body.to-ugly-source())
   # end
-  # print("Step 3")
+  # #print("Step 3")
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
     n!{used-vars: used-vars-jcase(n.case-body)}
-    n!{free-vars: difference(n!used-vars, n!decl-vars)}
+    n!{free-vars: difference-now(n!used-vars, n!decl-vars)}
   end
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
@@ -348,16 +452,16 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   end
   # for each(lbl from str-labels):
   #   n = dag.get-value(lbl)
-  #   print("Used vars for " + lbl + ": " + torepr(n!used-vars))
-  #   print("Decl vars for " + lbl + ": " + torepr(n!decl-vars.to-list()))
-  #   print("Free vars for " + lbl + ": " + torepr(n!free-vars))
-  #   print("Live-after vars for " + lbl + ": " + torepr(n!live-after-vars.value.to-list()))
-  #   print("Live vars for " + lbl + ": " + torepr(n!live-vars.value.to-list()))
-  #   print("Dead vars for " + lbl + ": " + torepr(n!dead-vars.value.to-list()))
-  #   print("Dead-after vars for " + lbl + ": " + torepr(n!dead-after-vars.value.to-list()))
-  #   print("\n")
+  #   #print("Used vars for " + lbl + ": " + torepr(n!used-vars))
+  #   #print("Decl vars for " + lbl + ": " + torepr(n!decl-vars.to-list()))
+  #   #print("Free vars for " + lbl + ": " + torepr(n!free-vars))
+  #   #print("Live-after vars for " + lbl + ": " + torepr(n!live-after-vars.value.to-list()))
+  #   #print("Live vars for " + lbl + ": " + torepr(n!live-vars.value.to-list()))
+  #   #print("Dead vars for " + lbl + ": " + torepr(n!dead-vars.value.to-list()))
+  #   #print("Dead-after vars for " + lbl + ": " + torepr(n!dead-after-vars.value.to-list()))
+  #   #print("\n")
   # end
-  # print("Step 4")
+  # #print("Step 4")
   # live-ranges = D.make-mutable-string-dict()
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
@@ -366,23 +470,23 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #     live-ranges.set-now(v.tosourcestring(), cur.add(lbl))
   #   end
   # end
-
-  discardable-vars = for fold(acc from ns-empty, lbl from str-labels):
+  acc = ns-empty()
+  for each(lbl from str-labels):
     n = dag.get-value(lbl)
-    cases(Option) n!dead-after-vars:
-      | none => acc
-      | some(dead) => acc.merge(dead)
+    when is-some(n!dead-after-vars):
+      acc.merge-now(n!dead-after-vars.value)
     end
   end
+  discardable-vars = acc.freeze()
 
   dead-assignment-eliminated = for CL.map(body-case from body-cases):
     n = dag.get-value(tostring(body-case.exp.label.get()))
     cases(Option) n!dead-vars:
       | none => body-case
-      | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars)
+      | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze())
     end
   end
   
-  # print("Done")
+  # #print("Done")
   results(dead-assignment-eliminated, discardable-vars)
 end
