@@ -586,7 +586,7 @@ data CompileError:
             [ED.para:
               ED.text("The declaration of the identifier named "),
               ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text("is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
@@ -634,7 +634,7 @@ data CompileError:
         [ED.para:
           ED.text("The declaration of the field named "),
           ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-          ED.text("is preceeded by declaration of an field also named "),
+          ED.text(" is preceeded by declaration of an field also named "),
           ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color),
           ED.text(".")],
         [ED.para: ED.text("You need to pick a different name for one of them.")]]
@@ -727,7 +727,7 @@ data CompileError:
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
     end
-  | incorrect-number-of-args(app-expr :: A.Expr, fun-typ :: T.Type) with:
+  | incorrect-number-of-args(app-expr, fun-typ) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
@@ -776,13 +776,19 @@ data CompileError:
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
     render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+      pallet = make-pallet(1)
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
         [ED.para:
-          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+          ED.code([ED.sequence:
+            ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],pallet.get(0)),
+            ED.text("("),
+            ED.h-sequence(
+              self.app-expr.args.map(
+                lam(arg):ED.h-sequence(arg.tosource().pretty(999).map(ED.text),"");), ", "),
+            ED.text(")")])],
         [ED.para:
           ED.text("expects the "), ed-applicant,
           ED.text(" to evaluate to a function value. However, the type of the "), 
@@ -862,9 +868,17 @@ data CompileError:
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    #### TODO ###
     render-fancy-reason(self, make-pallet):
-      self.render-reason()
+      pallet = make-pallet(3)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the "),
+          ED.highlight(ED.text("cases expression"),[list: self.loc], pallet.get(0)),
+          ED.text(" has a branch for every variant of "),
+          ED.code(ED.text(self.type-name)), 
+          ED.text(". Therefore, the "),
+          ED.code(ED.text("else")),
+          ED.text(" branch is unreachable.")]]
     end,
     render-reason(self):
       ED.text("The else branch for the cases expression at " + tostring(self.loc)
