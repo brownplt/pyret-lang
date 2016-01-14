@@ -148,6 +148,15 @@ check "Immutable string dicts":
   sd9.get-value-now("b") is 20
 end
 
+check "remove and unfreeze":
+  d0 = [SD.string-dict: "A", 1, "B", 2, "C", 3]
+  d1 = d0.remove("A")
+  d2 = d1.unfreeze()
+  first-key = d2.keys-list-now().first
+  first-val = d2.get-now(first-key)
+  first-val is-not none
+end
+
 check "cyclic":
   s1 = [SD.mutable-string-dict: "a", nothing]
   s1.set-now("a", s1)
