@@ -369,7 +369,7 @@ data RuntimeError:
         [ED.para:
           ED.text("expects that the pattern for the "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
-          ED.text(" branch has exactly the same number of arguments as the"),
+          ED.text(" branch has exactly the same number of arguments as the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of "),
           ED.embed(ast-cases.typ.id),
@@ -378,7 +378,11 @@ data RuntimeError:
           ED.text("The cases pattern for "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
           ED.text(" accepts "),
-          ED.ed-args(self.num-args),
+          cases(Any) ast-branch:
+            | s-cases-branch(_, _, _, args, _) =>
+                ED.highlight(ED.ed-args(self.num-args),args.map(_.l), pallet.get(3))
+            | s-singleton-cases-branch(_, _, _, _) => ED.ed-args(self.num-args)
+          end,
           ED.text(" but the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
