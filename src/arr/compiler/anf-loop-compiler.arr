@@ -276,61 +276,137 @@ fun arity-check(loc-expr, arity :: Number):
           j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
 end
 
-no-vars = D.make-string-dict()
+no-vars = D.make-mutable-string-dict
 
 local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
   j-parens(self, exp): exp.visit(self) end,
   j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
-  j-fun(self, args, body): no-vars end,
-  j-new(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
-  j-app(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
-  j-method(self, obj, meth, args): no-vars end,
-  j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
+  j-binop(self, left, op, right): 
+    ans = left.visit(self)
+    ans.merge-now(right.visit(self)) 
+    ans
+    end,
+  j-fun(self, args, body): no-vars() end,
+  j-new(self, func, args): 
+    base = func.visit(self)
+    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
+    base
+    end,
+  j-app(self, func, args): 
+    base = func.visit(self)
+    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
+    base
+    end,
+  j-method(self, obj, meth, args): no-vars() end,
+  j-ternary(self, test, consq, alt): 
+    ans = test.visit(self)
+    ans.merge-now(consq.visit(self))
+    ans.merge-now(alt.visit(self)) 
+    ans
+    end,
   j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs): obj.visit(self).merge(field.visit(self)).merge(rhs.visit(self)) end,
-  j-dot-assign(self, obj, name, rhs): obj.visit(self).merge(rhs.visit(self)) end,
+  j-bracket-assign(self, obj, field, rhs):
+    ans = obj.visit(self)
+    ans.merge-now(field.visit(self))
+    ans.merge-now(rhs.visit(self))
+    ans
+    end,
+  j-dot-assign(self, obj, name, rhs):
+    ans = obj.visit(self)
+    ans.merge-now(rhs.visit(self))
+    ans
+    end,
   j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field): obj.visit(self).merge(field.visit(self)) end,
-  j-list(self, multi-line, elts):
-    elts.foldl(lam(base, arg): base.merge(arg.visit(self)) end, no-vars)
-  end,
-  j-obj(self, fields): fields.foldl(lam(base, f): base.merge(f.visit(self)) end, no-vars) end,
-  j-id(self, id): no-vars end,
-  j-str(self, s): no-vars end,
-  j-num(self, n): no-vars end,
-  j-true(self): no-vars end,
-  j-false(self): no-vars end,
-  j-null(self): no-vars end,
-  j-undefined(self): no-vars end,
-  j-label(self, label): no-vars end,
-  j-case(self, exp, body): exp.visit(self).merge(body.visit(self)) end,
+  j-bracket(self, obj, field): 
+    ans = obj.visit(self)
+    ans.merge-now(field.visit(self)) 
+    ans
+    end,
+  j-list(self, multi-line, elts): 
+    base = no-vars() 
+    elts.each(lam(arg): base.merge-now(arg.visit(self)) end) 
+    base
+    end,
+  j-obj(self, fields):
+    base = no-vars()
+    fields.each(lam(e): base.merge-now(e.visit(self)) end)
+    base
+    end,
+  j-id(self, id): no-vars() end,
+  j-str(self, s): no-vars() end,
+  j-num(self, n): no-vars() end,
+  j-true(self): no-vars() end,
+  j-false(self): no-vars() end,
+  j-null(self): no-vars() end,
+  j-undefined(self): no-vars() end,
+  j-label(self, label): no-vars() end,
+  j-case(self, exp, body): 
+    ans = exp.visit(self)
+    ans.merge-now(body.visit(self))
+    ans
+    end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts): stmts.foldl(lam(base, s): base.merge(s.visit(self)) end, no-vars) end,
+  j-block(self, stmts):
+    base = no-vars()
+    stmts.each(lam(e):
+      base.merge-now(e.visit(self)) 
+      end)
+    base
+    end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
-    if A.is-s-atom(name) and (name.base == "$underscore"): rhs.visit(self)
-    else: rhs.visit(self).set(name.key(), name)
+    if A.is-s-atom(name) and (name.base == "$underscore"):
+      rhs.visit(self)
+    else:
+      ans = rhs.visit(self)
+      ans.set-now(name.key(), name)
+      ans
     end
   end,
-  j-if1(self, cond, consq): cond.visit(self).merge(consq.visit(self)) end,
-  j-if(self, cond, consq, alt): cond.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
+  j-if1(self, cond, consq): 
+    ans = cond.visit(self)
+    ans.merge-now(consq.visit(self)) 
+    ans
+    end,
+  j-if(self, cond, consq, alt): 
+    ans = cond.visit(self)
+    ans.merge-now(consq.visit(self))
+    ans.merge-now(alt.visit(self)) 
+    ans
+    end,
   j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch): body.visit(self).merge(catch.visit(self)) end,
+  j-try-catch(self, body, exn, catch):
+    ans = body.visit(self)
+    ans.merge-now(catch.visit(self))
+    ans
+    end,
   j-throw(self, exp): exp.visit(self) end,
   j-expr(self, exp): exp.visit(self) end,
-  j-break(self): no-vars end,
-  j-continue(self): no-vars end,
+  j-break(self): no-vars() end,
+  j-continue(self): no-vars() end,
   j-switch(self, exp, branches):
-    branches.foldl(lam(base, b): base.merge(b.visit(self)) end, exp.visit(self))
-  end,
-  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end,
+    base = exp.visit(self)
+    branches.each(lam(b): base.merge-now(b.visit(self)) end)
+    base
+    end,
+  j-while(self, cond, body):
+    ans = cond.visit(self)
+    ans.merge-now(body.visit(self))
+    ans
+    end,
   j-for(self, create-var, init, cond, update, body):
-    init.visit(self).merge(cond.visit(self)).merge(update.visit(self)).merge(body.visit(self))
+    ans = init.visit(self)
+    ans.merge-now(cond.visit(self))
+    ans.merge-now(update.visit(self))
+    ans.merge-now(body.visit(self))
+    ans
   end
 }
 
+fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+  s.freeze().unfreeze()
+end
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean) -> J.JBlock:
@@ -365,13 +441,15 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
   main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
   shadow main-body-cases = main-body-cases-and-dead-vars.body
-  all-vars = for CL.foldl(base from no-vars, case-expr from main-body-cases):
-      base.merge(case-expr.visit(local-bound-vars-visitor))
-    end
-  all-needed-vars = for fold(acc from all-vars, d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
-    acc.remove(d)
+  all-vars = D.make-mutable-string-dict()
+  for CL.each(case-expr from main-body-cases):
+    all-vars.merge-now(case-expr.visit(local-bound-vars-visitor))
   end
-  vars = all-needed-vars.keys-list().map(all-needed-vars.get-value(_))
+  all-needed-vars = copy-mutable-dict(all-vars)
+  for each(d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
+    all-needed-vars.remove-now(d)
+  end
+  vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
