@@ -887,7 +887,15 @@ data CompileError:
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-fancy-reason(self, make-pallet):
-      self.render-reason()
+      pallet = make-pallet(1)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the "),
+          ED.highlight(ED.text("cases expression"),[list: self.loc], pallet.get(0)),
+          ED.text(" is expected to be non-exhaustive, but there are variants in the type "),
+          ED.code(ED.text(self.type-name)),
+          ED.text(" which do not have a corresponding branch:")],
+        ED.bulleted-sequence(self.missing.map(ED.text).map(ED.code))]
     end,
     render-reason(self):
       ED.text("The cases expression at " + tostring(self.loc)
