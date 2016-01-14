@@ -732,7 +732,7 @@ fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.
           end
         end
       | none =>
-        create-err([list: C.cant-match-on(tostring(typ), l)])
+        create-err([list: C.cant-match-on(ann, tostring(typ), l)])
     end
   end
 end

@@ -902,10 +902,18 @@ data CompileError:
         + " does not exhaust all variants of " + self.type-name
         + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
-  | cant-match-on(type-name :: String, loc :: A.Loc) with:
-    #### TODO ###
+  | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
-      self.render-reason()
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because a "),
+          ED.code(ED.highlight(ED.text("cases expressions"), [list: self.loc], pallet.get(0))),
+          ED.text(" can only branch on variants of "),
+          ED.code(ED.text("data")),
+          ED.text(" types. The type "),
+          ED.code(ED.highlight(ED.text(self.type-name), [list: self.ann.l], pallet.get(1))),
+          ED.text(" cannot be used in cases expressions.")]]
     end,
     render-reason(self):
       ED.text("The type specified " + self.type-name
