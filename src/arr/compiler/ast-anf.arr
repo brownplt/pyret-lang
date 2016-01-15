@@ -746,7 +746,8 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
     | a-var(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
-      from-body.remove(b.id.key())
+      from-body.remove-now(b.id.key())
+      from-body
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
@@ -788,8 +789,9 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
       | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
-        without-args = for fold(without from from-body, arg from args.map(get-id)):
-          without.remove(arg.key())
+        without-args = from-body 
+        for each(arg from args.map(get-id)):
+          without-args.remove-now(arg.key())
         end
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
