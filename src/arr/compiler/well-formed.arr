@@ -132,14 +132,14 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
               elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
+                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
                 | none => nothing
               end
             | else =>
               elt = lists.find(lam(b): b.id == id end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
+                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
                 | none => nothing
               end
           end
