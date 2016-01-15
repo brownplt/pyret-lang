@@ -562,7 +562,7 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-ids(ids)
     underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     when not(is-empty(underscores)):
-      wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
+      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
     check-underscore-name(with-members, "a field name")
     is-empty(underscores) and
@@ -594,7 +594,7 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-variant-ids(variants)
     underscores = variants.filter(lam(v): v.name == "_" end)
     when not(is-empty(underscores)):
-      wf-error("Cannot use underscore as a data variant name ", underscores.first.l)
+      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
