@@ -251,6 +251,30 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
+  | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error: 
+        [ED.para: 
+          ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
+          ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], pallet.get(0))),
+          ED.text(" at the same level as "),
+          ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], pallet.get(1))),
+          ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
+          ED.code(ED.text(self.op-a-name)),
+          ED.text(" at "),
+          ED.loc(self.op-a-loc),
+          ED.text(" at the same level as "),
+          ED.code(ED.text(self.op-b-name)),
+          ED.text(" at "),
+          ED.loc(self.op-b-loc),
+          ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
+    end
   | block-ending(l :: Loc, kind) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)

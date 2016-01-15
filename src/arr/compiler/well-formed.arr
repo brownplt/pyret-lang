@@ -247,10 +247,7 @@ fun reachable-ops(self, l, op, ast):
         reachable-ops(self, l, op, left2)
         reachable-ops(self, l, op, right2)
       else:
-        wf-error2("Cannot mix binary operators of different types: `"
-            + opname(op) + "` and `" + opname(op2)
-            + "`.  Use parentheses to disambiguate.",
-          l, l2)
+        add-error(C.mixed-binops(opname(op), l,  opname(op2), l2))
       end
       true
     | else => ast.visit(self)
