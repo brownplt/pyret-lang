@@ -14,6 +14,7 @@ import srcloc as SL
 import sets as S
 
 string-dict = D.string-dict
+mutable-string-dict = D.mutable-string-dict
 
 type Loc = SL.Srcloc
 type CList = CL.ConcatList
@@ -1445,20 +1446,24 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
     )
-  shadow freevars =
-    for fold(fv from freevars, i from imports):
-      fv.remove(i.vals-name.key()).remove(i.types-name.key())
-    end
-  import-keys = for fold(vt from {vs: [string-dict:], ts: [string-dict:]}, i from imports):
-    new-vals = for fold(vs from vt.vs, v from i.values):
-      vs.set(v.key(), v)
-    end
-    new-types = for fold(ts from vt.ts, t from i.types):
-      ts.set(t.key(), t)
-    end
-    { vs: new-vals, ts: new-types }
+
+  for each(i from imports):
+    freevars.remove-now(i.vals-name.key())
+    freevars.remove-now(i.types-name.key())
   end
-  free-ids = freevars.keys-list().map(freevars.get-value(_))
+
+  import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
+
+  for each(i from imports):
+    for each(v from i.values):
+      import-keys.vs.set-now(v.key(), v)
+    end
+    for each(t from i.types):
+      import-keys.ts.set-now(t.key(), t)
+    end
+  end
+
+  free-ids = freevars.keys-list-now().map(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     bind-name = cases(A.Name) n:
@@ -1470,9 +1475,9 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
     bind-name = cases(A.Name) n:
       | s-atom(_, _) =>
-        if import-keys.vs.has-key(n.key()):
+        if import-keys.vs.has-key-now(n.key()):
           n.toname()
-        else if import-keys.ts.has-key(n.key()):
+        else if import-keys.ts.has-key-now(n.key()):
           type-name(n.toname())
         else:
           raise("Unaware of imported name: " + n.key())
