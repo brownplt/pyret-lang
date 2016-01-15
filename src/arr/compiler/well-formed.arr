@@ -501,7 +501,7 @@ well-formed-visitor = A.default-iter-visitor.{
   s-if(self, l, branches):
     last-visited-loc := l
     when branches.length() == 1:
-      wf-error("Cannot have an `if` with a single branch", l)
+      add-error(C.single-branch-if(A.s-if(l, branches)))
     end
     lists.all(_.visit(self), branches)
   end,

@@ -293,6 +293,25 @@ data CompileError:
           ED.loc(self.l),
           ED.text(".")]]
     end
+  | single-branch-if(expr :: A.Expr) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error: 
+        [ED.para: 
+          ED.text("If-expressions must have more than one branch, but the if-expression")],
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+        [ED.para:
+          ED.text("only has "),
+          ED.highlight(ED.text("one branch"), [list: self.expr.branches.first.l], pallet.get(1)),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("If-expressions may not only have one branch, but the if-expression at "),
+          ED.loc(self.expr.l),
+          ED.text(" does not have any other branches.")]]
+    end
   | underscore-as(l :: Loc, kind) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
