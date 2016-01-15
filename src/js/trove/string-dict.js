@@ -277,7 +277,10 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
-            dict[mkey] = underlyingDict[mkey];
+            var val = underlyingDict[mkey];
+            if(val !== undefined) {
+              dict[mkey] = underlyingDict[mkey];  
+            }
           }
           return makeMutableStringDict(dict);
         });
