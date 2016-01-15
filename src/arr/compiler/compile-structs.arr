@@ -315,6 +315,28 @@ data CompileError:
           ED.text(self.kind),
           ED.text(".")]]
     end
+  | underscore-as-pattern(l :: Loc) with:
+    render-fancy-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
+          ED.text(" cannot be used as a pattern in a cases expression. If you want to match all cases not matched by the previous branches, use the pattern "),
+          ED.code(ED.text("else")),
+          ED.text(" instead.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.text("_")),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" cannot be used as a pattern in a cases expression. If you want to match all cases not matched by the previous branches, use the pattern "),
+          ED.code(ED.text("else")),
+          ED.text(" instead.")]]
+    end
   | underscore-as-expr(l :: Loc) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)

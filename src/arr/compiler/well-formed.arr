@@ -348,7 +348,7 @@ well-formed-visitor = A.default-iter-visitor.{
   s-cases-branch(self, l, pat-loc, name, args, body):
     last-visited-loc := l
     when (name == "_"):
-      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
+      add-error(C.underscore-as-pattern(pat-loc))
     end
     ensure-unique-ids(args.map(_.bind))
     lists.all(_.visit(self), args) and body.visit(self)
@@ -356,7 +356,7 @@ well-formed-visitor = A.default-iter-visitor.{
   s-singleton-cases-branch(self, l, pat-loc, name, body):
     last-visited-loc := l
     when (name == "_"):
-      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
+      add-error(C.underscore-as-pattern(pat-loc))
     end
     body.visit(self)
   end,
