@@ -185,7 +185,7 @@ end
 fun check-underscore-name(fields, kind-of-thing :: String) -> Boolean:
   underscores = fields.filter(lam(f): f.name == "_" end)
   when not(is-empty(underscores)):
-    wf-error("Cannot use underscore as a " + kind-of-thing, underscores.first.l)
+    add-error(C.underscore-as(underscores.first.l, kind-of-thing))
   end
   is-empty(underscores)
 end
@@ -489,7 +489,7 @@ well-formed-visitor = A.default-iter-visitor.{
   s-obj(self, l, fields):
     last-visited-loc := l
     ensure-unique-fields(fields.reverse())
-    check-underscore-name(fields, "field name")
+    check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
   s-check(self, l, name, body, keyword-check):
@@ -567,7 +567,7 @@ top-level-visitor = A.default-iter-visitor.{
     when not(is-empty(underscores)):
       wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
     end
-    check-underscore-name(with-members, "field name")
+    check-underscore-name(with-members, "a field name")
     is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
@@ -577,9 +577,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     ensure-unique-variant-ids(variants)
-    check-underscore-name(variants, "data variant name")
-    check-underscore-name(shares, "shared field name")
-    check-underscore-name([list: {l: l, name: name}], "datatype name")
+    check-underscore-name(variants, "a data variant name")
+    check-underscore-name(shares, "a shared field name")
+    check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
     params-v = lists.all(_.visit(well-formed-visitor), params)

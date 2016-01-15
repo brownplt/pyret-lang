@@ -251,6 +251,28 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
+  | underscore-as(l :: Loc, kind) with:
+    render-fancy-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], color)),
+          ED.text(" cannot be used as "),
+          ED.text(self.kind),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("The underscore "),
+          ED.code(ED.text("_")),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" cannot be used as "),
+          ED.text(self.kind),
+          ED.text(".")]]
+    end
   | underscore-as-expr(l :: Loc) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
