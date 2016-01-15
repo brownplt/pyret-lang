@@ -318,28 +318,28 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
     last-visited-loc := l
-    wf-error("Cannot define a data expression except at the top level of a file", l)
-    false
+    add-error(C.non-toplevel("data declaration", l))
+    true
   end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
     last-visited-loc := l
-    wf-error("Cannot define a data expression except at the top level of a file", l)
-    false
+    add-error(C.non-toplevel("data declaration", l))
+    true
   end,
   s-type(self, l, name, ann):
     last-visited-loc := l
-    wf-error("Cannot define a type alias except at the top level of a file", l)
-    false
+    add-error(C.non-toplevel("type alias", l))
+    true
   end,
   s-newtype(self, l, name, namet):
     last-visited-loc := l
-    wf-error("Cannot define a newtype except at the top level of a file", l)
-    false
+    add-error(C.non-toplevel("newtype", l))
+    true
   end,
   s-type-let-expr(self, l, binds, body):
     last-visited-loc := l
-    wf-error("Cannot define newtypes or type aliases except at the top level of a file", l)
-    false
+    add-error(C.non-toplevel("type alias", l))
+    true
   end,
   s-op(self, l, _, op, left, right):
     last-visited-loc := l

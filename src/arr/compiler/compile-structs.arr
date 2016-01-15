@@ -368,6 +368,24 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
+  | non-toplevel(kind, l :: Loc) with:
+    render-fancy-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.text("You may only define a "),
+          ED.code(ED.highlight(ED.text(self.kind), [ED.locs: self.l], color)),
+          ED.text(" at the top-level.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("You may only define the "),
+          ED.code(ED.text(self.kind)),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" at the top-level.")]]
+    end
   | underscore-as(l :: Loc, kind) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
