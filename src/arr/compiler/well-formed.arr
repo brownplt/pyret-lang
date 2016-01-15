@@ -264,7 +264,7 @@ end
 fun wf-examples-body(visitor, body):
   for lists.all(b from body.stmts):
     if not(A.is-s-check-test(b)):
-      wf-error("Found something other than an example.  Example blocks must contain only test statements.", b.l)
+      add-error(C.non-example(b))
       false
     else:
       true

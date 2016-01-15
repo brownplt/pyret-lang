@@ -332,6 +332,25 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(".")]]
     end
+  | non-example(expr :: A.Expr) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(1)
+      [ED.error: 
+        [ED.para: 
+          ED.code(ED.text("`example`")),
+          ED.text("blocks must only contain testing statements, but ")],
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+        [ED.para:
+          ED.text(" isn't a testing statement.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.code(ED.text("`example`")),
+          ED.text("blocks must only contain testing statements, but the statement at "),
+          ED.loc(self.expr.l),
+          ED.text(" isn't a testing statement.")]]
+    end
   | no-arguments(expr) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
