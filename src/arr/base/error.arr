@@ -641,6 +641,37 @@ end
 
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
+    render-fancy-reason(self, loc-to-src, make-pallet):
+      color = make-pallet(1).get(0)
+      missing =
+        [ED.error:
+          [ED.para: ED.text("The program is missing something")],
+          [ED.para-nospace:
+            ED.text("Look carefully before the "), 
+            ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc], color),
+            ED.text(".  Is something missing just before it?"),
+            ED.text("  Common missing items are colons ("), ED.code(ED.text(":")),
+            ED.text("), commas ("), ED.code(ED.text(",")), ED.text("), string markers ("),
+            ED.code(ED.text("\"")), ED.text("), and keywords.")],
+          [ED.para: ED.styled(ED.text("Usually, inserting the missing item will fix this error."), "hint")]]
+      extra =
+        [ED.error:
+          [ED.para: ED.text("The program contains something extra")],
+          [ED.para-nospace:
+            ED.text("Look carefully before the "), 
+            ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc], color),
+            ED.text(".  Does it contains something extra?"),
+            ED.text("  A common source of errors is typing too much text or in the wrong order.")],
+          [ED.para:
+            ED.styled(ED.text("Usually, removing the extra item will fix this error."), "hint"),
+            ED.text(" However, you may have meant to keep this text, so think before you delete!")]]
+      [ED.error:
+        [ED.para: ED.text("Pyret didn't understand your program around ")],
+         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], color)),
+        [ED.opt:
+          [ED.para: ED.text("Typical reasons for getting this error are")],
+          [ED.bulleted: missing, extra]]]
+    end,
     render-reason(self):
       missing =
         [ED.error:
@@ -669,12 +700,29 @@ data ParseError:
           [ED.bulleted: missing, extra]]]
     end
   | parse-error-eof(loc) with:
+    render-fancy-reason(self, loc-to-src, make-pallet):
+      [ED.error: 
+        [ED.para:
+          ED.text("Pyret didn't expect your program to "),
+          ED.code(ED.highlight(ED.text("end"),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+    end,
     render-reason(self):
       [ED.error: [ED.para:
           ED.text("Pyret didn't understand the very end of your program."),
           ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" right at the end.")]]
     end
   | parse-error-unterminated-string(loc) with:
+    render-fancy-reason(self, loc-to-src, make-pallet):
+      [ED.error: 
+        [ED.para:
+          ED.text("Pyret thinks the string ")],
+         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+        [ED.para:
+          ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+          ED.code(ED.text("```")),
+          ED.text(" instead of quotation marks.")]]
+    end,
     render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("Pyret thinks your program has an incomplete string literal around "),
@@ -682,6 +730,13 @@ data ParseError:
           ED.text("; you may be missing closing punctuation.")]]
     end
   | parse-error-bad-operator(loc) with:
+    render-fancy-reason(self, loc-to-src, make-pallet):
+      [ED.error: 
+        [ED.para:
+          ED.text("The operator "),
+          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.text(" must have whitespace separating it from its operands.")]]
+    end,
     render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("The operator at "),
@@ -689,6 +744,13 @@ data ParseError:
           ED.text(" has no surrounding whitespace.")]]
     end
   | parse-error-bad-number(loc) with:
+    render-fancy-reason(self, loc-to-src, make-pallet):
+      [ED.error: 
+        [ED.para:
+          ED.text("Pyret thinks "),
+          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.text(" is probably a number, but number literals in Pyret require at least one digit before the decimal point.")]]
+    end,
     render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("Pyret thinks your program probably has a number at "),
