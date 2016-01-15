@@ -179,6 +179,23 @@ data CompileError:
           ED.text("at")],
         draw-and-highlight(self.loc)]
     end
+  | wf-empty-block(loc :: A.Loc) with:
+    # semi-counterfactual loc on this error
+    render-fancy-reason(self, make-pallet):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret rejected your program because you have an "),
+          ED.highlight(ED.text("empty block"),[list: self.loc], make-pallet(1).get(0)),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Well-formedness:"),
+          ED.text(self.msg),
+          ED.text("at")],
+        draw-and-highlight(self.loc)]
+    end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     render-fancy-reason(self, make-pallet):
       self.render-reason()

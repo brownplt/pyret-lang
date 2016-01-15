@@ -280,11 +280,14 @@ fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
 end
 
+var last-visited-loc = nothing
+
 well-formed-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
   s-special-import(self, l, kind, args):
+    last-visited-loc := l
     if kind == "my-gdrive":
       if args.length() <> 1:
         wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
@@ -317,29 +320,36 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check):
+    last-visited-loc := l
     wf-error("Cannot define a data expression except at the top level of a file", l)
     false
   end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
+    last-visited-loc := l
     wf-error("Cannot define a data expression except at the top level of a file", l)
     false
   end,
   s-type(self, l, name, ann):
+    last-visited-loc := l
     wf-error("Cannot define a type alias except at the top level of a file", l)
     false
   end,
   s-newtype(self, l, name, namet):
+    last-visited-loc := l
     wf-error("Cannot define a newtype except at the top level of a file", l)
     false
   end,
   s-type-let-expr(self, l, binds, body):
+    last-visited-loc := l
     wf-error("Cannot define newtypes or type aliases except at the top level of a file", l)
     false
   end,
   s-op(self, l, _, op, left, right):
+    last-visited-loc := l
     reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
   end,
   s-cases-branch(self, l, pat-loc, name, args, body):
+    last-visited-loc := l
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
     end
@@ -347,24 +357,28 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and body.visit(self)
   end,
   s-singleton-cases-branch(self, l, pat-loc, name, body):
+    last-visited-loc := l
     when (name == "_"):
       wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
     end
     body.visit(self)
   end,
   s-var(self, l, bind, val):
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
   s-rec(self, l, bind, val):
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-rec(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
   s-var-bind(self, l, bind, val):
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
@@ -372,7 +386,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-block(self, l, stmts):
     if is-empty(stmts):
-      wf-error("Empty block", l)
+      add-error(C.wf-empty-block(last-visited-loc))
       true
     else:
       wf-last-stmt(stmts.last())
@@ -380,6 +394,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-bind(self, l, shadows, name, ann):
+    last-visited-loc := l
     when (reserved-names.has-key(name.tosourcestring())):
       reserved-name(l, name.tosourcestring())
     end
@@ -389,6 +404,7 @@ well-formed-visitor = A.default-iter-visitor.{
     name.visit(self) and ann.visit(self)
   end,
   s-check-test(self, l, op, refinement, left, right):
+    last-visited-loc := l
     when not(in-check-block):
       op-name = op.tosource().pretty(80).join-str("\n")
       wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
@@ -411,6 +427,7 @@ well-formed-visitor = A.default-iter-visitor.{
     left.visit(self) and self.option(right)
   end,
   s-method-field(self, l, name, params, args, ann, doc, body, _check):
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
@@ -425,18 +442,21 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-data-field(self, l, name, value):
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value):
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ann.visit(self) and value.visit(self)
   end,
   s-method(self, l, params, args, ann, doc, body, _check):
+    last-visited-loc := l
     when args.length() == 0:
       wf-error("Cannot have a method with zero arguments", l)
     end
@@ -448,6 +468,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-lam(self, l, params, args, ann, doc, body, _check):
+    last-visited-loc := l
     ensure-unique-ids(args)
     cases(Option) _check:
       | none => nothing
@@ -457,6 +478,7 @@ well-formed-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-fun(self, l, name, params, args, ann, doc, body, _check):
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
@@ -465,11 +487,13 @@ well-formed-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-obj(self, l, fields):
+    last-visited-loc := l
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "field name")
     lists.all(_.visit(self), fields)
   end,
   s-check(self, l, name, body, keyword-check):
+    last-visited-loc := l
     if not(keyword-check):
       wrap-visit-check(self, some(body))
       wf-examples-body(self, body)
@@ -478,26 +502,31 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-if(self, l, branches):
+    last-visited-loc := l
     when branches.length() == 1:
       wf-error("Cannot have an `if` with a single branch", l)
     end
     lists.all(_.visit(self), branches)
   end,
   s-cases(self, l, typ, val, branches):
+    last-visited-loc := l
     ensure-unique-cases(branches)
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l, typ, val, branches, _else):
+    last-visited-loc := l
     ensure-unique-cases(branches)
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   s-frac(self, l, num, den):
+    last-visited-loc := l
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
     true
   end,
   s-id(self, l, id):
+    last-visited-loc := l
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
     end
