@@ -429,7 +429,7 @@ well-formed-visitor = A.default-iter-visitor.{
       reserved-name(l, name)
     end
     when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
+      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:

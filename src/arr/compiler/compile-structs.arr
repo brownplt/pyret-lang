@@ -312,6 +312,23 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" does not have any other branches.")]]
     end
+  | no-arguments(expr :: A.Member) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error: 
+        [ED.para: 
+          ED.text("Method declarations are expected to accept at least one argument, but the method declaration")],
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+        [ED.para:
+          ED.text("has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
+          ED.loc(self.expr.l),
+          ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
+    end
   | underscore-as(l :: Loc, kind) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
