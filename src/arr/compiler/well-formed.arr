@@ -223,12 +223,12 @@ end
 
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
-    | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
-    | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
-    | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
-    | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
-    | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
+    | s-let(l, _, _, _) => add-error(C.block-ending(l, "let-binding"))
+    | s-var(l, _, _) => add-error(C.block-ending(l, "var-binding"))
+    | s-rec(l, _, _) => add-error(C.block-ending(l, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _) => add-error(C.block-ending(l, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _) => add-error(C.block-ending(l, "data definition"))
+    | s-datatype(l, _, _, _, _) => add-error(C.block-ending(l, "datatype definition"))
     | else => nothing
   end
 end

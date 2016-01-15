@@ -251,6 +251,24 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
+  | block-ending(l :: Loc, kind) with:
+    render-fancy-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
+          ED.highlight(ED.text(self.kind), [list: self.l], color),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error: 
+        [ED.para: 
+          ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
+          ED.text(self.kind),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(".")]]
+    end
   | underscore-as(l :: Loc, kind) with:
     render-fancy-reason(self, make-pallet):
       color = make-pallet(1).get(0)
