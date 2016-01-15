@@ -312,7 +312,27 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" does not have any other branches.")]]
     end
-  | no-arguments(expr :: A.Member) with:
+  | unwelcome-where(kind, loc) with:
+    render-fancy-reason(self, make-pallet):
+      color = make-pallet(1).get(0)
+      [ED.error: 
+        [ED.para: 
+          ED.code(ED.text("`where`")),
+          ED.text(" blocks are only allowed on named function and declarations; a where block may not be added to a "),
+          ED.code(ED.highlight(ED.text(self.kind), [list: self.loc], color)),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.code(ED.text("`where`")),
+          ED.text(" blocks are only allowed on named function and declarations; a where block may not be added to a "),
+          ED.loc(self.kind),
+          ED.text(" at "),
+          ED.loc(self.loc),
+          ED.text(".")]]
+    end
+  | no-arguments(expr) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
       [ED.error: 

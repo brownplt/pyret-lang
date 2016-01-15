@@ -93,7 +93,7 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:
-      wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(typ), loc)
+      add-error(C.unwelcome-where(tostring(typ), loc))
     end
   else:
     nothing
@@ -455,7 +455,7 @@ well-formed-visitor = A.default-iter-visitor.{
   s-method(self, l, params, args, ann, doc, body, _check):
     last-visited-loc := l
     when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
+      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
