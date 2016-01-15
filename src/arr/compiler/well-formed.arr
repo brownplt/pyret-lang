@@ -201,7 +201,7 @@ fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
             | builtin(_) => ensure-distinct-lines(loc, rest) # No need to preserve builtin() locs
             | srcloc(_, start-line2, _, _, _, _, _) =>
               when end-line1 == start-line2:
-                wf-error2("Found two expressions on the same line", loc, first.l)
+                add-error(C.same-line(loc, first.l))
               end
               ensure-distinct-lines(first.l, rest)
           end

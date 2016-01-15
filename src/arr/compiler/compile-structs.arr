@@ -692,6 +692,26 @@ data CompileError:
           ED.text(".")],
         [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end
+  | same-line(a :: Loc, b :: Loc) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret expects each expression within a block to have its own line, but Pyret found "),
+          ED.highlight(ED.text("an expression"), [list: self.a], pallet.get(0)),
+          ED.text(" on the same line as "),
+          ED.highlight(ED.text("another expression"), [list: self.b], pallet.get(1)),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret expects each expression within a block to have its own line, but the expression at "),
+          ED.loc(self.a),
+          ED.text(" is on the same line as the expression at "),
+          ED.loc(self.b),
+          ED.text(".")]]
+    end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
