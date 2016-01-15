@@ -8,6 +8,7 @@ import srcloc as SL
 import string-dict as SD
 
 type NameDict = SD.MutableStringDict
+type FrozenNameDict = SD.StringDict
 
 empty-dict = SD.make-mutable-string-dict
 
@@ -756,8 +757,8 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A
   end
 end
 
-fun freevars-e(expr :: AExpr) -> NameDict<A.Name>:
-  freevars-e-acc(expr, empty-dict())
+fun freevars-e(expr :: AExpr) -> FrozenNameDict<A.Name>:
+  freevars-e-acc(expr, empty-dict()).freeze()
 where:
   d = dummy-loc
   n = A.global-names.make-atom
@@ -892,8 +893,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
   end
 end
 
-fun freevars-l(e :: ALettable) -> NameDict<A.Name>:
-  freevars-l-acc(e, empty-dict())
+fun freevars-l(e :: ALettable) -> FrozenNameDict<A.Name>:
+  freevars-l-acc(e, empty-dict()).freeze()
 end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
@@ -916,20 +917,20 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
   end
 end
 
-fun freevars-v(v :: AVal) -> NameDict<A.Name>:
-  freevars-v-acc(v, empty-dict())
+fun freevars-v(v :: AVal) -> FrozenNameDict<A.Name>:
+  freevars-v-acc(v, empty-dict()).freeze()
 end
 
-fun freevars-prog(p :: AProg) -> NameDict<A.Name>:
+fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
   cases(AProg) p:
     | a-program(l, _, imports, body) =>
-      body-vars = freevars-e(body)
+      body-vars = freevars-e-acc(body, empty-dict())
       for each(i from imports):
         for each(n from i.values + i.types):
           body-vars.remove-now(n.key())
         end
       end
-      body-vars
+      body-vars.freeze()
   end
 end
 

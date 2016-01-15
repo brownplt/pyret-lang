@@ -1441,6 +1441,7 @@ end
 fun import-key(i): AU.import-to-dep-anf(i).key() end
 
 fun compile-program(self, l, imports-in, prog, freevars, env):
+  shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
   imports = imports-in.sort-by(
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,

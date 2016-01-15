@@ -854,7 +854,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       cases(A.Provide) provide-complete:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
-          val-typs = for each(v from values):
+          for each(v from values):
             val-typs.set-now(v.v.toname(), ann-to-typ(v.ann))
           end
           alias-typs = SD.make-mutable-string-dict()
