@@ -107,12 +107,12 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
       cases(A.CasesBranch) f:
         | s-cases-branch(l, pat-loc, name, args, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
-            | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
+            | some(found) => add-error(C.duplicate-branch(name, found.pat-loc, pat-loc))
             | none => nothing
           end
         | s-singleton-cases-branch(l, pat-loc, name, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
-            | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
+            | some(found) => add-error(C.duplicate-branch(name, found.pat-loc, pat-loc))
             | none => nothing
           end
       end

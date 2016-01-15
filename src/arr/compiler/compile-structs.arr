@@ -848,6 +848,30 @@ data CompileError:
           ED.text(" as indicated by the access of that field at "),
           ED.loc(self.access-loc)]
     end
+  | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("A variant may not be matched more than once in a cases expression, but the branch matching the variant "),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.found], pallet.get(0))),
+          ED.text(" is preceeded by a branch also matching "),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], pallet.get(1))),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("A variant may not be matched more than once in a cases expression, but the branch matching the variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.found),
+          ED.text(" is preceeded by a branch also matching "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.previous),
+          ED.text(".")]]
+    end,
   | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(3)
