@@ -214,7 +214,7 @@ fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Varian
     | empty => nothing
     | link(f, rest) =>
       cases(Option) lists.find(lam(b): b.name == f.name end, rest):
-        | some(found) => wf-error2("Found duplicate id " + f.name + " in list of bindings", f.l, found.l)
+        | some(found) => add-error(C.duplicate-variant(f.name, found.l, f.l))
         | none => ensure-unique-variant-ids(rest)
       end
   end

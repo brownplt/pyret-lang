@@ -890,6 +890,30 @@ data CompileError:
           ED.text(" as indicated by the access of that field at "),
           ED.loc(self.access-loc)]
     end
+  | duplicate-variant(id :: String, found :: Loc, previous :: Loc) with:
+    render-fancy-reason(self, make-pallet):
+      pallet = make-pallet(2)
+      [ED.error:
+        [ED.para:
+          ED.text("A variant may not have the same name as any other variant in the type, but the declaration of a variant named "),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.found], pallet.get(0))),
+          ED.text(" is preceeded by a declaration of a variant also named "),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], pallet.get(1))),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("A variant may not have the same name as any other variant in the type, but the declaration of a variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.found),
+          ED.text(" is preceeded by a declaration of a variant also named "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.previous),
+          ED.text(".")]]
+    end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
     render-fancy-reason(self, make-pallet):
       pallet = make-pallet(2)
