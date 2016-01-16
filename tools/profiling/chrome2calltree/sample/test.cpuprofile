@@ -1,0 +1,99 @@
+{
+    "head": {
+        "callUID": 2909473561, 
+        "children": [
+            {
+                "callUID": 293644042, 
+                "children": [
+                    {
+                        "callUID": 1507964055, 
+                        "children": [], 
+                        "functionName": "profile", 
+                        "hitCount": 1, 
+                        "id": 3, 
+                        "lineNumber": 0, 
+                        "scriptId": "0", 
+                        "url": ""
+                    }, 
+                    {
+                        "callUID": 3334238504, 
+                        "children": [
+                            {
+                                "callUID": 813583770, 
+                                "children": [], 
+                                "functionName": "foo", 
+                                "hitCount": 1, 
+                                "id": 5, 
+                                "lineNumber": 3, 
+                                "scriptId": "62", 
+                                "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+                            }, 
+                            {
+                                "callUID": 1161122523, 
+                                "children": [
+                                    {
+                                        "callUID": 2890212183, 
+                                        "children": [], 
+                                        "functionName": "foo", 
+                                        "hitCount": 1, 
+                                        "id": 9, 
+                                        "lineNumber": 3, 
+                                        "scriptId": "62", 
+                                        "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+                                    }
+                                ], 
+                                "functionName": "bar", 
+                                "hitCount": 1, 
+                                "id": 7, 
+                                "lineNumber": 11, 
+                                "scriptId": "62", 
+                                "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+                            }, 
+                            {
+                                "callUID": 3641588758, 
+                                "children": [], 
+                                "functionName": "bar", 
+                                "hitCount": 1, 
+                                "id": 8, 
+                                "lineNumber": 11, 
+                                "scriptId": "62", 
+                                "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+                            }
+                        ], 
+                        "functionName": "main", 
+                        "hitCount": 1, 
+                        "id": 4, 
+                        "lineNumber": 21, 
+                        "scriptId": "62", 
+                        "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+                    }, 
+                    {
+                        "callUID": 3833750917, 
+                        "children": [], 
+                        "functionName": "log", 
+                        "hitCount": 1, 
+                        "id": 10, 
+                        "lineNumber": 0, 
+                        "scriptId": "0", 
+                        "url": ""
+                    }
+                ], 
+                "functionName": "(anonymous function)", 
+                "hitCount": 1, 
+                "id": 2, 
+                "lineNumber": 1, 
+                "scriptId": "62", 
+                "url": "file://localhost/Users/jlfwong/code/chrome2calltree/sample/script.js"
+            }
+        ], 
+        "functionName": "(root)", 
+        "hitCount": 1, 
+        "id": 1, 
+        "lineNumber": 0, 
+        "scriptId": "0", 
+        "url": ""
+    },
+    "idleTime": 0,
+    "startTime": 0,
+    "endTime": 100
+}
