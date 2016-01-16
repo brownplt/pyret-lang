@@ -160,6 +160,10 @@ end
 
 global-names = MakeName(0)
 
+data AppInfo:
+  | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
+end
+
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
   typarams =
@@ -636,11 +640,6 @@ data Expr:
             self.left.tosource(), option-tosource(self.right))
       end
     end
-  | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
-    label(self): "s-check-expr" end,
-    tosource(self):
-      PP.infix(INDENT, 1, str-coloncolon, self.expr.tosource(), self.ann.tosource())
-    end
   | s-paren(l :: Loc, expr :: Expr) with:
     label(self): "s-paren" end,
     tosource(self): PP.parens(self.expr.tosource()) end
@@ -710,6 +709,14 @@ data Expr:
       end
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
+    label(self): "s-app" end,
+    tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+    end
+  | s-app-enriched(l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo) with:
+    # this is used only in the step before transforming the program to ANF
     label(self): "s-app" end,
     tosource(self):
       PP.group(self._fun.tosource()
@@ -1344,7 +1351,7 @@ default-map-visitor = {
   end,
 
   s-module(self, l, answer, dv, dt, provides, types, checks):
-    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), types.map(_.visit(self)), checks.visit(self))
   end,
   
   s-program(self, l, _provide, provided-types, imports, body):
@@ -1443,7 +1450,7 @@ default-map-visitor = {
     s-instantiate(l, expr.visit(self), params.map(_.visit(self)))
   end,
 
-  s-block(self, l, stmts):
+  s-block(self, l :: Loc, stmts :: List<Expr>):
     s-block(l, stmts.map(_.visit(self)))
   end,
 
@@ -1584,6 +1591,9 @@ default-map-visitor = {
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo):
+    s-app(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
   s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s-prim-app(l, _fun, args.map(_.visit(self)))

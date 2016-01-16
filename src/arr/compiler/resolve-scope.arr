@@ -240,11 +240,10 @@ where:
   compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
                                       A.s-let-bind(d, b("y"), A.s-num(d, 10))],
                         id("y"))
-  dsb(p("x = 15 y = 10 y").stmts).visit(A.dummy-loc-visitor)
-    is compare1
+  bs("x = 15 y = 10 y") is compare1
 
-  dsb(p("x = 55 var y = 10 y").stmts).visit(A.dummy-loc-visitor)
-    is A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
+  bs("x = 55 var y = 10 y") is
+    A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
       A.s-var-bind(d, b("y"), A.s-num(d, 10))], id("y"))
 
   bs("x = 7 print(2) var y = 10 y") is

@@ -457,7 +457,7 @@ fun link-list-visitor(initial-env):
               | b-prim(n) =>
                 if n == "list:link":
                   A.s-app(l2, lnk, [list: _args.first,
-                      A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args).visit(self)]) 
+                      A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args).visit(self)])
                 else if n == "list:empty":
                   args.first.visit(self)
                 else:
@@ -539,6 +539,240 @@ inline-lams = A.default-map-visitor.{
         end
       | else => A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
     end
+  end
+}
+
+data Scope:
+  | no-s
+
+  | fun-s(id :: A.Name)
+  | method-s(self-id :: A.Name, name :: String)
+
+  | partial-fun-s(id :: A.Name)
+  | partial-method-s(name :: String)
+end
+
+# set-recursive-visitor is to replace s-app with s-app-enhanced with correct is-recursive
+# but with incorrect is-tail (all false)
+# postcondition: no s-app
+set-recursive-visitor = A.default-map-visitor.{
+  scope: no-s,
+
+  clear-scope(self):
+    self.{scope: no-s}
+  end,
+
+  is-recursive(self, f :: A.Expr) -> Boolean:
+    doc: "Return a Boolean indicating whether a call with `f` is recursive or not"
+    cases (Scope) self.scope:
+      | fun-s(id) => A.is-s-id-letrec(f) and (f.id == id)
+      | method-s(self-id, name) => false # TODO(Oak, 15 Jan 2016): Don't care about method for now
+
+      | no-s => false
+      | partial-method-s(_) => false # Do not actually find a method: `{ a : lam(): id(1) end }`
+      | partial-fun-s(_) => raise("Error while querying: after partial-fun-s should immediately be fun-s")
+    end
+  end,
+
+  activate-fun(self):
+    doc: "Activate fun-s"
+    cases (Scope) self.scope:
+      | partial-fun-s(id) => self.{scope: fun-s(id)}
+
+      | no-s => self # no letrec, meaning it's just normal lambda: `lam(x): x + 1 end(5)`, for example
+      | fun-s(_) => self.clear-scope() # lam in function: `fun foo() lam(): 1 end end`
+      | method-s(_, _) => self.clear-scope() # lam in method: `{ foo(self): lam(): 1 end end }`
+      | partial-method-s(_) => self.clear-scope() # lam in object: `{ a : lam(): id(1) end }`
+    end
+  end,
+
+  collect-fun-name(self, binding :: A.LetrecBind):
+    doc: "Return an environment with a binding containing function's name"
+    if A.is-s-lam(binding.value):
+      self.{scope: partial-fun-s(binding.b.id)}
+    else:
+      self
+    end
+  end,
+
+  collect-method-self(self, self-bind :: A.Bind):
+    doc: "Return an environment with method's self id"
+    cases (Scope) self.scope:
+      | partial-method-s(name) => self.{scope: method-s(self-bind.id, name)}
+
+      | no-s => self.clear-scope() # `method(self): 1 end`
+      | fun-s(_) => self.clear-scope() # fun foo(): method(self): 1 end end
+      | method-s(_, _) => self.clear-scope() # { a(self1): method(self2): 1 end end }
+      | partial-fun-s(_) => raise("Error while collecting self: after partial-fun-s should immediately be fun-s")
+    end
+  end,
+
+  collect-method-name(self, method-name :: String):
+    doc: "Return an environment with a method's name"
+    self.{scope: partial-method-s(method-name)}
+  end,
+
+
+  s-app(self, l, f, exps):
+    A.s-app-enriched(
+      l,
+      f.visit(self),
+      exps.map(_.visit(self)),
+      A.app-info-c(self.is-recursive(f), false))
+  end,
+  s-lam(self, l, params, args, ann, doc, body, _check):
+    A.s-lam(
+      l,
+      params.map(_.visit(self.clear-scope())),
+      args.map(_.visit(self.clear-scope())),
+      ann.visit(self.clear-scope()),
+      doc,
+      body.visit(self.activate-fun()),
+      self.clear-scope().option(_check))
+  end,
+  s-method(self, l, params, args, ann, doc, body, _check):
+    A.s-method(
+      l,
+      params.map(_.visit(self)),
+      args.map(_.visit(self)),
+      ann.visit(self),
+      doc,
+      body.visit(self.collect-method-self(args.first)),
+      self.option(_check))
+  end,
+  s-letrec(self, l, binds, body):
+    A.s-letrec(
+      l,
+      binds.map(lam(bind :: A.LetrecBind): bind.visit(self.collect-fun-name(bind)) end),
+      body.visit(self))
+  end,
+  s-data-field(self, l, name, value):
+    A.s-data-field(l, name, value.visit(self.collect-method-name(name)))
+  end,
+}
+
+# set-tail-visitor is to correct is-tail in s-app-enriched
+# precondition: no s-app
+set-tail-visitor = A.default-map-visitor.{
+  is-tail: false,
+
+  s-module(self, l, answer, dv, dt, provides, types, checks):
+    no-tail = self.{is-tail: false}
+    A.s-module(
+      l,
+      answer.visit(no-tail),
+      dv.map(_.visit(no-tail)),
+      dt.map(_.visit(no-tail)),
+      provides.visit(no-tail),
+      types.map(_.visit(no-tail)),
+      checks.visit(no-tail))
+  end,
+
+  # skip s-num, s-frac, s-str, s-undefined, s-bool, s-id, s-id-var, s-id-letrec, s-srcloc
+  # because it has no s-app-enriched
+
+  # skip s-type-let-expr because all positions which could have s-app-enriched could be in the tail position
+
+  s-let-expr(self, l, binds, body):
+    A.s-let-expr(
+      l,
+      binds.map(_.visit(self.{is-tail: false})),
+      body.visit(self))
+  end,
+
+  s-letrec(self, l, binds, body):
+    A.s-letrec(
+      l,
+      binds.map(_.visit(self.{is-tail: false})),
+      body.visit(self))
+  end,
+
+  # skip s-data-expr because it couldn't be at the tail position
+
+  # skip s-if-else because all positions which could have s-app-enriched could be in the tail position
+
+  s-if-branch(self, l, test, body):
+    A.s-if-branch(l, test.visit(self.{is-tail: false}), body.visit(self))
+  end,
+
+  s-cases-else(self, l, typ, val, branches, _else):
+    A.s-cases-else(l, typ.visit(self), val.visit(self.{is-tail: false}), branches.map(_.visit(self)), _else.visit(self))
+  end,
+
+  s-block(self, l, stmts):
+    len = stmts.length() # can be sure that len >= 1
+    splitted = stmts.split-at(len - 1)
+    A.s-block(l, splitted.prefix.map(_.visit(self.{is-tail: false})) + splitted.suffix.map(_.visit(self)))
+  end,
+
+  s-lam(self, l, params, args, ann, doc, body, _check):
+    A.s-lam(
+      l,
+      params.map(_.visit(self.{is-tail: false})),
+      args.map(_.visit(self.{is-tail: false})),
+      ann.visit(self.{is-tail: false}),
+      doc,
+      body.visit(self.{is-tail: true}),
+      if is-none(_check): _check else: some(_check.value.visit(self.{is-tail: false})) end)
+  end,
+
+  s-method(self, l, params, args, ann, doc, body, _check):
+    A.s-method(
+      l,
+      params.map(_.visit(self.{is-tail: false})),
+      args.map(_.visit(self.{is-tail: false})),
+      ann.visit(self.{is-tail: false}),
+      doc,
+      body.visit(self.{is-tail: true}),
+      if is-none(_check): _check else: some(_check.value.visit(self.{is-tail: false})) end)
+  end,
+
+  s-array(self, l, values):
+    A.s-array(l, values.map(_.visit(self.{is-tail: false})))
+  end,
+
+  s-app-enriched(self, l, f, exps, app-info):
+    A.s-app-enriched(
+      l,
+      f.visit(self.{is-tail: false}),
+      exps.map(_.visit(self.{is-tail: false})),
+      A.app-info-c(app-info.is-recursive, self.is-tail))
+  end,
+
+  s-prim-app(self, l, _fun, args):
+    A.s-prim-app(l, _fun, args.map(_.visit(self.{is-tail: false})))
+  end,
+
+  # skip s-instantiate because all positions which could have s-app-enriched could be in the tail position
+
+  s-dot(self, l, obj, field):
+    A.s-dot(l, obj.visit(self.{is-tail: false}), field)
+  end,
+
+  s-bracket(self, l, obj, field): # NOTE(Oak, 15 Jan 2016): s-bracket actually doesn't exist
+    A.s-bracket(l, obj.visit(self.{is-tail: false}), field.visit(self.{is-tail: false}))
+  end,
+
+  # skip s-ref because it has no s-app-enriched -- what is s-ref anyway
+
+  s-get-bang(self, l, obj, field):
+    A.s-get-bang(l, obj.visit(self.{is-tail: false}), field)
+  end,
+
+  s-assign(self, l, id, value):
+    A.s-assign(l, id.visit(self.{is-tail: false}), value.visit(self.{is-tail: false}))
+  end,
+
+  s-obj(self, l, fields):
+    A.s-obj(l, fields.map(_.visit(self.{is-tail: false})))
+  end,
+
+  s-update(self, l, supe, fields):
+    A.s-update(l, supe.visit(self.{is-tail: false}), fields.map(_.visit(self.{is-tail: false})))
+  end,
+
+  s-extend(self, l, supe, fields):
+    A.s-extend(l, supe.visit(self.{is-tail: false}), fields.map(_.visit(self.{is-tail: false})))
   end
 }
 

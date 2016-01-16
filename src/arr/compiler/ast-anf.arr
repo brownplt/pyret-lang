@@ -328,7 +328,7 @@ data ALettable:
     tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>, is-recursive :: Boolean) with:
+  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo) with:
     label(self): "a-app" end,
     tosource(self):
       PP.group(self._fun.tosource()
@@ -504,8 +504,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
-    | a-app(_, f, args, is-recursive) =>
-      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), is-recursive)
+    | a-app(_, f, args, app-info) =>
+      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), app-info)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
@@ -616,8 +616,8 @@ default-map-visitor = {
   a-assign(self, l :: Loc, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>, is-recursive :: Boolean):
-    a-app(l, _fun.visit(self), args.map(_.visit(self)), is-recursive)
+  a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo):
+    a-app(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
   a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))

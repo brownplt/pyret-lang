@@ -70,8 +70,8 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
       desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked:
-        | ok(code) =>
-          var tc-ast = code
+        | ok(_) =>
+          var tc-ast = type-checked.code
           any-errors = named-errors + U.check-unbound(env, tc-ast) + U.bad-assignments(env, tc-ast)
           type-checked := nothing
           var dp-ast = DP.desugar-post-tc(tc-ast, env)
@@ -83,15 +83,21 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
           dp-ast := nothing
           when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
           inlined = cleaned.visit(U.inline-lams)
+                      .visit(U.set-recursive-visitor)
+                      .visit(U.set-tail-visitor)
           cleaned := nothing
           when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
           if is-empty(any-errors):
-            if options.collect-all: P.trace-make-compiled-pyret(ret, phase, inlined, env, options)
-            else: phase("Result", C.ok(P.make-compiled-pyret(inlined, env, options)), ret)
+            if options.collect-all:
+              P.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+            else:
+              phase("Result", C.ok(P.make-compiled-pyret(inlined, env, options)), ret)
             end
           else:
-            if options.collect-all and options.ignore-unbound: P.trace-make-compiled-pyret(ret, phase, inlined, env, options)
-            else: phase("Result", C.err(any-errors), ret)
+            if options.collect-all and options.ignore-unbound:
+              P.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+            else:
+              phase("Result", C.err(any-errors), ret)
             end
           end
         | err(_) => phase("Result", type-checked, ret)
