@@ -28,7 +28,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The "),
           ED.highlight(ED.text("cases expression"), [ED.locs: self.loc], pallet.get(0)),
-          ED.text(" expects there to be a branch matching the value of the expression switched on. But no branches matched the value of "),
+          ED.text(" expects there to always be a branch matching the value of the expression switched on. No branches matched the value of "),
           ED.highlight(ED.text(txt-val), [ED.locs: ast-cse.val.l], pallet.get(1)),
           ED.text(":")],
         [ED.para: ED.embed(self.val)]]
@@ -51,7 +51,7 @@ data RuntimeError:
           ED.code(
             ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], make-pallet(1).get(0)))],
         [ED.para:
-          ED.text("expects that the condition of at least one branch be satisfied, but no branches matched.")]]
+          ED.text("expects that the condition of at least one branch be satisfied. No branches were satisfied.")]]
     end,
     render-reason(self):
       [ED.error:
@@ -90,7 +90,7 @@ data RuntimeError:
           ED.highlight(ED.text("field"), [ED.locs: fld-loc], pallet.get(1)),
           ED.text(" named "),
           ED.highlight(ED.code(ED.text(self.field)),[ED.locs: fld-loc], pallet.get(1)),
-          ED.text(", but "),
+          ED.text(". "),
           ED.highlight(ED.code(ED.text(self.field)), [ED.locs: fld-loc],pallet.get(1)),
           ED.text(" does not appear in the value of the "),
           ED.highlight(ED.code(ED.text("object")), [ED.locs: obj-loc],  pallet.get(0)),
@@ -121,7 +121,7 @@ data RuntimeError:
             ED.highlight(ED.text(self.field), [ED.locs: fld-loc], pallet.get(1))]),
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"),[ED.locs: obj-loc], pallet.get(0)),
-          ED.text(" to evaluate to an object, but the value of "),
+          ED.text(" to evaluate to an object. The value of "),
           ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
           ED.text(" was not an object, it was:")],
         [ED.para: ED.embed(self.non-obj)]]
@@ -152,7 +152,7 @@ data RuntimeError:
             ED.highlight(ED.text(txt-fld), [ED.locs: fld-loc], pallet.get(1))]),
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], pallet.get(0)),
-          ED.text(" to evaluate to an object, but the value of "),
+          ED.text(" to evaluate to an object. The value of "),
           ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], pallet.get(0)),
           ED.text(" was not an object, it was:")],
         [ED.para: ED.embed(self.non-obj)]]
@@ -204,7 +204,7 @@ data RuntimeError:
             [ED.para:
               ED.text("was expected to evaluate to a "),
               ED.embed(self.typ),
-              ED.text(" but it evaluated to the non-"),
+              ED.text(". It evaluated to the non-"),
               ED.embed(self.typ),
               ED.text(" value:")],
             [ED.para:
@@ -383,7 +383,7 @@ data RuntimeError:
                 ED.highlight(ED.ed-args(self.num-args),args.map(_.l), pallet.get(3))
             | s-singleton-cases-branch(_, _, _, _) => ED.ed-args(self.num-args)
           end,
-          ED.text(" but the "),
+          ED.text(". The "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
@@ -461,7 +461,7 @@ data RuntimeError:
                       ED.highlight(ED.text("⬜"), [ED.locs: arg.l], pallet.get(3));),","),
                   ED.text(")")])],
               [ED.para:
-                ED.text("but the "),
+                ED.text("The "),
                 ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
                 ED.text(" had "),
                 ED.highlight(ED.ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(1)),
@@ -528,7 +528,7 @@ data RuntimeError:
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" to evaluate to a function accepting "),
           ED.highlight(ED.ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
-          ED.text(", but the expression "),
+          ED.text(". The expression "),
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
           ED.text(" evaluated to the non-function value:")],
         [ED.para: ED.embed(self.non-fun-val)]]
@@ -589,7 +589,7 @@ data RuntimeError:
             [ED.para:
               ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0)))],
             [ED.para:
-              ED.text("expects that the index passed to it is an integer within the bounds of the array, but "),
+              ED.text("expects that the index passed to it is an integer within the bounds of the array. "),
               ED.embed(self.index),
               ED.text(" "),
               ED.text(self.reason)]]
