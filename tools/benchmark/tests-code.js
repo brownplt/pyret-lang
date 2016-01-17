@@ -1,4 +1,4 @@
-var b = require('benchmark-pyret');
+var b = require('./benchmark-pyret');
 require('jasmine-node');
 
 jasmine.getEnv().addReporter(new jasmine.ConsoleReporter(console.log));
@@ -229,11 +229,16 @@ describe('runFile', function () {
 });
 
 console.log("Running tests of the benchmark-pyret framework...");
-b.runBenchmarks(benchmarks, {}, false, function (r) {
+b.runBenchmarks(benchmarks, {}, true, function (r) {
+  console.error('yo')
   benchmarkResults = r;
-  b.runFile(filename, {}, false, function (f) {
+  console.log('yo')
+  b.runFile(filename, {}, true, function (f) {
+    console.log('yo')
     runFileResults = f;
+    console.log('yo')
     jasmine.getEnv().execute();
+    console.log('yo')
   });
 });
 
