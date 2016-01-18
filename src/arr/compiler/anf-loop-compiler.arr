@@ -410,7 +410,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-id(step),
       j-list(false, if no-real-args: cl-empty else: CL.map_list(lam(a): j-id(js-id-of(a.id)) end, args) end),
       j-list(false, CL.map_list(lam(v): j-id(v) end, vars)),
-      j-id(elided-frames),
+      j-id(elided-frames)
     ])
   e = fresh-id(compiler-name("e"))
   first-arg = formal-args.first.id
@@ -682,7 +682,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body :: Option, app-in
             # Update step before the call, so that if it runs out of gas,
             # the resumer goes to the right step
             j-expr(j-assign(step, j-num(0))),
-            j-expr(j-unop(compiler.elided-frames, j-incr)),
+            j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
             j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
               j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
                 j-throw(rt-method("makeCont", cl-empty))]))
