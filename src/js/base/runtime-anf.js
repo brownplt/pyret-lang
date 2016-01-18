@@ -1387,7 +1387,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               toReprFun,
               $step,
               [],
-              []);
+              [],
+              0);
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(["runtime torepr"]);
@@ -1441,7 +1442,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               reenterToReprFun,
               $step,
               [],
-              []);
+              [],
+              0);
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(["runtime torepr"]);
@@ -1884,7 +1886,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               equalFun,
               $step,
               [],
-              []);
+              [],
+              0);
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(stackFrameDesc);
@@ -1921,7 +1924,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               reenterEqualFun,
               $step,
               [],
-              []);
+              [],
+              0);
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(stackFrameDesc);
@@ -2818,7 +2822,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               safeCall,
               $step,
               [ fun, after, stackFrame ],
-              [ $fun_ans ]
+              [ $fun_ans ],
+              0
             );
         }
         if (thisRuntime.isPyretException($e)) {
@@ -2882,7 +2887,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       },
       0,
       [],
-      []
+      [],
+      0
     );
     var theOneTrueStack = [kickoff];
     var theOneTrueStart = {};
@@ -3103,21 +3109,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
   }
 
   var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
-  function ActivationRecord(from, fun, step, ans, args, vars) {
+  function ActivationRecord(from, fun, step, ans, args, vars, elidedFrames) {
     this.from = from;
     this.fun = fun;
     this.step = step;
     this.ans = ans;
     this.args = args;
     this.vars = vars;
+    this.elidedFrames = elidedFrames;
   }
   ActivationRecord.prototype.toString = function() {
     return "{from: " + this.from + ", fun: " + this.fun + ", step: " + this.step
       + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
       + ", vars: " + JSON.stringify(this.vars) + "}";
   }
-  function makeActivationRecord(from, fun, step, args, vars) {
-    return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars);
+  function makeActivationRecord(from, fun, step, args, vars, elidedFrames) {
+    return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars, elidedFrames);
   }
   function isActivationRecord(obj) {
     return obj instanceof ActivationRecord;
@@ -3511,7 +3518,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               ["raw-array-fold"],
               foldFun,
               0, // step doesn't matter here
-              [], []);
+              [], [], 0);
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(["raw-array-fold"]);

@@ -343,7 +343,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
   apploc = fresh-id(compiler-name("al"))
-  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc, args: args.map(_.id).map(js-id-of)}
+  elided-frames = fresh-id(compiler-name("elidedFrames"))
+  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc, args: args.map(_.id).map(js-id-of), elided-frames: elided-frames}
   # To avoid penalty for assigning to formal parameters and also using the arguments object,
   # we create a shadow set of formal arguments, and immediately assign them to the "real" ones
   # in the normal entry case.  This expands the function preamble, but might enable JS optimizations,
@@ -408,7 +409,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-id(fun-name),
       j-id(step),
       j-list(false, if no-real-args: cl-empty else: CL.map_list(lam(a): j-id(js-id-of(a.id)) end, args) end),
-      j-list(false, CL.map_list(lam(v): j-id(v) end, vars))
+      j-list(false, CL.map_list(lam(v): j-id(v) end, vars)),
+      j-id(elided-frames),
     ])
   e = fresh-id(compiler-name("e"))
   first-arg = formal-args.first.id
@@ -422,7 +424,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         [clist:
           j-expr(j-assign(step, j-dot(j-id(first-arg), "step"))),
           j-expr(j-assign(apploc, j-dot(j-id(first-arg), "from"))),
-          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans")))
+          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans"))),
+          j-expr(j-assign(elided-frames, j-dot(j-id(first-arg), "elidedFrames")))
         ] +
         for CL.map_list_n(i from 0, arg from args):
           j-expr(j-assign(js-id-of(arg.id), j-bracket(j-dot(j-id(first-arg), "args"), j-num(i))))
@@ -467,6 +470,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
 
   j-block([clist:
       j-var(step, j-num(0)),
+      j-var(elided-frames, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
       j-try-catch(
@@ -678,6 +682,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body :: Option, app-in
             # Update step before the call, so that if it runs out of gas,
             # the resumer goes to the right step
             j-expr(j-assign(step, j-num(0))),
+            j-expr(j-unop(compiler.elided-frames, j-incr)),
             j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
               j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
                 j-throw(rt-method("makeCont", cl-empty))]))
