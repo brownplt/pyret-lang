@@ -1,4 +1,5 @@
 NODE            := node
+NPM             := npm
 PROFILE         := profiling.js
 CHROME2CALLTREE := lib/chrome2calltree/bin/chrome2calltree.js
 
@@ -16,6 +17,9 @@ PYRET_FILE  := $(FILE_PREFIX)$(THIS_FILE)
 PHASE      := phase3
 GIT_BRANCH := $(shell git symbolic-ref --short HEAD)
 ARTIFACTS  := profiles/$(GIT_BRANCH).$(PHASE)/
+
+install:
+	npm install v8-profiler
 
 cpuprofile: processed.cpuprofile
 processed.cpuprofile: $(PYRET_LANG)build/$(PHASE)/$(PHASE).built
