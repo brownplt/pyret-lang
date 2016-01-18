@@ -16,7 +16,7 @@ end
 fun display-to-string(e, embed-display, stack):
   help = display-to-string(_, embed-display, stack)
   cases(ED.ErrorDisplay) e:
-    | paragraph(contents) => help(contents) + "\n"
+    | paragraph(contents) => contents.map(help).join-str("") + "\n"
     | text(str) => str
     | embed(val) => embed-display(val)
     | loc(l) => tostring(l)
