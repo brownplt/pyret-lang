@@ -16,6 +16,9 @@ import "compiler/js-of-pyret.arr" as JS
 import "compiler/desugar-check.arr" as CH
 import file as F
 
+# this value is the limit of number of steps that could be inlined in case body
+DEFAULT-INLINE-CASE-LIMIT = 5
+
 options = [SD.string-dict:
   "width",
     C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
@@ -24,7 +27,9 @@ options = [SD.string-dict:
   "check-mode",
     C.flag(C.once, "Compile code with check-mode enabled"),
   "type-check",
-    C.flag(C.once, "Type check code")
+    C.flag(C.once, "Type check code"),
+  "inline-case-body-limit",
+    C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
 ]
 
 parsed-options = C.parse-cmdline(options)
@@ -40,6 +45,7 @@ cases (C.ParsedArguments) parsed-options:
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
+    inline-case-body-limit = opts.get-value("inline-case-body-limit")
     print("Success")
     cases (List) rest:
       | empty => print("Require a file name")
@@ -54,7 +60,8 @@ cases (C.ParsedArguments) parsed-options:
             collect-all: true,
             ignore-unbound: true,
             type-check: type-check,
-            proper-tail-calls: true
+            proper-tail-calls: true,
+            inline-case-body-limit: inline-case-body-limit
           }).tolist()
 
         for each(phase from comp):
