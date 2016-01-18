@@ -2899,11 +2899,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     var sync = options.sync || false;
     var initialGas = thisRuntime.INITIAL_GAS;
-    var initialRungas;
+    var runGas;
     if (sync) {
-      initialRungas = Infinity;
+      runGas = Infinity;
     } else {
-      initialRungas = initialGas * 10;
+      runGas = initialGas * 10;
     }
 
     var threadIsCurrentlyPaused = false;
@@ -3027,7 +3027,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
             }
             thisRuntime.GAS = initialGas;
-            thisRuntime.RUNGAS = initialRungas;
+            thisRuntime.RUNGAS = runGas;
             for(var i = e.stack.length - 1; i >= 0; i--) {
 //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
@@ -3076,7 +3076,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return;
     }
     thisRuntime.GAS = initialGas;
-    thisRuntime.RUNGAS = initialRungas;
+    thisRuntime.RUNGAS = runGas;
     iter();
   }
 
