@@ -32,10 +32,6 @@ cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
-fun iden<a>(x :: a) -> a:
-  x
-end
-
 fun type-name(str :: String) -> String:
   "$type$" + str
 end
