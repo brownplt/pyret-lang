@@ -17,6 +17,8 @@ Either = E.Either
 left = E.left
 right = E.right
 
+# this value is the limit of number of steps that could be inlined in case body
+DEFAULT-INLINE-CASE-LIMIT = 5
 
 fun main(args):
   options = [D.string-dict:
@@ -39,9 +41,11 @@ fun main(args):
     "improper-tail-calls",
       C.flag(C.once, "Run without proper tail calls"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation")
+      C.flag(C.once, "Type-check the program during compilation"),
+    "inline-case-body-limit",
+      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
   ]
-  
+
   params-parsed = C.parse-args(options, args)
 
   fun err-less(e1, e2):
@@ -50,18 +54,30 @@ fun main(args):
     else: tostring(e1) < tostring(e2)
     end
   end
-  
+
   cases(C.ParsedArguments) params-parsed:
-    | success(r, rest) => 
+    | success(r, rest) =>
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
+      inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
+
+      compiler-option = {
+        check-mode : check-mode,
+        allow-shadowed : allow-shadowed,
+        type-check: type-check,
+        proper-tail-calls: tail-calls,
+        inline-case-body-limit: inline-case-body-limit,
+        collect-all: false,
+        ignore-unbound: false
+      }
+
       if not(is-empty(rest)):
         program-name = rest.first
         var result = CM.compile-js(
@@ -70,15 +86,7 @@ fun main(args):
           program-name,
           CS.standard-builtins,
           libs,
-          {
-            check-mode : check-mode,
-            allow-shadowed : allow-shadowed,
-            collect-all: false,
-            type-check: type-check,
-            ignore-unbound: false,
-            proper-tail-calls: tail-calls
-          }
-          ).result
+          compiler-option).result
         cases(CS.CompileResult) result:
           | ok(_) =>
             var comp-object = result.code
@@ -107,15 +115,7 @@ fun main(args):
         end
       else:
         if r.has-key("build"):
-          result = CLI.compile(r.get-value("build"),
-            {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls
-            })
+          result = CLI.compile(r.get-value("build"), compiler-option)
           failures = filter(CS.is-err, result)
           when is-link(failures):
             for each(f from failures):
@@ -126,15 +126,7 @@ fun main(args):
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"),
-            {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: true,
-            })
+          CLI.run(r.get-value("run"), compiler-option)
         else if r.has-key("compile-module-js"):
           var result = CM.compile-js(
             CM.start,
@@ -142,15 +134,7 @@ fun main(args):
             r.get-value("compile-module-js"),
             CS.standard-builtins,
             libs,
-            {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls
-            }
-            ).result
+            compiler-option).result
           cases(CS.CompileResult) result:
             | ok(_) =>
               comp-object = result.code

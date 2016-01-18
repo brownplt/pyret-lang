@@ -13,8 +13,6 @@ import string-dict as D
 import srcloc as SL
 import sets as S
 
-INLINE-CASE-LIMIT = 10
-
 string-dict = D.string-dict
 
 type Loc = SL.Srcloc
@@ -398,26 +396,6 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
               j-str(" in " + fun-name.tosourcestring())))])))
 
-  fun insert-gas-check(first-case :: J.JCase) -> J.JCase:
-    cases (J.JCase) first-case:
-      | j-case(exp, body-case) =>
-        gas-check = j-if1(
-            j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
-            j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
-                # console-log([clist: j-str("Out of gas in " + fun-name)]),
-                # console-log([clist: j-str("GAS is "), rt-field("GAS")]),
-                j-throw(rt-method("makeCont", cl-empty))]))
-        j-case(exp, j-block(CL.concat-cons(gas-check, body-case.stmts)))
-    end
-  end
-
-  shadow switch-cases = CL.map_list(
-    iden,
-    cases (List) switch-cases.to-list():
-      | empty => raise("Should not happen")
-      | link(f, r) => link(insert-gas-check(f), r)
-    end)
-
   # fun check-no-dups(seen, kases):
   #   cases(List) kases:
   #     | empty => nothing
@@ -694,23 +672,30 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body :: Option, app-in
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
-  if app-info.is-recursive and app-info.is-tail and compiler.allow-tco:
+  if app-info.is-recursive and
+     app-info.is-tail and
+     compiler.allow-tco and
+     compiler.options.proper-tail-calls:
     c-block(
       j-block(
         CL.concat-snoc(
           [clist:
             # Update step before the call, so that if it runs out of gas,
             # the resumer goes to the right step
-            j-expr(j-assign(step, j-num(0)))] +
+            j-expr(j-assign(step, j-num(0))),
+            j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
+              j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+                j-throw(rt-method("makeCont", cl-empty))]))
+            ] +
             CL.map_list2(
               lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
-              compiled-args.to-list-acc(empty),
+              compiled-args.to-list(),
               compiler.args),
             # CL.map_list2(
             #   lam(compiled-arg, arg):
             #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
             #   end,
-            #   compiled-args.to-list-acc(empty),
+            #   compiled-args.to-list(),
             #   compiler.args),
             j-continue)),
       new-cases)
@@ -751,7 +736,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
 end
 fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
   compiled-body = branch.body.visit(compiler)
-  if compiled-body.new-cases.length() < INLINE-CASE-LIMIT:
+  if compiled-body.new-cases.length() < compiler.options.inline-case-body-limit:
     compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body)
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
