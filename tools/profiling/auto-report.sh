@@ -1,3 +1,4 @@
+#!/bin/bash
 while read args; do
-	make artifacts-and-cleanup $args
+	make auto-report $args
 done<jobs.txt
