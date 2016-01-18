@@ -16,7 +16,7 @@ PYRET_FILE  := $(FILE_PREFIX)$(THIS_FILE)
 
 PHASE      := phase3
 GIT_BRANCH := $(shell git symbolic-ref --short HEAD)
-ARTIFACTS  := profiles/$(GIT_BRANCH).$(PHASE)/
+ARTIFACTS  := artifacts/$(GIT_BRANCH).$(PHASE)/
 
 install:
 	npm install v8-profiler
@@ -28,7 +28,7 @@ processed.cpuprofile: $(PYRET_LANG)build/$(PHASE)/$(PHASE).built
 
 callgrind: callgrind.profile
 callgrind.profile: processed.cpuprofile
-	$(NODE) $(CHROME2CALLTREE) -i processed.cpuprofile -o callgrind.profile
+	$(NODE) $(CHROME2CALLTREE) -m -i processed.cpuprofile -o callgrind.profile
 
 archive-profile: callgrind.profile
 	mkdir -p $(ARTIFACTS)
