@@ -26,3 +26,4 @@ import "./tests/test-builtin-locator.arr" as _
 import "./tests/test-compile-lib.arr" as _
 import "./tests/test-include.arr" as _
 import "./tests/test-examples.arr" as _
+import "./tests/test-tail-call.arr" as _
