@@ -1,6 +1,6 @@
 NODE            := node
 PROFILE         := profiling.js
-CHROME2CALLTREE := chrome2calltree/bin/chrome2calltree.js
+CHROME2CALLTREE := lib/chrome2calltree/bin/chrome2calltree.js
 
 #THIS_FILE := 0_empty.arr
 THIS_FILE := ast.arr
