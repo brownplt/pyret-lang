@@ -259,12 +259,8 @@ fun used-vars-jfield(f :: J.JField) -> NameSet:
 end
 
 fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet:
-  #print('n!live-vars')
-  #print(n!live-vars)
   cases(Option) n!live-vars:
     | some(live) => 
-      #print('live: keys are...')
-      #print(live.keys-list())
       live
     | none =>
       live-after = copy-nameset(n!free-vars)
@@ -272,11 +268,7 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
         next-opt = dag.get(tostring(follow.get()))
         when is-some(next-opt):
           next = next-opt.value
-          #print(gensym('***recur START_'))
           next-vars = compute-live-vars(next, dag)
-          #print(gensym('***recur  STOP_'))
-          #print('')
-
           live-after.merge-now(next-vars)
         end
       end
@@ -287,14 +279,6 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
 
       n!{live-after-vars: some(live-after), live-vars: some(live),
         dead-after-vars: some(dead-after), dead-vars: some(dead)}
-
-      #print('!!!mutating the graph node')
-      #print('!!!new value of n!live-vars is...')
-      #print(some(live))
-      #print('!!!and if we unfreeze it right now, we get:')
-      #print(live.unfreeze().keys-list-now())
-      #print('***this call is returning an ISD with the following keys:')
-      #print(live.keys-list())
       live
   end
 end
@@ -417,7 +401,7 @@ end
 #   ranges
 # end
 fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation:
-  # #print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
+  # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
   for CL.each(body-case from body-cases):
     when J.is-j-case(body-case):
@@ -427,7 +411,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
     end
   end
   dag = acc-dag.freeze()
-  # #print("Step 2")
+  # print("Step 2")
   labels = for CL.foldr(acc from empty, body-case from body-cases):
     if J.is-j-case(body-case): link(body-case.exp.label.get(), acc)
     else: acc
@@ -436,10 +420,10 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   str-labels = dag.keys-list()
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
-  #   #print(tostring(n._from.get()) + " ==> " + tostring(n._to.to-list().map(_.get())))
-  #   #print("\n" + n.case-body.to-ugly-source())
+  #   print(tostring(n._from.get()) + " ==> " + tostring(n._to.to-list().map(_.get())))
+  #   print("\n" + n.case-body.to-ugly-source())
   # end
-  # #print("Step 3")
+  # print("Step 3")
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
@@ -452,16 +436,16 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   end
   # for each(lbl from str-labels):
   #   n = dag.get-value(lbl)
-  #   #print("Used vars for " + lbl + ": " + torepr(n!used-vars))
-  #   #print("Decl vars for " + lbl + ": " + torepr(n!decl-vars.to-list()))
-  #   #print("Free vars for " + lbl + ": " + torepr(n!free-vars))
-  #   #print("Live-after vars for " + lbl + ": " + torepr(n!live-after-vars.value.to-list()))
-  #   #print("Live vars for " + lbl + ": " + torepr(n!live-vars.value.to-list()))
-  #   #print("Dead vars for " + lbl + ": " + torepr(n!dead-vars.value.to-list()))
-  #   #print("Dead-after vars for " + lbl + ": " + torepr(n!dead-after-vars.value.to-list()))
-  #   #print("\n")
+  #   print("Used vars for " + lbl + ": " + torepr(n!used-vars))
+  #   print("Decl vars for " + lbl + ": " + torepr(n!decl-vars.to-list()))
+  #   print("Free vars for " + lbl + ": " + torepr(n!free-vars))
+  #   print("Live-after vars for " + lbl + ": " + torepr(n!live-after-vars.value.to-list()))
+  #   print("Live vars for " + lbl + ": " + torepr(n!live-vars.value.to-list()))
+  #   print("Dead vars for " + lbl + ": " + torepr(n!dead-vars.value.to-list()))
+  #   print("Dead-after vars for " + lbl + ": " + torepr(n!dead-after-vars.value.to-list()))
+  #   print("\n")
   # end
-  # #print("Step 4")
+  # print("Step 4")
   # live-ranges = D.make-mutable-string-dict()
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
@@ -487,6 +471,6 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
     end
   end
   
-  # #print("Done")
+  # print("Done")
   results(dead-assignment-eliminated, discardable-vars)
 end
