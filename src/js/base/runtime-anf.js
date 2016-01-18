@@ -3011,9 +3011,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             // console.log("BOUNCING");
             BOUNCES++;
             var afterPause = endTimer(beforePause);
-            console.log("Run took ", afterPause, " millis with ", runGas, " calls");
-            // Only recalculate runGas if we paused because of a RUNGAS
-            // exhaustion
+            // Only recalculate runGas if we paused because of a RUNGAS exhaustion
             if(thisRuntime.RUNGAS <= 0) {
               if(afterPause <= PAUSE_DURATION_BOTTOM) {
                 runGas = runGas * 2;
