@@ -423,7 +423,8 @@ default-compile-options = {
   allow-shadowed : false,
   collect-all: false,
   ignore-unbound: false,
-  proper-tail-calls: true
+  proper-tail-calls: true,
+  inline-case-body-limit: 5
 }
 
 runtime-types = [string-dict:

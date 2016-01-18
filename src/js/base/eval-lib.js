@@ -47,6 +47,7 @@ function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, che
                   "check-mode": runtime.pyretTrue,
                   "allow-shadowed": runtime.pyretFalse,
                   "proper-tail-calls": options.properTailCalls || true,
+                  "inline-case-body-limit": options.inlineCaseBodyLimit || 5,
                   "collect-all": runtime.pyretFalse,
                   "type-check": runtime.makeBoolean(options.typeCheck || false),
                   "ignore-unbound": runtime.pyretFalse

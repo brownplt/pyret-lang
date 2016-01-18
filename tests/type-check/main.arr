@@ -24,7 +24,8 @@ compile-str = lam(filename, str):
             collect-all: false,
             type-check: true,
             ignore-unbound: false,
-            proper-tail-calls: true
+            proper-tail-calls: true,
+            inline-case-body-limit: 5
           }
           ).result
 end

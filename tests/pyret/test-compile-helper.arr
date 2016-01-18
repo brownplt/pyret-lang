@@ -16,6 +16,7 @@ compile-str = lam(str):
             type-check: false,
             ignore-unbound: false,
             proper-tail-calls: true,
+            inline-case-body-limit: 5
           }
           ).result
 end
