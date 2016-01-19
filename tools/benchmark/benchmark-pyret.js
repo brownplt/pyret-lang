@@ -3,11 +3,11 @@ var CONFIG = {
   'defer': true,
   'maxTime': 10, // seconds
   'minTime': 1
-}
+};
 
 var SUITE_CONFIG = { 
-  'async': CONFIG['async'], 
-  'queued': CONFIG['queued']
+  'async': CONFIG.async, 
+  'queued': CONFIG.queued
 };
 
 define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'],
@@ -104,7 +104,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
               });
             });
           });
-        }, ondone)
+        }, ondone);
       };
     }
 
@@ -336,9 +336,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function (resolveValue) {
-          var passed = resolveValue
-            && (typeof global.astResult !== 'undefined')
-            && (typeof global.loadedResult !== 'undefined');
+          var passed = resolveValue &&
+            (typeof global.astResult !== 'undefined') &&
+            (typeof global.loadedResult !== 'undefined');
           ondone(passed);
         },
         function (v) {throw new Error('reject should not happen'); },

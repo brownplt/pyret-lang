@@ -1,3 +1,9 @@
+/* globals jasmine:  false */
+/* globals describe: false */
+/* globals it:       false */
+/* globals expect:   false */
+/* globals runs:     false */
+
 var b = require('./benchmark-pyret');
 require('jasmine-node');
 
@@ -10,7 +16,6 @@ for (i = 0; i < 1000; i++) {
   longProgram += '1 + ';
 }
 longProgram += '1';
-debugger;
 
 var PASSES = true;
 var FAILS = false;
@@ -163,11 +168,11 @@ describe('runBenchmarks', function () {
     var fields = true;
     var i;
     for (i = 0; i < benchmarkResults.length; i++) {
-      fields = fields
-        && (typeof benchmarkResults[i].program === 'string')
-        && (typeof benchmarkResults[i].name === 'string')
-        && (typeof benchmarkResults[i].results === 'object')
-        && (typeof benchmarkResults[i].success === 'boolean');
+      fields = fields &&
+          (typeof benchmarkResults[i].program === 'string') &&
+          (typeof benchmarkResults[i].name === 'string') &&
+          (typeof benchmarkResults[i].results === 'object') &&
+          (typeof benchmarkResults[i].success === 'boolean');
     }
     var passed = isArray && fields;
 
@@ -184,10 +189,10 @@ describe('runBenchmarks', function () {
     var name;
     for (name in results) {
       if (results.hasOwnProperty(name)) {
-        passed = passed
-          && (typeof results[name].hz === 'number')
-          && (typeof results[name].rme === 'number')
-          && (typeof results[name].samples === 'number');
+        passed = passed &&
+            (typeof results[name].hz === 'number') &&
+            (typeof results[name].rme === 'number') &&
+            (typeof results[name].samples === 'number');
       }
     }
     expect(passed).toBe(true);
@@ -200,12 +205,12 @@ describe('runFile', function () {
     var fields = true;
     var i;
     for (i = 0; i < runFileResults.length; i++) {
-      fields = fields
-        && (typeof runFileResults[i].program === 'string')
-        && (typeof runFileResults[i].name === 'string')
-        && (typeof runFileResults[i].results === 'object')
-        && (typeof runFileResults[i].success === 'boolean')
-        && (typeof runFileResults[i].options === 'object');
+      fields = fields &&
+          (typeof runFileResults[i].program === 'string') &&
+          (typeof runFileResults[i].name === 'string') &&
+          (typeof runFileResults[i].results === 'object') &&
+          (typeof runFileResults[i].success === 'boolean') &&
+          (typeof runFileResults[i].options === 'object');
     }
     var passed = isArray && fields;
 
@@ -218,10 +223,10 @@ describe('runFile', function () {
     var name;
     for (name in results) {
       if (results.hasOwnProperty(name)) {
-        passed = passed
-          && (typeof results[name].hz === 'number')
-          && (typeof results[name].rme === 'number')
-          && (typeof results[name].samples === 'number');
+        passed = passed &&
+            (typeof results[name].hz === 'number') &&
+            (typeof results[name].rme === 'number') &&
+            (typeof results[name].samples === 'number');
       }
     }
     expect(passed).toBe(true);
@@ -230,15 +235,10 @@ describe('runFile', function () {
 
 console.log("Running tests of the benchmark-pyret framework...");
 b.runBenchmarks(benchmarks, {}, true, function (r) {
-  console.error('yo')
   benchmarkResults = r;
-  console.log('yo')
   b.runFile(filename, {}, true, function (f) {
-    console.log('yo')
     runFileResults = f;
-    console.log('yo')
     jasmine.getEnv().execute();
-    console.log('yo')
   });
 });
 
