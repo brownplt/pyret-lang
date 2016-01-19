@@ -1,13 +1,22 @@
 var CONFIG = {
-  'async': false,
+  'async': true,
   'defer': true,
-  'maxTime': 10, // seconds
-  'minTime': 1
+  'maxTime': 5, // seconds
 };
 
 var SUITE_CONFIG = { 
-  'async': CONFIG.async, 
-  'queued': CONFIG.queued
+  'async': CONFIG.async
+};
+
+var TEST_CACHE = {
+  testRunFile: {
+    HAS_RUN: false,
+    RESULTS: null
+  },
+  testRunBenchmarks: {
+    HAS_RUN: false,
+    RESULTS: null
+  }
 };
 
 define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'],
@@ -52,6 +61,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
             function (loaded) {
               global.loadedResult = loaded.result;
+              debugger;
               deferred.resolve(checkResult(global.rt, loaded));
             });
         });
@@ -62,7 +72,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       global.evalLib.runParsePyret(global.rt, global.programSrc, global.pyretOptions,
         function (parsed) {
           deferred.resolve();
-        });
+        }
+      );
     }
 
     /** BENCHMARK FUNCTION **/
@@ -70,7 +81,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
         function (loaded) {
           deferred.resolve();
-        });
+        }
+      );
     }
 
     /** BENCHMARK FUNCTION **/
@@ -78,7 +90,17 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       global.evalLib.runEvalLoadedPyret(global.rt, global.loadedResult, global.pyretOptions,
         function (answer) {
           deferred.resolve();
-        });
+        }
+      );
+    }
+
+    /** BENCHMARK FUNCTION **/
+    function runEvalPyret (deferred) {
+      global.evalLib.runEvalPyret(global.rt, global.programSrc, global.pyretOptions,
+        function (answer) {
+          deferred.resolve();
+        }
+      );
     }
 
     /** an evalLib-esque interface for our eval benchmark **/
@@ -129,10 +151,11 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function createSuite() {
       var suite = new Benchmark.Suite();
 
-      SUITE_LENGTH = 3;
+      SUITE_LENGTH = 4;
       suite.add('parse', parsePyret, CONFIG);
       suite.add('load', loadParsedPyret, CONFIG);
-      suite.add('eval_loaded', evalLoadedPyret, CONFIG);
+      suite.add('eval', evalLoadedPyret, CONFIG);
+      suite.add('all', runEvalPyret, CONFIG);
       return suite;
     }
 
@@ -171,10 +194,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
 
       suite.on('complete',
         function () {
-          // if (log) {
-          //   console.log(this);
-          //   console.log(this[0].stats.sample)
-          // };
+          if (log) {
+            // console.log(this[0].stats.sample)
+          };
           if (log) {console.log('Fastest is ' + this.filter('fastest').map('name')); }
           if (log) {console.log('Slowest is ' + this.filter('slowest').map('name')); }
           suiteRunDefer.notify(true);
@@ -262,16 +284,36 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       runBenchmarks(benchmarks, options, log, onDone);
     }
 
-    function testDeferredFunction(src, options, funName, onDone) {
+    function testRunFile(filename, options, log, useCached, onDone) {
+      if (useCached && TEST_CACHE.testRunFile.HAS_RUN) {
+        onDone(TEST_CACHE.testRunFile.RESULTS)
+      } else {
+        runFile(filename, options, log, function (results) {
+          TEST_CACHE.testRunFile.HAS_RUN = true;
+          TEST_CACHE.testRunFile.RESULTS = results;
+          onDone(results);
+        })
+      }
+    }
+
+    function testRunBenchmarks(tests, options, log, useCached, onDone) {
+      if (useCached && TEST_CACHE.testRunBenchmarks.HAS_RUN) {
+        onDone(TEST_CACHE.testRunBenchmarks.RESULTS);
+      } else {
+        runBenchmarks(tests, options, log, function (results) {
+          TEST_CACHE.testRunBenchmarks.HAS_RUN = true;
+          TEST_CACHE.testRunBenchmarks.RESULTS = results;
+          onDone(results);
+        })
+      }
+    }
+
+    function testBenchmarkFunction(src, options, funName, onDone) {
       initializeGlobalRuntime();
       var d = Q.defer();
       d.promise.then(
-        function (result) {
-          if (checkResult(global.rt, result)) {
-            onDone(true);
-          } else {
-            onDone(false);
-          }
+        function () {
+          onDone(true);
         },
         function (v) {throw new Error('reject should not happen'); },
         function (v) {throw new Error('notify should not happen'); }
@@ -296,6 +338,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
               break;
             case 'evalLoadedPyret':
               evalLoadedPyret(d);
+              break;
+            case 'runEvalPyret':
+              runEvalPyret(d);
               break;
             default:
               throw new Error('Invalid Function Name: ' + funName);
@@ -367,12 +412,14 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       runFile: runFile,
       evaluateProgram: evaluateProgram,
       test: {
-        testDeferredFunction: testDeferredFunction,
+        testBenchmarkFunction: testBenchmarkFunction,
         testEnsureSuccess: testEnsureSuccess,
         testInitializeGlobalRuntime: testInitializeGlobalRuntime,
         testSetup: testSetup,
         testCheckResult: testCheckResult,
-        testCreateSuite: testCreateSuite
+        testCreateSuite: testCreateSuite,
+        testRunBenchmarks: testRunBenchmarks,
+        testRunFile: testRunFile
       }
     };
 
