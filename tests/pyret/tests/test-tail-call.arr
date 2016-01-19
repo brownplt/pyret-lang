@@ -1,3 +1,19 @@
+import either as E
+import error as ER
+
+fun test-arity-mismatch(n):
+  if n == 0:
+    0
+  else:
+    test-arity-mismatch()
+  end
+where:
+  cases (E.Either) run-task(lam(): test-arity-mismatch(10) end):
+    | left(_) => raise("Should not return a value")
+    | right(v) => exn-unwrap(v)
+  end satisfies ER.is-arity-mismatch
+end
+
 fun len(l, acc):
   cases (List) l:
     | empty => acc

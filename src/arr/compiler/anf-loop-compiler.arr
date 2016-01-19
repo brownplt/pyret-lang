@@ -674,30 +674,29 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body :: Option, app-in
   if app-info.is-recursive and
      app-info.is-tail and
      compiler.allow-tco and
-     compiler.options.proper-tail-calls:
+     compiler.options.proper-tail-calls and
+     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
     c-block(
       j-block(
-        CL.concat-snoc(
-          [clist:
-            # Update step before the call, so that if it runs out of gas,
-            # the resumer goes to the right step
-            j-expr(j-assign(step, j-num(0))),
-            j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
-            j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
-              j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
-                j-throw(rt-method("makeCont", cl-empty))]))
-            ] +
-            CL.map_list2(
-              lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
-              compiled-args.to-list(),
-              compiler.args),
-            # CL.map_list2(
-            #   lam(compiled-arg, arg):
-            #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
-            #   end,
-            #   compiled-args.to-list(),
-            #   compiler.args),
-            j-continue)),
+        [clist:
+          # Update step before the call, so that if it runs out of gas,
+          # the resumer goes to the right step
+          j-expr(j-assign(step, j-num(0))),
+          j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
+          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
+            j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+              j-throw(rt-method("makeCont", cl-empty))]))] +
+        CL.map_list2(
+          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
+          compiled-args.to-list(),
+          compiler.args) +
+        # CL.map_list2(
+        #   lam(compiled-arg, arg):
+        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+        #   end,
+        #   compiled-args.to-list(),
+        #   compiler.args),
+        [clist: j-continue]),
       new-cases)
   else:
     c-block(
