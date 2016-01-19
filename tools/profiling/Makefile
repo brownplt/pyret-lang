@@ -1,7 +1,7 @@
 NODE            := node
 NPM             := npm
 PROFILE         := profiling.js
-CHROME2CALLTREE := lib/chrome2calltree/bin/chrome2calltree.js
+CHROME2CALLTREE := ../../node_modules/chrome2calltree/bin/chrome2calltree.js
 
 #THIS_FILE := 0_empty.arr
 THIS_FILE := ast.arr
@@ -19,7 +19,7 @@ GIT_BRANCH := $(shell git symbolic-ref --short HEAD)
 ARTIFACTS  := artifacts/$(GIT_BRANCH).$(PHASE)/
 
 install:
-	npm install v8-profiler
+	npm install v8-profiler chrome2calltree
 
 cpuprofile: processed.cpuprofile
 processed.cpuprofile: $(PYRET_LANG)build/$(PHASE)/$(PHASE).built

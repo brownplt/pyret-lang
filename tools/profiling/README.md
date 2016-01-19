@@ -8,7 +8,7 @@ To install the dependencies, run:
 ```
 make install
 ```
-At the time of this writing, this only installs [v8-profiler](https://github.com/node-inspector/v8-profiler) from the npm repo.
+At the time of this writing, this installs [v8-profiler](https://github.com/node-inspector/v8-profiler) and [chrome2calltree](https://github.com/jlfwong/chrome2calltree) from the npm repo.
 
 ## Use
 
