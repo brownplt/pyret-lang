@@ -428,7 +428,6 @@ data RuntimeError:
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
       pallet = make-pallet(4)
-      print(self.fun-def-loc)
       fun-app-arity = self.fun-app-args.length()
       arity-helper = lam(n, els):
         ED.maybe-stack-loc(
