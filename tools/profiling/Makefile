@@ -44,3 +44,8 @@ auto-report: archive-profile
 
 clean:
 	rm -f processed.cpuprofile	callgrind.profile
+
+
+JSHINT  = ../../node_modules/jshint/bin/jshint
+jshint:
+	$(NODE) $(JSHINT) *.js

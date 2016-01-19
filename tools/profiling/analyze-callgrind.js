@@ -1,5 +1,3 @@
-'use strict';
-
 var StringMap        = require('./lib/stringmap/stringmap.js');
 var fs               = require('fs');
 
@@ -66,10 +64,10 @@ function readFile(filename, keepUnknowns) {
           functionMap[fnName] = [newObj];
         }
         
-      };
+      }
     }
   }
-  return new StringMap(functionMap);  
+  return new StringMap(functionMap);
 }
 
 function logMissing (k, p) {
@@ -103,17 +101,17 @@ function totalByKey (functions, key) {
   functions.forEach(function (v, k) {
     for (var i = v.length - 1; i >= 0; i--) {
       total += v[i][key];
-    };    
+    }
   });
   return total;
 }
 
 function totalMs (functions) {
-  return totalByKey(functions, 'self_ms')
+  return totalByKey(functions, 'self_ms');
 }
 
 function totalHits (functions) {
-  return totalByKey(functions, 'self_hits')
+  return totalByKey(functions, 'self_hits');
 }
 
 function assertSameSource(obj1, obj2) {
@@ -126,7 +124,7 @@ function percentageDiff (num1, num2) {
   if (num1 === 0) {
     return 0;
   } else {
-    return ((100 * (num2 - num1))/num1)  
+    return ((100 * (num2 - num1))/num1);
   }
 }
 
@@ -191,14 +189,14 @@ function diff (file1, file2) {
       var hitsPercentDiff = Math.abs(percentageDiff(obj1.self_hits, obj2.self_hits));
       
       var includeMe =
-        msPercentDiff > relMsDiffABS
-          && Math.abs(newObj.self_ms_diff) > thresholdMs
-          && hitsPercentDiff > relHitsDiffABS
-          && Math.abs(newObj.self_hits_diff) > thresholdHits;
+        msPercentDiff > relMsDiffABS &&
+          Math.abs(newObj.self_ms_diff) > thresholdMs &&
+          hitsPercentDiff > relHitsDiffABS &&
+          Math.abs(newObj.self_hits_diff) > thresholdHits;
 
       if (includeMe) {
         functions.set(k, newObj);  
-      };
+      }
     } else {
       onlyIn1_ms   += v1[0].self_ms;
       onlyIn1_hits += v1[0].self_hits;
@@ -216,7 +214,7 @@ function diff (file1, file2) {
     onlyIn1_hits: onlyIn1_hits,
     onlyIn2_ms: onlyIn2_ms,
     onlyIn2_hits: onlyIn2_hits
-  }
+  };
 
   return out;
 
@@ -235,7 +233,7 @@ function formatChange(x1, x2) {
     x1.toString(), '=>', x2.toString(),
     '...',
     formatSignNum(x2 - x1),
-    '(' + formatSignPercent(percentageDiff(x1, x2)) + ')'].join(' ')
+    '(' + formatSignPercent(percentageDiff(x1, x2)) + ')'].join(' ');
 }
 
 // <number> -> <string>
@@ -270,7 +268,7 @@ if (numArgs === 3) {
   printInfo(difference);
 
 } else {
-  console.log('Usage: node analyze-callgrind.js <file.profile>+')
+  console.log('Usage: node analyze-callgrind.js <file.profile>+');
 }
 
 function printInfo (difference) {
@@ -295,4 +293,3 @@ function printInfo (difference) {
   });
 
 }
-
