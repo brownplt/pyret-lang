@@ -19,7 +19,7 @@ GIT_BRANCH := $(shell git symbolic-ref --short HEAD)
 ARTIFACTS  := artifacts/$(GIT_BRANCH).$(PHASE)/
 
 install:
-	npm install v8-profiler chrome2calltree
+	npm install v8-profiler chrome2calltree stringmap
 
 cpuprofile: processed.cpuprofile
 processed.cpuprofile: $(PYRET_LANG)build/$(PHASE)/$(PHASE).built

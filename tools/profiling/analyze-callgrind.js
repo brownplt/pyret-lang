@@ -1,4 +1,4 @@
-var StringMap        = require('./lib/stringmap/stringmap.js');
+var StringMap        = require('stringmap');
 var fs               = require('fs');
 
 var CONFIG           = require('./config');
