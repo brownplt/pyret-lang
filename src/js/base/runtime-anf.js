@@ -3987,8 +3987,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       function isProbablyOldStyleRNSFunction(moduleFun) {
         var len2 = moduleFun.length === 2;
-        var funSpace = String(moduleFun).indexOf("function (R") >= 0;
-        var funNoSpace = String(moduleFun).indexOf("function(R") >= 0;
+        var funSpace = String(moduleFun).indexOf("function (R") === 0;
+        var funNoSpace = String(moduleFun).indexOf("function(R") === 0;
         return len2 && (funSpace || funNoSpace);
       }
       var rawModules = wl.forEach(function(m) {
