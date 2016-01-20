@@ -20,7 +20,6 @@ r([
     ], function (
       benchmark
     ) {
-      debugger;
   benchmark.performTest();
 }, function(err) {
   console.log("Require failed! ", err);

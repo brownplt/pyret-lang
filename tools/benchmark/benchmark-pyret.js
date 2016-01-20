@@ -61,7 +61,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
             function (loaded) {
               global.loadedResult = loaded.result;
-              debugger;
               deferred.resolve(checkResult(global.rt, loaded));
             });
         });
@@ -196,7 +195,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         function () {
           if (log) {
             // console.log(this[0].stats.sample)
-          };
+          }
           if (log) {console.log('Fastest is ' + this.filter('fastest').map('name')); }
           if (log) {console.log('Slowest is ' + this.filter('slowest').map('name')); }
           suiteRunDefer.notify(true);
@@ -286,13 +285,13 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
 
     function testRunFile(filename, options, log, useCached, onDone) {
       if (useCached && TEST_CACHE.testRunFile.HAS_RUN) {
-        onDone(TEST_CACHE.testRunFile.RESULTS)
+        onDone(TEST_CACHE.testRunFile.RESULTS);
       } else {
         runFile(filename, options, log, function (results) {
           TEST_CACHE.testRunFile.HAS_RUN = true;
           TEST_CACHE.testRunFile.RESULTS = results;
           onDone(results);
-        })
+        });
       }
     }
 
@@ -304,7 +303,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           TEST_CACHE.testRunBenchmarks.HAS_RUN = true;
           TEST_CACHE.testRunBenchmarks.RESULTS = results;
           onDone(results);
-        })
+        });
       }
     }
 

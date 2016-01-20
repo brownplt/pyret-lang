@@ -70,7 +70,7 @@ define(["../benchmark-pyret"], function(b){
       });
     });
 
-    xdescribe('setup', function () {
+    describe('setup', function () {
       it('should set up parsed ast and loaded js module', function (done) {
         runs(function () {
           b.test.testSetup(validProgram, {}, function (result) {
