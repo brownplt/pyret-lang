@@ -141,26 +141,6 @@ define(["../benchmark-pyret"], function(b){
       });
     });
 
-    describe('runEvalPyret', function () {
-      it('should run on a valid program', function (done) {
-        runs(function () {
-          b.test.testBenchmarkFunction(validProgram, {}, 'runEvalPyret', function (result) {
-            expect(result).toBe(true);
-            done();
-          });
-        });
-      });
-
-      it('should run on a valid (long) program', function (done) {
-        runs(function () {
-          b.test.testBenchmarkFunction(longProgram, {}, 'runEvalPyret', function (result) {
-            expect(result).toBe(true);
-            done();
-          });
-        });
-      });
-    });
-
     describe('createSuite', function () {
       it('should create an instance of Benchmark.Suite with the correct number of benchmarks', function () {
         expect(b.test.testCreateSuite()).toBe(true);
