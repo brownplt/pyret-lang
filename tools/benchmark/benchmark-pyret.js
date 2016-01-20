@@ -1,3 +1,5 @@
+/* jshint evil: true */
+
 var CONFIG = {
   'async': true,
   'defer': true,
@@ -50,6 +52,12 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       throw new Error('checkResult called with invalid parameter');
     }
 
+    // Function -> Function
+    function cacheBust(resultFunc) {
+      var temp = resultFunc.toString().replace(/if\(R.modules\[(.+)\]\)/, 'if(false)');
+      return new Function('R', 'NAMESPACE', temp.substring(temp.indexOf('{')+1,temp.lastIndexOf('}')));
+    }
+
     //sets up global.astResult and global.loadedResult
     // for use in load / eval benchmarks, respectively
     function setup (deferred) {
@@ -60,7 +68,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           global.astResult = ast.result;
           global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
             function (loaded) {
-              global.loadedResult = loaded.result;
+              global.loadedResult = cacheBust(loaded.result);
               deferred.resolve(checkResult(global.rt, loaded));
             });
         });
@@ -93,30 +101,34 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       );
     }
 
-    /** an evalLib-esque interface for our eval benchmark **/
+    /** an evalLib-esque interface for our eval benchmark
+     *  which is mostly like runEvalParsedPyret
+     **/
     if (typeof global.evalLib.runEvalLoadedPyret !== 'function') {
       global.evalLib.runEvalLoadedPyret = function (runtime, mod, options, ondone) {
-        runtime.runThunk(function () {
-          if (!options.name) { options.name = global.evalLib.randomName(); }
-          return runtime.safeCall(function() {
-            return mod;
-          }, function(mod) {
-            return runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
-              var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
-              runtime.setParam("current-checker", currentChecker);
-              var sync = false;
-              var namespace = options.namespace || runtime.namespace;
-              runtime.pauseStack(function(restarter) {
-                runtime.run(mod, namespace, {}, function(result) {
-                  if(runtime.isSuccessResult(result)) { restarter.resume(result.result); }
-                  else {
-                    restarter.error(result.exn);
-                  }
-                });
+        runtime.runThunk(function() { global.evalLib.evalLoadedPyret(runtime, mod, options); }, ondone);
+      };
+
+      global.evalLib.evalLoadedPyret = function(runtime, loadedMod, options) {
+        if (!options.name) { options.name = global.evalLib.randomName(); }
+        return runtime.safeCall(function() {
+          return loadedMod;
+        }, function(mod) {
+          return runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
+            var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
+            runtime.setParam("current-checker", currentChecker);
+            var sync = false;
+            var namespace = options.namespace || runtime.namespace;
+            runtime.pauseStack(function(restarter) {
+              runtime.run(mod, namespace, {}, function(result) {
+                if(runtime.isSuccessResult(result)) { restarter.resume(result.result); }
+                else {
+                  restarter.error(result.exn);
+                }
               });
             });
           });
-        }, ondone);
+        });
       };
     }
 
@@ -183,9 +195,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
 
       suite.on('complete',
         function () {
-          if (log) {
-            // console.log(this[0].stats.sample)
-          }
           if (log) {console.log('Fastest is ' + this.filter('fastest').map('name')); }
           if (log) {console.log('Slowest is ' + this.filter('slowest').map('name')); }
           suiteRunDefer.notify(true);
