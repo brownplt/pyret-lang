@@ -11,6 +11,7 @@ import "compiler/type-structs.arr" as TS
 import "compiler/type-check-structs.arr" as TCS
 import "compiler/type-constraints.arr" as TC
 import "compiler/list-aux.arr" as LA
+import "compiler/my-type-check.arr" as MTC
 
 type Name                 = A.Name
 
@@ -1500,6 +1501,9 @@ fun provides-as-dict(provides):
 end
 
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
+
+  MTC.type-check(program, compile-env, modules)
+
   info = TCS.empty-tc-info("default")
   globvs = compile-env.globals.values
   globts = compile-env.globals.types

@@ -280,6 +280,7 @@ data Type:
   | t-record(fields :: TypeMembers)
   | t-forall(introduces :: List<TypeVariable>, onto :: Type)
   | t-ref(typ :: Type)
+  | t-existential(id :: Name)
 sharing:
   _output(self):
     cases(Type) self:
@@ -306,6 +307,7 @@ sharing:
         VS.vs-value(onto)
       | t-ref(typ) =>
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
+      | t-existential(id) => VS.vs-str(id.key())
     end
   end,
   key(self) -> String:
@@ -335,6 +337,7 @@ sharing:
           + onto.key()
       | t-ref(typ) =>
         "ref " + typ.key()
+      | t-existential(id) => id.key()
     end
   end,
   substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
@@ -381,6 +384,7 @@ sharing:
               std-compare(a-id, b-id)
             ])
           | t-var(_)            => less-than
+          | t-existential       => less-than
           | t-arrow(_, _)       => less-than
           | t-app(_, _)         => less-than
           | t-record(_)         => less-than
@@ -392,6 +396,7 @@ sharing:
         cases(Type) other:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
+          | t-existential(_)    => greater-than
           | t-var(b-id) => 
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
@@ -408,6 +413,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
           | t-arrow(b-args, b-ret) =>
             fold-comparisons([list:
               list-compare(a-args, b-args),
@@ -424,6 +430,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
           | t-app(b-onto, b-args) =>
             fold-comparisons([list:
@@ -440,6 +447,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
           | t-app(_, _)         => greater-than
           | t-record(b-fields)  =>
@@ -453,6 +461,7 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
           | t-app(_, _)         => greater-than
           | t-record(_)         => greater-than
@@ -469,12 +478,29 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
           | t-app(_, _)         => greater-than
           | t-record(_)         => greater-than
           | t-forall(_, _)      => greater-than
           | t-ref(b-typ)        =>
             a-typ._comp(b-typ)
+          | t-top               => less-than
+        end
+      | t-existential(a-id) =>
+        cases(Type) other:
+          | t-bot               => greater-than
+          | t-name(_, _)        => greater-than
+          | t-var(_)            => less-than
+          | t-existential(b-id) =>
+            if a-id < b-id: less-than
+            else if a-id > b-id: greater-than
+            else: equal;
+          | t-arrow(_, _)       => less-than
+          | t-app(_, _)         => less-than
+          | t-record(_)         => less-than
+          | t-forall(_, _)      => less-than
+          | t-ref(_)            => less-than
           | t-top               => less-than
         end
       | t-top =>
