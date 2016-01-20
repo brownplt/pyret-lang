@@ -1,7 +1,7 @@
 var CONFIG = {
   'async': true,
   'defer': true,
-  'maxTime': 5, // seconds
+  'maxTime': 60, // seconds
 };
 
 var SUITE_CONFIG = { 
