@@ -28,7 +28,7 @@ processed.cpuprofile: $(PYRET_LANG)build/$(PHASE)/$(PHASE).built
 
 callgrind: callgrind.profile
 callgrind.profile: processed.cpuprofile
-	$(NODE) $(CHROME2CALLTREE) -m -i processed.cpuprofile -o callgrind.profile
+	$(NODE) $(CHROME2CALLTREE) -i processed.cpuprofile -o callgrind.profile
 
 archive-profile: callgrind.profile
 	mkdir -p $(ARTIFACTS)
