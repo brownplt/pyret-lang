@@ -1,5 +1,3 @@
-/* jshint evil: true */
-
 var CONFIG = {
   'async': true,
   'defer': true,
@@ -52,10 +50,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       throw new Error('checkResult called with invalid parameter');
     }
 
-    // Function -> Function
-    function cacheBust(resultFunc) {
-      var temp = resultFunc.toString().replace(/if\(R.modules\[(.+)\]\)/, 'if(false)');
-      return new Function('R', 'NAMESPACE', temp.substring(temp.indexOf('{')+1,temp.lastIndexOf('}')));
+    function getModName(resultFunc) {
+      var match = resultFunc.toString().match(/if\(R.modules\[\"(.+)\"\]\)/);
+      return match[1];      
     }
 
     //sets up global.astResult and global.loadedResult
@@ -68,7 +65,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
           global.astResult = ast.result;
           global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
             function (loaded) {
-              global.loadedResult = cacheBust(loaded.result);
+              global.loadedResult = loaded.result;
+              global.modName = getModName(global.loadedResult);
               deferred.resolve(checkResult(global.rt, loaded));
             });
         });
@@ -96,6 +94,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function evalLoadedPyret (deferred) {
       global.evalLib.runEvalLoadedPyret(global.rt, global.loadedResult, global.pyretOptions,
         function (answer) {
+          global.rt.modules[global.modName] = undefined; // cache bust
           deferred.resolve();
         }
       );
