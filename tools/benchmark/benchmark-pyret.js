@@ -100,6 +100,15 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       );
     }
 
+    /** BENCHMARK FUNCTION **/
+    function runEvalPyret (deferred) {
+      global.evalLib.runEvalPyret(global.rt, global.programSrc, global.pyretOptions,
+        function (answer) {
+          deferred.resolve();
+        }
+      );
+    }
+
     /** an evalLib-esque interface for our eval benchmark
      *  which is mostly like runEvalParsedPyret
      **/
@@ -152,10 +161,11 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function createSuite() {
       var suite = new Benchmark.Suite();
 
-      SUITE_LENGTH = 3;
+      SUITE_LENGTH = 4;
       suite.add('parse', parsePyret, CONFIG);
       suite.add('load', loadParsedPyret, CONFIG);
       suite.add('eval', evalLoadedPyret, CONFIG);
+      suite.add('all', runEvalPyret, CONFIG);
       return suite;
     }
 
@@ -335,6 +345,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
               break;
             case 'evalLoadedPyret':
               evalLoadedPyret(d);
+              break;
+            case 'runEvalPyret':
+              runEvalPyret(d);
               break;
             default:
               throw new Error('Invalid Function Name: ' + funName);
