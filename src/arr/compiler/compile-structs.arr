@@ -168,7 +168,7 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -181,11 +181,11 @@ data CompileError:
     end
   | wf-empty-block(loc :: A.Loc) with:
     # semi-counterfactual loc on this error
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       [ED.error:
         [ED.para:
           ED.text("Pyret rejected your program because you have an "),
-          ED.highlight(ED.text("empty block"),[list: self.loc], make-pallet(1).get(0)),
+          ED.highlight(ED.text("empty block"),[list: self.loc], make-palette(1).get(0)),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -197,7 +197,7 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -209,11 +209,11 @@ data CompileError:
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the use of "),
-          ED.code(ED.highlight(ED.text(self.id), [list: self.loc], make-pallet(1).get(0))),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.loc], make-palette(1).get(0))),
           ED.text(" as an identifier because it is reserved.")]]
     end,
     render-reason(self):
@@ -226,7 +226,7 @@ data CompileError:
           ED.text(" because it is reserved.")]]
     end
   | zero-fraction(loc, numerator) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
@@ -234,7 +234,7 @@ data CompileError:
           ED.code(ED.highlight([ED.sequence: 
                                   ED.embed(self.numerator),
                                   ED.text(" / 0")], 
-                               [list: self.loc], make-pallet(1).get(0)))],
+                               [list: self.loc], make-palette(1).get(0)))],
         [ED.para:
           ED.text("because its denominator is zero.")]]
     end,
@@ -252,14 +252,14 @@ data CompileError:
           ED.text(" because its denominator is zero.")]]
     end
   | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error: 
         [ED.para: 
           ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
-          ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], pallet.get(0))),
+          ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], palette.get(0))),
           ED.text(" at the same level as "),
-          ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], pallet.get(1))),
+          ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], palette.get(1))),
           ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
     end,
     render-reason(self):
@@ -276,8 +276,8 @@ data CompileError:
           ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
     end
   | block-ending(l :: Loc, kind) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
@@ -294,15 +294,15 @@ data CompileError:
           ED.text(".")]]
     end
   | single-branch-if(expr :: A.Expr) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error: 
         [ED.para: 
           ED.text("If-expressions must have more than one branch, but the if-expression")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], palette.get(0))),
         [ED.para:
           ED.text("only has "),
-          ED.highlight(ED.text("one branch"), [list: self.expr.branches.first.l], pallet.get(1)),
+          ED.highlight(ED.text("one branch"), [list: self.expr.branches.first.l], palette.get(1)),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -313,8 +313,8 @@ data CompileError:
           ED.text(" does not have any other branches.")]]
     end
   | unwelcome-where(kind, loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.code(ED.text("`where`")),
@@ -333,13 +333,13 @@ data CompileError:
           ED.text(".")]]
     end
   | non-example(expr :: A.Expr) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(1)
       [ED.error: 
         [ED.para: 
           ED.code(ED.text("`example`")),
           ED.text("blocks must only contain testing statements, but ")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], palette.get(0))),
         [ED.para:
           ED.text(" isn't a testing statement.")]]
     end,
@@ -352,12 +352,12 @@ data CompileError:
           ED.text(" isn't a testing statement.")]]
     end
   | no-arguments(expr) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error: 
         [ED.para: 
           ED.text("Method declarations are expected to accept at least one argument, but the method declaration")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], pallet.get(0))),
+         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], palette.get(0))),
         [ED.para:
           ED.text("has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end,
@@ -369,8 +369,8 @@ data CompileError:
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
   | non-toplevel(kind, l :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("You may only define a "),
@@ -387,8 +387,8 @@ data CompileError:
           ED.text(" at the top-level.")]]
     end
   | underscore-as(l :: Loc, kind) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("The underscore "),
@@ -409,8 +409,8 @@ data CompileError:
           ED.text(".")]]
     end
   | underscore-as-pattern(l :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("The underscore "),
@@ -431,8 +431,8 @@ data CompileError:
           ED.text(" instead.")]]
     end
   | underscore-as-expr(l :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("The underscore "),
@@ -449,8 +449,8 @@ data CompileError:
           ED.text(" cannot be used where an expression is expected.")]]
     end
   | underscore-as-ann(l :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       [ED.error: 
         [ED.para: 
           ED.text("The underscore "),
@@ -467,8 +467,8 @@ data CompileError:
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
   | unbound-id(id :: A.Expr) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
           [ED.para:
@@ -504,8 +504,8 @@ data CompileError:
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -541,8 +541,8 @@ data CompileError:
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.ann.l:
         | builtin(_) =>
           [ED.para:
@@ -579,7 +579,7 @@ data CompileError:
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -587,8 +587,8 @@ data CompileError:
       ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
     end
   | pointless-var(loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -619,8 +619,8 @@ data CompileError:
       end
     end
   | pointless-rec(loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -651,8 +651,8 @@ data CompileError:
       end
     end
   | pointless-shadow(loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(1).get(0)
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -683,8 +683,8 @@ data CompileError:
       end
     end
   | bad-assignment(iuse :: A.Expr, idef :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      color = make-pallet(3)
+    render-fancy-reason(self, make-palette):
+      color = make-palette(3)
       use-loc-color = color.get(0)
       def-loc-color = color.get(1)
       [ED.error:
@@ -714,7 +714,7 @@ data CompileError:
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -724,10 +724,10 @@ data CompileError:
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
-      old-loc-color = pallet.get(0)
-      new-loc-color = pallet.get(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
+      old-loc-color = palette.get(0)
+      new-loc-color = palette.get(1)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
@@ -772,10 +772,10 @@ data CompileError:
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
-      old-loc-color = pallet.get(0)
-      new-loc-color = pallet.get(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
+      old-loc-color = palette.get(0)
+      new-loc-color = palette.get(1)
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
@@ -822,10 +822,10 @@ data CompileError:
       end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
-      old-loc-color = pallet.get(0)
-      new-loc-color = pallet.get(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
+      old-loc-color = palette.get(0)
+      new-loc-color = palette.get(1)
       [ED.error:
         [ED.para:
           ED.text("The declaration of the field named "),
@@ -850,14 +850,14 @@ data CompileError:
         [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end
   | same-line(a :: Loc, b :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("Pyret expects each expression within a block to have its own line, but Pyret found "),
-          ED.highlight(ED.text("an expression"), [list: self.a], pallet.get(0)),
+          ED.highlight(ED.text("an expression"), [list: self.a], palette.get(0)),
           ED.text(" on the same line as "),
-          ED.highlight(ED.text("another expression"), [list: self.b], pallet.get(1)),
+          ED.highlight(ED.text("another expression"), [list: self.b], palette.get(1)),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -870,14 +870,14 @@ data CompileError:
           ED.text(".")]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because it found a "), 
-          ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], pallet.get(0)),
+          ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], palette.get(0)),
           ED.text(" but it "),
-          ED.highlight(ED.text("expected"), [list: self.expected-loc], pallet.get(1)),
+          ED.highlight(ED.text("expected"), [list: self.expected-loc], palette.get(1)),
           ED.text(" a "),
           ED.text(self.expected-name)]]
     end,
@@ -890,7 +890,7 @@ data CompileError:
           ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
   | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -909,21 +909,21 @@ data CompileError:
           draw-and-highlight(self.expected-loc)]]
     end
   | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type instantiation")],
        [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], palette.get(0)),
             ED.text("<"),
             ED.h-sequence(self.ann.args.map(lam(ann):
-              ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], pallet.get(1));), ","),
+              ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], palette.get(1));), ","),
             ED.text(">")])],
         [ED.para:
           ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), pallet.get(1)),
+          ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), palette.get(1)),
           ED.text(", but the type accepts "),
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
@@ -944,9 +944,9 @@ data CompileError:
           ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr, fun-typ) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
-      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
+      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], palette.get(0))
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
@@ -959,7 +959,7 @@ data CompileError:
           ED.text("However, the "), 
           ed-applicant,
           ED.text(" is given "),
-          ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), pallet.get(1)), 
+          ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), palette.get(1)), 
           ED.text(" and the type signature of the "),
           ed-applicant],
         [ED.para:
@@ -991,15 +991,15 @@ data CompileError:
           ED.text(".")]]
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(1)
-      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], pallet.get(0))
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(1)
+      ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], palette.get(0))
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],pallet.get(0)),
+            ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],palette.get(0)),
             ED.text("("),
             ED.h-sequence(
               self.app-expr.args.map(
@@ -1025,15 +1025,15 @@ data CompileError:
           ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
-         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], pallet.get(0)),
+         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], palette.get(0)),
         [ED.para:
           ED.text("does not have a field named "),
-          ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], pallet.get(1)))]]
+          ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], palette.get(1)))]]
     end,
     render-reason(self):
       [ED.error:
@@ -1048,14 +1048,14 @@ data CompileError:
           ED.loc(self.access-loc)]
     end
   | duplicate-variant(id :: String, found :: Loc, previous :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("A variant may not have the same name as any other variant in the type, but the declaration of a variant named "),
-          ED.code(ED.highlight(ED.text(self.id), [list: self.found], pallet.get(0))),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.found], palette.get(0))),
           ED.text(" is preceeded by a declaration of a variant also named "),
-          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], pallet.get(1))),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], palette.get(1))),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -1072,14 +1072,14 @@ data CompileError:
           ED.text(".")]]
     end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("A variant may not be matched more than once in a cases expression, but the branch matching the variant "),
-          ED.code(ED.highlight(ED.text(self.id), [list: self.found], pallet.get(0))),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.found], palette.get(0))),
           ED.text(" is preceeded by a branch also matching "),
-          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], pallet.get(1))),
+          ED.code(ED.highlight(ED.text(self.id), [list: self.previous], palette.get(1))),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -1096,23 +1096,23 @@ data CompileError:
           ED.text(".")]]
     end,
   | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(3)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the "),
-          ED.highlight(ED.text("cases expression"),[list: self.cases-loc], pallet.get(0)),
+          ED.highlight(ED.text("cases expression"),[list: self.cases-loc], palette.get(0)),
           ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
           ED.text(self.data-type.name), 
           ED.text(". However, no variant named "),
-          ED.code(ED.highlight(ED.text(self.branch.name), [list: self.branch.pat-loc], pallet.get(1))),
+          ED.code(ED.highlight(ED.text(self.branch.name), [list: self.branch.pat-loc], palette.get(1))),
           ED.text(" exists in "),
           ED.text(self.data-type.name), 
           ED.text("'s "),
-          ED.highlight(ED.text("variants"),self.data-type.variants.map(_.l), pallet.get(2)),
+          ED.highlight(ED.text("variants"),self.data-type.variants.map(_.l), palette.get(2)),
           ED.text(":")],
          ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
-          ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], pallet.get(2)));))]
+          ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], palette.get(2)));))]
     end,
     render-reason(self):
       [ED.error:
@@ -1132,12 +1132,12 @@ data CompileError:
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(3)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the "),
-          ED.highlight(ED.text("cases expression"),[list: self.loc], pallet.get(0)),
+          ED.highlight(ED.text("cases expression"),[list: self.loc], palette.get(0)),
           ED.text(" has a branch for every variant of "),
           ED.code(ED.text(self.type-name)), 
           ED.text(". Therefore, the "),
@@ -1150,12 +1150,12 @@ data CompileError:
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(1)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the "),
-          ED.highlight(ED.text("cases expression"),[list: self.loc], pallet.get(0)),
+          ED.highlight(ED.text("cases expression"),[list: self.loc], palette.get(0)),
           ED.text(" is expected to be non-exhaustive, but there are variants in the type "),
           ED.code(ED.text(self.type-name)),
           ED.text(" which do not have a corresponding branch:")],
@@ -1167,16 +1167,16 @@ data CompileError:
         + ". It is missing: " + self.missing.join-str(", ") + ".")
     end
   | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(2)
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because a "),
-          ED.code(ED.highlight(ED.text("cases expressions"), [list: self.loc], pallet.get(0))),
+          ED.code(ED.highlight(ED.text("cases expressions"), [list: self.loc], palette.get(0))),
           ED.text(" can only branch on variants of "),
           ED.code(ED.text("data")),
           ED.text(" types. The type "),
-          ED.code(ED.highlight(ED.text(self.type-name), [list: self.ann.l], pallet.get(1))),
+          ED.code(ED.highlight(ED.text(self.type-name), [list: self.ann.l], palette.get(1))),
           ED.text(" cannot be used in cases expressions.")]]
     end,
     render-reason(self):
@@ -1185,28 +1185,28 @@ data CompileError:
         + " cannot be used in a cases expression.")
     end
   | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
           ED.text(if n == 1: " field"
                   else:      " fields";)]
       end
-      pallet = make-pallet(4)
+      palette = make-palette(4)
       [ED.error:
         [ED.para:
           ED.text("The type checker expects that the "),
-          ED.highlight(ED.text("pattern"), [list: self.branch.pat-loc], pallet.get(0)),
+          ED.highlight(ED.text("pattern"), [list: self.branch.pat-loc], palette.get(0)),
           ED.text(" in the cases branch has the same number of "),
-          ED.highlight(ED.text("field bindings"), self.branch.args.map(_.l), pallet.get(1)),
+          ED.highlight(ED.text("field bindings"), self.branch.args.map(_.l), palette.get(1)),
           ED.text(" as the data variant "),
-          ED.code(ED.highlight(ED.text(self.variant.name), [list: self.variant.l], pallet.get(2))),
+          ED.code(ED.highlight(ED.text(self.variant.name), [list: self.variant.l], palette.get(2))),
           ED.text(" has "),
-          ED.highlight(ED.text("fields"), [list: A.dummy-loc], pallet.get(3)),
+          ED.highlight(ED.text("fields"), [list: A.dummy-loc], palette.get(3)),
           ED.text(". However, the branch pattern binds "),
-          ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), pallet.get(1)),
+          ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), palette.get(1)),
           ED.text(" and the variant is declared as having "),
-          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], pallet.get(3))]]
+          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], palette.get(3))]]
     end,
     render-reason(self):
       fun ed-fields(n):
@@ -1229,19 +1229,19 @@ data CompileError:
           ed-fields(self.variant.fields.length())]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    render-fancy-reason(self, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, make-palette):
+      palette = make-palette(1)
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
             ED.text("The type checker rejected your program because the cases branch named "), 
-            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], pallet.get(0))),
+            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], palette.get(0))),
             ED.text(" has an argument list, but the variant is a singleton.")]]
       else:
         [ED.error:
           [ED.para:
             ED.text("The type checker rejected your program because the cases branch named "), 
-            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], pallet.get(0))),
+            ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], palette.get(0))),
             ED.text(" has an argument list, but the variant is not a singleton.")]]
       end
     end,
@@ -1266,7 +1266,7 @@ data CompileError:
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     # duplicate of `bad-type-instantiation` ?
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -1277,7 +1277,7 @@ data CompileError:
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -1288,7 +1288,7 @@ data CompileError:
             + "or the given arguments are incompatible.")]]
     end
   | cant-typecheck(reason :: String) with:
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -1297,7 +1297,7 @@ data CompileError:
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -1305,7 +1305,7 @@ data CompileError:
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
-    render-fancy-reason(self, make-pallet):
+    render-fancy-reason(self, make-palette):
       self.render-reason()
     end,
     render-reason(self):

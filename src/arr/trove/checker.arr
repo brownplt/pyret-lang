@@ -43,8 +43,8 @@ end
 data TestResult:
   | success(loc :: Loc, code :: String)
   | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -53,8 +53,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], palette.get(2))
       
       ed-op = cases(Option) test-ast.refinement:
         | none    => 
@@ -63,7 +63,7 @@ data TestResult:
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
-            ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], pallet.get(1)),
+            ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], palette.get(1)),
             ED.text(")")];
           
       [ED.error:
@@ -73,16 +73,16 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "), 
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
-                | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], pallet.get(1))
+                | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], palette.get(1))
               end,
               ED.text(" is satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
@@ -107,8 +107,8 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-different(loc :: Loc, code :: String, refinement, left, right) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -117,8 +117,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], palette.get(2))
       
       ed-op = cases(Option) test-ast.refinement:
         | none    => 
@@ -127,7 +127,7 @@ data TestResult:
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
-            ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], pallet.get(1)),
+            ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], palette.get(1)),
             ED.text(")")];
           
       [ED.error:
@@ -137,16 +137,16 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is-not => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "), 
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
-                | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], pallet.get(1))
+                | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], palette.get(1))
               end,
               ED.text(" is not satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
@@ -169,8 +169,8 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-satisfied(loc :: Loc, code :: String, val, pred) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -179,8 +179,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], palette.get(2))
         
       [ED.error:
         [ED.para:
@@ -189,9 +189,9 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -209,8 +209,8 @@ data TestResult:
         [ED.para: ED.embed(self.val)]]
     end
   | failure-not-dissatisfied(loc :: Loc, code :: String, val, pred) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -219,8 +219,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], palette.get(2))
         
       [ED.error:
         [ED.para:
@@ -229,9 +229,9 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" violates "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -283,8 +283,8 @@ data TestResult:
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
   | failure-exn(loc :: Loc, code :: String, actual-exn, l-operand) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -294,7 +294,7 @@ data TestResult:
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right
       ed-op = ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"") 
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -302,14 +302,14 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
             if is-some(rhs-ast):
-              ED.highlight(ED.h-sequence(rhs-ast.value.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.value.l], pallet.get(2))
+              ED.highlight(ED.h-sequence(rhs-ast.value.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.value.l], palette.get(2))
             else: ED.text("");])],
         [ED.para:
           ED.text("because it did not expect the evaluation of the "),
-          if self.l-operand: ed-lhs else: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.value.l], pallet.get(2));,
+          if self.l-operand: ed-lhs else: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.value.l], palette.get(2));,
           ED.text(" to raise an exception:")],
         ED.embed(self.actual-exn)]
     end,
@@ -335,8 +335,8 @@ data TestResult:
       end
     end
   | failure-raise-not-satisfied(loc :: Loc, code :: String, exn, pred) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -345,8 +345,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], palette.get(2))
         
       [ED.error:
         [ED.para:
@@ -355,9 +355,9 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" raises-satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -375,8 +375,8 @@ data TestResult:
         [ED.para: ED.embed(self.exn)]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, code :: String, exn, pred) with:
-    render-fancy-reason(self, PP, AST, make-pallet):
-      pallet = make-pallet(3)
+    render-fancy-reason(self, PP, AST, make-palette):
+      palette = make-palette(3)
       test-ast =
         PP.surface-parse(
             range(1, self.loc.start-line).map(lam(_):"\n";).foldl(string-append, "")
@@ -385,8 +385,8 @@ data TestResult:
           self.loc.source).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], pallet.get(0))
-      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], pallet.get(2))
+      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], palette.get(0))
+      ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], palette.get(2))
         
       [ED.error:
         [ED.para:
@@ -395,9 +395,9 @@ data TestResult:
           ED.text(" reported failure for the test ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], pallet.get(0)),
+            ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" raises-satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], pallet.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,

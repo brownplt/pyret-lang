@@ -18,8 +18,8 @@ data RuntimeError:
       [ED.error: [ED.para: ED.text(self.message)]]
     end
   | no-cases-matched(loc, val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(2)
       ast-cse = loc-to-ast(self.loc).block.stmts.first
       txt-val = loc-to-src(ast-cse.val.l)
       branches-loc = ast-cse.branches-loc()
@@ -27,15 +27,15 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("cases expression"), [ED.locs: self.loc], pallet.get(0)),
+          ED.highlight(ED.text("cases expression"), [ED.locs: self.loc], palette.get(0)),
           ED.text(" expects there to always be a branch matching the value of the "),
-          ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l], pallet.get(1)),
+          ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l], palette.get(1)),
           ED.text(".")],
         [ED.para:
           ED.text("The value of the "),
-          ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l], pallet.get(1)),
+          ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l], palette.get(1)),
           ED.text(" was "),
-          ED.highlight(ED.text(txt-val), [ED.locs: ast-cse.val.l], pallet.get(1)),
+          ED.highlight(ED.text(txt-val), [ED.locs: ast-cse.val.l], palette.get(1)),
           ED.text(":")],
          ED.embed(self.val)]
     end,
@@ -47,7 +47,7 @@ data RuntimeError:
         ED.embed(self.val)]
     end
   | no-branches-matched(loc, expression :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       [ED.error:
         [ED.para:
           ED.text("The "),
@@ -55,7 +55,7 @@ data RuntimeError:
           ED.text(" expression")],
         [ED.para:
           ED.code(
-            ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], make-pallet(1).get(0)))],
+            ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], make-palette(1).get(0)))],
         [ED.para:
           ED.text("expects that the condition of at least one branch be satisfied. No branches were satisfied.")]]
     end,
@@ -66,7 +66,7 @@ data RuntimeError:
           ED.text("expression at"), draw-and-highlight(self.loc)]]
     end
   | internal-error(message, info-args) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -76,14 +76,14 @@ data RuntimeError:
         vert-list-values(self.info-args)]
     end
   | field-not-found(loc, obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(2)
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
       fld-loc = ast-dot.field-loc()
-      obj-col = pallet.get(0)
-      fld-col = pallet.get(1)
+      obj-col = palette.get(0)
+      fld-col = palette.get(1)
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
@@ -104,7 +104,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
-          ED.text("is:")],
+          ED.text(" is:")],
          ED.embed(self.obj)]
     end,
     render-reason(self, loc-to-ast):
@@ -116,14 +116,14 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(2)
       ast-dot = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-dot.obj.l)
       obj-loc = ast-dot.obj.l
       fld-loc = ast-dot.field-loc()
-      obj-col = pallet.get(0)
-      fld-col = pallet.get(1)
+      obj-col = palette.get(0)
+      fld-col = palette.get(1)
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
@@ -153,15 +153,15 @@ data RuntimeError:
          ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(2)
       ast-ext = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-ext.supe.l)
       obj-loc = ast-ext.supe.l
       fld-loc = ast-ext.field-loc()
       txt-fld = loc-to-src(fld-loc)
-      obj-col = pallet.get(0)
-      fld-col = pallet.get(1)
+      obj-col = palette.get(0)
+      fld-col = palette.get(1)
       [ED.error:
         [ED.para:
           ED.text("The object extension expression ")],
@@ -192,7 +192,7 @@ data RuntimeError:
     end
   | non-boolean-condition(loc, typ, value) with:
     # TODO : is this error even used?
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -204,7 +204,7 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -217,7 +217,7 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | generic-type-mismatch(val, typ :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       ED.maybe-stack-loc(0, true,
         lam(loc):
           src = loc-to-src(loc)
@@ -225,7 +225,7 @@ data RuntimeError:
             [ED.para:
               ED.text("The expression")],
             [ED.para:
-              ED.code(ED.highlight(ED.text(src), [ED.locs: loc], make-pallet(1).get(0)))],
+              ED.code(ED.highlight(ED.text(src), [ED.locs: loc], make-palette(1).get(0)))],
             [ED.para:
               ED.text("was expected to evaluate to a "),
               ED.embed(self.typ),
@@ -251,24 +251,24 @@ data RuntimeError:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
     end
   | num-string-binop-error(val1, val2, opname, opdesc, methodname) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       # TODO: breaks on multi-operator expression chains
-      pallet = make-pallet(3)
+      palette = make-palette(3)
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
           [ED.error:
             [ED.para:
               ED.text("The binary "),
-              ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l], pallet.get(1)),
+              ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l], palette.get(1)),
               ED.text(" operator expression ")],
             [ED.para:
               ED.code([ED.sequence:
-                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], pallet.get(0)),
+                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], palette.get(0)),
                 ED.text(" "),
-                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], pallet.get(1)),
+                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], palette.get(1)),
                 ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], pallet.get(2))])],
+                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], palette.get(2))])],
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -276,17 +276,17 @@ data RuntimeError:
                 ED.text("two Strings, or"),
                 [ED.sequence: 
                   ED.text("a "),
-                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
                   ED.text(" that has a method named "), 
                   ED.code(ED.text(self.methodname))]]],
             [ED.para:
               ED.text("However, the expression's "),
-              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
               ED.text(" evaluated to")],
             ED.embed(self.val1),
             [ED.para:
               ED.text("and its "),
-              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], pallet.get(2)),
+              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], palette.get(2)),
               ED.text(" evaluated to")],
             ED.embed(self.val2)]
         end, 
@@ -306,41 +306,41 @@ data RuntimeError:
             ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, methodname) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       # TODO: breaks on multi-operator expression chains
-      pallet = make-pallet(3)
+      palette = make-palette(3)
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
           [ED.error:
             [ED.para:
               ED.text("The binary "),
-              ED.highlight(ED.text(self.opname),[ED.locs: binop-ast.op-l], pallet.get(1)),
+              ED.highlight(ED.text(self.opname),[ED.locs: binop-ast.op-l], palette.get(1)),
               ED.text(" operator expression ")],
             [ED.para:
               ED.code([ED.sequence:
-                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], pallet.get(0)),
+                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], palette.get(0)),
                 ED.text(" "),
-                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], pallet.get(1)),
+                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], palette.get(1)),
                 ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], pallet.get(2))])],
+                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], palette.get(2))])],
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
                 ED.text("two Numbers, or"),
                 [ED.sequence: 
                   ED.text("a "),
-                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
                   ED.text(" that has a method named "), 
                   ED.code(ED.text(self.methodname))]]],
             [ED.para:
               ED.text("However, the expression's "),
-              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], pallet.get(0)),
+              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
               ED.text(" evaluated to")],
             ED.embed(self.val1),
             [ED.para:
               ED.text("and its "),
-              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], pallet.get(2)),
+              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], palette.get(2)),
               ED.text(" evaluated to")],
             ED.embed(self.val2)]
         end, 
@@ -359,8 +359,8 @@ data RuntimeError:
             ED.text("The left operand must have a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(4)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(4)
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
       ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
@@ -369,23 +369,23 @@ data RuntimeError:
           ED.text("The cases branch pattern")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2)),
+            ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2)),
             cases(Any) ast-branch:
               | s-cases-branch(loc, pat-loc, name, args, _) =>
                 [ED.sequence:
                   ED.text("("),
                   ED.h-sequence(
                     ast-branch.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(3));),
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], palette.get(3));),
                     ","),
                   ED.text(")")]
               | s-singleton-cases-branch(loc, pat-loc, name, _) => ED.text("")
             end])],
         [ED.para:
           ED.text("expects that the pattern for the "),
-          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
+          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2))),
           ED.text(" branch has exactly the same number of "),
-          ED.highlight(ED.text("arguments"), ast-branch.args.map(_.l), pallet.get(3)),
+          ED.highlight(ED.text("arguments"), ast-branch.args.map(_.l), palette.get(3)),
           ED.text(" as the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of "),
@@ -393,11 +393,11 @@ data RuntimeError:
           ED.text(" accepts.")],
         [ED.para:
           ED.text("The cases pattern for "),
-          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], pallet.get(2))),
+          ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2))),
           ED.text(" accepts "),
           cases(Any) ast-branch:
             | s-cases-branch(_, _, _, args, _) =>
-                ED.highlight(ED.ed-args(self.num-args),args.map(_.l), pallet.get(3))
+                ED.highlight(ED.ed-args(self.num-args),args.map(_.l), palette.get(3))
             | s-singleton-cases-branch(_, _, _, _) => ED.ed-args(self.num-args)
           end,
           ED.text(". The "),
@@ -426,8 +426,8 @@ data RuntimeError:
         end]
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(4)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(4)
       fun-app-arity = self.fun-app-args.length()
       arity-helper = lam(n, els):
         ED.maybe-stack-loc(
@@ -444,29 +444,29 @@ data RuntimeError:
                 ED.text("The function application expression ")],
               [ED.para:
                 ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], pallet.get(0)),
+                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc], palette.get(0)),
                   ED.text("("),
                   ED.h-sequence(
                     fun-app-ast.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(1));),
+                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], palette.get(1));),
                     ","),
                   ED.text(")")])],
               [ED.para:
                 ED.text("expects the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], palette.get(0)),
                 ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], palette.get(0)),
                 ED.text(" evaluated to a "),
-                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], pallet.get(2)),
+                ED.highlight(ED.text("function"), [ED.locs: self.fun-def-loc], palette.get(2)),
                 ED.text(" accepting exactly "),
                 if self.fun-def-loc.is-builtin():
                   ED.ed-args(self.fun-def-arity)
                 else:
                   cases(Any) loc-to-ast(self.fun-def-loc).block.stmts.first:
                     | s-fun(_,_,_,args,_,_,_,_) =>
-                      ED.highlight(ED.ed-args(self.fun-def-arity), args.map(_.l), pallet.get(3))
+                      ED.highlight(ED.ed-args(self.fun-def-arity), args.map(_.l), palette.get(3))
                     | else => 
                       ED.ed-args(self.fun-def-arity)
                   end
@@ -474,9 +474,9 @@ data RuntimeError:
                 ED.text(".")],
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], pallet.get(0)),
+                ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc], palette.get(0)),
                 ED.text(" had "),
-                ED.highlight(ED.ed-args(fun-app-arity), fun-app-ast.args.map(_.l), pallet.get(1)),
+                ED.highlight(ED.ed-args(fun-app-arity), fun-app-ast.args.map(_.l), palette.get(1)),
                 ED.text(" applied to it.")]]
           end, els);
         arity-helper(1, arity-helper(0, self.render-reason()))
@@ -513,8 +513,8 @@ data RuntimeError:
           vert-list-values(self.fun-app-args)])
     end
   | non-function-app(loc, non-fun-val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(2)
       app-ast = loc-to-ast(self.loc).block.stmts.first
       fun-loc = app-ast._fun.l
       fun-src = loc-to-src(fun-loc)
@@ -526,22 +526,22 @@ data RuntimeError:
           ED.text("The function application expression ")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.text(fun-src), [ED.locs: fun-loc], pallet.get(0)),
+            ED.highlight(ED.text(fun-src), [ED.locs: fun-loc], palette.get(0)),
             ED.text("("),
             ED.h-sequence(
               app-ast.args.map(
-                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], pallet.get(1));),
+                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l], palette.get(1));),
               ","),
             ED.text(")")])],
         [ED.para:
           ED.text("expects the "),
-          ED.highlight(ED.text("applicant"), [ED.locs: fun-loc], pallet.get(0)),
+          ED.highlight(ED.text("applicant"), [ED.locs: fun-loc], palette.get(0)),
           ED.text(" to evaluate to a function value accepting "),
-          ED.highlight(ED.ed-args(num-args), app-ast.args.map(_.l), pallet.get(1)),
+          ED.highlight(ED.ed-args(num-args), app-ast.args.map(_.l), palette.get(1)),
           ED.text(".")],
         [ED.para:
           ED.text("The expression "),
-          ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], pallet.get(0)),
+          ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], palette.get(0)),
           ED.text(" evaluated to the non-function value:")],
         [ED.para: ED.embed(self.non-fun-val)]]
     end,
@@ -553,21 +553,21 @@ data RuntimeError:
         ED.embed(self.non-fun-val)]
     end
   | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
       [ED.error: ED.text(tostring(self))]
     end
   | uninitialized-id(loc, name) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(1)
       [ED.error:
         [ED.para:
           ED.text("The identifier "), 
-          ED.code(ED.highlight(ED.text(self.name), [ED.locs: self.loc], pallet.get(0))),
+          ED.code(ED.highlight(ED.text(self.name), [ED.locs: self.loc], palette.get(0))),
           ED.text(" is unbound. Although it has been previously defined, it is being "),
-          ED.highlight(ED.text("used"), [ED.locs: self.loc], pallet.get(0)),
+          ED.highlight(ED.text("used"), [ED.locs: self.loc], palette.get(0)),
           ED.text(" before it has been is initialized to a value.")]]
     end,
     render-reason(self):
@@ -576,7 +576,7 @@ data RuntimeError:
           draw-and-highlight(self.loc), ED.text("before it was defined.")]]
     end
   | module-load-failure(names) with: # names is List<String>
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -588,8 +588,8 @@ data RuntimeError:
         ED.h-sequence(self.names.map(ED.text), ", ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
+      palette = make-palette(1)
       ED.maybe-stack-loc(0, true,
         lam(loc):
           ast-dot = loc-to-ast(loc).block.stmts.first
@@ -597,9 +597,9 @@ data RuntimeError:
           [ED.error:
             [ED.para: 
               ED.text("The array interaction "),
-              ED.code(ED.highlight(ED.text(self.method-name), [ED.locs: loc], pallet.get(0)))],
+              ED.code(ED.highlight(ED.text(self.method-name), [ED.locs: loc], palette.get(0)))],
             [ED.para:
-              ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0)))],
+              ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], palette.get(0)))],
             [ED.para:
               ED.text("expects that the index passed to it is an integer within the bounds of the array. "),
               ED.embed(self.index),
@@ -623,7 +623,7 @@ data RuntimeError:
             ED.text("because:"), ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     # TODO
@@ -637,7 +637,7 @@ data RuntimeError:
     end
 
   | user-break with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self):
@@ -645,7 +645,7 @@ data RuntimeError:
     end
 
   | user-exception(value :: Any) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       self.render-reason()
     end,
     render-reason(self): ED.embed(self.value) end
@@ -653,8 +653,8 @@ end
 
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
-    render-fancy-reason(self, loc-to-src, make-pallet):
-      color = make-pallet(1).get(0)
+    render-fancy-reason(self, loc-to-src, make-palette):
+      color = make-palette(1).get(0)
       missing =
         [ED.error:
           [ED.para: ED.text("The program is missing something")],
@@ -712,11 +712,11 @@ data ParseError:
           [ED.bulleted: missing, extra]]]
     end
   | parse-error-eof(loc) with:
-    render-fancy-reason(self, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-src, make-palette):
       [ED.error: 
         [ED.para:
           ED.text("Pyret didn't expect your program to "),
-          ED.code(ED.highlight(ED.text("end"),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.code(ED.highlight(ED.text("end"),[ED.locs: self.loc], make-palette(1).get(0))),
           ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
     end,
     render-reason(self):
@@ -725,11 +725,11 @@ data ParseError:
           ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" right at the end.")]]
     end
   | parse-error-unterminated-string(loc) with:
-    render-fancy-reason(self, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-src, make-palette):
       [ED.error: 
         [ED.para:
           ED.text("Pyret thinks the string ")],
-         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-palette(1).get(0))),
         [ED.para:
           ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
           ED.code(ED.text("```")),
@@ -742,11 +742,11 @@ data ParseError:
           ED.text("; you may be missing closing punctuation.")]]
     end
   | parse-error-bad-operator(loc) with:
-    render-fancy-reason(self, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-src, make-palette):
       [ED.error: 
         [ED.para:
           ED.text("The operator "),
-          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-palette(1).get(0))),
           ED.text(" must have whitespace separating it from its operands.")]]
     end,
     render-reason(self):
@@ -756,11 +756,11 @@ data ParseError:
           ED.text(" has no surrounding whitespace.")]]
     end
   | parse-error-bad-number(loc) with:
-    render-fancy-reason(self, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc-to-src, make-palette):
       [ED.error: 
         [ED.para:
           ED.text("Pyret thinks "),
-          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-pallet(1).get(0))),
+          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], make-palette(1).get(0))),
           ED.text(" is probably a number, but number literals in Pyret require at least one digit before the decimal point.")]]
     end,
     render-reason(self):
