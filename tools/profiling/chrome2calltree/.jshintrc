@@ -1,3 +1,0 @@
-{
-    "strict"        : "implied" // "implied" - lint the code as if there is the "use strict"; directive
-}
