@@ -394,33 +394,36 @@ data RuntimeError:
               | s-singleton-cases-branch(loc, pat-loc, name, _) => ED.text("")
             end])],
         [ED.para:
-          ED.text("expects that the pattern for the "),
+          ED.text("expects that the "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2))),
-          ED.text(" branch has exactly the same number of "),
+          ED.text(" pattern has has exactly the same number of "),
           cases(Any) ast-branch:
             | s-cases-branch(_, _, _, args, _) =>
-                ED.highlight(ED.text("arguments"),args.map(_.l), palette.get(3))
+                ED.highlight(ED.text("argument bindings"),args.map(_.l), palette.get(3))
             | s-singleton-cases-branch(_, _, _, _) => ED.text("arguments")
           end,
           ED.text(" as the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of "),
           ED.embed(ast-cases.typ.id),
-          ED.text(" accepts.")],
+          ED.text(" has fields.")],
         [ED.para:
           ED.text("The cases pattern for "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2))),
-          ED.text(" accepts "),
+          ED.text(" has "),
           cases(Any) ast-branch:
             | s-cases-branch(_, _, _, args, _) =>
-                ED.highlight(ED.ed-args(self.num-args),args.map(_.l), palette.get(3))
-            | s-singleton-cases-branch(_, _, _, _) => ED.ed-args(self.num-args)
+                ED.highlight([ED.sequence:
+                  ED.text("argument "),
+                  ED.ed-bindings(self.num-args)],args.map(_.l), palette.get(3))
+            | s-singleton-cases-branch(_, _, _, _) =>[ED.sequence:
+                  ED.text("argument "), ED.ed-bindings(self.num-args)]
           end,
           ED.text(". The "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
-          ED.text(" datatype accepts "),
+          ED.text(" datatype has "),
           ED.ed-args(self.actual-arity)]]
     end,
     render-reason(self):

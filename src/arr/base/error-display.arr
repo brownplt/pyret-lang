@@ -55,6 +55,20 @@ fun ed-args(n):
             else:      " arguments";)]
 end
 
+fun ed-fields(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " field"
+            else:      " fields";)]
+end
+
+fun ed-bindings(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " binding"
+            else:      " binding";)]
+end
+
 fun ed-params(n):
   [sequence:
     embed(n),
