@@ -77,6 +77,16 @@ data Srcloc:
         end
       end
     end,
+    upto(self, other :: Srcloc%(is-srcloc)):
+      # Note: assumes that both locations are from same file
+      if self.start-char <= other.end-char:
+        srcloc(self.source,
+          self.start-line, self.start-column, self.start-char,
+          other.end-line, other.end-column, other.end-char)
+      else:
+        self
+      end
+    end,
     is-builtin(self): false end
 sharing:
   _output(self): VS.vs-value(self.format(true)) end,

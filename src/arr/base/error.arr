@@ -263,6 +263,12 @@ data RuntimeError:
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
+          
+          left-loc = cases(Any) binop-ast.left:
+            | s-op(_,_,_,_,r) => binop-ast.left.l.upto(r.l)
+            | else => binop-ast.left.l;
+          right-loc = binop-ast.right.l
+            
           [ED.error:
             [ED.para:
               ED.text("The binary "),
@@ -270,11 +276,11 @@ data RuntimeError:
               ED.text(" operator expression ")],
             [ED.para:
               ED.code([ED.sequence:
-                ED.highlight(ED.text(loc-to-src(binop-ast.left.l)),  [ED.locs: binop-ast.left.l], palette.get(0)),
+                ED.highlight(ED.text(loc-to-src(left-loc)),  [ED.locs: left-loc], palette.get(0)),
                 ED.text(" "),
-                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], palette.get(1)),
+                ED.highlight(ED.text(self.opname),           [ED.locs: binop-ast.op-l], palette.get(1)),
                 ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(binop-ast.right.l)), [ED.locs: binop-ast.right.l], palette.get(2))])],
+                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc], palette.get(2))])],
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -282,17 +288,17 @@ data RuntimeError:
                 ED.text("two Strings, or"),
                 [ED.sequence: 
                   ED.text("a "),
-                  ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
+                  ED.highlight(ED.text("left operand"), [ED.locs: left-loc], palette.get(0)),
                   ED.text(" that has a method named "), 
                   ED.code(ED.text(self.methodname))]]],
             [ED.para:
               ED.text("However, the expression's "),
-              ED.highlight(ED.text("left operand"), [ED.locs: binop-ast.left.l], palette.get(0)),
+              ED.highlight(ED.text("left operand"), [ED.locs: left-loc], palette.get(0)),
               ED.text(" evaluated to")],
             ED.embed(self.val1),
             [ED.para:
               ED.text("and its "),
-              ED.highlight(ED.text("right operand"), [ED.locs: binop-ast.right.l], palette.get(2)),
+              ED.highlight(ED.text("right operand"), [ED.locs: right-loc], palette.get(2)),
               ED.text(" evaluated to")],
             ED.embed(self.val2)]
         end, 

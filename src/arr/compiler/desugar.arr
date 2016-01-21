@@ -390,7 +390,7 @@ fun desugar-expr(expr :: A.Expr):
         | some(field) =>
           ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
             lam(e1, e2):
-              A.s-app(l, gid(l, field), [list: e1, e2])
+              A.s-app(e1.l + e2.l, gid(l, field), [list: e1, e2])
             end)
         | none =>
           fun thunk(e): A.s-lam(l, [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none) end
@@ -411,7 +411,7 @@ fun desugar-expr(expr :: A.Expr):
           fun eq-op(fun-name):
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-app(l, gid(l, fun-name), [list: e1, e2])
+                A.s-app(e1.l + e2.l, gid(l, fun-name), [list: e1, e2])
               end)
           end
           if op == "op==": eq-op("equal-always")
@@ -420,7 +420,7 @@ fun desugar-expr(expr :: A.Expr):
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-prim-app(l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])])
+                A.s-prim-app(e1.l + e2.l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])])
               end)
           else if op == "opor":
             fun helper(operands):
