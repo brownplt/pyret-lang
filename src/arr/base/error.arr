@@ -78,10 +78,13 @@ data RuntimeError:
   | field-not-found(loc, obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       palette = make-palette(2)
-      ast-dot = loc-to-ast(self.loc).block.stmts.first
-      txt-obj = loc-to-src(ast-dot.obj.l)
+      ast = loc-to-ast(self.loc).block.stmts.first
+      ast-dot = cases(Any) ast:
+        | s-dot(_,_,_) => ast
+        | s-app(_,f,_) => f;
       obj-loc = ast-dot.obj.l
       fld-loc = ast-dot.field-loc()
+      txt-obj = loc-to-src(ast-dot.obj.l)
       obj-col = palette.get(0)
       fld-col = palette.get(1)
       [ED.error:
