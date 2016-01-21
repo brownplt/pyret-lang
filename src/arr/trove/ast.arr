@@ -640,6 +640,11 @@ data Expr:
             self.left.tosource(), option-tosource(self.right))
       end
     end
+  | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
+    label(self): "s-check-expr" end,
+    tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, self.expr.tosource(), self.ann.tosource())
+    end
   | s-paren(l :: Loc, expr :: Expr) with:
     label(self): "s-paren" end,
     tosource(self): PP.parens(self.expr.tosource()) end
@@ -1194,36 +1199,46 @@ end
 
 data Ann:
   | a-blank with:
+    # No annotation
     label(self): "a-blank" end,
     tosource(self): str-any end,
   | a-any with:
+    # Any
     label(self): "a-any" end,
     tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
+    # Number, for example
     label(self): "a-name" end,
     tosource(self): self.id.tosource() end,
   | a-type-var(l :: Loc, id :: Name) with:
     label(self): "a-type-var" end,
     tosource(self): self.id.tosource() end,
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:
+    # (Number -> Number), for example
     label(self): "a-arrow" end,
     tosource(self):
       ann = PP.separate(str-space,
-        [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
-      if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
-      else: ann
+        [list:
+          PP.separate(PP.commabreak, self.args.map(_.tosource())),
+          str-arrow, self.ret.tosource()])
+      if self.use-parens:
+        PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else:
+        ann
       end
     end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     label(self): "a-method" end,
     tosource(self): PP.str("NYI: A-method") end,
   | a-record(l :: Loc, fields :: List<AField>) with:
+    # { field1 :: Number, field2 :: String }, for example
     label(self): "a-record" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
+    # List<Number>, for example
     label(self): "a-app" end,
     tosource(self):
       PP.group(self.ann.tosource()
@@ -1231,9 +1246,11 @@ data Ann:
             PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
+    # Number%(refinement), for example
     label(self): "a-pred" end,
     tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
+    # a-module.SomeAnn, for example
     label(self): "a-dot" end,
     tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
   | a-checked(checked :: Ann, residual :: Ann) with:

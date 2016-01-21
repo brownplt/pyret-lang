@@ -285,6 +285,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
     | s-block(l, stmts) => anf-block(stmts, k)
 
+    | s-check-expr(l, expr, ann) =>
+      name = mk-id(l, "ann_check_temp")
+      bindings = [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ann), expr)]
+      anf(A.s-let-expr(l, bindings, A.s-id(l, name.id)), k)
+
     | s-lam(l, params, args, ret, doc, body, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))

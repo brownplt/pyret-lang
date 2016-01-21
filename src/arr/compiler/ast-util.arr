@@ -702,7 +702,17 @@ set-tail-visitor = A.default-map-visitor.{
   s-block(self, l, stmts):
     len = stmts.length() # can be sure that len >= 1
     splitted = stmts.split-at(len - 1)
-    A.s-block(l, splitted.prefix.map(_.visit(self.{is-tail: false})) + splitted.suffix.map(_.visit(self)))
+    A.s-block(
+      l,
+      splitted.prefix.map(_.visit(self.{is-tail: false})) +
+      splitted.suffix.map(_.visit(self)))
+  end,
+
+  s-check-expr(self, l, expr, ann):
+    A.s-check-expr(
+      l,
+      expr.visit(self.{is-tail: false}),
+      ann.visit(self.{is-tail: false}))
   end,
 
   s-lam(self, l, params, args, ann, doc, body, _check):
