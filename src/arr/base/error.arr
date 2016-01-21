@@ -118,17 +118,20 @@ data RuntimeError:
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       palette = make-palette(2)
-      ast-dot = loc-to-ast(self.loc).block.stmts.first
-      txt-obj = loc-to-src(ast-dot.obj.l)
+      ast = loc-to-ast(self.loc).block.stmts.first
+      ast-dot = cases(Any) ast:
+        | s-dot(_,_,_) => ast
+        | s-app(_,f,_) => f;
       obj-loc = ast-dot.obj.l
       fld-loc = ast-dot.field-loc()
+      obj-txt = loc-to-src(obj-loc)
       obj-col = palette.get(0)
       fld-col = palette.get(1)
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
          ED.code([ED.sequence:
-          ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], obj-col),
+          ED.highlight(ED.text(obj-txt), [ED.locs: obj-loc], obj-col),
           ED.text("."),
           ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col)]),
         [ED.para:
@@ -305,7 +308,7 @@ data RuntimeError:
           [ED.para:
             ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
-  | numeric-binop-error(val1, val2, opname, methodname) with:
+  | numeric-binop-error(val1, val2, opname, opdesc, methodname) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       # TODO: breaks on multi-operator expression chains
       palette = make-palette(3)
@@ -315,7 +318,7 @@ data RuntimeError:
           [ED.error:
             [ED.para:
               ED.text("The binary "),
-              ED.highlight(ED.text(self.opname),[ED.locs: binop-ast.op-l], palette.get(1)),
+              ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l], palette.get(1)),
               ED.text(" operator expression ")],
             [ED.para:
               ED.code([ED.sequence:
@@ -385,7 +388,11 @@ data RuntimeError:
           ED.text("expects that the pattern for the "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc], palette.get(2))),
           ED.text(" branch has exactly the same number of "),
-          ED.highlight(ED.text("arguments"), ast-branch.args.map(_.l), palette.get(3)),
+          cases(Any) ast-branch:
+            | s-cases-branch(_, _, _, args, _) =>
+                ED.highlight(ED.text("arguments"),args.map(_.l), palette.get(3))
+            | s-singleton-cases-branch(_, _, _, _) => ED.text("arguments")
+          end,
           ED.text(" as the "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of "),

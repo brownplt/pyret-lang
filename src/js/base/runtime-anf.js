@@ -3281,7 +3281,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_minus").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "-", "_minus");
+        ffi.throwNumericBinopError(l, r, "-", "Minus", "_minus");
       }
     };
 
@@ -3294,7 +3294,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_times").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "*", "_times");
+        ffi.throwNumericBinopError(l, r, "*", "Times", "_times");
       }
     };
 
@@ -3310,7 +3310,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_divide").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "/", "_divide");
+        ffi.throwNumericBinopError(l, r, "/", "Divide", "_divide");
       }
     };
 

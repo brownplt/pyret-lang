@@ -190,12 +190,13 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(methodname);
         raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
-      function throwNumericBinopError(left, right, opname, methodname) {
+      function throwNumericBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
         runtime.checkString(opname);
+        runtime.checkString(opdesc);
         runtime.checkString(methodname);
-        raise(err("numeric-binop-error")(left, right, opname, methodname));
+        raise(err("numeric-binop-error")(left, right, opname, opdesc, methodname));
       }
 
       function throwUninitializedId(loc, name) {
