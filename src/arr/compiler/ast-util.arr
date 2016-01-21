@@ -651,6 +651,26 @@ set-recursive-visitor = A.default-map-visitor.{
   end,
 }
 
+fun is-stateful-ann(ann :: A.Ann) -> Boolean:
+  doc: ```
+       Return whether `ann` is a stateful annotation or not. For now, consider
+       all refinements as potentially could be stateful.
+       ```
+  cases (A.Ann) ann:
+    | a-blank => false
+    | a-any => false
+    | a-name(_, _) => false
+    | a-type-var(_, _) => false
+    | a-arrow(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful(ret) # can ignore
+    | a-method(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful(ret) # can ignore
+    | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
+    | a-app(_, inner, args) => args.all(is-stateful-ann) and is-stateful(inner) # can ignore
+    | a-pred(_, _, _) => true # TODO(Oak, 21 Jan 2016): true for now. Could refine later
+    | a-dot(_, _, _) => false
+    | a-checked(_, _) => raise("NYI")
+  end
+end
+
 # set-tail-visitor is to correct is-tail in s-app-enriched
 # precondition: no s-app
 set-tail-visitor = A.default-map-visitor.{
@@ -722,8 +742,8 @@ set-tail-visitor = A.default-map-visitor.{
       args.map(_.visit(self.{is-tail: false})),
       ann.visit(self.{is-tail: false}),
       doc,
-      body.visit(self.{is-tail: true}),
-      if is-none(_check): _check else: some(_check.value.visit(self.{is-tail: false})) end)
+      body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
+      self.{is-tail: false}.option(_check))
   end,
 
   s-method(self, l, params, args, ann, doc, body, _check):
@@ -734,7 +754,7 @@ set-tail-visitor = A.default-map-visitor.{
       ann.visit(self.{is-tail: false}),
       doc,
       body.visit(self.{is-tail: true}),
-      if is-none(_check): _check else: some(_check.value.visit(self.{is-tail: false})) end)
+      self.{is-tail: false}.option(_check))
   end,
 
   s-array(self, l, values):
