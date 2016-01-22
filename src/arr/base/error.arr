@@ -538,13 +538,6 @@ data RuntimeError:
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.non-fun-val)]
     end
-  | bad-app(loc, fun-name :: String, message :: String, arg-position :: Number, arg-val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
-      self.render-reason()
-    end,
-    render-reason(self):
-      [ED.error: ED.text(tostring(self))]
-    end
   | uninitialized-id(loc, name) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       palette = make-palette(1)
