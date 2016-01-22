@@ -1,203 +1,68 @@
 #lang pyret/library
-
 provide *
 provide-types *
 import option as O
 import either as E
 import equality as equality
 import valueskeleton as VS
-
 none = O.none
 is-none = O.is-none
 some = O.some
 is-some = O.is-some
 type Option = O.Option
-
 left = E.left
 right = E.right
 type Either = E.Either
 
 data List<a>:
   | empty with:
-
-    length(self :: List<a>) -> Number:
-      doc: "Takes no other arguments and returns the number of links in the list"
-      0
-    end,
-
-    each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
-      doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      nothing
-    end,
-
-    map<b>(self, f :: (a -> b)) -> List<b>:
-      doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      empty
-    end,
-
-    filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
-      doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
-      empty
-    end,
-
-    find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
-      doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
-      none
-    end,
-
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
-      doc: ```Takes a predicate and returns an object with two fields:
-            the 'is-true' field contains the list of items in this list for which the predicate holds,
-            and the 'is-false' field contains the list of items in this list for which the predicate fails```
-      { is-true: empty, is-false: empty }
-    end,
-
     foldr<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the right,
             starting with the base value```
       base
     end,
-
     foldl<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the base value```
       base
     end,
-
-    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for every element in this list```
-      true
-    end,
-
-    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for any element in this list```
-      false
-    end,
-
-    member(self :: List<a>, elt :: a) -> Boolean:
-      doc: "Returns true when the given element is equal to a member of this list"
-      false
-    end,
-
     append(self :: List<a>, other :: List<a>) -> List<a>:
       doc: "Takes a list and returns the result of appending the given list to this list"
       other
     end,
-
-    last(self :: List<a>) -> a:
-      doc: "Returns the last element of this list, or raises an error if the list is empty"
-      raise('last: took last of empty list')
-    end,
-
-    reverse(self :: List<a>) -> List<a>:
-      doc: "Returns a new list containing the same elements as this list, in reverse order"
-      self
-    end,
-
     _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
-
     _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
-
     sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
       self
     end,
-
     sort(self :: List<a>) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
       self
     end,
-
     join-str(self :: List<a>, str :: String) -> String:
       doc: ```Returns a string containing the tostring() forms of the elements of this list,
             joined by the provided separator string```
       ""
     end
-
   | link(first :: a, rest :: List<a>) with:
-
-    length(self :: List<a>) -> Number:
-      doc: "Takes no other arguments and returns the number of links in the list"
-      1 + self.rest.length()
-    end,
-
-    each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
-      doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      f(self.first)
-      self.rest.each(f)
-    end,
-
-    map<b>(self, f :: (a -> b)) -> List<b>:
-      doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      f(self.first) ^ link(_, self.rest.map(f))
-    end,
-
-    filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
-      doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
-      if f(self.first): self.first ^ link(_, self.rest.filter(f))
-      else:             self.rest.filter(f)
-      end
-    end,
-
-    partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
-      doc: ```Takes a predicate and returns an object with two fields:
-            the 'is-true' field contains the list of items in this list for which the predicate holds,
-            and the 'is-false' field contains the list of items in this list for which the predicate fails```
-      partition(f, self)
-    end,
-
-    find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
-      doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
-      find(f, self)
-    end,
-
-    member(self :: List<a>, elt :: a) -> Boolean:
-      doc: "Returns true when the given element is equal to a member of this list"
-      (elt == self.first) or self.rest.member(elt)
-    end,
-
     foldr<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the right,
             starting with the initial value```
       f(self.first, self.rest.foldr(f, base))
     end,
-
     foldl<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the initial value```
       self.rest.foldl(f, f(self.first, base))
     end,
-
-    all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for every element in this list```
-      f(self.first) and self.rest.all(f)
-    end,
-
-    any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for any element in this list```
-      f(self.first) or self.rest.any(f)
-    end,
-
     append(self :: List<a>, other :: List<a>) -> List<a>:
       doc: "Takes a list and returns the result of appending the given list to this list"
       self.first ^ link(_, self.rest.append(other))
     end,
-
-    last(self :: List<a>) -> a:
-      doc: "Returns the last element of this list, or raises an error if the list is empty"
-      if is-empty(self.rest): self.first
-      else: self.rest.last()
-      end
-    end,
-
-    reverse(self :: List<a>) -> List<a>:
-      doc: "Returns a new list containing the same elements as this list, in reverse order"
-      reverse-help(self, empty)
-    end,
-
     _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
       "[list: " +
         for fold(combined from tostring(self.first), elt from self.rest):
@@ -205,7 +70,6 @@ data List<a>:
         end
       + "]"
     end,
-
     _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String:
       "[list: " +
         for fold(combined from torepr(self.first), elt from self.rest):
@@ -213,13 +77,11 @@ data List<a>:
         end
       + "]"
     end,
-
     sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
       pivot = self.first
-
       # builds up three lists, split according to cmp and eq
       # Note: We use each, which is tail-recursive, but which causes the three
       # list parts to grow in reverse order.  This isn't a problem, since we're
@@ -238,13 +100,11 @@ data List<a>:
       greater = are-gt.sort-by(cmp, eq)
       less.append(equal.append(greater))
     end,
-
     sort(self :: List<a>) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
       self.sort-by(lam(e1,e2): e1 < e2 end, lam(e1,e2): e1 == e2 end)
     end,
-
     join-str(self :: List<a>, str :: String) -> String:
       doc: ```Returns a string containing the tostring() forms of the elements of this list,
             joined by the provided separator string```
@@ -254,14 +114,57 @@ data List<a>:
          tostring(self.first)
       end
     end,
-
 sharing:
   _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
-  
   _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
   end,
-
+  length(self :: List<a>) -> Number:
+    doc: "Takes no other arguments and returns the number of links in the list"
+    length(self)
+  end,
+  each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
+    doc: "Takes a function and calls that function for each element in the list. Returns nothing"
+    each(f, self)
+  end,
+  map<b>(self, f :: (a -> b)) -> List<b>:
+    doc: "Takes a function and returns a list of the result of applying that function every element in this list"
+    map(f, self)
+  end,
+  filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
+    doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
+    filter(f, self)
+  end,
+  find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
+    find(f, self)
+  end,
+  partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
+    doc: ```Takes a predicate and returns an object with two fields:
+          the 'is-true' field contains the list of items in this list for which the predicate holds,
+          and the 'is-false' field contains the list of items in this list for which the predicate fails```
+    partition(f, self)
+  end,
+  member(self :: List<a>, elt :: a) -> Boolean:
+    doc: "Returns true when the given element is equal to a member of this list"
+    member(self, elt)
+  end,
+  reverse(self :: List<a>) -> List<a>:
+    doc: "Returns a new list containing the same elements as this list, in reverse order"
+    reverse(self)
+  end,
+  last(self :: List<a>) -> a:
+    doc: "Returns the last element of this list, or raises an error if the list is empty"
+    last(self)
+  end,
+  all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    doc: ```Returns true if the given predicate is true for every element in this list```
+    all(f, self)
+  end,
+  any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    doc: ```Returns true if the given predicate is true for any element in this list```
+    any(f, self)
+  end,
   push(self :: List<a>, elt :: a) -> List<a>:
     doc: "Adds an element to the front of the list, returning a new list"
     link(elt, self)
@@ -278,7 +181,6 @@ sharing:
     doc: "Returns all but the first n elements of this list"
     split-at(n, self).suffix
   end,
-
   get(self :: List<a>, n :: Number) -> a:
     doc: "Returns the nth element of this list, or raises an error if n is out of range"
     get(self, n)
@@ -302,6 +204,17 @@ sharing:
     end
       ^ raw-array-join-str(_, str)
   end
+end
+
+fun length<a>(lst :: List<a>) -> Number:
+  doc: "Takes a list and returns the number of links in the list"
+  fun help(l, cur) -> Number:
+    cases (List) lst:
+      | empty => cur
+      | link(_, r) => help(r, cur + 1)
+    end
+  end
+  help(lst, 0)
 end
 
 fun get<a>(lst :: List<a>, n :: Number) -> a:
@@ -331,18 +244,35 @@ fun set<a>(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
-fun reverse-help<a>(lst :: List<a>, acc :: List<a>) -> List<a>:
+fun reverse<a>(lst :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
-  cases(List) lst:
-    | empty => acc
-    | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
+  fun reverse-help(l :: List<a>, acc :: List<a>) -> List<a>:
+    cases(List) l:
+      | empty => acc
+      | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
+    end
   end
+  reverse-help(lst, empty)
 where:
-  reverse-help([list: ], [list: ]) is [list: ]
-  reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
+  reverse([list: ]) is [list: ]
+  reverse([list: 1, 3]) is [list: 3, 1]
 end
 
-fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
+fun last<a>(lst :: List<a>) -> a:
+  doc: "Returns the last element of this list, or raises an error if the list is empty"
+  fun helper(l :: List<a>) -> a:
+    if is-empty(l.rest):
+      l.first
+    else:
+      helper(l.rest)
+    end
+  end
+  if is-empty(lst):
+    raise('last: took last of empty list')
+  else:
+    helper(lst)
+  end
+end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -465,12 +395,20 @@ end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  lst.any(f)
+  if is-empty(lst):
+    false
+  else:
+    f(lst.first) or any(f, lst.rest)
+  end
 end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  lst.all(f)
+  if is-empty(lst):
+    true
+  else:
+    f(lst.first) and all(f, lst.rest)
+  end
 end
 
 fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
