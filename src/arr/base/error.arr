@@ -350,7 +350,7 @@ data RuntimeError:
             ED.embed(self.val1),
             [ED.para:
               ED.text("and its "),
-              ED.highlight(ED.text("right operand"), [ED.locs: left-loc], palette.get(2)),
+              ED.highlight(ED.text("right operand"), [ED.locs: right-loc], palette.get(2)),
               ED.text(" evaluated to")],
             ED.embed(self.val2)]
         end, 
