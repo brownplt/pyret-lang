@@ -33,3 +33,5 @@ import repl as _
 import "compiler/locators/file.arr" as _
 import plot as _
 import graph as _
+import particle as _
+import json as _

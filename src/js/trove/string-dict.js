@@ -277,7 +277,10 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
-            dict[mkey] = underlyingDict[mkey];
+            var val = underlyingDict[mkey];
+            if(val !== undefined) {
+              dict[mkey] = underlyingDict[mkey];
+            }
           }
           return makeMutableStringDict(dict);
         });
@@ -497,9 +500,16 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
         return applyBrand(brandMutable, obj);
       }
 
+      function internal_isMSD(obj) {
+        return hasBrand(brandMutable, obj);
+      }
+
+      var jsCheckMSD =
+          runtime.makeCheckType(internal_isMSD, "MutableStringDict")
+
       function isMutableStringDict(obj) {
         arity(1, arguments, "is-mutable-string-dict")
-        return runtime.makeBoolean(hasBrand(brandMutable, obj))
+        return runtime.makeBoolean(internal_isMSD(obj))
       }
 
       function createMutableStringDict() {
@@ -525,9 +535,16 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
         return makeMutableStringDict(dict);
       }
 
+      function internal_isISD(obj) {
+        return hasBrand(brandImmutable, obj);
+      }
+
+      var jsCheckISD =
+          runtime.makeCheckType(internal_isISD, "StringDict")
+
       function isImmutableStringDict(obj) {
         arity(1, arguments, "is-immutable-string-dict")
-        return runtime.makeBoolean(hasBrand(brandImmutable, obj))
+        return runtime.makeBoolean(internal_isISD(obj))
       }
 
       function createImmutableStringDict() {
@@ -590,7 +607,11 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
             }),
             "string-dict-of": F(createConstImmutableStringDict),
             "is-string-dict": F(isImmutableStringDict)
-          })
+          }),
+          internal: {
+            checkISD: jsCheckISD,
+            checkMSD: jsCheckMSD
+          }
         }),
         "answer": runtime.nothing
       });

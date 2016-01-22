@@ -81,6 +81,22 @@ type Locator = {
   _equals :: Method
 }
 
+fun string-locator(uri :: URI, s :: String):
+  {
+    needs-compile(self, _): true end,
+    get-module(self): pyret-string(s) end,
+    get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
+    get-extra-imports(self): CS.standard-imports end,
+    get-globals(self): CS.standard-globals end,
+    get-namespace(self, r): N.make-base-namespace(r) end,
+    uri(self): uri end,
+    name(self): uri end,
+    set-compiled(self, _, _): nothing end,
+    get-compiled(self): none end,
+    _equals(self, other, rec-eq): rec-eq(other.uri(), self.uri()) end
+  }
+end
+
 data Located<a>:
   | located(locator :: Locator, context :: a)
 end
@@ -157,7 +173,7 @@ end
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 # Use ConcatList if it's easy
-fun compile-worklist<a>(dfind, locator :: Locator, context :: a) -> List<ToCompile>:
+fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
   fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
     when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
       raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
@@ -254,6 +270,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
         cases(CS.CompileResult) type-checked:
           | ok(tc-ast) =>
+            any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
             dp-ast = DP.desugar-post-tc(tc-ast, env)
             cleaned = dp-ast.visit(AU.merge-nested-blocks)
                             .visit(AU.flatten-single-blocks)
@@ -262,7 +279,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
             inlined = cleaned.visit(AU.inline-lams)
             when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-            any-errors = named-errors + AU.check-unbound(env, inlined) + AU.bad-assignments(env, inlined)
             cr = if is-empty(any-errors):
               if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
               else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, options)), ret)
@@ -350,4 +366,9 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
         | link(_, _) => load-worklist(r, modvals-new, loader, runtime)
       end
   end
+end
+
+fun compile-and-run-locator(locator, finder, context, runtime, options):
+  wl = compile-worklist(finder, locator, context)
+  compile-and-run-worklist(wl, runtime, options)
 end

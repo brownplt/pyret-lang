@@ -3,6 +3,82 @@
 
 @(define s-some-args (list `("value" ("type" "normal") ("contract" ,(a-id "a")))))
 
+@(append-gen-docs
+'(module
+  "option"
+  (path "src/arr/base/option.arr")
+  (data-spec
+    (name "Option")
+    (type-vars (a16))
+    (variants ("none" "some"))
+    (shared ()))
+  
+  (singleton-spec
+    (name "none")
+    (with-members
+      ((method-spec
+        (name "or-else")
+        (arity 2)
+        (params ())
+        (args ("self" "v"))
+        (return "a")
+        (contract
+          (a-arrow (a-id "is-Option" (xref "option" "is-Option")) "a" "a"))
+        (doc "Return the default provided value"))
+      (method-spec
+        (name "and-then")
+        (arity 2)
+        (params ("b"))
+        (args ("self" "$underscore"))
+        (return (a-app (a-id "Option" (xref "option" "Option")) "b"))
+        (contract
+          (a-arrow
+            (a-id "is-Option" (xref "option" "is-Option"))
+            (a-arrow "a" "b")
+            (a-app (a-id "Option" (xref "option" "Option")) "b")))
+        (doc "Return none")))))
+  (fun-spec
+    (name "is-none")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a none"))
+  (constr-spec
+    (name "some")
+    (members (("value" (type normal) (contract "Any"))))
+    (with-members
+      ((method-spec
+        (name "or-else")
+        (arity 2)
+        (params ())
+        (args ("self" "v"))
+        (return "a")
+        (contract
+          (a-arrow (a-id "is-Option" (xref "option" "is-Option")) "a" "a"))
+        (doc "Return self.value, rather than the default"))
+      (method-spec
+        (name "and-then")
+        (arity 2)
+        (params ("b"))
+        (args ("self" "f"))
+        (return (a-app (a-id "Option" (xref "option" "Option")) "b"))
+        (contract
+          (a-arrow
+            (a-id "is-Option" (xref "option" "is-Option"))
+            (a-arrow "a" "b")
+            (a-app (a-id "Option" (xref "option" "Option")) "b")))
+        (doc "Returns the function applied to self.value")))))
+  (fun-spec
+    (name "is-some")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a some"))))
+
 @docmodule["option"]{
   @; Ignored type testers
   @section{The Option Datatype}

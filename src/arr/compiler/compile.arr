@@ -77,6 +77,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
       cases(C.CompileResult) type-checked:
         | ok(_) =>
           var tc-ast = type-checked.code
+          any-errors = named-errors + U.check-unbound(env, tc-ast) + U.bad-assignments(env, tc-ast)
           type-checked := nothing
           var dp-ast = DP.desugar-post-tc(tc-ast, env)
           tc-ast := nothing
@@ -89,7 +90,6 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
           inlined = cleaned.visit(U.inline-lams)
           cleaned := nothing
           when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-          any-errors = named-errors + U.check-unbound(env, inlined) + U.bad-assignments(env, inlined)
           if is-empty(any-errors):
             if options.collect-all: P.trace-make-compiled-pyret(ret, phase, inlined, env, options)
             else: phase("Result", C.ok(P.make-compiled-pyret(inlined, env, options)), ret)

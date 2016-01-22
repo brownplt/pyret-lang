@@ -19,6 +19,30 @@
   `(module "equality"
     (path "src/js/base/runtime-anf.js")
     (fun-spec
+      (name "is-Equal")
+      (arity 1)
+      (params [list: ])
+      (args ("val"))
+      (return (a-id "Boolean" (xref "<global>" "Boolean")))
+      (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+      (doc "Checks whether the provided argument is in fact a Equal"))
+    (fun-spec
+      (name "is-NotEqual")
+      (arity 1)
+      (params [list: ])
+      (args ("val"))
+      (return (a-id "Boolean" (xref "<global>" "Boolean")))
+      (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+      (doc "Checks whether the provided argument is in fact a NotEqual"))
+    (fun-spec
+      (name "is-Unknown")
+      (arity 1)
+      (params [list: ])
+      (args ("val"))
+      (return (a-id "Boolean" (xref "<global>" "Boolean")))
+      (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+      (doc "Checks whether the provided argument is in fact a Unknown"))
+    (fun-spec
       (name "equal-now")
       (arity 2)
       (args ("val1" "val2"))

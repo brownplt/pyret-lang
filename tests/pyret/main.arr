@@ -10,6 +10,7 @@ import "./tests/test-array.arr" as _
 import "./tests/test-constructors.arr" as _
 import "./tests/test-contracts.arr" as _
 import "./tests/test-s-exp.arr" as _
+import "./tests/test-json.arr" as _
 import "./tests/test-refs.arr" as _
 import "./tests/test-equality.arr" as _
 import "./tests/test-refined-refs.arr" as _
@@ -26,3 +27,4 @@ import "./tests/test-builtin-locator.arr" as _
 import "./tests/test-compile-lib.arr" as _
 import "./tests/test-include.arr" as _
 import "./tests/test-examples.arr" as _
+import "./tests/test-string-dict.arr" as _

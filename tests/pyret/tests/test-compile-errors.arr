@@ -4,7 +4,6 @@ import "../test-compile-helper.arr" as C
 check:
   fun c(str):
     result = C.compile-str(str)
-    result satisfies CS.is-err
     cases(CS.CompileResult) result:
       | ok(_) => "No error for " + str
       | err(probs) => probs.first
@@ -48,5 +47,33 @@ check:
     c("data D: n() sharing: _(self): 5 end end") satisfies CS.is-wf-err
     c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-wf-err
     c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-wf-err
+  end
+
+  check "unbound type ids":
+    c("link<NotDefined>(1, empty)") satisfies CS.is-unbound-type-id
+    c(```
+fun test<A>(a :: A):
+ a
+end
+
+check:
+ test<A>(1) is 1
+end    
+```) satisfies CS.is-unbound-type-id
+  end
+
+  check "bound type aliases":
+    c(```
+type N = Number
+type N2 = N
+
+fun test<A>(a :: A):
+ a
+end
+
+check:
+ test<N>(1) is 1
+end    
+```) satisfies string-contains(_, "No error")
   end
 end

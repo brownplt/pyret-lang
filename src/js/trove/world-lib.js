@@ -22,6 +22,8 @@ define(["js/runtime-util"], function(util) {
     var currentFocusedNode = false;
 
     var doNothing = function() {};
+    // Just in case external users need this and doNothing might change.
+    Jsworld.doNothing = doNothing;
 
     // forEachK: CPS( array CPS(array -> void) (error -> void) -> void )
     // Iterates through an array and applies f to each element using CPS
@@ -806,27 +808,6 @@ define(["js/runtime-util"], function(util) {
     }
     Jsworld.on_mouse = on_mouse;
 
-
-    function on_particle(handler, acc, eName) {
-        return function() {
-            var evtSource;
-            return {
-                onRegister: function(top) {
-                    evtSource = new EventSource("https://api.particle.io/v1/devices/events/?access_token=" + acc);
-                    evtSource.addEventListener(eName,
-                                               function(e) {
-                                                   data = JSON.parse(e.data);
-                                                   change_world(function(w,k) {
-                                                       handler(w, JSON.stringify(data.data), k);
-                                                   }, doNothing)});
-                },
-                onUnregister: function(top) {
-                    evtSource.close();
-                }
-            };
-        };
-    }
-    Jsworld.on_particle = on_particle;
 
 
 

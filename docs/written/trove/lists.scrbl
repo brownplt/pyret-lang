@@ -1,6 +1,1452 @@
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
 
+@(append-gen-docs
+'(module
+  "lists"
+  (path "src/arr/base/lists.arr")
+  (unknown-item
+    (name "none")
+    ;; O9.none
+    )
+  (unknown-item
+    (name "is-none")
+    ;; O9.is-none
+    )
+  (unknown-item
+    (name "some")
+    ;; O9.some
+    )
+  (unknown-item
+    (name "is-some")
+    ;; O9.is-some
+    )
+  (unknown-item
+    (name "left")
+    ;; E11.left
+    )
+  (unknown-item
+    (name "right")
+    ;; E11.right
+    )
+  (data-spec
+    (name "List")
+    (type-vars (a74))
+    (variants ("empty" "link"))
+    (shared
+      ((method-spec
+        (name "_output")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return
+          (a-compound
+            (a-dot "VS" "ValueSkeleton")
+            (xref "valueskeleton" "ValueSkeleton")))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-compound
+              (a-dot "VS" "ValueSkeleton")
+              (xref "valueskeleton" "ValueSkeleton")))))
+      (method-spec
+        (name "_plus")
+        (arity 2)
+        (params ())
+        (args ("self" "other"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")
+            (a-app (a-id "List" (xref "lists" "List")) "a"))))
+      (method-spec
+        (name "push")
+        (arity 2)
+        (params ())
+        (args ("self" "elt"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            "a"
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc "Adds an element to the front of the list, returning a new list"))
+      (method-spec
+        (name "split-at")
+        (arity 2)
+        (params ())
+        (args ("self" "n"))
+        (return
+          (a-record
+            (a-field "prefix" (a-app (a-id "List" (xref "lists" "List")) "a"))
+            (a-field "suffix" (a-app (a-id "List" (xref "lists" "List")) "a"))))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-id "Number" (xref "<global>" "Number"))
+            (a-record
+              (a-field "prefix" (a-app (a-id "List" (xref "lists" "List")) "a"))
+              (a-field "suffix" (a-app (a-id "List" (xref "lists" "List")) "a")))))
+        (doc
+          "Splits this list into two lists, one containing the first n elements, and the other containing the rest"))
+      (method-spec
+        (name "take")
+        (arity 2)
+        (params ())
+        (args ("self" "n"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-id "Number" (xref "<global>" "Number"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc "Returns the first n elements of this list"))
+      (method-spec
+        (name "drop")
+        (arity 2)
+        (params ())
+        (args ("self" "n"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-id "Number" (xref "<global>" "Number"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc "Returns all but the first n elements of this list"))
+      (method-spec
+        (name "get")
+        (arity 2)
+        (params ())
+        (args ("self" "n"))
+        (return "a")
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-id "Number" (xref "<global>" "Number"))
+            "a"))
+        (doc
+          "Returns the nth element of this list, or raises an error if n is out of range"))
+      (method-spec
+        (name "set")
+        (arity 3)
+        (params ())
+        (args ("self" "n" "e"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            (a-id "Number" (xref "<global>" "Number"))
+            "a"
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"))
+      (method-spec
+        (name "remove")
+        (arity 2)
+        (params ())
+        (args ("self" "e"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "List" (xref "lists" "List"))
+            "a"
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns the list without the element if found, or the whole list if it is not")))))
+  
+  (singleton-spec
+    (name "empty")
+    (with-members
+      ((method-spec
+        (name "length")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-id "Number" (xref "<global>" "Number")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-id "Number" (xref "<global>" "Number"))))
+        (doc
+          "Takes no other arguments and returns the number of links in the list"))
+      (method-spec
+        (name "each")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Nothing" (xref "<global>" "Nothing")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Nothing" (xref "<global>" "Nothing")))
+            (a-id "Nothing" (xref "<global>" "Nothing"))))
+        (doc
+          "Takes a function and calls that function for each element in the list. Returns nothing"))
+      (method-spec
+        (name "map")
+        (arity 2)
+        (params ("b"))
+        (args ("self" "f"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "b"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b")
+            (a-app (a-id "List" (xref "lists" "List")) "b")))
+        (doc
+          "Takes a function and returns a list of the result of applying that function every element in this list"))
+      (method-spec
+        (name "filter")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."))
+      (method-spec
+        (name "find")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return
+          (a-app (a-compound (a-dot "O" "Option") (xref "option" "Option")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app
+              (a-compound (a-dot "O" "Option") (xref "option" "Option"))
+              "a")))
+        (doc
+          "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"))
+      (method-spec
+        (name "partition")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return
+          (a-record
+            (a-field "is-true" (a-app (a-id "List" (xref "lists" "List")) "a"))
+            (a-field "is-false" (a-app (a-id "List" (xref "lists" "List")) "a"))))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-record
+              (a-field
+                "is-true"
+                (a-app (a-id "List" (xref "lists" "List")) "a"))
+              (a-field
+                "is-false"
+                (a-app (a-id "List" (xref "lists" "List")) "a")))))
+        (doc
+          "Takes a predicate and returns an object with two fields:\n            the 'is-true' field contains the list of items in this list for which the predicate holds,\n            and the 'is-false' field contains the list of items in this list for which the predicate fails"))
+      (method-spec
+        (name "foldr")
+        (arity 3)
+        (params ("b"))
+        (args ("self" "f" "base"))
+        (return "b")
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b" "b")
+            "b"
+            "b"))
+        (doc
+          "Takes a function and an initial value, and folds the function over this list from the right,\n            starting with the base value"))
+      (method-spec
+        (name "foldl")
+        (arity 3)
+        (params ("b"))
+        (args ("self" "f" "base"))
+        (return "b")
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b" "b")
+            "b"
+            "b"))
+        (doc
+          "Takes a function and an initial value, and folds the function over this list from the left,\n            starting with the base value"))
+      (method-spec
+        (name "all")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true if the given predicate is true for every element in this list"))
+      (method-spec
+        (name "any")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true if the given predicate is true for any element in this list"))
+      (method-spec
+        (name "member")
+        (arity 2)
+        (params ())
+        (args ("self" "elt"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            "a"
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true when the given element is equal to a member of this list"))
+      (method-spec
+        (name "append")
+        (arity 2)
+        (params ())
+        (args ("self" "other"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a list and returns the result of appending the given list to this list"))
+      (method-spec
+        (name "last")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return "a")
+        (contract (a-arrow (a-id "is-List" (xref "lists" "is-List")) "a"))
+        (doc
+          "Returns the last element of this list, or raises an error if the list is empty"))
+      (method-spec
+        (name "reverse")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns a new list containing the same elements as this list, in reverse order"))
+      (method-spec
+        (name "_tostring")
+        (arity 2)
+        (params ())
+        (args ("self" "tostring"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "Any" (a-id "String" (xref "<global>" "String")))
+            (a-id "String" (xref "<global>" "String")))))
+      (method-spec
+        (name "_torepr")
+        (arity 2)
+        (params ())
+        (args ("self" "torepr"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "Any" (a-id "String" (xref "<global>" "String")))
+            (a-id "String" (xref "<global>" "String")))))
+      (method-spec
+        (name "sort-by")
+        (arity 3)
+        (params ())
+        (args ("self" "cmp" "eq"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-arrow "a" "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a comparator to check for elements that are strictly greater\n            or less than one another, and an equality procedure for elements that are\n            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."))
+      (method-spec
+        (name "sort")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns a new list whose contents are the smae as those in this list,\n            sorted by the default ordering and equality"))
+      (method-spec
+        (name "join-str")
+        (arity 2)
+        (params ())
+        (args ("self" "str"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-id "String" (xref "<global>" "String"))
+            (a-id "String" (xref "<global>" "String"))))
+        (doc
+          "Returns a string containing the tostring() forms of the elements of this list,\n            joined by the provided separator string")))))
+  (fun-spec
+    (name "is-empty")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact an empty"))
+  (constr-spec
+    (name "link")
+    (members
+      (("first" (type normal) (contract "a"))
+      ("rest"
+        (type normal)
+        (contract (a-app (a-id "List" (xref "lists" "List")) "a")))))
+    (with-members
+      ((method-spec
+        (name "length")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-id "Number" (xref "<global>" "Number")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-id "Number" (xref "<global>" "Number"))))
+        (doc
+          "Takes no other arguments and returns the number of links in the list"))
+      (method-spec
+        (name "each")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Nothing" (xref "<global>" "Nothing")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Nothing" (xref "<global>" "Nothing")))
+            (a-id "Nothing" (xref "<global>" "Nothing"))))
+        (doc
+          "Takes a function and calls that function for each element in the list. Returns nothing"))
+      (method-spec
+        (name "map")
+        (arity 2)
+        (params ("b"))
+        (args ("self" "f"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "b"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b")
+            (a-app (a-id "List" (xref "lists" "List")) "b")))
+        (doc
+          "Takes a function and returns a list of the result of applying that function every element in this list"))
+      (method-spec
+        (name "filter")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."))
+      (method-spec
+        (name "partition")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return
+          (a-record
+            (a-field "is-true" (a-app (a-id "List" (xref "lists" "List")) "a"))
+            (a-field "is-false" (a-app (a-id "List" (xref "lists" "List")) "a"))))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-record
+              (a-field
+                "is-true"
+                (a-app (a-id "List" (xref "lists" "List")) "a"))
+              (a-field
+                "is-false"
+                (a-app (a-id "List" (xref "lists" "List")) "a")))))
+        (doc
+          "Takes a predicate and returns an object with two fields:\n            the 'is-true' field contains the list of items in this list for which the predicate holds,\n            and the 'is-false' field contains the list of items in this list for which the predicate fails"))
+      (method-spec
+        (name "find")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return
+          (a-app (a-compound (a-dot "O" "Option") (xref "option" "Option")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app
+              (a-compound (a-dot "O" "Option") (xref "option" "Option"))
+              "a")))
+        (doc
+          "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"))
+      (method-spec
+        (name "member")
+        (arity 2)
+        (params ())
+        (args ("self" "elt"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            "a"
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true when the given element is equal to a member of this list"))
+      (method-spec
+        (name "foldr")
+        (arity 3)
+        (params ("b"))
+        (args ("self" "f" "base"))
+        (return "b")
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b" "b")
+            "b"
+            "b"))
+        (doc
+          "Takes a function and an initial value, and folds the function over this list from the right,\n            starting with the initial value"))
+      (method-spec
+        (name "foldl")
+        (arity 3)
+        (params ("b"))
+        (args ("self" "f" "base"))
+        (return "b")
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "b" "b")
+            "b"
+            "b"))
+        (doc
+          "Takes a function and an initial value, and folds the function over this list from the left,\n            starting with the initial value"))
+      (method-spec
+        (name "all")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true if the given predicate is true for every element in this list"))
+      (method-spec
+        (name "any")
+        (arity 2)
+        (params ())
+        (args ("self" "f"))
+        (return (a-id "Boolean" (xref "<global>" "Boolean")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-id "Boolean" (xref "<global>" "Boolean"))))
+        (doc
+          "Returns true if the given predicate is true for any element in this list"))
+      (method-spec
+        (name "append")
+        (arity 2)
+        (params ())
+        (args ("self" "other"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a list and returns the result of appending the given list to this list"))
+      (method-spec
+        (name "last")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return "a")
+        (contract (a-arrow (a-id "is-List" (xref "lists" "is-List")) "a"))
+        (doc
+          "Returns the last element of this list, or raises an error if the list is empty"))
+      (method-spec
+        (name "reverse")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns a new list containing the same elements as this list, in reverse order"))
+      (method-spec
+        (name "_tostring")
+        (arity 2)
+        (params ())
+        (args ("self" "tostring"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "Any" (a-id "String" (xref "<global>" "String")))
+            (a-id "String" (xref "<global>" "String")))))
+      (method-spec
+        (name "_torepr")
+        (arity 2)
+        (params ())
+        (args ("self" "torepr"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "Any" (a-id "String" (xref "<global>" "String")))
+            (a-id "String" (xref "<global>" "String")))))
+      (method-spec
+        (name "sort-by")
+        (arity 3)
+        (params ())
+        (args ("self" "cmp" "eq"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-arrow "a" "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-arrow "a" "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Takes a comparator to check for elements that are strictly greater\n            or less than one another, and an equality procedure for elements that are\n            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable."))
+      (method-spec
+        (name "sort")
+        (arity 1)
+        (params ())
+        (args ("self"))
+        (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-app (a-id "List" (xref "lists" "List")) "a")))
+        (doc
+          "Returns a new list whose contents are the same as those in this list,\n            sorted by the default ordering and equality"))
+      (method-spec
+        (name "join-str")
+        (arity 2)
+        (params ())
+        (args ("self" "str"))
+        (return (a-id "String" (xref "<global>" "String")))
+        (contract
+          (a-arrow
+            (a-id "is-List" (xref "lists" "is-List"))
+            (a-id "String" (xref "<global>" "String"))
+            (a-id "String" (xref "<global>" "String"))))
+        (doc
+          "Returns a string containing the tostring() forms of the elements of this list,\n            joined by the provided separator string")))))
+  (fun-spec
+    (name "is-link")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a link"))
+  (fun-spec
+    (name "get")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "n"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "a"))
+    (doc
+      "Returns the nth element of the given list, or raises an error if n is out of range"))
+  (fun-spec
+    (name "set")
+    (arity 3)
+    (params [list: leaf("a")])
+    (args ("lst" "n" "v"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "Any"
+        "a"))
+    (doc
+      "Returns a new list with the same values as the given list but with the nth element\n        set to the given value, or raises an error if n is out of range"))
+  (fun-spec
+    (name "reverse-help")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "acc"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "a")))
+    (doc
+      "Returns a new list containing the same elements as this list, in reverse order"))
+  (fun-spec
+    (name "reverse")
+    (arity 1)
+    (params [list: leaf("a")])
+    (args ("lst"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "a"))))
+  (fun-spec
+    (name "range")
+    (arity 2)
+    (params [list: ])
+    (args ("start" "stop"))
+    (return
+      (a-app
+        (a-id "List" (xref "lists" "List"))
+        (a-id "Number" (xref "<global>" "Number"))))
+    (contract
+      (a-arrow
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app
+          (a-id "List" (xref "lists" "List"))
+          (a-id "Number" (xref "<global>" "Number")))))
+    (doc "Creates a list of numbers, starting with start, ending with stop-1"))
+  (fun-spec
+    (name "range-by")
+    (arity 3)
+    (params [list: ])
+    (args ("start" "stop" "delta"))
+    (return
+      (a-app
+        (a-id "List" (xref "lists" "List"))
+        (a-id "Number" (xref "<global>" "Number"))))
+    (contract
+      (a-arrow
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app
+          (a-id "List" (xref "lists" "List"))
+          (a-id "Number" (xref "<global>" "Number")))))
+    (doc
+      "Creates a list of numbers, starting with start, in intervals of delta,\n          until reaching (but not including) stop"))
+  (fun-spec
+    (name "repeat")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("n" "e"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-id "Number" (xref "<global>" "Number"))
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "a")))
+    (doc "Creates a list with n copies of e"))
+  (fun-spec
+    (name "filter")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "a")))
+    (doc "Returns the subset of lst for which f(elem) is true"))
+  (fun-spec
+    (name "partition")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return
+      (a-record
+        (a-field "is-true" (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (a-field "is-false" (a-app (a-id "List" (xref "lists" "List")) "a"))))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-record
+          (a-field "is-true" (a-app (a-id "List" (xref "lists" "List")) "a"))
+          (a-field "is-false" (a-app (a-id "List" (xref "lists" "List")) "a")))))
+    (doc
+      "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"))
+  (fun-spec
+    (name "remove")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "a")))
+    (doc
+      "Returns the list without the element if found, or the whole list if it is not"))
+  (fun-spec
+    (name "find")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return
+      (a-app (a-compound (a-dot "O" "Option") (xref "option" "Option")) "a"))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-compound (a-dot "O" "Option") (xref "option" "Option")) "a")))
+    (doc
+      "Returns some(elem) where elem is the first elem in lst for which\n        f(elem) returns true, or none otherwise"))
+  (fun-spec
+    (name "split-at")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("n" "lst"))
+    (return
+      (a-record
+        (a-field "prefix" (a-app (a-id "List" (xref "lists" "List")) "a"))
+        (a-field "suffix" (a-app (a-id "List" (xref "lists" "List")) "a"))))
+    (contract
+      (a-arrow
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-record
+          (a-field "prefix" (a-app (a-id "List" (xref "lists" "List")) "a"))
+          (a-field "suffix" (a-app (a-id "List" (xref "lists" "List")) "a")))))
+    (doc
+      "Splits the list into two lists, one containing the first n elements, and the other containing the rest"))
+  (fun-spec
+    (name "any")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Returns true if f(elem) returns true for any elem of lst"))
+  (fun-spec
+    (name "all")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Returns true if f(elem) returns true for all elems of lst"))
+  (fun-spec
+    (name "all2")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "lst1" "lst2"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" (a-id "Boolean" (xref "<global>" "Boolean")))
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc
+      "Returns true if f(elem1, elem2) returns true for all corresponding elems of lst1 and list2.\n        Returns true when either list is empty"))
+  (fun-spec
+    (name "map")
+    (arity 2)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "lst"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "b"))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b")
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")))
+    (doc "Returns a list made up of f(elem) for each elem in lst"))
+  (fun-spec
+    (name "map2")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b"), leaf("c")])
+    (args ("f" "l1" "l2"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "c"))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c")
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")))
+    (doc
+      "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"))
+  (fun-spec
+    (name "map3")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d")])
+    (args ("f" "l1" "l2" "l3"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "d"))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d")
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")))
+    (doc
+      "Returns a list made up of f(e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3"))
+  (fun-spec
+    (name "map4")
+    (arity 5)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e")])
+    (args ("f" "l1" "l2" "l3" "l4"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "e"))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d" "e")
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        (a-app (a-id "List" (xref "lists" "List")) "e")))
+    (doc
+      "Returns a list made up of f(e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4"))
+  (fun-spec
+    (name "map_n")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "n" "lst"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "b"))
+    (contract
+      (a-arrow
+        (a-arrow (a-id "Number" (xref "<global>" "Number")) "a" "b")
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")))
+    (doc
+      "Returns a list made up of f(n, e1), f(n+1, e2) .. for e1, e2 ... in lst"))
+  (fun-spec
+    (name "map2_n")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b"), leaf("c")])
+    (args ("f" "n" "l1" "l2"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "c"))
+    (contract
+      (a-arrow
+        (a-arrow (a-id "Number" (xref "<global>" "Number")) "a" "b" "c")
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")))
+    (doc
+      "Returns a list made up of f(i, e1, e2) for each e1 in l1, e2 in l2, and i counting up from n"))
+  (fun-spec
+    (name "map3_n")
+    (arity 5)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d")])
+    (args ("f" "n" "l1" "l2" "l3"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "d"))
+    (contract
+      (a-arrow
+        (a-arrow (a-id "Number" (xref "<global>" "Number")) "a" "b" "c" "d")
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")))
+    (doc
+      "Returns a list made up of f(i, e1, e2, e3) for each e1 in l1, e2 in l2, e3 in l3, and i counting up from n"))
+  (fun-spec
+    (name "map4_n")
+    (arity 6)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e")])
+    (args ("f" "n" "l1" "l2" "l3" "l4"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "e"))
+    (contract
+      (a-arrow
+        (a-arrow (a-id "Number" (xref "<global>" "Number")) "a" "b" "c" "d" "e")
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        (a-app (a-id "List" (xref "lists" "List")) "e")))
+    (doc
+      "Returns a list made up of f(i, e1, e2, e3, e4) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4, and i counting up from n"))
+  (fun-spec
+    (name "each")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("f" "lst"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow "a" (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc "Calls f for each elem in lst, and returns nothing"))
+  (fun-spec
+    (name "each2")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "lst1" "lst2"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"))
+  (fun-spec
+    (name "each3")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b"), leaf("c")])
+    (args ("f" "lst1" "lst2" "lst3"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"))
+  (fun-spec
+    (name "each4")
+    (arity 5)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d")])
+    (args ("f" "lst1" "lst2" "lst3" "lst4"))
+    (return "Any")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d" (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        "Any"))
+    (doc
+      "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"))
+  (fun-spec
+    (name "each_n")
+    (arity 3)
+    (params [list: leaf("a")])
+    (args ("f" "num" "lst"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow
+          (a-id "Number" (xref "<global>" "Number"))
+          "a"
+          (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f(i, e) for each e in lst and with i counting up from num, and returns nothing"))
+  (fun-spec
+    (name "each2_n")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "num" "lst1" "lst2"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow
+          (a-id "Number" (xref "<global>" "Number"))
+          "a"
+          "b"
+          (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f(i, e1, e2) for each e1 in lst1, e2 in lst2 and with i counting up from num, and returns nothing"))
+  (fun-spec
+    (name "each3_n")
+    (arity 5)
+    (params [list: leaf("a"), leaf("b"), leaf("c")])
+    (args ("f" "num" "lst1" "lst2" "lst3"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow
+          (a-id "Number" (xref "<global>" "Number"))
+          "a"
+          "b"
+          "c"
+          (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f(i, e1, e2, e3) for each e1 in lst1, e2 in lst2, e3 in lst3 and with i counting up from num, and returns nothing"))
+  (fun-spec
+    (name "each4_n")
+    (arity 6)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d")])
+    (args ("f" "num" "lst1" "lst2" "lst3" "lst4"))
+    (return (a-id "Nothing" (xref "<global>" "Nothing")))
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d" (a-id "Nothing" (xref "<global>" "Nothing")))
+        (a-id "Number" (xref "<global>" "Number"))
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        (a-id "Nothing" (xref "<global>" "Nothing"))))
+    (doc
+      "Calls f(i, e1, e2, e3, e4) for each e1 in lst1, e2 in lst2, e3 in lst3, e4 in lst4 and with i counting up from num, and returns nothing"))
+  (fun-spec
+    (name "fold-while")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "base" "lst"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow
+          "a"
+          "b"
+          (a-app (a-id "Either" (xref "either" "Either")) "a" "a"))
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        "a"))
+    (doc
+      "Takes a function that takes two arguments and returns an Either, and also a base value, and folds\n        over the given list from the left as long as the function returns a left() value, and returns either\n        the final value or the right() value"))
+  (fun-spec
+    (name "fold")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "base" "lst"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        "a"))
+    (doc
+      "Takes a function, an initial value and a list, and folds the function over the list from the left,\n        starting with the initial value"))
+  (fun-spec
+    (name "foldl")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "base" "lst"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        "a"))
+    (doc
+      "Takes a function, an initial value and a list, and folds the function over the list from the left,\n        starting with the initial value"))
+  (fun-spec
+    (name "foldr")
+    (arity 3)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "base" "lst"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        "a"))
+    (doc
+      "Takes a function, an initial value and a list, and folds the function over the list from the right,\n        starting with the initial value"))
+  (fun-spec
+    (name "fold2")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b"), leaf("c")])
+    (args ("f" "base" "l1" "l2"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        "a"))
+    (doc
+      "Takes a function, an initial value and two lists, and folds the function over the lists in parallel\n        from the left, starting with the initial value and ending when either list is empty"))
+  (fun-spec
+    (name "fold3")
+    (arity 5)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d")])
+    (args ("f" "base" "l1" "l2" "l3"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        "a"))
+    (doc
+      "Takes a function, an initial value and three lists, and folds the function over the lists in parallel\n        from the left, starting with the initial value and ending when any list is empty"))
+  (fun-spec
+    (name "fold4")
+    (arity 6)
+    (params [list: leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e")])
+    (args ("f" "base" "l1" "l2" "l3" "l4"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow "a" "b" "c" "d" "e" "a")
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        (a-app (a-id "List" (xref "lists" "List")) "c")
+        (a-app (a-id "List" (xref "lists" "List")) "d")
+        (a-app (a-id "List" (xref "lists" "List")) "e")
+        "a"))
+    (doc
+      "Takes a function, an initial value and four lists, and folds the function over the lists in parallel\n        from the left, starting with the initial value and ending when any list is empty"))
+  (fun-spec
+    (name "fold_n")
+    (arity 4)
+    (params [list: leaf("a"), leaf("b")])
+    (args ("f" "num" "base" "lst"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-arrow (a-id "Number" (xref "<global>" "Number")) "a" "b" "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "a"
+        (a-app (a-id "List" (xref "lists" "List")) "b")
+        "a"))
+    (doc
+      "Takes a function, an initial value and a list, and folds the function over the list from the left,\n        starting with the initial value and passing along the index (starting with the given num)"))
+  (fun-spec
+    (name "member-with")
+    (arity 3)
+    (params [list: leaf("a")])
+    (args ("lst" "elt" "eq"))
+    (return "Any")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-arrow
+          "a"
+          "a"
+          (a-compound
+            (a-dot "equality" "EqualityResult")
+            (xref "equality" "EqualityResult")))
+        "Any")))
+  (fun-spec
+    (name "member3")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return
+      (a-compound
+        (a-dot "equality" "EqualityResult")
+        (xref "equality" "EqualityResult")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-compound
+          (a-dot "equality" "EqualityResult")
+          (xref "equality" "EqualityResult")))))
+  (fun-spec
+    (name "member")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-id "Boolean" (xref "<global>" "Boolean")))))
+  (fun-spec
+    (name "member-always3")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return
+      (a-compound
+        (a-dot "equality" "EqualityResult")
+        (xref "equality" "EqualityResult")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-compound
+          (a-dot "equality" "EqualityResult")
+          (xref "equality" "EqualityResult")))))
+  (fun-spec
+    (name "member-always")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-id "Boolean" (xref "<global>" "Boolean")))))
+  (fun-spec
+    (name "member-now3")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return
+      (a-compound
+        (a-dot "equality" "EqualityResult")
+        (xref "equality" "EqualityResult")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-compound
+          (a-dot "equality" "EqualityResult")
+          (xref "equality" "EqualityResult")))))
+  (fun-spec
+    (name "member-now")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-id "Boolean" (xref "<global>" "Boolean")))))
+  (fun-spec
+    (name "member-identical3")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return
+      (a-compound
+        (a-dot "equality" "EqualityResult")
+        (xref "equality" "EqualityResult")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-compound
+          (a-dot "equality" "EqualityResult")
+          (xref "equality" "EqualityResult")))))
+  (fun-spec
+    (name "member-identical")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "elt"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        "a"
+        (a-id "Boolean" (xref "<global>" "Boolean")))))
+  (fun-spec
+    (name "shuffle")
+    (arity 1)
+    (params [list: leaf("a")])
+    (args ("lst"))
+    (return (a-app (a-id "List" (xref "lists" "List")) "a"))
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-app (a-id "List" (xref "lists" "List")) "a"))))
+  (fun-spec
+    (name "index")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "n"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "a"))
+    (doc
+      "Returns the nth element of the given list, or raises an error if n is out of range"))
+  (fun-spec
+    (name "get-help")
+    (arity 2)
+    (params [list: leaf("a")])
+    (args ("lst" "n"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "a"))
+    (doc
+      "Returns the nth element of the given list, or raises an error if n is out of range"))
+  (fun-spec
+    (name "set-help")
+    (arity 3)
+    (params [list: leaf("a")])
+    (args ("lst" "n" "v"))
+    (return "a")
+    (contract
+      (a-arrow
+        (a-app (a-id "List" (xref "lists" "List")) "a")
+        (a-id "Number" (xref "<global>" "Number"))
+        "Any"
+        "a"))
+    (doc
+      "Returns a new list with the same values as the given list but with the nth element\n        set to the given value, or raises an error if n is out of range"))
+  (unknown-item
+    (name "list")
+    ;; { make: lam(arr499): raw-array-to-list(arr499) end }
+    )))
+
 @(define (list-method name)
   (method-doc "List" "link" name #:alt-docstrings ""))
 
@@ -14,14 +1460,6 @@
   @nested[#:style 'inset]{
   @singleton-doc["List" "empty" (L-of "a")]
   @constructor-doc["List" "link" (list `("first" ("type" "normal") ("contract" ,(a-id "a"))) `("rest" ("type" "normal") ("contract" ,(L-of "a")))) (L-of "a")]{
-    @;{
-    @member-spec["first" #:type "normal" #:contract (a-id "a")]{
-      The first element of the list
-    }
-    @member-spec["rest" #:type "normal" #:contract (L-of "a")]{
-      The rest of the list
-    }
-    }
   }
 
   @function["is-empty" #:alt-docstrings ""]
@@ -52,6 +1490,18 @@ These methods are available on all lists (both @(tt "link") and @(tt "empty")
 instances).  The examples show how to use the dot operator to access and call
 them on particular lists.
 
+@list-method["_plus"]
+
+Appends the list with the given list, similar to the @pyret{append} method.
+
+@examples{
+check:
+  [list: 1, 2] + [list: 3] is [list: 1, 2, 3]
+  [list: ] + [list: 1, 2]  is [list: 1, 2]
+  [list: 1, 2] + [list: ]  is [list: 1, 2]
+  [list: 'a', 'b'] + [list: 'c'] is [list: 'a', 'b'].append([list: 'c'])
+end
+}
 
 @list-method["length"]
 
@@ -185,13 +1635,104 @@ end
 }
 
 @list-method["member"]
+
+Returns true if the @pyret{elt} is located somewhere in the list.
+
+@examples{
+check:
+  [list: 'a', 'b', 'c'].member('a') is true
+  [list: 'a', 'b', 'c'].member( 1 ) is false
+  [list: ].member('a') is false
+end
+}
+
 @list-method["append"]
+
+Creates a list with the list's elements followed by all of those
+in @pyret{other}.
+
+@examples{
+check:
+  [list: 1, 2].append([list: 3]) is [list: 1, 2, 3]
+  [list: ].append([list: 1, 2])  is [list: 1, 2]
+  [list: 1, 2].append([list: ])  is [list: 1, 2]
+end
+}
+
 @list-method["last"]
+
+Returns the last element in the list. For @pyret-id{empty},
+raises an error.
+
+@examples{
+check:
+  [list: 1, 2].last() is 2
+  [list: 1, 2, 3].last() is 3
+  [list: ].last() raises "last: took last of empty list"
+end
+}
+
 @list-method["reverse"]
+
+Returns the list with all of its elements in reverse order.
+
+@examples{
+check:
+  [list: 1, 2].reverse() is [list: 2, 1]
+  [list: 1].reverse()    is [list: 1]
+  [list:  ].reverse()    is [list:  ]
+end
+}
+
 @list-method["sort"]
+
+Sorts the list in ascending order using @pyret{<}. Note that
+this means that the list must only contain numbers, strings,
+or data which has the @pyret{_lessthan} method defined.
+
+@examples{
+import is-num-string-binop-error from error
+check:
+  [list: 3, 1, 2].sort() is [list: 1, 2, 3]
+  [list: "o", "o", "f"].sort() is [list: "f", "o", "o"]
+  [list: true, false].sort() raises-satisfies is-num-string-binop-error
+end
+}
+
 @list-method["sort-by"]
+
+Similar to @pyret{sort}, but additionally takes in two functions
+describing how to compare items in the list when sorting and how to check
+them for equality (respectively). When @pyret{cmp(a1,a2)} is true,
+@pyret{a1} is placed before @pyret{a2} in the resulting list.
+
+@examples{
+check:
+  ascending = lam(a, b): a < b end
+  descending = lam(a, b): a > b end
+  are-equal = lam(a, b): a == b end
+  [list: 3, 1, 2].sort-by(ascending, are-equal) is [list: 1, 2, 3]
+  [list: 3, 1, 2].sort-by(descending, are-equal) is [list: 3, 2, 1]
+  bool-sort = lam(a, b): not(a) and b end
+  [list: false, true, false, true].sort-by(bool-sort, are-equal) is
+    [list: false, false, true, true]
+end
+}
+
 @list-method["join-str"]
 
+Calls @pyret{tostring} on each element in the list, and joins them
+together into one string separated by @pyret{str}.
+
+@examples{
+check:
+  [list: 1, 2, 3].join-str(", ") is "1, 2, 3"
+  [list: false, true].join-str(" => ") is "false => true"
+  [list: "foo", "bar"].join-str("") is "foobar"
+  [list: "foo"].join-str("bar") is "foo"
+  [list: ].join-str("--") is ""
+end
+}
 
 
 @section{List Functions}
@@ -493,13 +2034,40 @@ end
   ]
   @function[
     "member"
-  ]
+    #:examples
+    '@{
+    check:
+      member([list: 1, 2, 3], 2) is [list: 1, 2, 3].member(2)
+      member([list: 1, 2], "a") is [list: 1, 2].member("a") 
+    end
+    }
+  ]{
+  The function version of the @pyret{member} method on lists.
+  }
   @function[
     "member-with"
-  ]
+    #:examples
+    '@{
+    check:
+      member-with([list: 1, 2], 3, lam(x,y): x == y end) is false
+      member-with([list: 1, 2], 3, lam(x,y): x <> y end) is true
+    end
+    }
+  ]{
+  Like @pyret-id{member}, but takes a function which describes when two
+  items in the list are equal.
+  }
   @function[
     "reverse"
-  ]
+    #:examples
+    '@{
+    check:
+      reverse([list: 1, 2, 3]) is [list: 1, 2, 3].reverse()
+    end
+    }
+  ]{
+  The function version of the @pyret{reverse} method on lists.
+  }
 
 
   @function[

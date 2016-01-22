@@ -1,6 +1,75 @@
 
 #lang scribble/base
 @(require "../../scribble-api.rkt" "../abbrevs.rkt")
+
+@(append-gen-docs
+'(module
+  "s-exp-structs"
+  (path "src/arr/trove/s-exp-structs.arr")
+  (data-spec
+    (name "S-Exp")
+    (type-vars ())
+    (variants ("s-list" "s-num" "s-str" "s-sym"))
+    (shared ()))
+  
+  (constr-spec
+    (name "s-list")
+    (members
+      (("exps"
+        (type normal)
+        (contract
+          (a-app
+            (a-id "List" (xref "<global>" "List"))
+            (a-id "S-Exp" (xref "s-exp-structs" "S-Exp")))))))
+    (with-members ()))
+  (fun-spec
+    (name "is-s-list")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a s-list"))
+  (constr-spec
+    (name "s-num")
+    (members
+      (("n" (type normal) (contract (a-id "Number" (xref "<global>" "Number"))))))
+    (with-members ()))
+  (fun-spec
+    (name "is-s-num")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a s-num"))
+  (constr-spec
+    (name "s-str")
+    (members
+      (("s" (type normal) (contract (a-id "String" (xref "<global>" "String"))))))
+    (with-members ()))
+  (fun-spec
+    (name "is-s-str")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a s-str"))
+  (constr-spec
+    (name "s-sym")
+    (members
+      (("s" (type normal) (contract (a-id "String" (xref "<global>" "String"))))))
+    (with-members ()))
+  (fun-spec
+    (name "is-s-sym")
+    (arity 1)
+    (params [list: ])
+    (args ("val"))
+    (return (a-id "Boolean" (xref "<global>" "Boolean")))
+    (contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean"))))
+    (doc "Checks whether the provided argument is in fact a s-sym"))))
+
 @(define S-Exp (a-id "S-Exp" (xref "s-exp-structs" "S-Exp")))
 
 @(define l-of-S-Exp (a-app (a-id "List" (xref "lists" "List")) (a-id "S-Exp" (xref "s-exp-structs" "S-Exp"))))

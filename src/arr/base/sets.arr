@@ -52,7 +52,15 @@ data AVLTree:
     preorder(self) -> lists.List: empty end,
     inorder(self) -> lists.List: empty end,
     postorder(self) -> lists.List: empty end,
-    fold(self, f, base): base end,
+    revpreorder(self) -> lists.List: empty end,
+    revinorder(self) -> lists.List: empty end,
+    revpostorder(self) -> lists.List: empty end,
+    fold-preorder(self, f, base): base end,
+    fold-inorder(self, f, base): base end,
+    fold-postorder(self, f, base): base end,
+    fold-revpreorder(self, f, base): base end,
+    fold-revinorder(self, f, base): base end,
+    fold-revpostorder(self, f, base): base end,
     count(self): 0 end,
     all(self, f): true end,
     any(self, f): false end
@@ -88,21 +96,64 @@ data AVLTree:
       end
     end,
     preorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a preorder traversal"
-      link(self.value, self.left.preorder() + self.right.preorder())
+      doc: "Returns a list of all elements from a left-to-right preorder traversal"
+      fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
+      self.fold-revpreorder(knil, empty) # reversed because knil is reversed
     end,
     inorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a inorder traversal"
-      self.left.inorder() + link(self.value, self.right.inorder())
+      doc: "Returns a list of all elements from a left-to-right inorder traversal"
+      fun knil(l, x): link(x, l) end
+      self.fold-revinorder(knil, empty)
     end,
     postorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a postorder traversal"
-      self.left.postorder() + self.right.postorder() + link(self.value, empty)
+      doc: "Returns a list of all elements from a left-to-right postorder traversal"
+      fun knil(l, x): link(x, l) end
+      self.fold-revpostorder(knil, empty)
     end,
-    fold(self, f, base):
+    revpreorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a right-to-left preorder traversal"
+      fun knil(l, x): link(x, l) end
+      self.fold-preorder(knil, empty)
+    end,
+    revinorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a right-to-leftinorder traversal"
+      fun knil(l, x): link(x, l) end
+      self.fold-inorder(knil, empty)
+    end,
+    revpostorder(self) -> lists.List:
+      doc: "Returns a list of all elements from a roght-to-left postorder traversal"
+      fun knil(l, x): link(x, l) end
+      self.fold-postorder(knil, empty)
+    end,
+    fold-preorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list```
-      self.right.fold(f, self.left.fold(f, f(base, self.value)))
+            analogous to folding a list, in a preorder traversal```
+      self.right.fold-preorder(f, self.left.fold-preorder(f, f(base, self.value)))
+    end,
+    fold-inorder(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list, in an inorder traversal```
+      self.right.fold-inorder(f, f(self.left.fold-inorder(f, base), self.value))
+    end,
+    fold-postorder(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list, in a postorder traversal```
+      f(self.right.fold-postorder(f, self.left.fold-postorder(f, base)), self.value)
+    end,
+    fold-revpreorder(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list, in a right-to-left preorder traversal```
+      self.left.fold-revpreorder(f, self.right.fold-revpreorder(f, f(base, self.value)))
+    end,
+    fold-revinorder(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list, in a right-to-left inorder traversal```
+      self.left.fold-revinorder(f, f(self.right.fold-revinorder(f, base), self.value))
+    end,
+    fold-revpostorder(self, f, base):
+      doc: ```Folds the elements contained in the tree into a single value with f.
+            analogous to folding a list, in a right-to-left postorder traversal```
+      f(self.left.fold-revpostorder(f, self.right.fold-revpostorder(f, base)), self.value)
     end,
     count(self): 1 + self.left.count() + self.right.count() end,
     all(self, f):
@@ -125,7 +176,7 @@ sharing:
   end
 end
 
-fun tree-fold(f, base, tree): tree.fold(f, base) end
+fun tree-fold(f, base, tree): tree.fold-preorder(f, base) end
 fun tree-all(f, tree): tree.all(f) end
 fun tree-any(f, tree): tree.any(f) end
 
@@ -209,6 +260,20 @@ fun swap-next-lowest(tree :: AVLTree):
       remove-greatest-and-rebalance(tree.left),
       tree.right))
 end
+
+
+check:
+  tree1 =
+    branch(4, 666, branch(2, 666, branch(1, 666, leaf, leaf), branch(3, 666, leaf, leaf)),
+      branch(6, 666, branch(5, 666, leaf, leaf), leaf))
+  tree1.inorder() is   [list: 1, 2, 3, 4, 5, 6]
+  tree1.preorder() is  [list: 4, 2, 1, 3, 6, 5]
+  tree1.postorder() is [list: 1, 3, 2, 5, 6, 4]
+  tree1.revinorder() is   [list: 6, 5, 4, 3, 2, 1]
+  tree1.revpreorder() is  [list: 5, 6, 3, 1, 2, 4]
+  tree1.revpostorder() is [list: 4, 6, 5, 2, 3, 1]
+end
+
 
 data Set:
   | list-set(elems :: lists.List) with:
@@ -381,23 +446,13 @@ data Set:
     end,
 
     union(self, other):
-      new-elems =
-        other.fold(lam(elems, elem):
-          elems.insert(elem)
-        end, self.elems)
-      tree-set(new-elems)
+      doc: 'Compute the union of this set and another set.'
+      tree-set-union(self, other)
     end,
 
     intersect(self, other):
-      new-elems =
-        for tree-fold(elems from self.elems, elem from self.elems):
-          if other.member(elem):
-            elems
-          else:
-            elems.remove(elem)
-          end
-        end
-      tree-set(new-elems)
+      doc: 'Compute the intersection of this set and another set.'
+      tree-set-intersect(self, other)
     end,
 
     overlaps(self :: Set, other :: Set) -> Boolean:
@@ -407,14 +462,7 @@ data Set:
 
     difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
-      new-elems = other.fold(lam(elems, elem):
-        if self.member(elem):
-          elems.remove(elem)
-        else:
-          elems
-        end
-      end, self.elems)
-      tree-set(new-elems)
+      tree-set-difference(self, other)
     end,
 
     size(self :: Set) -> Number:
@@ -433,7 +481,7 @@ data Set:
     
 sharing:
 
-  symmetric_difference(self :: Set, other :: Set) -> Set:
+  symmetric-difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'
     self.union(other).difference(self.intersect(other))
   end,
@@ -454,6 +502,97 @@ sharing:
       end
     end
   end
+end
+
+fun set-to-sorted-elems(s):
+  cases(Set) s:
+    | list-set(elems) => elems.sort()
+    | tree-set(elems) => elems.inorder()
+  end
+end
+
+fun elems-to-balanced-avl(elems):
+  doc: ```
+       Constructs a balanced (but not full) binary search tree from the given sorted list of items.
+       Note: algorithm is O(elems.length()), using a mutable pointer into the element list to ensure
+       that each item gets processed once, in order, as the tree is being constructed.
+       ```  
+  var head = elems
+  len = elems.length()
+  fun helper(l):
+    if l <= 0: leaf
+    else if is-empty(head): leaf
+    else:
+      left = helper(num-floor(l / 2))
+      item = head.first
+      head := head.rest
+      branch(item, left.height() + 1, left, helper(num-ceiling((l / 2) - 1)))
+    end
+  end
+  helper(len)
+where:
+  elems-to-balanced-avl(empty) is leaf
+  elems-to-balanced-avl([list: 1, 2, 3, 4, 5]) is
+  branch(3, 3, branch(2, 2, branch(1, 1, leaf, leaf), leaf),
+    branch(5, 2, branch(4, 1, leaf, leaf), leaf))
+  elems-to-balanced-avl([list: 1, 2, 3, 4, 5, 6]) is
+  branch(4, 3, branch(2, 2, branch(1, 1, leaf, leaf), branch(3, 1, leaf, leaf)),
+    branch(6, 2, branch(5, 1, leaf, leaf), leaf))
+end
+
+fun merge-no-dups(l1, l2):
+  doc: "Returns a merged list of the values in both input sorted lists, discarding duplicates"
+  if is-empty(l1): l2
+  else if is-empty(l2): l1
+  else if l1.first < l2.first:  link(l1.first, merge-no-dups(l1.rest, l2))
+  else if l1.first == l2.first: merge-no-dups(l1.rest, l2)
+  else:                         link(l2.first, merge-no-dups(l1, l2.rest))
+  end
+where:
+  merge-no-dups([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 1, 2, 3, 4, 5, 6]
+end
+
+fun tree-set-union(s1, s2) -> Set:
+  s1-elems = set-to-sorted-elems(s1)
+  s2-elems = set-to-sorted-elems(s2)
+  new-elems = merge-no-dups(s1-elems, s2-elems)
+  tree-set(elems-to-balanced-avl(new-elems))
+end
+
+fun merge-only-dups(l1, l2):
+  doc: "Returns a list of the duplicate values appearing in both input sorted lists"
+  if is-empty(l1) or is-empty(l2): empty
+  else if l1.first < l2.first:  merge-only-dups(l1.rest, l2)
+  else if l1.first == l2.first: link(l1.first, merge-only-dups(l1.rest, l2.rest))
+  else:                         merge-only-dups(l1, l2.rest)
+  end
+where:
+  merge-only-dups([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 1, 5]
+end
+
+fun tree-set-intersect(s1, s2) -> Set:
+  s1-elems = set-to-sorted-elems(s1)
+  s2-elems = set-to-sorted-elems(s2)
+  new-elems = merge-only-dups(s1-elems, s2-elems)
+  tree-set(elems-to-balanced-avl(new-elems))
+end
+
+fun merge-drop-l2(l1, l2):
+  doc: "Returns the items in the first sorted list that are not in the second sorted list"
+  if is-empty(l1) or is-empty(l2): l1
+  else if l1.first == l2.first: merge-drop-l2(l1.rest, l2.rest)
+  else if l1.first < l2.first:  link(l1.first, merge-drop-l2(l1.rest, l2))
+  else:                         merge-drop-l2(l1, l2.rest)
+  end
+where:
+  merge-drop-l2([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 3, 6]
+end
+
+fun tree-set-difference(s1, s2) -> Set:
+  s1-elems = set-to-sorted-elems(s1)
+  s2-elems = set-to-sorted-elems(s2)
+  new-elems = merge-drop-l2(s1-elems, s2-elems)
+  tree-set(elems-to-balanced-avl(new-elems))
 end
 
 fun set-all(f, s :: Set) -> Boolean:

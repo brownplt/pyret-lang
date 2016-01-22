@@ -1396,6 +1396,8 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
           n.toname()
         else if import-keys.ts.has-key(n.key()):
           type-name(n.toname())
+        else:
+          raise("Unaware of imported name: " + n.key())
         end
     end
     j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))

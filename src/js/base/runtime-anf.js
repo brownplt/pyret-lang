@@ -234,6 +234,7 @@ function isBase(obj) { return obj instanceof PBase; }
     "nothing": function(val) { return "nothing"; },
     "function": function(val) { return "<function>"; },
     "method": function(val) { return "<method>"; },
+    "cyclic": function(val) { return val; },
     "opaque": function(val) {
       if (thisRuntime.imageLib.isImage(val.val)) {
         return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
@@ -1295,7 +1296,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               // Baffling bugs will result if next is passed directly
               var arrayHasBeenSeen = findSeenArray(top.arrays, next);
               if(typeof arrayHasBeenSeen === "string") {
-                finishVal(arrayHasBeenSeen);
+                finishVal(reprMethods["cyclic"](arrayHasBeenSeen));
               }
               else {
                 reprMethods["array"](next, pushTodo);
@@ -1305,10 +1306,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
               var refHasBeenSeen = findSeenRef(top.refs, next);
               var implicit = implicitRefs(top) && top.extra.implicitRefs[top.todo.length - 1];
               if(typeof refHasBeenSeen === "string") {
-                finishVal(refHasBeenSeen);
+                finishVal(reprMethods["cyclic"](refHasBeenSeen));
               }
               else if(!isRefSet(next)) {
-                finishVal("<uninitialized-ref>");
+                finishVal(reprMethods["cyclic"]("<uninitialized-ref>"));
               }
               else {
                 reprMethods["ref"](next, implicit, pushTodo);
@@ -1317,7 +1318,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else if(isObject(next)) {
               var objHasBeenSeen = findSeenObject(top.objects, next);
               if(typeof objHasBeenSeen === "string") {
-                finishVal(objHasBeenSeen);
+                finishVal(reprMethods["cyclic"](objHasBeenSeen));
               }
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");

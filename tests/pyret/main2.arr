@@ -10,6 +10,7 @@ import file("./tests/test-array.arr") as _
 import file("./tests/test-constructors.arr") as _
 import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
+import file("./tests/test-json.arr") as _
 import file("./tests/test-refs.arr") as _
 import file("./tests/test-equality.arr") as _
 import file("./tests/test-refined-refs.arr") as _
