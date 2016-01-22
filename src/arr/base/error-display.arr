@@ -62,11 +62,11 @@ fun ed-fields(n):
             else:      " fields";)]
 end
 
-fun ed-bindings(n):
+fun ed-fieldbindings(n):
   [sequence:
     embed(n),
-    text(if n == 1: " binding"
-            else:      " binding";)]
+    text(if n == 1: " field binding"
+            else:      " field bindings";)]
 end
 
 fun ed-params(n):

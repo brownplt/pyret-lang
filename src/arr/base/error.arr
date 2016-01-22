@@ -51,13 +51,8 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.text(self.expression),
-          ED.text(" expression")],
-        [ED.para:
-          ED.code(
-            ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], make-palette(1).get(0)))],
-        [ED.para:
-          ED.text("expects that the condition of at least one branch be satisfied. No branches were satisfied.")]]
+          ED.highlight(ED.text(self.expression),[ED.locs: self.loc], make-palette(1).get(0)),
+          ED.text(" expression expects that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
     end,
     render-reason(self):
       [ED.error:
@@ -397,7 +392,7 @@ data RuntimeError:
           ED.text(" pattern has has exactly the same number of "),
           cases(Any) ast-branch:
             | s-cases-branch(_, _, _, args, _) =>
-                ED.highlight(ED.text("argument bindings"),args.map(_.l), palette.get(3))
+                ED.highlight(ED.text("field bindings"),args.map(_.l), palette.get(3))
             | s-singleton-cases-branch(_, _, _, _) => ED.text("arguments")
           end,
           ED.text(" as the "),
@@ -411,11 +406,8 @@ data RuntimeError:
           ED.text(" has "),
           cases(Any) ast-branch:
             | s-cases-branch(_, _, _, args, _) =>
-                ED.highlight([ED.sequence:
-                  ED.text("argument "),
-                  ED.ed-bindings(self.num-args)],args.map(_.l), palette.get(3))
-            | s-singleton-cases-branch(_, _, _, _) => [ED.sequence:
-                  ED.text("argument "), ED.ed-bindings(self.num-args)]
+                ED.highlight(ED.ed-field-bindings(self.num-args),args.map(_.l), palette.get(3))
+            | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
           end,
           ED.text(". The "),
           ED.code(ED.text(ast-branch.name)),
