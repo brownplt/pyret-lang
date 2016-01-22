@@ -14,6 +14,9 @@ end
 
 data RuntimeError:
   | message-exception(message :: String) with:
+    render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error: [ED.para: ED.text(self.message)]]
     end
