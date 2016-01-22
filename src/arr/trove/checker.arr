@@ -71,11 +71,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ed-op),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is => [ED.sequence:
@@ -133,11 +132,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ed-op),
           ED.text(" reported failure for the test ")],
-        [ED.para:
           ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is-not => [ED.sequence:
@@ -184,11 +182,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ED.text("satisfies")),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -223,11 +220,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ED.text("violates")),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" violates "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -291,13 +287,12 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ED.text("raises-satisfies")),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" "), ed-op, ED.text(" "),
             if is-some(rhs-ast):
               ED.highlight(ED.h-sequence(rhs-ast.value.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.value.l], palette.get(2))
-            else: ED.text("");])],
+            else: ED.text("");]),
         [ED.para:
           ED.text("because it did not expect the evaluation of the "),
           if self.l-operand: ed-lhs else: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.value.l], palette.get(2));,
@@ -341,11 +336,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ED.text("raises-satisfies")),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" raises-satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
@@ -380,11 +374,10 @@ data TestResult:
           ED.text("The binary test operator "),
           ED.code(ED.text("raises-satisfies")),
           ED.text(" reported failure for the test ")],
-        [ED.para:
-          ED.code([ED.sequence:
+         ED.code([ED.sequence:
             ED.highlight(ED.h-sequence(lhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: lhs-ast.l], palette.get(0)),
             ED.text(" raises-satisfies "),
-            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))])],
+            ED.highlight(ED.h-sequence(rhs-ast.tosource().pretty(80).map(ED.text),""), [ED.locs: rhs-ast.l], palette.get(2))]),
         [ED.para:
           ED.text("because it reports success if and only if the "),
           ed-rhs,
