@@ -262,9 +262,7 @@ data RuntimeError:
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
-          left-loc = cases(Any) binop-ast.left:
-            | s-op(_,_,_,_,r) => binop-ast.left.l.upto(r.l)
-            | else => binop-ast.left.l;
+          left-loc =  binop-ast.left.l
           right-loc = binop-ast.right.l
           [ED.error:
             [ED.para:
@@ -416,7 +414,7 @@ data RuntimeError:
                 ED.highlight([ED.sequence:
                   ED.text("argument "),
                   ED.ed-bindings(self.num-args)],args.map(_.l), palette.get(3))
-            | s-singleton-cases-branch(_, _, _, _) =>[ED.sequence:
+            | s-singleton-cases-branch(_, _, _, _) => [ED.sequence:
                   ED.text("argument "), ED.ed-bindings(self.num-args)]
           end,
           ED.text(". The "),
