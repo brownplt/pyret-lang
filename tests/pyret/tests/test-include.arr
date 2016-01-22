@@ -26,12 +26,12 @@ modules = [SD.mutable-string-dict:
   y = 10
   fun g(x): x end
   ```,
-  
+
   "provides-a-type",
   ```
   provide-types *
 
-  type N = Number 
+  type N = Number
   ```,
 
   "includes-a-type",
@@ -86,7 +86,6 @@ modules = [SD.mutable-string-dict:
   n
   ```,
 
-
   "shadows-a-global",
   ```
   provide *
@@ -97,7 +96,6 @@ modules = [SD.mutable-string-dict:
   ```
   include file("shadows-a-global")
   ```,
-
 
 #|
   "shadows-global-type",
@@ -117,7 +115,6 @@ modules = [SD.mutable-string-dict:
   is-function(big-bang)
   ```,
 
-
   "gather-includes",
   ```
   provide *
@@ -136,9 +133,9 @@ modules = [SD.mutable-string-dict:
 
   ]
 
-
 fun string-to-locator(name :: String):
   {
+    dialect(self): "pyret" end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
     get-extra-imports(self): CM.minimal-imports end,
@@ -166,14 +163,14 @@ end
 fun run-to-result(filename):
   floc = string-to-locator(filename)
   wlist = CL.compile-worklist(dfind, floc, {})
-  res = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options) 
+  res = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   res
 end
 
 fun get-run-answer(str):
   cases(Either) run-to-result(str):
     | right(ans) => ans
-    | left(err) => 
+    | left(err) =>
       print-error("Expected an answer, but got compilation errors:")
       for lists.each(e from err):
         print-error(tostring(e))
