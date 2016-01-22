@@ -36,7 +36,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
   when options.collect-all:
     when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
   end
-  var wf = W.check-well-formed(ast-ended.or-else(ast))
+  var wf = W.check-well-formed(ast-ended.or-else(ast), "pyret")
   ast-ended := nothing
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
@@ -112,4 +112,3 @@ fun compile-js(trace, code, name, env :: C.CompileEnvironment, libs :: C.ExtraIm
   when options.collect-all: ret := phase("Parsed", ast, ret) end
   compile-js-ast(ret, ast, name, env, libs, options)
 end
-
