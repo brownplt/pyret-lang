@@ -35,16 +35,17 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
 end
 
 fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
-  raw = B.builtin-raw-locator(builtin-name)  
+  raw = B.builtin-raw-locator(builtin-name)
   {
+    dialect(_): "pyret" end,
     needs-compile(_, _): false end,
-    get-module(_): 
+    get-module(_):
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
     get-extra-imports(self):
       CM.standard-imports
     end,
-    get-dependencies(_): 
+    get-dependencies(_):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
@@ -74,4 +75,3 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
     end
   }
 end
-
