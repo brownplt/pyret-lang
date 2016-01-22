@@ -105,7 +105,7 @@ end
 
 fun desugar-if(l, branches, _else :: A.Expr):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    check-bool(branch.l, desugar-expr(branch.test), lam(test-id):
+    check-bool(branch.test.l, desugar-expr(branch.test), lam(test-id):
         A.s-if-else(l,
           [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
           acc)
@@ -355,7 +355,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
-      check-bool(l, desugar-expr(test), lam(test-id-e):
+      check-bool(test.l, desugar-expr(test), lam(test-id-e):
           A.s-if-else(l,
             [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
             A.s-block(l, [list: gid(l, "nothing")]))
@@ -426,9 +426,9 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper): or-oper;)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
                         helper(operands.rest))
@@ -441,9 +441,9 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper): and-oper;)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
                         A.s-bool(l, false))
