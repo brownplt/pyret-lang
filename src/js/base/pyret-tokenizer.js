@@ -131,15 +131,18 @@ define(["../../../lib/jglr/jglr"], function(E) {
     "\u03c6-\u03c9" +
     "\u03d1-\u03d2";
 
-  ;  // ,,
-
   const name = new RegExp("^[" + extended_letter + "]" +
                           "[" + extended_letter + "0-9]*" +
                           "(?:-+[" + extended_letter + "0-9]+)*", STICKY_REGEXP);
 
   //const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  //const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
   //const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  //rational (subsumed in number) still needed for well-formedness tests?
   //const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
 
   // number
@@ -179,10 +182,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
                             rational_or_decimal_string + "|" +
                             complexroughnum_string + "|" +
                             roughnum_string, STICKY_REGEXP)
-
-  // rational is subsumed in number, but we're keeping it separate to
-  // perform some well-formedness tests
-  //const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
 
   // end number
 
