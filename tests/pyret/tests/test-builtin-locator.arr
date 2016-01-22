@@ -43,6 +43,7 @@ check:
 
   fun string-to-locator(name :: String):
     {
+      dialect(self): "pyret" end,
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self):
