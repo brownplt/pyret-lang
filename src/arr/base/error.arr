@@ -37,9 +37,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The value of the "),
           ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l], palette.get(1)),
-          ED.text(" was "),
-          ED.highlight(ED.text(txt-val), [ED.locs: ast-cse.val.l], palette.get(1)),
-          ED.text(":")],
+          ED.text(" was:")],
          ED.embed(self.val)]
     end,
     render-reason(self):
@@ -202,16 +200,14 @@ data RuntimeError:
           [ED.error:
             [ED.para:
               ED.text("The expression")],
-            [ED.para:
-              ED.code(ED.highlight(ED.text(src), [ED.locs: loc], make-palette(1).get(0)))],
+             ED.code(ED.highlight(ED.text(src), [ED.locs: loc], make-palette(1).get(0))),
             [ED.para:
               ED.text("was expected to evaluate to a "),
               ED.embed(self.typ),
               ED.text(". It evaluated to the non-"),
               ED.embed(self.typ),
               ED.text(" value:")],
-            [ED.para:
-              ED.embed(self.val)]]
+             ED.embed(self.val)]
         end,
         [ED.error:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
@@ -241,13 +237,12 @@ data RuntimeError:
               ED.text("The binary "),
               ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l], palette.get(1)),
               ED.text(" operator expression ")],
-            [ED.para:
-              ED.code([ED.sequence:
+             ED.code([ED.sequence:
                 ED.highlight(ED.text(loc-to-src(left-loc)),  [ED.locs: left-loc], palette.get(0)),
                 ED.text(" "),
                 ED.highlight(ED.text(self.opname),           [ED.locs: binop-ast.op-l], palette.get(1)),
                 ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc], palette.get(2))])],
+                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc], palette.get(2))]),
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -297,15 +292,14 @@ data RuntimeError:
           [ED.error:
             [ED.para:
               ED.text("The binary "),
-              ED.highlight(ED.text(self.opdesc),[ED.locs: left-loc], palette.get(1)),
+              ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l], palette.get(1)),
               ED.text(" operator expression ")],
-            [ED.para:
-              ED.code([ED.sequence:
+             ED.code([ED.sequence:
                 ED.highlight(ED.text(loc-to-src(left-loc)),  [ED.locs: left-loc], palette.get(0)),
                 ED.text(" "),
                 ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l], palette.get(1)),
                 ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc], palette.get(2))])],
+                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc], palette.get(2))]),
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -386,7 +380,9 @@ data RuntimeError:
                 ED.highlight(ED.ed-field-bindings(self.num-args),args.map(_.l), palette.get(3))
             | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
           end,
-          ED.text(". The "),
+          ED.text(".")],
+        [ED.para:
+          ED.text("The "),
           ED.code(ED.text(ast-branch.name)),
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
@@ -529,7 +525,7 @@ data RuntimeError:
           ED.text("The expression "),
           ED.highlight(ED.code(ED.text(fun-src)), [ED.locs: fun-loc], palette.get(0)),
           ED.text(" evaluated to the non-function value:")],
-        [ED.para: ED.embed(self.non-fun-val)]]
+         ED.embed(self.non-fun-val)]
     end,
     render-reason(self):
       [ED.error:
@@ -577,8 +573,7 @@ data RuntimeError:
             [ED.para: 
               ED.text("The array interaction "),
               ED.code(ED.highlight(ED.text(self.method-name), [ED.locs: loc], palette.get(0)))],
-            [ED.para:
-              ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], palette.get(0)))],
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], palette.get(0))),
             [ED.para:
               ED.text("expects that the index passed to it is an integer within the bounds of the array. "),
               ED.embed(self.index),

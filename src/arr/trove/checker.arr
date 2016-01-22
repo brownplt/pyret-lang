@@ -96,8 +96,6 @@ data TestResult:
           report-value(ed-rhs, self.refinement, self.right)]
     end,
     render-reason(self):
-      print(self.code)
-      print("failure-not-equal")
       [ED.error: 
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not equal")
@@ -159,7 +157,6 @@ data TestResult:
           report-value(ed-rhs, self.refinement, self.right)]
     end,
     render-reason(self):
-      print("failure-not-different")
       [ED.error:
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not different")
@@ -203,7 +200,6 @@ data TestResult:
         ED.embed(self.val)]
     end,
     render-reason(self):
-      print("failure-not-satisfied")
       [ED.error:
         [ED.para: ED.text("Predicate failed for value:")],
         [ED.para: ED.embed(self.val)]]
@@ -243,14 +239,12 @@ data TestResult:
         ED.embed(self.val)]
     end,
     render-reason(self):
-      print("failure-not-dissatisfied")
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for value (it should have failed):")],
         [ED.para: ED.embed(self.val)]]
     end
   | failure-wrong-exn(loc :: Loc, code :: String, exn-expected, actual-exn) with:
     render-fancy-reason(self):
-      print("failure-wrong-exn")
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -258,7 +252,6 @@ data TestResult:
         [ED.para: ED.embed(self.exn-expected)]]
     end,
     render-reason(self):
-      print("failure-wrong-exn")
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -267,7 +260,6 @@ data TestResult:
     end
   | failure-right-exn(loc :: Loc, code :: String, exn-not-expected, actual-exn) with:
     render-fancy-reason(self):
-      print("failure-right-exn")
       [ED.error:
         [ED.para: ED.text("Got exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -275,7 +267,6 @@ data TestResult:
         [ED.para: ED.embed(self.exn-not-expected)]]
     end,
     render-reason(self):
-      print("failure-right-exn")
       [ED.error:
         [ED.para: ED.text("Got exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -314,21 +305,18 @@ data TestResult:
         ED.embed(self.actual-exn)]
     end,
     render-reason(self):
-      print("failure-exn")
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)]]
     end
   | failure-no-exn(loc :: Loc, code :: String, exn-expected :: Option<String>) with:
     render-fancy-reason(self):
-      print("failure-no-exn")
       cases(Option) self.exn-expected:
         | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end,
     render-reason(self):
-      print("failure-no-exn")
       cases(Option) self.exn-expected:
         | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
@@ -369,7 +357,6 @@ data TestResult:
         ED.embed(self.exn)]
     end,
     render-reason(self):
-      print("failure-raise-not-satisfied")
       [ED.error:
         [ED.para: ED.text("Predicate failed for exception:")],
         [ED.para: ED.embed(self.exn)]]
@@ -409,7 +396,6 @@ data TestResult:
         ED.embed(self.exn)]
     end,
     render-reason(self):
-      print("failure-raise-not-dissatisfied")
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
         [ED.para: ED.embed(self.exn)]]
@@ -418,13 +404,11 @@ data TestResult:
   # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, code :: String, refinement, left, righ, test-result) with:
     render-fancy-reason(self):
-      print("error-not-boolean")
       [ED.error:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
     end,
     render-reason(self):
-      print("error-not-boolean")
       [ED.error:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
