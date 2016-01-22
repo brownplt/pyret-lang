@@ -391,7 +391,7 @@ data RuntimeError:
           ED.text(" variant of the "),
           ED.embed(ast-cases.typ.id),
           ED.text(" datatype has "),
-          ED.ed-args(self.actual-arity)]]
+          ED.ed-fields(self.actual-arity)]]
     end,
     render-reason(self):
       [ED.error:
