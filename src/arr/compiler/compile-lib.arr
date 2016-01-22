@@ -46,7 +46,7 @@ end
 type Provides = CS.Provides
 
 type Locator = {
- 
+
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
   needs-compile :: (SD.StringDict<Provides> -> Boolean),
@@ -85,7 +85,6 @@ data Located<a>:
   | located(locator :: Locator, context :: a)
 end
 
-
 fun get-ast(p :: PyretCode, uri :: URI):
   cases(PyretCode) p:
     | pyret-string(s) => P.surface-parse(s, uri)
@@ -123,7 +122,7 @@ end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
-  vals-part = 
+  vals-part =
     cases (A.Provide) parsed._provide:
       | s-provide-none(l) => mtd
       | s-provide-all(l) =>
@@ -221,7 +220,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
     when options.collect-all:
       when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
     end
-    wf = W.check-well-formed(ast-ended.or-else(ast))
+    wf = W.check-well-formed(ast-ended.or-else(ast), locator.dialect())
     when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
     checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
     cases(CS.CompileResult) wf:
@@ -327,7 +326,6 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, runtime :: R.Run
   end
 end
 
-
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
   doc: "Assumes topo-sorted worklist in ws"
   cases(List) ws:
@@ -353,4 +351,3 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
       end
   end
 end
-
