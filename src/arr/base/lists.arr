@@ -473,6 +473,11 @@ fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
   help(lst1, lst2)
 end
 
+fun spyret_append_2<a>(lst1 :: List<a>, lst2 :: List<a>) -> List<a>:
+  doc: "Returns the append of lst1 and lst2"
+  lst1.append(lst2)
+end
+
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
