@@ -11,6 +11,7 @@ import "compiler/locators/builtin.arr" as BL
 
 fun string-to-locator(name, str :: String):
   {
+    dialect(self): "pyret" end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-string(str) end,
     get-extra-imports(self): CS.minimal-imports end,
@@ -50,7 +51,6 @@ end
 fun is-arr-file(filename):
   string-index-of(filename, ".arr") == (string-length(filename) - 4)
 end
-
 
 check "These should all be good programs":
   base = "./tests/type-check/good/"
