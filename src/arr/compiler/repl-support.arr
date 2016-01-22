@@ -129,6 +129,7 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
     memoized-ast
   end
   {
+    dialect(self): "pyret" end,
     restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
@@ -162,6 +163,7 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
     memoized-ast
   end
   {
+    dialect(self): "pyret" end,
     restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
@@ -182,19 +184,20 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
   }
 end
 
-fun make-wescheme-repl-definitions-locator(name, uri, get-definitions, globals):
+fun make-spyret-repl-definitions-locator(name, uri, get-definitions, globals):
   var ast-not-yet-memoized = true
   var memoized-ast = false
   fun get-ast():
     when ast-not-yet-memoized:
       initial-definitions = get-definitions()
-      parsed = P.wescheme-surface-parse(initial-definitions, name)
+      parsed = P.spyret-surface-parse(initial-definitions, name)
       memoized-ast := make-provide-for-repl-main(parsed, globals)
       ast-not-yet-memoized := false
     end
     memoized-ast
   end
   {
+    dialect(self): "spyret" end,
     restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
@@ -215,19 +218,20 @@ fun make-wescheme-repl-definitions-locator(name, uri, get-definitions, globals):
   }
 end
 
-fun make-wescheme-repl-interaction-locator(name, uri, get-interactions, repl):
+fun make-spyret-repl-interaction-locator(name, uri, get-interactions, repl):
   var ast-not-yet-memoized = true
   var memoized-ast = false
   fun get-ast():
     when ast-not-yet-memoized:
       interactions = get-interactions()
-      parsed = P.wescheme-surface-parse(interactions, name)
+      parsed = P.spyret-surface-parse(interactions, name)
       memoized-ast := make-provide-for-repl(parsed)
       ast-not-yet-memoized := false
     end
     memoized-ast
   end
   {
+    dialect(self): "spyret" end,
     restarting-interactions(self): ast-not-yet-memoized := true end,
     needs-compile(self, provs): true end,
     get-module(self): CL.pyret-ast(get-ast()) end,
