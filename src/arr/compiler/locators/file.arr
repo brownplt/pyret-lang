@@ -42,6 +42,7 @@ fun mockable-file-locator(file-ops):
         | err(_) => nothing
       end
     end,
+    dialect(self): "pyret" end,
     needs-compile(self, provides):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
