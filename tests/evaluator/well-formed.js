@@ -44,8 +44,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
         P.wait(done);
       });
-      // comment out next statement for Spyret @ds26gte
-      /*
       it("multiple statements on a line", function(done) {
         var msg =  "Found two expressions on the same line";
         P.checkCompileErrorMsg("5-2", msg);
@@ -58,7 +56,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkEvalsTo("fun f(x):\n  f\n  # a comment\n  (x)\nend\n10", rt.makeNumber(10));
         P.wait(done);
       });
-      */
       it("anonymous bindings", function(done) {
         P.checkCompileErrorMsg("var _ = 5", "there is no name to modify");
         P.checkCompileErrorMsg("shadow _ = 5", "there is no name to shadow");
