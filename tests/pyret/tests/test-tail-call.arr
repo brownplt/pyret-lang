@@ -1,6 +1,10 @@
 import either as E
 import error as ER
 
+###########################
+### test-arity-mismatch ###
+###########################
+
 fun test-arity-mismatch(n):
   if n == 0:
     0
@@ -14,6 +18,34 @@ where:
   end satisfies ER.is-arity-mismatch
 end
 
+#######################
+### test-return-ann ###
+#######################
+
+var is-pass = false
+
+fun stateful-ann(_) -> Boolean:
+  is-pass := not(is-pass)
+  is-pass
+end
+
+fun tester(n) -> Number%(stateful-ann):
+  if n == 0:
+    0
+  else:
+    tester(n - 1)
+  end
+where:
+  is-pass := false
+  tester(0) does-not-raise
+  is-pass := false
+  tester(2) raises "predicate"
+end
+
+#######################
+### test-cases-expr ###
+#######################
+
 fun len(l, acc):
   cases (List) l:
     | empty => acc
@@ -24,6 +56,10 @@ where:
   len(empty, 0) is 0
   len(range(0, 10), 0) is 10
 end
+
+########################
+### test-complex-fun ###
+########################
 
 data Test:
   | zero
@@ -68,6 +104,10 @@ where:
     is (1 + 3 + 5 + 7 + 9 + 11 + 13) - (2 + 4 + 6 + 8 + 10 + 12 + 14)
 end
 
+##############################
+### test-complex-case-expr ###
+##############################
+
 fun len2(l, acc):
   cases (List) l:
     | empty => acc
@@ -91,6 +131,10 @@ where:
   len2(empty, 0) is 0
   len2(range(0, 10), 0) is 10
 end
+
+#################
+### test-deep ###
+#################
 
 fun triangle(n :: Number) -> Number:
   fun help(shadow n :: Number, acc :: Number) -> Number:

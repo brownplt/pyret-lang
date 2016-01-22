@@ -1211,6 +1211,7 @@ data Ann:
     label(self): "a-name" end,
     tosource(self): self.id.tosource() end,
   | a-type-var(l :: Loc, id :: Name) with:
+    # T from lam<T>
     label(self): "a-type-var" end,
     tosource(self): self.id.tosource() end,
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:

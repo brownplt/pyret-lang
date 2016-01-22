@@ -660,13 +660,13 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-blank => false
     | a-any => false
     | a-name(_, _) => false
-    | a-type-var(_, _) => false
-    | a-arrow(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful(ret) # can ignore
-    | a-method(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful(ret) # can ignore
+    | a-type-var(_, _) => true # TODO(Oak, 21 Jan 2016): make sure this is correct
+    | a-arrow(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful-ann(ret) # can ignore
+    | a-method(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful-ann(ret) # can ignore
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
-    | a-app(_, inner, args) => args.all(is-stateful-ann) and is-stateful(inner) # can ignore
+    | a-app(_, inner, args) => args.all(is-stateful-ann) and is-stateful-ann(inner) # can ignore
     | a-pred(_, _, _) => true # TODO(Oak, 21 Jan 2016): true for now. Could refine later
-    | a-dot(_, _, _) => false
+    | a-dot(_, _, _) => false # TODO(Oak, 21 Jan 2016): make sure this is correct
     | a-checked(_, _) => raise("NYI")
   end
 end
@@ -753,7 +753,7 @@ set-tail-visitor = A.default-map-visitor.{
       args.map(_.visit(self.{is-tail: false})),
       ann.visit(self.{is-tail: false}),
       doc,
-      body.visit(self.{is-tail: true}),
+      body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
       self.{is-tail: false}.option(_check))
   end,
 
