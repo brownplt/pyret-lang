@@ -3272,6 +3272,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     };
 
+    var spyret_plus_numeric = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_spyret_plus_numeric"], 2, $a); }
+      thisRuntime.checkNumber(l)
+      thisRuntime.checkNumber(r)
+      return thisRuntime.makeNumberBig(jsnums.add(l, r))
+    }
+
     var minus = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_minus"], 2, $a); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
@@ -4343,6 +4350,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'random': makeFunction(random),
 
           '_plus': makeFunction(plus),
+          '_spyret_plus_numeric': makeFunction(spyret_plus_numeric),
           '_minus': makeFunction(minus),
           '_times': makeFunction(times),
           '_divide': makeFunction(divide),
