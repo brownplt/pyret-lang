@@ -274,7 +274,7 @@ data RuntimeError:
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
-                ED.text("two Numbers,"),
+                ED.text("two Numbers, or"),
                 ED.text("two Strings, or"),
                 [ED.sequence: 
                   ED.text("a "),
