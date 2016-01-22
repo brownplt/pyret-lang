@@ -54,8 +54,8 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text(self.expression),[ED.locs: self.loc], make-palette(1).get(0)),
-          ED.text(" expression expects that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
+          ED.highlight([ED.sequence: ED.text(self.expression), ED.text(" expression")],[ED.locs: self.loc], make-palette(1).get(0)),
+          ED.text(" expects that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
     end,
     render-reason(self):
       [ED.error:
