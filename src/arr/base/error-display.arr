@@ -62,7 +62,7 @@ fun ed-fields(n):
             else:      " fields";)]
 end
 
-fun ed-fieldbindings(n):
+fun ed-field-bindings(n):
   [sequence:
     embed(n),
     text(if n == 1: " field binding"
