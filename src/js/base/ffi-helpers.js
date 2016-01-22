@@ -236,11 +236,6 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwCasesArityError(loc, arity, fields, cloc);
       }
 
-      function throwNonBooleanCondition(locArray, type, val) {
-        runtime.checkString(type);
-        runtime.checkPyretVal(val);
-        raise(err("non-boolean-condition")(runtime.makeSrcloc(locArray), type, val));
-      }
       function throwNonBooleanOp(locArray, position, type, val) {
         runtime.checkString(position);
         runtime.checkString(type);
@@ -352,7 +347,6 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityErrorC: throwArityErrorC,
         throwCasesArityError: throwCasesArityError,
         throwCasesArityErrorC: throwCasesArityErrorC,
-        throwNonBooleanCondition: throwNonBooleanCondition,
         throwNonBooleanOp: throwNonBooleanOp,
         throwNoBranchesMatched: throwNoBranchesMatched,
         throwNoCasesMatched: throwNoCasesMatched,

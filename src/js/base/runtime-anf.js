@@ -4641,7 +4641,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
     thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-    thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
     var ns = thisRuntime.namespace;

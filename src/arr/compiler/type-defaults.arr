@@ -116,7 +116,6 @@ fun make-default-typs():
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
-  default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
   default-typs.set-now(A.s-global("not").key(), t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
@@ -560,8 +559,6 @@ module-const-error = t-module("pyret-builtin://error",
     t-member("is-lookup-non-object", t-arrow([list: t-top], t-boolean)),
     t-member("extend-non-object", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-extend-non-object", t-arrow([list: t-top], t-boolean)),
-    t-member("non-boolean-condition", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
-    t-member("is-non-boolean-condition", t-arrow([list: t-top], t-boolean)),
     t-member("non-boolean-op", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
     t-member("is-non-boolean-op", t-arrow([list: t-top], t-boolean)),
     t-member("generic-type-mismatch", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-global("RuntimeError")))),
@@ -624,7 +621,6 @@ module-const-error = t-module("pyret-builtin://error",
           t-variant(SL.srcloc("src/arr/base/error.arr", 19, 4, 535, 19, 46, 577), "field-not-found", [list: t-member("loc", t-top), t-member("obj", t-top), t-member("field", t-string)], empty),
           t-variant(SL.srcloc("src/arr/base/error.arr", 23, 4, 722, 23, 52, 770), "lookup-non-object", [list: t-member("loc", t-top), t-member("non-obj", t-top), t-member("field", t-string)], empty),
           t-variant(SL.srcloc("src/arr/base/error.arr", 27, 4, 960, 27, 35, 991), "extend-non-object", [list: t-member("loc", t-top), t-member("non-obj", t-top)], empty),
-          t-variant(SL.srcloc("src/arr/base/error.arr", 31, 4, 1131, 31, 42, 1169), "non-boolean-condition", [list: t-member("loc", t-top), t-member("typ", t-top), t-member("value", t-top)], empty),
           t-variant(SL.srcloc("src/arr/base/error.arr", 35, 4, 1346, 35, 45, 1387), "non-boolean-op", [list: t-member("loc", t-top), t-member("position", t-top), t-member("typ", t-top), t-member("value", t-top)], empty),
           t-variant(SL.srcloc("src/arr/base/error.arr", 39, 4, 1583, 39, 45, 1624), "generic-type-mismatch", [list: t-member("val", t-top), t-member("typ", t-string)], empty),
           t-variant(SL.srcloc("src/arr/base/error.arr", 47, 4, 1934, 47, 26, 1956), "plus-error", [list: t-member("val1", t-top), t-member("val2", t-top)], empty),
