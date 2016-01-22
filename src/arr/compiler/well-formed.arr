@@ -18,6 +18,7 @@ var errors = empty
 var in-check-block = false
 var cur-shared = empty
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
+var dialect = false
 
 is-s-let = A.is-s-let # ANNOYING WORKAROUND
 
@@ -258,8 +259,9 @@ end
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts.reverse())
-  #comment out next statement for Spyret @ds26gte
-  #ensure-distinct-lines(A.dummy-loc, stmts)
+  when dialect <> "spyret":
+    ensure-distinct-lines(A.dummy-loc, stmts)
+  end
   lists.all(_.visit(visitor), stmts)
 end
 
@@ -789,7 +791,8 @@ top-level-visitor = A.default-iter-visitor.{
   end
 }
 
-fun check-well-formed(ast) -> C.CompileResult<A.Program, Any>:
+fun check-well-formed(ast, this-dialect) -> C.CompileResult<A.Program, Any>:
+  dialect := this-dialect
   cur-shared := empty
   errors := empty
   in-check-block := false
