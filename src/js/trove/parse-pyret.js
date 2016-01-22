@@ -1055,10 +1055,11 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
              */
             var ast = grammar.constructUniqueParse(parsed);
 
+            //debug
             /*
             var ast_j = JSON.stringify(ast);
             console.log('Py_ast_j = ' + ast_j);
-           */
+            */
 
             var xlated = translate(ast, fileName);
             //var xlated_j = JSON.stringify(xlated);
@@ -1089,7 +1090,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
       }
 
       function parseSpyret(data, fileName) {
-        F.checkArity(2, arguments, "wescheme-surface-parse");
+        F.checkArity(2, arguments, "spyret-surface-parse");
         RUNTIME.checkString(data);
         RUNTIME.checkString(fileName);
         var data_unser = JSON.parse(RUNTIME.unwrap(data));
@@ -1099,7 +1100,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
       return RUNTIME.makeObject({
         provide: RUNTIME.makeObject({
           'surface-parse': RUNTIME.makeFunction(parsePyret),
-          'wescheme-surface-parse': RUNTIME.makeFunction(parseSpyret)
+          'spyret-surface-parse': RUNTIME.makeFunction(parseSpyret)
         }),
         answer: NAMESPACE.get("nothing")
       });
