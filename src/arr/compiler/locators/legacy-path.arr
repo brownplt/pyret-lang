@@ -24,10 +24,11 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
 end
 
 fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
-  raw = P.legacy-path-raw-locator(builtin-name)  
+  raw = P.legacy-path-raw-locator(builtin-name)
   {
+    dialect(_): "pyret" end,
     needs-compile(_, _): false end,
-    get-module(_): 
+    get-module(_):
       raise("Should never fetch source for legacy module " + builtin-name)
     end,
     get-extra-imports(self):
@@ -50,7 +51,7 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
 
     uri(_): "legacy-path://" + builtin-name end,
     name(_): builtin-name end,
-    
+
     set-compiled(_, _): nothing end,
     get-compiled(self):
       provs = CS.provides(self.uri(), mtd, mtd, mtd)
@@ -62,4 +63,3 @@ fun legacy-path-locator(builtin-name :: String) -> CL.Locator:
     end
   }
 end
-
