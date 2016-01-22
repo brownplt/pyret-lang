@@ -10,7 +10,6 @@ fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   lam(loc :: CL.Locator): locs.member(loc) end
 end
 
-
 check "Worklist generation (simple)":
   modules = SD.make-mutable-string-dict()
   modules.set-now("foo",
@@ -19,7 +18,7 @@ check "Worklist generation (simple)":
     import file("bar") as B
 
     fun f(x): B.g(x) end
-    f(42) 
+    f(42)
     ```)
   modules.set-now("bar",
     ```
@@ -30,6 +29,7 @@ check "Worklist generation (simple)":
 
   fun string-to-locator(name :: String):
     {
+      dialect(self): "pyret" end,
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
@@ -93,6 +93,7 @@ check "Worklist generation (DAG)":
   retrievals = SD.make-mutable-string-dict()
   fun string-to-locator(name :: String):
     {
+      dialect(self): "pyret" end,
       needs-compile(self, provs): not(cresults.has-key-now(name)) end,
       get-module(self):
         count = if retrievals.has-key-now(name): retrievals.get-value-now(name) else: 0 end
@@ -158,6 +159,7 @@ check "Worklist generation (Cycle)":
 
   fun string-to-locator(name :: String):
     {
+      dialect(self): "pyret" end,
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
