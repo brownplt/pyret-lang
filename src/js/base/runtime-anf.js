@@ -4641,7 +4641,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
     thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-    thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
     var ns = thisRuntime.namespace;
     var nsWithList = ns.set("_link", getField(list, "link"))

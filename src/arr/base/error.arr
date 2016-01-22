@@ -194,19 +194,6 @@ data RuntimeError:
           ED.text(" evaluated to a non-object value:")],
          ED.embed(self.non-obj)]
     end
-  | non-boolean-op(loc, position, typ, value) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
-      self.render-reason()
-    end,
-    render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
-          ED.text("for the"), ED.text(self.position), ED.text("argument in the"),
-          ED.text(self.typ), ED.text("expression at"),
-          draw-and-highlight(self.loc), ED.text(" but got:")],
-        ED.embed(self.value)]
-    end
   | generic-type-mismatch(val, typ :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src, make-palette):
       ED.maybe-stack-loc(0, true,

@@ -30,9 +30,6 @@ end
 fun no-branches-exn(l, typ):
   A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
 end
-fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
-end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
