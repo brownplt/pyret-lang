@@ -129,6 +129,7 @@ fun make-default-typs():
   default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
   default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
   default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
+  default-typs.set-now(A.s-global("_spyret_plus_numeric").key(), t-number-binop)
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
   default-typs.set-now(A.s-global("is-nothing").key(), t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("is-number").key(), t-arrow([list: t-top], t-boolean))
@@ -432,6 +433,7 @@ module-const-lists = t-module("pyret-builtin://lists",
     t-member("any", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 189), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 189))], t-boolean), mk-list(t-var(s-atom("A", 189)))], t-boolean))),
     t-member("all", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 192), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 192))], t-boolean), mk-list(t-var(s-atom("A", 192)))], t-boolean))),
     t-member("all2", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 199), t-top, invariant), t-variable(A.dummy-loc, s-atom("B", 200), t-top, invariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 199)), t-var(s-atom("B", 200))], t-boolean), mk-list(t-var(s-atom("A", 199))), mk-list(t-var(s-atom("B", 200)))], t-boolean))),
+    t-member("spyret_append_2", t-top),
     t-member("map", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 211), t-top, invariant), t-variable(A.dummy-loc, s-atom("B", 212), t-top, contravariant)], t-arrow([list: t-arrow([list: t-var(s-atom("A", 211))], t-var(s-atom("B", 212))), mk-list(t-var(s-atom("A", 211)))], mk-list(t-var(s-atom("B", 212)))))),
     t-member("map2", t-top),
     t-member("map3", t-top),
