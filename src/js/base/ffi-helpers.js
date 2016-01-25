@@ -420,8 +420,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
 
         isEither: runtime.getField(E, "is-Either"),
-        isLeft: function(l) { return runtime.getField(E, "is-left").app(v); },
-        isRight: function(l) { return runtime.getField(E, "is-right").app(v); },
+        isLeft: function(v) { return runtime.getField(E, "is-left").app(v); },
+        isRight: function(v) { return runtime.getField(E, "is-right").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
         makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
