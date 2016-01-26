@@ -1,5 +1,5 @@
 //run from ./tools/benchmarks
-r = require("requirejs");
+var r = require("requirejs");
 
 r.config({
   paths: {

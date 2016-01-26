@@ -322,7 +322,7 @@ lib-test: $(PYRET_TEST_PREREQ)
 
 .PHONY : benchmark-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
-	cd tools/benchmark && node tests
+	cd tools/benchmark/ && make test
 
 .PHONY : docs-test
 docs-test: docs
