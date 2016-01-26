@@ -1,10 +1,30 @@
+var CONFIG = {
+  'async': true,
+  'defer': true,
+  'maxTime': 60, // seconds
+};
+
+var SUITE_CONFIG = { 
+  'async': CONFIG.async
+};
+
+var TEST_CACHE = {
+  testRunFile: {
+    HAS_RUN: false,
+    RESULTS: null
+  },
+  testRunBenchmarks: {
+    HAS_RUN: false,
+    RESULTS: null
+  }
+};
+
 define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'],
 
   function (RT, evalLib, Benchmark, Q, fs, checkerLib) {
 
-    //DO NOT REMOVE
-    // needed for benchmarked functions to
-    // have access to evalLib
+    // Everything assigned to the global object 
+    // is done so to be accessed by benchmarks!
     global.evalLib = evalLib;
     global.checkerLib = checkerLib;
 
@@ -12,7 +32,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     //set in createSuite
     var SUITE_LENGTH;
 
-    function initializeGlobalRuntime() {
+    function initializeGlobalRuntime () {
       global.rt = RT.makeRuntime({
         initialGas: 500,
         stdout: function (str) {},
@@ -20,7 +40,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       });
     }
 
-    function checkResult(runtime, result) {
+    function checkResult (runtime, result) {
       if (runtime.isSuccessResult(result)) {
         return true;
       }
@@ -30,63 +50,94 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       throw new Error('checkResult called with invalid parameter');
     }
 
+    function getModName(resultFunc) {
+      var match = resultFunc.toString().match(/if\(R.modules\[\"(.+)\"\]\)/);
+      return match[1];      
+    }
+
     //sets up global.astResult and global.loadedResult
-    function setup(deferred) {
+    // for use in load / eval benchmarks, respectively
+    function setup (deferred) {
       global.loadedResult = undefined;
       global.astResult = undefined;
       global.evalLib.runParsePyret(global.rt, global.programSrc, global.pyretOptions,
         function (ast) {
-          debugger; //ast should pass global.rt.isSuccessResult
           global.astResult = ast.result;
           global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
             function (loaded) {
-              debugger; //loaded shouldn't be erroneous
               global.loadedResult = loaded.result;
+              global.modName = getModName(global.loadedResult);
               deferred.resolve(checkResult(global.rt, loaded));
             });
         });
     }
 
-    function parsePyret(deferred) {
+    /** BENCHMARK FUNCTION **/
+    function parsePyret (deferred) {
       global.evalLib.runParsePyret(global.rt, global.programSrc, global.pyretOptions,
         function (parsed) {
-          deferred.resolve(parsed);
-        });
+          deferred.resolve();
+        }
+      );
     }
 
-    function loadParsedPyret(deferred) {
+    /** BENCHMARK FUNCTION **/
+    function loadParsedPyret (deferred) {
       global.evalLib.runLoadParsedPyret(global.rt, global.astResult, global.pyretOptions,
         function (loaded) {
-          deferred.resolve(loaded);
-        });
+          deferred.resolve();
+        }
+      );
     }
 
-    function evalLoadedPyret(deferred) {
-      global.rt.runThunk(function () {
-        global.rt.loadModules(global.rt.namespace, [global.checkerLib],
-          function (checker) {
-            var currentChecker = global.rt.getField(checker, 'make-check-context')
-              .app(global.rt.makeString(global.pyretOptions.name), global.rt.makeBoolean(false));
-            global.rt.setParam('current-checker', currentChecker);
+    /** BENCHMARK FUNCTION **/
+    function evalLoadedPyret (deferred) {
+      global.evalLib.runEvalLoadedPyret(global.rt, global.loadedResult, global.pyretOptions,
+        function (answer) {
+          global.rt.modules[global.modName] = undefined; // cache bust
+          deferred.resolve();
+        }
+      );
+    }
+
+    /** BENCHMARK FUNCTION **/
+    function runEvalPyret (deferred) {
+      global.evalLib.runEvalPyret(global.rt, global.programSrc, global.pyretOptions,
+        function (answer) {
+          deferred.resolve();
+        }
+      );
+    }
+
+    /** an evalLib-esque interface for our eval benchmark
+     *  which is mostly like runEvalParsedPyret
+     **/
+    if (typeof global.evalLib.runEvalLoadedPyret !== 'function') {
+      global.evalLib.runEvalLoadedPyret = function (runtime, mod, options, ondone) {
+        runtime.runThunk(function() { global.evalLib.evalLoadedPyret(runtime, mod, options); }, ondone);
+      };
+
+      global.evalLib.evalLoadedPyret = function(runtime, loadedMod, options) {
+        if (!options.name) { options.name = global.evalLib.randomName(); }
+        return runtime.safeCall(function() {
+          return loadedMod;
+        }, function(mod) {
+          return runtime.loadModules(runtime.namespace, [checkerLib], function(checker) {
+            var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(options.name), runtime.makeBoolean(false));
+            runtime.setParam("current-checker", currentChecker);
             var sync = false;
-            var namespace = global.pyretOptions.namespace || global.rt.namespace;
-            global.rt.pauseStack(
-              function (restarter) {
-                global.rt.run(global.loadedResult, namespace, {},
-                  function (result) {
-                    debugger; //we can check result in the node debugger repl
-                    if (global.rt.isSuccessResult(result)) {
-                      restarter.resume(result.result);
-                    } else {
-                      restarter.error(result.exn);
-                    }
-                    deferred.resolve(result);
-                  });
-              }
-            );
+            var namespace = options.namespace || runtime.namespace;
+            runtime.pauseStack(function(restarter) {
+              runtime.run(mod, namespace, {}, function(result) {
+                if(runtime.isSuccessResult(result)) { restarter.resume(result.result); }
+                else {
+                  restarter.error(result.exn);
+                }
+              });
+            });
           });
-      },
-        function () {});
+        });
+      };
     }
 
     //run internally before each benchmark
@@ -110,11 +161,11 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
     function createSuite() {
       var suite = new Benchmark.Suite();
 
-      SUITE_LENGTH = 3;
-
-      suite.add('parse', parsePyret, {'defer': true});
-      suite.add('load', loadParsedPyret, {'defer': true});
-      suite.add('eval_loaded', evalLoadedPyret, {'defer': true});
+      SUITE_LENGTH = 4;
+      suite.add('parse', parsePyret, CONFIG);
+      suite.add('load', loadParsedPyret, CONFIG);
+      suite.add('eval', evalLoadedPyret, CONFIG);
+      suite.add('all', runEvalPyret, CONFIG);
       return suite;
     }
 
@@ -153,8 +204,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
 
       suite.on('complete',
         function () {
-          if (log) {console.log('Fastest is ' + this.filter('fastest').pluck('name')); }
-          if (log) {console.log('Slowest is ' + this.filter('slowest').pluck('name')); }
+          if (log) {console.log('Fastest is ' + this.filter('fastest').map('name')); }
+          if (log) {console.log('Slowest is ' + this.filter('slowest').map('name')); }
           suiteRunDefer.notify(true);
         });
 
@@ -191,7 +242,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
                 setupDefer.promise.then(
                   function (resolveValue) {
                     //suite.run will notify suiteRunDefer
-                    suite.run({'async': false});
+                    suite.run(SUITE_CONFIG);
                   },
                   function (v) {throw new Error('reject should not happen'); },
                   function (v) {throw new Error('notify should not happen'); }
@@ -226,7 +277,7 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         stderr: function (str) {process.stderr.write(str); }
       });
       global.evalLib.runEvalPyret(newRT, src, options, function (result) {
-        debugger; //can check result in debug repl
+        // debugger; //can check result in debug repl
         console.log('done.');
       });
     }
@@ -240,16 +291,36 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       runBenchmarks(benchmarks, options, log, onDone);
     }
 
-    function testDeferredFunction(src, options, funName, onDone) {
+    function testRunFile(filename, options, log, useCached, onDone) {
+      if (useCached && TEST_CACHE.testRunFile.HAS_RUN) {
+        onDone(TEST_CACHE.testRunFile.RESULTS);
+      } else {
+        runFile(filename, options, log, function (results) {
+          TEST_CACHE.testRunFile.HAS_RUN = true;
+          TEST_CACHE.testRunFile.RESULTS = results;
+          onDone(results);
+        });
+      }
+    }
+
+    function testRunBenchmarks(tests, options, log, useCached, onDone) {
+      if (useCached && TEST_CACHE.testRunBenchmarks.HAS_RUN) {
+        onDone(TEST_CACHE.testRunBenchmarks.RESULTS);
+      } else {
+        runBenchmarks(tests, options, log, function (results) {
+          TEST_CACHE.testRunBenchmarks.HAS_RUN = true;
+          TEST_CACHE.testRunBenchmarks.RESULTS = results;
+          onDone(results);
+        });
+      }
+    }
+
+    function testBenchmarkFunction(src, options, funName, onDone) {
       initializeGlobalRuntime();
       var d = Q.defer();
       d.promise.then(
-        function (result) {
-          if (checkResult(global.rt, result)) {
-            onDone(true);
-          } else {
-            onDone(false);
-          }
+        function () {
+          onDone(true);
         },
         function (v) {throw new Error('reject should not happen'); },
         function (v) {throw new Error('notify should not happen'); }
@@ -274,6 +345,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
               break;
             case 'evalLoadedPyret':
               evalLoadedPyret(d);
+              break;
+            case 'runEvalPyret':
+              runEvalPyret(d);
               break;
             default:
               throw new Error('Invalid Function Name: ' + funName);
@@ -314,9 +388,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       setup(setupDefer);
       setupDefer.promise.then(
         function (resolveValue) {
-          var passed = resolveValue
-            && (typeof global.astResult !== 'undefined')
-            && (typeof global.loadedResult !== 'undefined');
+          var passed = resolveValue &&
+            (typeof global.astResult !== 'undefined') &&
+            (typeof global.loadedResult !== 'undefined');
           ondone(passed);
         },
         function (v) {throw new Error('reject should not happen'); },
@@ -345,12 +419,14 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       runFile: runFile,
       evaluateProgram: evaluateProgram,
       test: {
-        testDeferredFunction: testDeferredFunction,
+        testBenchmarkFunction: testBenchmarkFunction,
         testEnsureSuccess: testEnsureSuccess,
         testInitializeGlobalRuntime: testInitializeGlobalRuntime,
         testSetup: testSetup,
         testCheckResult: testCheckResult,
-        testCreateSuite: testCreateSuite
+        testCreateSuite: testCreateSuite,
+        testRunBenchmarks: testRunBenchmarks,
+        testRunFile: testRunFile
       }
     };
 
