@@ -382,7 +382,7 @@ fun _checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, context :: C
     | s-app(l, _fun, args) =>
       check-synthesis(e, expect-typ, l, context)
     | s-prim-app(l, _fun, args) =>
-      raise("checking for s-prim-app not implemented")
+      check-synthesis(e, expect-typ, l, context)
     | s-prim-val(l, name) =>
       raise("checking for s-prim-val not implemented")
     | s-id(l, id) =>
@@ -491,7 +491,17 @@ fun _synthesis(e :: A.Expr, context :: Context) -> SynthesisResult:
     | s-if(l, branches) =>
       raise("synthesis for s-if not implemented")
     | s-if-else(l, branches, _else) =>
-      raise("synthesis for s-if-else not implemented")
+      for synth-bind(result from map-result(handle-if-branch(_, context), branches)):
+        synthesis(_else, context).bind(
+          lam(new-else, _, else-typ, out-context):
+            split-result = split(result)
+            new-branches = split-result.left
+            new-if-else  = A.s-if-else(l, new-branches, new-else)
+            for synth-bind(if-else-typ from meet-branch-typs(link(else-typ, split-result.right), context)):
+              synthesis-result(new-if-else, l, if-else-typ, out-context)
+            end
+          end)
+      end
     | s-cases(l, typ, val, branches) =>
       synthesis-cases(l, typ, val, branches, none, context)
     | s-cases-else(l, typ, val, branches, _else) =>
@@ -524,7 +534,9 @@ fun _synthesis(e :: A.Expr, context :: Context) -> SynthesisResult:
           synthesis-spine(new-context.apply(new-fun-typ), A.s-app(l, _fun, _), args, l, new-context)
         end)
     | s-prim-app(l, _fun, args) =>
-      raise("synthesis for s-prim-app not implemented")
+      for synth-bind(arrow-typ from lookup-id(l, _fun, context)):
+        synthesis-spine(arrow-typ, A.s-prim-app(l, _fun, _), args, l, context)
+      end
     | s-prim-val(l, name) =>
       raise("synthesis for s-prim-val not implemented")
     | s-id(l, id) =>
@@ -1217,16 +1229,18 @@ end
 fun synthesis-cases-has-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, _else :: A.Expr, context :: Context) -> SynthesisResult:
   synthesis(_else, context).bind(
     lam(new-else, _, else-typ, out-context):
-      branches-typ = meet-branch-typs(link(else-typ, split-result.right), out-context)
       new-cases = A.s-cases-else(l, ann, new-val, split-result.left, new-else)
-      synthesis-result(new-cases, l, branches-typ, out-context)
+      for synth-bind(branches-typ from meet-branch-typs(link(else-typ, split-result.right), out-context)):
+        synthesis-result(new-cases, l, branches-typ, out-context)
+      end
     end)
 end
 
 fun synthesis-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, context :: Context) -> SynthesisResult:
-  branches-typ = meet-branch-typs(split-result.right, context)
   new-cases = A.s-cases(l, ann, new-val, split-result.left)
-  synthesis-result(new-cases, l, branches-typ, context)
+  for synth-bind(branches-typ from meet-branch-typs(split-result.right, context)):
+    synthesis-result(new-cases, l, branches-typ, context)
+  end
 end
 
 fun checking-cases(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<A.Expr>, expect-loc :: A.Loc, expect-typ :: Type, context :: Context) -> CheckingResult:
@@ -1343,18 +1357,112 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
   end
 end
 
-fun meet-branch-typs(branch-typs :: List<Type>, context :: Context) -> Type:
-  branch-typs.foldl(least-upper-bound(_, _, context), t-bot)
+fun handle-if-branch(branch :: A.IfBranch, context :: Context) -> FoldResult<Pair<A.IfBranch, Type>>:
+  checking(branch.test, branch.l, t-boolean, context).fold-bind(lam(new-test, new-context):
+    synthesis(branch.body, new-context).fold-bind(
+      lam(new-body, _, body-typ, out-context):
+        new-branch = A.s-if-branch(branch.l, new-test, new-body)
+        fold-result(pair(new-branch, body-typ))
+      end)
+  end)
 end
 
-# TODO(MATT): this
-fun least-upper-bound(s :: Type, t :: Type, context :: Context) -> Type:
+fun meet-branch-typs(branch-typs :: List<Type>, context :: Context) -> FoldResult<Type>:
+  branch-typs.foldl(lam(branch-typ, folded-typ):
+    for bind(current-typ from folded-typ):
+      least-upper-bound(current-typ, branch-typ, context)
+    end
+  end, fold-result(t-bot))
+end
+
+fun least-upper-bound(s, t, context):
+  result-typ = _least-upper-bound(s, t, context)
+  print("")
+  print(tostring(s) + " V " + tostring(t) + " = " + tostring(result-typ))
+  result-typ
+end
+
+fun _least-upper-bound(s :: Type, t :: Type, context :: Context) -> FoldResult<Type>:
   cases(FoldResult<Context>) satisfies-type(s, t, context):
-    | fold-result(ctxt) => t
+    | fold-result(ctxt) => fold-result(t)
     | fold-errors(_) =>
       cases(FoldResult<Context>) satisfies-type(t, s, context):
-        | fold-result(ctxt) => s
-        | fold-errors(_) => raise("lub not implemented for non subtypes yet")
+        | fold-result(ctxt) => fold-result(s)
+        | fold-errors(_) =>
+          cases(Type) s:
+            | t-arrow(s-args, s-ret) =>
+              cases(Type) t:
+                | t-arrow(t-args, t-ret) =>
+                  glbs = fold2-strict(lam(glb-args, s-arg, t-arg):
+                    for bind(lst from glb-args):
+                      for bind(glb from greatest-lower-bound(s-arg, t-arg, context)):
+                        link(glb, lst)
+                      end
+                    end
+                  end, fold-result(empty), s-args, t-args)
+
+                  cases(Option<FoldResult<List<Type>>>) glbs:
+                    | some(fold-args) =>
+                      for bind(m-args from fold-args):
+                        for bind(j-typ from least-upper-bound(s-ret, t-ret, context)):
+                          fold-result(t-arrow(m-args, j-typ))
+                        end
+                      end
+                    | none =>  # TODO(MATT): a proper error
+                      fold-errors([list: C.incorrect-type(t.key(), A.dummy-loc, s.key(), A.dummy-loc)])
+                  end
+                | else => raise("lub not done yet")
+              end
+            | t-app(s-onto, s-args) => raise("lub for t-app")
+            | t-record(s-fields) => raise("lub for t-record")
+            | else => fold-errors([list: C.incorrect-type(t.key(), A.dummy-loc, s.key(), A.dummy-loc)])
+          end
+      end
+  end
+end
+
+fun greatest-lower-bound(s, t, context):
+  result-typ = _greatest-lower-bound(s, t, context)
+  print("")
+  print(tostring(s) + " ^ " + tostring(t) + " = " + tostring(result-typ))
+  result-typ
+end
+
+fun _greatest-lower-bound(s :: Type, t :: Type, context :: Context) -> Type:
+  cases(FoldResult<Context>) satisfies-type(s, t, context):
+    | fold-result(ctxt) => fold-result(s)
+    | fold-errors(_) =>
+      cases(FoldResult<Context>) satisfies-type(t, s, context):
+        | fold-result(ctxt) => fold-result(t)
+        | fold-errors(_) =>
+          cases(Type) s:
+            | t-arrow(s-args, s-ret) =>
+              cases(Type) t:
+                | t-arrow(t-args, t-ret) =>
+                  lubs = fold2-strict(lam(lub-args, s-arg, t-arg):
+                    for bind(lst from lub-args):
+                      for bind(lub from least-upper-bound(s-arg, t-arg, context)):
+                        link(lub, lst)
+                      end
+                    end
+                  end, fold-result(empty), s-args, t-args)
+
+                  cases(Option<FoldResult<List<Type>>>) lubs:
+                    | some(fold-args) =>
+                      for bind(m-args from fold-args):
+                        for bind(j-typ from greatest-lower-bound(s-ret, t-ret, context)):
+                          fold-result(t-arrow(m-args, j-typ))
+                        end
+                      end
+                    | none =>  # TODO(MATT): a proper error
+                      fold-errors([list: C.incorrect-type(t.key(), A.dummy-loc, s.key(), A.dummy-loc)])
+                  end
+                | else => raise("glb not done yet")
+              end
+            | t-app(s-onto, s-args) => raise("glb for t-app")
+            | t-record(s-fields) => raise("glb for t-record")
+            | else => fold-errors([list: C.incorrect-type(t.key(), A.dummy-loc, s.key(), A.dummy-loc)])
+          end
       end
   end
 end
