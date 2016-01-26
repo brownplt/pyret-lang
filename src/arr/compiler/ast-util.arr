@@ -656,17 +656,18 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
        Return whether `ann` is a stateful annotation or not. For now, consider
        all refinements as potentially could be stateful.
        ```
+  # TODO(Oak, 26 Jan 2016): make sure below are correct when static type checker lands
   cases (A.Ann) ann:
     | a-blank => false
     | a-any => false
     | a-name(_, _) => false
-    | a-type-var(_, _) => true # TODO(Oak, 21 Jan 2016): make sure this is correct
-    | a-arrow(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful-ann(ret) # can ignore
-    | a-method(_, args, ret, _) => args.all(is-stateful-ann) and is-stateful-ann(ret) # can ignore
+    | a-type-var(_, _) => false 
+    | a-arrow(_, args, ret, _) => false
+    | a-method(_, args, ret, _) => false
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
-    | a-app(_, inner, args) => args.all(is-stateful-ann) and is-stateful-ann(inner) # can ignore
+    | a-app(_, inner, args) => false
     | a-pred(_, _, _) => true # TODO(Oak, 21 Jan 2016): true for now. Could refine later
-    | a-dot(_, _, _) => false # TODO(Oak, 21 Jan 2016): make sure this is correct
+    | a-dot(_, _, _) => true
     | a-checked(_, _) => raise("NYI")
   end
 end

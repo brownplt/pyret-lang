@@ -209,7 +209,7 @@ end
 fun length<a>(lst :: List<a>) -> Number:
   doc: "Takes a list and returns the number of links in the list"
   fun help(l, cur) -> Number:
-    cases (List) lst:
+    cases (List) l:
       | empty => cur
       | link(_, r) => help(r, cur + 1)
     end
