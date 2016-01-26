@@ -58,6 +58,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
             "get-now": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
             "get-value-now": t.arrow([t.string], t.tyvar("a")),
             "set-now": t.arrow([t.string, t.tyvar("a")], t.nothing),
+            "merge-now": t.arrow([msdOfA], t.nothing),
             "remove-now": t.arrow([t.string], t.nothing),
             "keys-now": t.arrow([], t.tyapp(t.libName("sets", "TreeSet"), [t.string])),
             "keys-list-now": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
@@ -342,6 +343,19 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           return runtime.nothing;
         });
 
+        var mergeMSD = runtime.makeMethod1(function(self, other) {
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a); }
+          checkMSD(other);
+          var otherKeys = runtime.getField(other, "keys-list-now").app();
+          var otherKeysArr = runtime.ffi.toArray(otherKeys);
+          for(var i = 0; i < otherKeysArr.length; i++) {
+            var key = otherKeysArr[i];
+            var val = runtime.getField(other, "get-value-now").app(key);
+            runtime.getField(self, "set-now").app(key, val);
+          }
+          return runtime.nothing;
+        });
+
         var removeMSD = runtime.makeMethod1(function(self, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a); }
           if (sealed) {
@@ -486,6 +500,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           'get-now': getMSD,
           'get-value-now': getValueMSD,
           'set-now': setMSD,
+          'merge-now': mergeMSD,
           'remove-now': removeMSD,
           'keys-now': keysMSD,
           'keys-list-now': keysListMSD,
