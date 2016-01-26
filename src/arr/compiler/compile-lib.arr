@@ -162,7 +162,7 @@ fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   CS.provides(vals-part, types-part)
 end
 
-type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator>, path :: List<Locator> }
+type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   for fold(sd2 from mtd, k from sd.keys-now().to-list()):
@@ -172,34 +172,39 @@ end
 
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-# Use ConcatList if it's easy
 fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
-  fun add-preds-to-worklist(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>) -> List<ToCompile>:
-    when is-some(curr-path.find(lam(tc): tc.locator == locator end)):
-      raise("Detected module cycle: " + curr-path.map(_.locator).map(_.uri()).join-str(", "))
+  temp-marked = SD.make-mutable-string-dict()
+  var topo = empty
+  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>):
+    cases(Option) temp-marked.get-now(locator.uri()):
+      | some(mark) =>
+        when mark:
+          raise("Detected module cycle: " + curr-path.reverse().map(_.locator).map(_.uri()).join_str(" => "))
+        end
+      | none =>
+        # mark current locator temporarily
+        temp-marked.set-now(locator.uri(), true)
+        pmap = SD.make-mutable-string-dict()
+        deps = locator.get-dependencies()
+        found-mods = for map(d from deps):
+          found = dfind(context, d)
+          pmap.set-now(d.key(), found.locator)
+          found
+        end
+        # visit all dependents
+        for map(f from found-mods):
+          visit(f.locator, f.context, link(f.locator, curr-path))
+        end
+        # add current locator to head of topo sort
+        topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
+        # mark current locator permanently
+        temp-marked.set-now(locator.uri(), false)
     end
-    pmap = SD.make-mutable-string-dict()
-    deps = locator.get-dependencies()
-    found-mods = for map(d from deps):
-      found = dfind(context, d)
-      pmap.set-now(d.key(), found.locator)
-      found
-    end
-    tocomp = {locator: locator, dependency-map: pmap, path: curr-path}
-    for fold(ret from [list: tocomp], f from found-mods):
-      pret = add-preds-to-worklist(f.locator, f.context, curr-path + [list: tocomp])
-      pret + ret
-    end
+    topo
   end
-  maybe-duplicated-preds = add-preds-to-worklist(locator, context, empty)
-  fun remove-from-rest(l):
-    cases(List) l:
-      | empty => empty
-      | link(f, r) =>
-        link(f, remove-from-rest(r.filter(lam(d): d.locator.uri() <> f.locator.uri() end)))
-    end
-  end
-  remove-from-rest(maybe-duplicated-preds)
+  # our include edges are backwards to how the topological sort algorithm expects dependencies,
+  # so reverse the result
+  visit(locator, context, [list: locator]).reverse()
 end
 
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
