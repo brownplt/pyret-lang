@@ -1,14 +1,17 @@
 
-define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, ffiLib) {
+define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
 
-  return util.memoModule("format", function(RUNTIME, NAMESPACE) {
-    return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(F) {
-      // Stolen from https://github.com/dyoo/whalesong/blob/master\
-      // /whalesong/js-assembler/runtime-src/baselib-format.js
-      var formatRegexp1 = new RegExp('~[sSaA]', 'g');
-      var formatRegexp2 = new RegExp("~[sSaAnevE%~]", "g");
-      return RUNTIME.loadModules(NAMESPACE, [L], function(list) {
-      
+  return util.definePyretModule("format",
+    [],
+    [],
+    {},
+    function(RUNTIME, NAMESPACE) {
+      return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(F) {
+        // Stolen from https://github.com/dyoo/whalesong/blob/master\
+        // /whalesong/js-assembler/runtime-src/baselib-format.js
+        var formatRegexp1 = new RegExp('~[sSaA]', 'g');
+        var formatRegexp2 = new RegExp("~[sSaAnevE%~]", "g");
+        
         // format: string [X ...] string -> string
         // String formatting.  If an exception occurs, throws
         // a plain Error whose message describes the formatting error.
@@ -84,32 +87,17 @@ define(["js/runtime-util", "trove/lists", "js/ffi-helpers"], function(util, L, f
             return result;
         };
 
-        function listToArr(lst) {
-          var arr = [];
-          var isLink = RUNTIME.unwrap(RUNTIME.getField(list, "is-link").app(lst));
-          var isEmpty = RUNTIME.unwrap(RUNTIME.getField(list, "is-empty").app(lst));
-          if(!(isLink || isEmpty)) {
-            throw new Error("Expected list in listToArr, but got something else");
-          }
-          while(!(RUNTIME.unwrap(RUNTIME.getField(list, "is-empty").app(lst)))) {
-            arr.push(RUNTIME.getField(lst, "first"));
-            lst = RUNTIME.getField(lst, "rest");
-          }
-          return arr;
-        }
-
         return RUNTIME.makeObject({
           provide: RUNTIME.makeObject({
             format: RUNTIME.makeFunction(function(str, args) {
               F.checkArity(2, arguments, "format");
               RUNTIME.checkString(str);
-              return RUNTIME.makeString(format(RUNTIME.unwrap(str), listToArr(args)));
+              return RUNTIME.makeString(format(RUNTIME.unwrap(str), F.toArray(args)));
             }),
           }),
           answer: NAMESPACE.get("nothing")
         });
       });
-    });
   });
 });
 
