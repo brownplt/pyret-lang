@@ -321,18 +321,18 @@ sharing:
   end
 end
 
-fun fold-synthesis<B>(f :: (B, Context -> SynthesisResult), context :: Context, lst :: List<B>) -> FoldResult<Pair<Context, List>>:
+fun fold-synthesis<B>(f :: (B, Context -> SynthesisResult), lst :: List<B>, context :: Context) -> FoldResult<Pair<Context, List>>:
   cases(List<B>) lst:
     | empty => fold-result(pair(context, empty))
     | link(first, rest) =>
       cases(SynthesisResult) f(first, context):
         | synthesis-result(ast, loc, typ, out-context) =>
-          fold-synthesis(f, out-context, rest).bind(lam(result-pair):
+          fold-synthesis(f, rest, out-context).bind(lam(result-pair):
             fold-result(pair(result-pair.left, link(ast, result-pair.right)))
           end)
         | synthesis-binding-result(binding, typ, out-context) =>
           new-context = out-context.add-term-var(binding.b.id.key(), typ)
-          fold-synthesis(f, new-context, rest).bind(lam(result-pair):
+          fold-synthesis(f, rest, new-context).bind(lam(result-pair):
             fold-result(pair(result-pair.left, link(binding, result-pair.right)))
           end)
         | synthesis-err(errors) => fold-errors(errors)
@@ -340,13 +340,13 @@ fun fold-synthesis<B>(f :: (B, Context -> SynthesisResult), context :: Context, 
   end
 end
 
-fun fold-checking<B>(f :: (B, Context -> CheckingResult), context :: Context, lst :: List<B>) -> FoldResult<Pair<Context, List>>:
+fun fold-checking<B>(f :: (B, Context -> CheckingResult), lst :: List<B>, context :: Context) -> FoldResult<Pair<Context, List>>:
   cases(List<B>) lst:
     | empty => fold-result(pair(context, empty))
     | link(first, rest) =>
       cases(CheckingResult) f(first, context):
         | checking-result(ast, out-context) =>
-          fold-checking(f, out-context, rest).bind(lam(result-pair):
+          fold-checking(f, rest, out-context).bind(lam(result-pair):
             fold-result(pair(result-pair.left, link(ast, result-pair.right)))
           end)
         | checking-err(errors) => fold-errors(errors)
@@ -366,7 +366,7 @@ fun collapse-fold-list<B>(results :: List<FoldResult<B>>) -> FoldResult<List<B>>
   end
 end
 
-fun map-result<X, Y>(f :: (X -> FoldResult<C>), lst :: List<Y>) -> FoldResult<List<Y>>:
+fun map-result<X, Y>(f :: (X -> FoldResult<Y>), lst :: List<Y>) -> FoldResult<List<Y>>:
   collapse-fold-list(map(f, lst))
 end
 
