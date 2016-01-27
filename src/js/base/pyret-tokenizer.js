@@ -46,6 +46,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     switch(tok_type) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
+    case "QUOTED_SYMBOL": tok_type = "STRING"; s = '"' + s + '"'; break;
     case "PARENSPACE": case "PARENNOSPACE":
     case "PLUS": case "DASH": case "STAR": case "SLASH":
     case "LT": case "GT": case "CARET":
@@ -134,6 +135,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const name = new RegExp("^[" + extended_letter + "]" +
                           "[" + extended_letter + "0-9]*" +
                           "(?:-+[" + extended_letter + "0-9]+)*", STICKY_REGEXP);
+
+  const quoted_symbol = new RegExp("^\u2019[" + extended_letter + "0-9]+" +
+                    "(?:-+[" + extended_letter + "0-9]+)*", STICKY_REGEXP)
 
   //const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
@@ -340,6 +344,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LONG_STRING", val: tquot_str},
     {name: "STRING", val: dquot_str},
     {name: "STRING", val: squot_str},
+    {name: "QUOTED_SYMBOL", val: quoted_symbol},
 
     {name: "CARET", val: oppcaret, parenIsForExp: true},
     {name: "PLUS", val: opplus, parenIsForExp: true},
