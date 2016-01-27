@@ -14,8 +14,8 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     if(rt.isSuccessResult(result)) {
       process.exit(0);
     } else if (rt.isFailureResult(result)) {
-      var exnStack = result.exn.stack; result.exn.stack = undefined;
-      var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
+      var exnStack = result.exn.stack;
+      var pyretStack = result.exn.pyretStack;
       if (rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
         rt.run(function(_, _) {
           return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
@@ -52,7 +52,12 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
           }
         });
       } else {
-        console.error(result.exn.exn);
+        if(result.exn && exnStack) {
+          console.error("Abstraction breaking: Uncaught JavaScript error", result.exn, exnStack);
+        }
+        else {
+          console.error("Unknown error result: ", result.exn, result.exn.exn);
+        }
         process.exit(1);
       }
     }

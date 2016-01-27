@@ -3,10 +3,10 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
     [],
     [],
     {},
-    function(runtime, ns) {
-      var F = runtime.makeFunction;
+    function(RUNTIME, ns) {
+      var F = RUNTIME.makeFunction;
       function getBuiltinLocator(name) {
-        runtime.pauseStack(function(restarter) {
+        RUNTIME.pauseStack(function(restarter) {
           // NOTE(joe): This is a bit of requireJS hackery that assumes a
           // certain layout for builtin modules
           if (name === undefined) {
@@ -14,7 +14,7 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
             console.trace();
           }
           require(["trove/" + name], function(m) {
-            restarter.resume(runtime.makeObject({
+            restarter.resume(RUNTIME.makeObject({
               "get-raw-dependencies":
                 F(function() {
                   if(m.dependencies) {
@@ -25,7 +25,7 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
                       if(!m["import-type"]) {
                         m["import-type"] = "dependency";
                       }
-                      return runtime.makeObject(m);
+                      return RUNTIME.makeObject(m);
                     });
                   } else {
                     return [];
@@ -37,18 +37,16 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
                     if(Array.isArray(m.provides.datatypes)) {
                       return m.provides.datatypes;
                     }
-                    else if(typeof m.provides === "object") {
+                    else if(typeof m.provides.datatypes === "object") {
                       return Object.keys(m.provides.datatypes).map(function(k) {
-                        return runtime.makeObject({
+                        return RUNTIME.makeObject({
                           name: k,
-                          typ: t.toPyret(runtime, m.provides.datatypes[k])
+                          typ: t.toPyret(RUNTIME, m.provides.datatypes[k])
                         });
                       });
                     }
                   }
-                  else {
-                    return [];
-                  }
+                  return [];
                 }),
               "get-raw-alias-provides":
                 F(function() {
@@ -58,16 +56,14 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
                     }
                     else if(typeof m.provides.aliases === "object") {
                       return Object.keys(m.provides.aliases).map(function(k) {
-                        return runtime.makeObject({
+                        return RUNTIME.makeObject({
                           name: k,
-                          typ: t.toPyret(runtime, m.provides.aliases[k])
+                          typ: t.toPyret(RUNTIME, m.provides.aliases[k])
                         });
                       });
                     }
                   }
-                  else {
-                    return [];
-                  }
+                  return [];
                 }),
               "get-raw-value-provides":
                 F(function() {
@@ -75,32 +71,30 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
                     if(Array.isArray(m.provides.values)) {
                       return m.provides.values;
                     }
-                    else if(typeof m.provides === "object") {
+                    else if(typeof m.provides.values === "object") {
                       return Object.keys(m.provides.values).map(function(k) {
-                        return runtime.makeObject({
+                        return RUNTIME.makeObject({
                           name: k,
-                          typ: t.toPyret(runtime, m.provides.values[k])
+                          typ: t.toPyret(RUNTIME, m.provides.values[k])
                         });
                       });
                     }
                   }
-                  else {
-                    return [];
-                  }
+                  return [];
                 }),
               "get-raw-compiled":
                 F(function() {
   //                if(m.oldDependencies) {
   //                   m.theModule = m.theModule.apply(null, m.oldDependencies); 
-  //                   return runtime.makeObject(function() { return m.theModule });
+  //                   return RUNTIME.makeObject(function() { return m.theModule });
   //                }
   //                else
                   if(m.theModule) {
                     // NOTE(joe): this will b removed once polyglot is done
-                    return runtime.makeOpaque(m.theModule);
+                    return RUNTIME.makeOpaque(m.theModule);
                   }
                   else {
-                    return runtime.makeOpaque(function() { return m; });
+                    return RUNTIME.makeOpaque(function() { return m; });
                   }
                 })
             }));
@@ -108,15 +102,15 @@ define(["js/runtime-util", "js/type-util"], function(util, t) {
 
         });
       }
-      var O = runtime.makeObject;
+      var O = RUNTIME.makeObject;
       return O({
         "provide-plus-types": O({
           types: { },
           values: O({
-            "builtin-raw-locator": runtime.makeFunction(getBuiltinLocator)
+            "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator)
           })
         }),
-        "answer": runtime.nothing
+        "answer": RUNTIME.nothing
       });
     });
 });

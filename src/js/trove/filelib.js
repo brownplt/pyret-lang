@@ -1,8 +1,14 @@
 define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
+  console.log("filelib's ffi: ", ffiLib);
+  return util.definePyretModule("filelib",
+    [],
+    [],
+    {},
+    function(RUNTIME, NAMESPACE) {
+      console.log("filelib starting");
+      return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
+      console.log("ffi loaded");
 
-  return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
-    return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
-      
       function InputFile(name) {
         this.name = name;
       }
@@ -13,7 +19,9 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
       }
 
       return RUNTIME.makeObject({
-          provide: RUNTIME.makeObject({
+          "provide-plus-types": RUNTIME.makeObject({
+              types: { },
+              values: RUNTIME.makeObject({
               "open-input-file": RUNTIME.makeFunction(function(filename) {
                   ffi.checkArity(1, arguments, "open-input-file");
                   RUNTIME.checkString(filename);
@@ -97,10 +105,12 @@ define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
                   var contents = fs.readdirSync(dir)
                   return ffi.makeList(contents.map(RUNTIME.makeString))
                 })
+              })
             }),
           answer: NAMESPACE.get("nothing")
         });
+      });
+
     });
-  });    
 });
 
