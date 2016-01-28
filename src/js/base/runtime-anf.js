@@ -326,6 +326,9 @@ function isBase(obj) { return obj instanceof PBase; }
   ReprMethods["_torepr"]["string"] = function(str, fromCPO) {
     if (fromCPO && str[0] === '\u2019') {
       //console.log('symbol found! ' + str)
+      if (fromCPO === 'spyret') {
+        return "'" + replaceUnprintableStringChars(str.slice(1))
+      }
       return replaceUnprintableStringChars(str)
     }
     //console.log('reg string found ' + str)
