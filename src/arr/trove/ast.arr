@@ -35,7 +35,6 @@ str-comment = PP.str("# ")
 str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
 str-data-expr = PP.str("data-expr ")
-str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
@@ -1065,48 +1064,6 @@ sharing:
   end
 end
 
-data DatatypeVariant:
-  | s-datatype-variant(
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-  | s-datatype-singleton-variant(
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-singleton-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
-data Constructor:
-  | s-datatype-constructor(
-      l :: Loc,
-      self :: String,
-      body :: Expr
-      ) with:
-    label(self): "s-datatype-constructor" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
 data IfBranch:
   | s-if-branch(l :: Loc, test :: Expr, body :: Expr) with:
     label(self): "s-if-branch" end,
@@ -1787,31 +1744,6 @@ default-map-visitor = {
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(l, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(l, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(l, self-arg, body.visit(self))
-  end,
 
   a-blank(self): a-blank end,
   a-any(self): a-any end,
@@ -2257,31 +2189,6 @@ default-iter-visitor = {
       with-members :: List<Member>
       ):
     lists.all(_.visit(self), with-members)
-  end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-      ):
-    lists.all(_.visit(self), members) and constructor.visit(self)
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-      ):
-    constructor.visit(self)
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    body.visit(self)
   end,
   a-blank(self):
     true
@@ -2745,31 +2652,6 @@ dummy-loc-visitor = {
       with-members :: List<Member>
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
-  end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(dummy-loc, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(dummy-loc, self-arg, body.visit(self))
   end,
 
   a-blank(self): a-blank end,

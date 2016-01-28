@@ -248,8 +248,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
     {name: "REF", val: new RegExp(kw("ref"), STICKY_REGEXP)},
-    {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},
-    {name: "WITHCONSTRUCTOR", val: new RegExp(kw("with constructor"), STICKY_REGEXP)},
     {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},

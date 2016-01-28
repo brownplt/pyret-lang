@@ -196,30 +196,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
                 .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
             }
           },
-          'datatype-variant': function(node) {
-            if (node.kids[1].value !== undefined) {
-              // (datatype-variant PIPE NAME constructor)
-              return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-                .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
-            } else {
-              // (datatype-variant PIPE variant-constructor constructor)
-              var constr = tr(node.kids[1])
-              return RUNTIME.getField(ast, 's-datatype-variant')
-                .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
-            }
-          },
-          'first-datatype-variant': function(node) {
-            if (node.kids[0].value !== undefined) {
-              // (datatype-variant NAME constructor)
-              return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-                .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
-            } else {
-              // (datatype-variant variant-constructor constructor)
-              var constr = tr(node.kids[0])
-              return RUNTIME.getField(ast, 's-datatype-variant')
-                .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
-            }
-          },
           'data-sharing': function(node) {
             if (node.kids.length === 2) {
               // (data-sharing SHARING fields)
@@ -228,11 +204,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
               // (data-sharing)
               return makeList([]);
             }
-          },
-          'constructor-clause': function(node) {
-            // (constructor-clause WITHCONSTRUCTOR LPAREN NAME RPAREN COLON block END)
-            return RUNTIME.getField(ast, 's-datatype-constructor')
-              .app(pos(node.pos), symbol(node.kids[2]), tr(node.kids[5]));
           },
           'type-expr': function(node) {
             return RUNTIME.getField(ast, 's-type')
@@ -359,13 +330,6 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/ast", "trove/srcloc", "js/py
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
                    makeList(node.kids.slice(5, -3).map(tr)), 
                    tr(node.kids[node.kids.length - 3]),
-                   tr(node.kids[node.kids.length - 2]));
-          },
-          'datatype-expr': function(node) {
-            // (datatype-expr DATATYPE NAME params COLON variant ... check END)
-            return RUNTIME.getField(ast, 's-datatype')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]),
-                   makeList(node.kids.slice(4, -2).map(tr)),
                    tr(node.kids[node.kids.length - 2]));
           },
           'assign-expr': function(node) {

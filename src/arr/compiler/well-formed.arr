@@ -209,7 +209,7 @@ fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
   end
 end
 
-fun ensure-unique-variant-ids(variants :: List): # A.DatatypeVariant or A.Variant
+fun ensure-unique-variant-ids(variants :: List<A.Variant>):
   cases(List) variants:
     | empty => nothing
     | link(f, rest) =>
@@ -228,7 +228,6 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
     | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
-    | s-datatype(l, _, _, _, _) => wf-error("Cannot end a block with a datatype definition", l)
     | else => nothing
   end
 end
@@ -560,10 +559,6 @@ top-level-visitor = A.default-iter-visitor.{
     cur-shared := the-cur-shared
     params-v and mixins-v and variants-v and shares-v and wrap-visit-check(well-formed-visitor, _check)
   end,
-  s-datatype-variant(self, l, name, binds, constructor):
-    ensure-unique-ids(fields-to-binds(binds))
-    lists.all(_.visit(well-formed-visitor), binds) and constructor.visit(well-formed-visitor)
-  end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check):
     ensure-unique-variant-ids(variants)
     underscores = variants.filter(lam(v): v.name == "_" end)
@@ -762,12 +757,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
-  end,
-  s-datatype-singleton-variant(_, l :: Loc, name :: String, constructor :: A.Constructor):
-    well-formed-visitor.s-datatype-singleton-variant(l, name, constructor)
-  end,
-  s-datatype-constructor(_, l :: Loc, well-formed-visitor-arg :: String, body :: A.Expr):
-    well-formed-visitor.s-datatype-constructor(l, well-formed-visitor-arg, body)
   end,
   a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
