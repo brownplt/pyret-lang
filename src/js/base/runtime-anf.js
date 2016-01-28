@@ -28,7 +28,7 @@ Creates a Pyret runtime
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
-
+  var CONSOLE = theOutsideWorld.console || console;
 /**
     Extends an object with the new fields in fields
     If all the fields are new, the brands are kept,
@@ -1333,9 +1333,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
             }
             else {
-              console.log("UNKNOWN VALUE!");
-              console.log(next);
-              throw "Found unknown value in loop";
+              CONSOLE.log("UNKNOWN VALUE: ", next);
+              finishVal(reprMethods["string"]("<Unknown value: details logged to console>"));
             }
           }
           else {
@@ -2313,7 +2312,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { ffi.throwInternalError("Cannot wrap", v); }
+      else { ffi.throwInternalError("Cannot wrap", [v]); }
     }
 
     function mkPred(jsPred) {
@@ -2820,7 +2819,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var activeThreads = {};
 
   function run(program, namespace, options, onDone) {
-    // console.log("In run2");
+    // CONSOLE.log("In run2");
     if(RUN_ACTIVE) {
       onDone(makeFailureResult(ffi.makeMessageException("Internal: run called while already running")));
       return;
@@ -2932,7 +2931,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // This function should not return anything meaningful, as state
     // and fallthrough are carefully managed.
     function iter() {
-      // console.log("In run2::iter, GAS is ", thisRuntime.GAS);
+      // CONSOLE.log("In run2::iter, GAS is ", thisRuntime.GAS);
       // If the thread is dead, return has already been processed
       if (threadIsDead) {
         return;
@@ -2959,40 +2958,40 @@ function isMethod(obj) { return obj instanceof PMethod; }
           while(theOneTrueStackHeight > 0) {
             if(!sync && frameCount++ > 100) {
               TOS++;
-              // console.log("Setting timeout to resume iter");
+              // CONSOLE.log("Setting timeout to resume iter");
               util.suspend(iter);
               return;
             }
             var next = theOneTrueStack[--theOneTrueStackHeight];
-            // console.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
+            // CONSOLE.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
             theOneTrueStack[theOneTrueStackHeight] = undefined;
-            // console.log("theOneTrueStack = ", theOneTrueStack);
-            // console.log("Setting ans to " + JSON.stringify(val, null, "  "));
+            // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
+            // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
             next.ans = val;
-            // console.log("GAS = ", thisRuntime.GAS);
+            // CONSOLE.log("GAS = ", thisRuntime.GAS);
 
             if (next.fun instanceof Function) {
               val = next.fun(next);
             }
             else if (!(next instanceof ActivationRecord)) {
-              console.log("Our next stack frame doesn't look right!");
-              console.log(JSON.stringify(next));
-              console.log(theOneTrueStack);
+              CONSOLE.log("Our next stack frame doesn't look right!");
+              CONSOLE.log(JSON.stringify(next));
+              CONSOLE.log(theOneTrueStack);
               throw false;
             }
-            // console.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
+            // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
           }
         } catch(e) {
           if(thisRuntime.isCont(e)) {
-            // console.log("BOUNCING");
+            // CONSOLE.log("BOUNCING");
             BOUNCES++;
             thisRuntime.GAS = initialGas;
             for(var i = e.stack.length - 1; i >= 0; i--) {
-//              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
+//              CONSOLE.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
             }
-            // console.log("The new stack height is ", theOneTrueStackHeight);
-            // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
+            // CONSOLE.log("The new stack height is ", theOneTrueStackHeight);
+            // CONSOLE.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
             //   if (f && f.from) { return f.from.toString(); }
             //   else { return f; }
             // }));
@@ -3045,14 +3044,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     if (!SHOW_TRACE) return;
     TRACE_DEPTH++;
     TOTAL_VARS += vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "--> ",
                 name, vars, TOTAL_VARS);
   }
   function traceExit(name, vars) {
     if (!SHOW_TRACE) return;
     TOTAL_VARS -= vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "<-- ",
                 name, vars, TOTAL_VARS);
     TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
@@ -3060,7 +3059,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
   function traceErrExit(name, vars) {
     if (!SHOW_TRACE) return;
     TOTAL_VARS -= vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "<XX ",
                 name, vars, TOTAL_VARS);
     TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
@@ -3116,7 +3115,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function pauseStack(resumer) {
-//      console.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
+//      CONSOLE.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
@@ -3209,7 +3208,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return ffi.makeRight(makeOpaque(makePyretFailException(ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
           }
         } else {
-          console.error("Bad execThunk result: ", res);
+          CONSOLE.error("Bad execThunk result: ", res);
           return;
         }
       }
@@ -3254,7 +3253,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @type {function(...[?]): undefined}
     */
     var log = function() {
-      if(DEBUGLOG) { console.log.apply(console, arguments); }
+      if(DEBUGLOG) { CONSOLE.log.apply(CONSOLE, arguments); }
     }
 
     var plus = function(l, r) {
@@ -3942,7 +3941,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       function loadWorklist(startMod) {
         function addMod(curMod, curPath, curName) {
           if (curPath.filter(function(b) { return b.name === curMod.name; }).length > 0) {
-            console.error("Module cycle: ", curMod, curPath);
+            CONSOLE.error("Module cycle: ", curMod, curPath);
             throw new Error("Module cycle in loadBuiltinModules");
           }
           if (typeof curMod === "function") {
@@ -4009,7 +4008,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(module.dependencies === undefined) {
                 // NOTE(joe): Catches already-initialized modules.  Needs to
                 // be tracked down.  Putting the log back in detects them.
-//                console.error("Undefined dependencies remain: ", module);
+//                CONSOLE.error("Undefined dependencies remain: ", module);
                 return module;
               }
               return loadBuiltinModules(module.dependencies, module.name,
@@ -4019,7 +4018,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 });
           }
           else {
-            console.log("Unkown module type: ", module);
+            CONSOLE.log("Unkown module type: ", module);
           }
         },
         withModule, "loadModule(" + modstring.substring(0, 70) + ")");
@@ -4048,7 +4047,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
           if (typeof m === 'undefined') {
-            console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
+            CONSOLE.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
           }
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
@@ -4155,22 +4154,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
           "}\n" +
           checksPlusBody + "\n" +
         "}";
-        //console.log(constrFun);
+        //CONSOLE.log(constrFun);
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
         return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
       }
 
-      //console.log(String(outerFun));
+      //CONSOLE.log(String(outerFun));
 
       var funToReturn = makeFunction(function() {
         var theFun = makeConstructor();
         funToReturn.app = theFun;
-        //console.log("Calling constructor ", quote(reflName), arguments);
-        //console.trace();
+        //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
+        //CONSOLE.trace();
         var res = theFun.apply(null, arguments)
-        //console.log("got ", res);
+        //CONSOLE.log("got ", res);
         return res;
       });
       return funToReturn;
@@ -4594,7 +4593,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'getParam' : getParam,
         'setParam' : setParam,
         'hasParam' : hasParam,
-        'stdout' : theOutsideWorld.stdout
+        'stdout' : theOutsideWorld.stdout,
+        'console' : CONSOLE
     };
 
     makePrimAnn("Number", isNumber);
