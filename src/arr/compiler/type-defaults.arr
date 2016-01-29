@@ -433,7 +433,6 @@ module-const-lists = t-module("pyret-builtin://lists",
     t-member("fold3", t-top),
     t-member("fold4", t-top),
     t-member("fold_n", t-top),
-    t-member("index", t-forall([list: t-variable(A.dummy-loc, s-atom("A", 133), t-top, invariant)], t-arrow([list: mk-list(t-var(s-atom("A", 133))), t-number], t-var(s-atom("A", 133))))),
     t-member("list", let tva = s-atom("A", 160), tv = t-var(tva):
         t-record([list: t-member("make", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: t-array(tv)], mk-list(tv))))])
     end)

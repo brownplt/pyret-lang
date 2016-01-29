@@ -782,9 +782,7 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
   end
 end
 
-index = get
-get-help = get
-set-help = set
+index = nothing
 
 list = {
   make: lam(arr):
