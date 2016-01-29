@@ -3436,6 +3436,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return arr;
     };
 
+    var raw_array_maker = makeObject({
+      make: makeFunction(raw_array_constructor),
+      make0: makeFunction(function() { return []; }),
+      make1: makeFunction(function(a) { return [a]; }),
+      make2: makeFunction(function(a, b) { return [a, b]; }),
+      make3: makeFunction(function(a, b, c) { return [a, b, c]; }),
+      make4: makeFunction(function(a, b, c, d) { return [a, b, c, d]; }),
+      make5: makeFunction(function(a, b, c, d, e) { return [a, b, c, d, e]; }),
+    });
+
     var raw_array_fold = function(f, init, arr, start) {
       if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a); }
       thisRuntime.checkFunction(f);
@@ -4302,9 +4312,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
-          'raw-array': makeObject({
-              make: makeFunction(raw_array_constructor)
-          }),
+          'raw-array': raw_array_maker,
 
           'not': makeFunction(bool_not),
 

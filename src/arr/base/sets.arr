@@ -1,18 +1,12 @@
 #lang pyret/library
 
 provide {
-  set: {
-    make: arr-to-list-set
-  },
-  list-set: {
-    make: arr-to-list-set
-  },
-  tree-set: {
-    make: arr-to-tree-set
-  },
-  empty-set: list-set(empty),
-  empty-list-set: list-set(empty),
-  empty-tree-set: tree-set(leaf),
+  set: list-set-maker,
+  list-set: list-set-maker,
+  tree-set: tree-set-maker,
+  empty-set: empty-list-set,
+  empty-list-set: empty-list-set,
+  empty-tree-set: empty-tree-set,
   list-to-set: list-to-list-set,
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set,
@@ -642,3 +636,27 @@ fun arr-to-tree-set(arr :: RawArray) -> Set:
   end
   tree-set(tree)
 end
+
+empty-list-set = list-set(empty)
+empty-tree-set = tree-set(leaf)
+
+
+list-set-maker = {
+  make: arr-to-list-set,
+  make0: lam(): empty-list-set end,
+  make1: lam(a): list-set(link(a, empty)) end,
+  make2: lam(a, b): list-set(link(a, link(b, empty))) end,
+  make3: lam(a, b, c): list-set(link(a, link(b, link(c, empty)))) end,
+  make4: lam(a, b, c, d): list-set(link(a, link(b, link(c, link(d, empty))))) end,
+  make5: lam(a, b, c, d, e): list-set(link(a, link(b, link(c, link(d, link(e, empty)))))) end
+}
+
+tree-set-maker = {
+  make: arr-to-tree-set,
+  make0: lam(): empty-tree-set end,
+  make1: lam(a): empty-tree-set.add(a) end,
+  make2: lam(a, b): empty-tree-set.add(a).add(b) end,
+  make3: lam(a, b, c): empty-tree-set.add(a).add(b).add(c) end,
+  make4: lam(a, b, c, d): empty-tree-set.add(a).add(b).add(c).add(d) end,
+  make5: lam(a, b, c, d, e): empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
+}

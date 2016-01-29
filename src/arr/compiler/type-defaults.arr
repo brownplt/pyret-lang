@@ -337,7 +337,15 @@ module-const-arrays = t-module("pyret-builtin://arrays",
 
 fun set-constructor(tva :: A.Name):
   tv = t-var(tva)
-  t-record([list: t-member("make", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: t-array(tv)], mk-set(tv))))])
+  t-record([list:
+      t-member("make", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: t-array(tv)], mk-set(tv)))),
+      t-member("make0", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: ], mk-set(tv)))),
+      t-member("make1", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv], mk-set(tv)))),
+      t-member("make2", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv], mk-set(tv)))),
+      t-member("make3", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv], mk-set(tv)))),
+      t-member("make4", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv, tv], mk-set(tv)))),
+      t-member("make5", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv, tv, tv], mk-set(tv))))
+    ])
 end
 
 fun mk-empty-set(tva :: A.Name):
@@ -434,7 +442,15 @@ module-const-lists = t-module("pyret-builtin://lists",
     t-member("fold4", t-top),
     t-member("fold_n", t-top),
     t-member("list", let tva = s-atom("A", 160), tv = t-var(tva):
-        t-record([list: t-member("make", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: t-array(tv)], mk-list(tv))))])
+        t-record([list:
+              t-member("make", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: t-array(tv)], mk-list(tv)))),
+              t-member("make0", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: ], mk-list(tv)))),
+              t-member("make1", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv], mk-list(tv)))),
+              t-member("make2", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv], mk-list(tv)))),
+              t-member("make3", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv], mk-list(tv)))),
+              t-member("make4", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv, tv], mk-list(tv)))),
+              t-member("make5", t-forall([list: t-variable(A.dummy-loc, tva, t-top, invariant)], t-arrow([list: tv, tv, tv, tv, tv], mk-list(tv))))
+            ])
     end)
   ]),
   let tv = t-var(s-atom("A", 37)),

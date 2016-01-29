@@ -13,7 +13,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
             "make":
               // NOTE(joe): any for RawArray instantiation until we have tuples
               t.forall(["a"],
-                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA))
+                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA)),
+            "make0": t.forall(["a"], t.arrow([], sdOfA)),
+            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], sdOfA)),
+            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make5": 
+              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
+                                      sdOfA))
           }),
         "string-dict-of":
           t.forall(["a"],
@@ -27,7 +35,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
         "mutable-string-dict":
           t.record({
             "make":
-              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA))
+              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA)),
+            "make0": t.forall(["a"], t.arrow([], msdOfA)),
+            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], msdOfA)),
+            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make5": 
+              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
+                                      msdOfA))
           })
       },
       aliases: {},
@@ -604,6 +620,77 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
         runtime.ffi.throwMessageException("Not yet implemented");
       });
 
+      function createMutableStringDict0() {
+        arity(0, arguments, "mutable-string-dict0");
+        var dict = Object.create(null);
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict1(arg) {
+        arity(1, arguments, "mutable-string-dict1");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+      function createMutableStringDict2(a, b) {
+        arity(2, arguments, "mutable-string-dict2");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        dict[internalKey(a)] = b;
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict3(a, b, c) {
+        arity(3, arguments, "mutable-string-dict3");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+      function createMutableStringDict4(a, b, c, d) {
+        arity(4, arguments, "mutable-string-dict4");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        runtime.checkString(c);
+        dict[internalKey(a)] = b;
+        dict[internalKey(c)] = d;
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict5(a, b, c, d, e) {
+        arity(5, arguments, "mutable-string-dict5");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+
+      function createImmutableStringDict0() {
+        arity(0, arguments, "string-dict0");
+        var dict = Object.create(null);
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict1(arg) {
+        arity(1, arguments, "string-dict1");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+      function createImmutableStringDict2(a, b) {
+        arity(2, arguments, "string-dict2");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        dict[internalKey(a)] = b;
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict3(a, b, c) {
+        arity(3, arguments, "string-dict3");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+      function createImmutableStringDict4(a, b, c, d) {
+        arity(4, arguments, "string-dict4");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        runtime.checkString(c);
+        if (a === c) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + a)
+        }
+        dict[internalKey(a)] = b;
+        dict[internalKey(c)] = d;
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict5(a, b, c, d, e) {
+        arity(5, arguments, "string-dict5");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+
       return O({
         "provide-plus-types": O({
           types: {
@@ -613,12 +700,24 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
           values: O({
             "make-mutable-string-dict": F(createMutableStringDict),
             "mutable-string-dict": O({
-              make: F(createMutableStringDictFromArray)
+              make: F(createMutableStringDictFromArray),
+              make0: F(createMutableStringDict0),
+              make1: F(createMutableStringDict1),
+              make2: F(createMutableStringDict2),
+              make3: F(createMutableStringDict3),
+              make4: F(createMutableStringDict4),
+              make5: F(createMutableStringDict5)
             }),
             "is-mutable-string-dict": F(isMutableStringDict),
             "make-string-dict": F(createImmutableStringDict),
             "string-dict": O({
-              make: F(createImmutableStringDictFromArray)
+              make: F(createImmutableStringDictFromArray),
+              make0: F(createImmutableStringDict0),
+              make1: F(createImmutableStringDict1),
+              make2: F(createImmutableStringDict2),
+              make3: F(createImmutableStringDict3),
+              make4: F(createImmutableStringDict4),
+              make5: F(createImmutableStringDict5)
             }),
             "string-dict-of": F(createConstImmutableStringDict),
             "is-string-dict": F(isImmutableStringDict)
