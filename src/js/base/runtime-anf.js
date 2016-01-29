@@ -1160,15 +1160,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var thisBrandStr = "$brand" + name + String(++brandCounter);
       return thisBrandStr;
     }
-    var namedBrander = function(name) {
+    var namedBrander = function(name, srcloc) {
       var thisBrandStr = mkBrandName(name);
+      var testSrcloc = srcloc || ["brander-test: " + thisBrandStr];
+      var brandSrcloc = srcloc || ["brander-brand: " + thisBrandStr]
       var brander = makeObject({
           'test': makeFunction(function(obj) {
-              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander-test"], 1, $a); }
+              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a); }
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
           'brand': makeFunction(function(obj) {
-              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander-brand"], 1, $a); }
+              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a); }
               return obj.brand(thisBrandStr);
             })
         });
@@ -1182,7 +1184,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
     function() {
       if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander"], 0, $a); }
-      return namedBrander("brander");
+      return namedBrander("brander", undefined);
     }
     );
 

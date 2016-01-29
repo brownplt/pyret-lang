@@ -5,7 +5,7 @@ define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
       return get(brand, "brand").app(val);
     }
 
-    var brandRuntime = runtime.namedBrander("runtime");
+    var brandRuntime = runtime.namedBrander("runtime", ["runtime-lib: runtime brander"]);
     var annRuntime = runtime.makeBranderAnn(brandRuntime, "Runtime");
     var checkRuntime = function(v) { runtime._checkAnn(["runtime"], annRuntime, v); };
 

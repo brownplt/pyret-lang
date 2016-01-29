@@ -82,8 +82,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
 
       var VS = get(VSlib, "values");
 
-      var brandMutable = runtime.namedBrander("mutable-string-dict");
-      var brandImmutable = runtime.namedBrander("string-dict");
+      var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+      var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
 
       var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
       var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");

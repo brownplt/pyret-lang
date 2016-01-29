@@ -24,8 +24,8 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       ]
     },
     function(runtime, namespace, runtimeLib) {
-      var brandModule = runtime.namedBrander("module");
-      var brandModuleResult = runtime.namedBrander("module-result");
+      var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
+      var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);
 
       var annModule = runtime.makeBranderAnn(brandModule, "Module");
       var annModuleResult = runtime.makeBranderAnn(brandModuleResult, "ModuleResult");
