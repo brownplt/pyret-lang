@@ -267,6 +267,7 @@ data Type:
   | t-record(fields :: TypeMembers)
   | t-forall(introduces :: List<Type>, onto :: Type)
   | t-ref(typ :: Type)
+  | t-existential(id :: Name)
   | t-data(params :: List<Type>, variants :: List<TypeVariant>, fields :: TypeMembers) with:
     lookup-variant(self, variant-name :: String) -> Option<TypeVariant>:
       fun same-name(tv):
@@ -279,7 +280,6 @@ data Type:
         self.substitute(param-typ, arg-typ)
       end, self, self.params, type-args)
     end
-  | t-existential(id :: Name)
 sharing:
   _output(self):
     cases(Type) self:
@@ -304,15 +304,15 @@ sharing:
             + [list: VS.vs-str("}")])
       | t-forall(introduces, onto) =>
         VS.vs-seq([list: VS.vs-str("forall ")]
-            + interleave(introduces.map(VS.vs-value), VS.vs-value(", "))
+            + interleave(introduces.map(VS.vs-value), VS.vs-str(", "))
             + [list: VS.vs-str("."), VS.vs-value(onto)])
       | t-ref(typ) =>
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
+      | t-existential(id) => VS.vs-str(id.key())
       | t-data(params, variants, fields) =>
         VS.vs-seq([list: VS.vs-str("(")]
             + interleave(variants.map(VS.vs-value), VS.vs-str(" + "))
             + [list: VS.vs-str(")")])
-      | t-existential(id) => VS.vs-str(id.key())
     end
   end,
   key(self) -> String:
@@ -342,10 +342,10 @@ sharing:
           + onto.key()
       | t-ref(typ) =>
         "ref " + typ.key()
+      | t-existential(id) => id.key()
       | t-data(params, variants, fields) =>
         "data" + "<" + params.map(_.key()).join-str(",") + ">"
           + variants.map(_.key()).join-str("+")
-      | t-existential(id) => id.key()
     end
   end,
   substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:

@@ -910,18 +910,10 @@ fun satisfies-type(subtyp :: Type, supertyp :: Type, context :: Context) -> Fold
                 | else => fold-errors(empty)
               end
             | t-forall(a-introduces, a-onto) =>
-              cases(Type) a-onto:
-                | t-arrow(a-args, a-ret) =>
-                  cases(Type) supertyp:
-                    | t-arrow(b-args, b-ret) =>
-                      new-onto = a-introduces.foldl(lam(type-var, new-onto):
-                        new-onto.substitute(type-var, new-existential())
-                      end, a-onto)
-                      satisfies-assuming(new-onto, supertyp, context, assumptions)
-                    | else => raise("not sure what to do here either")
-                  end
-                | else => raise("not sure if we want anything here")
-              end
+              new-onto = a-introduces.foldl(lam(type-var, new-onto):
+                new-onto.substitute(type-var, new-existential())
+              end, a-onto)
+              satisfies-assuming(new-onto, supertyp, context, assumptions)
             | t-app(a-onto, a-args) =>
               cases(Type) supertyp:
                 | t-top => fold-result(context)
@@ -959,6 +951,12 @@ fun satisfies-type(subtyp :: Type, supertyp :: Type, context :: Context) -> Fold
               raise("satisfies-type for t-record not implemented")
             | t-ref(a-typ) =>
               raise("satisfies-type for t-ref not implemented")
+            | t-existential(a-id) =>
+              # TODO(MATT): this doesn't quite cover it but we'll come back to this
+              cases(Type) supertyp:
+                | t-existential(b-id) => raise("satisfies-type two existentials")
+                | else => instantiate-left(subtyp, supertyp, context)
+              end
             | t-data(a-params, a-variants, a-fields) =>
               cases(Type) supertyp:
                 | t-data(b-params, b-variants, b-fields) =>
@@ -984,12 +982,6 @@ fun satisfies-type(subtyp :: Type, supertyp :: Type, context :: Context) -> Fold
                     end
                   end, fold-result(context))
                 | else => raise("satisfies-type for t-data not finished")
-              end
-            | t-existential(a-id) =>
-              # TODO(MATT): this doesn't quite cover it but we'll come back to this
-              cases(Type) supertyp:
-                | t-existential(b-id) => raise("satisfies-type two existentials")
-                | else => instantiate-left(subtyp, supertyp, context)
               end
           end
       end
@@ -1035,10 +1027,10 @@ fun instantiate-right(subtyp :: Type, supertyp :: Type, context :: Context) -> F
           fold-result(context.assign-existential(supertyp, subtyp))
         | t-ref(a-typ) =>
           raise("instantiate-right for t-ref not implemented yet")
-        | t-data(variants, fields) =>
-          raise("instantiate-right for t-data not implemented")
         | t-existential(a-id) =>
           fold-result(context.assign-existential(subtyp, supertyp))
+        | t-data(variants, fields) =>
+          raise("instantiate-right for t-data not implemented")
       end
     | else => raise("cannot instantiate non-existential")
   end
@@ -1066,10 +1058,10 @@ fun instantiate-left(subtyp :: Type, supertyp :: Type, context :: Context) -> Fo
           raise("instantiate-left for t-record not implemented yet")
         | t-ref(b-typ) =>
           raise("instantiate-left for t-ref not implemented yet")
-        | t-data(variants, fields) =>
-          raise("instantiate-left for t-data not implemented")
         | t-existential(b-id) =>
           fold-result(context.assign-existential(supertyp, subtyp))
+        | t-data(variants, fields) =>
+          raise("instantiate-left for t-data not implemented")
       end
     | else => raise("cannot instantiate non-existential")
   end
@@ -1409,7 +1401,11 @@ fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params 
         t-forall(params, t-arrow(fields.map(_.typ), t-app(brander-typ, params)))
       end
     | t-singleton-variant(name, _) =>
-      brander-typ # TODO(MATT): params
+      if is-empty(params):
+        brander-typ
+      else:
+        t-forall(params, t-app(brander-typ, params))
+      end
   end
 end
 
