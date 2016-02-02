@@ -1,6 +1,9 @@
 define(["js/runtime-util", "path", "js/ffi-helpers"], function(util, path, ffiLib) {
-
-  return util.memoModule("pathlib", function(RUNTIME, NAMESPACE) {
+  return util.definePyretModule("pathlib",
+    [],
+    [],
+    {},
+    function (RUNTIME, NAMESPACE) {
     return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
       return RUNTIME.makeObject({
           provide: RUNTIME.makeObject({
@@ -58,4 +61,3 @@ define(["js/runtime-util", "path", "js/ffi-helpers"], function(util, path, ffiLi
     });
   });    
 });
-

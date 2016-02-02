@@ -1,7 +1,12 @@
-define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util, sexp, sexpStruct) {
-  return util.memoModule("s-exp", function(RUNTIME, NAMESPACE) {
-    var gf = RUNTIME.getField;
-    return RUNTIME.loadModulesNew(NAMESPACE, [sexpStruct], function(sstruct) {
+define(["js/runtime-util", "s-expression"], function(util, sexp, sexpStruct) {
+  return util.definePyretModule("s-exp",
+    [],
+    [
+      util.modBuiltin("s-exp-structs")
+    ],
+    {},
+    function (RUNTIME, NAMESPACE, sstruct) {
+      var gf = RUNTIME.getField;
       var vals = gf(sstruct, "values");
       var typs = gf(sstruct, "types");
       function readSexp(s) {
@@ -68,5 +73,4 @@ define(["js/runtime-util", "s-expression", "trove/s-exp-structs"], function(util
         })
       });
     });
-  });
 });
