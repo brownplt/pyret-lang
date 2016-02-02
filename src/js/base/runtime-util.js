@@ -63,7 +63,27 @@ define([], function() {
   // description).
   var modBuiltinJS = modBuiltin;
 
+
   function definePyretModule(name, oldDeps, deps, provides, func) {
+    return defineModule(function(_, result) { return result; }, name, oldDeps, deps, provides, func);
+  }
+
+  function defineJSModule(name, oldDeps, deps, provides, func) {
+    function createJSReturn(runtime, jsObj) {
+      return runtime.makeObject({
+        "provide-plus-types": runtime.makeObject({
+          values: runtime.makeObject({}),
+          types: {},
+          internal: jsObj
+        }),
+        answer: runtime.nothing
+      });
+    }
+    return defineModule(createJSReturn, name, oldDeps, deps, provides, func);
+  }
+
+
+  function defineModule(wrap, name, oldDeps, deps, provides, func) {
     var modname = gensym(name);
     return {
       name: name,
@@ -74,7 +94,11 @@ define([], function() {
         return memoModule(modname, function(runtime, namespace) {
           return runtime.loadModulesNew(namespace, pyretDependencies, function(/* instantiated modules */) {
             var deps = Array.prototype.slice.call(arguments);
-            return func.apply(null, [runtime, namespace].concat(deps));
+            return runtime.safeCall(function() {
+              return func.apply(null, [runtime, namespace].concat(deps));
+            }, function(result) {
+              return wrap(runtime, result);
+            });
           });
         });
       }
@@ -99,6 +123,7 @@ define([], function() {
       isBrowser: isBrowser,
       suspend: suspend,
       definePyretModule: definePyretModule,
+      defineJSModule: defineJSModule,
       isBrowser: isBrowser
     };
 });

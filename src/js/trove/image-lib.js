@@ -1,25 +1,31 @@
 define([
-    "trove/image-structs",
     "js/ffi-helpers",
-    "js/js-numbers"
+    "js/js-numbers",
+    "js/runtime-util"
   ], function(
-      imageLib,
       ffiLib,
-      jsnums
+      jsnums,
+      util
     ) {
   // Basic implementation of the image library.
   //
   // This should mimic the implementation of 2htdp/image.
 
-  return function(runtime, namespace) {
-    var gf = runtime.getField;
-    return runtime.loadJSModules(namespace, [ffiLib], function(ffi) {
-      return runtime.loadModulesNew(namespace, [imageLib], function(imageImp) {
+  return util.defineJSModule("image-lib",
+    [],
+    [
+      util.modBuiltin("image-structs")
+    ],
+    {},
+    function(RUNTIME, NAMESPACE, imageImp) {
+      var gf = RUNTIME.getField;
+      return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
+      
         var image = gf(imageImp, "values");
         var color = gf(image, "color");
         var colorPred = gf(image, "Color");
         var isNum = function(n) { return typeof n === "number"; }
-        var unwrap = runtime.unwrap;
+        var unwrap = RUNTIME.unwrap;
 
         var hasOwnProperty = {}.hasOwnProperty;
 
@@ -51,10 +57,10 @@ define([
             throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
           }
           return color.app(
-              runtime.wrap(r),
-              runtime.wrap(g),
-              runtime.wrap(b),
-              runtime.wrap(a)
+              RUNTIME.wrap(r),
+              RUNTIME.wrap(g),
+              RUNTIME.wrap(b),
+              RUNTIME.wrap(a)
             );
         };
         var isColor = function(c) { return unwrap(colorPred.app(c)); };
@@ -62,7 +68,7 @@ define([
         var colorGreen = function(c) { return unwrap(gf(c, "green")); };
         var colorBlue = function(c) { return unwrap(gf(c, "blue")); };
         var colorAlpha = function(c) { return unwrap(gf(c, "alpha")); };
-        var equals = runtime.equal_always;
+        var equals = RUNTIME.equal_always;
 
         var imageEquals = function(left, right) {
           if (!isImage(left) || !isImage(right)) { return false; }
@@ -82,7 +88,7 @@ define([
         // On the Racket side of things, this is exposed as image-color?.
         var isColorOrColorString = function(thing) {
             return (isColor(thing) ||
-                    ((runtime.isString(thing) &&
+                    ((RUNTIME.isString(thing) &&
                       typeof(colorDb.get(thing)) != 'undefined')));
         };
 
@@ -1624,8 +1630,7 @@ define([
           colorGreen: colorGreen,
           colorBlue: colorBlue,
           colorAlpha: colorAlpha
-        }
-      });
+        };
     });
-  };
+  });
 });

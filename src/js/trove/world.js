@@ -1,11 +1,15 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, ffiLib, t, strDictLib) {
+define(["js/runtime-util", "js/ffi-helpers", "js/type-util"], function(util, ffiLib, t) {
 
   var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
   return util.definePyretModule(
     "world",
     [],
-    [],
+    [
+      util.modBuiltin("string-dict"),
+      util.modBuiltin("image-lib"), 
+      util.modBuiltin("world-lib")
+    ],
     {
       values: {
         "big-bang":
@@ -66,8 +70,8 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         )
       }
     },
-    function(runtime, namespace) {
-        return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib, strDictLib], function(imageLibrary, rawJsworld, ffi, strDict) {
+    function(runtime, namespace, imageLibrary, rawJsworld, strDict) {
+        return runtime.loadJSModules(namespace, [ffiLib], function(ffi) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////

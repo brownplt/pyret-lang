@@ -3970,6 +3970,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           var tocomp = {mod: curMod, name: curName, path: curPath};
           return depMods.reduce(function(acc, elt) {
+            console.error("elt to reduce on: ", elt);
             return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
           }, [tocomp])
         }
@@ -4032,18 +4033,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(module.oldDependencies) {
                 //console.error("Loading old deps: ", module.oldDependencies);
                 var innerModule = module.theModule.apply(null, module.oldDependencies);
-                console.error(String(innerModule).substring(0, 200));
+                //console.error(String(innerModule).substring(0, 200));
                 return innerModule(thisRuntime, namespace);
               }
               else {
-              return loadBuiltinModules(module.dependencies, module.name,
-                function() {
-                  var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
-                  console.error(String(innerModule).substring(0, 200));
-                  return innerModule(thisRuntime, namespace);
-                });
+                console.error("About to loadBuiltin modules: ", module.name, module.dependencies);
+                return loadBuiltinModules(module.dependencies, module.name,
+                  function() {
+                    var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                    console.error(String(innerModule).substring(0, 200));
+                    return innerModule(thisRuntime, namespace);
+                  });
 
-              //  console.error("Cannot load this module: ", module);
+                //  console.error("Cannot load this module: ", module);
               }
               /*
               return loadBuiltinModules(module.dependencies, module.name,
