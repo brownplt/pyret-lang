@@ -1,34 +1,38 @@
-define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-structs",
-        "trove/d3-lib", "trove/graph-structs",
+define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
         "../../../node_modules/d3/d3.min", "../../../node_modules/d3-tip/index"],
-       function(util, jsnums, imageLib, imageStructs, clib, graphStructs, d3, d3tipLib){
+       function(util, jsnums, clib, d3, d3tipLib) {
+return util.definePyretModule("graph",
+  [],
+  [
+    util.modBuiltin("image-lib"),
+    util.modBuiltin("image-structs"),
+    util.modBuiltin("graph-structs")
+  ],
+  {},
+  function(RUNTIME, NAMESPACE, IMAGE, IMAGESTRUCTS, STRUCTS) {
 
-  var libs = clib(d3);
-  var libData =    libs.libData,
-    libNum =       libs.libNum,
-    libJS =        libs.libJS,
-    libColor =     libs.libColor,
-    libCheck =     libs.libCheck,
-    getMargin =    libs.d3common.getMargin,
-    getDimension = libs.d3common.getDimension,
-    svgTranslate = libs.d3common.svgTranslate,
-    createDiv =    libs.d3common.createDiv,
-    createCanvas = libs.d3common.createCanvas,
-    callBigBang =  libs.d3common.callBigBang,
-    stylizeTip =   libs.d3common.stylizeTip,
-    assert =       libs.assert,
-    d3tip =        libs.d3common.d3tipBuilder(d3tipLib);
+    var libs = clib(d3);
+    var libData =    libs.libData,
+      libNum =       libs.libNum,
+      libJS =        libs.libJS,
+      libColor =     libs.libColor,
+      libCheck =     libs.libCheck,
+      getMargin =    libs.d3common.getMargin,
+      getDimension = libs.d3common.getDimension,
+      svgTranslate = libs.d3common.svgTranslate,
+      createDiv =    libs.d3common.createDiv,
+      createCanvas = libs.d3common.createCanvas,
+      callBigBang =  libs.d3common.callBigBang,
+      stylizeTip =   libs.d3common.stylizeTip,
+      assert =       libs.assert,
+      d3tip =        libs.d3common.d3tipBuilder(d3tipLib);
 
-  return function (rt, namespace) {
-    var IMAGE = imageLib(rt, rt.namespace);
-    var gf = rt.getField;
+      var gf = RUNTIME.getField;
 
-    var tostring = function (val) {
-      return rt.toReprJS(val, rt.ReprMethods._tostring)
-    };
-
-    return rt.loadModulesNew(namespace, [imageStructs, graphStructs],
-      function(IMAGESTRUCTS, STRUCTS) {
+      var tostring = function (val) {
+        return RUNTIME.toReprJS(val, RUNTIME.ReprMethods._tostring)
+      };
+    
 
       function valFromStructs(name){
   			return gf(gf(STRUCTS, "values"), name);
@@ -54,11 +58,11 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
          * http://emptypipes.org/2015/02/15/selectable-force-directed-graph/
          */
 
-        rt.checkArity(2, arguments, "show-graph");
+        RUNTIME.checkArity(2, arguments, "show-graph");
 
-        var checkGraph = rt.makeCheckType(PyretGraph.app, "Graph");
+        var checkGraph = RUNTIME.makeCheckType(PyretGraph.app, "Graph");
         var checkGraphOptions = function(v) {
-          rt._checkAnn(["GraphOptions"], TypeGraphOptions, v);
+          RUNTIME._checkAnn(["GraphOptions"], TypeGraphOptions, v);
         };
 
         checkGraph(pyretGraph);
@@ -70,18 +74,18 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
           width = dimension.width,
           height = dimension.height;
 
-        var colorConverter = libColor.convertColor(rt, IMAGE);
+        var colorConverter = libColor.convertColor(RUNTIME, IMAGE);
 
         var vertexPrinter = gf(pyretGraphOptions, "vertex-printer").app; // TODO: unsafe!
         var edgePrinter = gf(pyretGraphOptions, "edge-printer").app; // TODO: unsafe!
 
-        var arrayOfNodes = rt.ffi.toArray(gf(pyretGraph, "vertices"));
+        var arrayOfNodes = RUNTIME.ffi.toArray(gf(pyretGraph, "vertices"));
         var nodes = arrayOfNodes.map(
           function(pyretVertex, i){
             // temporarily mutate the object
             // to make node finding O(1)
             // will remove this additional field afterwards
-            return rt.ffi.cases(PyretVertex, "Vertex", pyretVertex, {
+            return RUNTIME.ffi.cases(PyretVertex, "Vertex", pyretVertex, {
               vertex: function(value, options) {
                 pyretVertex['_index'] = i;
                 return {
@@ -94,9 +98,9 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
           });
 
         var totalLinks = {};
-        var links = rt.ffi.toArray(gf(pyretGraph, "edges")).map(
+        var links = RUNTIME.ffi.toArray(gf(pyretGraph, "edges")).map(
           function (pyretEdge) {
-            return rt.ffi.cases(PyretEdge, "Edge", pyretEdge, {
+            return RUNTIME.ffi.cases(PyretEdge, "Edge", pyretEdge, {
               edge: function(source, target, value, options) {
                 return {
                   'source': nodes[source['_index']],
@@ -655,7 +659,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
         arrayOfNodes.forEach(function(e){
           delete e['_index'];
         });
-        callBigBang(rt, detached);
+        callBigBang(RUNTIME, detached);
 
         return pyretGraph;
       }
@@ -665,11 +669,11 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
          * Part of this function is adapted from:
          * http://www.d3noob.org/2014/01/tree-diagrams-in-d3js_11.html
          */
-        rt.checkArity(2, arguments, "show-tree");
+        RUNTIME.checkArity(2, arguments, "show-tree");
 
-        var checkTree = rt.makeCheckType(PyretTree.app, "Tree");
+        var checkTree = RUNTIME.makeCheckType(PyretTree.app, "Tree");
         var checkTreeOptions = function(v) {
-          rt._checkAnn(["TreeOptions"], TypeTreeOptions, v);
+          RUNTIME._checkAnn(["TreeOptions"], TypeTreeOptions, v);
         };
         checkTree(pyretTree);
         checkTreeOptions(treeOptions);
@@ -679,7 +683,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
         function toJSTree(node) {
           return {
             'name': printer(node),
-            'children': rt.ffi.toArray(
+            'children': RUNTIME.ffi.toArray(
               gf(node, "children")).map(toJSTree) // TODO: unsafe
           };
         }
@@ -843,48 +847,47 @@ define(["js/runtime-util", "js/js-numbers", "trove/image-lib", "trove/image-stru
         }
 
         update(root);
-        callBigBang(rt, detached);
+        callBigBang(RUNTIME, detached);
 
         return pyretTree;
       }
 
-      return util.makeModuleReturn(rt, {
+      return util.makeModuleReturn(RUNTIME, {
         Vertex: typeFromStructs("Vertex"),
         Edge: typeFromStructs("Edge"),
         Graph: typeFromStructs("Graph"),
         Tree: typeFromStructs("Tree")
       }, {
-        "show-tree": rt.makeFunction(treeDiagram),
-        "show-graph": rt.makeFunction(forceLayout),
+        "show-tree": RUNTIME.makeFunction(treeDiagram),
+        "show-graph": RUNTIME.makeFunction(forceLayout),
         "graph": valFromStructs("graph"),
         "node": valFromStructs("node"),
         "vertex": valFromStructs("vertex"),
         "edge": valFromStructs("edge"),
-        "graph-options": rt.makeObject({
-          "vertex-printer": rt.makeFunction(function(vertex){
+        "graph-options": RUNTIME.makeObject({
+          "vertex-printer": RUNTIME.makeFunction(function(vertex){
             // TODO: check if it's a vertex
             return tostring(gf(vertex, "value"))
           }),
-          "edge-printer": rt.makeFunction(function(edge){
+          "edge-printer": RUNTIME.makeFunction(function(edge){
             // TODO: check if it's an edge
             return tostring(gf(edge, "value"))
           })
         }),
-        "vertex-options": rt.makeObject({
+        "vertex-options": RUNTIME.makeObject({
           "color": PyretGray
         }),
-        "edge-options": rt.makeObject({
+        "edge-options": RUNTIME.makeObject({
           "color": PyretGray,
-          "directed": rt.pyretTrue,
+          "directed": RUNTIME.pyretTrue,
           "size": 5 // TODO: put proper value
         }),
-        "tree-options": rt.makeObject({
-          "node-printer": rt.makeFunction(function(tree){
+        "tree-options": RUNTIME.makeObject({
+          "node-printer": RUNTIME.makeFunction(function(tree){
             // TODO: check if it's a tree
             return tostring(gf(tree, "value"));
           })
         })
       });
     });
-  };
 });

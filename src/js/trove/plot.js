@@ -9,13 +9,23 @@ Plot.LINE =  0;
 Plot.SCATTER = 1;
 Plot.XY = 2;
 
-define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
-        "trove/string-dict", "trove/image-lib", "trove/image-structs",
-        "trove/d3-lib", "trove/plot-structs",
+define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
         "../../../node_modules/d3/d3.min",
         "../../../node_modules/d3-tip/index"],
-        function(util, jsnums, eitherLib, optionLib, sdLib, imageLib, imageStructs,
-                 clib, plotStructs, d3, d3tipLib) {
+        function(util, jsnums, clib, d3, d3tipLib) {
+
+  return util.definePyretModule("plot",
+    [],
+    [
+      util.modBuiltin("either"),
+      util.modBuiltin("option"),
+      util.modBuiltin("string-dict"),
+      util.modBuiltin("image-lib"),
+      util.modBuiltin("image-structs"),
+      util.modBuiltin("plot-structs")
+    ],
+    {},
+    function(RUNTIME, NAMESPACE, EITHER, OPTION, SD, IMAGE, IMAGESTRUCTS, STRUCTS) {
 
   var HISTOGRAM_N = 100;
   var CError = {
@@ -308,14 +318,9 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     });
   }
 
-  return function(rt, namespace) {
+    var gf = RUNTIME.getField;
+    var colorConverter = libColor.convertColor(RUNTIME, IMAGE);
 
-  var gf = rt.getField;
-  var IMAGE = imageLib(rt, rt.namespace);
-  var colorConverter = libColor.convertColor(rt, IMAGE);
-
-  return rt.loadModulesNew(namespace, [sdLib, eitherLib, optionLib, imageStructs, plotStructs],
-    function(SD, EITHER, OPTION, IMAGESTRUCTS, STRUCTS) {
 
     function valFromStructs(name){
       return gf(gf(STRUCTS, "values"), name);
@@ -331,7 +336,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     var TypePlotWindowOptions = typeFromStructs("PlotWindowOptions");
 
     function toJSPoints(points) {
-      return rt.ffi.toArray(points).map(
+      return RUNTIME.ffi.toArray(points).map(
         function (e) { return {x: gf(e, "x"), y: gf(e, "y")}; }
       );
     }
@@ -426,7 +431,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       putLabel(windowOption.label, width, height, detached, margin);
       stylizeTip(detached);
-      callBigBang(rt, detached);
+      callBigBang(RUNTIME, detached);
     }
 
     function generateXY(f, option, isSafe) {
@@ -486,10 +491,10 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           // x :: Number
           // done :: (Number -> Any)
           var pt = {y: NaN, py: NaN, x: x, px: xToPixel(x)};
-          return rt.safeCall(function() {
-            return rt.execThunk({ app: function(){ return f.app(x); }});
+          return RUNTIME.safeCall(function() {
+            return RUNTIME.execThunk({ app: function(){ return f.app(x); }});
           }, function(result) {
-            rt.ffi.cases(PyretEither, "Either", result, {
+            RUNTIME.ffi.cases(PyretEither, "Either", result, {
               left: function(val){
                 if (jsnums.isReal(val) &&
                     jsnums.lessThanOrEqual(yMin, val) &&
@@ -521,7 +526,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           if(Number.isNaN(points[i].y) && Number.isNaN(points[i + 1].y)) {
             return makeIntervals(i - 1, points, left, right, done);
           }
-          return rt.safeCall(function() {
+          return RUNTIME.safeCall(function() {
             return divideSubinterval(points[i], points[i + 1])
           }, function(divided) {
             if (isAllOccupied(left, right)) return [[left, right]];
@@ -628,17 +633,17 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     ////////////////////////////////////////////////////////////////////////////
 
     function plotMulti(pyretLstOfPlot, pyretWinOptions) {
-      rt.checkArity(2, arguments, "plot-multi");
-      rt.checkList(pyretLstOfPlot);
+      RUNTIME.checkArity(2, arguments, "plot-multi");
+      RUNTIME.checkList(pyretLstOfPlot);
 
       var checkPlotWindowOptions = function(v) {
-        rt._checkAnn(["PlotWindowOptions"], TypePlotWindowOptions, v);
+        RUNTIME._checkAnn(["PlotWindowOptions"], TypePlotWindowOptions, v);
       };
 
       checkPlotWindowOptions(pyretWinOptions);
 
       var checkListofPlot = libCheck.checkListGenerator(
-        "Plot", PyretPlot.app, rt);
+        "Plot", PyretPlot.app, RUNTIME);
       checkListofPlot(pyretLstOfPlot);
 
       var xMin = gf(pyretWinOptions, "x-min");
@@ -648,14 +653,14 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       if (jsnums.greaterThanOrEqual(xMin, xMax) ||
           jsnums.greaterThanOrEqual(yMin, yMax)) {
-        rt.throwMessageException(CError.RANGE);
+        RUNTIME.throwMessageException(CError.RANGE);
       }
 
-      var colorConverter = libColor.convertColor(rt, IMAGE);
+      var colorConverter = libColor.convertColor(RUNTIME, IMAGE);
 
-      var arrOfArrOfPlot = rt.ffi.toArray(pyretLstOfPlot)
+      var arrOfArrOfPlot = RUNTIME.ffi.toArray(pyretLstOfPlot)
         .map(function(pyretPlot) {
-          return rt.ffi.cases(PyretPlot, "Plot", pyretPlot, {
+          return RUNTIME.ffi.cases(PyretPlot, "Plot", pyretPlot, {
             'line-plot': function(points, option){
               return adjustLinePlot(toJSPoints(points), toJSOption(option),
                                     xMin, xMax, yMin, yMax);
@@ -676,12 +681,12 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         xMax: gf(pyretWinOptions, "x-max"),
         yMin: gf(pyretWinOptions, "y-min"),
         yMax: gf(pyretWinOptions, "y-max"),
-        inferBound: rt.isPyretTrue(gf(pyretWinOptions, "infer-bounds")),
+        inferBound: RUNTIME.isPyretTrue(gf(pyretWinOptions, "infer-bounds")),
         label: gf(pyretWinOptions, "label"),
         safe: gf(pyretWinOptions, "safe")
       };
 
-      if (rt.isPyretTrue(winOptions.inferBound)) {
+      if (RUNTIME.isPyretTrue(winOptions.inferBound)) {
         bound = inferBound(arrOfPlot);
         winOptions.xMin = bound.xMin;
         winOptions.xMax = bound.xMax;
@@ -696,7 +701,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         if(i === -1) {
           return done([]);
         }
-        return rt.safeCall(function(){
+        return RUNTIME.safeCall(function(){
           return generateXY(XY[i].f, winOptions, winOptions.safe);
         }, function(plot) {
           return makeXYs(i - 1, function(XYPlots) {
@@ -719,25 +724,25 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
     }
 
     function histogram(lst, n) {
-      rt.checkArity(2, arguments, "histogram");
-      rt.checkList(lst);
-      rt.checkNumber(n);
+      RUNTIME.checkArity(2, arguments, "histogram");
+      RUNTIME.checkList(lst);
+      RUNTIME.checkNumber(n);
 
       var checkListofNumber = libCheck.checkListGenerator(
-        "Number", rt.isNumber, rt);
+        "Number", RUNTIME.isNumber, RUNTIME);
       checkListofNumber(lst);
 
       if ((!jsnums.isInteger(n)) ||
         (n < 1) ||
         (n > HISTOGRAM_N)) {
-        rt.throwMessageException(
+        RUNTIME.throwMessageException(
           "n must be an interger between 1 and " + HISTOGRAM_N.toString());
       }
 
-      var data = rt.ffi.toArray(lst);
+      var data = RUNTIME.ffi.toArray(lst);
 
       if (data.length === 0) {
-        rt.throwMessageException("There must be at least " +
+        RUNTIME.throwMessageException("There must be at least " +
                                  "one Number in the list.");
       }
 
@@ -766,7 +771,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       plotBar(xMin, xMax, 0, yMax, width, height,
           histogramData, HISTOGRAM_N, detached, canvas);
 
-      callBigBang(rt, detached);
+      callBigBang(RUNTIME, detached);
       return lst;
     }
 
@@ -775,22 +780,22 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
        * Part of this function is adapted from:
        * http://bl.ocks.org/mbostock/3887235
        */
-      rt.checkArity(1, arguments, "pie-chart");
+      RUNTIME.checkArity(1, arguments, "pie-chart");
 
       var annImmutable = gf(SD, "types").StringDict;
 
       var checkISD = function (v) {
-        rt._checkAnn(["string-dict"], annImmutable, v);
+        RUNTIME._checkAnn(["string-dict"], annImmutable, v);
       };
 
       checkISD(sdValue);
       // TODO: check if all are numbers
       // Pyret currently doesn't have a good way to check this
 
-      var keys = rt.ffi.toArray(gf(sdValue, "keys-list").app());
+      var keys = RUNTIME.ffi.toArray(gf(sdValue, "keys-list").app());
 
       if (keys.length === 0) {
-        rt.throwMessageException("There must be at least " +
+        RUNTIME.throwMessageException("There must be at least " +
                                  "one entry in the list.");
       }
 
@@ -880,30 +885,30 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
       canvas.selectAll(".transparent").style('opacity', '0');
       canvas.selectAll('text').style({'font-size': '15px'});
-      callBigBang(rt, detached);
+      callBigBang(RUNTIME, detached);
       return sdValue;
     }
 
-    return util.makeModuleReturn(rt, {
+    return util.makeModuleReturn(RUNTIME, {
       Posn: typeFromStructs("Posn"),
       Plot: typeFromStructs("Plot"),
       PlotOptions: typeFromStructs("PlotOptions"),
       PlotWindowOptions: typeFromStructs("PlotWindowOptions")
     }, {
       // TODO: provide is-...?
-      "plot-multi": rt.makeFunction(plotMulti),
-      "histogram": rt.makeFunction(histogram),
-      "pie-chart": rt.makeFunction(pieChart),
-      "plot-window-options": rt.makeObject({
+      "plot-multi": RUNTIME.makeFunction(plotMulti),
+      "histogram": RUNTIME.makeFunction(histogram),
+      "pie-chart": RUNTIME.makeFunction(pieChart),
+      "plot-window-options": RUNTIME.makeObject({
         "x-min": -10,
         "x-max": 10,
         "y-min": -10,
         "y-max": 10,
-        "infer-bounds": rt.pyretFalse,
+        "infer-bounds": RUNTIME.pyretFalse,
         "label": "",
-        "safe": rt.pyretTrue
+        "safe": RUNTIME.pyretTrue
       }),
-      "plot-options": rt.makeObject({
+      "plot-options": RUNTIME.makeObject({
         "color": PyretBlue
       }),
       "posn": valFromStructs("posn"),
@@ -912,6 +917,4 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       "xy-plot": valFromStructs("xy-plot")
     });
   });
-
-  };
 });
