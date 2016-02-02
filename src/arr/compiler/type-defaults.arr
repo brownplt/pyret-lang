@@ -15,6 +15,7 @@ t-bot                     = TS.t-bot
 t-app                     = TS.t-app
 t-record                  = TS.t-record
 t-forall                  = TS.t-forall
+t-data                    = TS.t-data
 
 t-number                  = TS.t-number
 t-string                  = TS.t-string
@@ -34,9 +35,6 @@ t-member                  = TS.t-member
 
 type ModuleType           = TS.ModuleType
 t-module                  = TS.t-module
-
-type DataType             = TS.DataType
-t-datatype                = TS.t-datatype
 
 type TypeVariant          = TS.TypeVariant
 t-variant                 = TS.t-variant
@@ -186,7 +184,7 @@ fun make-default-typs():
 
   # Time functions
   default-typs.set-now(A.s-global("time-now").key(), t-arrow(empty, t-number))
-  
+
   # String functions
   default-typs.set-now(A.s-global("gensym").key(), t-arrow(empty, t-string))
   default-typs.set-now(A.s-global("string-repeat").key(), t-arrow([list: t-string, t-number], t-string))
@@ -215,19 +213,35 @@ fun make-default-typs():
   default-typs
 end
 
+# TODO(MATT): what do these mean
+#fun make-default-data-exprs():
+#  default-data-exprs = SD.make-mutable-string-dict()
+#  default-data-exprs.set-now(A.s-type-global("RawArray").key(),
+#    # RawArray is invariant because it can be mutated
+#    t-datatype("RawArray", [list: t-var(s-atom("A", 10))], empty, empty))
+#  default-data-exprs.set-now(A.s-type-global("Number").key(),
+#    t-datatype("Number", empty, empty, empty))
+#  default-data-exprs.set-now(A.s-type-global("String").key(),
+#    t-datatype("String", empty, empty, empty))
+#  default-data-exprs.set-now(A.s-type-global("Boolean").key(),
+#    t-datatype("Boolean", empty, empty, empty))
+#  default-data-exprs.set-now(A.s-type-global("Nothing").key(),
+#    t-datatype("Nothing", empty, empty, empty))
+#  default-data-exprs
+#end
+
 fun make-default-data-exprs():
   default-data-exprs = SD.make-mutable-string-dict()
   default-data-exprs.set-now(A.s-type-global("RawArray").key(),
-    # RawArray is invariant because it can be mutated
-    t-datatype("RawArray", [list: t-var(s-atom("A", 10))], empty, empty))
+    t-data([list: t-var(s-atom("A", 10))], empty, empty))
   default-data-exprs.set-now(A.s-type-global("Number").key(),
-    t-datatype("Number", empty, empty, empty))
+    t-data(empty, empty, empty))
   default-data-exprs.set-now(A.s-type-global("String").key(),
-    t-datatype("String", empty, empty, empty))
+    t-data(empty, empty, empty))
   default-data-exprs.set-now(A.s-type-global("Boolean").key(),
-    t-datatype("Boolean", empty, empty, empty))
+    t-data(empty, empty, empty))
   default-data-exprs.set-now(A.s-type-global("Nothing").key(),
-    t-datatype("Nothing", empty, empty, empty))
+    t-data(empty, empty, empty))
   default-data-exprs
 end
 
@@ -269,7 +283,7 @@ module-const-equality = t-module("pyret-builtin://equality",
     t-member("from-boolean", t-arrow([list: t-boolean], eq-EqualityResult))
   ]),
   SD.make-string-dict()
-    .set("EqualityResult", t-datatype("EqualityResult",
+    .set("EqualityResult", t-data(
       [list: ],
       [list:
         t-singleton-variant("Equal", [list: ]),
@@ -314,7 +328,7 @@ module-const-arrays = t-module("pyret-builtin://arrays",
       tv = t-var(tva),
       tv-arg = [list: tv]:
     SD.make-string-dict()
-      .set("Array", t-datatype("Array",
+      .set("Array", t-data(
         [list: t-var(tva)],
         [list: ],
         [list:
@@ -372,7 +386,7 @@ module-const-sets = t-module("pyret-builtin://sets",
       tv-to-tv = t-arrow([list: tv-set], tv-set),
       tv-arg = [list: tv]:
     SD.make-string-dict()
-      .set("Set", t-datatype("Set",
+      .set("Set", t-data(
         [list: t-var(tva)],
         [list: ],
         [list:
@@ -453,7 +467,7 @@ module-const-lists = t-module("pyret-builtin://lists",
       lotv = mk-list(tv),
       tv-arg = [list: tv]:
     SD.make-string-dict()
-      .set("List", t-datatype("List",
+      .set("List", t-data(
         [list:
           t-var(s-atom("A", 37))
         ],
@@ -521,7 +535,7 @@ module-const-option = t-module("pyret-builtin://option",
     t-member("is-some", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
-    .set("Option", t-datatype("Option",
+    .set("Option", t-data(
       [list:
         t-var(s-atom("A", 10))
       ],
@@ -630,7 +644,7 @@ module-const-error = t-module("pyret-builtin://error",
   ]),
   SD.make-string-dict()
     .set("RuntimeError",
-      t-datatype("RuntimeError",
+      t-data(
         [list: ],
         [list:
           t-variant("message-exception", [list: t-member("message", t-string)], empty),
@@ -660,7 +674,7 @@ module-const-error = t-module("pyret-builtin://error",
           t-member("_tostring", t-tostring),
           t-member("_match", t-top)
         ]))
-    .set("ParseError", t-datatype("ParseError",
+    .set("ParseError", t-data(
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: t-member("loc", t-top), t-member("next-token", t-string)], empty),
@@ -697,7 +711,7 @@ module-const-either = t-module("pyret-builtin://either",
     t-member("is-right", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
-    .set("Either", t-datatype("Either",
+    .set("Either", t-data(
       [list:
         t-var(s-atom("a", 10)),
         t-var(s-atom("b", 11))
@@ -757,7 +771,7 @@ module-const-s-exp = t-module("pyret-builtin://s-exp",
 module-const-s-exp-structs = t-module("pyret-builtin://s-exp-structs",
   t-record(s-exp-struct-mems),
   SD.make-string-dict()
-    .set("S-Exp", t-datatype("S-Exp",
+    .set("S-Exp", t-data(
       [list: ],
       [list:
         t-variant("s-list",

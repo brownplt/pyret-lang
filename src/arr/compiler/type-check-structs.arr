@@ -79,7 +79,21 @@ with:
     cases(Type) typ:
       | t-name(module-name, name) =>
         cases(Option<String>) module-name:
-          | some(mod) => raise("other modules not handled yet")
+          | some(mod) =>
+            cases(Option<ModuleType>) self.info.modules.get-now(mod):
+              | some(t-mod) =>
+                cases(Option<Type>) t-mod.types.get(name.toname()):
+                  | some(shadow typ) => some(typ)
+                  | none =>
+                    raise("No type " + torepr(typ) + " available on '" + torepr(t-mod) + "'")
+                end
+              | none =>
+                if mod == "builtin":
+                  self.info.data-exprs.get-now(name.toname())
+                else:
+                  raise("No module available with the name `" + mod + "'")
+                end
+            end
           | none =>
             id-key = name.key()
             find(lam(item):
@@ -94,49 +108,37 @@ with:
         raise("not finished")
     end
   end,
-  #get-data-type(self, typ):
-  #  shadow typ = resolve-alias(typ, self)
-  #  cases(Type) typ:
-  #    | t-name(module-name, name) =>
-  #      cases(Option<String>) module-name:
-  #        | some(mod) =>
-  #          raise("other modules not handled yet")
-  #        | none =>
-  #          key = typ.key()
-  #          cases(Option<Type>) self.get-data-type-var(key):
-  #            | some(shadow typ) => some(typ)
-  #            | none => raise("I haven't figured out what to put here")
-  #          end
-  #      end
-  #    | t-app(base-typ, args) =>
-  #      # TODO(MATT): error
-  #      cases(Option<Type>) self.get-data-type-var(base-typ.key()):
-  #        | none => none
-  #        | some(data-typ) =>
-  #          some(data-typ.introduce(args))
-  #      end
-  #    | else => raise("get-data-type doesn't handle " + tostring(typ) + " yet")
-  #  end
-  #end,
   add-term-var(self, var-name, typ :: Type):
     typing-context(link(term-var(var-name, typ), self.local-context), self.info)
   end,
   add-data-type(self, type-name, typ):
     typing-context(link(data-type-var(type-name, typ), self.local-context), self.info)
   end,
-  # TODO(MATT): this should raise an error when the existential has already been assigned?
-  assign-existential(self, existential, assigned-typ):
-    typing-context(link(existential-assign(existential, assigned-typ),
-      self.local-context.map(lam(item):
-        cases(ContextItem) item:
-          | term-var(variable, typ) =>
-            term-var(variable, typ.substitute(existential, assigned-typ))
-          | existential-assign(variable, typ) =>
-            existential-assign(variable, typ.substitute(existential, assigned-typ))
-          | data-type-var(variable, typ) =>
-            data-type-var(variable, typ.substitute(existential, assigned-typ))
+  assign-existential(self, existential :: Type, assigned-typ :: Type) -> FoldResult<Context>:
+    assign = lam():
+      fold-result(
+        typing-context(link(existential-assign(existential, assigned-typ),
+          self.local-context.map(lam(item):
+            cases(ContextItem) item:
+              | term-var(variable, typ) =>
+                term-var(variable, typ.substitute(existential, assigned-typ))
+              | existential-assign(variable, typ) =>
+                existential-assign(variable, typ.substitute(existential, assigned-typ))
+              | data-type-var(variable, typ) =>
+                data-type-var(variable, typ.substitute(existential, assigned-typ))
+            end
+          end)), self.info))
+    end
+    pred = lam(item): is-existential-assign(item) and (item.variable == existential) end
+    cases(Option<ContextItem>) self.local-context.find(pred):
+      | some(item) =>
+        if item.typ == assigned-typ:
+          assign()
+        else:
+          fold-errors(empty) # TODO(MATT): come up with an actual error
         end
-      end)), self.info)
+      | none => assign()
+    end
   end,
   apply(self, typ :: Type) -> Type:
     self.local-context.foldl(lam(item, curr-typ):
@@ -159,7 +161,7 @@ end
 data TCInfo:
   | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
             aliases    :: SD.MutableStringDict<TS.Type>,
-            data-exprs :: SD.MutableStringDict<TS.DataType>,
+            data-exprs :: SD.MutableStringDict<TS.Type>,
             branders   :: SD.MutableStringDict<TS.Type>,
             modules    :: SD.MutableStringDict<TS.ModuleType>,
             mod-names  :: SD.MutableStringDict<String>,
@@ -208,56 +210,6 @@ end
 
 fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
   add-binding(tv.id, tv.upper-bound, info)
-end
-
-fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
-  cases(Type) typ:
-    | t-name(module-name, name) =>
-      cases(Option<String>) module-name:
-        | some(mod) =>
-          cases(Option<ModuleType>) info.modules.get-now(mod):
-            | some(t-mod) =>
-              cases(Option<DataType>) t-mod.types.get(name.toname()):
-                | some(shadow typ) => some(typ)
-                | none =>
-                  cases(Option<Type>) t-mod.aliases.get(name.toname()):
-                    | some(shadow typ) => get-data-type(typ, info)
-                    | none =>
-                      raise("No type " + torepr(typ) + " available on `" + torepr(t-mod) + "'")
-                  end
-              end
-            | none =>
-              if mod == "builtin":
-                info.data-exprs.get-now(name.toname())
-              else:
-                raise("No module available with the name `" + mod + "'")
-              end
-          end
-        | none =>
-          key = typ.key()
-          cases(Option<DataType>) info.data-exprs.get-now(key):
-            | some(shadow typ) => some(typ)
-            | none =>
-              cases(Option<Type>) info.aliases.get-now(name.tosourcestring()):
-                | some(shadow typ) => get-data-type(typ, info)
-                | none =>
-                  raise("No type " + torepr(typ) + " available in this module")
-              end
-          end
-      end
-    | t-app(base-typ, args) =>
-      cases(Option<DataType>) get-data-type(base-typ, info):
-        | some(new-base-typ) =>
-          data-type = new-base-typ.introduce(args)
-          cases(Option<DataType>) data-type:
-            | some(dt) => data-type
-            | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
-          end
-        | none => none
-      end
-    | else =>
-      none
-  end
 end
 
 fun bind(f, a): a.bind(f);
@@ -480,7 +432,16 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
           else:
             cases(Option) context.info.modules.get-value-now(mod).aliases.get(a-id.toname()):
               | none => t
-              | some(aliased) => resolve-alias(aliased, context)
+              | some(aliased) =>
+                cases(Type) aliased:
+                  | t-name(aliased-mod, aliased-id) =>
+                    if (aliased-mod == a-mod) and (aliased-id == a-id):
+                      aliased
+                    else:
+                      resolve-alias(aliased, context)
+                    end
+                  | else => aliased
+                end
             end
           end
       end

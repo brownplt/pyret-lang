@@ -238,7 +238,7 @@ data DataType:
 end
 
 data ModuleType:
-  | t-module(name :: String, provides :: Type, types :: SD.StringDict<DataType>, aliases :: SD.StringDict<Type>)
+  | t-module(name :: String, provides :: Type, types :: SD.StringDict<Type>, aliases :: SD.StringDict<Type>)
 sharing:
   _output(self):
     VS.vs-constr("t-module",
