@@ -1288,7 +1288,25 @@ fun check-app(app-loc :: Loc, args :: List<A.Expr>, arrow-typ :: Type, expect-ty
 end
 
 fun check-fun(fun-loc :: A.Loc, body :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-loc :: A.Loc, expect-typ :: Type, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), context :: Context) -> CheckingResult:
-  lam-bindings = collect-bindings(args, context)
+  tmp-lam-bindings = collect-bindings(args, context)
+  lam-bindings = for bind(tmp-bindings from tmp-lam-bindings):
+    if is-empty(params):
+      fold-result(tmp-bindings)
+    else:
+      type-keys = tmp-bindings.types.keys()
+      new-types = params.foldr(lam(param, types):
+        type-keys.fold(lam(_types, key):
+          _types.set(key, _types.get-value(key).substitute(t-var(param), new-existential()))
+        end, types)
+      end, tmp-bindings.types)
+      fold-result({types: new-types,
+                  add-types(self, ctxt):
+                    self.types.keys().fold(lam(fold-ctxt, id):
+                      fold-ctxt.add-term-var(id, self.types.get-value(id))
+                    end, ctxt)
+                  end})
+    end
+  end
 
   cases(Type) expect-typ:
     | t-arrow(expect-args, ret-typ) =>
