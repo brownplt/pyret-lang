@@ -250,7 +250,7 @@ data SynthesisResult:
       raise("Cannot map expr on synthesis-binding-result!")
     end,
     map-typ(self, f) -> SynthesisResult:
-      synthesis-binding-result(self.let-bind, f(self.typ))
+      synthesis-binding-result(self.let-bind, f(self.typ), self.out-context)
     end,
     check-bind(self, f) -> CheckingResult:
       f(self.let-bind, self.typ, self.out-context)
@@ -419,18 +419,18 @@ end
 
 fun resolve-alias(t :: Type, context :: Context) -> Type:
   cases(Type) t:
-    | t-name(a-mod, a-id, _) =>
+    | t-name(a-mod, a-id, l) =>
       cases(Option) a-mod:
         | none =>
           cases(Option) context.info.aliases.get-now(a-id.key()):
             | none => t
-            | some(aliased) => resolve-alias(aliased, context)
+            | some(aliased) => resolve-alias(aliased, context).set-loc(l)
           end
         | some(mod) =>
           if mod == "builtin":
             cases(Option) context.info.aliases.get-now(a-id.key()):
               | none => t
-              | some(aliased) => aliased
+              | some(aliased) => aliased.set-loc(l)
             end
           else:
             cases(Option) context.info.modules.get-value-now(mod).aliases.get(a-id.toname()):
@@ -439,11 +439,11 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
                 cases(Type) aliased:
                   | t-name(aliased-mod, aliased-id, _) =>
                     if (aliased-mod == a-mod) and (aliased-id == a-id):
-                      aliased
+                      aliased.set-loc(l)
                     else:
-                      resolve-alias(aliased, context)
+                      resolve-alias(aliased, context).set-loc(l)
                     end
-                  | else => aliased
+                  | else => aliased.set-loc(l)
                 end
             end
           end

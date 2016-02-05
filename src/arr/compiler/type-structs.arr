@@ -296,12 +296,8 @@ data Type:
     end
 sharing:
   _output(self):
-    cases(Type) self:
-      | t-name(module-name, id, _) =>
-        cases(Option<String>) module-name:
-          | none    => VS.vs-value(id.toname())
-          | some(m) => VS.vs-value(id.toname())
-        end
+    temp = cases(Type) self:
+      | t-name(module-name, id, _) => VS.vs-value(id.toname())
       | t-var(id, _) => VS.vs-str(id.toname())
       | t-arrow(args, ret, _) =>
         VS.vs-seq([list: VS.vs-str("(")]
@@ -328,6 +324,7 @@ sharing:
             + interleave(variants.map(VS.vs-value), VS.vs-str(" + "))
             + [list: VS.vs-str(")")])
     end
+    VS.vs-seq([list: temp, VS.vs-str(":"), VS.vs-value(self.l)])
   end,
   key(self) -> String:
     cases(Type) self:
