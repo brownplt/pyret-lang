@@ -35,8 +35,15 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
         envP.resolve(rt.getField(cs, "standard-builtins"));
       });
       aRepl = envP.promise.then(function(env) {
-        done();
-        return repl.create(rt, rt.namespace, env, { name: "repl-test" + replCount++});
+        var deferred = Q.defer();
+        rt.runThunk(function() {
+          return repl.create(rt, rt.namespace, env, { name: "repl-test" + replCount++}); 
+        },
+        function(ans) { 
+          done();
+          deferred.resolve(ans.result);
+        });
+        return deferred.promise;
       });
       aRepl.fail(function(err) {
         console.error("Failed to create repl: ", err);
