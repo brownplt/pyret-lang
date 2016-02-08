@@ -1,5 +1,5 @@
 var r = require("requirejs")
-define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], function(rtLib, e, ffiLib) {
+define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 
   var _ = require('jasmine-node');
   var rt = rtLib.makeRuntime({ stdout: function(str) { process.stdout.write(str); } });
@@ -7,7 +7,6 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
   var same;
   var err;
   var tests;
-  var ffi;
 
   function performTest() {
 
@@ -16,23 +15,22 @@ define(["js/runtime-anf", "./eval-matchers", "../../src/js/base/ffi-helpers"], f
       same = P.checkEvalsTo;
       err = P.checkError;
       test = P.checkEvalTests;
-      ffi = ffiLib(rt, rt.namespace);
 
       checkPassed = function(results) {
-        var summary = ffi.checkResultsSummary(results);
+        var summary = rt.ffi.checkResultsSummary(results);
         return summary.passed === rt.makeNumber(1)
           && summary.total === rt.makeNumber(1);
       };
 
       checkFailed = function(results) {
-        var summary = ffi.checkResultsSummary(results);
+        var summary = rt.ffi.checkResultsSummary(results);
         return summary.failed === rt.makeNumber(1)
           && summary.total === rt.makeNumber(1);
       };
 
       checkMessage = function(message) {
         return function(results) {
-          var summary = ffi.checkResultsSummary(results);
+          var summary = rt.ffi.checkResultsSummary(results);
           return summary.message.indexOf(message) > -1;
         };
       };
