@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, t, Namespace, ffi, valueskeleton) {
+define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"], function(util, t, Namespace, valueskeleton) {
   var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
   var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
   return util.definePyretModule(
@@ -88,7 +88,6 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
       }
     },
     function(runtime, namespace /* no pyret dependencies */) {
-    return runtime.loadJSModules(namespace, [ffi], function(F) {
     return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 
       var O = runtime.makeObject;
@@ -732,5 +731,4 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers", "tr
 
     });
     });
-  });
 });

@@ -2,14 +2,13 @@ define([
     "q",
     "js/secure-loader",
     "js/runtime-anf",
-    "js/ffi-helpers",
     "compiler/compile-structs.arr",
     "compiler/compile.arr",
     "compiler/repl-support.arr",
     "trove/parse-pyret",
     "trove/checker",
     "js/runtime-util"],
-function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, checkerLib, util) {
+function(q, loader, rtLib, csLib, compLib, replLib, parseLib, checkerLib, util) {
   if(util.isBrowser()) {
     var r = requirejs;
   }
@@ -31,7 +30,6 @@ function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, che
     function s(str) { return runtime.makeString(str); }
     function gf(obj, fld) { return runtime.getField(obj, fld); }
 
-    return runtime.loadJSModules(runtime.namespace, [ffiHelpersLib], function(ffi) {
       return runtime.loadModules(runtime.namespace, [csLib, compLib], function(cs, comp) {
         var name = options.name || randomName();
         var compileEnv = options.compileEnv || gf(cs, "standard-builtins");
@@ -62,7 +60,7 @@ function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, che
                 else if (runtime.unwrap(gf(cs, "is-err").app(compiled)) === true) {
                   // NOTE(joe): reverse added to get compile errors in the right order
                   // for the UI reporting
-                  throw ffi.toArray(gf(compiled, "problems")).reverse();
+                  throw runtime.ffi.toArray(gf(compiled, "problems")).reverse();
                 }
                 else {
                   throw new Error("Unknown result type while compiling: ", compiled);
@@ -71,7 +69,6 @@ function(q, loader, rtLib, ffiHelpersLib, csLib, compLib, replLib, parseLib, che
 
           },
           "compiling JS ast");
-      });
     });
   }
 

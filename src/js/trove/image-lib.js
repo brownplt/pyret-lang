@@ -1,10 +1,8 @@
 define([
     "trove/image-structs",
-    "js/ffi-helpers",
     "js/js-numbers"
   ], function(
       imageLib,
-      ffiLib,
       jsnums
     ) {
   // Basic implementation of the image library.
@@ -13,7 +11,7 @@ define([
 
   return function(runtime, namespace) {
     var gf = runtime.getField;
-    return runtime.loadJSModules(namespace, [ffiLib], function(ffi) {
+    var ffi = runtime.ffi;
       return runtime.loadModulesNew(namespace, [imageLib], function(imageImp) {
         var image = gf(imageImp, "values");
         var color = gf(image, "color");
@@ -1626,6 +1624,5 @@ define([
           colorAlpha: colorAlpha
         }
       });
-    });
   };
 });
