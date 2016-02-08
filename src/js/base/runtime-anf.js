@@ -3437,7 +3437,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     };
 
     var raw_array_maker = makeObject({
-      make: makeFunction(raw_array_constructor),
+      make:  makeFunction(raw_array_constructor),
       make0: makeFunction(function() { return []; }),
       make1: makeFunction(function(a) { return [a]; }),
       make2: makeFunction(function(a, b) { return [a, b]; }),
@@ -4586,7 +4586,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'nothing': nothing,
 
         'makeSrcloc': makeSrcloc,
-        '_link': function(f, r) { return getField(list, "link").app(f, r); },
+        //'_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
@@ -4655,8 +4655,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
     var ns = thisRuntime.namespace;
-    var nsWithList = ns.set("_link", getField(list, "link"))
-                       .set("_empty", getField(list, "empty"));
+    var nsWithList = ns;//.set("_link", getField(list, "link"))
+                       //.set("_empty", getField(list, "empty"));
     thisRuntime.namespace = nsWithList;
 
     var checkList = makeCheckType(ffi.isList, "List");
