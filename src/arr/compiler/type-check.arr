@@ -895,7 +895,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       fold-result(some(t-top(A.dummy-loc)))
     | a-name(l, id) =>
       cases(Option<Type>) context.info.aliases.get-now(id.key()):
-        | some(typ) => fold-result(some(typ))
+        | some(typ) => fold-result(some(typ.set-loc(l)))
         | none => fold-result(some(t-name(none, id, l)))
       end
     | a-type-var(l, id) =>
