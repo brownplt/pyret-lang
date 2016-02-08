@@ -296,7 +296,7 @@ data Type:
     end
 sharing:
   _output(self):
-    temp = cases(Type) self:
+    cases(Type) self:
       | t-name(module-name, id, _) => VS.vs-value(id.toname())
       | t-var(id, _) => VS.vs-str(id.toname())
       | t-arrow(args, ret, _) =>
@@ -324,7 +324,6 @@ sharing:
             + interleave(variants.map(VS.vs-value), VS.vs-str(" + "))
             + [list: VS.vs-str(")")])
     end
-    VS.vs-seq([list: temp, VS.vs-str(":"), VS.vs-value(self.l)])
   end,
   key(self) -> String:
     cases(Type) self:
