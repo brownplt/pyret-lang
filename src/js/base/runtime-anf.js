@@ -323,12 +323,7 @@ function isBase(obj) { return obj instanceof PBase; }
 
   var ReprMethods = {};
   ReprMethods["_torepr"] = Object.create(DefaultReprMethods);
-  ReprMethods["_torepr"]["string"] = function(str, fromCPO) {
-    if (fromCPO && str[0] === '\u2019') {
-      //console.log('symbol found! ' + str)
-      return replaceUnprintableStringChars(str)
-    }
-    //console.log('reg string found ' + str)
+  ReprMethods["_torepr"]["string"] = function(str) {
     return '"' + replaceUnprintableStringChars(String(str)) + '"';
   };
 
