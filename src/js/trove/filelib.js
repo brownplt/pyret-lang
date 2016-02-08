@@ -1,13 +1,10 @@
 define(["js/runtime-util", "fs", "js/ffi-helpers"], function(util, fs, ffiLib) {
-  console.log("filelib's ffi: ", ffiLib);
   return util.definePyretModule("filelib",
     [],
     [],
     {},
     function(RUNTIME, NAMESPACE) {
-      console.log("filelib starting");
       return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
-      console.log("ffi loaded");
 
       function InputFile(name) {
         this.name = name;

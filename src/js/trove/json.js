@@ -7,8 +7,6 @@ define(["js/runtime-util"], function(util) {
     ],
     {},
     function(RUNTIME, NAMESPACE, sdict, jstruct) {
-      console.error("sdict: ", sdict);
-      console.error("jstruct: ", jstruct);
       var gf = RUNTIME.getField;
       var vals = gf(jstruct, "values");
       var typs = gf(jstruct, "types");

@@ -3956,7 +3956,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
-            console.error("Going to load: ", d);
+            //console.error("Going to load: ", d);
             if(d.protocol === "legacy-path") {
               return { dname: d.args[0], modinfo: require(d.args[0]) };
             }
@@ -3970,7 +3970,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           var tocomp = {mod: curMod, name: curName, path: curPath};
           return depMods.reduce(function(acc, elt) {
-            console.error("elt to reduce on: ", elt);
+            //console.error("elt to reduce on: ", elt);
             return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
           }, [tocomp])
         }
@@ -4009,7 +4009,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var originalOrderRawModules = modules.map(function(m) {
         var mod = finalModMap[getName(m)];
         if(typeof mod === "undefined") {
-          console.error("FinalModMap: ", finalModMap);
+          //console.error("FinalModMap: ", finalModMap);
           throw Error("Unable to find module: " + getName(m));
         }
         return mod;
@@ -4037,11 +4037,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 return innerModule(thisRuntime, namespace);
               }
               else {
-                console.error("About to loadBuiltin modules: ", module.name, module.dependencies);
+                //console.error("About to loadBuiltin modules: ", module.name, module.dependencies);
                 return loadBuiltinModules(module.dependencies, module.name,
                   function() {
                     var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
-                    console.error(String(innerModule).substring(0, 200));
+                    //console.error(String(innerModule).substring(0, 200));
                     return innerModule(thisRuntime, namespace);
                   });
 
@@ -4085,7 +4085,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var ms = new Array(arguments.length);
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
-          console.error("The module is: ", m);
+          //console.error("The module is: ", m);
           if (typeof m === 'undefined') {
             console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
             throw new Error("Undefined module")
