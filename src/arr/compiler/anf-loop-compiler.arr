@@ -978,7 +978,7 @@ compiler-visitor = {
         c-block(
           j-block(
             [clist:
-              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname())])),
+              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname()), self.get-loc(l2)])),
               j-var(js-id-of(name), rt-method("makeBranderAnn", [clist: j-id(brander-id), j-str(name.toname())]))
             ] +
             visited-body.block.stmts),
@@ -1274,11 +1274,10 @@ compiler-visitor = {
     fun compile-variant(v :: N.AVariant):
       vname = v.name
       variant-base-id = js-id-of(compiler-name(vname + "-base"))
-      variant-brand = brand-name(vname)
+      variant-brand = rt-method("namedBrander", [clist: j-str(vname), self.get-loc(v.l)])
+      variant-brand-id = js-id-of(compiler-name(vname + "-brander"))
       variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
-      variant-brands = j-obj([clist: 
-          j-field(variant-brand, j-true)
-        ])
+      variant-brands = j-obj(cl-empty)
       visit-with-fields = v.with-members.map(_.visit(self))
 
       refl-base-fields =
@@ -1339,18 +1338,23 @@ compiler-visitor = {
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
-        [clist: 
-          j-var(refl-fields-id, refl-fields),
-          j-var(refl-ref-fields-id, refl-ref-fields),
-          j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
-          j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
-          j-var(variant-brand-obj-id, variant-brands),
-          j-expr(j-bracket-assign(
-              j-id(variant-brand-obj-id),
-              j-dot(external-brand, "_brand"),
-              j-true))
-        ])
-      predicate = make-brand-predicate(v.l, j-str(variant-brand), A.make-checker-name(vname))
+          [clist: 
+            j-var(refl-fields-id, refl-fields),
+            j-var(refl-ref-fields-id, refl-ref-fields),
+            j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
+            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
+            j-var(variant-brand-id, variant-brand),
+            j-var(variant-brand-obj-id, variant-brands),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(external-brand, "_brand"),
+                j-true)),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(j-id(variant-brand-id), "_brand"),
+                j-true))
+          ])
+      predicate = j-field(A.make-checker-name(vname), get-field(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -1381,7 +1385,7 @@ compiler-visitor = {
       acc + [clist: piece.predicate, piece.constructor]
     end
 
-    data-predicate = make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+    data-predicate = j-field(name, get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj([clist: data-predicate] + obj-fields)])
 

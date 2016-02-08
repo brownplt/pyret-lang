@@ -639,6 +639,7 @@ runtime-builtins = [string-dict:
   "string-from-code-point", T.t-top,
   "string-to-code-points", T.t-top,
   "string-from-code-points", T.t-top,
+  "time-now", t-number-unop,
   "num-random", t-number-unop,
   "num-random-seed", T.t-arrow([list: T.t-number], T.t-nothing),
   "num-max", t-number-binop,
@@ -762,8 +763,7 @@ standard-imports = extra-imports(
           "fold",
           "fold2",
           "fold3",
-          "fold4",
-          "index"
+          "fold4"
         ],
         [list: "List"]),
       extra-import(builtin("option"), "option", [list: 

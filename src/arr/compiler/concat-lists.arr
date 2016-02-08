@@ -160,7 +160,14 @@ clist = {
       for raw-array-fold(clst from concat-empty, elt from arr, _ from 0):
         concat-snoc(clst, elt)
       end
-    end
+    end,
+  make0: lam(): concat-empty end,
+  make1: concat-singleton,
+  make2: lam(a, b): concat-cons(a, concat-singleton(b)) end,
+  make3: lam(a, b, c): concat-cons(a, concat-cons(b, concat-singleton(c))) end,
+  make4: lam(a, b, c, d): concat-cons(a, concat-cons(b, concat-cons(c, concat-singleton(d)))) end,
+  make5:
+    lam(a, b, c, d, e): concat-cons(a, concat-cons(b, concat-cons(c, concat-cons(d, concat-singleton(e))))) end,
 }
 
 fun map_list_n<a, b>(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> ConcatList<b>:
@@ -190,5 +197,5 @@ fun map_list2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> Concat
 end
 
 check:
-  [clist: 1, 2, 3] is concat-snoc(concat-snoc(concat-snoc(concat-empty, 1), 2), 3)
+  [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
 end

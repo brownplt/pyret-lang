@@ -23,7 +23,7 @@ provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 block: stmt*
 
 stmt: type-expr | newtype-expr
-    | let-expr | fun-expr | data-expr | datatype-expr | when-expr
+    | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
     | contract-stmt
 
@@ -79,11 +79,6 @@ data-sharing: [SHARING fields]
 
 # mixins: list-mixin* binop-expr
 # list-mixin: binop-expr COMMA
-
-datatype-expr: DATATYPE NAME ty-params COLON [first-datatype-variant] datatype-variant* where-clause end
-first-datatype-variant: variant-constructor constructor-clause | NAME constructor-clause
-datatype-variant: BAR variant-constructor constructor-clause | BAR NAME constructor-clause
-constructor-clause: WITHCONSTRUCTOR (PARENSPACE|PARENNOSPACE) NAME RPAREN COLON block end
 
 var-expr: VAR toplevel-binding EQUALS binop-expr
 rec-expr: REC toplevel-binding EQUALS binop-expr

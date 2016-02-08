@@ -29,3 +29,4 @@ import "./tests/test-compile-lib.arr" as _
 import "./tests/test-include.arr" as _
 import "./tests/test-examples.arr" as _
 import "./tests/test-string-dict.arr" as _
+import "./tests/test-dup-names.arr" as _

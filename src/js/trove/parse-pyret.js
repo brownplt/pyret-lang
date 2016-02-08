@@ -51,6 +51,8 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
         // if a todo item is a Pyret value, it just gets pushed across to done
         // if a todo item is an array, then doing = RUNTIME.makeList and it creates a stack frame
         function tr(node) {
+          if (translators[node.name] === undefined)
+            throw "Cannot find " + node.name + " in translators";
           return translators[node.name](node);
         }
         var pos = function(p) { return makePyretPos(fileName, p); };
@@ -236,30 +238,6 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
                 .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
             }
           },
-          'datatype-variant': function(node) {
-            if (node.kids[1].value !== undefined) {
-              // (datatype-variant PIPE NAME constructor)
-              return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-                .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
-            } else {
-              // (datatype-variant PIPE variant-constructor constructor)
-              var constr = tr(node.kids[1])
-              return RUNTIME.getField(ast, 's-datatype-variant')
-                .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
-            }
-          },
-          'first-datatype-variant': function(node) {
-            if (node.kids[0].value !== undefined) {
-              // (datatype-variant NAME constructor)
-              return RUNTIME.getField(ast, 's-datatype-singleton-variant')
-                .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
-            } else {
-              // (datatype-variant variant-constructor constructor)
-              var constr = tr(node.kids[0])
-              return RUNTIME.getField(ast, 's-datatype-variant')
-                .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
-            }
-          },
           'data-sharing': function(node) {
             if (node.kids.length === 2) {
               // (data-sharing SHARING fields)
@@ -268,11 +246,6 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               // (data-sharing)
               return makeList([]);
             }
-          },
-          'constructor-clause': function(node) {
-            // (constructor-clause WITHCONSTRUCTOR LPAREN NAME RPAREN COLON block END)
-            return RUNTIME.getField(ast, 's-datatype-constructor')
-              .app(pos(node.pos), symbol(node.kids[2]), tr(node.kids[5]));
           },
           'type-expr': function(node) {
             return RUNTIME.getField(ast, 's-type')
@@ -338,7 +311,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             // to create the default let-expr constructions
             return RUNTIME.getField(ast, 's-letrec')
               .app(pos(node.pos), 
-                   makeList(node.kids, 1, node.kids.length - 3, empty, translators["letrec-binding"]), 
+                   makeListTr(node.kids, 1, node.kids.length - 3, empty, translators["letrec-binding"]), 
                    tr(node.kids[node.kids.length - 2]));
           },
           'let-binding': function(node) {
@@ -399,13 +372,6 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
                    makeListTr(node.kids, 4, node.kids.length - 3),
                    tr(node.kids[node.kids.length - 3]),
-                   tr(node.kids[node.kids.length - 2]));
-          },
-          'datatype-expr': function(node) {
-            // (datatype-expr DATATYPE NAME params COLON variant ... check END)
-            return RUNTIME.getField(ast, 's-datatype')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]),
-                   makeListTr(node.kids, 4, node.kids.length - 2),
                    tr(node.kids[node.kids.length - 2]));
           },
           'assign-expr': function(node) {

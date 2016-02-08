@@ -175,11 +175,11 @@ dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-strin
 fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
-  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<ToCompile>):
+  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>):
     cases(Option) temp-marked.get-now(locator.uri()):
       | some(mark) =>
         when mark:
-          raise("Detected module cycle: " + curr-path.reverse().map(_.locator).map(_.uri()).join_str(" => "))
+          raise("Detected module cycle: " + curr-path.reverse().map(_.uri()).join-str(" => "))
         end
       | none =>
         # mark current locator temporarily

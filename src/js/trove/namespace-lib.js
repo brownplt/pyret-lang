@@ -12,7 +12,7 @@ return util.definePyretModule("namespace-lib",
       return get(brand, "brand").app(val);
     }
 
-    var brandNamespace = runtime.namedBrander("namespace");
+    var brandNamespace = runtime.namedBrander("namespace", ["namespace-lib: namespace brander"]);
     var annNamespace = runtime.makeBranderAnn(brandNamespace, "Namespace");
     var checkNamespace = runtime.makePrimitiveAnn(annNamespace);
 //      var checkModuleResult = function(v) { return runtime._checkAnn(["namespace"], runtime.getField(load, "types").ModuleResult, v); };

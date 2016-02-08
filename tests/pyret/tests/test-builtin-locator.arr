@@ -8,7 +8,7 @@ import runtime-lib as R
 
 check:
   sd = B.make-builtin-locator("string-dict")
-  sd.get-dependencies() is [list:]
+  sd.get-dependencies() is [list: CM.builtin("valueskeleton")]
   sd.get-compiled() satisfies is-some
   sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
   sd.get-compiled().value.provides.values.keys() is [tree-set:
@@ -75,19 +75,21 @@ check:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is 3
-  wlist.get(2).locator is floc
-  wlist.get(1).locator.uri() is "protocol://bar"
-  wlist.get(1).locator is string-to-locator("bar")
-  wlist.get(0).locator.uri() is "pyret-builtin://string-dict"
-  wlist.get(0).locator.name() is "string-dict"
+  wlist.length() is 4
+  wlist.get(0).locator.uri() is "pyret-builtin://valueskeleton"
+  wlist.get(0).locator.name() is "valueskeleton"
+  wlist.get(1).locator.uri() is "pyret-builtin://string-dict"
+  wlist.get(1).locator.name() is "string-dict"
+  wlist.get(2).locator.uri() is "protocol://bar"
+  wlist.get(2).locator is string-to-locator("bar")
+  wlist.get(3).locator is floc
 
   ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies L.is-success-result
 
   bazloc = string-to-locator("baz")
   wlist2 = CL.compile-worklist(dfind, bazloc, {})
-  wlist2.length() is 3
+  wlist2.length() is 4
   ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans2.v satisfies L.is-success-result
 end

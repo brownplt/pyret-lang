@@ -772,18 +772,24 @@ end
 fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
-    ix = random(lst.length())
-    elt = lst.get(ix)
-    link(elt, shuffle(remove(lst, elt)))
+    elts = for fold_n(i from 1, arr from raw-array-of(lst.first, lst.length()), e from lst.rest):
+      ix = random(i)
+      raw-array-set(arr, i, raw-array-get(arr, ix))
+      raw-array-set(arr, ix, e)
+      arr
+    end
+    raw-array-to-list(elts)
   end
 end
 
-index = get
-get-help = get
-set-help = set
+index = nothing
 
 list = {
-  make: lam(arr):
-    raw-array-to-list(arr)
-  end
+  make: raw-array-to-list,
+  make0: lam(): empty end,
+  make1: lam(a): link(a, empty) end,
+  make2: lam(a, b): link(a, link(b, empty)) end,
+  make3: lam(a, b, c): link(a, link(b, link(c, empty))) end,
+  make4: lam(a, b, c, d): link(a, link(b, link(c, link(d, empty)))) end,
+  make5: lam(a, b, c, d, e): link(a, link(b, link(c, link(d, link(e, empty))))) end,
 }
