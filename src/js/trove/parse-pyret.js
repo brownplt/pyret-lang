@@ -396,7 +396,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'data-expr': function(node) {
             // (data-expr DATA NAME params COLON variant ... sharing-part check END)
             return RUNTIME.getField(ast, 's-data')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
                    makeListTr(node.kids, 4, node.kids.length - 3),
                    tr(node.kids[node.kids.length - 3]),
                    tr(node.kids[node.kids.length - 2]));
