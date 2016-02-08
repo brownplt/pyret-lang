@@ -66,8 +66,8 @@ check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RP
           | binop-expr
 
 
-data-expr: DATA NAME ty-params data-mixins COLON [first-data-variant] data-variant* data-sharing where-clause end
-data-mixins: [DERIVING mixins]
+data-expr: DATA NAME ty-params COLON [first-data-variant] data-variant* data-sharing where-clause end
+# data-mixins: [DERIVING mixins]
 variant-constructor: NAME variant-members
 first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
@@ -77,8 +77,8 @@ variant-member: [REF] binding
 data-with: [WITH fields]
 data-sharing: [SHARING fields]
 
-mixins: list-mixin* binop-expr
-list-mixin: binop-expr COMMA
+# mixins: list-mixin* binop-expr
+# list-mixin: binop-expr COMMA
 
 datatype-expr: DATATYPE NAME ty-params COLON [first-datatype-variant] datatype-variant* where-clause end
 first-datatype-variant: variant-constructor constructor-clause | NAME constructor-clause
@@ -137,11 +137,13 @@ lambda-expr: LAM fun-header COLON doc-string block where-clause end
 
 method-expr: METHOD fun-header COLON doc-string block where-clause end
 
+binop-expr-commas: binop-expr COMMA
+
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
-app-args: PARENNOSPACE [app-arg-elt* binop-expr] RPAREN
-app-arg-elt: binop-expr COMMA
+app-args: PARENNOSPACE [binop-expr-commas* binop-expr] RPAREN
+# app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
 inst-expr: expr LANGLE inst-elt* ann RANGLE
@@ -160,9 +162,9 @@ field: key COLON binop-expr
      | key fun-header COLON doc-string block where-clause end
 key: NAME
 
-construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
+construct-expr: LBRACK construct-modifier binop-expr COLON [binop-expr-commas* binop-expr] RBRACK
 construct-modifier: | LAZY
-list-elt: binop-expr COMMA
+# list-elt: binop-expr COMMA
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK

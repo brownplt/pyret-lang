@@ -5,8 +5,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
     return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS) {
 
       var gf = runtime.getField;
-
-      var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
+      var link = gf(L, "link");
+      var lnk = function(first, rest) { return link.app(first, rest); };
       var mt = gf(L, "empty");
       function makeList(arr) {
         if (!arr || typeof arr.length !== "number") {

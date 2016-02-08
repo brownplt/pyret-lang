@@ -3,13 +3,18 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
     [],
     [
       util.modBuiltin("srcloc"),
-      util.modBuiltin("ast")
+      util.modBuiltin("ast"),
+      util.modBuiltin("lists")
     ],
     {},
-    function(RUNTIME, NAMESPACE, srclocLib, astLib) {
+    function(RUNTIME, NAMESPACE, srclocLib, astLib, listsLib) {
       var F = ffi(RUNTIME, NAMESPACE);
       var srcloc = RUNTIME.getField(srclocLib, "values");
       var ast = RUNTIME.getField(astLib, "values");
+      var lists = RUNTIME.getField(listsLib, "values");
+
+      var link = RUNTIME.getField(lists, "link");
+      var empty = RUNTIME.getField(lists, "empty");
 
       //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
       function makePyretPos(fileName, p) {
@@ -50,7 +55,23 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
         }
         var pos = function(p) { return makePyretPos(fileName, p); };
         var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
-        var makeList = F.makeList;
+        function makeListTr(arr, start, end, onto, f) {
+          var ret = onto || empty;
+          start = start || 0;
+          end = end || arr.length;
+          f = f || tr;
+          for (var i = end - 1; i >= start; i--)
+            ret = link.app(f(arr[i]), ret);
+          return ret;
+        }
+        function makeList(arr, start, end, onto) {
+          var ret = onto || empty;
+          start = start || 0;
+          end = end || arr.length;
+          for (var i = end - 1; i >= start; i--)
+            ret = link.app(arr[i], ret);
+          return ret;
+        }
         function name(tok) {
           if (tok.value === "_")
             return RUNTIME.getField(ast, 's-underscore').app(pos(tok.pos));
@@ -91,7 +112,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             return {
               provide : provide,
               provideTypes : provideTypes,
-              imports : makeList(kids.map(tr))
+              imports : makeListTr(kids)
             };
           },
           'provide-stmt': function(node) {
@@ -168,7 +189,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'block': function(node) {
             // (block stmts ...)
             return RUNTIME.getField(ast, 's-block')
-              .app(pos(node.pos), makeList(node.kids.map(tr)));
+              .app(pos(node.pos), makeListTr(node.kids));
           },
           'stmt': function(node) {
             // (stmt s)
@@ -299,7 +320,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'type-let-expr': function(node) {
             return RUNTIME.getField(ast, 's-type-let-expr')
               .app(pos(node.pos),
-                   makeList(node.kids.slice(1, -3).map(tr)),
+                   makeListTr(node.kids, 1, node.kids.length - 3),
                    tr(node.kids[node.kids.length - 2]));
           },
           'multi-let-expr': function(node) {
@@ -308,7 +329,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             // to create the default let-expr or var-expr constructions
             return RUNTIME.getField(ast, 's-let-expr')
               .app(pos(node.pos), 
-                   makeList(node.kids.slice(1, -3).map(translators["let-binding"])),
+                   makeListTr(node.kids, 1, node.kids.length - 3, empty, translators["let-binding"]),
                    tr(node.kids[node.kids.length - 2]));
           },
           'letrec-expr': function(node) {
@@ -317,7 +338,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             // to create the default let-expr constructions
             return RUNTIME.getField(ast, 's-letrec')
               .app(pos(node.pos), 
-                   makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])), 
+                   makeList(node.kids, 1, node.kids.length - 3, empty, translators["letrec-binding"]), 
                    tr(node.kids[node.kids.length - 2]));
           },
           'let-binding': function(node) {
@@ -373,10 +394,10 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
                    tr(node.kids[6]));
           },
           'data-expr': function(node) {
-            // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
+            // (data-expr DATA NAME params COLON variant ... sharing-part check END)
             return RUNTIME.getField(ast, 's-data')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                   makeList(node.kids.slice(5, -3).map(tr)), 
+                   makeListTr(node.kids, 4, node.kids.length - 3),
                    tr(node.kids[node.kids.length - 3]),
                    tr(node.kids[node.kids.length - 2]));
           },
@@ -384,7 +405,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             // (datatype-expr DATATYPE NAME params COLON variant ... check END)
             return RUNTIME.getField(ast, 's-datatype')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]),
-                   makeList(node.kids.slice(4, -2).map(tr)),
+                   makeListTr(node.kids, 4, node.kids.length - 2),
                    tr(node.kids[node.kids.length - 2]));
           },
           'assign-expr': function(node) {
@@ -559,7 +580,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               return makeList([]);
             } else {
               // (args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
-              return makeList(node.kids.slice(1, -1).map(tr));
+              return makeListTr(node.kids, 1, node.kids.length - 1);
             }
           },
           'list-arg-elt': function(node) {
@@ -582,7 +603,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               return makeList([]);
             } else {
               // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
-              return makeList(node.kids.slice(1, -1).map(tr));
+              return makeListTr(node.kids, 1, node.kids.length - 1);
             }          
           },
           'list-variant-member': function(node) {
@@ -622,10 +643,10 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'obj-fields': function(node) {
             if (node.kids[node.kids.length - 1].name !== "obj-field") {
               // (obj-fields (list-obj-field f1 COMMA) ... lastField COMMA)
-              return makeList(node.kids.slice(0, -1).map(tr));
+              return makeListTr(node.kids, 0, node.kids.length - 1);
             } else {
               // (fields (list-obj-field f1 COMMA) ... lastField)
-              return makeList(node.kids.map(tr));
+              return makeListTr(node.kids);
             }
           },
           'list-obj-field': function(node) {
@@ -648,10 +669,10 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'fields': function(node) {
             if (node.kids[node.kids.length - 1].name !== "field") {
               // (fields (list-field f1 COMMA) ... lastField COMMA)
-              return makeList(node.kids.slice(0, -1).map(tr));
+              return makeListTr(node.kids, 0, node.kids.length - 1);
             } else {
               // (fields (list-field f1 COMMA) ... lastField)
-              return makeList(node.kids.map(tr));
+              return makeListTr(node.kids);
             }
           },
           'list-field': function(node) {
@@ -669,7 +690,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           },
           'mixins': function(node) {
             // (mixins (list-mixin m COMMA) ... lastmixin)
-            return makeList(node.kids.map(tr));
+            return makeListTr(node.kids);
           },
           'list-mixin': function(node) {
             // (list-mixin m COMMA)
@@ -680,11 +701,11 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               // (app-args LPAREN RPAREN)
               return makeList([]);
             } else {
-              // (app-args LPAREN (app-arg-elt e COMMA) ... elast RPAREN)
-              return makeList(node.kids.slice(1, -1).map(tr));
+              // (app-args LPAREN (binop-expr-commas e COMMA) ... elast RPAREN)
+              return makeListTr(node.kids, 1, node.kids.length - 1);
             }
           },
-          'app-arg-elt': function(node) {
+          'binop-expr-commas': function(node) {
             // (app-arg-elt e COMMA)
             return tr(node.kids[0]);
           },
@@ -693,8 +714,8 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               // (cases-args LPAREN RPAREN)
               return makeList([]);
             } else {
-              // (cases-args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
-              return makeList(node.kids.slice(1, -1).map(tr));
+              // (cases-args LPAREN (binop-expr-commas arg COMMA) ... lastarg RPAREN)
+              return makeListTr(node.kids, 1, node.kids.length - 1);
             }
           },
           'list-cases-arg-elt': function(node) {
@@ -744,7 +765,8 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               return makeList([]);
             } else {
               // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-              return makeList(node.kids.slice(1, -2).map(tr).concat([name(node.kids[node.kids.length - 2])]));
+              return makeListTr(node.kids, 1, node.kids.length - 2, 
+                                makeList([name(node.kids[node.kids.length - 2])]));
             }
           },
           'list-ty-param': function(node) {
@@ -771,12 +793,10 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
                 .app(pos(node.pos), tr(node.kids[1]));
             }
           },
-          'list-elt': function(node) {
-            return tr(node.kids[0]);
-          },
           'construct-expr': function(node) {
             return RUNTIME.getField(ast, 's-construct')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), 
+                   makeListTr(node.kids, 4, node.kids.length - 1));
           },
           'construct-modifier': function(node) {
             if (node.kids.length === 0) {
@@ -817,48 +837,50 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
               return RUNTIME.getField(ast, 's-cases-else')
                 .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                     makeList(node.kids.slice(6, -5).map(tr)), tr(node.kids[node.kids.length - 2]));
+                     makeListTr(node.kids, 6, node.kids.length - 5), tr(node.kids[node.kids.length - 2]));
             } else {
               // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
               return RUNTIME.getField(ast, 's-cases')
                 .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                     makeList(node.kids.slice(6, -1).map(tr)));
+                     makeListTr(node.kids, 6, node.kids.length - 1));
             }
           },
           'if-pipe-expr': function(node) {
             if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
               // (if-pipe-expr IFCOLON branch ... BAR OTHERWISECOLON else END)
               return RUNTIME.getField(ast, 's-if-pipe-else')
-                .app(pos(node.pos), makeList(node.kids.slice(1, -4).map(tr)),
+                .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length - 4),
                      tr(node.kids[node.kids.length - 2]));
             } else {
               // (if-expr IFCOLON branch ... END)
               return RUNTIME.getField(ast, 's-if-pipe')
-                .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+                .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length -1));
             }
           },
           'if-expr': function(node) {
             if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
               // (if-expr IF test COLON body branch ... ELSECOLON else END)
               return RUNTIME.getField(ast, 's-if-else')
-                .app(pos(node.pos), makeList(
-                  [RUNTIME.getField(ast, 's-if-branch')
-                   .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
-                    .concat(node.kids.slice(4, -3).map(tr))),
+                .app(pos(node.pos), 
+                     makeList([RUNTIME.getField(ast, 's-if-branch')
+                               .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                              0, 1,
+                              makeListTr(node.kids, 4, node.kids.length - 3)),
                      tr(node.kids[node.kids.length - 2]));
             } else {
               // (if-expr IF test COLON body branch ... END)
               return RUNTIME.getField(ast, 's-if')
-                .app(pos(node.pos), makeList(
-                  [RUNTIME.getField(ast, 's-if-branch')
-                   .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))]
-                    .concat(node.kids.slice(4, -1).map(tr))));
+                .app(pos(node.pos), 
+                     makeList([RUNTIME.getField(ast, 's-if-branch')
+                               .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                              0, 1,
+                              makeListTr(node.kids, 4, node.kids.length - 1)));
             }
           },
           'for-expr': function(node) {
             // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
             return RUNTIME.getField(ast, 's-for')
-              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -5).map(tr)),
+              .app(pos(node.pos), tr(node.kids[1]), makeListTr(node.kids, 3, node.kids.length - 5),
                    tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
           },
           'for-bind-elt': function(node) {
@@ -907,7 +929,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'inst-expr': function(node) {
             // (inst-expr e LANGLE (inst-elt a COMMA) ... alast RANGLE)
             return RUNTIME.getField(ast, 's-instantiate')
-              .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
+              .app(pos(node.pos), tr(node.kids[0]), makeListTr(node.kids, 2, node.kids.length - 1));
           },
           'inst-elt': function(node) {
             // (inst-elt a COMMA)
@@ -953,24 +975,26 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'record-ann': function(node) {
             // (record-ann LBRACE fields ... RBRACE)
             return RUNTIME.getField(ast, 'a-record')
-              .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+              .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length - 1));
           },
           'noparen-arrow-ann': function(node) {
             // (noparen-arrow-ann args ... THINARROW result)
             return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), makeList(node.kids.slice(0, -2).map(tr)), tr(node.kids[node.kids.length - 1]),
-                  RUNTIME.pyretFalse);
+              .app(pos(node.pos), 
+                   makeListTr(node.kids, 0, node.kids.length - 2), tr(node.kids[node.kids.length - 1]),
+                   RUNTIME.pyretFalse);
           },
           'arrow-ann': function(node) {
             // (arrow-ann LPAREN args ... THINARROW result RPAREN)
             return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), makeList(node.kids.slice(1, -3).map(tr)), tr(node.kids[node.kids.length - 2]),
-                  RUNTIME.pyretTrue);
+              .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length - 3),
+                   tr(node.kids[node.kids.length - 2]),
+                   RUNTIME.pyretTrue);
           },
           'app-ann': function(node) {
             // (app-ann ann LANGLE args ... RANGLE)
             return RUNTIME.getField(ast, 'a-app')
-              .app(pos(node.pos), tr(node.kids[0]), makeList(node.kids.slice(2, -1).map(tr)));
+              .app(pos(node.pos), tr(node.kids[0]), makeListTr(node.kids, 2, node.kids.length -1));
           },
           'pred-ann': function(node) {
             // (pred-ann ann PERCENT LPAREN exp RPAREN)
