@@ -393,23 +393,23 @@ sharing:
       | t-var(id, _) =>
         t-var(id, loc)
       | t-arrow(args, ret, _) =>
-        t-arrow(args.map(_.set-loc(loc)), ret.set-loc(loc), loc)
+        t-arrow(args, ret, loc)
       | t-app(onto, args, _) =>
-        t-app(onto.set-loc(loc), args.map(_.set-loc(loc)), loc)
+        t-app(onto, args, loc)
       | t-top(_) =>
         t-top(loc)
       | t-bot(_) =>
         t-bot(loc)
       | t-record(fields, _) =>
-        t-record(fields.map(_.set-loc(loc)), loc)
+        t-record(fields, loc)
       | t-forall(introduces, onto, _) =>
-        t-forall(introduces.map(_.set-loc(loc)), onto.set-loc(loc), loc)
+        t-forall(introduces, onto, loc)
       | t-ref(typ, _) =>
-        t-ref(typ.set-loc(loc), loc)
+        t-ref(typ, loc)
       | t-existential(id, _) =>
         t-existential(id, loc)
       | t-data(params, variants, fields, _) =>
-        t-data(params.map(_.set-loc(loc)), variants.map(_.set-loc(loc)), fields.map(_.set-loc(loc)), loc)
+        t-data(params, variants, fields, loc)
     end
   end,
   _lessthan(self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
