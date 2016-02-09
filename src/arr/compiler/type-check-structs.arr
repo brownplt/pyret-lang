@@ -96,9 +96,13 @@ with:
             end
           | none =>
             id-key = name.key()
-            find(lam(item):
+            maybe-local = find(lam(item):
               is-data-type-var(item) and (item.variable == id-key)
             end, self.local-context).and-then(_.typ)
+            cases(Option<Type>) maybe-local:
+              | some(_) => maybe-local
+              | none => self.info.data-exprs.get-now(id-key)
+            end
         end
       | t-app(base-typ, args) =>
         base-data-typ = self.get-data-type(base-typ)
