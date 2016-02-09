@@ -8,6 +8,7 @@ import valueskeleton as VS
 import "compiler/type-structs.arr" as TS
 import "compiler/type-defaults.arr" as TD
 import "compiler/compile-structs.arr" as C
+import "compiler/list-aux.arr" as LA
 
 type Name                 = A.Name
 
@@ -73,29 +74,50 @@ with:
       | none => self.info.typs.get-value-now(id-key)
     end
   end,
-  get-data-type-var(self, id-key):
-    cases(Option) find(lam(item): is-data-type-var(item) and (item.variable == id-key) end,
-                       self.local-context):
-      | some(item) => some(item.typ)
-      | none => raise("couldn't find datatype locally")
-    end
-  end,
-  get-data-type(self, typ):
+  get-data-type(self, typ :: Type) -> Option<Type>:
+    shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
       | t-name(module-name, name) =>
         cases(Option<String>) module-name:
-          | some(mod) =>
-            raise("other modules not handled yet")
+          | some(mod) => raise("other modules not handled yet")
           | none =>
-            key = typ.key()
-            cases(Option<Type>) self.get-data-type-var(key):
-              | some(shadow typ) => some(typ)
-              | none => raise("I haven't figured out what to put here")
-            end
+            id-key = name.key()
+            find(lam(item):
+              is-data-type-var(item) and (item.variable == id-key)
+            end, self.local-context).and-then(_.typ)
         end
-      | else => raise("get-data-type doesn't handle " + tostring(typ) + " yet")
+      | t-app(base-typ, args) =>
+        base-data-typ = self.get-data-type(base-typ)
+        base-data-typ.and-then(_.introduce(args))
+      | else =>
+        print("typ: " + tostring(typ))
+        raise("not finished")
     end
   end,
+  #get-data-type(self, typ):
+  #  shadow typ = resolve-alias(typ, self)
+  #  cases(Type) typ:
+  #    | t-name(module-name, name) =>
+  #      cases(Option<String>) module-name:
+  #        | some(mod) =>
+  #          raise("other modules not handled yet")
+  #        | none =>
+  #          key = typ.key()
+  #          cases(Option<Type>) self.get-data-type-var(key):
+  #            | some(shadow typ) => some(typ)
+  #            | none => raise("I haven't figured out what to put here")
+  #          end
+  #      end
+  #    | t-app(base-typ, args) =>
+  #      # TODO(MATT): error
+  #      cases(Option<Type>) self.get-data-type-var(base-typ.key()):
+  #        | none => none
+  #        | some(data-typ) =>
+  #          some(data-typ.introduce(args))
+  #      end
+  #    | else => raise("get-data-type doesn't handle " + tostring(typ) + " yet")
+  #  end
+  #end,
   add-term-var(self, var-name, typ :: Type):
     typing-context(link(term-var(var-name, typ), self.local-context), self.info)
   end,
@@ -366,7 +388,7 @@ fun collapse-fold-list<B>(results :: List<FoldResult<B>>) -> FoldResult<List<B>>
   end
 end
 
-fun map-result<X, Y>(f :: (X -> FoldResult<Y>), lst :: List<Y>) -> FoldResult<List<Y>>:
+fun map-result<X, Y>(f :: (X -> FoldResult<Y>), lst :: List<X>) -> FoldResult<List<Y>>:
   collapse-fold-list(map(f, lst))
 end
 
@@ -440,3 +462,28 @@ data FoldResult<V>:
     end
 end
 
+fun resolve-alias(t :: Type, context :: Context) -> Type:
+  cases(Type) t:
+    | t-name(a-mod, a-id) =>
+      cases(Option) a-mod:
+        | none =>
+          cases(Option) context.info.aliases.get-now(a-id.key()):
+            | none => t
+            | some(aliased) => resolve-alias(aliased, context)
+          end
+        | some(mod) =>
+          if mod == "builtin":
+            cases(Option) context.info.aliases.get-now(a-id.key()):
+              | none => t
+              | some(aliased) => aliased
+            end
+          else:
+            cases(Option) context.info.modules.get-value-now(mod).aliases.get(a-id.toname()):
+              | none => t
+              | some(aliased) => resolve-alias(aliased, context)
+            end
+          end
+      end
+    | else => t
+  end
+end

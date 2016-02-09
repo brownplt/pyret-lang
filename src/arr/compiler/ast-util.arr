@@ -468,7 +468,7 @@ fun link-list-visitor(initial-env):
               | b-prim(n) =>
                 if n == "list:link":
                   A.s-app(l2, lnk, [list: _args.first,
-                      A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args).visit(self)]) 
+                      A.s-app(l, A.s-dot(f.l, _args.rest.first, f.field), args).visit(self)])
                 else if n == "list:empty":
                   args.first.visit(self)
                 else:
@@ -765,7 +765,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       | s-mutable-field(l, name, ann, val) =>
         T.t-member(name, T.t-ref(ann-to-typ(ann)))
       | s-method-field(l, name, params, args, ann, _, _, _) =>
-        arrow-part = 
+        arrow-part =
           T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann))
         typ =
           if is-empty(params): arrow-part
@@ -818,7 +818,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       | s-data-expr(l, name, _, params, _, variants, shared-members, _) =>
 
         tvars = for map(tvar from params):
-          T.t-variable(l, tvar, T.t-top, T.invariant)
+          T.t-var(tvar)
         end
 
         tvariants = for map(tv from variants):
@@ -945,9 +945,9 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
-            cases(Option) typed.info.data-exprs.get-now(a.in-name.key()):
+           cases(Option) typed.info.data-exprs.get-now(a.in-name.key()):
               | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-              | none => 
+              | none =>
                 cases(Option) typed.info.branders.get-now(a.in-name.key()):
                   | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
                   | else =>
@@ -958,7 +958,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
           end
           data-typs = SD.make-mutable-string-dict()
           for each(d from datas):
-            data-typs.set-now(d.d.toname(), canonicalize-datatype(typed.info.data-exprs.get-value-now(d.d.key()), uri))
+            data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-exprs.get-value-now(d.d.key()), uri))
           end
           CS.provides(
               uri,
