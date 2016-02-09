@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, ffiLib, json, sDictLib, world, worldLib, pShimStruct) {
+define(["js/runtime-util", "trove/json", "trove/string-dict", "trove/world", "trove/world-lib", "trove/particle-shim-structs"], function(util, json, sDictLib, world, worldLib, pShimStruct) {
 
   return util.definePyretModule(
     "particle",
@@ -13,7 +13,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
       }
     },
     function(runtime, namespace) {
-      return runtime.loadJSModules(namespace, [worldLib, ffiLib], function(rawJsworld, ffi) {
+      return runtime.loadJSModules(namespace, [worldLib], function(rawJsworld) {
         return runtime.loadModulesNew(namespace, [world, json, sDictLib, pShimStruct], function(pWorld, pJSON, sDict, pStruct) {
           var WorldConfigOption = runtime.getField(pWorld, "internal").WorldConfigOption;
           var adaptWorldFunction = runtime.getField(pWorld, "internal").adaptWorldFunction;
@@ -110,7 +110,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
             var options = that.options;
             var eventGen = function(w, k) {
               worldFunction(w, function(v) {
-                if(ffi.isSome(v)) {
+                if(runtime.ffi.isSome(v)) {
                   sendEvent(that.event,
                             serialize(runtime.getField(v, "value")),
                             options);
@@ -198,7 +198,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
           return makeObject({
             "provide": makeObject({
               "on-particle": makeFunction(function(onEvent,config) {
-                ffi.checkArity(2, arguments, "on-particle");
+                runtime.ffi.checkArity(2, arguments, "on-particle");
                 runtime.checkFunction(onEvent);
                 checkConfigInfoType(config);
                 core = runtime.getField(config, "core")
@@ -208,7 +208,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
                 return runtime.makeOpaque(new OnParticle(onEvent,eName,options));
               }),
               "to-particle": makeFunction(function(toEvent,config) {
-                ffi.checkArity(2, arguments, "to-particle");
+                runtime.ffi.checkArity(2, arguments, "to-particle");
                 runtime.checkFunction(toEvent);
                 checkConfigInfoType(config);
                 core = runtime.getField(config, "core")
@@ -219,14 +219,14 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
               }),
               // direct Particle stream access
               "send-event": makeFunction(function(core, event) {
-                ffi.checkArity(2, arguments, "send-event");
+                runtime.ffi.checkArity(2, arguments, "send-event");
                 checkCoreInfoType(core);
                 checkEventType(event);
                 eName = runtime.getField(event, "name");
                 eData = runtime.getField(event, "body");
                 options = core_to_options(core);
                 sendEvent(eName, eData, options);
-                return ffi.makeNone();
+                return runtime.ffi.makeNone();
               }),
               // core configuration
               "core": runtime.getField(pStruct_vals, "core"),
@@ -234,7 +234,7 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
               "is-core": pyIsCore,
               "is-no-core": pyIsNoCore,
               "configure-core": makeFunction(function(core, config) {
-                ffi.checkArity(2, arguments, "configure-core");
+                runtime.ffi.checkArity(2, arguments, "configure-core");
                 checkCoreObj(core);
                 checkPinConfigType(config);
                 options = core_to_options(core);
@@ -242,14 +242,14 @@ define(["js/runtime-util", "js/ffi-helpers", "trove/json", "trove/string-dict", 
                 return pyConfig.app(core, config);
               }),
               "clear-core-config": makeFunction(function(core) {
-                ffi.checkArity(1, arguments, "clear-core-config");
+                runtime.ffi.checkArity(1, arguments, "clear-core-config");
                 checkCoreObj(core);
                 options = {
                   'acc': runtime.getField(core, "access"),
                   'raw': true
                 };
                 sendEvent(runtime.getField(core, "name") + "_config", "", options);
-                return ffi.makeNone();
+                return runtime.ffi.makeNone();
               }),
               "enters": runtime.getField(pStruct_vals, "enters"),
               "exits": runtime.getField(pStruct_vals, "exits"),

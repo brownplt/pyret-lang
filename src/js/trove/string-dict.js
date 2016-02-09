@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers"], function(util, t, Namespace, ffi) {
+define(["js/runtime-util", "js/type-util", "js/namespace"], function(util, t, Namespace) {
   var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
   var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
   return util.definePyretModule(
@@ -91,7 +91,6 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers"], fu
       }
     },
     function(runtime, namespace, VSlib) {
-    return runtime.loadJSModules(namespace, [ffi], function(F) {
 
       var O = runtime.makeObject;
       var F = runtime.makeFunction;
@@ -731,7 +730,5 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "js/ffi-helpers"], fu
         }),
         "answer": runtime.nothing
       });
-
     });
-  });
 });

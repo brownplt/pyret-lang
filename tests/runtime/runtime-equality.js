@@ -1,5 +1,5 @@
 var r = require("requirejs")
-define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLib, matchers) {
+define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
 
     _ = require('jasmine-node');
     var path = require('path');
@@ -8,7 +8,6 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
     function performTest(useCompiled) {
       var output;
       var rt;
-      var ffi;
 
       /**@ param {string} str, output*/
       function stdout(str) {
@@ -18,7 +17,6 @@ define(["js/runtime-anf", "js/ffi-helpers", "./matchers"], function(rtLib, ffiLi
       beforeEach(function(){
         output = "";
         rt = rtLib.makeRuntime({'stdout' : stdout});
-        ffi = ffiLib(rt, rt.namespace);
         addPyretMatchers(this, rt);
       });
 

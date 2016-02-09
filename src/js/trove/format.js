@@ -1,12 +1,11 @@
 
-define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
+define(["js/runtime-util"], function(util) {
 
   return util.definePyretModule("format",
     [],
     [],
     {},
     function(RUNTIME, NAMESPACE) {
-      return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(F) {
         // Stolen from https://github.com/dyoo/whalesong/blob/master\
         // /whalesong/js-assembler/runtime-src/baselib-format.js
         var formatRegexp1 = new RegExp('~[sSaA]', 'g');
@@ -90,14 +89,13 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
         return RUNTIME.makeObject({
           provide: RUNTIME.makeObject({
             format: RUNTIME.makeFunction(function(str, args) {
-              F.checkArity(2, arguments, "format");
+              RUNTIME.ffi.checkArity(2, arguments, "format");
               RUNTIME.checkString(str);
-              return RUNTIME.makeString(format(RUNTIME.unwrap(str), F.toArray(args)));
+              return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
             }),
           }),
           answer: NAMESPACE.get("nothing")
         });
       });
-  });
 });
 

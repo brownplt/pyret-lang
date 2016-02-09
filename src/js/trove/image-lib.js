@@ -1,9 +1,7 @@
 define([
-    "js/ffi-helpers",
     "js/js-numbers",
     "js/runtime-util"
   ], function(
-      ffiLib,
       jsnums,
       util
     ) {
@@ -19,7 +17,6 @@ define([
     {},
     function(RUNTIME, NAMESPACE, imageImp) {
       var gf = RUNTIME.getField;
-      return RUNTIME.loadJSModules(NAMESPACE, [ffiLib], function(ffi) {
       
         var image = gf(imageImp, "values");
         var color = gf(image, "color");
@@ -1231,7 +1228,7 @@ define([
               a = data[i+3];
               colors.push(makeColor(r, g, b, a));
             }
-            return ffi.makeList(colors);
+            return RUNTIME.ffi.makeList(colors);
         }
 
         var colorListToImage = function(listOfColors,
@@ -1246,7 +1243,7 @@ define([
                     jsnums.toFixnum(height)),
             aColor,
             data = imageData.data,
-            jsLOC = ffi.toArray(listOfColors);
+            jsLOC = RUNTIME.ffi.toArray(listOfColors);
             for(var i = 0; i < jsLOC.length * 4; i += 4) {
               aColor = jsLOC[i / 4];
               data[i] = jsnums.toFixnum(colorRed(aColor));
@@ -1631,6 +1628,5 @@ define([
           colorBlue: colorBlue,
           colorAlpha: colorAlpha
         };
-    });
   });
 });

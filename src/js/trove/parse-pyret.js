@@ -1,4 +1,4 @@
-define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-parser"], function(util, ffi, tokenizer, parser) {
+define(["js/runtime-util", "js/pyret-tokenizer", "js/pyret-parser"], function(util, tokenizer, parser) {
   return util.definePyretModule("parse-pyret",
     [],
     [
@@ -8,7 +8,6 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
     ],
     {},
     function(RUNTIME, NAMESPACE, srclocLib, astLib, listsLib) {
-      var F = ffi(RUNTIME, NAMESPACE);
       var srcloc = RUNTIME.getField(srclocLib, "values");
       var ast = RUNTIME.getField(astLib, "values");
       var lists = RUNTIME.getField(listsLib, "values");
@@ -388,12 +387,12 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
             if (node.kids.length === 3) {
               // (check-expr CHECKCOLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), F.makeNone(), tr(node.kids[1]), 
+                .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]), 
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
             } else {
               // (check-expr CHECK STRING COLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), F.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+                .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]), 
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
             }
           },
@@ -406,18 +405,18 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
               // (check-test left op)
               //             0    1
               return RUNTIME.getField(ast, 's-check-test')
-                .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), F.makeNone());
+                .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone());
             } else if (kids.length === 3) {
               // (check-test left op right)
               //             0    1  2
               return RUNTIME.getField(ast, 's-check-test')
-                .app(pos(node.pos), tr(kids[1]), F.makeNone(), tr(kids[0]), F.makeSome(tr(kids[2])));
+                .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[2])));
             }
             else {
               // (check-test left op PERCENT LPAREN refinement RPAREN right)
               //             0    1                 4                 6
               return RUNTIME.getField(ast, 's-check-test')
-                .app(pos(node.pos), tr(kids[1]), F.makeSome(tr(kids[4])), tr(kids[0]), F.makeSome(tr(kids[6])));
+                .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeSome(tr(kids[4])), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[6])));
             }
           },
           'binop-expr': function(node) {
@@ -446,10 +445,10 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
           'where-clause': function(node) {
             if (node.kids.length === 0) {
               // (where-clause)
-              return F.makeNone();
+              return RUNTIME.ffi.makeNone();
             } else {
               // (where-clause WHERE block)
-              return F.makeSome(tr(node.kids[1]));
+              return RUNTIME.ffi.makeSome(tr(node.kids[1]));
             }
           },
           'check-op': function(node) {
@@ -1074,7 +1073,7 @@ define(["js/runtime-util", "js/ffi-helpers", "js/pyret-tokenizer", "js/pyret-par
       }
       
       function parsePyret(data, fileName) {
-        F.checkArity(2, arguments, "surface-parse");
+        RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
         RUNTIME.checkString(data);
         RUNTIME.checkString(fileName);
         return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));

@@ -1,4 +1,4 @@
-define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker", "trove/render-error-display", "js/runtime-util", "trove/error", "trove/contracts"], function(loader, ffi, runtimeLib, checkerLib, rendererrorLib, util, errorLib, contractsLib) {
+define(["js/secure-loader", "js/runtime-anf", "trove/checker", "trove/render-error-display", "js/runtime-util", "trove/error", "trove/contracts"], function(loader, runtimeLib, checkerLib, rendererrorLib, util, errorLib, contractsLib) {
 
   if(util.isBrowser()) {
     var rjs = requirejs;
@@ -10,10 +10,9 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
   }
 
   return function(RUNTIME, NAMESPACE) {
-    var F = ffi(RUNTIME, NAMESPACE);
 
     function execWithDir(jsStr, modnameP, loaddirP, checkAllP, params) {
-      F.checkArity(5, arguments, "exec");
+      RUNTIME.ffi.checkArity(5, arguments, "exec");
       RUNTIME.checkString(jsStr);
       RUNTIME.checkString(modnameP);
       RUNTIME.checkString(loaddirP);
@@ -22,7 +21,7 @@ define(["js/secure-loader", "js/ffi-helpers", "js/runtime-anf", "trove/checker",
       var modname = RUNTIME.unwrap(modnameP);
       var loaddir = RUNTIME.unwrap(loaddirP);
       var checkAll = RUNTIME.unwrap(checkAllP);
-      var argsArray = F.toArray(params).map(RUNTIME.unwrap);
+      var argsArray = RUNTIME.ffi.toArray(params).map(RUNTIME.unwrap);
       return exec(str, modname, loaddir, checkAll, argsArray);
     }
 

@@ -3437,7 +3437,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     };
 
     var raw_array_maker = makeObject({
-      make: makeFunction(raw_array_constructor),
+      make:  makeFunction(raw_array_constructor),
       make0: makeFunction(function() { return []; }),
       make1: makeFunction(function(a) { return [a]; }),
       make2: makeFunction(function(a, b) { return [a, b]; }),

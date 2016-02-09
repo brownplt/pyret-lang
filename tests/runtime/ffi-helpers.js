@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/srcloc", "trove/render-error-display"], function (matchers, e, ffiLib, srclocLib, rendererrorLib) {
+define(["./matchers", "../evaluator/eval-matchers", "trove/srcloc", "trove/render-error-display"], function (matchers, e, srclocLib, rendererrorLib) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -27,7 +27,7 @@ define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/src
         get = rt.getField;
         str = rt.makeString;
         P = e.makeEvalCheckers(this, rt);
-        ffi = ffiLib(rt, rt.namespace);
+        ffi = rt.ffi;
         addPyretMatchers(this, rt);
     });
 

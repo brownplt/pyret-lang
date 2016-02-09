@@ -1,5 +1,5 @@
 var r = require("requirejs")
-define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "js/ffi-helpers", "compiler/compile-structs.arr"], function(Q, rtLib, e, repl, ffiLib, compileStructs) {
+define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/base/repl-lib", "compiler/compile-structs.arr"], function(Q, rtLib, e, repl, compileStructs) {
 
   var J = require('jasmine-node');
   var rt;
@@ -7,7 +7,6 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
   var same;
   var err;
   var aRepl;
-  var ffi;
   var replCount = 0;
   function getVal(rt, result) {
     if(!rt.isSuccessResult(result)) {
@@ -21,7 +20,7 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       console.error("Tried to getChecks of non-SuccessResult: ", result, result.exn);
       throw result.exn;
     }
-    return ffi.toArray(rt.getField(result.result, "checks"));
+    return rt.ffi.toArray(rt.getField(result.result, "checks"));
   }
 
   function performTest() {
@@ -31,14 +30,20 @@ define(["q", "js/runtime-anf", "./../evaluator/eval-matchers", "../../src/js/bas
       P =  e.makeEvalCheckers(this, rt);
       same = P.checkEvalsTo;
       err = P.checkError;
-      ffi = ffiLib(rt, rt.namespace);
       var envP = Q.defer();
       rt.loadModules(rt.namespace, [compileStructs], function(cs) {
         envP.resolve(rt.getField(cs, "standard-builtins"));
       });
       aRepl = envP.promise.then(function(env) {
-        done();
-        return repl.create(rt, rt.namespace, env, { name: "repl-test" + replCount++});
+        var deferred = Q.defer();
+        rt.runThunk(function() {
+          return repl.create(rt, rt.namespace, env, { name: "repl-test" + replCount++}); 
+        },
+        function(ans) { 
+          done();
+          deferred.resolve(ans.result);
+        });
+        return deferred.promise;
       });
       aRepl.fail(function(err) {
         console.error("Failed to create repl: ", err);

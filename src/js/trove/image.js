@@ -1,10 +1,9 @@
 define([
     "./image-lib",
     "js/js-numbers",
-    "js/ffi-helpers",
     "js/runtime-util",
     "js/type-util"
-  ], function(imageLib, jsnums, ffiLib, util, t) {
+  ], function(imageLib, jsnums, util, t) {
 
   var TImage = t.localType("Image");
   var tscene = t.localType("Scene");
@@ -100,8 +99,9 @@ define([
       }
     },
     function(runtime, namespace) {
-      return runtime.loadJSModules(namespace, [imageLib, ffiLib], function(image, ffi) {
+      return runtime.loadJSModules(namespace, [imageLib], function(image) {
         var colorDb = image.colorDb;
+        var ffi = runtime.ffi
 
         var isString = runtime.isString;
 

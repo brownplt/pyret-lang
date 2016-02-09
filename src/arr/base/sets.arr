@@ -640,15 +640,41 @@ end
 empty-list-set = list-set(empty)
 empty-tree-set = tree-set(leaf)
 
+fun makeSet2(a, b):
+  if a == b: link(a, empty)
+  else: link(a, link(b, empty))
+  end
+end
+fun makeSet3(a, b, c):
+  if      a == b: makeSet2(b, c)
+  else if a == c: makeSet2(a, c)
+  else:           link(a, makeSet2(b, c))
+  end
+end
+fun makeSet4(a, b, c, d):
+  if      a == b: makeSet3(b, c, d)
+  else if a == c: makeSet3(a, c, d)
+  else if a == d: makeSet3(a, b, c)
+  else:           link(a, makeSet3(b, c, d))
+  end
+end
+fun makeSet5(a, b, c, d, e):
+  if      a == b: makeSet4(b, c, d, e)
+  else if a == c: makeSet4(a, c, d, e)
+  else if a == d: makeSet4(a, b, c, e)
+  else if a == e: makeSet4(a, b, c, d)
+  else:           link(a, makeSet4(b, c, d, e))
+  end
+end
 
 list-set-maker = {
   make: arr-to-list-set,
   make0: lam(): empty-list-set end,
   make1: lam(a): list-set(link(a, empty)) end,
-  make2: lam(a, b): list-set(link(a, link(b, empty))) end,
-  make3: lam(a, b, c): list-set(link(a, link(b, link(c, empty)))) end,
-  make4: lam(a, b, c, d): list-set(link(a, link(b, link(c, link(d, empty))))) end,
-  make5: lam(a, b, c, d, e): list-set(link(a, link(b, link(c, link(d, link(e, empty)))))) end
+  make2: lam(a, b): list-set(makeSet2(a, b)) end,
+  make3: lam(a, b, c): list-set(makeSet3(a, b, c)) end,
+  make4: lam(a, b, c, d): list-set(makeSet4(a, b, c, d)) end,
+  make5: lam(a, b, c, d, e): list-set(makeSet5(a, b, c, d, e)) end
 }
 
 tree-set-maker = {

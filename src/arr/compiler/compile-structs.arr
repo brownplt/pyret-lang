@@ -693,7 +693,13 @@ runtime-builtins = [string-dict:
   "raw-array-fold", T.t-top,
   "raw-array", T.t-record(
     [list:
-      T.t-member("make", t-forall1(lam(a): T.t-arrow([list: T.t-array(a)], T.t-array(a)) end))
+      T.t-member("make", t-forall1(lam(a): T.t-arrow([list: T.t-array(a)], T.t-array(a)) end)),
+      T.t-member("make0", t-forall1(lam(a): T.t-arrow([list: ], T.t-array(a)) end)),
+      T.t-member("make1", t-forall1(lam(a): T.t-arrow([list: a], T.t-array(a)) end)),
+      T.t-member("make2", t-forall1(lam(a): T.t-arrow([list: a, a], T.t-array(a)) end)),
+      T.t-member("make3", t-forall1(lam(a): T.t-arrow([list: a, a, a], T.t-array(a)) end)),
+      T.t-member("make4", t-forall1(lam(a): T.t-arrow([list: a, a, a, a], T.t-array(a)) end)),
+      T.t-member("make5", t-forall1(lam(a): T.t-arrow([list: a, a, a, a, a], T.t-array(a)) end))
     ]),
   "ref-get", T.t-top,
   "ref-set", T.t-top,
