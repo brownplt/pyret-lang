@@ -40,7 +40,6 @@ end
 
 type TypeMember           = TS.TypeMember
 type TypeVariant          = TS.TypeVariant
-type DataType             = TS.DataType
 type ModuleType           = TS.ModuleType
 
 t-module                  = TS.t-module
@@ -77,7 +76,7 @@ with:
   get-data-type(self, typ :: Type) -> Option<Type>:
     shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
-      | t-name(module-name, name) =>
+      | t-name(module-name, name, _) =>
         cases(Option<String>) module-name:
           | some(mod) =>
             cases(Option<ModuleType>) self.info.modules.get-now(mod):
@@ -104,12 +103,11 @@ with:
               | none => self.info.data-exprs.get-now(id-key)
             end
         end
-      | t-app(base-typ, args) =>
+      | t-app(base-typ, args, _) =>
         base-data-typ = self.get-data-type(base-typ)
         base-data-typ.and-then(_.introduce(args))
       | else =>
-        print("typ: " + tostring(typ))
-        raise("not finished")
+        none
     end
   end,
   add-term-var(self, var-name, typ :: Type):
@@ -136,6 +134,7 @@ with:
     pred = lam(item): is-existential-assign(item) and (item.variable == existential) end
     cases(Option<ContextItem>) self.local-context.find(pred):
       | some(item) =>
+        # TODO(MATT): pass in predicate (satisfies type)
         if item.typ == assigned-typ:
           assign()
         else:
@@ -188,7 +187,7 @@ sharing:
 end
 
 fun empty-tc-info(mod-name :: String) -> TCInfo:
-  curr-module = t-module(mod-name, t-top, SD.make-string-dict(), SD.make-string-dict())
+  curr-module = t-module(mod-name, t-top(A.dummy-loc), SD.make-string-dict(), SD.make-string-dict())
   errors = block:
     var err-list = empty
     {
@@ -309,7 +308,7 @@ fun fold-synthesis<B>(f :: (B, Context -> SynthesisResult), lst :: List<B>, cont
             fold-result(pair(result-pair.left, link(ast, result-pair.right)))
           end)
         | synthesis-binding-result(binding, typ, out-context) =>
-          new-context = out-context.add-term-var(binding.b.id.key(), typ)
+          new-context = out-context.add-term-var(binding.b.id.key(), out-context.apply(typ))
           fold-synthesis(f, rest, new-context).bind(lam(result-pair):
             fold-result(pair(result-pair.left, link(binding, result-pair.right)))
           end)
@@ -420,7 +419,7 @@ end
 
 fun resolve-alias(t :: Type, context :: Context) -> Type:
   cases(Type) t:
-    | t-name(a-mod, a-id) =>
+    | t-name(a-mod, a-id, _) =>
       cases(Option) a-mod:
         | none =>
           cases(Option) context.info.aliases.get-now(a-id.key()):
@@ -438,7 +437,7 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
               | none => t
               | some(aliased) =>
                 cases(Type) aliased:
-                  | t-name(aliased-mod, aliased-id) =>
+                  | t-name(aliased-mod, aliased-id, _) =>
                     if (aliased-mod == a-mod) and (aliased-id == a-id):
                       aliased
                     else:

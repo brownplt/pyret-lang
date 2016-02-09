@@ -4,10 +4,12 @@ import ast as A
 import either as E
 import filelib as FL
 import namespace-lib as N
+import runtime-lib as R
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/type-defaults.arr" as TD
 import "compiler/locators/builtin.arr" as BL
+import "compiler/cli-module-loader.arr" as CLI
 
 fun string-to-locator(name, str :: String):
   {
@@ -47,25 +49,29 @@ compile-str = lam(filename, str):
   end
 end
 
+fun compile-program(path):
+  base-module = CS.dependency("file", [list: path])
+  base = CLI.module-finder({current-load-path:[list: "./"]}, base-module)
+  wl = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
+  r = R.make-runtime()
+  CL.compile-and-run-worklist(wl, r, CS.default-compile-options.{type-check: true})
+end
+
 fun is-arr-file(filename):
   string-index-of(filename, ".arr") == (string-length(filename) - 4)
 end
-
 
 check "These should all be good programs":
   base = "./tests/type-check/good/"
   good-progs = FL.list-files(base)
   for each(prog from good-progs):
     when is-arr-file(prog):
-      filename  = base + prog
-      prog-file = FL.open-input-file(filename)
-      prog-text = FL.read-file(prog-file)
-      result = compile-str(filename, prog-text)
+      filename = base + prog
+      result = compile-program(filename)
       result satisfies E.is-right
       when E.is-left(result):
         "Should be okay: " is filename
       end
-      FL.close-output-file(prog-file)
     end
   end
 end
@@ -76,9 +82,7 @@ check "These should all be bad programs":
   for each(prog from bad-progs):
     when is-arr-file(prog):
       filename  = base + prog
-      prog-file = FL.open-input-file(filename)
-      prog-text = FL.read-file(prog-file)
-      result    = compile-str(filename, prog-text)
+      result = compile-program(filename)
       result satisfies E.is-left
       cases(E.Either) result:
         | right(_) =>
@@ -88,10 +92,50 @@ check "These should all be bad programs":
             tostring(problem) satisfies is-string
           end
       end
-      FL.close-output-file(prog-file)
     end
   end
 end
+
+#check "These should all be good programs":
+#  base = "./tests/type-check/good/"
+#  good-progs = FL.list-files(base)
+#  for each(prog from good-progs):
+#    when is-arr-file(prog):
+#      filename  = base + prog
+#      prog-file = FL.open-input-file(filename)
+#      prog-text = FL.read-file(prog-file)
+#      result = compile-str(filename, prog-text)
+#      result satisfies E.is-right
+#      when E.is-left(result):
+#        "Should be okay: " is filename
+#      end
+#      FL.close-output-file(prog-file)
+#    end
+#  end
+#end
+
+#check "These should all be bad programs":
+#  base = "./tests/type-check/bad/"
+#  bad-progs = FL.list-files(base)
+#  for each(prog from bad-progs):
+#    when is-arr-file(prog):
+#      filename  = base + prog
+#      prog-file = FL.open-input-file(filename)
+#      prog-text = FL.read-file(prog-file)
+#      result    = compile-str(filename, prog-text)
+#      result satisfies E.is-left
+#      cases(E.Either) result:
+#        | right(_) =>
+#          "Should be error: " is filename
+#        | left(problems) =>
+#          for each(problem from problems):
+#            tostring(problem) satisfies is-string
+#          end
+#      end
+#      FL.close-output-file(prog-file)
+#    end
+#  end
+#end
 
 check "All builtins should have a type":
   covered = TD.make-default-typs()

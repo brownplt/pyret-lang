@@ -7,22 +7,22 @@ import srcloc as SL
 import "compiler/type-structs.arr" as TS
 
 type Type                 = TS.Type
-t-name                    = TS.t-name
-t-var                     = TS.t-var
-t-arrow                   = TS.t-arrow
-t-top                     = TS.t-top
-t-bot                     = TS.t-bot
-t-app                     = TS.t-app
-t-record                  = TS.t-record
-t-forall                  = TS.t-forall
-t-data                    = TS.t-data
+t-name                    = TS.t-name(_, _, A.dummy-loc)
+t-var                     = TS.t-var(_, A.dummy-loc)
+t-arrow                   = TS.t-arrow(_, _, A.dummy-loc)
+t-top                     = TS.t-top(A.dummy-loc)
+t-bot                     = TS.t-bot(A.dummy-loc)
+t-app                     = TS.t-app(_, _, A.dummy-loc)
+t-record                  = TS.t-record(_, A.dummy-loc)
+t-forall                  = TS.t-forall(_, _, A.dummy-loc)
+t-data                    = TS.t-data(_, _, _, A.dummy-loc)
 
-t-number                  = TS.t-number
-t-string                  = TS.t-string
-t-boolean                 = TS.t-boolean
-t-array                   = TS.t-array
-t-nothing                 = TS.t-nothing
-t-srcloc                  = TS.t-srcloc
+t-number                  = TS.t-number(A.dummy-loc)
+t-string                  = TS.t-string(A.dummy-loc)
+t-boolean                 = TS.t-boolean(A.dummy-loc)
+t-array                   = TS.t-array(_, A.dummy-loc)
+t-nothing                 = TS.t-nothing(A.dummy-loc)
+t-srcloc                  = TS.t-srcloc(A.dummy-loc)
 
 type Variance             = TS.Variance
 constant                  = TS.constant
@@ -31,14 +31,14 @@ covariant                 = TS.covariant
 contravariant             = TS.contravariant
 
 type TypeMember           = TS.TypeMember
-t-member                  = TS.t-member
+t-member                  = TS.t-member(_, _, A.dummy-loc)
 
 type ModuleType           = TS.ModuleType
 t-module                  = TS.t-module
 
 type TypeVariant          = TS.TypeVariant
-t-variant                 = TS.t-variant
-t-singleton-variant       = TS.t-singleton-variant
+t-variant                 = TS.t-variant(_, _, _, A.dummy-loc)
+t-singleton-variant       = TS.t-singleton-variant(_, _, A.dummy-loc)
 
 s-atom                    = A.s-atom
 
@@ -46,9 +46,9 @@ t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
 fun make-default-aliases():
   default-aliases = [SD.mutable-string-dict:
-    A.s-type-global("Number").key(), TS.t-number,
-    A.s-type-global("String").key(), TS.t-string,
-    A.s-type-global("Boolean").key(), TS.t-boolean]
+    A.s-type-global("Number").key(), t-number,
+    A.s-type-global("String").key(), t-string,
+    A.s-type-global("Boolean").key(), t-boolean]
   default-aliases
 end
 
