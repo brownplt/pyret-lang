@@ -164,17 +164,6 @@ data Variance:
     end
 end
 
-data TypeVariable:
-  | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
-sharing:
-  _output(self):
-    VS.vs-seq([list: VS.vs-str(self.id.toname()), VS.vs-str(" <: "), VS.vs-value(self.upper-bound)])
-  end,
-  key(self) -> String:
-    self.id.key() + " <: " + self.upper-bound.key()
-  end
-end
-
 data TypeMember:
   | t-member(field-name :: String, typ :: Type) with:
     _output(self):
@@ -206,34 +195,32 @@ fun type-members-lookup(type-members :: TypeMembers, field-name :: String) -> Op
 end
 
 data TypeVariant:
-  | t-variant(l           :: A.Loc,
-              name        :: String,
+  | t-variant(name        :: String,
               fields      :: TypeMembers,
               with-fields :: TypeMembers) with:
     substitute(self, x :: Type, r :: Type):
       substitute = _.substitute(x, r)
-      t-variant(self.l, self.name, self.fields.map(substitute), self.with-fields.map(substitute))
+      t-variant(self.name, self.fields.map(substitute), self.with-fields.map(substitute))
     end
-  | t-singleton-variant(l           :: A.Loc,
-                        name        :: String,
+  | t-singleton-variant(name        :: String,
                         with-fields :: TypeMembers) with:
     fields: empty-type-members,
     substitute(self, x :: Type, r :: Type):
       substitute = _.substitute(x, r)
-      t-singleton-variant(self.l, self.name, self.with-fields.map(substitute))
+      t-singleton-variant(self.name, self.with-fields.map(substitute))
     end
 end
 
 fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
   cases(TypeVariant) tv:
-    | t-variant(_, _, variant-fields, with-fields) => with-fields + variant-fields
-    | t-singleton-variant(_, _, with-fields)       => with-fields
+    | t-variant(_, variant-fields, with-fields) => with-fields + variant-fields
+    | t-singleton-variant(_, with-fields)       => with-fields
   end
 end
 
 data DataType:
   | t-datatype(name     :: String,
-               params   :: List<TypeVariable>,
+               params   :: List<Type>,
                variants :: List<TypeVariant>,
                fields   :: TypeMembers) with: # common (with-)fields, shared methods, etc
     lookup-variant(self, variant-name :: String) -> Option<TypeVariant>:
@@ -278,8 +265,17 @@ data Type:
   | t-top
   | t-bot
   | t-record(fields :: TypeMembers)
-  | t-forall(introduces :: List<TypeVariable>, onto :: Type)
+  | t-forall(introduces :: List<Type>, onto :: Type)
   | t-ref(typ :: Type)
+  | t-data(params :: List<Type>, variants :: List<TypeVariant>, fields :: TypeMembers, refine :: Option<String>) with:
+    lookup-variant(self, variant-name :: String) -> Option<TypeVariant>:
+      fun same-name(tv):
+        tv.name == variant-name
+      end
+      self.variants.find(same-name)
+    end,
+  | t-data-construct(params :: List<Type>, args :: List<Type>, ret :: Type)
+  | t-data-single-construct(params :: List<Type>, ret :: Type)
   | t-existential(id :: Name)
 sharing:
   _output(self):
@@ -307,6 +303,25 @@ sharing:
         VS.vs-value(onto)
       | t-ref(typ) =>
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
+      | t-data(params, variants, fields, refine) =>
+        VS.vs-seq([list: VS.vs-str("(")]
+            + interleave(variants.map(VS.vs-value), VS.vs-str(" + "))
+            + [list: VS.vs-str(")")]
+            + refine.and-then(lam(name):
+              [list: VS.vs-str(": "), VS.vs-str(tostring(name))]
+            end).or-else(empty))
+      | t-data-construct(params, args, ret) =>
+        VS.vs-seq([list: VS.vs-str("<")]
+            + interleave(params.map(VS.vs-value), VS.vs-str(", "))
+            + [list: VS.vs-str("> "), VS.vs-str("(")]
+            + interleave(args.map(VS.vs-value), VS.vs-str(", "))
+            + [list: VS.vs-str(")")]
+            + [list: VS.vs-str(" -> "), VS.vs-value(ret)])
+      | t-data-single-construct(params, ret) =>
+        VS.vs-seq([list: VS.vs-str("<")]
+            + interleave(params.map(VS.vs-value), VS.vs-str(", "))
+            + [list: VS.vs-str("> ")]
+            + [list: VS.vs-str(" -> "), VS.vs-value(ret)])
       | t-existential(id) => VS.vs-str(id.key())
     end
   end,
@@ -337,6 +352,19 @@ sharing:
           + onto.key()
       | t-ref(typ) =>
         "ref " + typ.key()
+      | t-data(params, variants, fields, refine) =>
+        "data" + "<" + params.map(_.key()).join-str(",") + ">"
+          + variants.map(_.key()).join-str("+")
+          + refine.and-then(lam(name):
+              ": " + tostring(name)
+            end).or-else("")
+      | t-data-construct(params, args, ret) =>
+        "constructor " + "<" + "<" + params.map(_.key()).join-str(",") + ">"
+          + args.map(_.key()).join-str(", ")
+          + " -> " + ret.key()
+      | t-data-single-construct(params, ret) =>
+        "constructor " + "<" + "<" + params.map(_.key()).join-str(",") + ">"
+          + " -> " + ret.key()
       | t-existential(id) => id.key()
     end
   end,
@@ -359,6 +387,17 @@ sharing:
         | t-ref(arg-typ) =>
           new-arg-typ = arg-typ.substitute(orig-typ, new-typ)
           t-ref(new-arg-typ)
+        | t-data(params, variants, fields, refine) =>
+          t-data(params,
+                 variants.map(_.substitute(orig-typ, new-typ)),
+                 fields.map(_.substitute(orig-typ, new-typ)),
+                 refine)
+        | t-data-construct(params, args, ret) =>
+          t-data-construct(params,
+                           args.map(_.substitute(orig-typ, new-typ)),
+                           ret.substitute(orig-typ, new-typ))
+        | t-data-single-construct(params, ret) =>
+          t-data-construct(params, ret.substitute(orig-typ, new-typ))
         | else => self
       end
     end
@@ -386,8 +425,11 @@ sharing:
           | t-var(_)            => less-than
           | t-existential       => less-than
           | t-arrow(_, _)       => less-than
+          | t-data-construct(_, _, _) => less-than
+          | t-data-single-construct(_, _) => less-than
           | t-app(_, _)         => less-than
           | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
           | t-top               => less-than
@@ -397,13 +439,16 @@ sharing:
           | t-bot               => greater-than
           | t-name(_, _)        => greater-than
           | t-existential(_)    => greater-than
-          | t-var(b-id) => 
+          | t-var(b-id) =>
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
             else: equal;
           | t-arrow(_, _)       => less-than
+          | t-data-construct(_, _, _) => less-than
+          | t-data-single-construct(_, _) => less-than
           | t-app(_, _)         => less-than
           | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
           | t-top               => less-than
@@ -419,8 +464,50 @@ sharing:
               list-compare(a-args, b-args),
               a-ret._comp(b-ret)
             ])
+          | t-data-construct(_, _, _) => less-than
+          | t-data-single-construct(_, _) => less-than
           | t-app(_, _)         => less-than
           | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
+          | t-forall(_, _)      => less-than
+          | t-ref(_)            => less-than
+          | t-top               => less-than
+        end
+      | t-data-construct(a-params, a-args, a-ret) =>
+        cases(Type) other:
+          | t-bot               => greater-than
+          | t-name(_, _)        => greater-than
+          | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
+          | t-arrow(b-args, b-ret) => greater-than
+          | t-data-construct(b-params, b-args, b-ret) =>
+            fold-comparisons([list:
+              list-compare(a-params, b-params),
+              list-compare(a-args, b-args),
+              a-ret._comp(b-ret)])
+          | t-data-single-construct(_, _) => less-than
+          | t-app(_, _)         => less-than
+          | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
+          | t-forall(_, _)      => less-than
+          | t-ref(_)            => less-than
+          | t-top               => less-than
+        end
+      | t-data-single-construct(a-params, a-ret) =>
+        cases(Type) other:
+          | t-bot               => greater-than
+          | t-name(_, _)        => greater-than
+          | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
+          | t-arrow(b-args, b-ret) => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(b-params, b-ret) =>
+            fold-comparisons([list:
+              list-compare(a-params, b-params),
+              a-ret._comp(b-ret)])
+          | t-app(_, _)         => less-than
+          | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
           | t-top               => less-than
@@ -432,12 +519,15 @@ sharing:
           | t-var(_)            => greater-than
           | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(_, _) => greater-than
           | t-app(b-onto, b-args) =>
             fold-comparisons([list:
               list-compare(a-args, b-args),
               a-onto._comp(b-onto)
             ])
           | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
           | t-top               => less-than
@@ -449,8 +539,28 @@ sharing:
           | t-var(_)            => greater-than
           | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(_, _) => greater-than
           | t-app(_, _)         => greater-than
           | t-record(b-fields)  =>
+            list-compare(a-fields, b-fields)
+          | t-data(_, _, _, _)  => less-than
+          | t-forall(_, _)      => less-than
+          | t-ref(_)            => less-than
+          | t-top               => less-than
+        end
+      | t-data(a-params, a-variants, a-fields, _) =>
+        cases(Type) other:
+          | t-bot               => greater-than
+          | t-name(_, _)        => greater-than
+          | t-var(_)            => greater-than
+          | t-existential(_)    => greater-than
+          | t-arrow(_, _)       => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(_, _) => greater-than
+          | t-app(_, _)         => greater-than
+          | t-record(b-fields)  => greater-than
+          | t-data(_, _, b-fields, _) =>
             list-compare(a-fields, b-fields)
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
@@ -463,8 +573,11 @@ sharing:
           | t-var(_)            => greater-than
           | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(_, _) => greater-than
           | t-app(_, _)         => greater-than
           | t-record(_)         => greater-than
+          | t-data(_, _, _, _)  => greater-than
           | t-forall(b-introduces, b-onto) =>
             fold-comparisons([list:
               list-compare(a-introduces, b-introduces),
@@ -480,8 +593,11 @@ sharing:
           | t-var(_)            => greater-than
           | t-existential(_)    => greater-than
           | t-arrow(_, _)       => greater-than
+          | t-data-construct(_, _, _) => greater-than
+          | t-data-single-construct(_, _) => greater-than
           | t-app(_, _)         => greater-than
           | t-record(_)         => greater-than
+          | t-data(_, _, _, _)  => greater-than
           | t-forall(_, _)      => greater-than
           | t-ref(b-typ)        =>
             a-typ._comp(b-typ)
@@ -497,8 +613,11 @@ sharing:
             else if a-id > b-id: greater-than
             else: equal;
           | t-arrow(_, _)       => less-than
+          | t-data-construct(_, _, _) => less-than
+          | t-data-single-construct(_, _) => less-than
           | t-app(_, _)         => less-than
           | t-record(_)         => less-than
+          | t-data(_, _, _, _)  => less-than
           | t-forall(_, _)      => less-than
           | t-ref(_)            => less-than
           | t-top               => less-than

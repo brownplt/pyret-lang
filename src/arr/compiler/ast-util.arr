@@ -825,13 +825,11 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           cases(A.Variant) tv:
             | s-variant(l2, constr-loc, vname, members, with-members) =>
               T.t-variant(
-                l2,
                 vname,
                 map(v-member-to-t-member, members),
                 map(member-to-t-member, with-members))
             | s-singleton-variant(l2, vname, with-members) =>
               T.t-singleton-variant(
-                l2,
                 vname,
                 map(member-to-t-member, with-members))
           end
@@ -896,10 +894,10 @@ end
 fun canonicalize-variant(v :: T.TypeVariant, uri :: URI) -> T.TypeVariant:
   c = canonicalize-members(_, uri)
   cases(T.TypeVariant) v:
-    | t-variant(l, name, fields, with-fields) =>
-      T.t-variant(l, name, c(fields), c(with-fields))
-    | t-singleton-variant(l, name, with-fields) =>
-      T.t-singleton-variant(l, name, c(with-fields))
+    | t-variant(name, fields, with-fields) =>
+      T.t-variant(name, c(fields), c(with-fields))
+    | t-singleton-variant(name, with-fields) =>
+      T.t-singleton-variant(name, c(with-fields))
   end
 end
 

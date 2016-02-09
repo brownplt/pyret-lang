@@ -90,7 +90,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
         new-env.set(a, tvn)
       end
       params = for map(k from new-env.keys-list()):
-        T.t-variable(A.dummy-loc, new-env.get-value(k), T.t-top, T.invariant)
+        T.t-var(new-env.get-value(k))
       end
       T.t-forall(params, type-from-raw(uri, typ.onto, new-env))
     | t == "tyapp" then:
@@ -109,9 +109,9 @@ fun tvariant-from-raw(uri, tvariant, env):
         # TODO(joe): Exporting ref fields?
         T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
       end
-      T.t-variant(A.dummy-loc, tvariant.name, members, empty)
+      T.t-variant(tvariant.name, members, empty)
     | t == "singleton-variant" then:
-      T.t-singleton-variant(A.dummy-loc, tvariant.name, empty)
+      T.t-singleton-variant(tvariant.name, empty)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
@@ -122,7 +122,7 @@ fun datatype-from-raw(uri, datatyp):
     pdict.set(a, tvn)
   end
   params = for map(k from pdict.keys-list()):
-    T.t-variable(A.dummy-loc, pdict.get-value(k), T.t-top, T.invariant)
+    T.t-var(pdict.get-value(k))
   end
   variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
   members = for map(tm from datatyp.methods):
@@ -567,7 +567,7 @@ runtime-types = [string-dict:
 
 fun t-forall1(f):
   n = A.global-names.make-atom("a")
-  T.t-forall([list: T.t-variable(A.dummy-loc, n, T.t-top, T.invariant)], f(T.t-var(n)))
+  T.t-forall([list: T.t-var(n)], f(T.t-var(n)))
 end
 
 runtime-builtins = [string-dict: 
