@@ -93,7 +93,7 @@ data RuntimeError:
         [ED.para:
           ED.text(" expects the value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
-          ED.text(" to have a "),
+          ED.text(" to contain a "),
           ED.highlight(
             [ED.sequence:
               ED.text("field named "),
@@ -103,10 +103,10 @@ data RuntimeError:
         [ED.para:
           ED.text("The value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
-          ED.text(" is:")],
+          ED.text(" was:")],
          ED.embed(self.obj)]
     end,
-    render-reason(self, loc-to-ast):
+    render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
@@ -466,32 +466,32 @@ data RuntimeError:
     render-reason(self):
       num-args = self.fun-app-args.length()
       this-str = if num-args == 1: "this" else: "these" end
-      arg-str = if num-args == 1: "argument:" else: "arguments:" end
-      exp-arg-str = if self.fun-def-arity == 1: "argument" else: "arguments" end
+      arg-str = if num-args == 1: " argument:" else: " arguments:" end
+      exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
       ED.maybe-stack-loc(0, true,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
-              [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
               draw-and-highlight(caller-loc),
-              [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
               vert-list-values(self.fun-app-args)]
           else:
             [ED.error:
-              [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity),
-                ED.text(exp-arg-str + " when calling the function at")],
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity),
+                ED.text(exp-arg-str + " when calling the function at ")],
               draw-and-highlight(self.fun-def-loc),
               [ED.para: ED.text("from")],
               draw-and-highlight(caller-loc),
-              [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
               vert-list-values(self.fun-app-args)]
           end
         end,
         [ED.error:
-          [ED.para: ED.text("Expected to get"), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
+          [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at ")],
           draw-and-highlight(self.fun-def-loc),
-          [ED.para: ED.text("but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+          [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
   | non-function-app(loc, non-fun-val) with:
