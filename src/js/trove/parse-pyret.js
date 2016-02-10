@@ -1080,8 +1080,11 @@ define(["js/runtime-util", "js/pyret-tokenizer", "js/pyret-parser"], function(ut
       }
 
       return RUNTIME.makeObject({
-        provide: RUNTIME.makeObject({
-          'surface-parse': RUNTIME.makeFunction(parsePyret)
+        'provide-plus-types': RUNTIME.makeObject({
+          'values': RUNTIME.makeObject({
+            'surface-parse': RUNTIME.makeFunction(parsePyret)
+          }),
+          'types': {}
         }),
         answer: NAMESPACE.get("nothing")
       });

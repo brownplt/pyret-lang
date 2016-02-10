@@ -194,9 +194,7 @@ define(["js/runtime-util", "trove/json", "trove/string-dict", "trove/world", "tr
             }
           }
 
-
-          return makeObject({
-            "provide": makeObject({
+          var values = makeObject({
               "on-particle": makeFunction(function(onEvent,config) {
                 runtime.ffi.checkArity(2, arguments, "on-particle");
                 runtime.checkFunction(onEvent);
@@ -285,6 +283,12 @@ define(["js/runtime-util", "trove/json", "trove/string-dict", "trove/world", "tr
               "D5": runtime.getField(pStruct_vals, "D5"),
               "D6": runtime.getField(pStruct_vals, "D6"),
               "D7": runtime.getField(pStruct_vals, "D7")
+            });
+
+          return makeObject({
+            'provide-plus-types': makeObject({
+              'values': values,
+              'types': {}
             })
           });
         });

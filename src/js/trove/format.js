@@ -87,12 +87,15 @@ define(["js/runtime-util"], function(util) {
         };
 
         return RUNTIME.makeObject({
-          provide: RUNTIME.makeObject({
-            format: RUNTIME.makeFunction(function(str, args) {
-              RUNTIME.ffi.checkArity(2, arguments, "format");
-              RUNTIME.checkString(str);
-              return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
+          'provide-plus-types': RUNTIME.makeObject({
+            'values': RUNTIME.makeObject({
+              format: RUNTIME.makeFunction(function(str, args) {
+                RUNTIME.ffi.checkArity(2, arguments, "format");
+                RUNTIME.checkString(str);
+                return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
+              }),
             }),
+            'types': {}
           }),
           answer: NAMESPACE.get("nothing")
         });

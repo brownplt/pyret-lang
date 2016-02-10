@@ -4107,17 +4107,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
           else if (typeof m === "object" && !isObject(m)) {
             return m;
           }
+          // NOTE(joe): Can we remove this next line?
+//          else if (hasField(m, "values")) {
+//            return m;
+//          }
           else if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
           }
-          else if (hasField(m, "values")) {
-            return m;
-          }
           else {
-            return thisRuntime.makeObject({
-              "values": getField(m, "provide"),
-              "types": {}
-            });
+            console.error("Got unrecognized module return format in loadModulesNew ", m);
+            throw new Error("Got unrecognized module return format in loadModulesNew ",
+                            JSON.stringify(m, null, "  "));
           }
         };
         var wrappedMods = ms.map(wrapMod);

@@ -181,8 +181,11 @@ define(["js/secure-loader", "js/runtime-anf", "trove/checker", "trove/render-err
 
     };
     return RUNTIME.makeObject({
-      provide: RUNTIME.makeObject({
-        exec: RUNTIME.makeFunction(execWithDir)
+      'provide-plus-types': RUNTIME.makeObject({
+        'values': RUNTIME.makeObject({
+          exec: RUNTIME.makeFunction(execWithDir)
+        }),
+        'types': {}
       }),
       answer: NAMESPACE.get("nothing")
     });

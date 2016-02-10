@@ -6,10 +6,13 @@ define(["js/runtime-util"], function(util) {
     {},
     function(RUNTIME, NAMESPACE) {
       return RUNTIME.makeObject({
-        provide: RUNTIME.makeObject({
-          "command-line-arguments": RUNTIME.makeFunction(function() {
-            return RUNTIME.ffi.makeList(RUNTIME.getParam("command-line-arguments").map(RUNTIME.makeString));
+        'provide-plus-types': RUNTIME.makeObject({
+          'values': RUNTIME.makeObject({
+            "command-line-arguments": RUNTIME.makeFunction(function() {
+              return RUNTIME.ffi.makeList(RUNTIME.getParam("command-line-arguments").map(RUNTIME.makeString));
+            }),
           }),
+          'types': {}
         }),
         answer: NAMESPACE.get("nothing")
       });
