@@ -665,9 +665,9 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-arrow(_, args, ret, _) => false
     | a-method(_, args, ret, _) => false
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
-    | a-app(_, inner, args) => false
+    | a-app(_, inner, args) => is-stateful-ann(inner)
     | a-pred(_, _, _) => true # TODO(Oak, 21 Jan 2016): true for now. Could refine later
-    | a-dot(_, _, _) => true
+    | a-dot(_, _, _) => true # TODO(Oak, 7 Feb 2016): true for now. Could refine later
     | a-checked(_, _) => raise("NYI")
   end
 end
