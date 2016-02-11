@@ -84,7 +84,7 @@ j-while = J.j-while
 j-for = J.j-for
 make-label-sequence = J.make-label-sequence
 
-
+var cases-dispatches = cl-empty
 
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
@@ -363,7 +363,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ^ cl-append(_, visited-body.new-cases)
   # Initialize the case numbers, for more legible output...
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
-  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
+  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step, cases-dispatches)
   shadow main-body-cases = main-body-cases-and-dead-vars.body
   all-vars = for CL.foldl(base from no-vars, case-expr from main-body-cases):
       base.merge(case-expr.visit(local-bound-vars-visitor))
@@ -805,13 +805,13 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
       ^ cl-append(_, compiled-else.new-cases))
   dispatch-table = j-obj(for CL.map_list2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
   dispatch = j-id(fresh-id(compiler-name("cases_dispatch")))
+  cases-dispatches := cl-cons(j-var(dispatch.id, dispatch-table), cases-dispatches)
   # NOTE: Ignoring typ for the moment!
   new-cases =
     branch-else-cases
     + get-new-cases(compiler, opt-dest, opt-body, after-cases-label, compiler.cur-ans)
   c-block(
     j-block([clist:
-        j-var(dispatch.id, dispatch-table),
         # j-expr(j-app(j-dot(j-id("console"), "log"),
         #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
         #       j-str("val is "), compiled-val,
@@ -1465,6 +1465,7 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
                     j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
                     j-id(m.input-id)])))
               end +
+              cases-dispatches +
               module-binds +
               [clist: 
                 j-var(body-name, body-fun),

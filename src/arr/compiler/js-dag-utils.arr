@@ -194,22 +194,13 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>):
   end
 end
 
-fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
-  var looking-for = none
+fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, cases-dispatches :: ConcatList<J.JStmt>):
   for CL.foldr(acc from cl-empty, stmt from stmts):
     cases(J.JStmt) stmt:
-      | j-var(name, rhs) =>
-        if is-some(looking-for) and (looking-for.value == name):
-          looking-for := none
-          for CL.foldl(shadow acc from acc, field from rhs.fields):
-            cl-snoc(acc, field.value.label)
-          end
-        else:
-          acc
-        end
-      | j-if1(cond, consq) => acc + find-steps-to(consq.stmts, step)
+      | j-var(name, rhs) => acc
+      | j-if1(cond, consq) => acc + find-steps-to(consq.stmts, step, cases-dispatches)
       | j-if(cond, consq, alt) =>
-        acc + find-steps-to(consq.stmts, step) + find-steps-to(alt.stmts, step)
+        acc + find-steps-to(consq.stmts, step, cases-dispatches) + find-steps-to(alt.stmts, step, cases-dispatches)
       | j-return(expr) => acc
       | j-try-catch(body, exn, catch) => acc # ignoring for now, because we know we don't use these
       | j-throw(exp) => acc
@@ -221,8 +212,12 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
           else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
             # $step gets a cases dispatch
             # ASSUMES that the dispatch table is assigned two statements before this one
-            looking-for := some(expr.rhs.left.obj.id)
-            cl-snoc(acc, expr.rhs.right.label)
+            shadow acc = cl-snoc(acc, expr.rhs.right.label)
+            looking-for = expr.rhs.left.obj.id
+            now-looking = cases-dispatches.find(lam(elt :: J.JStmt): elt.name == looking-for end).value.rhs
+            for CL.foldl(shadow acc from acc, field from now-looking.fields):
+              cl-snoc(acc, field.value.label)
+            end
           else:
             raise("Should not happen")
           end
@@ -311,12 +306,12 @@ end
 #   end
 #   ranges
 # end
-fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation:
+fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, cases-dispatches :: ConcatList<J.JStmt>) -> RegisterAllocation:
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   dag = (for CL.foldl(acc from D.make-mutable-string-dict(), body-case from body-cases):
       if J.is-j-case(body-case):
         acc.set-now(tostring(body-case.exp.label.get()),
-          node(body-case.exp.label, find-steps-to(body-case.body.stmts, step), body-case,
+          node(body-case.exp.label, find-steps-to(body-case.body.stmts, step, cases-dispatches), body-case,
             ns-empty, ns-empty, ns-empty, none, none, none, none))
         acc
       else:
