@@ -1786,7 +1786,7 @@ fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.
                 cases(Option<A.Expr>) maybe-else:
                   | some(_else) =>
                     if is-empty(remaining-branches):
-                      create-err([list: C.unneccesary-else-branch(tostring(data-type), l)])
+                      create-err([list: C.unneccesary-else-branch(tostring(typ), l)])
                     else:
                       has-else(l, ann, new-val, split-result, _else, ctxt)
                     end
@@ -1795,7 +1795,7 @@ fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.
                       no-else(l, ann, new-val, split-result, ctxt)
                     else:
                       # TODO(MATT): more appropriate error here
-                      create-err([list: C.non-exhaustive-pattern(remaining-branches, tostring(data-type), l)])
+                      create-err([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
                     end
                 end
               end
