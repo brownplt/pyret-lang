@@ -67,7 +67,7 @@ data AImportType:
   | a-import-file(l :: Loc, file :: String) with:
     tosource(self): PP.dquote(PP.str(self.file)) end
   | a-import-special(l :: Loc, kind :: String, args :: List<String>) with:
-    tosource(self): 
+    tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(PP.str)))))
@@ -167,6 +167,11 @@ data ABind:
       if A.is-a-blank(self.ann): self.id.tosource()
       else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
       end
+    end
+  | a-bind-arr(l :: Loc, id :: A.Name, ann :: A.Ann, idx :: Number) with: # ann should always be a-blank
+    label(self): "a-bind-arr" end,
+    tosource(self):
+      PP.group(self.id.tosource() + PP.surround(INDENT, 0, PP.lbrack, PP.number(self.idx), PP.rbrack))
     end
 sharing:
   visit(self, visitor):
@@ -293,12 +298,12 @@ data ALettable:
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
@@ -352,12 +357,9 @@ data ALettable:
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-array(l :: Loc, values :: List<AVal>) with:
+  | a-array(l :: Loc, len :: Number) with:
     label(self): "a-array" end,
-    tosource(self):
-      PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
-        self.values.map(_.tosource()))
-    end
+    tosource(self): a-prim-app(self.l, "raw-array-of", [list: a-undefined, a-num(self.len)]).tosource() end
   | a-ref(l :: Loc, ann :: Option<A.Ann>) with:
     label(self): "a-ref" end,
     tosource(self):
@@ -496,6 +498,7 @@ end
 fun strip-loc-bind(bind :: ABind):
   cases(ABind) bind:
     | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann.visit(A.dummy-loc-visitor))
+    | a-bind-arr(_, id, ann, idx) => a-bind-arr(dummy-loc, id, ann, idx)
   end
 end
 
@@ -513,7 +516,7 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
-    | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
+    | a-array(_, len) => a-array(dummy-loc, len)
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
@@ -661,6 +664,9 @@ default-map-visitor = {
   a-bind(self, l :: Loc, id :: A.Name, ann :: A.Ann):
     a-bind(l, id, ann)
   end,
+  a-bind-arr(self, l :: Loc, id :: A.Name, ann :: A.Ann, idx :: Number):
+    a-bind-arr(l, id, ann, idx)
+  end,
   a-field(self, l :: Loc, name :: String, value :: AVal):
     a-field(l, name, value.visit(self))
   end,
@@ -670,8 +676,8 @@ default-map-visitor = {
   a-num(self, l :: Loc, n :: Number):
     a-num(l, n)
   end,
-  a-array(self, l :: Loc, vals :: List<AVal>):
-    a-array(l, vals.map(_.visit(self)))
+  a-array(self, l :: Loc, len :: Number):
+    a-array(l, len)
   end,
   a-str(self, l :: Loc, s :: String):
     a-str(l, s)
@@ -816,10 +822,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
             freevars-e-acc(_else, seen-so-far))))
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
-    | a-array(_, vs) =>
-      for fold(acc from seen-so-far, shadow v from vs):
-        freevars-v-acc(v, acc)
-      end
+    | a-array(_, _) => seen-so-far
     | a-assign(_, id, v) => 
       seen-so-far.set-now(id.key(), id)
       freevars-v-acc(v, seen-so-far)
