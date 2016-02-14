@@ -87,6 +87,27 @@ fun anf-name-rec(
   end
 end
 
+fun anf-name-arr(expr :: A.Expr, name :: A.Name, idx :: Number, k :: ( -> N.AExpr)) -> N.AExpr:
+  anf(expr, k-cont(lam(lettable):
+        N.a-let(expr.l, N.a-bind-arr(expr.l, name, A.a-blank, idx), lettable, k())
+      end))
+end
+
+fun anf-name-arr-rec(
+    exprs :: List<A.Expr>,
+    name :: A.Name,
+    ind :: Number,
+    k :: ( -> N.AExpr)
+  ) -> N.AExpr:
+  cases(List) exprs:
+    | empty => k()
+    | link(f, r) =>
+      anf-name-arr(f, name, ind, lam():
+          anf-name-arr-rec(r, name, ind + 1, k)
+        end)
+  end
+end
+
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
     | s-program(l, p, _, imports, block) =>
@@ -325,9 +346,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 A.s-id(l, name.id)))))
       end
     | s-array(l, values) =>
-      anf-name-rec(values, "anf_array_val", lam(vs):
-        k.apply(l, N.a-array(l, vs))
-      end)
+      array-id = names.make-atom("anf_array")
+      N.a-let(
+        l,
+        bind(l, array-id),
+        N.a-array(l, values.length()),
+        anf-name-arr-rec(values, array-id, 0, lam():
+          k.apply(l, N.a-val(l, N.a-id(l, array-id)))
+        end))
 
     | s-app(l, f, args) =>
       cases(A.Expr) f:

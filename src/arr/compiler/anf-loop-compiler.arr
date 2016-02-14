@@ -610,11 +610,18 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
 end
 
 fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
+  id-assign = if N.is-a-bind(b):
+      cl-sing(j-var(js-id-of(b.id), compiled-e.exp))
+    else if N.is-a-bind-arr(b):
+      cl-sing(j-expr(j-bracket-assign(j-id(js-id-of(b.id)), j-num(b.idx), compiled-e.exp)))
+    else:
+      raise("Unknown " + b.label + " in compile-annotated-let")
+    end
   if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(
         compiled-e.other-stmts +
-        cl-sing(j-var(js-id-of(b.id), compiled-e.exp)) +
+        id-assign +
         compiled-body.block.stmts
         ),
       compiled-body.new-cases
@@ -627,7 +634,7 @@ fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(
     c-block(
       j-block(
         compiled-e.other-stmts +
-        cl-sing(j-var(js-id-of(b.id), compiled-e.exp))  +
+        id-assign +
         compiled-ann.other-stmts +
         [clist:
           j-expr(j-assign(step, after-ann)),
@@ -1158,10 +1165,8 @@ compiler-visitor = {
     visit-v = value.visit(self)
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
-  a-array(self, l, values):
-    visit-vals = values.map(_.visit(self))
-    other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, cl-empty)
-    c-exp(j-list(false, CL.map_list(get-exp, visit-vals)), other-stmts)
+  a-array(self, l, len):
+    c-exp(j-new(j-id(const-id("Array")), [clist: j-num(len)]), cl-empty)
   end,
   a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
