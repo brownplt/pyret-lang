@@ -140,7 +140,7 @@ end
 
 fun MakeName(start):
   var count = start
-  fun atom(base :: String) -> Name:
+  fun atom(base :: String):
     count := 1 + count
     s-atom(base, count)
   end

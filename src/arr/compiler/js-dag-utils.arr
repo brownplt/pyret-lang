@@ -470,7 +470,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
       | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze())
     end
   end
-
+  
   # print("Done")
   results(dead-assignment-eliminated, discardable-vars)
 end
