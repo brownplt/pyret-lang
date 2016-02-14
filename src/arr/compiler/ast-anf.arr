@@ -171,7 +171,7 @@ data ABind:
   | a-bind-arr(l :: Loc, id :: A.Name, ann :: A.Ann, idx :: Number) with: # ann should always be a-blank
     label(self): "a-bind-arr" end,
     tosource(self):
-      PP.group(self.id.tosource() + PP.surround(INDENT, 0, PP.lbrack, PP.number(self.idx), PP.rbrack))
+      PP.group(self.id.tosource() + PP.brackets(PP.number(self.idx)))
     end
 sharing:
   visit(self, visitor):
@@ -359,7 +359,7 @@ data ALettable:
     end
   | a-array(l :: Loc, len :: Number) with:
     label(self): "a-array" end,
-    tosource(self): a-prim-app(self.l, "raw-array-of", [list: a-undefined, a-num(self.len)]).tosource() end
+    tosource(self): a-prim-app(self.l, "raw-array-of", [list: a-undefined(self.l), a-num(self.l, self.len)]).tosource() end
   | a-ref(l :: Loc, ann :: Option<A.Ann>) with:
     label(self): "a-ref" end,
     tosource(self):
