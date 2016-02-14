@@ -350,7 +350,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       N.a-let(
         l,
         bind(l, array-id),
-        N.a-array(l, values.length()),
+        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length())]),
         anf-name-arr-rec(values, array-id, 0, lam():
           k.apply(l, N.a-val(l, N.a-id(l, array-id)))
         end))

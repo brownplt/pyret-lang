@@ -4653,6 +4653,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
     thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+    thisRuntime["makeArrayN"] = function(n) { return new Array(n); }
 
     var ns = thisRuntime.namespace;
     var nsWithList = ns;//.set("_link", getField(list, "link"))

@@ -368,9 +368,6 @@ data ALettable:
           PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-array(l :: Loc, len :: Number) with:
-    label(self): "a-array" end,
-    tosource(self): a-prim-app(self.l, "raw-array-of", [list: a-undefined(self.l), a-num(self.l, self.len)]).tosource() end
   | a-ref(l :: Loc, ann :: Option<A.Ann>) with:
     label(self): "a-ref" end,
     tosource(self):
@@ -528,7 +525,6 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
-    | a-array(_, len) => a-array(dummy-loc, len)
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
@@ -688,9 +684,6 @@ default-map-visitor = {
   a-num(self, l :: Loc, n :: Number):
     a-num(l, n)
   end,
-  a-array(self, l :: Loc, len :: Number):
-    a-array(l, len)
-  end,
   a-str(self, l :: Loc, s :: String):
     a-str(l, s)
   end,
@@ -838,7 +831,6 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
             freevars-e-acc(_else, seen-so-far))))
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
-    | a-array(_, _) => seen-so-far
     | a-assign(_, id, v) =>
       seen-so-far.set-now(id.key(), id)
       freevars-v-acc(v, seen-so-far)

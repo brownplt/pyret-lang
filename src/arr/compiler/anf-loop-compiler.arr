@@ -1176,9 +1176,6 @@ compiler-visitor = {
     visit-v = value.visit(self)
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
-  a-array(self, l, len):
-    c-exp(j-new(j-id(const-id("Array")), [clist: j-num(len)]), cl-empty)
-  end,
   a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
