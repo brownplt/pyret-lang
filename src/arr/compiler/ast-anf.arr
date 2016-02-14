@@ -134,6 +134,22 @@ data AExpr:
         self.body.tosource(),
         str-end)
     end
+  | a-arr-let(l :: Loc, bind :: ABind, idx :: Number, e :: ALettable, body :: AExpr) with:
+    label(self): "a-arr-let" end,
+    tosource(self):
+      PP.soft-surround(INDENT, 1,
+        str-let +
+        PP.group(
+          PP.nest(
+            INDENT,
+            PP.group(self.bind.id.tosource() + PP.brackets(PP.number(self.idx))) +
+            str-spaceequal +
+            break-one +
+            self.e.tosource())) +
+        str-colon,
+        self.body.tosource(),
+        str-end)
+    end
   | a-var(l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr) with:
     label(self): "a-var" end,
     tosource(self):
@@ -167,11 +183,6 @@ data ABind:
       if A.is-a-blank(self.ann): self.id.tosource()
       else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
       end
-    end
-  | a-bind-arr(l :: Loc, id :: A.Name, ann :: A.Ann, idx :: Number) with: # ann should always be a-blank
-    label(self): "a-bind-arr" end,
-    tosource(self):
-      PP.group(self.id.tosource() + PP.brackets(PP.number(self.idx)))
     end
 sharing:
   visit(self, visitor):
@@ -486,6 +497,8 @@ fun strip-loc-expr(expr :: AExpr):
       a-type-let(dummy-loc, bind, body)
     | a-let(_, bind, val, body) =>
       a-let(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
+    | a-arr-let(_, bind, idx, e, body) =>
+      a-arr-let(dummy-loc, bind, idx, e, body)
     | a-var(_, bind, val, body) =>
       a-var(dummy-loc, strip-loc-bind(bind), strip-loc-lettable(val), strip-loc-expr(body))
     | a-seq(_, e1, e2) =>
@@ -498,7 +511,6 @@ end
 fun strip-loc-bind(bind :: ABind):
   cases(ABind) bind:
     | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann.visit(A.dummy-loc-visitor))
-    | a-bind-arr(_, id, ann, idx) => a-bind-arr(dummy-loc, id, ann, idx)
   end
 end
 
@@ -582,6 +594,9 @@ default-map-visitor = {
   a-let(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-let(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
+  a-arr-let(self, l :: Loc, bind :: ABind, idx :: Number, e :: ALettable, body :: AExpr):
+    a-arr-let(l, bind.visit(self), idx, e.visit(self), body.visit(self))
+  end,
   a-var(self, l :: Loc, bind :: ABind, e :: ALettable, body :: AExpr):
     a-var(l, bind.visit(self), e.visit(self), body.visit(self))
   end,
@@ -664,9 +679,6 @@ default-map-visitor = {
   a-bind(self, l :: Loc, id :: A.Name, ann :: A.Ann):
     a-bind(l, id, ann)
   end,
-  a-bind-arr(self, l :: Loc, id :: A.Name, ann :: A.Ann, idx :: Number):
-    a-bind-arr(l, id, ann, idx)
-  end,
   a-field(self, l :: Loc, name :: String, value :: AVal):
     a-field(l, name, value.visit(self))
   end,
@@ -712,11 +724,11 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
   cases(A.Ann) ann:
     | a-blank => seen-so-far
     | a-any => seen-so-far
-    | a-name(l, name) => 
+    | a-name(l, name) =>
       seen-so-far.set-now(name.key(), name)
       seen-so-far
     | a-type-var(l, name) => seen-so-far
-    | a-dot(l, left, right) => 
+    | a-dot(l, left, right) =>
       seen-so-far.set-now(left.key(), left)
       seen-so-far
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
@@ -748,6 +760,10 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A
           body-ids
       end
     | a-let(_, b, e, body) =>
+      from-body = freevars-e-acc(body, seen-so-far)
+      from-body.remove-now(b.id.key())
+      freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
+    | a-arr-let(_, b, _, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       from-body.remove-now(b.id.key())
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
@@ -796,7 +812,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
       | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
-        without-args = from-body 
+        without-args = from-body
         for each(arg from args.map(get-id)):
           without-args.remove-now(arg.key())
         end
@@ -823,7 +839,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
     | a-array(_, _) => seen-so-far
-    | a-assign(_, id, v) => 
+    | a-assign(_, id, v) =>
       seen-so-far.set-now(id.key(), id)
       freevars-v-acc(v, seen-so-far)
     | a-app(_, f, args) =>
@@ -902,13 +918,13 @@ end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(AVal) v:
-    | a-id(_, id) => 
+    | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-id-var(_, id) => 
+    | a-id-var(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-id-letrec(_, id, _) => 
+    | a-id-letrec(_, id, _) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far

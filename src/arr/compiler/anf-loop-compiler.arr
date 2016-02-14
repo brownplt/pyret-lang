@@ -85,7 +85,10 @@ j-while = J.j-while
 j-for = J.j-for
 make-label-sequence = J.make-label-sequence
 
-
+data BindType:
+  | b-let(value :: N.ABind)
+  | b-array(value :: N.ABind, idx :: Number)
+end
 
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
@@ -609,14 +612,15 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   { new-cases: new-cases, new-label: cur-target }
 end
 
-fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
-  id-assign = if N.is-a-bind(b):
-      cl-sing(j-var(js-id-of(b.id), compiled-e.exp))
-    else if N.is-a-bind-arr(b):
-      cl-sing(j-expr(j-bracket-assign(j-id(js-id-of(b.id)), j-num(b.idx), compiled-e.exp)))
+fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
+  id-assign = if is-b-let(b):
+      cl-sing(j-var(js-id-of(b.value.id), compiled-e.exp))
+    else if is-b-array(b):
+      cl-sing(j-expr(j-bracket-assign(j-id(js-id-of(b.value.id)), j-num(b.idx), compiled-e.exp)))
     else:
-      raise("Unknown " + b.label + " in compile-annotated-let")
+      raise("Unknown " + b.value.label() + " in compile-annotated-let")
     end
+  shadow b = b.value
   if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(
@@ -928,6 +932,25 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
 
 end
 
+fun compile-lettable(compiler, l :: Loc, b :: BindType, e :: N.ALettable, body :: N.AExpr):
+    cases(N.ALettable) e:
+      | a-app(l2, f, args) =>
+        compile-split-app(l2, compiler, some(b), f, args, some(body))
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, compiler, some(b), obj, m, args, some(body))
+      | a-if(l2, cond, then, els) =>
+        compile-split-if(compiler, some(b), cond, then, els, some(body))
+      | a-cases(l2, typ, val, branches, _else) =>
+        compile-split-cases(compiler, l2, some(b), typ, val, branches, _else, some(body))
+      | a-update(l2, obj, fields) =>
+        compile-split-update(compiler, some(b), obj, fields, some(body))
+      | else =>
+        compiled-e = e.visit(compiler)
+        compiled-body = body.visit(compiler)
+        compile-annotated-let(compiler, b, compiled-e, compiled-body)
+    end
+end
+
 compiler-visitor = {
   a-module(self, l, answer, dvs, dts, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
@@ -993,22 +1016,10 @@ compiler-visitor = {
     end
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    cases(N.ALettable) e:
-      | a-app(l2, f, args) =>
-        compile-split-app(l2, self, some(b), f, args, some(body))
-      | a-method-app(l2, obj, m, args) =>
-        compile-split-method-app(l2, self, some(b), obj, m, args, some(body))
-      | a-if(l2, cond, then, els) =>
-        compile-split-if(self, some(b), cond, then, els, some(body))
-      | a-cases(l2, typ, val, branches, _else) =>
-        compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
-      | a-update(l2, obj, fields) =>
-        compile-split-update(self, some(b), obj, fields, some(body))
-      | else =>
-        compiled-e = e.visit(self)
-        compiled-body = body.visit(self)
-        compile-annotated-let(self, b, compiled-e, compiled-body)
-    end
+    compile-lettable(self, l, b-let(b), e, body)
+  end,
+  a-arr-let(self, l :: Loc, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
+    compile-lettable(self, l, b-array(b, idx), e, body)
   end,
   a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)

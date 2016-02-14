@@ -89,7 +89,7 @@ end
 
 fun anf-name-arr(expr :: A.Expr, name :: A.Name, idx :: Number, k :: ( -> N.AExpr)) -> N.AExpr:
   anf(expr, k-cont(lam(lettable):
-        N.a-let(expr.l, N.a-bind-arr(expr.l, name, A.a-blank, idx), lettable, k())
+        N.a-arr-let(expr.l, N.a-bind(expr.l, name, A.a-blank), idx, lettable, k())
       end))
 end
 
