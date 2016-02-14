@@ -932,7 +932,7 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
 
 end
 
-fun compile-lettable(compiler, l :: Loc, b :: BindType, e :: N.ALettable, body :: N.AExpr):
+fun compile-binding(compiler, l :: Loc, b :: BindType, e :: N.ALettable, body :: N.AExpr):
     cases(N.ALettable) e:
       | a-app(l2, f, args) =>
         compile-split-app(l2, compiler, some(b), f, args, some(body))
@@ -1016,10 +1016,10 @@ compiler-visitor = {
     end
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    compile-lettable(self, l, b-let(b), e, body)
+    compile-binding(self, l, b-let(b), e, body)
   end,
   a-arr-let(self, l :: Loc, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
-    compile-lettable(self, l, b-array(b, idx), e, body)
+    compile-binding(self, l, b-array(b, idx), e, body)
   end,
   a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
