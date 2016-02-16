@@ -1389,7 +1389,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
       result = lam(new-l, new-typ, new-context):
         synthesis-result(_fun, new-l, new-typ.set-loc(app-loc), new-context)
       end
-      fun pick2(num-typ :: Type, rec-typ :: Type):
+      fun pick2(num-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
           | empty      =>
             synthesis-err([list: C.incorrect-number-of-args(app-loc)])
@@ -1397,15 +1397,15 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
             synthesis(f, context).bind(
               lam(_, l, f-typ, out-context):
                 ask:
-                  | f-typ == t-number(A.dummy-loc) then: result(l, num-typ, out-context)
-                  | is-t-record(f-typ) then: result(l, rec-typ, out-context)
+                  | f-typ == t-number(A.dummy-loc) then: result(l, num-typ-f(fun-loc), out-context)
+                  | is-t-record(f-typ) then: result(l, rec-typ-f(fun-loc), out-context)
                   | otherwise: synthesis-err([list:
                       C.incorrect-type(tostring(f-typ), l, "Number or an object with the field " + id.toname(), app-loc)])
                 end
               end)
         end
       end
-      fun pick3(num-typ :: Type, str-typ :: Type, rec-typ :: Type):
+      fun pick3(num-typ-f :: (A.Loc -> Type), str-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
           | empty      =>
             synthesis-err([list: C.incorrect-number-of-args(app-loc)])
@@ -1413,9 +1413,9 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
             synthesis(f, context).bind(
               lam(_, l, f-typ, out-context):
                 ask:
-                  | f-typ == t-number(A.dummy-loc) then: result(l, num-typ, out-context)
-                  | f-typ == t-string(A.dummy-loc) then: result(l, str-typ, out-context)
-                  | is-t-record(f-typ) then: result(l, rec-typ, out-context)
+                  | f-typ == t-number(A.dummy-loc) then: result(l, num-typ-f(fun-loc), out-context)
+                  | f-typ == t-string(A.dummy-loc) then: result(l, str-typ-f(fun-loc), out-context)
+                  | is-t-record(f-typ) then: result(l, rec-typ-f(fun-loc), out-context)
                   | otherwise: synthesis-err([list:
                     C.incorrect-type(tostring(f-typ), l, "Number, String or an object with the field " + id.toname(), app-loc)])
                 end
@@ -1424,15 +1424,15 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
       end
       ask:
         # Math operations
-        | id == A.s-global("_plus")   then: pick3(t-num-binop(fun-loc), t-str-binop(fun-loc), t-plus-method(fun-loc))
-        | id == A.s-global("_times")  then: pick2(t-num-binop(fun-loc), t-times-method(fun-loc))
-        | id == A.s-global("_divide") then: pick2(t-num-binop(fun-loc), t-divide-method(fun-loc))
-        | id == A.s-global("_minus")  then: pick2(t-num-binop(fun-loc), t-minus-method(fun-loc))
+        | id == A.s-global("_plus")   then: pick3(t-num-binop, t-str-binop, t-plus-method)
+        | id == A.s-global("_times")  then: pick2(t-num-binop, t-times-method)
+        | id == A.s-global("_divide") then: pick2(t-num-binop, t-divide-method)
+        | id == A.s-global("_minus")  then: pick2(t-num-binop, t-minus-method)
         # Comparison operations
-        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-lt-method(fun-loc))
-        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-lte-method(fun-loc))
-        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-gt-method(fun-loc))
-        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-gte-method(fun-loc))
+        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp, t-str-cmp, t-lt-method)
+        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
+        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
+        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
         | otherwise: synthesis(_fun, context)
       end
     | else =>
