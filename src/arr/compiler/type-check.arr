@@ -98,41 +98,49 @@ resolve-alias             = TCS.resolve-alias
 all2-strict               = LA.all2-strict
 map2-strict               = LA.map2-strict
 
-t-num-binop = t-arrow([list: t-number(A.dummy-loc), t-number(A.dummy-loc)], t-number(A.dummy-loc), A.dummy-loc)
-t-num-cmp   = t-arrow([list: t-number(A.dummy-loc), t-number(A.dummy-loc)], t-boolean(A.dummy-loc), A.dummy-loc)
-t-str-binop = t-arrow([list: t-string(A.dummy-loc), t-string(A.dummy-loc)], t-string(A.dummy-loc), A.dummy-loc)
-t-str-cmp   = t-arrow([list: t-string(A.dummy-loc), t-string(A.dummy-loc)], t-boolean(A.dummy-loc), A.dummy-loc)
-t-method-binop = lam(field-name :: String):
+t-num-binop = lam(loc):
+  t-arrow([list: t-number(loc), t-number(loc)], t-number(loc), loc)
+end
+t-num-cmp = lam(loc):
+  t-arrow([list: t-number(loc), t-number(loc)], t-boolean(loc), loc)
+end
+t-str-binop = lam(loc):
+  t-arrow([list: t-string(loc), t-string(loc)], t-string(loc), loc)
+end
+t-str-cmp = lam(loc):
+  t-arrow([list: t-string(loc), t-string(loc)], t-boolean(loc), loc)
+end
+t-method-binop = lam(field-name :: String, loc):
   t-forall(
     [list:
-      t-var(A.s-atom("B", 1), A.dummy-loc),
-      t-var(A.s-atom("C", 1), A.dummy-loc)
+      t-var(A.s-atom("B", 1), loc),
+      t-var(A.s-atom("C", 1), loc)
     ],
     t-arrow(
       [list:
         t-record([list:
-          t-member(field-name, t-arrow([list: t-var(A.s-atom("B", 1), A.dummy-loc)], t-var(A.s-atom("C", 1), A.dummy-loc), A.dummy-loc), A.dummy-loc)
-        ], A.dummy-loc),
-        t-var(A.s-atom("B",1), A.dummy-loc)
+          t-member(field-name, t-arrow([list: t-var(A.s-atom("B", 1), loc)], t-var(A.s-atom("C", 1), loc), loc), loc)
+        ], loc),
+        t-var(A.s-atom("B",1), loc)
       ],
-      t-var(A.s-atom("C", 1), A.dummy-loc),
-      A.dummy-loc
+      t-var(A.s-atom("C", 1), loc),
+      loc
     ),
-    A.dummy-loc
+    loc
   )
 end
 
 # Math operators
-t-plus-method   = t-method-binop("_plus")
-t-minus-method  = t-method-binop("_minus")
-t-divide-method = t-method-binop("_divide")
-t-times-method  = t-method-binop("_times")
+t-plus-method   = lam(loc): t-method-binop("_plus", loc) end
+t-minus-method  = lam(loc): t-method-binop("_minus", loc) end
+t-divide-method = lam(loc): t-method-binop("_divide", loc) end
+t-times-method  = lam(loc): t-method-binop("_times", loc) end
 
 # Comparison operators
-t-lt-method     = t-method-binop("_lessthan")
-t-lte-method    = t-method-binop("_lessequal")
-t-gt-method     = t-method-binop("_greaterthan")
-t-gte-method    = t-method-binop("_greaterequal")
+t-lt-method     = lam(loc): t-method-binop("_lessthan", loc) end
+t-lte-method    = lam(loc): t-method-binop("_lessequal", loc) end
+t-gt-method     = lam(loc): t-method-binop("_greaterthan", loc) end
+t-gte-method    = lam(loc): t-method-binop("_greaterequal", loc) end
 
 shadow fold2 = lam(f, base, l1, l2):
                  if l1.length() <> l2.length():
@@ -1416,15 +1424,15 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
       end
       ask:
         # Math operations
-        | id == A.s-global("_plus")   then: pick3(t-num-binop, t-str-binop, t-plus-method)
-        | id == A.s-global("_times")  then: pick2(t-num-binop, t-times-method)
-        | id == A.s-global("_divide") then: pick2(t-num-binop, t-divide-method)
-        | id == A.s-global("_minus")  then: pick2(t-num-binop, t-minus-method)
+        | id == A.s-global("_plus")   then: pick3(t-num-binop(fun-loc), t-str-binop(fun-loc), t-plus-method(fun-loc))
+        | id == A.s-global("_times")  then: pick2(t-num-binop(fun-loc), t-times-method(fun-loc))
+        | id == A.s-global("_divide") then: pick2(t-num-binop(fun-loc), t-divide-method(fun-loc))
+        | id == A.s-global("_minus")  then: pick2(t-num-binop(fun-loc), t-minus-method(fun-loc))
         # Comparison operations
-        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp, t-str-cmp, t-lt-method)
-        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
-        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
-        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
+        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-lt-method(fun-loc))
+        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-lte-method(fun-loc))
+        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-gt-method(fun-loc))
+        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp(fun-loc), t-str-cmp(fun-loc), t-gte-method(fun-loc))
         | otherwise: synthesis(_fun, context)
       end
     | else =>

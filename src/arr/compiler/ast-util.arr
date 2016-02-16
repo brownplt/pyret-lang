@@ -795,7 +795,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l)
       | a-pred(l, ann, exp) =>
         # TODO(joe): give more info than this to type checker?  only needed dynamically, right?
-        ann-to-typ(ann, l)
+        ann-to-typ(ann)
       | a-dot(l, obj, field) =>
         maybe-b = resolved.type-bindings.get-now(obj.key())
         cases(Option) maybe-b:

@@ -88,7 +88,7 @@ fun list-compare<T>(a :: List<T>, b :: List<T>) -> Comparison:
   cases(List<T>) a:
     | empty => cases(List<T>) b:
         | empty   => equal
-        | link(_) => less-than
+        | link(_, _) => less-than
       end
     | link(a-f, a-r) => cases(List<T>) b:
         | empty          => greater-than
