@@ -9,7 +9,6 @@ To build:
 The type checker is part of the compilation process, so to type check a file,
 you can run:
 
-  $ node build/phase1/main-wrapper.js --compile-module-js path/to/file.arr -library -type-check
+  $ node build/phase1/main-wrapper.js -type-check --run path/to/file.arr
 
-Note that the -library flag is necessary for now, to avoid introducing code
-into the program that the type checker cannot yet handle.
+Note that the --run flag is necessary for now, so as to use the new module system.
