@@ -57,7 +57,7 @@ fun make-repl<a>(
       vs.set(provided-name, cr.provides.values.get-value(provided-name))
     end
     tprovided = cr.provides.aliases.keys-list()
-    new-types = for fold(ts from globals.values, provided-name from tprovided):
+    new-types = for fold(ts from globals.types, provided-name from tprovided):
       ts.set(provided-name, cr.provides.aliases.get-value(provided-name))
     end
     globals := CS.globals(new-vals, new-types)
