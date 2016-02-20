@@ -1,5 +1,5 @@
 ({
-    optimize: "uglify",
+    optimize: "none",
     paths: {
         'q': 'empty:',
         'fs': 'empty:',
@@ -7,12 +7,5 @@
         'requirejs': 'empty:',
         's-expression': 'empty:',
         'seedrandom': 'empty:'
-      },
-      uglify: {
-      	no_mangle: false,
-      	mangle: true,
-      	dead_code: true,
-      	verbose: true,
-      	reserved_names: ["define"]
       }
 })
