@@ -429,7 +429,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       cases(Either) run-task(run):
         | left(v) => v
-        | right(e) => add-result(failure-exn(loc, code, exn-unwrap(e),
+        | right(e) => add-result(failure-exn(loc, code, e,
             E.is-right(run-task(lam():if is-function(left):left() else: left;;))
         ))
       end
@@ -534,7 +534,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           if comparator(exn-unwrap(v), expected):
             add-result(success(loc, code))
           else:
-            add-result(on-failure(exn-unwrap(v)))
+            add-result(on-failure(v))
           end
       end
       nothing
@@ -557,7 +557,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc, code)
-          | right(exn) => failure-exn(loc, code, exn-unwrap(exn), true)
+          | right(exn) => failure-exn(loc, code, exn, true)
         end)
       nothing
     end,
@@ -569,7 +569,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             if pred(exn-unwrap(exn)):
               success(loc, code)
             else:
-              failure-raise-not-satisfied(loc, code, exn-unwrap(exn), pred)
+              failure-raise-not-satisfied(loc, code, exn, pred)
             end
         end)
       nothing
@@ -582,7 +582,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             if not(pred(exn-unwrap(exn))):
               success(loc, code)
             else:
-              failure-raise-not-dissatisfied(loc, code, exn-unwrap(exn), pred)
+              failure-raise-not-dissatisfied(loc, code, exn, pred)
             end
         end)
       nothing
