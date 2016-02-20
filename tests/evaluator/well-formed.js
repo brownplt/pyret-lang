@@ -122,7 +122,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                " a :: Number\n" +
                                "end\n" +
                                "10",
-                               "Cannot end a block in a contract");
+                               "Cannot end a block with a contract");
         P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
         P.checkCompileErrorMsg("lam(): var x = 5 end", "Cannot end a block in a var-binding");
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
