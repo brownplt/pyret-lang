@@ -219,7 +219,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           val-provides,
           mod.data-definitions,
           mod.aliases)
-      info.modules.set-now(mod.from-uri, module-type)
+      info.modules.set-now(key, module-type)
       #for each(d from mod.data-definitions.keys-list()):
       #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
       #end
@@ -1201,7 +1201,7 @@ fun satisfies-type(subtyp :: Type, supertyp :: Type, context :: Context) -> Fold
       for bind(ctxt from fold-context):
         cases(Option<TypeMember>) a-fields.find(lam(a-field): a-field.field-name == b-field.field-name end):
           | none =>
-            fold-errors([list: C.cant-typecheck("could not find field on supertype")])
+            fold-errors([list: C.cant-typecheck("could not find field on supertype", b-field.l)])
           | some(a-field) =>
             satisfies-assuming(a-field.typ, b-field.typ, ctxt, assumptions)
         end
@@ -1627,7 +1627,7 @@ fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair
           end
           for bind(maybe-typ from to-type(member.bind.ann, context)):
             cases(Option<Type>) maybe-typ:
-              | none => raise("No type annotation provided on member")
+              | none => fold-errors([list: C.cant-typecheck("No type annotation provided on member", l)])
               | some(typ) => fold-result(t-member(member.bind.id.toname(), wrap(typ), l))
             end
           end
@@ -1812,6 +1812,7 @@ fun handle-cases<B>(l :: A.Loc, ann :: A.Ann, val :: A.Expr, branches :: List<A.
               end
             end, checking(val, l, typ, context))
           | none =>
+            # TODO(MATT): this is bad and encompasses too much
             create-err([list: C.cant-match-on(tostring(typ), l)])
         end
       | none => raise("No type provided for cases")

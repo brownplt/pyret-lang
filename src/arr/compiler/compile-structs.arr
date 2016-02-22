@@ -284,15 +284,22 @@ data CompileError:
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     render-reason(self):
       #### TODO ###
-      ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
+      [ED.error:
+        [ED.para:
+          ED.text("Identifier "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used in a dot-annotation at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but is bound as a type variable")]]
     end
   | pointless-var(loc :: Loc) with:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
@@ -305,9 +312,10 @@ data CompileError:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
@@ -320,9 +328,10 @@ data CompileError:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
@@ -354,8 +363,10 @@ data CompileError:
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
-          + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
+      [ED.error:
+        [ED.para:
+          ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
+              + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")]]
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self):
@@ -469,32 +480,45 @@ data CompileError:
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The else branch for the cases expression at " + tostring(self.loc)
-        + " is not needed since all variants of " + self.type-name + " have been exhausted.")
+      [ED.error:
+        [ED.para:
+          ED.text("The else branch for the cases expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" is not needed since all variants of " + self.type-name + " have been exhausted.")]]
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The cases expression at " + tostring(self.loc)
-        + " does not exhaust all variants of " + self.type-name
-        + ". It is missing: " + self.missing.join-str(", ") + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("The cases expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" does not exhaust all variants of " + self.type-name
+            + ". It is missing: " + self.missing.join-str(", ") + ".")]]
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The type specified " + self.type-name
-        + " at " + tostring(self.loc)
-        + " cannot be used in a cases expression.")
+      [ED.error:
+        [ED.para:
+          ED.text("The type specified " + self.type-name),
+          ED.text(" at "),
+          draw-and-highlight(self.loc),
+          ED.text(" cannot be used in a cases expression.")]]
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
     #### TODO ###
     render-reason(self):
-      ED.text("Incorrect number of bindings given to "
-        + "the variant " + self.variant-name
-        + " at " + tostring(self.loc) + ". "
-        + "Given " + num-tostring(self.given)
-        + ", but expected " + num-tostring(self.expected)
-        + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("Incorrect number of bindings given to "),
+          ED.text("the variant " + self.variant-name),
+          ED.text(" at "),
+          draw-and-highlight(self.loc),
+          ED.text(". "
+            + "Given " + num-tostring(self.given)
+            + ", but expected " + num-tostring(self.expected)
+            + ".")]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-reason(self):
@@ -535,21 +559,31 @@ data CompileError:
           ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
           ED.text(". Please add an annotation.")]]
     end
-  | cant-typecheck(reason :: String) with:
+  | cant-typecheck(reason :: String, loc :: A.Loc) with:
     render-reason(self):
-      ED.text("This program cannot be type-checked. Please send it to the developers. " +
-        "The reason that it cannot be type-checked is: " + self.reason)
+      [ED.error:
+        [ED.para:
+          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+        " at "), draw-and-highlight(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
+      [ED.error:
+        [ED.para:
+          ED.text(self.message + " (found at "),
+          draw-and-highlight(self.blame-loc),
+          ED.text(")")]]
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
     render-reason(self):
-      ED.text("There is no module imported with the name " + self.mod-name
-        + " (used at " + tostring(self.loc) + ")")
+      [ED.error:
+        [ED.para:
+          ED.text("There is no module imported with the name " + self.mod-name),
+          ED.text(" (used at "),
+          draw-and-highlight(self.loc),
+          ED.text(")")]]
     end
 end
 
