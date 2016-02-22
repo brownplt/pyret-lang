@@ -31,6 +31,7 @@ t-existential             = TS.t-existential
 is-t-record               = TS.is-t-record
 is-t-name                 = TS.is-t-name
 is-t-data                 = TS.is-t-data
+is-t-existential          = TS.is-t-existential
 
 type TypeMember           = TS.TypeMember
 t-member                  = TS.t-member
@@ -1399,6 +1400,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
                 ask:
                   | f-typ == t-number(A.dummy-loc) then: result(l, num-typ-f(fun-loc), out-context)
                   | is-t-record(f-typ) then: result(l, rec-typ-f(fun-loc), out-context)
+                  | is-t-existential(f-typ) then: synthesis-err([list:C.unable-to-infer(f-typ.l)])
                   | otherwise: synthesis-err([list:
                       C.incorrect-type(tostring(f-typ), l, "Number or an object with the field " + id.toname(), app-loc)])
                 end
@@ -1416,6 +1418,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: A.Expr, args :: List<A.Expr>, cont
                   | f-typ == t-number(A.dummy-loc) then: result(l, num-typ-f(fun-loc), out-context)
                   | f-typ == t-string(A.dummy-loc) then: result(l, str-typ-f(fun-loc), out-context)
                   | is-t-record(f-typ) then: result(l, rec-typ-f(fun-loc), out-context)
+                  | is-t-existential(f-typ) then: synthesis-err([list:C.unable-to-infer(f-typ.l)])
                   | otherwise: synthesis-err([list:
                     C.incorrect-type(tostring(f-typ), l, "Number, String or an object with the field " + id.toname(), app-loc)])
                 end

@@ -528,6 +528,13 @@ data CompileError:
           ED.text(" there was not enough information to instantiate the type, "
             + "or the given arguments are incompatible.")]]
     end
+  | unable-to-infer(loc :: A.Loc) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
+          ED.text(". Please add an annotation.")]]
+    end
   | cant-typecheck(reason :: String) with:
     render-reason(self):
       ED.text("This program cannot be type-checked. Please send it to the developers. " +
