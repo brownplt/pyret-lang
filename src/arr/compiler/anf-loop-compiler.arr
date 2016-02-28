@@ -1034,7 +1034,7 @@ compiler-visitor = {
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts)
+    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
