@@ -30,7 +30,7 @@ check "alternative lookups":
   ref-get(b.v) is 5
 
   b2 = { x: 5 }
-  b2!x is 5
+  b2.x is 5
 end
 
 data MultiBox:
@@ -71,7 +71,6 @@ check "update multiple":
   m!v2 is 2
   m!v3 is 3
   m.v4 is 4
-  m!v4 is 4
 
   m!{v1: "v1", v2: "v2", v3: "v3"}
   m!v1 is "v1"
@@ -79,7 +78,6 @@ check "update multiple":
   m!v2 is "v2"
   m!v3 is "v3"
   m.v4 is 4
-  m!v4 is 4
 end
 
 check "update errors":
@@ -91,11 +89,15 @@ check "update errors":
   m!v2 is 2
   m!v3 is 3
   m.v4 is 4
-  m!v4 is 4
 end
 
 check "extend errors":
   m = mbox("a", "b", "c", "d") 
   m.{ v1: "new" } raises "update"
+end
+
+check "lookup error":
+  m = mbox(1, 2, 3, 4)
+  m!v4 raises "non-ref"
 end
 
