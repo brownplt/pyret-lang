@@ -373,6 +373,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(value, "anf_assign", lam(v): k.apply(l, N.a-assign(l, id, v)) end)
 
     | s-obj(l, fields) =>
+
+      # TODO(Oak, 27 Feb 2016): s-mutable-field needs a special treatment so that it's mutable
       exprs = fields.map(get-value)
 
       anf-name-rec(exprs, "anf_obj", lam(ts):

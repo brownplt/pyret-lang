@@ -382,6 +382,9 @@ function getFieldLocInternal(val, field, loc, isBang) {
       return makeFunctionArity(curried, fieldVal.arity - 1);
     }
     else {
+      if(isBang) {
+        ffi.throwMessageException("Got non-ref in bang lookup");
+      }
       return fieldVal;
     }
 }

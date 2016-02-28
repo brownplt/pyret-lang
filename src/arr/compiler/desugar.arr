@@ -151,6 +151,8 @@ fun desugar-member(f):
       A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
+    | s-mutable-field(l, name, ann, value) =>
+      A.s-mutable-field(l, name, desugar-ann(ann), desugar-expr(value))
     | else =>
       raise("NYI(desugar-member): " + torepr(f))
   end
