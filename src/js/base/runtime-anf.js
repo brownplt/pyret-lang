@@ -352,41 +352,42 @@ function isBase(obj) { return obj instanceof PBase; }
   @return {!PBase}
 **/
 function getFieldLocInternal(val, field, loc, isBang) {
-    if(val === undefined) {
-      if (ffi === undefined || ffi.throwInternalError === undefined) {
-        throw ("FFI or ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
-      } else {
-        ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field]));
-      }
+  if(val === undefined) {
+    if (ffi === undefined || ffi.throwInternalError === undefined) {
+      throw ("FFI or ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+    } else {
+      ffi.throwInternalError("Field lookup on undefined ", ffi.makeList([field]));
     }
-    if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
-    var fieldVal = val.dict[field];
-    if(fieldVal === undefined) {
-      if (ffi === undefined || ffi.throwFieldNotFound === undefined) {
-        throw ("FFI or ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
-      } else {
-        throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
-      }
+  }
+  if(!isObject(val)) { ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
+  var fieldVal = val.dict[field];
+  if(fieldVal === undefined) {
+    if (ffi === undefined || ffi.throwFieldNotFound === undefined) {
+      throw ("FFI or ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
+    } else {
+      throw ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
     }
-    else if(isRef(fieldVal)){
-      if(!isBang) {
+  } else {
+    if (isBang) {
+      if (isRef(fieldVal)) {
+        return getRef(fieldVal);
+      } else {
+        ffi.throwMessageException("Got non-ref in bang lookup");
+      }
+    } else {
+      if(isRef(fieldVal)){
         return fieldVal;
         // NOTE(joe Aug 8 2014): This is a design decision whether we
         // want this to be an error or not
         // ffi.throwMessageException("Got ref in dot lookup");
+      } else if(isMethod(fieldVal)){
+        var curried = fieldVal['meth'](val);
+        return makeFunctionArity(curried, fieldVal.arity - 1);
+      } else {
+        return fieldVal;
       }
-      return getRef(fieldVal);
     }
-    else if(isMethod(fieldVal)){
-      var curried = fieldVal['meth'](val);
-      return makeFunctionArity(curried, fieldVal.arity - 1);
-    }
-    else {
-      if(isBang) {
-        ffi.throwMessageException("Got non-ref in bang lookup");
-      }
-      return fieldVal;
-    }
+  }
 }
 
 function getFieldLoc(obj, field, loc) {
