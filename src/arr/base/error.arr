@@ -240,11 +240,33 @@ data RuntimeError:
     end
   | equality-failure(reason :: String, value1, value2) with:
     render-reason(self):
-      [ED.error:
-        [ED.para: ED.text("Attempted to compare the following two incomparable values:")],
-        ED.embed(self.value1),
-        ED.embed(self.value2),
-        [ED.para: ED.text(self.reason)]]
+      value1 = self.value1
+      value2 = self.value2
+      ask:
+        | is-number(value1) and is-number(value2) then:
+          # one (or both) of them must be a roughnum
+          fun within-error(message):
+            [ED.error:
+              [ED.para: ED.text(message)],
+              [ED.para: ED.embed(value1)],
+              [ED.para: ED.embed(value2)],
+              [ED.para: ED.text("Consider using the "),
+              ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
+
+          end
+          if num-is-roughnum(value1) and num-is-roughnum(value2):
+            within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
+          else if num-is-roughnum(value1):
+            within-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:")
+          else if num-is-roughnum(value2):
+            within-error("Attempted to compare an Exactnum to a Roughnum for equality, which is not allowed:")
+          end
+        | otherwise:
+          [ED.error:
+            [ED.para: ED.text("Attempted to compare two incomparable values: ")],
+            [ED.para: ED.embed(self.value1)],
+            [ED.para: ED.embed(self.value2)]]
+     end
     end
 
   | user-break with:

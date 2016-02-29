@@ -566,6 +566,14 @@ t-within-any = t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean
 
 runtime-types = [string-dict:
   "Number", t-top,
+  "Exactnum", t-top,
+  "Roughnum", t-top,
+  "NumInteger", t-top,
+  "NumRational", t-top,
+  "NumPositive", t-top,
+  "NumNegative", t-top,
+  "NumNonPositive", t-top,
+  "NumNonNegative", t-top,
   "String", t-str,
   "Function", t-top,
   "Boolean", t-top,
@@ -750,6 +758,7 @@ standard-imports = extra-imports(
         [list: "Array"]),
       extra-import(builtin("lists"), "lists", [list:
           "list",
+          "is-List",
           "is-empty",
           "is-link",
           "empty",
@@ -786,6 +795,7 @@ standard-imports = extra-imports(
         [list: "List"]),
       extra-import(builtin("option"), "option", [list:
           "Option",
+          "is-Option",
           "is-none",
           "is-some",
           "none",
@@ -796,8 +806,13 @@ standard-imports = extra-imports(
       extra-import(builtin("sets"), "sets", [list:
           "set",
           "tree-set",
-          "list-set"
+          "list-set",
+          "empty-set",
+          "empty-list-set",
+          "empty-tree-set",
+          "list-to-set",
+          "list-to-list-set",
+          "list-to-tree-set"
         ],
         [list: "Set"])
     ])
-
