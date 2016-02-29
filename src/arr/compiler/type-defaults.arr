@@ -112,7 +112,7 @@ fun make-default-typs():
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
-  default-typs.set-now(A.s-global("not").key(), t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
   default-typs.set-now(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))

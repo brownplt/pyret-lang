@@ -1330,13 +1330,14 @@ fun _instantiate-left(subtyp :: Type, supertyp :: Type, context :: Context) -> F
 end
 
 fun lookup-id(blame-loc :: A.Loc, id, context :: Context) -> FoldResult<Type>:
-  id-key = if is-string(id):
-             id
-           else if A.is-Name(id):
-             id.key()
-           else:
-             raise("I don't know how to lookup your id! Received: " + torepr(id))
-           end
+  id-key =
+    if is-string(id):
+      id
+    else if A.is-Name(id):
+      id.key()
+    else:
+      raise("I don't know how to lookup your id! Received: " + torepr(id))
+    end
   if context.has-var-key(id-key):
     fold-result(context.get-var-type(id-key))
   else:
