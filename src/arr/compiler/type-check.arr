@@ -1997,7 +1997,7 @@ fun _least-upper-bound(s :: Type, t :: Type, context :: Context) -> FoldResult<T
             | t-record(s-fields, s-l) =>
               cases(Type) t:
                 | t-record(t-fields, t-l) =>
-                  t-record(meet-fields(s-fields, t-fields, context), t-l)
+                  fold-result(t-record(meet-fields(s-fields, t-fields, context), t-l))
                 | else =>
                   fold-errors([list: C.incorrect-type(tostring(t), t.l, tostring(s), s.l)])
               end
