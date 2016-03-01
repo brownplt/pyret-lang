@@ -13,15 +13,15 @@ data ContractResult:
   | ok with:
     render-reason(self): ED.text("There were no errors") end
   | fail(loc, reason :: FailureReason) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      self.reason.render-fancy-reason(self.loc, false, loc-to-ast, loc-to-src, make-pallet)
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.reason.render-fancy-reason(self.loc, false, loc-to-ast, loc-to-src)
     end,
     render-reason(self):
       self.reason.render-reason(self.loc, false)
     end
   | fail-arg(loc, reason :: FailureReason) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src, make-pallet):
-      self.reason.render-fancy-reason(self.loc, true, loc-to-ast, loc-to-src, make-pallet)
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.reason.render-fancy-reason(self.loc, true, loc-to-ast, loc-to-src)
     end,
     render-reason(self):
       self.reason.render-reason(self.loc, true)
@@ -47,7 +47,7 @@ end
 
 data FailureReason:
   | ref-init(loc, reason :: FailureReason) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       print("ref-init")
       self.render-reason(loc, from-fail-arg)
     end,
@@ -64,25 +64,24 @@ data FailureReason:
           self.reason.render-reason(loc, false)])
     end
   | type-mismatch(val, name :: String) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(1, true, 
         lam(l):
           [ED.error:
             [ED.para:
               ED.text("The runtime contract checker halted execution because the annotation")],
-             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
             [ED.para:
               ED.text("was not satisfied by the value")],
              ED.embed(self.val),
             [ED.para:
               ED.text("which was sent from around")],
-             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], pallet.get(1)))]
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 1))]
         end,
         [ED.error:
           [ED.para:
             ED.text("The runtime contract checker halted execution because the annotation")],
-           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
           [ED.para:
             ED.text("was not satisfied by the value")],
            ED.embed(self.val)])
@@ -104,8 +103,7 @@ data FailureReason:
       end
     end
   | predicate-failure(val, pred-name) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(2)
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(1, true, 
         lam(l):
           [ED.error:
@@ -113,20 +111,20 @@ data FailureReason:
               ED.text("The runtime contract checker halted execution because the predicate "),
               ED.code(ED.text(self.pred-name)),
               ED.text(" in the annotation ")],
-             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
             [ED.para:
               ED.text("was not satisfied by the value")],
              ED.embed(self.val),
             [ED.para:
               ED.text("which was sent from around")],
-             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], pallet.get(1)))]
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 1))]
         end,
         [ED.error:
           [ED.para:
             ED.text("The runtime contract checker halted execution because the predicate "),
             ED.code(ED.text(self.pred-name)),
             ED.text(" in the annotation ")],
-           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], pallet.get(0))),
+           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
           [ED.para:
             ED.text("was not satisfied by the value")],
            ED.embed(self.val)])
@@ -147,8 +145,7 @@ data FailureReason:
       end
     end
   | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(1 + self.field-failures.length())
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       var n = 0
       reasons =
         self.field-failures.map(lam(failure):
@@ -160,7 +157,7 @@ data FailureReason:
                   ED.text("The value was excepted to have a field named "),
                   ED.code(ED.text(ff)),
                   ED.text(" because of the annotation ")],
-                ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], pallet.get(n)))]
+                ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]
             | field-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
           end;) ^ ED.bulleted-sequence
       ED.maybe-stack-loc(1, true, 
@@ -173,7 +170,7 @@ data FailureReason:
              ED.embed(self.val),
             [ED.para:
               ED.text("which was sent from around")],
-             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], pallet.get(0))),
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 0)),
             [ED.para:
               ED.text("because:")],
             reasons]
@@ -200,12 +197,11 @@ data FailureReason:
       ]
     end
   | dot-ann-not-present(name, field) with:
-    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src, make-pallet):
-      pallet = make-pallet(1)
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The runtime contract checker halted execution because the "),
-          ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], pallet.get(0))],
+          ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], 0)],
          # can't highlight individual components since non-top-level
          # expressions can't presently be parsed
          ED.code(

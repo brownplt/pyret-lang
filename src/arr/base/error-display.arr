@@ -19,7 +19,7 @@ data ErrorDisplay:
   | styled(contents :: ErrorDisplay, style :: String)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
   | optional(contents :: ErrorDisplay)
-  | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color)
+  | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color :: Number)
 end
 
 locs = {
