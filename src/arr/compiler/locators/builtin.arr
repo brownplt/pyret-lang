@@ -6,7 +6,6 @@ import builtin-modules as B
 import string-dict as SD
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
-import "compiler/type-structs.arr" as T
 
 mtd = [SD.string-dict:]
 

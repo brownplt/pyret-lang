@@ -15,13 +15,13 @@ import namespace-lib as N
 
 fun add-global-binding(env :: C.CompileEnvironment, name :: String):
   C.compile-env(
-    C.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
+    C.globals(env.globals.values.set(name, TS.t-top(A.dummy-loc)), env.globals.types),
     env.mods)
 end
 
 fun add-global-type-binding(env :: C.CompileEnvironment, name :: String):
   C.compile-env(
-    C.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
+    C.globals(env.globals.values, env.globals.types.set(name, TS.t-top(A.dummy-loc))),
     env.mods)
 end
 
