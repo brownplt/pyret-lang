@@ -784,16 +784,27 @@ data Expr:
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
     args-loc(self):
-      first = self.args.first.l
-      last = self.args.last().l
-      S.srcloc(
-        self.l.source,
-        first.start-line,
-        first.start-column,
-        first.start-char,
-        last.end-line,
-        last.end-column,
-        last.end-char)
+      if is-empty(self.args):
+        S.srcloc(
+          self.l.source,
+          self._fun.l.end-line,
+          self._fun.l.end-column,
+          self._fun.l.end-char,
+          self.l.end-line,
+          self.l.end-column,
+          self.l.end-char)
+      else:
+        first = self.args.first.l
+        last = self.args.last().l
+        S.srcloc(
+          self.l.source,
+          first.start-line,
+          first.start-column,
+          first.start-char,
+          last.end-line,
+          last.end-column,
+          last.end-char)
+      end
     end,
     tosource(self):
       PP.group(self._fun.tosource()
