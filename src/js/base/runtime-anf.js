@@ -1641,7 +1641,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       */
       function(val) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a); }
-        throw new PyretFailException(val);
+        if(thisRuntime.isObject(val) &&
+          (thisRuntime.hasField(val, "render-reason")
+            || thisRuntime.hasField(val, "render-fancy-reason"))){
+          throw new PyretFailException(val);
+        } else {
+          throw new PyretFailException(thisRuntime.ffi.makeUserException(val));
+        }
       };
     /** type {!PFunction} */
     // function raiseUserException(err) {
