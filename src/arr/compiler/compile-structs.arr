@@ -715,8 +715,7 @@ data CompileError:
             [ED.para:
               ED.text("The declaration of the identifier named "),
               ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text(" shadows the declaration of a built-in identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
+              ED.text(" shadows the declaration of a built-in of the same name.")]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
