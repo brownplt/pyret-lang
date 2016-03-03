@@ -176,7 +176,7 @@ Pyret's list are of the head-and-tail variety found in many functional
 languages.  They are most easily written as a comma-separated list of values
 enclosed in square brackets and using the @pyret-id["list" "lists"]
 constructor.  The elements of a list can be accessed through the dot lookup
-expression, via the members called called `first` and `rest`:
+expression, via the members called `first` and `rest`:
 
 @pyret-block{
 check:
