@@ -84,10 +84,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
-         ED.code([ED.sequence:
-          ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], obj-col),
-          ED.text("."),
-          ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col)]),
+         ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
@@ -126,10 +123,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
-         ED.code([ED.sequence:
-          ED.highlight(ED.text(obj-txt), [ED.locs: obj-loc], obj-col),
-          ED.text("."),
-          ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col)]),
+         ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
@@ -163,10 +157,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The object extension expression ")],
-         ED.code([ED.sequence:
-          ED.highlight(ED.text(txt-obj), [ED.locs: obj-loc], obj-col),
-          ED.text("."),
-          ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col)]),
+         ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
@@ -232,12 +223,7 @@ data RuntimeError:
               ED.text("The binary "),
               ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l],1),
               ED.text(" operator expression ")],
-             ED.code([ED.sequence:
-                ED.highlight(ED.text(loc-to-src(left-loc)),  [ED.locs: left-loc],0),
-                ED.text(" "),
-                ED.highlight(ED.text(self.opname),           [ED.locs: binop-ast.op-l],1),
-                ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc],2)]),
+             ED.cmcode(binop-loc),
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -288,12 +274,7 @@ data RuntimeError:
               ED.text("The binary "),
               ED.highlight(ED.text(self.opdesc),[ED.locs: binop-ast.op-l],1),
               ED.text(" operator expression ")],
-             ED.code([ED.sequence:
-                ED.highlight(ED.text(loc-to-src(left-loc)),  [ED.locs: left-loc],0),
-                ED.text(" "),
-                ED.highlight(ED.text(self.opname),                   [ED.locs: binop-ast.op-l],1),
-                ED.text(" "),
-                ED.highlight(ED.text(loc-to-src(right-loc)), [ED.locs: right-loc],2)]),
+             ED.cmcode(binop-loc),
             [ED.para:
               ED.text("expects to be given:"),
               [ED.bulleted:
@@ -336,20 +317,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The cases branch pattern")],
-        [ED.para:
-          ED.code([ED.sequence:
-            ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc],2),
-            cases(Any) ast-branch:
-              | s-cases-branch(loc, pat-loc, name, args, _) =>
-                [ED.sequence:
-                  ED.text("("),
-                  ED.h-sequence(
-                    ast-branch.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l],3);),
-                    ","),
-                  ED.text(")")]
-              | s-singleton-cases-branch(loc, pat-loc, name, _) => ED.text("")
-            end])],
+         ED.cmcode(self.branch-loc),
         [ED.para:
           ED.text("expects that the "),
           ED.code(ED.highlight(ED.text(ast-branch.name), [ED.locs: ast-branch.pat-loc],2)),
@@ -416,15 +384,7 @@ data RuntimeError:
             [ED.error:
               [ED.para:
                 ED.text("The function application expression ")],
-              [ED.para:
-                ED.code([ED.sequence:
-                  ED.highlight(ED.text(fun-app-fun-src), [ED.locs: fun-app-fun-loc],0),
-                  ED.text("("),
-                  ED.h-sequence(
-                    fun-app-ast.args.map(
-                      lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l],1);),
-                    ","),
-                  ED.text(")")])],
+               ED.cmcode(fun-app-loc),
               [ED.para:
                 ED.text("expects the "),
                 ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc],0),
@@ -497,15 +457,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The function application expression ")],
-        [ED.para:
-          ED.code([ED.sequence:
-            ED.highlight(ED.text(fun-src), [ED.locs: fun-loc],0),
-            ED.text("("),
-            ED.h-sequence(
-              app-ast.args.map(
-                lam(arg):ED.highlight(ED.text(loc-to-src(arg.l)), [ED.locs: arg.l],1);),
-              ","),
-            ED.text(")")])],
+         ED.cmcode(self.loc),
         [ED.para:
           ED.text("expects the "),
           ED.highlight(ED.text("applicant"), [ED.locs: fun-loc],0),
