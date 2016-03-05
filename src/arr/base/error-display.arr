@@ -6,7 +6,6 @@ provide-types *
 data ErrorDisplay:
   | paragraph(contents #|:: List<ErrorDisplay>|#)
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)
-  | numbered-sequence(contents #|:: List<ErrorDisplay>|#)
   | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | h-sequence(contents #|:: List<ErrorDisplay>|#, sep :: String)
   | embed(val :: Any)

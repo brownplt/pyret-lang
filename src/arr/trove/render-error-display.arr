@@ -41,10 +41,6 @@ fun display-to-string(e, embed-display, stack):
       contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str("\n")
     | bulleted-sequence(contents) =>
       contents.map(lam(elt): "* " + help(elt) end).join-str("\n")
-    | numbered-sequence(contents) =>
-      for map_n(n from 1, elt from contents):
-        tostring(n) + " " + help(elt)
-      end.join-str("\n")
     | optional(_) => ""
     | highlight(contents, locs, _) => help(ED.loc-display(contents, "", locs.first))
   end
