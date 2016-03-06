@@ -41,9 +41,6 @@ para-nospace = {
 bulleted = {
   make: lam(arr): bulleted-sequence(raw-array-to-list(arr)) end
 }
-numbered = {
-  make: lam(arr): numbered-sequence(raw-array-to-list(arr)) end
-}
 opt = {
   make: lam(arr): optional(v-sequence(raw-array-to-list(arr))) end
 }
