@@ -16,9 +16,14 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     } else if (rt.isFailureResult(result)) {
       var exnStack = result.exn.stack;
       var pyretStack = result.exn.pyretStack;
-      if (rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
+      if (rt.isPyretException(result.exn)) {
         rt.run(function(_, _) {
-          return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
+          if(rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
+            return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
+          }
+          else {
+            return rt.ffi.edEmbed(result.exn.exn);
+          }
         }, rt.namespace, {sync: true}, function(outputResult) {
           if (rt.isFailureResult(outputResult)) {
             console.error('While trying to report that Pyret terminated with an error:\n' + JSON.stringify(result)

@@ -440,6 +440,19 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
         isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
         isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+        vsStr: function(s) {
+          runtime.checkString(s);
+          return runtime.getField(VS, "vs-str").app(s);
+        },
+
+        edEmbed: function(v) {
+          runtime.checkPyretVal(v);
+          return runtime.getField(ED, "embed").app(v);
+        },
+
+        //TODO(joe): add more creation methods for error-display/valueskeleton
+        //here, which are super-useful!
+
         skeletonValues: function(skel) {
           var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
           var isValue = runtime.getField(VS, "is-vs-value");
