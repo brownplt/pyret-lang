@@ -4108,9 +4108,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return m;
           }
           // NOTE(joe): Can we remove this next line?
-//          else if (hasField(m, "values")) {
-//            return m;
-//          }
+          else if (hasField(m, "values")) {
+            return m;
+          }
           else if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
           }
