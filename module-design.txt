@@ -1,0 +1,77 @@
+- Is namespace a necessary argument?  Maybe because of eval-lib it will show
+  up.  Maybe testing repl?  Seems like maybe only used by Pyret, but worth
+  keeping for now.
+
+- getFieldLocInternal should be overwritten with a version that no longer
+  needs to check for ffi once ffi is available
+
+- standalone file design
+
+var staticModules = {
+  "builtin://list": {
+    uri: "builtin://list",
+    provides: ...
+    requires: ...
+    nativeRequires: ...
+    theModule: function(...) { }
+  },
+
+];
+
+var topSorted = ["builtin://list", "builtin://errors", "main"];
+var toLoad = topSorted.map(uri) { return staticModules[uri]; };
+
+runtime.loadModules(toLoad, function(..., main) {
+  printCheckResults(main);
+});
+
+var TROVE_LIST = {
+  provides: ...
+  requires: ...
+  nativeRequires: ...
+  theModule: function(...) { }
+};
+
+var TROVE_ARRAY = {
+}
+
+
+  Seems reasonable to take over from requirejs, manage all deps ourselves,
+  including pure JS
+
+- where does something like d3.js come from
+
+  define(["https://raw.github.com/d3-project/d3.js"], function(d3) {
+    return {
+      provides: ...
+      requires: ...
+      theModule: ...
+    };
+  });
+
+
+  return {
+    provides: ...
+    requires: ...
+    nativeRequires: [
+      { protocol: "requireURl", name: "https://raw.github.com/d3-project/d3.js" }
+    ],
+    theModule: function(runtime, namespace, selfUri, somePyretDep, d3) {
+      
+    }
+  };
+  
+
+- Need to address built-in libraries like filesystem, etc.
+
+  return {
+    provides: ...
+    requires: ...
+    nativeRequires: [
+      { protocol: "node", name: "fs" }
+    ],
+    theModule: function(runtime, namespace, fs) {
+
+    }
+  };
+
