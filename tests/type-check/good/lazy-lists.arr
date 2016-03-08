@@ -1,10 +1,5 @@
 import lists as L
 
-type List = L.List
-empty = L.empty
-link = L.link
-map = L.map
-
 fun d-dx(f :: (Number -> Number)) -> (Number -> (Number -> Number)):
   lam(x :: Number) -> (Number -> Number):
     lam(epsilon :: Number) -> Number:

@@ -57,7 +57,7 @@ fun mockable-file-locator(file-ops):
       end
       |#
     end,
-    get-compiled(self):
+    get-compiled(self, provide-map):
       cpath = self.path + ".js"
       if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
         stimes = file-ops.file-times(self.path)
@@ -68,7 +68,9 @@ fun mockable-file-locator(file-ops):
         cfp = file-ops.input-file(cpath)
         ctimes = file-ops.file-times(cpath)
         if ctimes.mtime > stimes.mtime:
-          ret = some(CL.module-as-string(CS.ok(JSP.ccp-string(cfp.read-file()))))
+          ret = some(CL.module-as-string(
+                CS.compile-env(self.get-globals(), provide-map),
+                CS.ok(JSP.ccp-string(cfp.read-file()))))
           cfp.close-file()
           ret
         else:

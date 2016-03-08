@@ -52,7 +52,8 @@ define(["js/runtime-util", "path"], function(util, path) {
             var s = RUNTIME.unwrap(p);
             var sext = RUNTIME.unwrap(ext);
             return RUNTIME.makeString(path.basename(s, sext));
-        })
+        }),
+        "path-sep": RUNTIME.makeString(path.sep)
       });
       return RUNTIME.makeObject({
           'provide-plus-types': RUNTIME.makeObject({

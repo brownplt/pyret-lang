@@ -10,7 +10,7 @@ define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(lo
       mb("runtime-lib")
     ],
     {
-      values:
+      values: 
         [
           "make-loader",
           "is-success-result",
@@ -54,6 +54,10 @@ define(["js/secure-loader", "js/runtime-util", "trove/runtime-lib"], function(lo
       }
 
       function checkSuccess(mr, field) {
+        if(!mr.val) {
+          console.error(mr);
+          runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.");
+        }
         if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
           console.error(mr.val.result);
           console.error(mr.val.result.exn);

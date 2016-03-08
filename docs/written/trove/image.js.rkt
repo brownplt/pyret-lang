@@ -507,7 +507,7 @@
     Overlays @pyret["img1"] on @pyret["img2"] like 
     @secref[(tag-name "image" "overlay")], but initially lines up the two
     images upper-left corners and then shifts @pyret["img2"] to the right
-    by @pyret["x"] pixels, and then down by @pyret["y"] pixels.
+    by @pyret["dx"] pixels, and then down by @pyret["dy"] pixels.
   }
   @function[
     "underlay"
