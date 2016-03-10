@@ -4145,16 +4145,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
 
-    function loadBaseModules(staticMods, depMap, uris, withModules) {
-      // Assume that uris are in dependency order, so all of their requires are
+    function runStandalone(staticMods, depMap, toLoad, postLoadHooks) {
+      // Assume that toLoad is in dependency order, so all of their requires are
       // already instantiated
-      if(uris.length == 0) {
-        return withModules([]);
+      if(toLoad.length == 0) {
+        return {
+          "complete": "runStandalone completed successfully" 
+        };
       }
       else {
-        var uri = uris[0];
+        var uri = toLoad[0];
         var mod = staticMods[uri];
         console.log(uri, mod);
+
         var reqs = mod.requires;
         if(depMap[uri] === undefined) {
           throw new Error("Module has no entry in depmap: " + uri);
@@ -4174,14 +4177,25 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }, function(r) {
           console.log("Result from module: ", r);
           thisRuntime.modules[uri] = r;
-          return thisRuntime.safeTail(function() {
-            return loadBaseModules(staticMods, depMap, uris.slice(1), function(mods) {
-              var modResult = getExported(r);
-              return withModules([modResult].concat(mods));
+          function continu() {
+            return thisRuntime.safeTail(function() {
+              return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
             });
-          });
+          }
+          if(uri in postLoadHooks) {
+            return thisRuntime.safeCall(function() {
+              return postLoadHooks[uri](r);
+            }, function(_) {
+              return continu();
+            });
+
+          }
+          else {
+            return continu();
+          }
         });
       }
+
     }
 
     function JSModuleReturn(jsmod) {
@@ -4699,7 +4713,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'loadBuiltinModules' : loadBuiltinModules,
         'loadJSModules' : loadJSModules,
 
-        'loadBaseModules' : loadBaseModules,
+        'runStandalone' : runStandalone,
 
         'makeJSModuleReturn' : makeJSModuleReturn,
 

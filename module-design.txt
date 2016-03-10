@@ -5,6 +5,8 @@
 - getFieldLocInternal should be overwritten with a version that no longer
   needs to check for ffi once ffi is available
 
+- Lots of newlines being printed?
+
 - standalone file design
 
 [x] 1. Move srcloc into base/
@@ -17,8 +19,11 @@
     + not doing it, just changing the shape of module funs
   - find nativeRequires using requirejs
     + not done yet
-[/] 5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
-6. New entrypoint to anf-loop-compiler that generates object literals
+[x] 5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
+[/] 6. New entrypoint to anf-loop-compiler that generates object literals
+7. New make-standalone entrypoint in pyret.arr to create full JS files
+8. Edit compile-lib to work with object literal-shaped files
+9. New builtin/legacy-path locators that find source
 
 // runtime_anf?
 // jsnums.js?
