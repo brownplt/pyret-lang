@@ -7,23 +7,71 @@
 
 - standalone file design
 
-var staticModules = {
-  "builtin://list": {
-    uri: "builtin://list",
-    provides: ...
-    requires: ...
-    nativeRequires: ...
-    theModule: function(...) { }
-  },
+[x] 1. Move srcloc into base/
+[x] 2. New copy of ffi-helpers with the right shape
+3. New copy of runtime with "tie the knot" code removed
+4. Write loadBaseModules/loadFlatModules, which will
+  - do the work of memomodule
+  - do any currying massaging necessary to emulate defineModule for pure JS
+  - find nativeRequires using requirejs
+5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
+6. New entrypoint to anf-loop-compiler that generates object literals
 
-];
+// runtime_anf?
+// jsnums.js?
 
-var topSorted = ["builtin://list", "builtin://errors", "main"];
-var toLoad = topSorted.map(uri) { return staticModules[uri]; };
 
-runtime.loadModules(toLoad, function(..., main) {
-  printCheckResults(main);
+define(["runtime.js"], function(runtimeLib) {
+  var staticModules = {
+
+    "builtin://list": {
+      provides: ...
+      requires: ...
+      nativeRequires: ...
+      theModule: function(...) { }
+    },
+
+    "builtinjs://ffi": {
+      provides: ...
+      requires: ...
+      nativeRequires: ...
+      theModule: function(...) {...}
+    }
+
+    ...
+
+  };
+
+  var depMap = {
+    "builtinjs://ffi": {
+      "builtin#lists": "builtin://lists",
+      "relpath#./foo.arr": "file://home/joe/src/foo.arr"
+    }
+  }
+
+  var runtime = runtimeLib.create();
+
+  return runtime.loadBaseModules([list, errors, option, ...], depMap, function(/* intentionally empty */ ) {
+    return runtime.loadBaseModules([ffi-helpers], function(ffi) {
+      runtime.ffi = ...
+      runtime.makeSrcloc = ...
+      var topSorted = ["builtin://list", "builtin://errors", "main"];
+      var toLoad = topSorted.map(uri) { return staticModules[uri]; };
+
+      return runtime.loadFlatModules(toLoad, function(..., main) {
+        printCheckResults(main);
+      });
+    });
+  }
+
 });
+
+
+
+
+
+
+
 
 var TROVE_LIST = {
   provides: ...

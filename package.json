@@ -9,6 +9,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "mustache": "^0.8.1",
     "jasmine-node": "1.14.5",
     "sweet.js": "~0.4.2",
     "jquery": "~2.1.0",
