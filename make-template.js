@@ -25,11 +25,14 @@ var mods = [
 "valueskeleton",
 
 "ffi"
+
 ];
 
 mods.forEach(function(m) {
   modules[m.replace("-", "_") + "_js"] = fileToString("build/phaseA/trove/" + m + ".js");
 });
+
+modules["hello_js"] = fileToString("build/phaseA/hello.js");
 
 process.stdout.write(mustache.render(fileContents, modules));
 

@@ -116,7 +116,7 @@ fun main(args):
               ignore-unbound: false,
               proper-tail-calls: tail-calls
             })
-          failures = filter(CS.is-err, result)
+          failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
             for each(f from failures):
               for lists.each(e from f.errors):

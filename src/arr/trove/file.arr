@@ -5,7 +5,8 @@ provide {
   output-file : output-file,
   file-exists: file-exists,
   file-times: file-times,
-  file-to-string: file-to-string
+  file-to-string: file-to-string,
+  real-path: F.real-path
 } end
 provide-types *
 
@@ -15,7 +16,8 @@ data File:
   | in-fd(inner-file :: Any) with:
     read-line(self): F.read-line(self.inner-file) end,
     read-file(self): F.read-file(self.inner-file) end,
-    close-file(self): F.close-input-file(self.inner-file) end
+    close-file(self): F.close-input-file(self.inner-file) end,
+    full-path(self): F.real-path(self.inner-file) end
   | out-fd(inner-file :: Any) with:
     display(self, val): F.display(self.inner-file, val) end,
     close-file(self): F.close-output-file(self.inner-file) end,

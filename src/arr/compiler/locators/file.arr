@@ -80,7 +80,7 @@ fun mockable-file-locator(file-ops):
         none
       end
     end,
-    uri(self): "file://" + self.path end,
+    uri(self): "file://" + F.real-path(self.path) end,
     name(self): self.path end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end
   } end

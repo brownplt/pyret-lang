@@ -14,7 +14,9 @@ require(["runtime"], function(runtimeLib) {
     "builtin://sets": {{{ sets_js }}},
     "builtin://srcloc": {{{ srcloc_js }}},
     "builtin://valueskeleton": {{{ valueskeleton_js }}},
-    "builtinjs://ffi": {{{ ffi_js }}}
+    "builtinjs://ffi": {{{ ffi_js }}},
+
+    "file:///home/jpolitz/src/pyret-lang-nh/hello.arr": {{{ hello_js }}}
   };
 
   var depMap = {
@@ -66,10 +68,19 @@ require(["runtime"], function(runtimeLib) {
       "builtin(contracts)": "builtin://contracts",
       "builtin(error-display)": "builtin://error-display",
       "builtin(valueskeleton)": "builtin://valueskeleton"
+    },
+    "file:///home/jpolitz/src/pyret-lang-nh/hello.arr": {
+      "builtin(arrays)": "builtin://arrays",
+      "builtin(option)": "builtin://option",
+      "builtin(sets)": "builtin://sets",
+      "builtin(lists)": "builtin://lists",
+      "builtin(error)": "builtin://error"
     }
   };
 
-  var runtime = runtimeLib.makeRuntime({});
+  var runtime = runtimeLib.makeRuntime({
+    stdout: function(s) { console.log(s); } 
+  });
 
   var baseToLoad = [
     // 0 dependencies
@@ -92,8 +103,13 @@ require(["runtime"], function(runtimeLib) {
 
   return runtime.loadBaseModules(staticModules, depMap, baseToLoad,  function(/* empty */) {
     console.log("Loaded option");
+    runtime.srcloc = runtime.getField(runtime.getField(runtime.modules["builtin://srcloc"], "provide-plus-types"), "values");
     return runtime.loadBaseModules(staticModules, depMap, ["builtinjs://ffi"],  function(ffi) {
       console.log("Loaded justopt: ", ffi);
+      runtime["ffi"] = ffi;
+      return runtime.loadBaseModules(staticModules, depMap, ["file:///home/jpolitz/src/pyret-lang-nh/hello.arr"], function(ans) {
+        console.log("Answer is: ", ans);
+      })
     });
   })
 
