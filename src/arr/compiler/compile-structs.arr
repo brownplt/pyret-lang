@@ -593,7 +593,8 @@ default-compile-options = {
   allow-shadowed : false,
   collect-all: false,
   ignore-unbound: false,
-  proper-tail-calls: true
+  proper-tail-calls: true,
+  compile-module: false
 }
 
 t-pred = t-arrow([list: t-top], t-boolean)

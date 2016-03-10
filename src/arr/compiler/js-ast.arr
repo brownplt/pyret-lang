@@ -295,6 +295,13 @@ data JExpr:
     tosource(self):
       PP.surround(INDENT, 1, PP.str("("), self.exp.tosource(), PP.str(")"))
     end
+  | j-raw-code(s :: String) with:
+    print-ugly-source(self, printer):
+      printer(self.s)
+    end,
+    tosource(self):
+      PP.str(self.s)
+    end
   | j-unop(exp :: JExpr, op :: JUnop) with:
     label(self): "j-unop" end,
     print-ugly-source(self, printer):

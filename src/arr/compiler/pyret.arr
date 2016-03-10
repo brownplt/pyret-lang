@@ -22,10 +22,14 @@ fun main(args):
   options = [D.string-dict:
     "compile-module-js",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+    "build-standalone",
+      C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
+      C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
+    "builtin-dir",
+      C.next-val(C.String, C.once, "Directory to find the source of builtin modules"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
@@ -106,7 +110,9 @@ fun main(args):
             raise("There were compilation errors")
         end
       else:
-        if r.has-key("build"):
+        if r.has-key("build-standalone"):
+          CLI.build-standalone(r.get-value("build-standalone"), CS.default-compile-options)
+        else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
             {
               check-mode : check-mode,

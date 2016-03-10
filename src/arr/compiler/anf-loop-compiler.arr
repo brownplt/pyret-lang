@@ -1444,6 +1444,206 @@ end
 
 fun import-key(i): AU.import-to-dep-anf(i).key() end
 
+fun compile-module(self, l, imports-in, prog, freevars, env):
+  shadow freevars = freevars.unfreeze()
+  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
+  imports = imports-in.sort-by(
+      lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
+      lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
+    )
+
+  for each(i from imports):
+    freevars.remove-now(i.vals-name.key())
+    freevars.remove-now(i.types-name.key())
+  end
+
+  import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
+
+  for each(i from imports):
+    for each(v from i.values):
+      import-keys.vs.set-now(v.key(), v)
+    end
+    for each(t from i.types):
+      import-keys.ts.set-now(t.key(), t)
+    end
+  end
+
+  free-ids = freevars.keys-list-now().map(freevars.get-value-now(_))
+  module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
+  global-binds = for CL.map_list(n from module-and-global-binds.is-false):
+    bind-name = cases(A.Name) n:
+      | s-global(s) => n.toname()
+      | s-type-global(s) => type-name(n.toname())
+    end
+    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+  end
+  module-binds = for CL.map_list(n from module-and-global-binds.is-true):
+    bind-name = cases(A.Name) n:
+      | s-atom(_, _) =>
+        if import-keys.vs.has-key-now(n.key()):
+          n.toname()
+        else if import-keys.ts.has-key-now(n.key()):
+          type-name(n.toname())
+        else:
+          raise("Unaware of imported name: " + n.key())
+        end
+    end
+    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+  end
+  fun clean-import-name(name):
+    if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
+    else: js-id-of(name)
+    end
+  end
+  ids = imports.map(lam(i): clean-import-name(i.vals-name) end)
+  type-imports = imports.filter(N.is-a-import-complete)
+  type-ids = type-imports.map(lam(i): clean-import-name(i.types-name) end)
+  module-locators = imports.map(lam(i):
+    cases(N.AImportType) i.import-type:
+      | a-import-builtin(_, name) => CS.builtin(name)
+      | a-import-file(_, file) => CS.dependency("legacy-path", [list: file])
+      | a-import-special(_, typ, args) => CS.dependency(typ, args)
+    end
+  end)
+  filenames = imports.map(lam(i):
+      cases(N.AImportType) i.import-type:
+        | a-import-builtin(_, name) => "trove/" + name
+        | a-import-file(_, file) => file
+        | a-import-special(_, typ, args) =>
+          if typ == "my-gdrive":
+            "@my-gdrive/" + args.first
+          else if typ == "shared-gdrive":
+            "@shared-gdrive/" + args.first + "/" + args.rest.first
+          else if typ == "js-http":
+            "@js-http/" + args.first
+          else if typ == "gdrive-js":
+            "@gdrive-js/" + args.first + "/" + args.rest.first
+          else:
+            # NOTE(joe): under new module loading, this doesn't actually matter
+            # NOTE(joe): yes it does, this is how we get a serialized rep of
+            # the dependencies for the next time we need to check it
+            CS.dependency(typ, args).key()
+          end
+      end
+    end)
+  # this needs to be freshened to support multiple repl interactions with the "same" source
+  module-id = fresh-id(compiler-name(l.source)).tosourcestring()
+  module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
+  input-ids = CL.map_list(lam(i):
+      if A.is-s-atom(i) and (i.base == "$import"): js-names.make-atom("$$import")
+      else: js-id-of(compiler-name(i.toname()))
+      end
+    end, ids)
+  fun wrap-modules(modules, body-name, body-fun):
+    mod-input-names = CL.map_list(_.input-id, modules)
+    mod-input-ids = mod-input-names.map(j-id)
+    mod-input-ids-list = mod-input-ids.to-list()
+    mod-val-ids = modules.map(get-id)
+    moduleVal = const-id("moduleVal")
+    j-block(
+      for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
+        if (in.id.base == "$$import"): acc
+        else: acc ^ cl-snoc(_, j-var(m, rt-method("getField", [clist: in, j-str("values")])))
+        end
+      end +
+      for lists.fold2(acc from cl-empty, mt from type-ids, in from mod-input-ids-list):
+        if (in.id.base == "$$import"): acc
+        else: acc ^ cl-snoc(_, j-var(mt, rt-method("getField", [clist: in, j-str("types")])))
+        end
+      end +
+      for CL.map_list(m from modules):
+        j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",
+          [clist:
+            NAMESPACE,
+            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.values)),
+            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
+            j-id(m.input-id)])))
+      end +
+      module-binds +
+      [clist: 
+        j-var(body-name, body-fun),
+        j-return(rt-method(
+            "safeCall", [clist: 
+              j-id(body-name),
+              j-fun([clist: moduleVal],
+                j-block([clist: 
+                    j-expr(j-bracket-assign(rt-field("modules"), j-str(module-id), j-id(moduleVal))),
+                    j-return(j-id(moduleVal))
+                  ])),
+              j-str("Evaluating " + body-name.toname())
+        ]))])
+  end
+  module-specs = for map3(i from imports, id from ids, in-id from input-ids.to-list()):
+    { id: id, input-id: in-id, imp: i}
+  end
+  var locations = cl-empty
+  var loc-count = 0
+  var loc-cache = D.make-mutable-string-dict()
+  LOCS = const-id("L")
+  fun get-loc(shadow l :: Loc):
+    as-str = l.key()
+    if loc-cache.has-key-now(as-str):
+      loc-cache.get-value-now(as-str)
+    else:
+      ans = j-bracket(j-id(LOCS), j-num(loc-count))
+      loc-cache.set-now(as-str, ans)
+      loc-count := loc-count + 1
+      locations := cl-snoc(locations, obj-of-loc(l))
+      ans
+    end
+  end
+
+  fun wrap-new-module(module-body):
+    module-locators-as-js = for CL.map_list(m from module-locators):
+      cases(CS.Dependency) m:
+        | builtin(name) =>
+          j-obj([clist:
+            j-field("import-type", j-str("builtin")),
+            j-field("name", j-str(name))])
+        | dependency(protocol, args) =>
+          j-obj([clist:
+            j-field("import-type", j-str("dependency")),
+            j-field("protocol", j-str(protocol)),
+            j-field("args", j-list(true, CL.map_list(j-str, args)))])
+      end
+    end
+    # NOTE(joe): intentionally empty until we can generate the right
+    # type information
+    provides-obj = j-obj([clist:
+      j-field("values", j-obj([clist:])),
+      j-field("aliases", j-obj([clist:])),
+      j-field("datatypes", j-obj([clist:]))
+    ])
+    j-parens(j-obj([clist:
+        j-field("requires", j-list(true, module-locators-as-js)),
+        j-field("provides", provides-obj),
+        j-field("nativeRequires", j-list(true, [clist:])),
+        j-field(
+            "theModule",
+            j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
+              module-body))
+      ]))
+  end
+
+  step = fresh-id(compiler-name("step"))
+  toplevel-name = fresh-id(compiler-name("toplevel"))
+  apploc = fresh-id(compiler-name("al"))
+  resumer = compiler-name("resumer")
+  resumer-bind = N.a-bind(l, resumer, A.a-blank)
+  visited-body = compile-fun-body(l, step, toplevel-name,
+    self.{get-loc: get-loc, cur-apploc: apploc, resumer: resumer}, # resumer gets js-id-of'ed in compile-fun-body
+    [list: resumer-bind], none, prog, true)
+  toplevel-fun = j-fun([clist: formal-shadow-name(resumer)], visited-body)
+  define-locations = j-var(LOCS, j-list(true, locations))
+  module-body = j-block(
+#                    [clist: j-expr(j-str("use strict"))] +
+                    mk-abbrevs(l) +
+                    [clist: define-locations] + 
+                    global-binds +
+                    [clist: wrap-modules(module-specs, toplevel-name, toplevel-fun)])
+  wrap-new-module(module-body)
+end
+
 fun compile-program(self, l, imports-in, prog, freevars, env):
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
@@ -1660,7 +1860,11 @@ fun non-splitting-compiler(env, options):
     a-program(self, l, _, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
-      compile-program(self, l, imports, simplified, freevars, env)
+      if options.compile-module:
+        compile-module(self, l, imports, simplified, freevars, env)
+      else:
+        compile-program(self, l, imports, simplified, freevars, env)
+      end
     end
   }
 end
