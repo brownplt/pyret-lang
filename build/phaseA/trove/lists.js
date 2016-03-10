@@ -1,5 +1,5 @@
-{"name":"$src/arr/base/lists.arr32",
-"dependencies":[{"import-type":"builtin",
+({"name":"$src/arr/base/lists.arr32",
+"requires":[{"import-type":"builtin",
 "name":"either"},
 {"import-type":"builtin",
 "name":"equality"},
@@ -1070,7 +1070,6 @@ var raw$array$set20 = NAMESPACE.get("raw-array-set");
 var raw$array$of21 = NAMESPACE.get("raw-array-of");
 var raw$array$to$list22 = NAMESPACE.get("raw-array-to-list");
 var builtins23 = NAMESPACE.get("builtins");
-return R.loadModulesNew(NAMESPACE,[$E33,$equality34,$O35,$VS36],function($E33,$equality34,$O35,$VS36) {
 var E24 = R.getField($E33,"values");
 var equality25 = R.getField($equality34,"values");
 var O26 = R.getField($O35,"values");
@@ -12982,5 +12981,4 @@ return R.safeCall($toplevel38,function(moduleVal) {
 R.modules["$src/arr/base/lists.arr32"] = moduleVal;
 return moduleVal;
 },"Evaluating $toplevel");
-});
-}}
+}})

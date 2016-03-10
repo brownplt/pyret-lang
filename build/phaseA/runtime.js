@@ -303,6 +303,8 @@ function isBase(obj) { return obj instanceof PBase; }
     "valueskeleton": function(val, output, pushTodo) {
       // NOTE: this is the eager version;
       // a lazy version would skip getting the skeleton values altogether
+      console.trace();
+      throw new Error("How did we get here?");
       var values = thisRuntime.ffi.skeletonValues(output);
       pushTodo(undefined, val, undefined, values, "render-valueskeleton",
                { skeleton: output });
@@ -4134,6 +4136,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
       // TODO(joe): match this to other kinds of serialized dependency
     }
 
+    function getExported(m) {
+      if(isJSModReturn(m)) {
+        return m.jsmod;
+      }
+      else {
+        return thisRuntime.getField(m, "provide-plus-types");
+      }
+    }
+
     function loadBaseModules(staticMods, depMap, uris, withModules) {
       // Assume that uris are in dependency order, so all of their requires are
       // already instantiated
@@ -4145,12 +4156,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var mod = staticMods[uri];
         console.log(uri, mod);
         var reqs = mod.requires;
+        if(depMap[uri] === undefined) {
+          throw new Error("Module has no entry in depmap: " + uri);
+        }
         var reqInstantiated = reqs.map(function(d) {
           var duri = depMap[uri][depToString(d)];
           if(duri === undefined) {
-            throw "Module not found in depmap: " + depToString(d);
+            throw new Error("Module not found in depmap: " + depToString(d) + " while loading " + uri);
           }
-          return thisRuntime.modules[duri];
+          if(thisRuntime.modules[duri] === undefined) {
+            throw new Error("Module not loaded yet: " + depToString(d) + " while loading " + uri);
+          }
+          return getExported(thisRuntime.modules[duri]);
         });
         return thisRuntime.safeCall(function() {
           return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated));
@@ -4159,11 +4176,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
           thisRuntime.modules[uri] = r;
           return thisRuntime.safeTail(function() {
             return loadBaseModules(staticMods, depMap, uris.slice(1), function(mods) {
-              return withModules([r].concat(mods));
+              var modResult = getExported(r);
+              return withModules([modResult].concat(mods));
             });
           });
         });
       }
+    }
+
+    function JSModuleReturn(jsmod) {
+      this.jsmod = jsmod;
+    }
+    function isJSModReturn(v) {
+      return v instanceof JSModuleReturn;
+    }
+    function makeJSModuleReturn(jsmod) {
+      return new JSModuleReturn(jsmod);
     }
 
     function makeBrandPredicate(loc, brand, predName) {
@@ -4672,6 +4700,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'loadJSModules' : loadJSModules,
 
         'loadBaseModules' : loadBaseModules,
+
+        'makeJSModuleReturn' : makeJSModuleReturn,
 
         'addModuleToNamespace' : addModuleToNamespace,
 

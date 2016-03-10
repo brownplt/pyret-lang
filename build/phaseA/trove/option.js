@@ -1,4 +1,4 @@
-{"name":"$src/arr/base/option.arr3",
+({"name":"$src/arr/base/option.arr3",
 "requires":[],
 "dependencies":[],
 "provides":{"values":{},
@@ -37,7 +37,6 @@ var L = [[M,8,42,113,8,43,114],
 [M,3,0,13,31,3,755]];
 var builtins1 = NAMESPACE.get("builtins");
 var nothing2 = NAMESPACE.get("nothing");
-return R.loadModulesNew(NAMESPACE,[],function() {
 var $toplevel5 = function($$resumer85) {
 var $step4 = 0;
 var $ans7 = D;
@@ -477,5 +476,4 @@ return R.safeCall($toplevel5,function(moduleVal) {
 R.modules["$src/arr/base/option.arr3"] = moduleVal;
 return moduleVal;
 },"Evaluating $toplevel");
-});
-}}
+}})

@@ -9,11 +9,27 @@ function fileToString(f) {
 
 var fileContents = fileToString(fileIn);
 
-var option = fileToString("build/phaseA/trove/option.js");
-var justOpt = fileToString("build/phaseA/trove/just-option.js");
+var modules = {};
+var mods = [
+"arrays",
+"contracts",
+"either",
+"error",
+"error-display",
+"equality",
+"lists",
+"option",
+"pick",
+"sets",
+"srcloc",
+"valueskeleton",
 
-process.stdout.write(mustache.render(fileContents, {
-  OPTION: option,
-  JUSTOPTION: justOpt
-}));
+"ffi"
+];
+
+mods.forEach(function(m) {
+  modules[m.replace("-", "_") + "_js"] = fileToString("build/phaseA/trove/" + m + ".js");
+});
+
+process.stdout.write(mustache.render(fileContents, modules));
 

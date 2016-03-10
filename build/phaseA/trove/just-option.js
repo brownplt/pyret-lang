@@ -1,4 +1,4 @@
-{
+({
   provides: {},
   requires: [
     { "import-type": "builtin", name: "option" },
@@ -9,4 +9,4 @@
       option: option
     }
   }
-}
+})

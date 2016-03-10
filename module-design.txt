@@ -9,12 +9,15 @@
 
 [x] 1. Move srcloc into base/
 [x] 2. New copy of ffi-helpers with the right shape
-3. New copy of runtime with "tie the knot" code removed
-4. Write loadBaseModules/loadFlatModules, which will
+[/] 3. New copy of runtime with "tie the knot" code removed
+[/] 4. Write loadBaseModules/loadFlatModules, which will
   - do the work of memomodule
+    + done by assigning into modules via URI
   - do any currying massaging necessary to emulate defineModule for pure JS
+    + not doing it, just changing the shape of module funs
   - find nativeRequires using requirejs
-5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
+    + not done yet
+[/] 5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
 6. New entrypoint to anf-loop-compiler that generates object literals
 
 // runtime_anf?
