@@ -8,6 +8,7 @@ import "compiler/compile.arr" as CM
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/cli-module-loader.arr" as CLI
+import "compiler/locators/builtin.arr" as B
 import format as Format
 import either as E
 import "compiler/initialize-trove.arr" as IT
@@ -66,6 +67,9 @@ fun main(args):
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
+      when r.has-key("builtin-dir"):
+        B.set-builtin-dir(r.get-value("builtin-dir"))
+      end
       if not(is-empty(rest)):
         program-name = rest.first
         var result = CM.compile-js(

@@ -138,7 +138,7 @@ fun build-standalone(path, options):
     loadable = compiled.modules.get-value-now(w.locator.uri())
     cases(CL.Loadable) loadable:
       | module-as-string(_, _, rp) =>
-        j-field(w.locator.uri(), J.j-raw-code(rp.pyret-to-js-runnable()))
+        j-field(w.locator.uri(), J.j-raw-code(rp.code.pyret-to-js-runnable()))
       | pre-loaded(provides, _, _) =>
         raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
     end
@@ -147,25 +147,26 @@ fun build-standalone(path, options):
   depmap = j-obj(for C.map_list(w from wl):
     deps = w.dependency-map
     j-field(w.locator.uri(),
-      j-obj(for C.map_list(k from deps.keys-now()):
-        j-field(k, deps.get-value-now(k).uri())
+      j-obj(for C.map_list(k from deps.keys-now().to-list()):
+        j-field(k, j-str(deps.get-value-now(k).uri()))
       end))
   end)
 
-  to-load = for C.map_list(w from wl):
+  to-load = j-list(false, for C.map_list(w from wl):
     j-str(w.locator.uri())
-  end
+  end)
 
   prog = j-block([clist:
-    j-app(define-name, [clist:], j-fun([clist:],
+    j-app(define-name, [clist: j-list(true, [clist:]), j-fun([clist:],
         j-block([clist:
-          j-obj([clist:
+          j-return(j-obj([clist:
             j-field("staticModules", static-modules),
             j-field("depMap", depmap),
             j-field("toLoad", to-load)
-          ])
-        ])))
+          ]))
+        ]))
       ])
+    ])
 
   print(prog.tosource().pretty(80).join-str("\n"))
 end

@@ -1,5 +1,6 @@
 provide {
-  make-builtin-locator: make-builtin-locator
+  make-builtin-locator: make-builtin-locator,
+  set-builtin-dir: set-builtin-dir
 } end
 import namespace-lib as N
 import builtin-modules as B
@@ -7,6 +8,7 @@ import string-dict as SD
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 import "compiler/type-structs.arr" as T
+import "compiler/js-of-pyret.arr" as JSP
 
 mtd = [SD.string-dict:]
 
@@ -34,8 +36,14 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
+var default-builtin-dir = "build/phase1/trove/"
+
+fun set-builtin-dir(s :: String):
+  default-builtin-dir := s
+end
+
 fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
-  raw = B.builtin-raw-locator(builtin-name)  
+  raw = B.builtin-raw-locator(default-builtin-dir + builtin-name)  
   {
     needs-compile(_, _): false end,
     get-module(_): 
@@ -66,7 +74,7 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.pre-loaded(provs, CM.minimal-builtins, raw.get-raw-compiled()))
+      some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
     end,
 
     _equals(self, other, req-eq):
