@@ -139,34 +139,29 @@ end
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
-      advs = for map(dv from dvs):
-        aval = cases(A.Expr) dv.value:
-          | s-id(shadow l, id) => N.a-id(l, id)
-          | s-id-var(shadow l, id) => N.a-id-var(l, id)
-          | s-id-letrec(shadow l, id, safe) => N.a-id-letrec(l, id, safe)
-          | else => raise("Got non-id in defined-value list " + torepr(dv))
-        end
-        N.a-defined-value(dv.name, aval)
-      end
       adts = for map(dt from dts):
         N.a-defined-type(dt.name, dt.typ)
       end
-      anf-name(answer, "answer", lam(ans):
-          anf-name(provides, "provides", lam(provs):
-              anf-name(checks, "checks", lam(chks):
-                  k.apply(l, N.a-module(l, ans, advs, adts, provs, types, chks))
-                end)
-            end)
-        end)
+      anf-name-rec(dvs.map(_.value), "defined_value", lam(advs):
+        shadow advs = for map2(name from dvs.map(_.name), adv from advs):
+          N.a-defined-value(name, adv)
+        end
+
+        anf-name(answer, "answer", lam(ans):
+            anf-name(provides, "provides", lam(provs):
+                anf-name(checks, "checks", lam(chks):
+                    k.apply(l, N.a-module(l, ans, advs, adts, provs, types, chks))
+                  end)
+              end)
+          end)
+        
+      end)
     | s-num(l, n) => k.apply(l, N.a-val(l, N.a-num(l, n)))
     | s-frac(l, num, den) => k.apply(l, N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k.apply(l, N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k.apply(l, N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k.apply(l, N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k.apply(l, N.a-val(l, N.a-id(l, id)))
-    | s-id-var(l, id) => k.apply(l, N.a-val(l, N.a-id-var(l, id)))
-    | s-id-letrec(l, id, safe) =>
-      k.apply(l, N.a-val(l, N.a-id-letrec(l, id, safe)))
     | s-srcloc(l, loc) => k.apply(l, N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body) =>
       cases(List) binds:
@@ -365,6 +360,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
     | s-ref(l, ann) =>
       k.apply(l, N.a-ref(l, ann))
+
+    | s-id-var(l, id) =>
+      k.apply(l, N.a-id-var(l, id))
+
+    | s-id-letrec(l, id, safe) =>
+      k.apply(l, N.a-id-letrec(l, id, safe))
 
     | s-get-bang(l, obj, field) =>
       anf-name(obj, "anf_get_bang", lam(t): k.apply(l, N.a-get-bang(l, t, field)) end)

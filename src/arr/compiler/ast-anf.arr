@@ -302,6 +302,12 @@ data ALettable:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
+  | a-id-var(l :: Loc, id :: A.Name) with:
+    label(self): "a-id-var" end,
+    tosource(self): PP.str("!" + tostring(self.id)) end
+  | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
+    label(self): "a-id-letrec" end,
+    tosource(self): PP.str("~" + tostring(self.id)) end
   | a-cases(l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr) with:
     label(self): "a-cases" end,
     tosource(self):
@@ -445,12 +451,6 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     label(self): "a-id" end,
     tosource(self): PP.str(tostring(self.id)) end
-  | a-id-var(l :: Loc, id :: A.Name) with:
-    label(self): "a-id-var" end,
-    tosource(self): PP.str("!" + tostring(self.id)) end
-  | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
-    label(self): "a-id-letrec" end,
-    tosource(self): PP.str("~" + tostring(self.id)) end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -530,6 +530,8 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-lam(dummy-loc, args, ret, strip-loc-expr(body))
     | a-method(_, args, ret, body) =>
       a-method(dummy-loc, args, ret, strip-loc-expr(body))
+    | a-id-var(_, id) => a-id-var(dummy-loc, id)
+    | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
     | a-val(_, v) =>
       a-val(dummy-loc, strip-loc-val(v))
   end
@@ -549,8 +551,6 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
-    | a-id-var(_, id) => a-id-var(dummy-loc, id)
-    | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
   end
 end
 
@@ -888,6 +888,12 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-dot(_, obj, _) => freevars-v-acc(obj, seen-so-far)
     | a-colon(_, obj, _) => freevars-v-acc(obj, seen-so-far)
     | a-get-bang(_, obj, _) => freevars-v-acc(obj, seen-so-far)
+    | a-id-var(_, id) => 
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
+    | a-id-letrec(_, id, _) => 
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
     | a-val(_, v) => freevars-v-acc(v, seen-so-far)
     | else => raise("Non-lettable in freevars-l " + torepr(e))
   end
@@ -900,12 +906,6 @@ end
 fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(AVal) v:
     | a-id(_, id) => 
-      seen-so-far.set-now(id.key(), id)
-      seen-so-far
-    | a-id-var(_, id) => 
-      seen-so-far.set-now(id.key(), id)
-      seen-so-far
-    | a-id-letrec(_, id, _) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far
