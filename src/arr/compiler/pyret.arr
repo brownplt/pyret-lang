@@ -84,7 +84,8 @@ fun main(args):
             collect-all: false,
             type-check: type-check,
             ignore-unbound: false,
-            proper-tail-calls: tail-calls
+            proper-tail-calls: tail-calls,
+            compile-module: false
           }
           ).result
         cases(CS.CompileResult) result:
@@ -124,7 +125,8 @@ fun main(args):
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
-              proper-tail-calls: tail-calls
+              proper-tail-calls: tail-calls,
+              compile-module: false # weird, but accurate for now
             })
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
@@ -144,6 +146,7 @@ fun main(args):
               collect-all: false,
               ignore-unbound: false,
               proper-tail-calls: true,
+              compile-module: false
             })
         else if r.has-key("compile-module-js"):
           var result = CM.compile-js(
@@ -158,7 +161,8 @@ fun main(args):
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
-              proper-tail-calls: tail-calls
+              proper-tail-calls: tail-calls,
+              compile-module: false # weird, but accurate for now
             }
             ).result
           cases(CS.CompileResult) result:

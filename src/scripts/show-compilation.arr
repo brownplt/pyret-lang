@@ -54,7 +54,8 @@ cases (C.ParsedArguments) parsed-options:
             collect-all: true,
             ignore-unbound: true,
             type-check: type-check,
-            proper-tail-calls: true
+            proper-tail-calls: true,
+            compile-module: false
           }).tolist()
 
         for each(phase from comp):
