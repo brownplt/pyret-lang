@@ -194,7 +194,7 @@ data CompileError:
           ED.text("Well-formedness:"),
           ED.text(self.msg),
           ED.text("at")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     render-reason(self):
@@ -212,7 +212,7 @@ data CompileError:
           ED.text("Well-formedness: Pyret disallows the use of"),
           ED.code(ED.text(self.id)),
           ED.text("as an identifier")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | zero-fraction(loc, numerator) with:
     render-reason(self):
@@ -221,19 +221,19 @@ data CompileError:
           ED.text("Well-formedness: fraction literal with zero denominator (numerator was"),
           ED.val(self.numerator),
           ED.text(") at")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
-        draw-and-highlight(self.l)]
+        [ED.para: draw-and-highlight(self.l)]]
     end
   | underscore-as-ann(l :: Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
-        draw-and-highlight(self.l)]
+        [ED.para: draw-and-highlight(self.l)]]
     end
   | unbound-id(id :: A.Expr) with:
     render-reason(self):
@@ -241,13 +241,13 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.id.id.toname()),
+            ED.text(self.id.id.toname()), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The name"), ED.code(ED.text(self.id.id.toname())), ED.text("is used but not defined at")],
-            draw-and-highlight(self.id.l)]
+            [ED.para: draw-and-highlight(self.id.l)]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
@@ -256,13 +256,13 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.id),
+            ED.text(self.id), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The variable"), ED.code(ED.text(self.id)), ED.text("is assigned to, but not defined, at")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
@@ -271,21 +271,21 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)),
+            ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The name"), ED.code(ED.text(self.ann.id.toname())),
               ED.text("is used as a type but not defined as one, at")],
-            draw-and-highlight(self.ann.l)]
+            [ED.para: draw-and-highlight(self.ann.l)]]
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     render-reason(self):
       #### TODO ###
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Identifier "),
           ED.text(tostring(self.name)),
           ED.text(" is used in a dot-annotation at "),
@@ -305,7 +305,7 @@ data CompileError:
             [ED.para:
               ED.text("Defining an anonymous variable is pointless: there is no name to modify."),
               ED.text("Either give this expression a name, or bind it to an identifier rather than a variable.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | pointless-rec(loc :: Loc) with:
@@ -321,7 +321,7 @@ data CompileError:
             [ED.para:
               ED.text("Defining an anonymous recursive identifier is pointless: there is no name to call recursively."),
               ED.text("Either give this expression a name, or remove the rec annotation.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | pointless-shadow(loc :: Loc) with:
@@ -337,7 +337,7 @@ data CompileError:
             [ED.para:
               ED.text("Anonymous identifier cannot shadow anything: there is no name to shadow."),
               ED.text("Either give this expression a name, or remove the shadow annotation.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
@@ -382,8 +382,8 @@ data CompileError:
             [ED.para:
               ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
               ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
+            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
@@ -420,8 +420,8 @@ data CompileError:
             [ED.para:
               ED.text("It looks like you've defined the field name"), ED.code(ED.text(self.id)),
               ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
+            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
