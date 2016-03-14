@@ -841,12 +841,14 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
 
         all-shared-fields = map(member-to-t-member, shared-members) + shared-across-variants
 
-        T.t-data(
+        T.t-forall(
           tvars,
-          tvariants,
-          all-shared-fields,
-          l
-        )
+          T.t-data(
+            name,
+            tvariants,
+            all-shared-fields,
+            l),
+          l)
     end
   end
   cases(A.Program) resolved.ast:
@@ -903,17 +905,6 @@ fun canonicalize-variant(v :: T.TypeVariant, uri :: URI) -> T.TypeVariant:
   end
 end
 
-#fun canonicalize-datatype(dtyp :: T.DataType, uri :: URI) -> T.DataType:
-#  cases(T.DataType) dtyp:
-#    | t-datatype(name, params, variants, fields) =>
-#      T.t-datatype(
-#          name,
-#          params,
-#          map(canonicalize-variant(_, uri), variants),
-#          canonicalize-members(fields, uri))
-#  end
-#end
-
 fun canonicalize-names(typ :: T.Type, uri :: URI) -> T.Type:
   c = canonicalize-names(_, uri)
   cases(T.Type) typ:
@@ -932,11 +923,12 @@ fun canonicalize-names(typ :: T.Type, uri :: URI) -> T.Type:
     | t-forall(introduces, onto, l) => T.t-forall(map(c, introduces), c(onto), l)
     | t-ref(t, l) => T.t-ref(c(t), l)
     | t-existential(id, l) => typ
-    | t-data(params, variants, fields, l) =>
-      T.t-data(map(c, params), map(canonicalize-variant(_, uri), variants), canonicalize-members(fields, uri), l)
+    | t-data(name, variants, fields, l) =>
+      T.t-data(name, map(canonicalize-variant(_, uri), variants), canonicalize-members(fields, uri), l)
   end
 end
 
+# TODO(MATT): this does not actually get the provided module values
 fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
   c = canonicalize-names(_, uri)
   cases(A.Program) typed.ast:
@@ -945,25 +937,27 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
-            val-typs.set-now(v.v.toname(), c(typed.info.typs.get-value-now(v.v.key())))
+            val-typs.set-now(v.v.toname(), c(typed.info.types.get-value(v.v.key())))
           end
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
-           cases(Option) typed.info.data-exprs.get-now(a.in-name.key()):
+           cases(Option) typed.info.data-types.get(a.in-name.key()):
               | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
               | none =>
-                cases(Option) typed.info.branders.get-now(a.in-name.key()):
-                  | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-                  | else =>
-                    typ = typed.info.aliases.get-value-now(a.in-name.key())
-                    alias-typs.set-now(a.out-name.toname(), c(typ))
-                end
+                #cases(Option) typed.info.branders.get-now(a.in-name.key()):
+                #  | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
+                #  | else =>
+                #    typ = typed.info.aliases.get-value-now(a.in-name.key())
+                #    alias-typs.set-now(a.out-name.toname(), c(typ))
+                #end
+                typ = typed.info.aliases.get-value(a.in-name.key())
+                alias-typs.set-now(a.out-name.toname(), c(typ))
             end
           end
           data-typs = SD.make-mutable-string-dict()
           for each(d from datas):
-            data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-exprs.get-value-now(d.d.key()), uri))
+            data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-types.get-value(d.d.key()), uri))
           end
           CS.provides(
               uri,

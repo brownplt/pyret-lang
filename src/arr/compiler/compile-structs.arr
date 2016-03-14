@@ -605,6 +605,7 @@ t-number-pred1 = t-arrow([list: t-number], t-boolean)
 t-within-num = t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean))
 t-within-any = t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean))
 
+# TODO(MATT): figure out what this means, where it's used, and how to handle it
 runtime-types = [string-dict:
   "Number", t-top,
   "Exactnum", t-top,
@@ -776,10 +777,9 @@ runtime-builtins = [string-dict:
 
 no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
-
 standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
+minimal-builtins = compile-env(standard-globals, [string-dict:])
+standard-builtins = compile-env(standard-globals, [string-dict:])
 
 minimal-imports = extra-imports(empty)
 
