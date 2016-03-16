@@ -910,7 +910,14 @@ fun canonicalize-names(typ :: T.Type, uri :: URI) -> T.Type:
   cases(T.Type) typ:
     | t-name(module-name, id, l) =>
       cases(Option<String>) module-name:
-        | none => T.t-name(some(uri), id, l)
+        | none =>
+          # TODO(MATT): is this a temporary or permanent measure?
+          new-id = cases(A.Name) id:
+            | s-atom(base, _) =>
+              A.s-type-global(base)
+            | else => id
+          end
+          T.t-name(some(uri), new-id, l)
         | some(other-uri) => typ
       end
     | t-var(id, l) => typ
@@ -957,7 +964,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
           end
           data-typs = SD.make-mutable-string-dict()
           for each(d from datas):
-            data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-types.get-value(d.d.key()), uri))
+            data-typs.set-now(d.d.toname(), c(typed.info.data-types.get-value(d.d.key())))
           end
           CS.provides(
               uri,

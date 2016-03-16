@@ -38,7 +38,7 @@ sharing:
     VS.vs-seq([list: VS.vs-str("{ BINDS: "), VS.vs-value(self.binds), VS.vs-str(" EXISTS: "), VS.vs-value(self.existentials), VS.vs-str(" }")])
   end,
   get-data-type(self, typ :: Type) -> Option<Type>:
-    shadow typ = resolve-alias(typ)
+    shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
       | t-name(module-name, name, _) =>
         cases(Option<String>) module-name:
@@ -52,7 +52,7 @@ sharing:
                 end
               | none =>
                 if mod == "builtin":
-                  self.data-exprs.get-now(name.toname())
+                  self.data-types.get-now(name.toname())
                 else:
                   raise("No module available with the name '" + mod + "'")
                 end
@@ -63,7 +63,7 @@ sharing:
         end
       | t-app(base-typ, args, l) =>
         base-data-typ = self.get-data-type(base-typ)
-        base-data-typ.and-then(TS.t-app(_, args, l)) # TODO(MATT): evaluate this decision vs introduces
+        base-data-typ.and-then(_.introduce(args))
       | else => none
     end
   end,
@@ -171,7 +171,7 @@ fun empty-tc-info() -> TCInfo:
 end
 
 fun empty-context() -> Context:
-  typing-context(TD.make-default-types(), TD.make-default-aliases(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, SD.make-string-dict(), empty-tc-info())
+  typing-context(TD.make-default-types(), TD.make-default-aliases(), TD.make-default-data-exprs(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, SD.make-string-dict(), empty-tc-info())
 end
 
 fun resolve-alias(t :: Type, context :: Context) -> Type:

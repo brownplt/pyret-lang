@@ -29,3 +29,6 @@ fun foobar-fun(thing :: FooBar) -> Foo:
   thing
 end
 
+fun g() -> Number:
+  1
+end

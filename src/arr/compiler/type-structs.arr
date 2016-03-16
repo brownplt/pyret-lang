@@ -240,7 +240,7 @@ sharing:
     cases(Type) self:
       | t-forall(introduces, onto, l) =>
         fold2(lam(new-type, param-type, arg-type):
-          new-type.substitute(param-type, arg-type)
+          new-type.substitute(arg-type, param-type)
         end, onto, self.introduces, args)
       | else => self
     end
@@ -363,6 +363,6 @@ t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
 t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end
 t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l) end
 t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l) end
-t-srcloc  = lam(l): t-name(builtin-uri, A.s-global("Loc"), l) end
+t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l) end
 t-array   = lam(v, l): t-app(t-array-name, [list: v], l) end
-t-option  = lam(v, l): t-app(t-name(some("pyret-builtin://option"), A.s-global("Option"), l), [list: v], l) end
+t-option  = lam(v, l): t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option"), l), [list: v], l) end

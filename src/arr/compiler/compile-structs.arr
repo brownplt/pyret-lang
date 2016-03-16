@@ -149,7 +149,12 @@ fun datatype-from-raw(uri, datatyp):
     # TODO(joe): Exporting ref fields?
     t-member(tm.name, type-from-raw(uri, tm.value, pdict))
   end
-  t-data(params, variants, members)
+  temp-data = t-data(datatyp.name, variants, members)
+  if is-empty(params):
+    temp-data
+  else:
+    t-forall(params, temp-data)
+  end
 end
 
 fun provides-from-raw-provides(uri, raw):
