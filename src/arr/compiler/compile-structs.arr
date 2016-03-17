@@ -222,22 +222,22 @@ data CompileError:
   | zero-fraction(loc, numerator) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
-          ED.text("Well-formedness: fraction literal with zero denominator (numerator was"),
-          ED.val(self.numerator),
+        [ED.para-nospace:
+          ED.text("Well-formedness: fraction literal with zero denominator (numerator was "),
+          ED.embed(self.numerator),
           ED.text(") at")],
         [ED.para: draw-and-highlight(self.loc)]]
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
+        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at")],
         [ED.para: draw-and-highlight(self.l)]]
     end
   | underscore-as-ann(l :: Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
+        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at")],
         [ED.para: draw-and-highlight(self.l)]]
     end
   | unbound-id(id :: A.Expr) with:
@@ -433,7 +433,7 @@ data CompileError:
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
           ED.text(" at "), draw-and-highlight(self.bad-loc),
           ED.text(", required by "), draw-and-highlight(self.expected-loc),
@@ -442,7 +442,7 @@ data CompileError:
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
           ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
           ED.text(", but instead received "), ED.text(tostring(self.given))]]
@@ -451,22 +451,22 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Incorrect number of arguments given to function at "),
+          ED.text("Incorrect number of arguments given to function at"),
           draw-and-highlight(self.loc)]]
     end
   | apply-non-function(loc :: A.Loc, typ) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Tried to apply the non-function type "),
+          ED.text("Tried to apply the non-function type"),
           ED.embed(self.typ),
-          ED.text(" at "),
+          ED.text("at"),
           draw-and-highlight(self.loc)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("The object type " + self.obj + " (at "),
           draw-and-highlight(self.obj-loc),
           ED.text(") does not have the field \"" + self.field-name + "\", accessed at "),
@@ -476,17 +476,17 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The branch "), ED.code(ED.text(self.branch-name)),
-          ED.text(" at "), draw-and-highlight(self.branch-loc),
-          ED.text(" is not a variant of "), ED.code(ED.text(self.type-name)),
-          ED.text(" at "),
+          ED.text("The branch"), ED.code(ED.text(self.branch-name)),
+          ED.text("at"), draw-and-highlight(self.branch-loc),
+          ED.text("is not a variant of"), ED.code(ED.text(self.type-name)),
+          ED.text("at"),
           draw-and-highlight(self.type-loc)]]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("The else branch for the cases expression at "),
           draw-and-highlight(self.loc),
           ED.text(" is not needed since all variants of " + self.type-name + " have been exhausted.")]]
@@ -496,9 +496,9 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The cases expression at "),
+          ED.text("The cases expression at"),
           draw-and-highlight(self.loc),
-          ED.text(" does not exhaust all variants of " + self.type-name
+          ED.text("does not exhaust all variants of " + self.type-name
             + ". It is missing: " + self.missing.join-str(", ") + ".")]]
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
@@ -507,15 +507,15 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type specified " + self.type-name),
-          ED.text(" at "),
+          ED.text("at"),
           draw-and-highlight(self.loc),
-          ED.text(" cannot be used in a cases expression.")]]
+          ED.text("cannot be used in a cases expression.")]]
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
     #### TODO ###
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Incorrect number of bindings given to "),
           ED.text("the variant " + self.variant-name),
           ED.text(" at "),
@@ -545,22 +545,22 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The data type "),  ED.code(ED.text(self.data-type)),
-          ED.text(" does not take any parameters, but is given some at "),
+          ED.text("The data type"),  ED.code(ED.text(self.data-type)),
+          ED.text("does not take any parameters, but is given some at"),
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("In the type at "), draw-and-highlight(self.loc),
-          ED.text(" there was not enough information to instantiate the type, "
+          ED.text("In the type at"), draw-and-highlight(self.loc),
+          ED.text("there was not enough information to instantiate the type, "
             + "or the given arguments are incompatible.")]]
     end
   | unable-to-infer(loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
           ED.text(". Please add an annotation.")]]
     end
@@ -575,7 +575,7 @@ data CompileError:
     #### TODO ###
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text(self.message + " (found at "),
           draw-and-highlight(self.blame-loc),
           ED.text(")")]]
@@ -584,7 +584,7 @@ data CompileError:
     #### TODO ###
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("There is no module imported with the name " + self.mod-name),
           ED.text(" (used at "),
           draw-and-highlight(self.loc),
