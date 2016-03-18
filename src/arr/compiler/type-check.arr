@@ -145,6 +145,8 @@ fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
   c.mods.get-value(AU.import-to-dep(i).key()).from-uri
 end
 
+map2-strict = LA.map2-strict
+
 fun fold2-strict<X, Y, R>(f :: (R, X, Y -> R), base :: R, l1 :: List<X>, l2 :: List<Y>) -> Option<R>:
   cases (List<X>) l1:
     | empty       => cases (List<Y>) l2:
@@ -1202,6 +1204,7 @@ fun least-upper-bound(s, t, loc, context):
   result-type
 end
 
+# TODO(MATT): t-ref?
 fun _least-upper-bound(s :: Type, t :: Type, loc :: Loc, context :: Context) -> Type:
   cases(Option<Context>) satisfies-type(s, t, context):
     | some(new-context) =>
@@ -1228,7 +1231,23 @@ fun _least-upper-bound(s :: Type, t :: Type, loc :: Loc, context :: Context) -> 
                 | else => t-top(loc)
               end
             | t-app(s-onto, s-args, _) =>
-              least-upper-bound(s-onto.introduce(s-args), t, loc, context)
+              cases(Type) t:
+                | t-app(t-onto, t-args, _) =>
+                  # TODO(MATT): this is almost definitely broken
+                  if resolve-alias(s-onto, context) == resolve-alias(t-onto, context):
+                    maybe-new-args = map2-strict(lam(s-arg, t-arg):
+                      least-upper-bound(s-arg, t-arg, loc, context)
+                    end, s-args, t-args)
+                    cases(Option<List<Type>>) maybe-new-args:
+                      | none => t-top(loc)
+                      | some(new-args) =>
+                        t-app(s-onto, new-args, loc)
+                    end
+                  else:
+                    t-top(loc)
+                  end
+                | else => t-top(loc)
+              end
             | t-record(s-fields, _) =>
               cases(Type) t:
                 | t-record(t-fields, _) =>
@@ -1274,7 +1293,23 @@ fun _greatest-lower-bound(s :: Type, t :: Type, loc :: Loc, context :: Context) 
                 | else => t-bot(loc)
               end
             | t-app(s-onto, s-args, _) =>
-              greatest-lower-bound(s-onto.introduce(s-args), t, loc, context)
+              cases(Type) t:
+                | t-app(t-onto, t-args, _) =>
+                  # TODO(MATT): this is almost definitely broken
+                  if resolve-alias(s-onto, context) == resolve-alias(t-onto, context):
+                    maybe-new-args = map2-strict(lam(s-arg, t-arg):
+                      greatest-lower-bound(s-arg, t-arg, loc, context)
+                    end, s-args, t-args)
+                    cases(Option<List<Type>>) maybe-new-args:
+                      | none => t-bot(loc)
+                      | some(new-args) =>
+                        t-app(s-onto, new-args, loc)
+                    end
+                  else:
+                    t-bot(loc)
+                  end
+                | else => t-bot(loc)
+              end
             | t-record(s-fields, _) =>
               cases(Type) t:
                 | t-record(t-fields, _) =>
