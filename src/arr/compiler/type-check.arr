@@ -1204,10 +1204,12 @@ end
 
 fun _least-upper-bound(s :: Type, t :: Type, loc :: Loc, context :: Context) -> Type:
   cases(Option<Context>) satisfies-type(s, t, context):
-    | some(_) => t.set-loc(loc)
+    | some(new-context) =>
+      new-context.apply(t.set-loc(loc))
     | none =>
       cases(Option<Context>) satisfies-type(t, s, context):
-        | some(_) => s.set-loc(loc)
+        | some(new-context) =>
+          new-context.apply(s.set-loc(loc))
         | none =>
           cases(Type) s:
             | t-arrow(s-args, s-ret, _) =>
@@ -1248,10 +1250,12 @@ end
 
 fun _greatest-lower-bound(s :: Type, t :: Type, loc :: Loc, context :: Context) -> Type:
   cases(Option<Context>) satisfies-type(s, t, context):
-    | some(_) => s.set-loc(loc)
+    | some(new-context) =>
+      new-context.apply(s.set-loc(loc))
     | none =>
       cases(Option<Context>) satisfies-type(t, s, context):
-        | some(_) => t.set-loc(loc)
+        | some(new-context) =>
+          new-context.apply(t.set-loc(loc))
         | none =>
           cases(Type) s:
             | t-arrow(s-args, s-ret, _) =>
