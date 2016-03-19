@@ -665,10 +665,11 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
       full-imports = p.imports + for map(i from imports):
           cases(CS.Dependency) i.dependency:
             | builtin(name) =>
+              loc = SL.builtin(i.as-name)
               A.s-import-complete(
                 p.l,
-                i.values.map(A.s-name(p.l, _)),
-                i.types.map(A.s-name(p.l, _)),
+                i.values.map(A.s-name(loc, _)),
+                i.types.map(A.s-name(loc, _)),
                 A.s-const-import(p.l, name),
                 A.s-name(p.l, i.as-name),
                 A.s-name(p.l, i.as-name))
