@@ -1708,11 +1708,11 @@ end
     '@{
     check:
       partition(lam(e): e > 0 end, [list: -1, 1]) is
-        { "is-true": [list: 1], "is-false": [list: -1] }
+        { is-true: [list: 1], is-false: [list: -1] }
       partition(lam(e): e > 5 end, [list: -1, 1]) is
-        { "is-true": [list: ], "is-false": [list: -1, 1] }
+        { is-true: [list: ], is-false: [list: -1, 1] }
       partition(lam(e): e < 5 end, [list: -1, 1]) is
-        { "is-true": [list: -1, 1], "is-false": [list: ] }
+        { is-true: [list: -1, 1], is-false: [list: ] }
     end
     }
   ]
