@@ -13,6 +13,7 @@ import "compiler/list-aux.arr" as LA
 
 type Loc = A.Loc
 type Expr = A.Expr
+type Name = A.Name
 
 type Context = TCS.Context
 type TCInfo = TCS.TCInfo
@@ -64,6 +65,9 @@ type-members-lookup = TS.type-members-lookup
 is-t-existential = TS.is-t-existential
 is-t-record = TS.is-t-record
 is-t-data = TS.is-t-data
+is-t-top = TS.is-t-top
+is-t-bot = TS.is-t-bot
+is-t-forall = TS.is-t-forall
 
 bind = TCS.bind
 typing-bind = TCS.typing-bind
@@ -116,6 +120,39 @@ t-lt-method     = lam(loc): t-method-binop("_lessthan", loc) end
 t-lte-method    = lam(loc): t-method-binop("_lessequal", loc) end
 t-gt-method     = lam(loc): t-method-binop("_greaterthan", loc) end
 t-gte-method    = lam(loc): t-method-binop("_greaterequal", loc) end
+
+########################## TEST INFERENCE ###########################
+
+data PathElement:
+  | arg-path(arg-num :: Number)
+  | ret-path
+  | app-path(type-num :: Number)
+  | record-path(field-name :: String)
+  | ref-path
+end
+
+type Path = List<PathElement>
+
+# The StringDict is a mapping from the path of the type
+type Structure = SD.StringDict<Set<Path>>
+
+fun make-counter():
+  var count = 0
+  fun next():
+    count := 1 + count
+    count
+  end
+  { next: next }
+end
+
+inference-var-counter = make-counter()
+
+fun new-inference-var(l :: Loc):
+  next-count = inference-var-counter.next()
+  t-var(A.global-names.make-atom("test-inference" + tostring(next-count)), l)
+end
+
+#------------------------- TEST INFERENCE --------------------------#
 
 fun provides-as-dict(provides):
   for fold(d from SD.make-string-dict(), p from provides.fields):
@@ -340,6 +377,23 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
               A.s-var-bind(let-l, let-b, rhs)
           end
         end, binds, context-and-rhs.right)
+
+        each(lam(binding):
+          cases(A.LetBind) binding:
+            | s-let-bind(_, let-b, value) =>
+              cases(Expr) value:
+                | s-lam(_, _, _, _, _, _, _check) =>
+                  cases(Option<Expr>) _check:
+                    | some(check-block) =>
+                      test-inference(let-b.id, check-block, context-and-rhs.left)
+                    | none => nothing
+                  end
+                | else => nothing
+              end
+            | else => nothing
+          end
+        end, new-binds)
+
         checking(body, expect-loc, expect-type, top-level, context-and-rhs.left)
           .map-expr(A.s-let-expr(l, new-binds, _))
       end
@@ -362,6 +416,23 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
                 A.s-letrec-bind(l2, b, rhs)
             end
           end, binds, context-and-rhs.right)
+
+          each(lam(binding):
+            cases(A.LetrecBind) binding:
+              | s-letrec-bind(_, let-b, value) =>
+                cases(Expr) value:
+                  | s-lam(_, _, _, _, _, _, _check) =>
+                    cases(Option<Expr>) _check:
+                      | some(check-block) =>
+                        test-inference(let-b.id, check-block, context-and-rhs.left)
+                      | none => nothing
+                    end
+                  | else => nothing
+                end
+              | else => nothing
+            end
+          end, new-binds)
+
           checking(body, expect-loc, expect-type, top-level, context-and-rhs.left)
             .map-expr(A.s-letrec(l, new-binds, _))
         end
@@ -541,8 +612,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           .map-type(_.set-loc(l))
       end
     | s-let-expr(l, binds, body) =>
-      binds-result = fold-typing(synthesis-let-bind, binds, context)
-      for typing-bind(result-pair from binds-result):
+      context-and-rhs-result = fold-typing(synthesis-let-bind, binds, context)
+      for typing-bind(context-and-rhs from context-and-rhs-result):
         new-binds = map2(lam(binding, rhs):
           cases(A.LetBind) binding:
             | s-let-bind(let-l, let-b, _) =>
@@ -550,8 +621,25 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
             | s-var-bind(let-l, let-b, _) =>
               A.s-var-bind(let-l, let-b, rhs)
           end
-        end, binds, result-pair.right)
-        synthesis(body, false, result-pair.left)
+        end, binds, context-and-rhs.right)
+
+        each(lam(binding):
+          cases(A.LetBind) binding:
+            | s-let-bind(_, let-b, value) =>
+              cases(Expr) value:
+                | s-lam(_, _, _, _, _, _, _check) =>
+                  cases(Option<Expr>) _check:
+                    | some(check-block) =>
+                      test-inference(let-b.id, check-block, context-and-rhs.left)
+                    | none => nothing
+                  end
+                | else => nothing
+              end
+            | else => nothing
+          end
+        end, new-binds)
+
+        synthesis(body, false, context-and-rhs.left)
           .map-expr(A.s-let-expr(l, new-binds, _))
           .map-type(_.set-loc(l))
       end
@@ -574,6 +662,23 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
                 A.s-letrec-bind(l2, b, rhs)
             end
           end, binds, context-and-rhs.right)
+
+          each(lam(binding):
+            cases(A.LetrecBind) binding:
+              | s-letrec-bind(_, let-b, value) =>
+                cases(Expr) value:
+                  | s-lam(_, _, _, _, _, _, _check) =>
+                    cases(Option<Expr>) _check:
+                      | some(check-block) =>
+                        test-inference(let-b.id, check-block, context-and-rhs.left)
+                      | none => nothing
+                    end
+                  | else => nothing
+                end
+              | else => nothing
+            end
+          end, new-binds)
+
           synthesis(body, top-level, context-and-rhs.left)
             .map-expr(A.s-letrec(l, new-binds, _))
             .map-type(_.set-loc(l))
@@ -1429,7 +1534,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
       initial-type = collected-bindings.get-value(binding.b.id.key())
       if TS.is-t-existential(initial-type):
         cases(Expr) binding.value:
-          | s-lam(lam-l, lam-params, lam-args, lam-ann, _, _, _) =>
+          | s-lam(lam-l, lam-params, lam-args, lam-ann, _, _, _check) =>
             arg-collected = collect-bindings(lam-args, new-context)
             for bind(arg-coll from arg-collected):
               fold-lam-type = lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, new-context)
@@ -1461,7 +1566,7 @@ fun check-synthesis(e :: Expr, expect-type :: Type, expect-loc :: Loc, top-level
   end)
 end
 
-fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check, context :: Context) -> TypingResult:
+fun synthesis-datatype(l :: Loc, name :: String, namet :: Name, params :: List<Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check, context :: Context) -> TypingResult:
   brander-type = t-name(none, namet, l)
   t-vars = params.map(t-var(_, l))
 
@@ -1644,7 +1749,7 @@ fun lookup-id(blame-loc :: A.Loc, id-key :: String, id-expr :: Expr, context :: 
   end
 end
 
-fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, top-level :: Boolean, context :: Context) -> FoldResult<Type>:
+fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<Name>, args :: List<A.Bind>, ret-ann :: A.Ann, top-level :: Boolean, context :: Context) -> FoldResult<Type>:
   for bind(maybe-type from to-type(ret-ann, context)):
     ret-type = cases(Option<Type>) maybe-type:
       | some(typ) => typ
@@ -1674,7 +1779,7 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
 end
 
 # TODO(MATT): this really should get checked out
-fun synthesis-fun(l :: Loc, body :: Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), top-level :: Boolean, context :: Context) -> TypingResult:
+fun synthesis-fun(l :: Loc, body :: Expr, params :: List<Name>, args :: List<A.Bind>, ret-ann :: A.Ann, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), top-level :: Boolean, context :: Context) -> TypingResult:
   fun set-ret-type(lam-type :: Type, ret-type :: Type) -> Type:
     cases(Type) lam-type:
       | t-arrow(arg-types, _, a-l) =>
@@ -1957,7 +2062,7 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
   end
 end
 
-fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-loc :: A.Loc, expect-type :: Type, recreate :: (List<A.Bind>, A.Ann, Expr -> Expr), context :: Context) -> TypingResult:
+fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<Name>, args :: List<A.Bind>, ret-ann :: A.Ann, expect-loc :: A.Loc, expect-type :: Type, recreate :: (List<A.Bind>, A.Ann, Expr -> Expr), context :: Context) -> TypingResult:
   lam-bindings = collect-bindings(args, context)
   # TODO(MATT): checking when polymorphic lambda but non-polymorphic type
 
@@ -2155,3 +2260,302 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
       synthesis(_fun, false, context).map-type(_.set-loc(app-loc))
   end
 end
+
+########################## TEST INFERENCE ###########################
+
+fun flatten-tree-with-paths(typ :: Type) -> List<Pair<Type, Path>>:
+  fun _flatten-tree-with-paths(shadow typ, current-path :: Path):
+    cases(Type) typ:
+      | t-name(_, _, _) =>
+        [list: pair(typ, current-path)]
+      | t-var(_, _) =>
+        [list: pair(typ, current-path)]
+      | t-arrow(args, ret, _) =>
+        arg-pairs = map_n(lam(idx, arg):
+          _flatten-tree-with-paths(arg, current-path.append([list: arg-path(idx)]))
+        end, 0, args)
+        ret-pairs = _flatten-tree-with-paths(ret, current-path.append([list: ret-path]))
+        arg-pairs.foldl(lam(a, b): b.append(a) end, empty)
+          .append(ret-pairs)
+          .append([list: pair(typ, current-path)])
+      | t-app(onto, args, _) =>
+        type-pairs = map_n(lam(idx, arg):
+          _flatten-tree-with-paths(arg, current-path.append([list: app-path(idx)]))
+        end, 0, args)
+        #onto-pairs = _flatten-tree-with-paths(onto, current-path.append([list: app-onto-path]))
+        type-pairs.foldl(lam(a, b): b.append(a) end, empty)
+        #  .append(onto-pairs)
+          .append([list: pair(typ, current-path)])
+      | t-top(_) =>
+        [list: pair(typ, current-path)]
+      | t-bot(_) =>
+        [list: pair(typ, current-path)]
+      | t-record(fields, _) =>
+        sorted-fields = fields.sort-by(
+          lam(field-a, field-b):
+            field-a.field-name < field-b.field-name
+          end,
+          lam(field-a, field-b):
+            field-a.field-name == field-b.field-name
+          end)
+
+        field-pairs = sorted-fields.foldr(lam(field, pairs):
+          pairs.append(_flatten-tree-with-paths(field.typ, current-path.append([list: record-path(field.field-name)])))
+        end, empty)
+
+        field-pairs.append([list: pair(typ, current-path)])
+      | t-forall(introduces, onto, l) =>
+        raise("This shouldn't exist")
+      | t-ref(ref-type, _) =>
+        _flatten-tree-with-paths(ref-type, current-path.append([list: ref-path]))
+          .append([list: pair(typ, current-path)])
+      | t-existential(_, _) =>
+        [list: pair(typ, current-path)]
+      | t-data(_, _, _, _) =>
+        [list: pair(typ, current-path)]
+    end
+  end
+
+  _flatten-tree-with-paths(typ, empty)
+end
+
+fun find-structure(typ :: Type, context :: Context) -> Structure:
+  flattened-type = flatten-tree-with-paths(typ)
+
+  fun gather-set(shadow typ :: Type, rest :: List<Pair<Type, Path>>) -> Set<Path>:
+    rest.foldr(lam(rest-typ-and-path, current-set):
+      rest-typ = rest-typ-and-path.left
+      path = rest-typ-and-path.right
+      lub = least-upper-bound(typ, rest-typ, typ.l, context)
+      if is-t-bot(lub) or is-t-top(lub):
+        current-set
+      else:
+        current-set.add(path)
+      end
+    end, [list-set: ])
+  end
+
+  fun _find-structure(_flattened-type):
+    cases(List<Pair<Type, Path>>) _flattened-type:
+      | empty => [SD.string-dict: ]
+      | link(first-type-and-path, rest) =>
+        first-type = first-type-and-path.left
+        first-path = first-type-and-path.right
+        temp-set = gather-set(first-type, flattened-type)
+        first-set = temp-set.remove(first-path)
+        _find-structure(rest).set(tostring(first-path), first-set)
+    end
+  end
+
+  _find-structure(flattened-type)
+end
+
+fun find-common-structure(struct-a :: Structure, struct-b :: Structure) -> Structure:
+  a-keys = struct-a.keys()
+  a-keys.fold(lam(new-struct, a-key):
+    cases(Option<Set<Path>>) struct-b.get(a-key):
+      | none => new-struct
+      | some(b-set) =>
+        a-set = struct-a.get-value(a-key)
+        new-struct.set(a-key, a-set.intersect(b-set))
+    end
+  end, [SD.string-dict: ])
+end
+
+fun maintain-structure(struct :: Structure, typ :: Type) -> Type:
+  # current-vars is a mapping from paths to the type variable introduced at that path
+  fun _maintain-structure(shadow typ, current-path :: Path, vars :: SD.MutableStringDict<Type>):
+    fun to-var(l :: Loc):
+      cases(Option<Set<Path>>) struct.get(tostring(current-path)):
+        | none =>
+          new-var = new-inference-var(l)
+          vars.set-now(tostring(current-path), new-var)
+          new-var
+        | some(path-set) =>
+          maybe-var = path-set.fold(lam(maybe-var, path):
+            cases(Option<Type>) maybe-var:
+              | some(type-var) => some(type-var)
+              | none =>
+                cases(Option<Type>) vars.get-now(tostring(path)):
+                  | none => none
+                  | some(type-var) => some(type-var)
+                end
+            end
+          end, none)
+
+          cases(Option<Type>) maybe-var:
+            | none =>
+              new-var = new-inference-var(l)
+              vars.set-now(tostring(current-path), new-var)
+              new-var
+            | some(type-var) =>
+              vars.set-now(tostring(current-path), type-var)
+              type-var
+          end
+      end
+    end
+
+    cases(Type) typ:
+      | t-name(module-name, id, l) =>
+        t-name(module-name, id, l)
+      | t-var(id, l) =>
+        t-var(id, l)
+      | t-arrow(args, ret, l) =>
+        new-args = map_n(lam(idx, arg):
+          _maintain-structure(arg, current-path.append([list: arg-path(idx)]), vars)
+        end, 0, args)
+        new-ret = _maintain-structure(ret, current-path.append([list: ret-path]), vars)
+        t-arrow(new-args, new-ret, l)
+      | t-app(onto, args, l) =>
+        new-args = map_n(lam(idx, arg):
+          _maintain-structure(arg, current-path.append([list: app-path(idx)]), vars)
+        end, 0, args)
+        #new-onto = _maintain-structure(onto, current-path.append([list: app-onto-path]), vars)
+        #t-app(new-onto, new-args, l)
+        t-app(onto, new-args, l)
+      | t-top(l) =>
+        to-var(l)
+      | t-bot(l) =>
+        to-var(l)
+      | t-record(fields, l) =>
+        new-fields = fields.map(lam(field):
+          cases(TypeMember) field:
+            | t-member(field-name, field-typ, field-l) =>
+              new-field-typ = _maintain-structure(field-typ, current-path.append([list: record-path(field-name)]), vars)
+              t-member(field-name, new-field-typ, field-l)
+          end
+        end)
+        t-record(new-fields, l)
+      | t-forall(introduces, onto, l) =>
+        raise("This shouldn't exist")
+      | t-ref(ref-type, l) =>
+        new-ref-type = _maintain-structure(ref-type, current-path.append([list: ref-path]), vars)
+        t-ref(new-ref-type, l)
+      | t-existential(id, l) =>
+        t-existential(id, l)
+      | t-data(name, variants, fields, l) =>
+        t-data(name, variants, fields, l)
+    end
+  end
+
+  _maintain-structure(typ, empty, [SD.mutable-string-dict: ])
+end
+
+fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> Option<Type>:
+  fun synthesize-or-fail(expr :: A.Expr) -> Type:
+    result = synthesis(expr, false, context)
+    cases(TypingResult) result:
+      | typing-result(_, temp-type, _) =>
+        cases(Type) temp-type:
+          | t-forall(introduces, onto, l) =>
+            introduces.foldr(lam(type-var, new-onto):
+              new-onto.substitute(new-existential(l), type-var)
+            end, onto)
+          | else => temp-type
+        end
+      | else =>
+        raise("could not synthesize type during test-inference: " + tostring(expr))
+     end
+  end
+
+  fun generalize(current-type :: Type, next-type :: Type, loc :: Loc) -> Type:
+    cases(Type) current-type:
+      | t-arrow(current-arg-types, current-ret-type, _) =>
+        cases(Type) next-type:
+          | t-arrow(next-arg-types, next-ret-type, _) =>
+            result-arg-types = map2(lam(arg-type, current-arg-type):
+              least-upper-bound(arg-type, current-arg-type, loc, context)
+            end, next-arg-types, current-arg-types)
+            result-ret-type = least-upper-bound(next-ret-type, current-ret-type, loc, context)
+            result = t-arrow(result-arg-types, result-ret-type, loc)
+            result
+          | else => raise("this should never happen")
+        end
+      | else => raise("this shouldn't happen either")
+    end
+  end
+
+  fun generalize-list(statement-types :: List<Type>, maybe-current-type :: Option<Type>) -> Option<Type>:
+    cases(List<Type>) statement-types:
+      | empty => maybe-current-type
+      | link(first, rest) =>
+        cases(Option<Type>) maybe-current-type:
+          | none =>
+            generalize-list(rest, some(first))
+          | some(current-type) =>
+            generalized = generalize(current-type, first, check-block.l)
+            generalize-list(rest, some(generalized))
+        end
+    end
+  end
+
+  fun fold-common-structure(statement-types :: List<Type>, maybe-current-structure :: Option<Structure>) -> Option<Structure>:
+    cases(List<Type>) statement-types:
+      | empty => maybe-current-structure
+      | link(first, rest) =>
+        struct = find-structure(first, context)
+        cases(Option<Structure>) maybe-current-structure:
+          | none =>
+            fold-common-structure(rest, some(struct))
+          | some(current-structure) =>
+            fold-common-structure(rest, some(find-common-structure(current-structure, struct)))
+        end
+    end
+  end
+
+  stmts = check-block.stmts
+  print("")
+  statement-types = stmts.foldr(lam(stmt, statement-types):
+    print("stmt:")
+    each(print, stmt.tosource().pretty(72))
+    cases(A.Expr) stmt:
+      | s-check-test(l, op, refinement, lhs, rhs) =>
+        cases(A.CheckOp) op:
+          | s-op-is =>
+            cases(Option<A.Expr>) refinement:
+              | some(_) => statement-types
+              | none =>
+                cases(A.Expr) lhs:
+                  | s-app(_, _fun, args) =>
+                    maybe-id = cases(A.Expr) _fun:
+                      | s-id(_, id) => some(id)
+                      | s-id-var(_, id) => some(id)
+                      | s-id-letrec(_, id, _) => some(id)
+                      | else => none
+                    end
+                    cases(Option<Name>) maybe-id:
+                      | none => statement-types
+                      | some(id) =>
+                        if name == id:
+                          arg-types = args.map(synthesize-or-fail)
+                          ret-type = synthesize-or-fail(rhs.value)
+                          arrow-type = t-arrow(arg-types, ret-type, l)
+                          print("statement type: " + tostring(arrow-type))
+                          link(arrow-type, statement-types)
+                        else:
+                          statement-types
+                        end
+                    end
+                  | else => statement-types
+                end
+            end
+          | else => statement-types
+        end
+      | else => statement-types
+    end
+  end, empty)
+
+  maybe-generalized-type = generalize-list(statement-types, none)
+  maybe-common-structure = fold-common-structure(statement-types, none)
+
+  result = for option-bind(typ from maybe-generalized-type):
+    for option-bind(struct from maybe-common-structure):
+      some(maintain-structure(struct, typ))
+    end
+  end
+
+  print("inferrred-type: " + tostring(result))
+  result
+end
+
+#------------------------- TEST INFERENCE --------------------------#
