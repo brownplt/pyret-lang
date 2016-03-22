@@ -958,7 +958,12 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
               else:
                 some(instantiate-left(subtype, supertype, context))
               end
-            | else => some(instantiate-right(subtype, supertype, context))
+            | else =>
+              if subtype.free-variable(supertype):
+                some(instantiate-right(subtype, supertype, context))
+              else:
+                none
+              end
           end
         | t-forall(b-introduces, b-onto, _) =>
           satisfies-assuming(subtype, b-onto, context, assumptions)
@@ -1047,7 +1052,11 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                 | else => none
               end
             | t-existential(a-id, _) =>
-              some(instantiate-left(subtype, supertype, context))
+              if supertype.free-variable(subtype):
+                some(instantiate-left(subtype, supertype, context))
+              else:
+                none
+              end
             | t-data(a-name, a-variants, a-fields, _) =>
               cases(Type) supertype:
                 | t-data(b-name, b-variants, b-fields, _) =>

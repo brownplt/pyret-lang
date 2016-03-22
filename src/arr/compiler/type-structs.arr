@@ -3,11 +3,14 @@ provide-types *
 
 import ast as A
 import string-dict as SD
+import lists as LISTS
 import "compiler/list-aux.arr" as LA
 import equality as E
 import valueskeleton as VS
 
 type Name = A.Name
+
+all = LISTS.all
 
 all2-strict  = LA.all2-strict
 
@@ -72,6 +75,9 @@ sharing:
   set-loc(self, loc :: A.Loc):
     t-member(self.field-name, self.typ, loc)
   end,
+  free-variable(self, var-type :: Type) -> Boolean:
+    self.typ.free-variable(var-type)
+  end,
   _equals(self, other :: TypeMember, _) -> E.EqualityResult:
     bool-result =
       (self.field-name == other.field-name) and
@@ -109,6 +115,15 @@ sharing:
         t-variant(name, fields, with-fields, loc)
       | t-singleton-variant(name, with-fields, _) =>
         t-singleton-variant(name, with-fields, loc)
+    end
+  end,
+  free-variable(self, var-type :: Type) -> Boolean:
+    cases(TypeVariant) self:
+      | t-variant(_, fields, with-fields, _) =>
+        all(_.free-variable(var-type), fields) and
+        all(_.free-variable(var-type), with-fields)
+      | t-singleton-variant(_, with-fields, _) =>
+        all(_.free-variable(var-type), with-fields)
     end
   end,
   _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
@@ -243,6 +258,39 @@ sharing:
           new-type.substitute(arg-type, param-type)
         end, onto, self.introduces, args)
       | else => self
+    end
+  end,
+  free-variable(self, var-type :: Type) -> Boolean:
+    if self == var-type:
+      false
+    else:
+      cases(Type) self:
+        | t-name(_, _, _) =>
+          true
+        | t-var(_, _) =>
+          true
+        | t-arrow(args, ret, _) =>
+          all(_.free-variable(var-type), args) and
+          ret.free-variable(var-type)
+        | t-app(onto, args, _) =>
+          onto.free-variable(var-type) and
+          all(_.free-variable(var-type), args)
+        | t-top(_) =>
+          true
+        | t-bot(_) =>
+          true
+        | t-record(fields, _) =>
+          all(_.free-variable(var-type), fields)
+        | t-forall(_, onto, _) =>
+          onto.free-variable(var-type)
+        | t-ref(typ, _) =>
+          typ.free-variable(var-type)
+        | t-existential(_, _) =>
+          true
+        | t-data(_, variants, fields, _) =>
+          all(_.free-variable(var-type), variants) and
+          all(_.free-variable(var-type), fields)
+      end
     end
   end,
   lookup-variant(self, name :: String) -> Option<TypeVariant>:
