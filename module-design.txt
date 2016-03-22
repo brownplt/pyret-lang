@@ -20,10 +20,39 @@
   - find nativeRequires using requirejs
     + not done yet
 [x] 5. "Manually" (e.g. with cat) put 1-3 together with some modules to test
-[/] 6. New entrypoint to anf-loop-compiler that generates object literals
-7. New make-standalone entrypoint in pyret.arr to create full JS files
+[x] 6. New entrypoint to anf-loop-compiler that generates object literals
+       - Added as the compile-module flag in compile options
+[x] 7. New make-standalone entrypoint in pyret.arr to create full JS files
 8. Edit compile-lib to work with object literal-shaped files
 9. New builtin/legacy-path locators that find source
+
+10. Centralized place to store serialized compiled modules
+    - Remove get-compiled/set-compiled/needs-compile
+    - Add "modified-time" to locators
+    - cli-module-loader, cpo-module-loader will do their own seralization
+      and restoration of compiled files
+
+    ModuleStorage :: {
+      load-modules (List<ToCompile> -> MutableStringDict<Loadable>),
+      save-modules (List<Loadable> -> Nothing)
+    }
+
+11. 
+
+
+14. Wrangle legacy-path and maybe builtin includes?
+    - Change arr/trove modules to have explicit includes for list, etc
+    - Make standard-imports be minimal-imports
+
+
+15. Build standalone compiler
+
+    node build/phase1/main-wrapper.js --builtin-dir build/phaseA/trove --build-standalone pyret.arr > pyret.js
+
+    node pyret.js --builtin-js src/js/trove/ --builtin-arr src/arr/trove/ --build-standalone pyret.arr > pyret2.js
+
+    node pyret2.js --builtin-js src/js/trove --builtin-arr src/arr/trove/ --build-standalone pyret.arr > pyret3.js
+
 
 // runtime_anf?
 // jsnums.js?
