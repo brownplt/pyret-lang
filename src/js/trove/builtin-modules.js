@@ -24,7 +24,6 @@ define(["fs", "js/secure-loader", "js/runtime-util", "js/type-util"], function(f
 
         var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
         var m = getData(content);
-        console.log(m);
         return RUNTIME.makeObject({
             "get-raw-dependencies":
               F(function() {
