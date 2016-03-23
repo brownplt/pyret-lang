@@ -4,6 +4,7 @@ import runtime-lib as R
 import load-lib as L
 import either as E
 import ast as A
+import render-error-display as RED
 import "compiler/js-ast.arr" as J
 import "compiler/concat-lists.arr" as C
 import "compiler/compile-lib.arr" as CL
@@ -118,7 +119,7 @@ fun run(path, options):
     | left(errors) =>
       print-error("Compilation errors:")
       for lists.each(e from errors):
-        print-error(tostring(e))
+        print-error(RED.display-to-string(e.render-reason(), torepr, empty))
       end
       raise("There were compilation errors")
   end
@@ -143,7 +144,7 @@ fun build-standalone(path, options):
             j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
           | err(problems) =>
             for lists.each(e from problems):
-              print-error(tostring(e))
+              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
             end
             raise("There were compilation errors")
         end
