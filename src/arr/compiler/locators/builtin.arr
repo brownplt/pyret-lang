@@ -1,10 +1,13 @@
 provide {
   make-builtin-locator: make-builtin-locator,
-  set-builtin-dir: set-builtin-dir
+  set-builtin-js-dir: set-builtin-js-dir,
+  set-builtin-arr-dir: set-builtin-arr-dir
 } end
 import namespace-lib as N
 import builtin-modules as B
 import string-dict as SD
+import file as F
+import pathlib as P
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CM
 import "compiler/type-structs.arr" as T
@@ -36,14 +39,19 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-var default-builtin-dir = "build/phase1/trove/"
+var builtin-js-dir = "src/js/trove/"
+var builtin-arr-dir = "src/arr/trove/"
 
-fun set-builtin-dir(s :: String):
-  default-builtin-dir := s
+fun set-builtin-js-dir(s :: String):
+  builtin-js-dir := s
 end
 
-fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
-  raw = B.builtin-raw-locator(default-builtin-dir + builtin-name)  
+fun set-builtin-arr-dir(s :: String):
+  builtin-arr-dir := s
+end
+
+fun make-builtin-js-locator(basedir, builtin-name):
+  raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
   {
     needs-compile(_, _): false end,
     get-module(_): 
@@ -81,5 +89,93 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
       req-eq(self.uri(), other.uri())
     end
   }
+end
+
+fun make-builtin-arr-locator(basedir, builtin-name):
+  path = P.join(basedir, builtin-name + ".arr")
+  {
+    get-module(self):
+      when not(F.file-exists(path)):
+        raise("File " + path + " does not exist")
+      end
+      f = F.input-file(path)
+      str = CL.pyret-string(f.read-file())
+      f.close-file()
+      str
+    end,
+    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    get-dependencies(self):
+      CL.get-dependencies(self.get-module(), self.uri())
+    end,
+    get-extra-imports(self):
+      CM.minimal-imports
+    end,
+    get-globals(self):
+      CM.standard-globals
+    end,
+    set-compiled(self, cr, deps):
+      cases(CM.CompileResult) cr.result-printer:
+        | ok(ccp) =>
+          cpath = path + ".js"
+          f = F.output-file(cpath, false)
+          f.display(ccp.pyret-to-js-runnable())
+          f.close-file()
+        | err(_) => nothing
+      end
+    end,
+    needs-compile(self, provides):
+      # does not handle provides from dependencies currently
+      # NOTE(joe): Until we serialize provides correctly, just return false here
+      cpath = path + ".js"
+      if F.file-exists(path) and F.file-exists(cpath):
+        stimes = F.file-times(path)
+        ctimes = F.file-times(cpath)
+        ctimes.mtime <= stimes.mtime
+      else:
+        true
+      end
+    end,
+    get-compiled(self):
+      cpath = path + ".js"
+      if F.file-exists(path) and F.file-exists(cpath):
+        # NOTE(joe):
+        # Since we're not explicitly acquiring locks on files, there is a race
+        # condition in the next few lines – a user could potentially delete or
+        # overwrite the original file for the source while this method is
+        # running.  We can explicitly open and lock files with appropriate
+        # APIs to mitigate this in the happy, sunny future.
+        stimes = F.file-times(path)
+        ctimes = F.file-times(cpath)
+        if ctimes.mtime > stimes.mtime:
+          raw = B.builtin-raw-locator(path)
+          provs = convert-provides(self.uri(), {
+            uri: self.uri(),
+            values: raw-array-to-list(raw.get-raw-value-provides()),
+            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          })
+          some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+        else:
+          none
+        end
+      else:
+        none
+      end
+    end,
+    uri(self): "builtin://" + builtin-name end,
+    name(self): builtin-name end,
+    _equals(self, other, eq): eq(self.uri(), other.uri()) end
+  }
+end
+
+fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
+  ask:
+    | F.file-exists(P.join(builtin-arr-dir, builtin-name + ".arr")) then:
+      make-builtin-arr-locator(builtin-arr-dir, builtin-name)
+    | F.file-exists(P.join(builtin-js-dir, builtin-name + ".js")) then:
+      make-builtin-js-locator(builtin-js-dir, builtin-name)
+    | otherwise:
+      raise("Could not find module " + builtin-name + " in either of " + builtin-js-dir + " or " + builtin-arr-dir)
+  end
 end
 

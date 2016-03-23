@@ -138,7 +138,15 @@ fun build-standalone(path, options):
     loadable = compiled.modules.get-value-now(w.locator.uri())
     cases(CL.Loadable) loadable:
       | module-as-string(_, _, rp) =>
-        j-field(w.locator.uri(), J.j-raw-code(rp.code.pyret-to-js-runnable()))
+        cases(CS.CompileResult) rp:
+          | ok(code) =>
+            j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
+          | err(problems) =>
+            for lists.each(e from problems):
+              print-error(tostring(e))
+            end
+            raise("There were compilation errors")
+        end
       | pre-loaded(provides, _, _) =>
         raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
     end

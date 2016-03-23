@@ -29,8 +29,10 @@ fun main(args):
       C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
-    "builtin-dir",
-      C.next-val(C.String, C.once, "Directory to find the source of builtin modules"),
+    "builtin-js-dir",
+      C.next-val(C.String, C.once, "Directory to find the source of builtin js modules"),
+    "builtin-arr-dir",
+      C.next-val(C.String, C.once, "Directory to find the source of builtin arr modules"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
@@ -67,8 +69,11 @@ fun main(args):
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
-      when r.has-key("builtin-dir"):
-        B.set-builtin-dir(r.get-value("builtin-dir"))
+      when r.has-key("builtin-js-dir"):
+        B.set-builtin-js-dir(r.get-value("builtin-js-dir"))
+      end
+      when r.has-key("builtin-arr-dir"):
+        B.set-builtin-arr-dir(r.get-value("builtin-arr-dir"))
       end
       if not(is-empty(rest)):
         program-name = rest.first
@@ -116,7 +121,15 @@ fun main(args):
         end
       else:
         if r.has-key("build-standalone"):
-          CLI.build-standalone(r.get-value("build-standalone"), CS.default-compile-options)
+          CLI.build-standalone(r.get-value("build-standalone"), {
+              check-mode : check-mode,
+              type-check : type-check,
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false,
+              proper-tail-calls: tail-calls,
+              compile-module: true
+            })
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
             {

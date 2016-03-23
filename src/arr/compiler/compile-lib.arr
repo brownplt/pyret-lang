@@ -75,7 +75,7 @@ type Locator = {
   set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
-  get-compiled :: ( -> Option<Loadable>),
+  get-compiled :: ( -> Option<CS.CompileResult>),
 
   # _equals should compare uris for locators
   _equals :: Method

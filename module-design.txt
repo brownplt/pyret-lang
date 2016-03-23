@@ -42,7 +42,11 @@
 
 14. Wrangle legacy-path and maybe builtin includes?
     - Change arr/trove modules to have explicit includes for list, etc
-    - Make standard-imports be minimal-imports
+    - Ditch legacy path locator, and change all compiler-to-compiler
+      imports to use the file locator
+    - Make standard-imports be minimal-imports in builtin locator
+    - Implement builtin-locator finding and compiling .arr files (if not raw
+      js)
 
 
 15. Build standalone compiler
@@ -53,6 +57,8 @@
 
     node pyret2.js --builtin-js src/js/trove --builtin-arr src/arr/trove/ --build-standalone pyret.arr > pyret3.js
 
+16. How do we REPL?
+17. Check mode on a per-file basis to avoid running checks in base modules
 
 // runtime_anf?
 // jsnums.js?
