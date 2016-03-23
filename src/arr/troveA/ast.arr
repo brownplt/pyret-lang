@@ -6,8 +6,19 @@ import pprint as PP
 import srcloc as S
 import contracts as C
 import valueskeleton as VS
-include lists
-include option
+import lists as lists
+import option as option
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+fold = lists.fold
+
+type Option = option.Option
+some = option.some
+none = option.none
 
 type Loc = S.Srcloc
 

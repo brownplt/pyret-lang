@@ -71,7 +71,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       N.make-base-namespace(some-runtime)
     end,
 
-    uri(_): "pyret-builtin://" + builtin-name end,
+    uri(_): "builtin://" + builtin-name end,
     name(_): builtin-name end,
 
     set-compiled(_, _): nothing end,

@@ -45,7 +45,13 @@ provide {
 provide-types *
 
 import valueskeleton as VS
-include lists
+import lists as lists
+
+link = lists.link
+empty = lists.empty
+type List = lists.List
+list = lists.list
+is-empty = lists.is-empty
 
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)
