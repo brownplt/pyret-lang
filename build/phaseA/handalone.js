@@ -36,6 +36,7 @@ require(["runtime", "program"], function(runtimeLib, program) {
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       console.log("The program completed successfully");
+      console.log(result);
     }
     else {
       console.error("The run ended in error: ", result);
