@@ -33,6 +33,15 @@ where:
   forall-to-num("a") is 1
 end
 
+fun to-empty(x :: Number):
+  empty
+where:
+  to-empty(1) is empty
+  to-empty(2) is empty
+  to-empty(3) is empty<Number>
+  to-empty(4) is empty<String>
+end
+
 fun my-map<A,B>(f :: (A -> B), xs :: List<A>) -> List<B>:
   cases(List<A>) xs:
     | empty => empty
@@ -85,4 +94,16 @@ end
 #  my-map(forall-to-num, empty) is empty
 #  my-map(forall-to-num, [list: 1, 2, 3]) is [list: 1, 1, 1]
 #  my-map(forall-to-num, [list: "a"]) is [list: 1]
+#end
+
+#fun my-map<A,B>(f :: (A -> B), xs :: List<A>) -> List<B>:
+#  cases(List<A>) xs:
+#    | empty => empty
+#    | link(first, rest) =>
+#      link(f(first), my-map(f, rest))
+#  end
+#where:
+#  my-map(str-to-str, empty) is empty
+#  #my-map(add1, [list: 1, 2, 3]) is [list: 2, 3, 4]
+#  my-map(str-to-str, [list: "a"]) is [list: "a"]
 #end

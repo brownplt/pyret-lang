@@ -2263,6 +2263,14 @@ end
 
 ########################## TEST INFERENCE ###########################
 
+fun flatten-list<X>(xs :: List<List<X>>) -> List<X>:
+  xs.foldl(lam(a, b): b.append(a) end, empty)
+end
+
+fun flatten-sets<X>(xs :: List<Set<X>>) -> Set<X>:
+  xs.foldl(lam(a, b): b.union(a) end, [list-set: ])
+end
+
 fun flatten-tree-with-paths(typ :: Type) -> List<Pair<Type, Path>>:
   fun _flatten-tree-with-paths(shadow typ, current-path :: Path):
     cases(Type) typ:
@@ -2275,7 +2283,7 @@ fun flatten-tree-with-paths(typ :: Type) -> List<Pair<Type, Path>>:
           _flatten-tree-with-paths(arg, current-path.append([list: arg-path(idx)]))
         end, 0, args)
         ret-pairs = _flatten-tree-with-paths(ret, current-path.append([list: ret-path]))
-        arg-pairs.foldl(lam(a, b): b.append(a) end, empty)
+        flatten-list(arg-pairs)
           .append(ret-pairs)
           .append([list: pair(typ, current-path)])
       | t-app(onto, args, _) =>
@@ -2283,7 +2291,7 @@ fun flatten-tree-with-paths(typ :: Type) -> List<Pair<Type, Path>>:
           _flatten-tree-with-paths(arg, current-path.append([list: app-path(idx)]))
         end, 0, args)
         #onto-pairs = _flatten-tree-with-paths(onto, current-path.append([list: app-onto-path]))
-        type-pairs.foldl(lam(a, b): b.append(a) end, empty)
+        flatten-list(type-pairs)
         #  .append(onto-pairs)
           .append([list: pair(typ, current-path)])
       | t-top(_) =>
@@ -2441,6 +2449,52 @@ fun maintain-structure(struct :: Structure, typ :: Type) -> Type:
   _maintain-structure(typ, empty, [SD.mutable-string-dict: ])
 end
 
+fun lift-vars(typ :: Type, loc :: Loc) -> Type:
+  fun collect-vars(shadow typ) -> Set<Type>:
+    cases(Type) typ:
+      | t-name(module-name, id, l) =>
+        [list-set: ]
+      | t-var(id, l) =>
+        [list-set: typ]
+      | t-arrow(args, ret, l) =>
+        arg-vars = args.map(collect-vars)
+        ret-vars = collect-vars(ret)
+        flatten-sets(arg-vars)
+          .union(ret-vars)
+      | t-app(onto, args, l) =>
+        arg-vars = args.map(collect-vars)
+        flatten-sets(arg-vars)
+      | t-top(l) =>
+        [list-set: ]
+      | t-bot(l) =>
+        [list-set: ]
+      | t-record(fields, l) =>
+        field-vars = fields.map(lam(field):
+          cases(TypeMember) field:
+            | t-member(field-name, field-typ, field-l) =>
+              collect-vars(field-typ)
+          end
+        end)
+        flatten-sets(field-vars)
+      | t-forall(introduces, onto, l) =>
+        raise("This should not be present")
+      | t-ref(ref-type, l) =>
+        collect-vars(ref-type)
+      | t-existential(id, l) =>
+        [list-set: ]
+      | t-data(name, variants, fields, l) =>
+        [list-set: ]
+    end
+  end
+
+  vars = collect-vars(typ)
+  if vars.size() == 0:
+    typ
+  else:
+    t-forall(vars.to-list(), typ, loc)
+  end
+end
+
 fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> Option<Type>:
   fun synthesize-or-fail(expr :: A.Expr) -> Type:
     result = synthesis(expr, false, context)
@@ -2550,7 +2604,8 @@ fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> O
 
   result = for option-bind(typ from maybe-generalized-type):
     for option-bind(struct from maybe-common-structure):
-      some(maintain-structure(struct, typ))
+      result-type = maintain-structure(struct, typ)
+      some(lift-vars(result-type, check-block.l))
     end
   end
 
