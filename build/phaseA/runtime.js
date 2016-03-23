@@ -303,8 +303,8 @@ function isBase(obj) { return obj instanceof PBase; }
     "valueskeleton": function(val, output, pushTodo) {
       // NOTE: this is the eager version;
       // a lazy version would skip getting the skeleton values altogether
-      console.trace();
-      throw new Error("How did we get here?");
+      // console.trace();
+      // throw new Error("How did we get here?");
       var values = thisRuntime.ffi.skeletonValues(output);
       pushTodo(undefined, val, undefined, values, "render-valueskeleton",
                { skeleton: output });

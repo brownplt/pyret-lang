@@ -15,7 +15,8 @@ require(["runtime", "program"], function(runtimeLib, program) {
     "builtin://srcloc": function(srcloc) {
       runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");
     },
-    "builtinjs://ffi": function(ffi) {
+    "builtin://ffi": function(ffi) {
+      ffi = ffi.jsmod;
       runtime.ffi = ffi;
       runtime["throwMessageException"] = ffi.throwMessageException;
       runtime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
@@ -40,6 +41,7 @@ require(["runtime", "program"], function(runtimeLib, program) {
     }
     else {
       console.error("The run ended in error: ", result);
+      console.error(result.exn.stack);
     }
   }
 
