@@ -17,6 +17,7 @@ provide-types {
   Tree:: Tree
 }
 
+import base as _
 import image-structs as I
 import graph-structs as G
 import graph-lib as J

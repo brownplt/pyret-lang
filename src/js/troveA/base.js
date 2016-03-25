@@ -10,6 +10,8 @@
     { "import-type": "builtin", name: "arrays" },
     { "import-type": "builtin", name: "pick" },
     { "import-type": "builtin", name: "sets" },
+    { "import-type": "builtin", name: "contracts" },
+    { "import-type": "builtin", name: "srcloc" },
     { "import-type": "builtin", name: "ffi" }
   ],
   provides: {},

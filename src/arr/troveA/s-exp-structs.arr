@@ -3,6 +3,7 @@
 provide *
 provide-types *
 
+import base as _
 import lists as lists
 type List = lists.List
 

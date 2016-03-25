@@ -1,6 +1,7 @@
 provide *
 provide-types *
 
+import base as _
 import string-dict as SD
 include lists
 

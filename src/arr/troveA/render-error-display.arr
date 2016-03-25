@@ -1,5 +1,6 @@
 provide *
 
+import base as _
 import error-display as ED
 import srcloc as S
 
