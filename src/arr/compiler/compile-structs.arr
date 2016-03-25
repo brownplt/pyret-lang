@@ -784,6 +784,7 @@ minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
+      extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",

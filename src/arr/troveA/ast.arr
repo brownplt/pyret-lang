@@ -8,6 +8,7 @@ import contracts as C
 import valueskeleton as VS
 import lists as lists
 import option as option
+import base as _
 
 type List = lists.List
 link = lists.link
