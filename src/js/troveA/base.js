@@ -1,4 +1,4 @@
-{
+({
   requires: [
     { "import-type": "builtin", name: "option" },
     { "import-type": "builtin", name: "either" },
@@ -15,7 +15,7 @@
     { "import-type": "builtin", name: "ffi" }
   ],
   provides: {},
-  nativeRequires: {},
+  nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
     return runtime.makeObject({
       "provide-plus-types": runtime.makeObject({
@@ -24,4 +24,4 @@
       })
     });
   }
-}
+})

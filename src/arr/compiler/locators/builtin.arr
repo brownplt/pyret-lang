@@ -64,6 +64,10 @@ fun make-builtin-js-locator(basedir, builtin-name):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
+    get-native-modules(_):
+      natives = raw.get-raw-native-modules()
+      raw-array-to-list(natives).map(CM.requirejs)
+    end,
     get-globals(_):
       raise("Should never get compile-env for builtin module " + builtin-name)
     end,
@@ -106,6 +110,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     get-dependencies(self):
       CL.get-dependencies(self.get-module(), self.uri())
+    end,
+    get-native-modules(self):
+      [list:]
     end,
     get-extra-imports(self):
       CM.minimal-imports

@@ -161,12 +161,16 @@ fun build-standalone(path, options):
       end))
   end)
 
+  natives = j-list(true, for fold(natives from [clist:], w from wl):
+    C.map_list(lam(r): j-str(r.path) end, w.locator.get-native-modules()) + natives
+  end)
+
   to-load = j-list(false, for C.map_list(w from wl):
     j-str(w.locator.uri())
   end)
 
   prog = j-block([clist:
-    j-app(define-name, [clist: j-list(true, [clist:]), j-fun([clist:],
+    j-app(define-name, [clist: natives, j-fun([clist:],
         j-block([clist:
           j-return(j-obj([clist:
             j-field("staticModules", static-modules),

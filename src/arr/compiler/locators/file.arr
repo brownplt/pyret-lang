@@ -28,6 +28,9 @@ fun mockable-file-locator(file-ops):
     get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
+    get-native-modules(self):
+      [list:]
+    end,
     get-extra-imports(self):
       CS.standard-imports
     end,

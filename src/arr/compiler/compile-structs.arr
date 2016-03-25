@@ -48,6 +48,10 @@ data Dependency:
     key(self): "builtin(" + self.modname + ")" end
 end
 
+data NativeModule:
+  | requirejs(path :: String)
+end
+
 data NameResolution:
   | resolved(
       ast :: A.Program,

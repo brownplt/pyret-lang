@@ -41,6 +41,14 @@ define(["fs", "js/secure-loader", "js/runtime-util", "js/type-util"], function(f
                   return [];
                 }
               }),
+            "get-raw-native-modules":
+              F(function() {
+                if(Array.isArray(m.nativeRequires)) {
+                  return m.nativeRequires.map(RUNTIME.makeString);
+                } else {
+                  return [];
+                }
+              }),
             "get-raw-datatype-provides":
               F(function() {
                 if(m.provides && m.provides.datatypes) {

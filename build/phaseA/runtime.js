@@ -4156,7 +4156,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else {
         var uri = toLoad[0];
         var mod = staticMods[uri];
-        console.log(uri, mod);
+        // console.log(uri, mod);
 
         var reqs = mod.requires;
         if(depMap[uri] === undefined) {
@@ -4172,30 +4172,42 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           return getExported(thisRuntime.modules[duri]);
         });
+
         return thisRuntime.safeCall(function() {
-          return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated));
-        }, function(r) {
-          console.log("Result from module: ", r);
-          thisRuntime.modules[uri] = r;
-          function continu() {
-            return thisRuntime.safeTail(function() {
-              return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
+            thisRuntime.pauseStack(function(restarter) {
+              console.log("About to load: ", mod.nativeRequires);
+              require(mod.nativeRequires, function(/* varargs */) {
+                var nativeInstantiated = Array.prototype.slice.call(arguments);
+                console.log("Loaded: ", nativeInstantiated);
+                restarter.resume(nativeInstantiated);
+              });
             });
-          }
-          if(uri in postLoadHooks) {
+          }, function(natives) {
             return thisRuntime.safeCall(function() {
-              return postLoadHooks[uri](r);
-            }, function(_) {
-              return continu();
+              return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            }, 
+            function(r) {
+//              console.log("Result from module: ", r);
+              thisRuntime.modules[uri] = r;
+              function continu() {
+                return thisRuntime.safeTail(function() {
+                  return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
+                });
+              }
+              if(uri in postLoadHooks) {
+                return thisRuntime.safeCall(function() {
+                  return postLoadHooks[uri](r);
+                }, function(_) {
+                  return continu();
+                });
+
+              }
+              else {
+                return continu();
+              }
             });
-
-          }
-          else {
-            return continu();
-          }
-        });
+          });
       }
-
     }
 
     function JSModuleReturn(jsmod) {
