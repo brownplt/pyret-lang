@@ -55,6 +55,11 @@
     "provides," which isn't there since it's a JSModuleReturn.  So it's a bit
     of a mess.
 
+12. Make a location for javascript-defined modules that export JSModuleReturns
+rather than Pyret-shaped returns, for e.g. ffi, image-lib, and other JS-to-JS
+modules.  This avoids them being import-able from Pyret, which doesn't make
+much sense.
+
 
 [x] 14. Wrangle legacy-path and maybe builtin includes?
     - Change arr/trove modules to have explicit includes for list, etc
@@ -77,6 +82,9 @@
 17. Check mode on a per-file basis to avoid running checks in base modules
 18. Right place for printing errors/returning compile results in pyret.arr
     - move from cli-module-loader or otherwise centralize
+19. Standardize just what fields need to be on a Pyret-shaped return from a
+JS-implemented module.  Do we need just provide-plus-types?  answer?  checks?
+defined-values/defined-types?  
 
 // runtime_anf?
 // jsnums.js?
