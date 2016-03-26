@@ -84,12 +84,12 @@ fun get-checks(stmts):
     cases(A.Expr) stmt:
       | s-fun(l, name, _, _, _, _, _, _check) =>
         cases(Option) _check:
-          | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
+          | some(v) => link(check-info(l, tostring(name), v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
       | s-data(l, name, _, _, _, _, _check) =>
         cases(Option) _check:
-          | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
+          | some(v) => link(check-info(l, tostring(name), v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
      | s-check(l, name, body, keyword-check) =>

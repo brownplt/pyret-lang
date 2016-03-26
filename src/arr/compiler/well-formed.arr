@@ -549,7 +549,7 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-variant-ids(variants)
     check-underscore-name(variants, "data variant name")
     check-underscore-name(shares, "shared field name")
-    check-underscore-name([list: {l: l, name: name}], "datatype name")
+    check-underscore-name([list: {l: l, name: tostring(name)}], "datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
     params-v = lists.all(_.visit(well-formed-visitor), params)

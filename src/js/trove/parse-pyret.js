@@ -326,7 +326,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           'data-expr': function(node) {
             // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
             return RUNTIME.getField(ast, 's-data')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
                    makeList(node.kids.slice(5, -3).map(tr)), 
                    tr(node.kids[node.kids.length - 3]),
                    tr(node.kids[node.kids.length - 2]));

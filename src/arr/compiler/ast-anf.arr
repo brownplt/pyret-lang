@@ -327,7 +327,7 @@ data ALettable:
           + PP.nest(INDENT, break-one + self.e.tosource())
           + break-one + str-end)
     end
-  | a-data-expr(l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>) with:
+  | a-data-expr(l :: Loc, name :: A.Name, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>) with:
     label(self): "a-data-expr" end,
     tosource(self):
       PP.str("data-expr")
@@ -598,7 +598,7 @@ default-map-visitor = {
   a-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr):
     a-singleton-cases-branch(l, pat-loc, name, body.visit(self))
   end,
-  a-data-expr(self, l :: Loc, name :: String, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
+  a-data-expr(self, l :: Loc, name :: A.Name, namet :: A.Name, variants :: List<AVariant>, shared :: List<AField>):
     a-data-expr(l, name, namet, variants.map(_.visit(self)), shared.map(_.visit(self)))
   end,
   a-variant(self, l :: Loc, constr-loc :: Loc, name :: String, members :: List<AVariantMember>, with-members :: List<AField>):

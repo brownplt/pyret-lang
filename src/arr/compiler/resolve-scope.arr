@@ -92,8 +92,12 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
       | s-data(l, name, params, mixins, variants, shared, _check) =>
-        namet = names.make-atom(name)
-        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), namet), rev-type-binds)
+        namet = names.make-atom(tostring(name))
+        loc = cases(A.Name) name:
+          | s-name(shadow l, _) => l
+          | else => l
+        end
+        rev-type-binds := link(A.s-newtype-bind(loc, name, namet), rev-type-binds)
         rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check), rev-stmts)
       | else =>
         rev-stmts := link(s, rev-stmts)
@@ -195,11 +199,13 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               A.s-letrec-bind(v.l, b(v.l, checker-name), get-part(checker-name))
             ]
           end
-          blob-id = names.make-atom(name)
+          blob-id = names.make-atom("D-" + tostring(name))
           data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check)
-          bind-data = A.s-letrec-bind(l, bn(l, blob-id), data-expr)
-          bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
-          bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
+          bind-data = A.s-letrec-bind(name.l, bn(name.l, blob-id), data-expr)
+          bind-data-pred = A.s-letrec-bind(name.l, b(name.l, A.make-checker-name(tostring(name))),
+            A.s-dot(l, A.s-id-letrec(name.l, blob-id, true), tostring(name)))
+          bind-data-pred2 = A.s-letrec-bind(name.l, bn(name.l, name),
+            A.s-dot(l, A.s-id-letrec(name.l, blob-id, true), tostring(name)))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
             variant-binds(A.s-id-letrec(v.l, blob-id, true), v) + acc
           end
@@ -365,7 +371,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
                     A.s-block(body2.l, body2.stmts.take(body2.stmts.length() - 1)
                         + [list: transform-toplevel-last(l3, inner-last)]))])
             | else =>
-              A.s-block(l2, stmts.take(stmts.length() - 1) + [list: transform-toplevel-last(l2, last)])
+              A.s-block(l2, stmts.take(stmts.length() - 1) + [list: transform-toplevel-last(l, last)])
           end
         | else => raise("Impossible")
       end
@@ -572,7 +578,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
-    s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
+    s-module(self, l-mod, answer, _, _, provided-vals, provided-types, checks):
       non-globals =
         for filter(k from self.env.keys-list()):
           sb = self.env.get-value(k)
@@ -580,10 +586,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       defined-vals = for map(key from non-globals): 
         id-exp = cases(ScopeBinding) self.env.get-value(key):
-          | let-bind(_, atom, _, _) => A.s-id(l, atom)
-          | letrec-bind(_, atom, _, _) => A.s-id-letrec(l, atom, true)
-          | var-bind(_, atom, _, _) => A.s-id-var(l, atom)
-          | module-bind(_, atom, _, _) => A.s-id(l, atom)
+          | let-bind(l, atom, _, _) => A.s-id(l, atom)
+          | letrec-bind(l, atom, _, _) => A.s-id-letrec(l, atom, true)
+          | var-bind(l, atom, _, _) => A.s-id-var(l, atom)
+          | module-bind(l, atom, _, _) => A.s-id(l, atom)
         end
         A.s-defined-value(key, id-exp)
       end
@@ -594,12 +600,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       defined-types = for map(key from non-global-types):
         typ = cases(TypeBinding) self.type-env.get-value(key):
-          | let-type-bind(_, atom, _) => A.a-name(l, atom)
-          | type-var-bind(_, atom, _) => A.a-name(l, atom)
+          | let-type-bind(l, atom, _) => A.a-name(l, atom)
+          | type-var-bind(l, atom, _) => A.a-name(l, atom)
         end
         A.s-defined-type(key, typ)
       end
-      A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
+      A.s-module(l-mod, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
     end,
     s-program(self, l, _provide, _provide-types, imports, body):
       imports-and-env = for fold(

@@ -29,7 +29,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "builtins")), "current-checker"), [list: ]) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
   cases(A.Program) prog:
@@ -38,13 +38,14 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, _provide-types, imports, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
+              some(A.s-program(l1, _provide, _provide-types, imports,
+                  A.s-block(l2, [list: A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "nothing"))])))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): none
               else:
                 some(A.s-program(l1, _provide, _provide-types, imports,
-                    A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))])))
+                    A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "nothing"))])))
               end
           end
         | else => none
@@ -667,20 +668,20 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
             | builtin(name) =>
               loc = SL.builtin(i.as-name)
               A.s-import-complete(
-                p.l,
+                A.dummy-loc,
                 i.values.map(A.s-name(loc, _)),
                 i.types.map(A.s-name(loc, _)),
-                A.s-const-import(p.l, name),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
+                A.s-const-import(A.dummy-loc, name),
+                A.s-name(A.dummy-loc, i.as-name),
+                A.s-name(A.dummy-loc, i.as-name))
             | dependency(protocol, args) =>
               A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(p.l, _)),
-                i.types.map(A.s-name(p.l, _)),
-                A.special-import(p.l, protocol, args),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
+                A.dummy-loc,
+                i.values.map(A.s-name(A.dummy-loc, _)),
+                i.types.map(A.s-name(A.dummy-loc, _)),
+                A.special-import(A.dummy-loc, protocol, args),
+                A.s-name(A.dummy-loc, i.as-name),
+                A.s-name(A.dummy-loc, i.as-name))
           end
         end
       A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
@@ -845,7 +846,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-forall(
           tvars,
           T.t-data(
-            name,
+            name.toname(), # temporary, until we decide if types should use Names too
             tvariants,
             all-shared-fields,
             l),

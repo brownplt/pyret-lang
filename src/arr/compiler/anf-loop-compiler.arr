@@ -1385,7 +1385,7 @@ compiler-visitor = {
       acc + [clist: piece.predicate, piece.constructor]
     end
 
-    data-predicate = j-field(name, get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+    data-predicate = j-field(tostring(name), get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj([clist: data-predicate] + obj-fields)])
 
