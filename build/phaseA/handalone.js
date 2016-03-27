@@ -11,6 +11,8 @@ require(["runtime", "program"], function(runtimeLib, program) {
     stdout: function(s) { console.log(s); } 
   });
 
+  runtime.setParam("command-line-arguments", process.argv.slice(1));
+
   var postLoadHooks = {
     "builtin://srcloc": function(srcloc) {
       runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");

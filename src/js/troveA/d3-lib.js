@@ -1,10 +1,10 @@
-var ALLHEIGHT = 476;
-var ALLWIDTH = 601;
-var MARGIN = {'top': 30, 'left': 100, 'bottom': 45, 'right': 100};
-var NOMARGIN = {'top': 0, 'left': 0, 'bottom': 0, 'right': 0};
-
 define(["js/js-numbers"],
     function (jsnums) {
+      var ALLHEIGHT = 476;
+      var ALLWIDTH = 601;
+      var MARGIN = {'top': 30, 'left': 100, 'bottom': 45, 'right': 100};
+      var NOMARGIN = {'top': 0, 'left': 0, 'bottom': 0, 'right': 0};
+
 
     return function(d3) {
 

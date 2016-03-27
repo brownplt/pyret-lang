@@ -1,8 +1,15 @@
 provide *
 
-import base as _
 import error-display as ED
 import srcloc as S
+import option as option
+import lists as lists
+
+map_n = lists.map_n
+
+type Option = option.Option
+some = option.some
+none = option.none
 
 fun nth-stack-frame(n :: Number, user-frames-only :: Boolean, stack):
   usable-frames =

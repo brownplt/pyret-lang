@@ -2,15 +2,28 @@
 
 provide *
 provide-types *
-import base as _
 import srcloc as SL
 import error-display as ED
 import render-error-display as RED
 
-include either
-include lists
-include option
+import either as either
+import lists as lists
+import option as option
 
+type Either = either.Either
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+fold = lists.fold
+each = lists.each
+
+type Option = option.Option
+is-some = option.is-some
+some = option.some
+none = option.none
 
 type Loc = SL.Srcloc
 
