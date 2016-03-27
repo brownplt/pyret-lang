@@ -88,6 +88,22 @@ much sense.
 19. Standardize just what fields need to be on a Pyret-shaped return from a
 JS-implemented module.  Do we need just provide-plus-types?  answer?  checks?
 defined-values/defined-types?  
+20. Implement shorthand expansions for type syntax:
+
+  e.g.
+
+  {
+    shorthands: {
+      "sdOfA": ["tyapp", ["localName", "StringDict"], ["a"]]
+    },
+    values:
+    {
+      "make-string-dict": ["forall", ["a"], "sdOfA"]
+    }
+  }
+
+  or maybe have functions in shorthands
+
 
 // runtime_anf?
 // jsnums.js?

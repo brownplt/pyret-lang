@@ -229,11 +229,11 @@ function isBase(obj) { return obj instanceof PBase; }
     "method": function(val) { return "<method>"; },
     "cyclic": function(val) { return val; },
     "opaque": function(val) {
-      if (thisRuntime.imageLib.isImage(val.val)) {
-        return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
-      } else {
+//      if (thisRuntime.imageLib.isImage(val.val)) {
+//        return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
+//      } else {
         return "<internal value>";
-      }
+//      }
     },
     "object": function(val, pushTodo) {
       var keys = [];
