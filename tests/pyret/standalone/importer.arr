@@ -6,6 +6,7 @@ import cmdline-lib as C
 import checker as CH
 import format as FMT
 import string-dict as SD
+import json as J
 
 print(A.dummy-loc)
 print(F.input-file("test.txt").read-file())
@@ -22,3 +23,5 @@ print(CH.render-check-results([list:]))
 print(FMT.format("~a ~a", [list: {x:5}, true]))
 
 print([SD.string-dict: "a", 5])
+
+print(J.read-json("[\"forall\", [\"a\"]]"))
