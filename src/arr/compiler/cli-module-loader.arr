@@ -4,6 +4,7 @@ import runtime-lib as R
 import load-lib as L
 import either as E
 import ast as A
+import pathlib as P
 import render-error-display as RED
 import "compiler/js-ast.arr" as J
 import "compiler/concat-lists.arr" as C
@@ -70,7 +71,7 @@ type CLIContext = {
 }
 
 fun add-to-load-path(current-load-path, path):
-  split = string-split-all(path, "/")
+  split = string-split-all(path, P.path-sep)
   current-load-path + split.take(split.length() - 1)
 end
 
@@ -80,9 +81,10 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       if protocol == "file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
-        real-path = clp.join-str("/") + "/" + this-path
+        real-path = P.join(clp.join-str(P.path-sep), this-path)
         new-context = ctxt.{current-load-path: add-to-load-path(clp, this-path)}
-        CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
+        locator = FL.file-locator(real-path, CS.standard-globals)
+        CL.located(locator, new-context)
       else if protocol == "legacy-path":
         CL.located(LP.legacy-path-locator(dep.arguments.get(0)), ctxt)
       else:
@@ -170,7 +172,7 @@ fun build-standalone(path, options):
   end)
 
   prog = j-block([clist:
-    j-app(define-name, [clist: natives, j-fun([clist:],
+      j-app(define-name, [clist: natives, j-fun([clist:],
         j-block([clist:
           j-return(j-obj([clist:
             j-field("staticModules", static-modules),

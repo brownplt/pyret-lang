@@ -4,6 +4,8 @@ import runtime-lib as R
 import load-lib as L
 import either as E
 import ast as A
+import pathlib as P
+import render-error-display as RED
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -69,7 +71,7 @@ type CLIContext = {
 }
 
 fun add-to-load-path(current-load-path, path):
-  split = string-split-all(path, "/")
+  split = string-split-all(path, P.path-sep)
   current-load-path + split.take(split.length() - 1)
 end
 
@@ -79,9 +81,10 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       if protocol == "file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
-        real-path = clp.join-str("/") + "/" + this-path
+        real-path = P.join(clp.join-str(P.path-sep), this-path)
         new-context = ctxt.{current-load-path: add-to-load-path(clp, this-path)}
-        CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
+        locator = FL.file-locator(real-path, CS.standard-globals)
+        CL.located(locator, new-context)
       else if protocol == "legacy-path":
         CL.located(LP.legacy-path-locator(dep.arguments.get(0)), ctxt)
       else:
@@ -118,7 +121,7 @@ fun run(path, options):
     | left(errors) =>
       print-error("Compilation errors:")
       for lists.each(e from errors):
-        print-error(tostring(e))
+        print-error(RED.display-to-string(e.render-reason(), torepr, empty))
       end
       raise("There were compilation errors")
   end
@@ -138,7 +141,15 @@ fun build-standalone(path, options):
     loadable = compiled.modules.get-value-now(w.locator.uri())
     cases(CL.Loadable) loadable:
       | module-as-string(_, _, rp) =>
-        j-field(w.locator.uri(), J.j-raw-code(rp.code.pyret-to-js-runnable()))
+        cases(CS.CompileResult) rp:
+          | ok(code) =>
+            j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
+          | err(problems) =>
+            for lists.each(e from problems):
+              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
+            end
+            raise("There were compilation errors")
+        end
       | pre-loaded(provides, _, _) =>
         raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
     end
@@ -152,12 +163,16 @@ fun build-standalone(path, options):
       end))
   end)
 
+  natives = j-list(true, for fold(natives from [clist:], w from wl):
+    C.map_list(lam(r): j-str(r.path) end, w.locator.get-native-modules()) + natives
+  end)
+
   to-load = j-list(false, for C.map_list(w from wl):
     j-str(w.locator.uri())
   end)
 
   prog = j-block([clist:
-    j-app(define-name, [clist: j-list(true, [clist:]), j-fun([clist:],
+      j-app(define-name, [clist: natives, j-fun([clist:],
         j-block([clist:
           j-return(j-obj([clist:
             j-field("staticModules", static-modules),

@@ -5,6 +5,7 @@ import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
 import file as F
+import pathlib as P
 
 # Still unsure if just a path is the right input for this.
 #data FileLocator:
@@ -83,7 +84,7 @@ fun mockable-file-locator(file-ops):
         none
       end
     end,
-    uri(self): "file://" + F.real-path(self.path) end,
+    uri(self): "file://" + string-replace(F.real-path(self.path), P.path-sep, "/") end,
     name(self): self.path end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end
   } end
