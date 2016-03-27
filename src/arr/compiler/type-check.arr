@@ -1461,7 +1461,7 @@ fun check-synthesis(e :: Expr, expect-type :: Type, expect-loc :: Loc, top-level
   end)
 end
 
-fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check, context :: Context) -> TypingResult:
+fun synthesis-datatype(l :: Loc, name :: A.Name, namet :: A.Name, params :: List<A.Name>, mixins, variants :: List<A.Variant>, fields :: List<A.Member>, _check, context :: Context) -> TypingResult:
   brander-type = t-name(none, namet, l)
   t-vars = params.map(t-var(_, l))
 
@@ -1490,7 +1490,8 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
 
       new-data-expr = A.s-data-expr(l, name, namet, params, mixins, new-variants, split-fields.left, _check)
 
-      temp-data-type = t-data(name, variant-types, data-type-fields, l)
+      # temporary, until we decide if types should use Names too
+      temp-data-type = t-data(name.toname(), variant-types, data-type-fields, l)
       new-data-type =
         if is-empty(t-vars):
           temp-data-type
@@ -1499,7 +1500,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
         end
       context.data-types.set-now(namet.key(), new-data-type)
 
-      data-fields = link(t-member(name, t-arrow([list: t-top(l)], t-boolean(l), l), l),
+      data-fields = link(t-member(name.toname(), t-arrow([list: t-top(l)], t-boolean(l), l), l),
         for map(variant-type from variant-types):
           t-member(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars), l)
         end +
