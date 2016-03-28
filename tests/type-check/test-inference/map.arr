@@ -42,6 +42,14 @@ where:
   to-empty(4) is empty<String>
 end
 
+fun obj-first<A>(x :: { x :: A }, y :: { x :: A }) -> { x :: A }:
+  x
+where:
+  obj-first({x: 1, y: 2}, {x: 1, y: 2}) is {x: 1, y: 2}
+  obj-first({x: 1, y: "a"}, {x: 1}) is {x: 1, y: "a"}
+  obj-first({x: "a"}, {x: "b"}) is {x: "a"}
+end
+
 fun my-map<A,B>(f :: (A -> B), xs :: List<A>) -> List<B>:
   cases(List<A>) xs:
     | empty => empty

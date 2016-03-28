@@ -121,6 +121,8 @@ t-lte-method    = lam(loc): t-method-binop("_lessequal", loc) end
 t-gt-method     = lam(loc): t-method-binop("_greaterthan", loc) end
 t-gte-method    = lam(loc): t-method-binop("_greaterequal", loc) end
 
+type Either = E.Either
+
 ########################## TEST INFERENCE ###########################
 
 data PathElement:
@@ -1442,10 +1444,7 @@ fun meet-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         lub = least-upper-bound(a-field.typ, b-field.typ, loc, context)
-        cases(Type) lub:
-          | t-top(_) => raise("pause here to consider")
-          | else => link(t-member(field-name, lub, loc), meet-list)
-        end
+        link(t-member(field-name, lub, loc), meet-list)
       | none => meet-list
     end
   end, empty)
@@ -1457,10 +1456,7 @@ fun join-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         glb = greatest-lower-bound(a-field.typ, b-field.typ, loc, context)
-        cases(Type) glb:
-          | t-bot(_) => raise("also pause here to consider")
-          | else => link(t-member(field-name, glb, loc), join-list)
-        end
+        link(t-member(field-name, glb, loc), join-list)
       | none =>
         link(a-field, join-list)
     end
@@ -2407,7 +2403,8 @@ fun maintain-structure(struct :: Structure, typ :: Type) -> Type:
       | t-name(module-name, id, l) =>
         t-name(module-name, id, l)
       | t-var(id, l) =>
-        t-var(id, l)
+        to-var(l)
+        #t-var(id, l)
       | t-arrow(args, ret, l) =>
         new-args = map_n(lam(idx, arg):
           _maintain-structure(arg, current-path.append([list: arg-path(idx)]), vars)
@@ -2496,48 +2493,41 @@ fun lift-vars(typ :: Type, loc :: Loc) -> Type:
 end
 
 fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> Option<Type>:
-  fun synthesize-or-fail(expr :: A.Expr) -> Type:
+  # left(type) is a type with no existential
+  # right(type) contains an existential
+  fun synthesize-or-fail(expr :: A.Expr) -> Either<Type>:
     result = synthesis(expr, false, context)
     cases(TypingResult) result:
       | typing-result(_, temp-type, _) =>
         cases(Type) temp-type:
           | t-forall(introduces, onto, l) =>
-            introduces.foldr(lam(type-var, new-onto):
+            E.right(introduces.foldr(lam(type-var, new-onto):
               new-onto.substitute(new-existential(l), type-var)
-            end, onto)
-          | else => temp-type
+            end, onto))
+          | else => E.left(temp-type)
         end
       | else =>
         raise("could not synthesize type during test-inference: " + tostring(expr))
      end
   end
 
-  fun generalize(current-type :: Type, next-type :: Type, loc :: Loc) -> Type:
-    cases(Type) current-type:
-      | t-arrow(current-arg-types, current-ret-type, _) =>
-        cases(Type) next-type:
-          | t-arrow(next-arg-types, next-ret-type, _) =>
-            result-arg-types = map2(lam(arg-type, current-arg-type):
-              least-upper-bound(arg-type, current-arg-type, loc, context)
-            end, next-arg-types, current-arg-types)
-            result-ret-type = least-upper-bound(next-ret-type, current-ret-type, loc, context)
-            result = t-arrow(result-arg-types, result-ret-type, loc)
-            result
-          | else => raise("this should never happen")
-        end
-      | else => raise("this shouldn't happen either")
-    end
-  end
-
-  fun generalize-list(statement-types :: List<Type>, maybe-current-type :: Option<Type>) -> Option<Type>:
+  fun generalize-list(statement-types :: List<Pair<Type, Expr>>, maybe-current-type :: Option<Type>) -> Option<Type>:
     cases(List<Type>) statement-types:
       | empty => maybe-current-type
       | link(first, rest) =>
+        first-type = first.left
+        first-stmt = first.right
+        print("statement:")
+        each(print, first-stmt.tosource().pretty(72))
         cases(Option<Type>) maybe-current-type:
           | none =>
-            generalize-list(rest, some(first))
+            print("statement type: " + tostring(first-type))
+            print("result: " + tostring(first-type))
+            generalize-list(rest, some(first-type))
           | some(current-type) =>
-            generalized = generalize(current-type, first, check-block.l)
+            print("statement type: " + tostring(first-type))
+            generalized = generalize(current-type, first-type, check-block.l)
+            print("result: " + tostring(generalized))
             generalize-list(rest, some(generalized))
         end
     end
@@ -2557,17 +2547,33 @@ fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> O
     end
   end
 
+  fun generalize(current-type :: Type, next-type :: Type, loc :: Loc) -> Type:
+    cases(Type) current-type:
+      | t-arrow(current-arg-types, current-ret-type, _) =>
+        cases(Type) next-type:
+          | t-arrow(next-arg-types, next-ret-type, _) =>
+            result-arg-types = map2(lam(arg-type, current-arg-type):
+              least-upper-bound(arg-type, current-arg-type, loc, context)
+            end, next-arg-types, current-arg-types)
+            result-ret-type = least-upper-bound(next-ret-type, current-ret-type, loc, context)
+            temp-result = t-arrow(result-arg-types, result-ret-type, loc)
+            maintain-structure(find-common-structure(find-structure(current-type, context),
+                                                     find-structure(next-type, context)),
+                               temp-result)
+          | else => raise("this should never happen")
+        end
+      | else => raise("this shouldn't happen either")
+    end
+  end
+
   stmts = check-block.stmts
-  print("")
-  statement-types = stmts.foldr(lam(stmt, statement-types):
-    print("stmt:")
-    each(print, stmt.tosource().pretty(72))
+  types-and-existentials = stmts.foldl(lam(stmt, types-and-existentials):
     cases(A.Expr) stmt:
       | s-check-test(l, op, refinement, lhs, rhs) =>
         cases(A.CheckOp) op:
           | s-op-is =>
             cases(Option<A.Expr>) refinement:
-              | some(_) => statement-types
+              | some(_) => types-and-existentials
               | none =>
                 cases(A.Expr) lhs:
                   | s-app(_, _fun, args) =>
@@ -2578,34 +2584,85 @@ fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> O
                       | else => none
                     end
                     cases(Option<Name>) maybe-id:
-                      | none => statement-types
+                      | none => types-and-existentials
                       | some(id) =>
                         if name == id:
-                          arg-types = args.map(synthesize-or-fail)
+                          arg-types = args.foldr(lam(arg, either-args):
+                            either-arg-type = synthesize-or-fail(arg)
+                            if E.is-right(either-arg-type) or E.is-right(either-args):
+                              E.right(link(either-arg-type.v, either-args.v))
+                            else:
+                              E.left(link(either-arg-type.v, either-args.v))
+                            end
+                          end, E.left(empty))
                           ret-type = synthesize-or-fail(rhs.value)
-                          arrow-type = t-arrow(arg-types, ret-type, l)
-                          print("statement type: " + tostring(arrow-type))
-                          link(arrow-type, statement-types)
+
+                          arrow-type = pair(t-arrow(arg-types.v, ret-type.v, l), stmt)
+                          current-types = types-and-existentials.left
+                          existentials = types-and-existentials.right
+                          if E.is-right(arg-types) or E.is-right(ret-type):
+                            pair(current-types, link(arrow-type, existentials))
+                          else:
+                            pair(link(arrow-type, current-types), existentials)
+                          end
                         else:
-                          statement-types
+                          types-and-existentials
                         end
                     end
-                  | else => statement-types
+                  | else => types-and-existentials
                 end
             end
-          | else => statement-types
+          | else => types-and-existentials
         end
-      | else => statement-types
+      | else => types-and-existentials
     end
-  end, empty)
+  end, pair(empty, empty))
 
-  maybe-generalized-type = generalize-list(statement-types, none)
-  maybe-common-structure = fold-common-structure(statement-types, none)
+  example-types = types-and-existentials.left
+  existential-tests = types-and-existentials.right
 
-  result = for option-bind(typ from maybe-generalized-type):
-    for option-bind(struct from maybe-common-structure):
-      result-type = maintain-structure(struct, typ)
-      some(lift-vars(result-type, check-block.l))
+  print("")
+  print("function: " + tostring(name))
+  maybe-function-type = context.binds.get(name.key())
+  cases(Option<Type>) maybe-function-type:
+    | none => nothing
+    | some(function-type) =>
+      print("function type: " + tostring(function-type))
+  end
+
+  maybe-common-struct = fold-common-structure(split(example-types).left, none)
+  maybe-current-type = generalize-list(example-types, none)
+
+  result = for option-bind(common-struct from maybe-common-struct):
+    cases(Option<Type>) maybe-current-type:
+      | none =>
+        when not(is-empty(existential-tests)):
+          print("No concretely typed tests")
+        end
+        none
+      | some(current-type) =>
+        maybe-new-type = existential-tests.foldr(lam(test-type-and-stmt, maybe-acc-type):
+          test-type = test-type-and-stmt.left
+          stmt = test-type-and-stmt.right
+          for option-bind(acc-type from maybe-acc-type):
+            print("statement:")
+            each(print, stmt.tosource().pretty(72))
+            print("statement type: " + tostring(test-type))
+
+            generalized = generalize(acc-type, test-type, check-block.l)
+            print("result: " + tostring(generalized))
+            generalized-struct = find-structure(generalized, context)
+            if common-struct == generalized-struct:
+              some(generalized)
+            else:
+              print("Non-concrete test.")
+              none
+            end
+          end
+        end, some(current-type))
+        for option-bind(new-type from maybe-new-type):
+          some(lift-vars(new-type, check-block.l))
+        end
     end
   end
 
