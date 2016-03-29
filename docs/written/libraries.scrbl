@@ -20,6 +20,7 @@ This section contains information on libraries that come with Pyret.
 @include-section["trove/world.js.rkt"]
 @;@include-section["trove/plot.js.rkt"]
 @;@include-section["trove/graph.js.rkt"]
+@include-section["trove/matrices.scrbl"]
 
 @include-section["trove/srcloc.js.rkt"]
 @include-section["trove/pprint.js.rkt"]
