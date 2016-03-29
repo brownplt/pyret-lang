@@ -155,7 +155,7 @@ work, and the enclosing quote character can be included if escaped like @pyret{\
 "an example\n\nwith explicit newline\ncharacters"
 }
 
-Multi-line strings can be written with ```
+Multi-line strings can be written with three backtick characters:
 
 @pyret-block{
 check:
@@ -495,7 +495,7 @@ You can also define arbitrary predicates for use in annotations to *refine* the
 annotation with additional checks. For example:
 
 @pyret-block{
-fun non-negative(n :: Number) -> Bool:
+fun non-negative(n :: Number) -> Boolean:
   n >= 0
 end
 
@@ -517,7 +517,7 @@ check:
 end
 }
 
-Some kinds of annotatioons only get limited checks:
+Some kinds of annotations only get limited checks:
 
 @itemlist[
 
@@ -594,7 +594,7 @@ fun keep-every-other(body-fun, l):
       | empty => empty
       | link(first, rst) =>
         if flip:
-          link(body-fun(first), iter(not flip, rst))
+          link(body-fun(first), iter(not(flip), rst))
         else:
           iter(not(flip), rst)
         end

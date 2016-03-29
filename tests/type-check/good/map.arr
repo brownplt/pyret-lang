@@ -1,15 +1,14 @@
-
 data MyList<A>:
   | my-empty 
   | my-link(first :: A, rest :: MyList<A>)
 end
 
-fun map<A,B>(lst :: MyList<A>, f :: (A -> B)):
+fun test-map<A,B>(lst :: MyList<A>, f :: (A -> B)):
   cases(MyList<A>) lst:
     | my-empty =>
       my-empty
     | my-link(first, rest) =>
-      my-link(f(first), map(rest, f))
+      my-link(f(first), test-map(rest, f))
   end
 end
 
@@ -19,4 +18,4 @@ fun transform(n :: Number) -> String:
   "hello"
 end
 
-result :: MyList<String> = map(input, transform)
+result :: MyList<String> = test-map(input, transform)

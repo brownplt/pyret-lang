@@ -22,7 +22,7 @@ n(num-sqrt(1))
 n(num-sqr(3))
 n(num-ceiling(2.2))
 n(num-floor(4.5))
-n(num-log(0))
+n(num-log(1))
 n(num-exp(3))
 n(num-exact(~3))
 

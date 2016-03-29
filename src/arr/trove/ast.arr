@@ -35,7 +35,6 @@ str-comment = PP.str("# ")
 str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
 str-data-expr = PP.str("data-expr ")
-str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
@@ -309,11 +308,11 @@ data Provide:
     label(self): "s-provide" end,
     tosource(self):
       PP.str("provide-complete") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
-            PP.infix(INDENT, 1, str-colon,PP.str("Values"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Values"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Data"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Data"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
     end
   | s-provide-all(l :: Loc) with:
@@ -347,8 +346,8 @@ sharing:
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
-  
-  
+
+
 data ImportType:
   | s-file-import(l :: Loc, file :: String) with:
     label(self): "s-file-import" end,
@@ -358,7 +357,7 @@ data ImportType:
     tosource(self): PP.str(self.mod) end
   | s-special-import(l :: Loc, kind :: String, args :: List<String>) with:
     label(self): "s-special-import" end,
-    tosource(self): 
+    tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(PP.str)))))
@@ -459,12 +458,12 @@ data Expr:
     tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
@@ -988,7 +987,7 @@ sharing:
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
-    
+
 
 data Bind:
   | s-bind(l :: Loc, shadows :: Boolean, id :: Name, ann :: Ann) with:
@@ -1123,48 +1122,6 @@ sharing:
   end
 end
 
-data DatatypeVariant:
-  | s-datatype-variant(
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-  | s-datatype-singleton-variant(
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-singleton-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
-data Constructor:
-  | s-datatype-constructor(
-      l :: Loc,
-      self :: String,
-      body :: Expr
-      ) with:
-    label(self): "s-datatype-constructor" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
 data IfBranch:
   | s-if-branch(l :: Loc, test :: Expr, body :: Expr) with:
     label(self): "s-if-branch" end,
@@ -1237,7 +1194,7 @@ sharing:
 end
 
 fun ann-loc(ann):
-  if is-a-blank(ann) or is-a-any(ann): dummy-loc
+  if is-a-blank(ann): dummy-loc
   else: ann.l
   end
 end
@@ -1295,7 +1252,7 @@ data Ann:
   | a-blank with:
     label(self): "a-blank" end,
     tosource(self): str-any end,
-  | a-any with:
+  | a-any(l :: Loc) with:
     label(self): "a-any" end,
     tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
@@ -1452,7 +1409,7 @@ default-map-visitor = {
   s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
-  
+
   s-program(self, l, _provide, provided-types, imports, body):
     s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
@@ -1581,7 +1538,7 @@ default-map-visitor = {
   end,
 
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
-    s-let(l, name.visit(self), value.visit(self), keyword-val) 
+    s-let(l, name.visit(self), value.visit(self), keyword-val)
   end,
 
   s-ref(self, l :: Loc, ann :: Option<Ann>):
@@ -1614,7 +1571,7 @@ default-map-visitor = {
   s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
     s-if-else(l, branches.map(_.visit(self)), _else.visit(self))
   end,
-  
+
   s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
     s-if-pipe(l, branches.map(_.visit(self)))
   end,
@@ -1822,7 +1779,7 @@ default-map-visitor = {
   end,
 
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s-for-bind(l, bind.visit(self), value.visit(self))   
+    s-for-bind(l, bind.visit(self), value.visit(self))
   end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
@@ -1845,34 +1802,9 @@ default-map-visitor = {
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(l, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(l, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(l, self-arg, body.visit(self))
-  end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
@@ -1922,7 +1854,7 @@ default-iter-visitor = {
   s-atom(self, base, serial):
     true
   end,
-  
+
   s-defined-value(self, name, val):
     val.visit(self)
   end,
@@ -1933,14 +1865,14 @@ default-iter-visitor = {
   s-module(self, l, answer, dv, dt, provides, types, checks):
     answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
-  
+
   s-program(self, l, _provide, provided-types, imports, body):
     _provide.visit(self)
-    and lists.all(_.visit(self), provided-types)
+    and provided-types.visit(self)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
-  
+
   s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
@@ -1990,18 +1922,18 @@ default-iter-visitor = {
   s-provide-types-none(self, l):
     true
   end,
-  
+
   s-bind(self, l, shadows, name, ann):
     name.visit(self) and ann.visit(self)
   end,
-  
+
   s-var-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
   s-let-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
-  
+
   s-type-bind(self, l, name, ann):
     name.visit(self) and ann.visit(self)
   end,
@@ -2017,31 +1949,31 @@ default-iter-visitor = {
   s-let-expr(self, l, binds, body):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  
+
   s-letrec-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
-  
+
   s-letrec(self, l, binds, body):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  
+
   s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
     exp.visit(self)
   end,
-  
+
   s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     expr.visit(self) and lists.all(_.visit(self), params)
   end,
-  
+
   s-block(self, l, stmts):
     lists.all(_.visit(self), stmts)
   end,
-  
+
   s-user-block(self, l :: Loc, body :: Expr):
     body.visit(self)
   end,
-  
+
   s-fun(self, l, name, params, args, ann, doc, body, _check):
     lists.app(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
@@ -2050,7 +1982,7 @@ default-iter-visitor = {
   s-type(self, l :: Loc, name :: Name, ann :: Ann):
     name.visit(self) and ann.visit(self)
   end,
-  
+
   s-newtype(self, l :: Loc, name :: Name, namet :: Name):
     name.visit(self) and namet.visit(self)
   end,
@@ -2062,11 +1994,11 @@ default-iter-visitor = {
   s-rec(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
-  
+
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
     name.visit(self) and value.visit(self)
   end,
-  
+
   s-ref(self, l :: Loc, ann :: Option<Ann>):
     self.option(ann)
   end,
@@ -2078,63 +2010,63 @@ default-iter-visitor = {
   s-contract(self, l :: Loc, name :: Name, ann :: Ann):
     name.visit(self) and ann.visit(self)
   end,
-  
+
   s-assign(self, l :: Loc, id :: Name, value :: Expr):
     id.visit(self) and value.visit(self)
   end,
-  
+
   s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
-  
+
   s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
-  
+
   s-if(self, l :: Loc, branches :: List<IfBranch>):
     lists.all(_.visit(self), branches)
   end,
   s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
+
   s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
     lists.all(_.visit(self), branches)
   end,
   s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
+
   s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     bind.visit(self)
   end,
   s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     lists.all(_.visit(self), args) and body.visit(self)
   end,
-  
+
   s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
     body.visit(self)
   end,
-  
+
   s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
+   
   s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
-  
+
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     self.option(refinement) and left.visit(self) and self.option(right)
   end,
-  
+
   s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
-  
+
   s-lam(
       self,
       l :: Loc,
@@ -2231,7 +2163,7 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), mixins) 
+    and lists.all(_.visit(self), mixins)
     and lists.all(_.visit(self), variants)
     and lists.all(_.visit(self), shared-members)
     and self.option(_check)
@@ -2267,7 +2199,7 @@ default-iter-visitor = {
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
   end,
-  
+
   s-data-field(self, l :: Loc, name :: String, value :: Expr):
     value.visit(self)
   end,
@@ -2291,7 +2223,7 @@ default-iter-visitor = {
     and body.visit(self)
     and self.option(_check)
   end,
-  
+
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
@@ -2316,35 +2248,10 @@ default-iter-visitor = {
       ):
     lists.all(_.visit(self), with-members)
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-      ):
-    lists.all(_.visit(self), members) and constructor.visit(self)
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-      ):
-    constructor.visit(self)
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    body.visit(self)
-  end,
   a-blank(self):
     true
   end,
-  a-any(self):
+  a-any(self, l):
     true
   end,
   a-name(self, l, id):
@@ -2399,7 +2306,7 @@ dummy-loc-visitor = {
   s-atom(self, base, serial):
     s-atom(base, serial)
   end,
-  
+
   s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -2411,7 +2318,7 @@ dummy-loc-visitor = {
     s-module(dummy-loc,
       answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
-  
+
   s-program(self, l, _provide, provided-types, imports, body):
     s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
@@ -2540,7 +2447,7 @@ dummy-loc-visitor = {
   end,
 
   s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
-    s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val) 
+    s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val)
   end,
 
   s-ref(self, l :: Loc, ann :: Option<Ann>):
@@ -2573,7 +2480,7 @@ dummy-loc-visitor = {
   s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
     s-if-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
   end,
-  
+
   s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
     s-if-pipe(dummy-loc, branches.map(_.visit(self)))
   end,
@@ -2781,7 +2688,7 @@ dummy-loc-visitor = {
   end,
 
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s-for-bind(dummy-loc, bind.visit(self), value.visit(self))   
+    s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
   end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))
@@ -2804,34 +2711,9 @@ dummy-loc-visitor = {
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(dummy-loc, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(dummy-loc, self-arg, body.visit(self))
-  end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):

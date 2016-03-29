@@ -21,34 +21,49 @@ var D5 :: Pin = "D5"
 var D6 :: Pin = "D6"
 var D7 :: Pin = "D7"
 
-data AnalogInputTrigger:
-  | ait-enters(min :: Number, max :: Number) with:
+data EventCondition:
+  | enters(min :: Number, max :: Number) with:
     _shim-convert(self):
       tostring(self.min) + "-" + tostring(self.max)
     end
-  | ait-exits(min :: Number, max :: Number) with:
+  | exits(min :: Number, max :: Number) with:
     _shim-convert(self):
       tostring(self.max) + "-" + tostring(self.min)
     end
-  | ait-crosses(mid :: Number) with:
+  | crosses(mid :: Number) with:
     _shim-convert(self):
       tostring(self.mid) + "-" + tostring(self.mid)
+    end
+  | poll(n :: Number) with:
+    _shim-convert(self):
+      tostring("p" + self.n)
     end
 end
 
 data PinConfig:
-  | pc-write(pin :: Pin, event :: String) with:
+  | write(pin :: Pin, event :: String) with:
     _shim-convert(self):
       self.event + ":" + self.pin + ":O" + "\n"
     end
-  | pc-digital-read(pin :: Pin, event :: String) with:
+  | digital-read(pin :: Pin, event :: String) with:
     _shim-convert(self):
       self.event + ":" + self.pin + ":I" + "\n"
     end
-  | pc-analog-read(pin :: Pin, event :: String, trigger :: AnalogInputTrigger) with:
+  | analog-read(pin :: Pin, event :: String, trigger :: EventCondition) with:
     _shim-convert(self):
       self.event + ":" + self.pin + ":I:" + self.trigger._shim-convert() + "\n"
     end
 end
 
-type CoreConfig = List<PinConfig>
+data CoreInfo:
+  | core(name :: String, access :: String, shim :: Boolean)
+  | no-core(access :: String)
+end
+
+data ConfigInfo:
+  | config(core :: CoreInfo, pin :: PinConfig)
+end
+
+data Event:
+  | event(name :: String, body :: String)
+end

@@ -7,7 +7,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       mb("runtime-lib")
     ],
     {
-      values:
+      values: 
         [
           "make-loader",
           "is-success-result",
@@ -24,8 +24,8 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       ]
     },
     function(runtime, namespace, runtimeLib) {
-      var brandModule = runtime.namedBrander("module");
-      var brandModuleResult = runtime.namedBrander("module-result");
+      var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
+      var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);
 
       var annModule = runtime.makeBranderAnn(brandModule, "Module");
       var annModuleResult = runtime.makeBranderAnn(brandModuleResult, "ModuleResult");
@@ -51,6 +51,10 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       }
 
       function checkSuccess(mr, field) {
+        if(!mr.val) {
+          console.error(mr);
+          runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.");
+        }
         if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
           console.error(mr.val.result);
           console.error(mr.val.result.exn);

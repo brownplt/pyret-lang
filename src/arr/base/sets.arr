@@ -1,18 +1,12 @@
 #lang pyret/library
 
 provide {
-  set: {
-    make: arr-to-list-set
-  },
-  list-set: {
-    make: arr-to-list-set
-  },
-  tree-set: {
-    make: arr-to-tree-set
-  },
-  empty-set: list-set(empty),
-  empty-list-set: list-set(empty),
-  empty-tree-set: tree-set(leaf),
+  set: list-set-maker,
+  list-set: list-set-maker,
+  tree-set: tree-set-maker,
+  empty-set: empty-list-set,
+  empty-list-set: empty-list-set,
+  empty-tree-set: empty-tree-set,
   list-to-set: list-to-list-set,
   list-to-list-set: list-to-list-set,
   list-to-tree-set: list-to-tree-set,
@@ -642,3 +636,53 @@ fun arr-to-tree-set(arr :: RawArray) -> Set:
   end
   tree-set(tree)
 end
+
+empty-list-set = list-set(empty)
+empty-tree-set = tree-set(leaf)
+
+fun makeSet2(a, b):
+  if a == b: link(a, empty)
+  else: link(a, link(b, empty))
+  end
+end
+fun makeSet3(a, b, c):
+  if      a == b: makeSet2(b, c)
+  else if a == c: makeSet2(a, c)
+  else:           link(a, makeSet2(b, c))
+  end
+end
+fun makeSet4(a, b, c, d):
+  if      a == b: makeSet3(b, c, d)
+  else if a == c: makeSet3(a, c, d)
+  else if a == d: makeSet3(a, b, c)
+  else:           link(a, makeSet3(b, c, d))
+  end
+end
+fun makeSet5(a, b, c, d, e):
+  if      a == b: makeSet4(b, c, d, e)
+  else if a == c: makeSet4(a, c, d, e)
+  else if a == d: makeSet4(a, b, c, e)
+  else if a == e: makeSet4(a, b, c, d)
+  else:           link(a, makeSet4(b, c, d, e))
+  end
+end
+
+list-set-maker = {
+  make: arr-to-list-set,
+  make0: lam(): empty-list-set end,
+  make1: lam(a): list-set(link(a, empty)) end,
+  make2: lam(a, b): list-set(makeSet2(a, b)) end,
+  make3: lam(a, b, c): list-set(makeSet3(a, b, c)) end,
+  make4: lam(a, b, c, d): list-set(makeSet4(a, b, c, d)) end,
+  make5: lam(a, b, c, d, e): list-set(makeSet5(a, b, c, d, e)) end
+}
+
+tree-set-maker = {
+  make: arr-to-tree-set,
+  make0: lam(): empty-tree-set end,
+  make1: lam(a): empty-tree-set.add(a) end,
+  make2: lam(a, b): empty-tree-set.add(a).add(b) end,
+  make3: lam(a, b, c): empty-tree-set.add(a).add(b).add(c) end,
+  make4: lam(a, b, c, d): empty-tree-set.add(a).add(b).add(c).add(d) end,
+  make5: lam(a, b, c, d, e): empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
+}

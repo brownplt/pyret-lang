@@ -184,7 +184,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               A.s-lam(l, params, args, ann, doc, body, _check)
             ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
-          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
+          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank);
           fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank);
           fun variant-binds(data-blob-id, v):
             vname = v.name
@@ -201,7 +201,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
-            variant-binds(A.s-id-letrec(l, blob-id, true), v) + acc
+            variant-binds(A.s-id-letrec(v.l, blob-id, true), v) + acc
           end
           add-letrec-binds(binding-group, all-binds, rest-stmts)
         | s-contract(l, name, ann) =>
@@ -427,7 +427,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     acc.set(name, global-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
   end
 where:
-  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top], mtd), mtd))
+  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top(A.dummy-loc)], mtd), mtd))
     .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 
@@ -610,9 +610,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any, none))
+                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any(A.dummy-loc), none))
               else:
-                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any, none))
+                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any(A.dummy-loc), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
@@ -668,7 +668,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | var-bind(loc, atom, ann, expr) =>
             A.p-value(loc, atom, ann)
           | module-bind(loc, atom, mod, expr) =>
-            A.p-value(loc, atom, A.a-any)
+            A.p-value(loc, atom, A.a-any(A.dummy-loc))
           | else => raise("Shouldn't happen, defined-value is global: " + torepr(v-binding))
         end
       end
@@ -915,7 +915,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
     end,
     a-blank(self): A.a-blank end,
-    a-any(self): A.a-any end,
+    a-any(self, l): A.a-any(l) end,
     a-name(self, l, id): handle-ann(l, self.type-env, id) end,
     a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
     a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,

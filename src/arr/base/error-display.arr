@@ -22,27 +22,75 @@ data ErrorDisplay:
   | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color :: Number)
 end
 
+
 locs = {
-  make: lam(arr): raw-array-to-list(arr) end
+  make:  lam(arr):           raw-array-to-list(arr) end,
+  make0: lam():              raw-array-to-list([raw-array: ]) end,
+  make1: lam(a):             raw-array-to-list([raw-array: a]) end,
+  make2: lam(a, b):          raw-array-to-list([raw-array: a, b]) end,
+  make3: lam(a, b, c):       raw-array-to-list([raw-array: a, b, c]) end,
+  make4: lam(a, b, c, d):    raw-array-to-list([raw-array: a, b, c, d]) end,
+  make5: lam(a, b, c, d, e): raw-array-to-list([raw-array: a, b, c, d, e]) end
 }
 
 shadow error = {
-  make: lam(arr): v-sequence(raw-array-to-list(arr)) end
+  make:  lam(arr):           v-sequence(raw-array-to-list(arr)) end,
+  make0: lam():              v-sequence(raw-array-to-list([raw-array: ])) end,
+  make1: lam(a):             v-sequence(raw-array-to-list([raw-array: a])) end,
+  make2: lam(a, b):          v-sequence(raw-array-to-list([raw-array: a, b])) end,
+  make3: lam(a, b, c):       v-sequence(raw-array-to-list([raw-array: a, b, c])) end,
+  make4: lam(a, b, c, d):    v-sequence(raw-array-to-list([raw-array: a, b, c, d])) end,
+  make5: lam(a, b, c, d, e): v-sequence(raw-array-to-list([raw-array: a, b, c, d, e])) end
 }
+
 para = {
-  make: lam(arr): paragraph(raw-array-to-list(arr)) end
+  make:  lam(arr):           paragraph(raw-array-to-list(arr)) end,
+  make0: lam():              paragraph(raw-array-to-list([raw-array: ])) end,
+  make1: lam(a):             paragraph(raw-array-to-list([raw-array: a])) end,
+  make2: lam(a, b):          paragraph(raw-array-to-list([raw-array: a, b])) end,
+  make3: lam(a, b, c):       paragraph(raw-array-to-list([raw-array: a, b, c])) end,
+  make4: lam(a, b, c, d):    paragraph(raw-array-to-list([raw-array: a, b, c, d])) end,
+  make5: lam(a, b, c, d, e): paragraph(raw-array-to-list([raw-array: a, b, c, d, e])) end
 }
+
 sequence = {
-  make: lam(arr): h-sequence(raw-array-to-list(arr), "") end
+  make:  lam(arr):           h-sequence(raw-array-to-list(arr), " ") end,
+  make0: lam():              h-sequence(raw-array-to-list([raw-array: ]), " ") end,
+  make1: lam(a):             h-sequence(raw-array-to-list([raw-array: a]), " ") end,
+  make2: lam(a, b):          h-sequence(raw-array-to-list([raw-array: a, b]), " ") end,
+  make3: lam(a, b, c):       h-sequence(raw-array-to-list([raw-array: a, b, c]), " ") end,
+  make4: lam(a, b, c, d):    h-sequence(raw-array-to-list([raw-array: a, b, c, d]), " ") end,
+  make5: lam(a, b, c, d, e): h-sequence(raw-array-to-list([raw-array: a, b, c, d, e]), " ") end
 }
+
 para-nospace = {
-  make: lam(arr): h-sequence(raw-array-to-list(arr), "") end
+  make:  lam(arr):           h-sequence(raw-array-to-list(arr), "") end,
+  make0: lam():              h-sequence(raw-array-to-list([raw-array: ]), "") end,
+  make1: lam(a):             h-sequence(raw-array-to-list([raw-array: a]), "") end,
+  make2: lam(a, b):          h-sequence(raw-array-to-list([raw-array: a, b]), "") end,
+  make3: lam(a, b, c):       h-sequence(raw-array-to-list([raw-array: a, b, c]), "") end,
+  make4: lam(a, b, c, d):    h-sequence(raw-array-to-list([raw-array: a, b, c, d]), "") end,
+  make5: lam(a, b, c, d, e): h-sequence(raw-array-to-list([raw-array: a, b, c, d, e]), "") end
 }
+
 bulleted = {
-  make: lam(arr): bulleted-sequence(raw-array-to-list(arr)) end
+  make:  lam(arr):           bulleted-sequence(raw-array-to-list(arr)) end,
+  make0: lam():              bulleted-sequence(raw-array-to-list([raw-array: ])) end,
+  make1: lam(a):             bulleted-sequence(raw-array-to-list([raw-array: a])) end,
+  make2: lam(a, b):          bulleted-sequence(raw-array-to-list([raw-array: a, b])) end,
+  make3: lam(a, b, c):       bulleted-sequence(raw-array-to-list([raw-array: a, b, c])) end,
+  make4: lam(a, b, c, d):    bulleted-sequence(raw-array-to-list([raw-array: a, b, c, d])) end,
+  make5: lam(a, b, c, d, e): bulleted-sequence(raw-array-to-list([raw-array: a, b, c, d, e])) end
 }
+
 opt = {
-  make: lam(arr): optional(v-sequence(raw-array-to-list(arr))) end
+  make:  lam(arr):           optional(v-sequence(raw-array-to-list(arr))) end,
+  make0: lam():              optional(v-sequence(raw-array-to-list([raw-array: ]))) end,
+  make1: lam(a):             optional(v-sequence(raw-array-to-list([raw-array: a]))) end,
+  make2: lam(a, b):          optional(v-sequence(raw-array-to-list([raw-array: a, b]))) end,
+  make3: lam(a, b, c):       optional(v-sequence(raw-array-to-list([raw-array: a, b, c]))) end,
+  make4: lam(a, b, c, d):    optional(v-sequence(raw-array-to-list([raw-array: a, b, c, d]))) end,
+  make5: lam(a, b, c, d, e): optional(v-sequence(raw-array-to-list([raw-array: a, b, c, d, e]))) end
 }
 
 fun ed-args(n):

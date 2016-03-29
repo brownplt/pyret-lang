@@ -29,7 +29,8 @@ if (process.argv.indexOf('--help') >= 0 || process.argv.indexOf('-h') >= 0) {
     if (data[0].success) {
       console.log(preamble + ',parse,' + format_stats(data[0].results.parse));
       console.log(preamble + ',load,' + format_stats(data[0].results.load));
-      console.log(preamble + ',eval,' + format_stats(data[0].results.eval_loaded));
+      console.log(preamble + ',eval,' + format_stats(data[0].results.eval));
+      console.log(preamble + ',all,' + format_stats(data[0].results.all));
     } else {
       console.log(preamble);
     }

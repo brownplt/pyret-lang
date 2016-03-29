@@ -37,7 +37,7 @@ end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
-    | a-any => a
+    | a-any(_) => a
     | a-name(_, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
@@ -468,8 +468,15 @@ fun desugar-expr(expr :: A.Expr):
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
-          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
-            [list: A.s-array(l, elts.map(desugar-expr))])
+          len = elts.length()
+          desugared-elts = elts.map(desugar-expr)
+          if len <= 5:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make" + tostring(len))),
+              desugared-elts)
+          else:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
+              [list: A.s-array(l, desugared-elts)])
+          end
         | s-construct-lazy =>
           A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
@@ -507,11 +514,19 @@ where:
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
-    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
-        [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])])
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make3"),
+        [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
-  prog3 = p("for map(elt from l): elt + 1 end")
-  ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
+  prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
+  ds(prog3)
+    is A.s-block(d,
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+        [list:  A.s-array(d,
+            [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
+              one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
+
+  prog4 = p("for map(elt from l): elt + 1 end")
+  ds(prog4) is p("map(lam(elt): _plus(elt, 1) end, l)")
 
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")

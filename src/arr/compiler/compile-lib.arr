@@ -46,7 +46,7 @@ end
 type Provides = CS.Provides
 
 type Locator = {
- 
+
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
   needs-compile :: (SD.StringDict<Provides> -> Boolean),
@@ -138,7 +138,7 @@ end
 
 fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
   parsed = get-ast(p, uri)
-  vals-part = 
+  vals-part =
     cases (A.Provide) parsed._provide:
       | s-provide-none(l) => mtd
       | s-provide-all(l) =>

@@ -1,10 +1,9 @@
-define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-error-display"], function(e, matchers, ffiLib, rendererrorLib) {
+define(["js/eval-lib", "../runtime/matchers", "trove/render-error-display"], function(e, matchers, rendererrorLib) {
   var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
     function gf(o, s) { return runtime.getField(o, s); }
     var tests = [];
-    var ffi = ffiLib(runtime, runtime.namespace);
     var rendererror = undefined;
 
     function pushTest(test) {
