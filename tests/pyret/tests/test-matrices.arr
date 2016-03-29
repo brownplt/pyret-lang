@@ -5,6 +5,8 @@ matrix = M.matrix
 matrix-within = M.matrix-within
 row-matrix = M.row-matrix
 col-matrix = M.col-matrix
+vector = M.vector
+vector-within = M.vector-within
 
 fun list-matrix-within(n :: Number) -> (List<M.Matrix>, List<M.Matrix> -> Boolean):
   lam(a, b):
@@ -36,6 +38,15 @@ check "Constructor Errors":
   [matrix(1,0):] raises-other-than "Impossible" # Check that the type refinement is working
 end
 
+check "Vector Operations":
+  [vector: 1, 2, 3].magnitude() is%(within(0.001)) num-sqrt(14)
+
+  [vector: 2, -3, 1].cross([vector: -2, 1, 1]) is [vector: -4, -4, -4]
+
+  [vector: 1, 2, 3].normalize() is%(vector-within(0.001))
+  [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
+end
+
 check "Basic Matrix Accessors":
     
   mtx1.get(1,1) is 5
@@ -53,8 +64,8 @@ check "Basic Matrix Accessors":
   mtx1.col(2) is [matrix(2,1): 3,
                                6]
   
-  mtx1.row(0).to-vector() is [list: 1, 2, 3]
-  mtx1.col(1).to-vector() is [list: 2, 5]
+  mtx1.row(0).to-vector() is [vector: 1, 2, 3]
+  mtx1.col(1).to-vector() is [vector: 2, 5]
 
 end
 

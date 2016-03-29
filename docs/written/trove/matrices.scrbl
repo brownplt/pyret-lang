@@ -50,7 +50,9 @@
 
 
 @(define (matrix-method name #:args (args #f) #:return (return #f) #:contract (contract #f))
-  (method-doc "Matrix" "matrix" name #:alt-docstrings "" #:args args #:return return #:contract contract))
+   (method-doc "Matrix" "matrix" name #:alt-docstrings "" #:args args #:return return #:contract contract))
+@(define (vector-method name #:args (args #f) #:return (return #f) #:contract (contract #f))
+   (method-doc "Vector" "vector" name #:alt-docstrings "" #:args args #:return return #:contract contract))
 
 @(define mtx-type (a-id "Matrix" (xref "matrices" "Matrix")))
 @(define vec-type (a-id "Vector" (xref "matrices" "Vector")))
@@ -192,7 +194,63 @@
       (return (a-arrow ,mtx-type ,mtx-type ,B))
       (contract (a-arrow ,N (a-arrow ,mtx-type ,mtx-type ,B))))
     (data-spec
-      (name "Vector"))
+      (name "Vector")
+      (variants ("vector"))
+      (shared (
+        (method-spec
+          (name "get")
+          (arity 2)
+          (args ("self" "index"))
+          (return ,N)
+          (contract (a-arrow ,vec-type ,N ,N)))
+        (method-spec
+          (name "dot")
+          (arity 2)
+          (args ("self" "other"))
+          (return ,N)
+          (contract (a-arrow ,vec-type ,vec-type ,N)))
+        (method-spec
+          (name "magnitude")
+          (arity 1)
+          (args ("self"))
+          (return ,N)
+          (contract (a-arrow ,vec-type ,N)))
+        (method-spec
+          (name "cross")
+          (arity 2)
+          (args ("self" "other"))
+          (return ,vec-type)
+          (contract (a-arrow ,vec-type ,N)))
+        (method-spec
+          (name "normalize")
+          (arity 1)
+          (args ("self"))
+          (return ,vec-type)
+          (contract (a-arrow ,vec-type ,vec-type)))
+        (method-spec
+          (name "scale")
+          (arity 2)
+          (args ("self" "scalar"))
+          (return ,vec-type)
+          (contract (a-arrow ,vec-type ,N ,vec-type)))
+        (method-spec
+          (name "_plus")
+          (arity 2)
+          (args ("self" "other"))
+          (return ,vec-type)
+          (contract (a-arrow ,vec-type ,vec-type ,vec-type)))
+        (method-spec
+          (name "_minus")
+          (arity 2)
+          (args ("self" "other"))
+          (return ,vec-type)
+          (contract (a-arrow ,vec-type ,vec-type ,vec-type)))
+        (method-spec
+          (name "length")
+          (arity 1)
+          (args ("self"))
+          (return ,N)
+          (contract (a-arrow ,vec-type ,N))))))
     (data-spec
       (name "Matrix")
       (variants ("matrix"))
@@ -200,15 +258,8 @@
         (name "matrix")
         (members
           (("rows" (type normal) (contract N))
-           ("cols" (type normal) (contract N))
-           ("elts" (type normal) (contract RA))))
+           ("cols" (type normal) (contract N))))
         (with-members (
-          (method-spec 
-            (name "rc-to-index")
-            (arity 3)
-            (args ("self" "i" "j"))
-            (return ,N)
-            (contract (a-arrow ,mtx-type ,N ,N ,N)))
           (method-spec 
             (name "get")
             (arity 3)
@@ -462,36 +513,130 @@
 
 @type-spec["Vector" '()]
 
-The @pyret{Vector} type represents mathematical vectors. The datatype is equivalent to that of a @pyret{list} of numbers.
+The @pyret{Vector} type represents mathematical vectors.
 
-@section{The @pyret{vector} Constructor}
+@section{The Vector Datatype}
 @collection-doc["vector" #:contract `(a-arrow ("elt" ,N) ,vec-type)]
 
-Vector constructor which works in an identical manner to the @pyret{list} constructor.
-@para{@bold{WARNING:} Matrix rows and columns are @bold{1-indexed}.}
+Vector constructor which creates a vector instance with the given elements.
+
+@collection-doc["vector3d" #:contract `(a-arrow ("elt1" ,N) ("elt2" ,N) ("elt3" ,N) ,vec-type) #:show-ellipses #f]
+
+Vector constructor which only creates three-dimensional vector instances.
+
+@section{Vector Methods}
+
+@vector-method["get"]
+
+Returns the item at the given index in this vector.
+
+@examples{
+check:
+  [vector: 3, 5].get(1) is 5
+end
+}
+
+@vector-method["length"]
+
+Returns the length of this vector.
+
+@examples{
+check:
+  [vector: 1, 2, 3, 4].length() is 4
+end
+}
+
+@vector-method["dot"]
+
+Returns the dot product of this vector with the given vector.
+
+@examples{
+check:
+  [vector: 1, 2, 3], [vector: 3, 2, 1].dot() is 10
+end
+}
+
+@vector-method["magnitude"]
+
+Returns the magnitude of this vector.
+
+@examples{
+  check:
+    [vector: 3, 4].magnitude() is 5
+    [vector: 4, 0].magnitude() is 4
+  end
+  }
+
+@vector-method["cross"]
+
+Returns the cross product of this 3D vector and the given 3D vector.
+(Raises an error if either this or that vector are not 3-dimensional)
+
+@examples{
+check:
+  [vector: 2, -3, 1].cross([vector: -2, 1, 1]) is [vector: -4, -4, -4]
+end
+}
+
+@vector-method["normalize"]
+
+Normalizes this vector into a unit vector.
+
+@examples{
+check:
+  [vector: 1, 2, 3].normalize() is 
+  [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
+end
+}
+
+
+@vector-method["scale"]
+
+Scales this vector by the given constant.
+
+@examples{
+check:
+  [vector: 1, 2, 3].scale(2) is [vector: 2, 4, 6]
+end
+}
+
+
+@vector-method["_plus"]
+
+Adds the given vector to this one.
+
+@examples{
+check:
+  [vector: 1, 2, 3] + [vector: 4, 5, 6] is [vector: 5, 7, 9]
+end
+}
+
+
+@vector-method["_minus"]
+
+Subtracts the given vector from this one.
+
+@examples{
+check:
+  [vector: 1, 2, 3] - [vector: 4, 5, 6] is [vector: -3, -3, -3]
+end
+}
 
 @section[#:style mathjax-style]{The Matrix Datatype}
-@data-spec["Matrix" (list
-  @constructor-spec["Matrix" "matrix" (list `("rows" ("type" "normal") ("contract" ,N))
-                                          `("cols" ("type" "normal") ("contract" ,N))
-                                          `("elts" ("type" "normal") ("contract" ,RA)))])]
+@type-spec["Matrix" '()]
 
-  The internal representation of matrices is not exposed, but, for reference, it is provided here.
+The @pyret{Matrix} type represents mathematical matrices.
 
-  @nested[#:style 'inset]{
-  @constructor-doc["Matrix" "matrix" (list `("rows" ("type" "normal") ("contract" ,N))
-                                           `("cols" ("type" "normal") ("contract" ,N))
-                                           `("elts" ("type" "normal") ("contract" ,RA)))
-                                     (a-id "Matrix" (xref "matrices" "Matrix"))]{
-  }
+@nested[#:style 'inset]{
 
-  @function["is-matrix" #:alt-docstrings ""]
+@function["is-matrix" #:alt-docstrings ""]
 
-  }
+}
 
 @section{Matrix Constructors}
 
-@collection-doc["matrix(rows,cols)" #:contract `(a-arrow ("elt" ,N) ,mtx-type)]
+@collection-doc["matrix" #:contract `(a-arrow ("rows" ,N) ("cols" ,N)
+                                              (a-arrow ("elt" ,N) ,mtx-type))]
 
 Publicly exposed constructor which constructs a matrix of size 
 @pyret{rows} by @pyret{cols} with the given elements, entered row by row.
@@ -565,6 +710,7 @@ These methods are available on all matrices.
 @matrix-method["get"]
 
 Returns the matrix's entry in the @math{i^th} row and the @math{j^th} column.
+@para{@bold{WARNING:} Matrix rows and columns are @bold{1-indexed}.}
 
 @examples{
 check:
@@ -1031,81 +1177,7 @@ check:
 end
 }
 
-@section{Matrix and Vector Functions}
-
-The following functions are defined for matrices and vectors:
-
-@function[
-  "dot"
-  #:examples
-  '@{
-  check:
-    dot([vector: 1, 2, 3], [vector: 3, 2, 1]) is 10
-  end
-  }
-]{Returns the dot product of the two given vectors.}
-
-@function[
-  "magnitude"
-  #:examples
-  '@{
-  check:
-    magnitude([vector: 3, 4]) is 5
-    magnitude([vector: 4, 0]) is 4
-  end
-  }
-]{Returns the magnitude of the given vector.}
-
-@function[
-  "cross"
-  #:examples
-  '@{
-  check:
-    cross([vector: 2, -3, 1], [vector: -2, 1, 1]) is [vector: -4, -4, -4]
-  end
-  }
-]{Returns the cross product of the two given 3D vectors.}
-
-@function[
-  "normalize"
-  #:examples
-  '@{
-  check:
-    normalize([vector: 1, 2, 3]) is 
-    [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
-  end
-  }
-]{Normalizes the given vector into a unit vector.}
-
-@function[
-  "scale"
-  #:examples
-  '@{
-  check:
-    scale([vector: 1, 2, 3], 2) is [vector: 2, 4, 6]
-  end
-  }
-]{Scales the given vector by the given constant.}
-
-@function[
-  "vector-add"
-  #:examples
-  '@{
-  check:
-    vector-add([vector: 1, 2, 3], [vector: 4, 5, 6]) is [vector: 5, 7, 9]
-  end
-  }
-]{Adds the two given vectors.}
-
-@function[
-  "vector-sub"
-  #:examples
-  '@{
-  check:
-    vector-sub([vector: 1, 2, 3], [vector: 4, 5, 6]) is [vector: -3, -3, -3]
-  end
-  }
-]{Subtracts the two given vectors.}
+@section{Matrix Conversion Functions}
 
 @function["is-row-matrix"]{Returns true if the given matrix has exactly one row.}
 @function["is-col-matrix"]{Returns true if the given matrix has exactly one column.}
