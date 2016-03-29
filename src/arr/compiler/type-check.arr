@@ -462,7 +462,7 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
               checking(value, expect-loc, param-type, false, ctxt)
             end
           else:
-            typing-error([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-type), expect-loc)])
+            fold-errors([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-type), expect-loc)])
           end
         | t-top(tl) =>
           for fold-typing(value from values, ctxt from context):
@@ -566,7 +566,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
               check-synthesis(value, collected.get-value(b.id.key()), l2, false, ctxt)
           end
         end, binds, new-context)
-
         for typing-bind(context-and-rhs from fold-context-and-rhs):
           new-binds = map2(lam(binding, rhs):
             cases(A.LetrecBind) binding:
@@ -787,7 +786,8 @@ fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args ::
       end, fold-result(pair(empty, context)), args, arg-types)
 
       cases(Option<FoldResult<Pair<List<Expr>, Context>>>) result:
-        | none => typing-error([list: C.incorrect-number-of-args(app-loc)])
+        | none =>
+          typing-error([list: C.incorrect-number-of-args(recreate(args), fun-type)])
         | some(folded) =>
           for typing-bind(exprs-and-context from folded):
             typing-result(recreate(exprs-and-context.left), ret-type, exprs-and-context.right)
@@ -838,11 +838,15 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       fold-result(some(t-top(l)))
     | a-name(l, id) =>
       typ = cases(Option<Type>) context.aliases.get-now(id.key()):
-        | some(typ) => typ
-        | none => t-name(none, id, l)
+        | some(typ) => some(typ)
+        | none => context.data-types.get-now(id.key())
       end
-      result-type = resolve-alias(typ, context).set-loc(l)
-      fold-result(some(result-type))
+      cases(Option<Type>) typ:
+        | some(t) =>
+          result-type = resolve-alias(t, context).set-loc(l)
+          fold-result(some(result-type))
+        | none => fold-errors([list: C.unbound-type-id(in-ann)])
+      end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l)))
     | a-arrow(l, args, ret, _) =>
@@ -880,7 +884,6 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
           end
         end
       end, fields, empty)
-
       for bind(members from fields-result):
         fold-result(some(t-record(members, l)))
       end
@@ -1337,10 +1340,7 @@ fun meet-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         lub = least-upper-bound(a-field.typ, b-field.typ, loc, context)
-        cases(Type) lub:
-          | t-top(_) => raise("pause here to consider")
-          | else => link(t-member(field-name, lub, loc), meet-list)
-        end
+        link(t-member(field-name, lub, loc), meet-list)
       | none => meet-list
     end
   end, empty)
@@ -1352,10 +1352,7 @@ fun join-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         glb = greatest-lower-bound(a-field.typ, b-field.typ, loc, context)
-        cases(Type) glb:
-          | t-bot(_) => raise("also pause here to consider")
-          | else => link(t-member(field-name, glb, loc), join-list)
-        end
+        link(t-member(field-name, glb, loc), join-list)
       | none =>
         link(a-field, join-list)
     end
@@ -1376,9 +1373,8 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
   meet-type = branch-types.foldr(lam(branch-type, current-type):
     least-upper-bound(current-type, branch-type, loc, context)
   end, t-bot(A.dummy-loc))
-
   cases(Type) meet-type:
-    | t-top(l) => fold-errors([list: C.cant-typecheck("branches do not all have the same type", l)])
+    | t-top(l) => fold-errors([list: C.different-branch-types(loc, branch-types)])
     | else => fold-result(meet-type)
   end
 end
@@ -1456,7 +1452,7 @@ fun check-synthesis(e :: Expr, expect-type :: Type, expect-loc :: Loc, top-level
         typing-result(new-expr, ctxt.apply(applied-expect-type), ctxt)
       | none =>
         # TODO(MATT): different error for existential
-        typing-error([list: C.incorrect-type(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), expect-loc)])
+        typing-error([list: C.incorrect-type(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), applied-expect-type.l)])
     end
   end)
 end
@@ -1653,7 +1649,7 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     fold-arg-types = foldr-fold-result(lam(arg, lst):
       arg-type = coll.get-value(arg.id.key())
       if top-level and is-t-existential(arg-type):
-        fold-errors([list: C.cant-typecheck("arguments on functions at the top-level must be annotated", l)]) # TODO(MATT): much better error message
+        fold-errors([list: C.toplevel-unann(arg)])
       else:
         fold-result(link(arg-type, lst))
       end
@@ -1762,7 +1758,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
           | some(typ) => typ
           | none => new-existential(l)
         end
-        check-synthesis(value, ann-type, l, false, context)
+        check-synthesis(value, ann-type, ann-type.l, false, context)
           .bind(lam(new-value, new-type, new-context):
             typing-result(new-value, new-type, new-context.add-binding(b.id.key(), new-type))
           end)
@@ -1773,7 +1769,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
           | some(typ) => typ
           | none => new-existential(l)
         end
-        check-synthesis(value, ann-type, l, false, context)
+        check-synthesis(value, ann-type, ann-type.l, false, context)
           .bind(lam(new-value, new-type, new-context):
             typing-result(new-value, t-ref(new-type, l), new-context.add-binding(b.id.key(), t-ref(new-type, l)))
           end)
@@ -1865,8 +1861,7 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
               end
             end)
           | none =>
-            # TODO(MATT): this is bad and encompasses too much
-            typing-error([list: C.cant-match-on(tostring(typ), l)])
+            typing-error([list: C.cant-match-on(ann, tostring(typ), l)])
         end
       | none => typing-error([list: C.cant-typecheck("No type provided for cases", l)])
     end
@@ -1874,21 +1869,21 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
 end
 
 fun track-branches(data-type :: Type % (is-t-data)) ->
-  { remove :: (String -> Set<String>), get :: (-> Set<String>) }:
-  var unhandled-branches = data-type.variants.foldr(lam(b, s): s.add(b.name) end, [set:])
+  { remove :: (TypeVariant -> Set<TypeVariant>), get :: (-> Set<TypeVariant>) }:
+  var unhandled-branches = data-type.variants.foldr(lam(b, s): s.add(b) end, [set:])
   {
-    remove: lam(b-name :: String):
-      unhandled-branches := unhandled-branches.remove(b-name)
+    remove: lam(b :: TypeVariant):
+      unhandled-branches := unhandled-branches.remove(b)
     end,
-    get: lam() -> Set<String>:
+    get: lam() -> Set<TypeVariant>:
       unhandled-branches
     end
   }
 end
 
-fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch :: A.CasesBranch, expect-loc :: A.Loc, maybe-check :: Option<Type>, remove :: (String -> Any), context :: Context) -> FoldResult<Pair<Pair<A.CasesBranch, Type>>, Context>:
-  fun handle-body(name :: String, body :: A.Expr, process, body-context :: Context):
-    remove(name)
+fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch :: A.CasesBranch, expect-loc :: A.Loc, maybe-check :: Option<Type>, remove :: (TypeVariant -> Any), context :: Context) -> FoldResult<Pair<Pair<A.CasesBranch, Type>>, Context>:
+  fun handle-body(variant :: TypeVariant, body :: A.Expr, process, body-context :: Context):
+    remove(variant)
     cases(Option<Type>) maybe-check:
       | some(expect-type) =>
         checking(body, expect-loc, expect-type, false, body-context)
@@ -1931,10 +1926,10 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
 
               cases(Option<FoldResult<Context>>) body-context:
                 | none =>
-                  fold-errors([list: C.incorrect-number-of-bindings(name, l, args.length(), fields.length())])
+                  fold-errors([list: C.incorrect-number-of-bindings(branch, tv)])
                 | some(folded-context) =>
                   for bind(body-ctxt from folded-context):
-                    handle-body(name, body, process, body-ctxt)
+                    handle-body(tv, body, process, body-ctxt)
                   end
               end
             | s-singleton-cases-branch(l, _, name, _) =>
@@ -1949,11 +1944,11 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
                 new-branch = A.s-singleton-cases-branch(l, pat-loc, name, new-body)
                 fold-result(pair(pair(new-branch, typ), out-context))
               end
-              handle-body(name, body, process, context)
+              handle-body(tv, body, process, context)
           end
       end
     | none =>
-      fold-errors([list: C.unneccesary-branch(branch.name, branch.l, tostring(data-type), cases-loc)])
+      fold-errors([list: C.unneccesary-branch(branch, data-type, cases-loc)])
   end
 end
 
