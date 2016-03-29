@@ -3,50 +3,17 @@ provide-types *
 
 data ConcatList<a>:
   | concat-empty with:
-    to-list-acc(self, rest): rest end,
-    map-to-list-acc(self, f, rest): rest end,
-    map(self, f): self end,
-    each(self, f): nothing end,
-    foldl(self, f, base): base end,
-    foldr(self, f, base): base end,
     is-empty(self): true end,
-    length(self): 0 end,
     join-str(self, sep): "" end,
-    reverse(self): self end
   | concat-singleton(element) with:
-    to-list-acc(self, rest): link(self.element, rest) end,
-    map-to-list-acc(self, f, rest): link(f(self.element), rest) end,
-    map(self, f): concat-singleton(f(self.element)) end,
-    each(self, f):
-      f(self.element)
-      nothing
-    end,
-    foldl(self, f, base): f(base, self.element) end,
-    foldr(self, f, base): f(base, self.element) end,
     getFirst(self): self.element end,
     getLast(self): self.element end,
     is-empty(self): false end,
-    length(self): 1 end,
     join-str(self, sep): tostring(self.element) end,
-    reverse(self): self end
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
-    to-list-acc(self, rest :: List):
-      self.left.to-list-acc(self.right.to-list-acc(rest))
-    end,
-    map-to-list-acc(self, f, rest :: List):
-      self.left.map-to-list-acc(f, self.right.map-to-list-acc(f, rest))
-    end,
-    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end,
-    each(self, f):
-      self.left.each(f)
-      self.right.each(f)
-    end,
-    foldl(self, f, base): self.right.foldl(f, self.left.foldl(f, base)) end,
-    foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end,
     getFirst(self): if self.left.is-empty(): self.right.getFirst() else: self.left.getFirst() end end,
     getLast(self): if self.right.is-empty(): self.left.getLast() else: self.right.getLast() end end,
     is-empty(self): self.left.is-empty() and self.right.is-empty() end,
-    length(self): self.left.length() + self.right.length() end,
     join-str(self, sep):
       l = self.left.join-str(sep)
       r = self.right.join-str(sep)
@@ -55,21 +22,10 @@ data ConcatList<a>:
       else: l + sep + r
       end
     end,
-    reverse(self): concat-append(self.right.reverse(), self.left.reverse()) end
   | concat-cons(first :: a, rest :: ConcatList<a>) with:
-    to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
-    map-to-list-acc(self, f, rest): link(f(self.first), self.rest.map-to-list-acc(f, rest)) end,
-    map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
-    each(self, f):
-      f(self.first)
-      self.rest.each(f)
-    end,
-    foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
-    foldr(self, f, base): f(self.rest.foldr(f, base), self.first) end,
     getFirst(self): self.first end,
     getLast(self): if self.rest.is-empty(): self.first else: self.rest.getLast() end end,
     is-empty(self): false end,
-    length(self): 1 + self.rest.length() end,
     join-str(self, sep):
       l = tostring(self.first)
       r = self.rest.join-str(sep)
@@ -77,22 +33,10 @@ data ConcatList<a>:
       else: l + sep + r
       end
     end,
-    reverse(self): concat-snoc(self.rest.reverse(), self.first) end
   | concat-snoc(head :: ConcatList<a>, last :: a) with:
-    to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
-    map-to-list-acc(self, f, rest): self.head.map-to-list-acc(f, link(f(self.last), rest)) end,
-    map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
-    each(self, f):
-      self.head.each(f)
-      f(self.last)
-      nothing
-    end,
-    foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
-    foldr(self, f, base): self.head.foldr(f, f(base, self.last)) end,
     getFirst(self): if self.head.is-empty(): self.last else: self.head.getFirst() end end,
     getLast(self): self.last end,
     is-empty(self): false end,
-    length(self): self.head.length() + 1 end,
     join-str(self, sep):
       h = self.head.join-str(sep)
       l = tostring(self.last)
@@ -100,7 +44,6 @@ data ConcatList<a>:
       else: h + sep + l
       end
     end,
-    reverse(self): concat-cons(self.last, self.head.reverse()) end
 sharing:
   _plus(self, other :: ConcatList):
     if is-concat-empty(self): other
@@ -108,9 +51,18 @@ sharing:
     else: concat-append(self, other)
     end
   end,
+  map-to-list-acc(self, f, acc): map-to-list-acc(self, f, acc) end,
+  to-list-acc(self, acc): to-list-acc(self, acc) end,
   to-list(self): self.to-list-acc(empty) end,
   map-to-list-left(self, f): revmap-to-list-acc(self, f, empty).reverse() end,
-  map-to-list(self, f): self.map-to-list-acc(f, empty) end
+  map-to-list(self, f): self.map-to-list-acc(f, empty) end,
+  find(self, f): find(f, self) end,
+  length(self): length(self) end,
+  reverse(self): reverse(self) end,
+  map(self, f): map(f, self) end,
+  each(self, f): each(f, self) end,
+  foldl(self, f, acc): foldl(f, acc, self) end,
+  foldr(self, f, acc): foldr(f, acc, self) end
 where:
   ce = concat-empty
   co = concat-singleton
@@ -139,21 +91,125 @@ where:
     end) is [list: "1", "2", "3", "4"]
   aux is "3421"
 end
+
 fun revmap-to-list-acc(self, f, revhead):
-  if is-concat-empty(self): revhead
-  else if is-concat-singleton(self): link(f(self.element), revhead)
-  else if is-concat-append(self): revmap-to-list-acc(self.right, f, revmap-to-list-acc(self.left, f, revhead))
-  else if is-concat-cons(self): revmap-to-list-acc(self.rest, f, link(f(self.first), revhead))
-  else if is-concat-snoc(self):
-    newhead = revmap-to-list-acc(self.head, f, revhead)
-    link(f(self.last), newhead) # order of operations matters
+  cases (ConcatList) self:
+    | concat-empty => revhead
+    | concat-singleton(e) => link(f(e), revhead)
+    | concat-append(l1, l2) => revmap-to-list-acc(l2, f, revmap-to-list-acc(l1, f, revhead))
+    | concat-cons(e, r) => revmap-to-list-acc(r, f, link(f(e), revhead))
+    | concat-snoc(r, e) =>
+      newhead = revmap-to-list-acc(r, f, revhead)
+      link(f(e), newhead) # order of operations matters
   end
 end
 
-shadow foldl = lam(f, base, lst): lst.foldl(f, base) end
-shadow foldr = lam(f, base, lst): lst.foldr(f, base) end
-shadow map = lam(f, lst): lst.map(f) end
-shadow each = lam(f, lst): lst.each(f) end
+fun map-to-list-acc(self, f, acc):
+  cases (ConcatList) self:
+    | concat-empty => acc
+    | concat-singleton(e) => link(f(e), acc)
+    | concat-append(l1, l2) => map-to-list-acc(l1, f, map-to-list-acc(l2, f, acc))
+    | concat-cons(e, r) => link(f(e), map-to-list-acc(r, f, acc))
+    | concat-snoc(r, e) => map-to-list-acc(r, f, link(f(e), acc))
+  end
+end
+
+fun to-list-acc(self, acc):
+  cases (ConcatList) self:
+    | concat-empty => acc
+    | concat-singleton(e) => link(e, acc)
+    | concat-append(l1, l2) => to-list-acc(l1, to-list-acc(l2, acc))
+    | concat-cons(e, r) => link(e, to-list-acc(r, acc))
+    | concat-snoc(r, e) => to-list-acc(r, link(e, acc))
+  end
+end
+
+rec shadow length = lam(original-lst):
+  fun helper(lst, acc):
+    cases (ConcatList) lst:
+      | concat-empty => acc
+      | concat-singleton(_) => acc + 1
+      | concat-append(l1, l2) => helper(l2, helper(l1, acc))
+      | concat-cons(_, r) => helper(r, acc + 1)
+      | concat-snoc(r, _) => helper(r, acc + 1)
+    end
+  end
+  helper(original-lst, 0)
+end
+
+rec shadow reverse = foldl(lam(r, f): concat-cons(f, r) end, concat-empty, _)
+
+rec shadow map = lam(f, lst):
+  cases (ConcatList) lst:
+    | concat-empty => concat-empty
+    | concat-singleton(e) => concat-singleton(f(e))
+    | concat-append(l1, l2) => concat-append(map(f, l1), map(f, l2))
+    | concat-cons(e, r) => concat-cons(f(e), map(f, r))
+    | concat-snoc(r, e) => concat-snoc(map(f, r), f(e))
+  end
+end
+
+rec shadow foldl = lam(f, base, lst):
+  cases (ConcatList) lst:
+    | concat-empty => base
+    | concat-singleton(e) => f(base, e)
+    | concat-append(l1, l2) => foldl(f, foldl(f, base, l1), l2)
+    | concat-cons(e, r) => foldl(f, f(base, e), r)
+    | concat-snoc(r, e) => f(foldl(f, base, r), e)
+  end
+end
+
+rec shadow foldr = lam(f, base, lst):
+  cases (ConcatList) lst:
+    | concat-empty => base
+    | concat-singleton(e) => f(base, e)
+    | concat-append(l1, l2) => foldr(f, foldr(f, base, l2), l1)
+    | concat-cons(e, r) => f(foldr(f, base, r), e)
+    | concat-snoc(r, e) => foldr(f, f(base, e), r)
+  end
+end
+
+rec shadow each = lam(f, lst):
+  cases (ConcatList) lst:
+    | concat-empty => nothing
+    | concat-singleton(e) =>
+      f(e)
+      nothing
+    | concat-append(l1, l2) =>
+      each(f, l1)
+      each(f, l2)
+    | concat-cons(e, r) =>
+      f(e)
+      each(f, r)
+    | concat-snoc(r, e) =>
+      each(f, r)
+      f(e)
+      nothing
+  end
+end
+
+rec shadow find = lam<a>(f :: (a -> Boolean), l :: ConcatList<a>) -> Option<a>:
+  doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
+  cases (ConcatList) l:
+    | concat-empty => none
+    | concat-singleton(e) => if f(e): some(e) else: none end
+    | concat-append(l1, l2) =>
+      result-left = find(f, l1)
+      if is-none(result-left):
+        find(f, l2)
+      else:
+        result-left
+      end
+    | concat-cons(e, r) => if f(e): some(e) else: find(f, r) end
+    | concat-snoc(r, e) =>
+      result-left = find(f, r)
+      if is-none(result-left):
+        if f(e): some(e) else: none end
+      else:
+        result-left
+      end
+  end
+end
 
 clist = {
   make: lam(arr):
@@ -191,4 +247,18 @@ end
 
 check:
   [clist: 1, 2, 3] is concat-snoc(concat-snoc(concat-snoc(concat-empty, 1), 2), 3)
+  [clist: 1, 2, 3].reverse().to-list() is [list: 3, 2, 1]
+
+  [clist: 1, 2, 3].find(_ == 4) is none
+  [clist: 1, 2, 3].find(_ == 2) is some(2)
+
+  e1 = some(1)
+  e2 = some(2)
+  e3 = some(2)
+  e4 = some(1)
+  concat-append(
+    concat-append(
+      concat-snoc(concat-empty, e1),
+      concat-cons(e2, concat-cons(e3, concat-empty))),
+    concat-snoc(concat-empty, e4)).find(_ == some(2)).value is<=> e2
 end
