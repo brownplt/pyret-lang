@@ -1177,7 +1177,7 @@ data CompileError:
           ED.text("The cases expression at"),
           draw-and-highlight(self.loc),
           ED.text("does not exhaust all variants of " + self.type-name
-            + ". It is missing: " + self.missing.join-str(", ") + ".")]]
+            + ". It is missing: " + self.missing.map(_.name).join-str(", ") + ".")]]
     end
   | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
     render-fancy-reason(self):
@@ -1199,25 +1199,23 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text("cannot be used in a cases expression.")]]
     end
-  | different-branch-types(ann, type-name :: String, loc :: A.Loc) with:
+  | different-branch-types(l, branch-types) with:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("A "),
-          ED.code(ED.highlight(ED.text("cases expressions"), [list: self.loc], 0)),
-          ED.text(" can only branch on variants of "),
-          ED.code(ED.text("data")),
-          ED.text(" types. The type "),
-          ED.code(ED.highlight(ED.text(self.type-name), [list: self.ann.l], 1)),
-          ED.text(" cannot be used in cases expressions.")]]
+          ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
+        ED.bulleted-sequence(map_n(lam(n, branch):
+          ED.highlight(ED.embed(branch), [list: branch.l], n);,
+          0, self.branch-types))]
     end,
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type specified " + self.type-name),
-          ED.text("at"),
-          draw-and-highlight(self.loc),
-          ED.text("cannot be used in a cases expression.")]]
+          ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
+        ED.bulleted-sequence(map_n(lam(n, branch):
+         [ED.sequence:
+          ED.loc(branch.l), ED.text(" has type "), ED.embed(branch)];,
+          0, self.branch-types))]
     end
   | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
     render-fancy-reason(self):
@@ -1332,7 +1330,11 @@ data CompileError:
     end
   | toplevel-unann(arg :: A.Bind) with:
     render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para:
+          ED.text("The argument at "),
+          ED.loc(self.arg.l),
+          ED.text(" needs a type annotation.")]]
     end,
     render-reason(self):
       [ED.error:

@@ -833,15 +833,19 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
   cases(A.Ann) in-ann:
     | a-blank =>
       fold-result(none)
-    | a-any(l) => # TODO(MATT): a-any have a src-loc
+    | a-any(l) =>
       fold-result(some(t-top(l)))
     | a-name(l, id) =>
       typ = cases(Option<Type>) context.aliases.get-now(id.key()):
-        | some(typ) => typ
-        | none => t-name(none, id, l)
+        | some(typ) => some(typ)
+        | none => context.data-types.get-now(id.key())
       end
-      result-type = resolve-alias(typ, context).set-loc(l)
-      fold-result(some(result-type))
+      cases(Option<Type>) typ:
+        | some(t) =>
+          result-type = resolve-alias(t, context).set-loc(l)
+          fold-result(some(result-type))
+        | none => fold-errors([list: C.unbound-type-id(in-ann)])
+      end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l)))
     | a-arrow(l, args, ret, _) =>
@@ -1374,9 +1378,8 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
   meet-type = branch-types.foldr(lam(branch-type, current-type):
     least-upper-bound(current-type, branch-type, loc, context)
   end, t-bot(A.dummy-loc))
-
   cases(Type) meet-type:
-    | t-top(l) => fold-errors([list: C.cant-typecheck("branches do not all have the same type", l)])
+    | t-top(l) => fold-errors([list: C.different-branch-types(loc, branch-types)])
     | else => fold-result(meet-type)
   end
 end
@@ -1863,7 +1866,6 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
               end
             end)
           | none =>
-            # TODO(MATT): this is bad and encompasses too much
             typing-error([list: C.cant-match-on(ann, tostring(typ), l)])
         end
       | none => typing-error([list: C.cant-typecheck("No type provided for cases", l)])
