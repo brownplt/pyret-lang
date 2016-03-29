@@ -30,8 +30,8 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, g :: CS
               ts.set(k, mod.aliases.get-value(k))
             end
             CS.globals(
-              new-vals.set(vals-name.toname(), TS.t-top),
-              new-types.set(type-name.toname(), TS.t-top))
+              new-vals.set(vals-name.toname(), TS.t-top(A.dummy-loc)),
+              new-types.set(type-name.toname(), TS.t-top(A.dummy-loc)))
         end
       end
   end
@@ -57,7 +57,7 @@ fun make-repl<a>(
       vs.set(provided-name, cr.provides.values.get-value(provided-name))
     end
     tprovided = cr.provides.aliases.keys-list()
-    new-types = for fold(ts from globals.values, provided-name from tprovided):
+    new-types = for fold(ts from globals.types, provided-name from tprovided):
       ts.set(provided-name, cr.provides.aliases.get-value(provided-name))
     end
     globals := CS.globals(new-vals, new-types)

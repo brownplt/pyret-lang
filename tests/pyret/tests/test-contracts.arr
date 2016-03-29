@@ -310,3 +310,42 @@ check "should work in cases positions":
 
   run-str(data-def2) satisfies is-contract-error
 end
+
+check "Number contracts":
+
+  run-str("x :: Exactnum = 5").success is true
+  run-str("x :: Exactnum = ~5") satisfies is-contract-error
+  run-str("x :: Roughnum = 5") satisfies is-contract-error
+  run-str("x :: Roughnum = ~5").success is true
+  run-str("x :: NumRational = ~5") satisfies is-contract-error
+
+  run-str("x :: NumInteger = 5.1") satisfies is-contract-error
+  run-str("x :: NumInteger = 5").success is true
+
+  run-str("x :: NumRational = 5.1").success is true
+  run-str("x :: NumRational = ~1") satisfies is-contract-error
+
+  run-str("x :: NumPositive = ~5").success is true
+  run-str("x :: NumPositive = ~-5") satisfies is-contract-error
+  run-str("x :: NumPositive = 0.1").success is true
+  run-str("x :: NumPositive = -0.1") satisfies is-contract-error
+  run-str("x :: NumPositive = 0") satisfies is-contract-error
+
+  run-str("x :: NumNegative = ~-5").success is true
+  run-str("x :: NumNegative = ~5") satisfies is-contract-error
+  run-str("x :: NumNegative = -0.1").success is true
+  run-str("x :: NumNegative = 0.1") satisfies is-contract-error
+  run-str("x :: NumNegative = 0") satisfies is-contract-error
+
+  run-str("x :: NumNonNegative = ~5").success is true
+  run-str("x :: NumNonNegative = ~-5") satisfies is-contract-error
+  run-str("x :: NumNonNegative = 0.1").success is true
+  run-str("x :: NumNonNegative = -0.1") satisfies is-contract-error
+  run-str("x :: NumNonNegative = 0").success is true
+
+  run-str("x :: NumNonPositive = ~-5").success is true
+  run-str("x :: NumNonPositive = ~5") satisfies is-contract-error
+  run-str("x :: NumNonPositive = -0.1").success is true
+  run-str("x :: NumNonPositive = 0.1") satisfies is-contract-error
+  run-str("x :: NumNonPositive = 0").success is true
+end

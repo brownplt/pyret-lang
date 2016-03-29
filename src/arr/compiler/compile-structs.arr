@@ -149,7 +149,12 @@ fun datatype-from-raw(uri, datatyp):
     # TODO(joe): Exporting ref fields?
     t-member(tm.name, type-from-raw(uri, tm.value, pdict))
   end
-  t-data(params, variants, members)
+  temp-data = t-data(datatyp.name, variants, members)
+  if is-empty(params):
+    temp-data
+  else:
+    t-forall(params, temp-data)
+  end
 end
 
 fun provides-from-raw-provides(uri, raw):
@@ -194,7 +199,7 @@ data CompileError:
           ED.text("Well-formedness:"),
           ED.text(self.msg),
           ED.text("at")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
     render-reason(self):
@@ -212,28 +217,28 @@ data CompileError:
           ED.text("Well-formedness: Pyret disallows the use of"),
           ED.code(ED.text(self.id)),
           ED.text("as an identifier")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | zero-fraction(loc, numerator) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
-          ED.text("Well-formedness: fraction literal with zero denominator (numerator was"),
-          ED.val(self.numerator),
+        [ED.para-nospace:
+          ED.text("Well-formedness: fraction literal with zero denominator (numerator was "),
+          ED.embed(self.numerator),
           ED.text(") at")],
-        draw-and-highlight(self.loc)]
+        [ED.para: draw-and-highlight(self.loc)]]
     end
   | underscore-as-expr(l :: Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at ")],
-        draw-and-highlight(self.l)]
+        [ED.para: ED.text("Underscore used as an expression, which is not allowed, at")],
+        [ED.para: draw-and-highlight(self.l)]]
     end
   | underscore-as-ann(l :: Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
-        draw-and-highlight(self.l)]
+        [ED.para: ED.text("Underscore used as an annotation, which is not allowed at")],
+        [ED.para: draw-and-highlight(self.l)]]
     end
   | unbound-id(id :: A.Expr) with:
     render-reason(self):
@@ -241,13 +246,13 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.id.id.toname()),
+            ED.text(self.id.id.toname()), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The name"), ED.code(ED.text(self.id.id.toname())), ED.text("is used but not defined at")],
-            draw-and-highlight(self.id.l)]
+            [ED.para: draw-and-highlight(self.id.l)]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
@@ -256,13 +261,13 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.id),
+            ED.text(self.id), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The variable"), ED.code(ED.text(self.id)), ED.text("is assigned to, but not defined, at")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
@@ -271,64 +276,73 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)),
+            ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("The name"), ED.code(ED.text(self.ann.id.toname())),
               ED.text("is used as a type but not defined as one, at")],
-            draw-and-highlight(self.ann.l)]
+            [ED.para: draw-and-highlight(self.ann.l)]]
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     render-reason(self):
       #### TODO ###
-      ED.text("Identifier " + tostring(self.name) + " is used in a dot-annotation at " + tostring(self.loc) + ", but is bound as a type variable")
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Identifier "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used in a dot-annotation at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but is bound as a type variable")]]
     end
   | pointless-var(loc :: Loc) with:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("Defining an anonymous variable is pointless: there is no name to modify."),
               ED.text("Either give this expression a name, or bind it to an identifier rather than a variable.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | pointless-rec(loc :: Loc) with:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("Defining an anonymous recursive identifier is pointless: there is no name to call recursively."),
               ED.text("Either give this expression a name, or remove the rec annotation.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | pointless-shadow(loc :: Loc) with:
     render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
-          [ED.para:
-            ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
-            draw-and-highlight(self.loc)]
+          [ED.error:
+            [ED.para:
+              ED.text("ERROR: should not be allowed to have a builtin that's anonymous:"),
+              draw-and-highlight(self.loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
               ED.text("Anonymous identifier cannot shadow anything: there is no name to shadow."),
               ED.text("Either give this expression a name, or remove the shadow annotation.")],
-            draw-and-highlight(self.loc)]
+            [ED.para: draw-and-highlight(self.loc)]]
       end
     end
   | bad-assignment(id :: String, loc :: Loc, prev-loc :: Loc) with:
@@ -354,8 +368,10 @@ data CompileError:
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
-          + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")
+      [ED.error:
+        [ED.para:
+          ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
+              + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")]]
     end
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     render-reason(self):
@@ -371,8 +387,8 @@ data CompileError:
             [ED.para:
               ED.text("It looks like you've defined the name"), ED.code(ED.text(self.id)),
               ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
+            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
@@ -409,15 +425,15 @@ data CompileError:
             [ED.para:
               ED.text("It looks like you've defined the field name"), ED.code(ED.text(self.id)),
               ED.text("twice, at")],
-            draw-and-highlight(self.old-loc),
-            draw-and-highlight(self.new-loc),
+            [ED.para: draw-and-highlight(self.old-loc), ED.text("and")],
+            [ED.para-nospace: draw-and-highlight(self.new-loc), ED.text(".")],
             [ED.para: ED.text("You need to pick a different name for one of them.")]]
       end
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
           ED.text(" at "), draw-and-highlight(self.bad-loc),
           ED.text(", required by "), draw-and-highlight(self.expected-loc),
@@ -426,7 +442,7 @@ data CompileError:
   | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
           ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
           ED.text(", but instead received "), ED.text(tostring(self.given))]]
@@ -435,22 +451,22 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Incorrect number of arguments given to function at "),
+          ED.text("Incorrect number of arguments given to function at"),
           draw-and-highlight(self.loc)]]
     end
   | apply-non-function(loc :: A.Loc, typ) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Tried to apply the non-function type "),
+          ED.text("Tried to apply the non-function type"),
           ED.embed(self.typ),
-          ED.text(" at "),
+          ED.text("at"),
           draw-and-highlight(self.loc)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
-        [ED.para:
+        [ED.para-nospace:
           ED.text("The object type " + self.obj + " (at "),
           draw-and-highlight(self.obj-loc),
           ED.text(") does not have the field \"" + self.field-name + "\", accessed at "),
@@ -460,41 +476,54 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The branch "), ED.code(ED.text(self.branch-name)),
-          ED.text(" at "), draw-and-highlight(self.branch-loc),
-          ED.text(" is not a variant of "), ED.code(ED.text(self.type-name)),
-          ED.text(" at "),
+          ED.text("The branch"), ED.code(ED.text(self.branch-name)),
+          ED.text("at"), draw-and-highlight(self.branch-loc),
+          ED.text("is not a variant of"), ED.code(ED.text(self.type-name)),
+          ED.text("at"),
           draw-and-highlight(self.type-loc)]]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The else branch for the cases expression at " + tostring(self.loc)
-        + " is not needed since all variants of " + self.type-name + " have been exhausted.")
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The else branch for the cases expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" is not needed since all variants of " + self.type-name + " have been exhausted.")]]
     end
   | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The cases expression at " + tostring(self.loc)
-        + " does not exhaust all variants of " + self.type-name
-        + ". It is missing: " + self.missing.join-str(", ") + ".")
+      [ED.error:
+        [ED.para:
+          ED.text("The cases expression at"),
+          draw-and-highlight(self.loc),
+          ED.text("does not exhaust all variants of " + self.type-name
+            + ". It is missing: " + self.missing.join-str(", ") + ".")]]
     end
   | cant-match-on(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text("The type specified " + self.type-name
-        + " at " + tostring(self.loc)
-        + " cannot be used in a cases expression.")
+      [ED.error:
+        [ED.para:
+          ED.text("The type specified " + self.type-name),
+          ED.text("at"),
+          draw-and-highlight(self.loc),
+          ED.text("cannot be used in a cases expression.")]]
     end
   | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
     #### TODO ###
     render-reason(self):
-      ED.text("Incorrect number of bindings given to "
-        + "the variant " + self.variant-name
-        + " at " + tostring(self.loc) + ". "
-        + "Given " + num-tostring(self.given)
-        + ", but expected " + num-tostring(self.expected)
-        + ".")
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Incorrect number of bindings given to "),
+          ED.text("the variant " + self.variant-name),
+          ED.text(" at "),
+          draw-and-highlight(self.loc),
+          ED.text(". "
+            + "Given " + num-tostring(self.given)
+            + ", but expected " + num-tostring(self.expected)
+            + ".")]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-reason(self):
@@ -516,33 +545,50 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The data type "),  ED.code(ED.text(self.data-type)),
-          ED.text(" does not take any parameters, but is given some at "),
+          ED.text("The data type"),  ED.code(ED.text(self.data-type)),
+          ED.text("does not take any parameters, but is given some at"),
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("In the type at "), draw-and-highlight(self.loc),
-          ED.text(" there was not enough information to instantiate the type, "
+          ED.text("In the type at"), draw-and-highlight(self.loc),
+          ED.text("there was not enough information to instantiate the type, "
             + "or the given arguments are incompatible.")]]
     end
-  | cant-typecheck(reason :: String) with:
+  | unable-to-infer(loc :: A.Loc) with:
     render-reason(self):
-      ED.text("This program cannot be type-checked. Please send it to the developers. " +
-        "The reason that it cannot be type-checked is: " + self.reason)
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
+          ED.text(". Please add an annotation.")]]
+    end
+  | cant-typecheck(reason :: String, loc :: A.Loc) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+        " at "), draw-and-highlight(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
     render-reason(self):
-      ED.text(self.message + " (found at " + tostring(self.blame-loc) + ")")
+      [ED.error:
+        [ED.para-nospace:
+          ED.text(self.message + " (found at "),
+          draw-and-highlight(self.blame-loc),
+          ED.text(")")]]
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
     render-reason(self):
-      ED.text("There is no module imported with the name " + self.mod-name
-        + " (used at " + tostring(self.loc) + ")")
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("There is no module imported with the name " + self.mod-name),
+          ED.text(" (used at "),
+          draw-and-highlight(self.loc),
+          ED.text(")")]]
     end
 end
 
@@ -564,8 +610,17 @@ t-number-pred1 = t-arrow([list: t-number], t-boolean)
 t-within-num = t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean))
 t-within-any = t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean))
 
+# TODO(MATT): figure out what this means, where it's used, and how to handle it
 runtime-types = [string-dict:
   "Number", t-top,
+  "Exactnum", t-top,
+  "Roughnum", t-top,
+  "NumInteger", t-top,
+  "NumRational", t-top,
+  "NumPositive", t-top,
+  "NumNegative", t-top,
+  "NumNonPositive", t-top,
+  "NumNonNegative", t-top,
   "String", t-str,
   "Function", t-top,
   "Boolean", t-top,
@@ -727,10 +782,9 @@ runtime-builtins = [string-dict:
 
 no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
-
 standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict:])
+minimal-builtins = compile-env(standard-globals, [string-dict:])
+standard-builtins = compile-env(standard-globals, [string-dict:])
 
 minimal-imports = extra-imports(empty)
 
@@ -750,6 +804,7 @@ standard-imports = extra-imports(
         [list: "Array"]),
       extra-import(builtin("lists"), "lists", [list:
           "list",
+          "is-List",
           "is-empty",
           "is-link",
           "empty",
@@ -786,6 +841,7 @@ standard-imports = extra-imports(
         [list: "List"]),
       extra-import(builtin("option"), "option", [list:
           "Option",
+          "is-Option",
           "is-none",
           "is-some",
           "none",
@@ -796,8 +852,13 @@ standard-imports = extra-imports(
       extra-import(builtin("sets"), "sets", [list:
           "set",
           "tree-set",
-          "list-set"
+          "list-set",
+          "empty-set",
+          "empty-list-set",
+          "empty-tree-set",
+          "list-to-set",
+          "list-to-list-set",
+          "list-to-tree-set"
         ],
         [list: "Set"])
     ])
-

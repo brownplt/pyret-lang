@@ -184,7 +184,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               A.s-lam(l, params, args, ann, doc, body, _check)
             ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
-          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
+          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank);
           fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank);
           fun variant-binds(data-blob-id, v):
             vname = v.name
@@ -201,7 +201,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
-            variant-binds(A.s-id-letrec(l, blob-id, true), v) + acc
+            variant-binds(A.s-id-letrec(v.l, blob-id, true), v) + acc
           end
           add-letrec-binds(binding-group, all-binds, rest-stmts)
         | s-contract(l, name, ann) =>
@@ -427,7 +427,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment):
     acc.set(name, global-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
   end
 where:
-  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top], mtd), mtd))
+  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top(A.dummy-loc)], mtd), mtd))
     .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 

@@ -1810,7 +1810,7 @@ default-iter-visitor = {
 
   s-program(self, l, _provide, provided-types, imports, body):
     _provide.visit(self)
-    and lists.all(_.visit(self), provided-types)
+    and provided-types.visit(self)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
