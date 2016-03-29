@@ -834,8 +834,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
   cases(A.Ann) in-ann:
     | a-blank =>
       fold-result(none)
-    | a-any => # TODO(MATT): a-any have a src-loc
-      fold-result(some(t-top(A.dummy-loc)))
+    | a-any(l) =>
+      fold-result(some(t-top(l)))
     | a-name(l, id) =>
       typ = cases(Option<Type>) context.aliases.get-now(id.key()):
         | some(typ) => typ

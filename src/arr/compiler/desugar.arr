@@ -43,7 +43,7 @@ end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
-    | a-any => a
+    | a-any(l) => a
     | a-name(_, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
