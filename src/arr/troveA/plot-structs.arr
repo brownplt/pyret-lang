@@ -3,11 +3,11 @@
 provide *
 provide-types *
 
+import image-structs as I
+
 import base as _
 import lists as lists
 type List = lists.List
-
-import image-structs as I
 
 data Posn:
   | posn(x :: Number, y :: Number)

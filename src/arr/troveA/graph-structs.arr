@@ -3,10 +3,10 @@ provide-types *
 
 import base as _
 import lists as lists
+import image-structs as I
 
 type List = lists.List
 
-import image-structs as I
 
 type TreeOptions = {
   node-printer :: (Tree -> String)

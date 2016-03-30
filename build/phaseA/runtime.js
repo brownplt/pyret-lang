@@ -1542,13 +1542,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
        function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a); }
         if (isString(val)) {
-          var repr = val;
+          theOutsideWorld.stderr(val);
+          return val;
         }
         else {
-          var repr = toReprJS(val, ReprMethods._tostring);
+          return thisRuntime.safeCall(function() {
+            return toReprJS(val, ReprMethods._tostring);
+          }, function(repr) {
+            theOutsideWorld.stderr(repr);
+            return val;
+          });
         }
-        theOutsideWorld.stderr(repr);
-        return val;
     });
 
     /********************
@@ -4174,15 +4178,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
         });
 
         return thisRuntime.safeCall(function() {
+          if (mod.nativeRequires.length === 0) {
+            console.log("Nothing to load, skipping stack-pause");
+            return mod.nativeRequires;
+          } else {
             thisRuntime.pauseStack(function(restarter) {
               console.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
-                console.log("Loaded: ", nativeInstantiated);
+                //console.log("Loaded: ", nativeInstantiated);
                 restarter.resume(nativeInstantiated);
               });
             });
-          }, function(natives) {
+          }
+        }, function(natives) {
             return thisRuntime.safeCall(function() {
               return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }, 
