@@ -67,13 +67,8 @@ clist = C.clist
 type Either = E.Either
 
 type CLIContext = {
-  current-load-path :: List<String>
+  current-load-path :: String
 }
-
-fun add-to-load-path(current-load-path, path):
-  split = string-split-all(path, P.path-sep)
-  current-load-path + split.take(split.length() - 1)
-end
 
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
@@ -81,8 +76,8 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       if protocol == "file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
-        real-path = P.join(clp.join-str(P.path-sep), this-path)
-        new-context = ctxt.{current-load-path: add-to-load-path(clp, this-path)}
+        real-path = P.join(clp, this-path)
+        new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = FL.file-locator(real-path, CS.standard-globals)
         CL.located(locator, new-context)
       else if protocol == "legacy-path":
@@ -97,7 +92,7 @@ end
 
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path: [list: "./"]}, base-module)
+  base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
   compiled
@@ -105,7 +100,7 @@ end
 
 fun run(path, options):
   base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path:[list: "./"]}, base-module)
+  base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   r = R.make-runtime()
   result = CL.compile-and-run-worklist(wl, r, options)
@@ -131,7 +126,7 @@ fun build-standalone(path, options):
   shadow options = options.{ compile-module: true }
 
   base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path: [list: "./"]}, base-module)
+  base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
 
