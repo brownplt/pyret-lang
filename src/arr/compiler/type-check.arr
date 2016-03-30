@@ -351,7 +351,7 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
         fold-context-and-rhs = fold-typing(lam(binding, ctxt):
           cases(A.LetrecBind) binding:
             | s-letrec-bind(l2, b, value) =>
-              check-synthesis(value, collected.get-value(b.id.key()), l2, false, ctxt)
+              checking(value, l2, collected.get-value(b.id.key()), false, ctxt)
           end
         end, binds, new-context)
 
@@ -369,7 +369,7 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
     | s-hint-exp(l, hints, exp) =>
       raise("checking for s-hint-exp not implemented")
     | s-instantiate(l, expr, params) =>
-      check-synthesis(e, expect-type, l, top-level, context)
+      check-synthesis(e, l, expect-type, top-level, context)
     | s-block(l, stmts) =>
       fun gen(curr, base):
         pair(link(pair(curr, base.right), base.left), t-top(l))
@@ -450,9 +450,9 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
     | s-extend(l, supe, fields) =>
       raise("checking for s-extend not implemented")
     | s-update(l, obj, fields) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-obj(l, fields) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-array(l, values) =>
       wrapped = cases(Type) expect-type:
         | t-app(rarray, args, tl) =>
@@ -478,39 +478,39 @@ fun _checking(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Bo
     | s-construct(l, modifier, constructor, values) =>
       raise("checking for s-construct not implemented")
     | s-app(l, _fun, args) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-prim-app(l, _fun, args) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-prim-val(l, name) =>
       raise("checking for s-prim-val not implemented")
     | s-id(l, id) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-id-var(l, id) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-id-letrec(l, id, safe) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-undefined(l) =>
       raise("checking for s-undefined not implemented")
     | s-srcloc(l, loc) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-num(l, n) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-frac(l, num, den) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-bool(l, b) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-str(l, s) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-dot(l, obj, field) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-get-bang(l, obj, field) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-bracket(l, obj, field) =>
       raise("checking for s-bracket not implemented")
     | s-data(l, name, params, mixins, variants, shared-members, _check) =>
       raise("s-data should have already been desugared")
     | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check) =>
-      check-synthesis(e, expect-type, expect-loc, top-level, context)
+      check-synthesis(e, expect-loc, expect-type, top-level, context)
     | s-for(l, iterator, bindings, ann, body) =>
       raise("s-for should have already been desugared")
     | s-check(l, name, body, keyword-check) =>
@@ -563,7 +563,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         fold-context-and-rhs = fold-typing(lam(binding, ctxt):
           cases(A.LetrecBind) binding:
             | s-letrec-bind(l2, b, value) =>
-              check-synthesis(value, collected.get-value(b.id.key()), l2, false, ctxt)
+              checking(value, l2, collected.get-value(b.id.key()), false, ctxt)
           end
         end, binds, new-context)
         for typing-bind(context-and-rhs from fold-context-and-rhs):
@@ -1442,7 +1442,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
   end
 end
 
-fun check-synthesis(e :: Expr, expect-type :: Type, expect-loc :: Loc, top-level :: Boolean, context :: Context) -> TypingResult:
+fun check-synthesis(e :: Expr, expect-loc :: Loc, expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
   synthesis(e, top-level, context).bind(lam(new-expr, new-type, new-context):
     applied-new-type = new-context.apply(new-type)
     applied-expect-type = new-context.apply(expect-type)
@@ -1758,7 +1758,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
           | some(typ) => typ
           | none => new-existential(l)
         end
-        check-synthesis(value, ann-type, ann-type.l, false, context)
+        checking(value, ann-type.l, ann-type, false, context)
           .bind(lam(new-value, new-type, new-context):
             typing-result(new-value, new-type, new-context.add-binding(b.id.key(), new-type))
           end)
@@ -1769,7 +1769,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
           | some(typ) => typ
           | none => new-existential(l)
         end
-        check-synthesis(value, ann-type, ann-type.l, false, context)
+        checking(value, ann-type.l, ann-type, false, context)
           .bind(lam(new-value, new-type, new-context):
             typing-result(new-value, t-ref(new-type, l), new-context.add-binding(b.id.key(), t-ref(new-type, l)))
           end)
@@ -2003,7 +2003,7 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
       checking(recreate(args, ret-ann, body), fun-loc, onto, false, context)
         .map-type(t-forall(introduces, _, l))
     | t-existential(id, _) =>
-      check-synthesis(recreate(args, ret-ann, body), expect-type, expect-loc, false, context)
+      check-synthesis(recreate(args, ret-ann, body), expect-loc, expect-type, false, context)
     | else =>
       typing-error([list: C.incorrect-type("a function", fun-loc, tostring(expect-type), expect-loc)])
   end
