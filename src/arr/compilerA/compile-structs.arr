@@ -48,6 +48,10 @@ data Dependency:
     key(self): "builtin(" + self.modname + ")" end
 end
 
+data NativeModule:
+  | requirejs(path :: String)
+end
+
 data NameResolution:
   | resolved(
       ast :: A.Program,
@@ -784,6 +788,7 @@ minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
+      extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",

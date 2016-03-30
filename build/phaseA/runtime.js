@@ -4134,10 +4134,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function depToString(d) {
-      if(d["import-type"]) {
+      if(d["import-type"] === "builtin") {
         return d["import-type"] + "(" + d.name + ")";
       }
-      // TODO(joe): match this to other kinds of serialized dependency
+      else if(d["import-type"] === "dependency") {
+        return d["protocol"] + "(" + d["args"].join(",") + ")";
+      }
+      else {
+        throw new Error("Unknown dependency description: ", d);
+      }
     }
 
     function getExported(m) {
@@ -4179,11 +4184,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         return thisRuntime.safeCall(function() {
           if (mod.nativeRequires.length === 0) {
-            CONSOLE.log("Nothing to load, skipping stack-pause");
+//            CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
             thisRuntime.pauseStack(function(restarter) {
-              CONSOLE.log("About to load: ", mod.nativeRequires);
+//              CONSOLE.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
                 //CONSOLE.log("Loaded: ", nativeInstantiated);

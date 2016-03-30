@@ -34,9 +34,27 @@ import base as _
 import cmdline-lib as CL
 import format as F
 import string-dict as D
+import lists as lists
+import either as E
+import option as O
 
-include either
-include lists
+type Option = O.Option
+some = O.some
+none = O.none
+
+type Either = E.Either
+right = E.right
+left = E.left
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+fold = lists.fold
+
+
+
 
 format = F.format
 string-dict = D.string-dict

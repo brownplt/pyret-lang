@@ -10,7 +10,7 @@ import file("cli-module-loader.arr") as CLI
 import file("locators/builtin.arr") as B
 import format as Format
 import either as E
-import file("initialize-trove.arr") as IT
+#import file("initialize-trove.arr") as IT
 import render-error-display as RED
 format = Format.format
 Either = E.Either
@@ -94,8 +94,8 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(_) =>
-            var comp-object = result.code
-            result := nothing
+            #var comp-object = result.code
+            #result := nothing
             raise("No longer supported")
             #|
             var exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)

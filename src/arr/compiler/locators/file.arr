@@ -1,6 +1,7 @@
 provide *
 
 import namespace-lib as N
+import builtin-modules as B
 import "compiler/compile-lib.arr" as CL
 import "compiler/compile-structs.arr" as CS
 import "compiler/js-of-pyret.arr" as JSP
@@ -47,10 +48,6 @@ fun mockable-file-locator(file-ops):
       end
     end,
     needs-compile(self, provides):
-      # does not handle provides from dependencies currently
-      # NOTE(joe): Until we serialize provides correctly, just return false here
-      true
-      #|
       cpath = self.path + ".js"
       if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
         stimes = file-ops.file-times(self.path)
@@ -59,24 +56,27 @@ fun mockable-file-locator(file-ops):
       else:
         true
       end
-      |#
     end,
-    get-compiled(self, provide-map):
-      cpath = self.path + ".js"
-      if file-ops.file-exists(self.path) and file-ops.file-exists(cpath):
-        stimes = file-ops.file-times(self.path)
-        # open cpath and use methods on it to try to avoid the obvious race
-        # conditions (though others surely remain)
-        # otherwise we could just use needs-compile to decide whether to
-        # fetch or not (since otherwise they're very similar)
-        cfp = file-ops.input-file(cpath)
-        ctimes = file-ops.file-times(cpath)
+    get-compiled(self):
+      cpath = path + ".js"
+      if F.file-exists(path) and F.file-exists(cpath):
+        # NOTE(joe):
+        # Since we're not explicitly acquiring locks on files, there is a race
+        # condition in the next few lines – a user could potentially delete or
+        # overwrite the original file for the source while this method is
+        # running.  We can explicitly open and lock files with appropriate
+        # APIs to mitigate this in the happy, sunny future.
+        stimes = F.file-times(path)
+        ctimes = F.file-times(cpath)
         if ctimes.mtime > stimes.mtime:
-          ret = some(CL.module-as-string(
-                CS.compile-env(self.get-globals(), provide-map),
-                CS.ok(JSP.ccp-string(cfp.read-file()))))
-          cfp.close-file()
-          ret
+          raw = B.builtin-raw-locator(path)
+          provs = CS.provides-from-raw-provides(self.uri(), {
+            uri: self.uri(),
+            values: raw-array-to-list(raw.get-raw-value-provides()),
+            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          })
+          some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-string(raw.get-raw-compiled()))))
         else:
           none
         end

@@ -64,6 +64,10 @@ fun make-builtin-js-locator(basedir, builtin-name):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
+    get-native-modules(_):
+      natives = raw.get-raw-native-modules()
+      raw-array-to-list(natives).map(CM.requirejs)
+    end,
     get-globals(_):
       raise("Should never get compile-env for builtin module " + builtin-name)
     end,
@@ -71,7 +75,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       N.make-base-namespace(some-runtime)
     end,
 
-    uri(_): "pyret-builtin://" + builtin-name end,
+    uri(_): "builtin://" + builtin-name end,
     name(_): builtin-name end,
 
     set-compiled(_, _): nothing end,
@@ -92,12 +96,13 @@ fun make-builtin-js-locator(basedir, builtin-name):
 end
 
 fun make-builtin-arr-locator(basedir, builtin-name):
+  path = P.join(basedir, builtin-name + ".arr")
   {
     get-module(self):
-      when not(F.file-exists(self.path)):
-        raise("File " + self.path + " does not exist")
+      when not(F.file-exists(path)):
+        raise("File " + path + " does not exist")
       end
-      f = F.input-file(self.path)
+      f = F.input-file(path)
       str = CL.pyret-string(f.read-file())
       f.close-file()
       str
@@ -106,15 +111,64 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     get-dependencies(self):
       CL.get-dependencies(self.get-module(), self.uri())
     end,
+    get-native-modules(self):
+      [list:]
+    end,
     get-extra-imports(self):
       CM.minimal-imports
     end,
     get-globals(self):
       CM.standard-globals
     end,
-    set-compiled(self, cr, deps): nothing end,
-    needs-compile(self, provides): true end,
-    get-compiled(self): none end,
+    set-compiled(self, cr, deps):
+      cases(CM.CompileResult) cr.result-printer:
+        | ok(ccp) =>
+          cpath = path + ".js"
+          f = F.output-file(cpath, false)
+          f.display(ccp.pyret-to-js-runnable())
+          f.close-file()
+        | err(_) => nothing
+      end
+    end,
+    needs-compile(self, provides):
+      # does not handle provides from dependencies currently
+      # NOTE(joe): Until we serialize provides correctly, just return false here
+      cpath = path + ".js"
+      if F.file-exists(path) and F.file-exists(cpath):
+        stimes = F.file-times(path)
+        ctimes = F.file-times(cpath)
+        ctimes.mtime <= stimes.mtime
+      else:
+        true
+      end
+    end,
+    get-compiled(self):
+      cpath = path + ".js"
+      if F.file-exists(path) and F.file-exists(cpath):
+        # NOTE(joe):
+        # Since we're not explicitly acquiring locks on files, there is a race
+        # condition in the next few lines – a user could potentially delete or
+        # overwrite the original file for the source while this method is
+        # running.  We can explicitly open and lock files with appropriate
+        # APIs to mitigate this in the happy, sunny future.
+        stimes = F.file-times(path)
+        ctimes = F.file-times(cpath)
+        if ctimes.mtime > stimes.mtime:
+          raw = B.builtin-raw-locator(path)
+          provs = convert-provides(self.uri(), {
+            uri: self.uri(),
+            values: raw-array-to-list(raw.get-raw-value-provides()),
+            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          })
+          some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+        else:
+          none
+        end
+      else:
+        none
+      end
+    end,
     uri(self): "builtin://" + builtin-name end,
     name(self): builtin-name end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end

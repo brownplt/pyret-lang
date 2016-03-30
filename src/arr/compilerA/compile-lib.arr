@@ -57,6 +57,9 @@ type Locator = {
   # Pre-compile (had better be known with no other help)
   get-dependencies :: ( -> List<CS.Dependency>),
 
+  # Pre-compile (to find list of requirejs dependencies to include)
+  get-native-modules :: ( -> List<CS.NativeModule>),
+
   # Pre-compile
   get-extra-imports :: ( -> CS.ExtraImports),
 
@@ -75,7 +78,7 @@ type Locator = {
   set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
-  get-compiled :: ( -> Option<Loadable>),
+  get-compiled :: ( -> Option<CS.CompileResult>),
 
   # _equals should compare uris for locators
   _equals :: Method

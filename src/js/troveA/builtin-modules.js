@@ -26,7 +26,14 @@
       }
 
       var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
-      var m = getData(content);
+      try {
+        var m = getData(content);
+      }
+      catch(e) {
+        console.error("Could not get contents: ", fs.realpathSync(path + ".js"));
+        console.error("Content was: ", content);
+        throw e;
+      }
       return RUNTIME.makeObject({
           "get-raw-dependencies":
             F(function() {
@@ -40,6 +47,14 @@
                   }
                   return RUNTIME.makeObject(m);
                 });
+              } else {
+                return [];
+              }
+            }),
+          "get-raw-native-modules":
+            F(function() {
+              if(Array.isArray(m.nativeRequires)) {
+                return m.nativeRequires.map(RUNTIME.makeString);
               } else {
                 return [];
               }

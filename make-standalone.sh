@@ -1,8 +1,10 @@
 #!/bin/bash
 
-TARGET=tests/pyret/standalone/importer
+TARGET=$1
+#COMPILER=build/phase1/main-wrapper.js
+COMPILER=src/arr/compilerA/pyret.jarr
 
-node build/phase1/main-wrapper.js \
+node $COMPILER \
               --builtin-js-dir src/js/troveA/ \
               --builtin-arr-dir src/arr/troveA/ \
               -no-check-mode \

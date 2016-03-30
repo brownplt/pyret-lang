@@ -770,7 +770,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         typ =
           if is-empty(params): arrow-part
           else:
-            tvars = for map(p from params): T.t-var(p, T.t-top(l), T.invariant, l) end
+            tvars = for map(p from params): T.t-var(p, l) end
             T.t-forall(tvars, arrow-part, l)
           end
         T.t-member(name, typ, l)

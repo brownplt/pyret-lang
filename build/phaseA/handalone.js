@@ -34,13 +34,13 @@ require(["runtime", "program"], function(runtimeLib, program) {
     },
   };
   postLoadHooks[main] = function(answer) {
-    console.log("Final answer: ", answer);
+    //console.log("Final answer: ", answer);
   }
 
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
-      console.log("The program completed successfully");
-      console.log(result);
+      //console.log("The program completed successfully");
+      //console.log(result);
     }
     else {
       console.error("The run ended in error: ", result);
