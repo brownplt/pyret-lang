@@ -5,7 +5,7 @@
 ###   - Github: belph
 ###   - Email : peblairman@gmail.com
 
-### Last Modified: 17 Jan 2015
+### Last Modified: 30 Mar 2016
 
 ### The following is a matrix library which
 ###   has been heavily influenced by the Racket
@@ -16,8 +16,10 @@
 ###   the appropriate doc strings.
 
 ### DATA REPRESENTATION
-### A Vector is simply a list of numbers,
-###   which correspond to the vector's components.
+### A Vector is a custom data structure with
+###   one accessor:
+###   Vector._contents = (RawArray<Number>)
+###                      The elements of the vector
 ### A Matrix is a custom data structure with
 ###   three accessors:
 ###   Matrix.rows = (Number)
@@ -26,7 +28,7 @@
 ###   Matrix.cols = (Number)
 ###                 The number of columns
 ###                     in the matrix
-###   Matrix.elts = (RawArray)
+###   Matrix.elts = (RawArray<Number>)
 ###                 The elements of the matrix
 
 ### The rest should be relatively
@@ -819,13 +821,6 @@ data Matrix:
         acc + num-expt(cur, p)
       end
       num-expt(summed, (1 / p))
-      #max-mag = for raw-array-fold(acc from 0, cur from self.elts, i from 0):
-      #  num-max(acc, num-abs(cur))
-      #end
-      #sum-pow = for raw-array-fold(acc from 0, cur from self.elts, i from 0):
-      #  acc + num-expt((num-abs(cur) / max-mag), p)
-      #end
-      #max-mag * num-expt(sum-pow, (1 / p))
     end,
     
     l1-norm(self) -> Number:
@@ -923,7 +918,7 @@ data Matrix:
       end
     end,
     
-    equalTo(self, a :: Matrix, eq):
+    equal-to(self, a :: Matrix, eq):
       circa = lam(m, n): num-abs(m - n) < 0.00001 end #Because floating points
       basically-equal = lam(l1, l2): fold2(lam(x, y, z): x and circa(y, z) end, true, l1, l2) end
       if ((self.to-list() == a.to-list()) or basically-equal(self.to-list(), a.to-list())):
@@ -934,7 +929,7 @@ data Matrix:
     end,
     
     _equals(self, a :: Matrix, eq):
-      self.equalTo(a, eq)
+      self.equal-to(a, eq)
     end
 end
 
