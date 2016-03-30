@@ -4160,7 +4160,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else {
         var uri = toLoad[0];
         var mod = staticMods[uri];
-        // console.log(uri, mod);
+        // CONSOLE.log(uri, mod);
 
         var reqs = mod.requires;
         if(depMap[uri] === undefined) {
@@ -4179,14 +4179,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         return thisRuntime.safeCall(function() {
           if (mod.nativeRequires.length === 0) {
-            console.log("Nothing to load, skipping stack-pause");
+            CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
             thisRuntime.pauseStack(function(restarter) {
-              console.log("About to load: ", mod.nativeRequires);
+              CONSOLE.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
-                //console.log("Loaded: ", nativeInstantiated);
+                //CONSOLE.log("Loaded: ", nativeInstantiated);
                 restarter.resume(nativeInstantiated);
               });
             });
@@ -4196,7 +4196,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }, 
             function(r) {
-//              console.log("Result from module: ", r);
+//              CONSOLE.log("Result from module: ", r);
               thisRuntime.modules[uri] = r;
               function continu() {
                 return thisRuntime.safeTail(function() {
