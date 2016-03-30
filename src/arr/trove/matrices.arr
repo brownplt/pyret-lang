@@ -204,7 +204,7 @@ data Vector:
     end,
 
     equal-to(self, other :: Vector, eq):
-      circa = within-abs(0.00001) # Because floating points
+      circa = within-rel(0.0001) # Because floating points
       basically-equal = lam(a1, a2):
         for raw-array-fold2(acc from true, elt1 from a1, elt2 from a2, idx from 0):
           acc and circa(elt1, elt2)
@@ -919,7 +919,7 @@ data Matrix:
     end,
     
     equal-to(self, a :: Matrix, eq):
-      circa = within-abs(0.00001) #Because floating points
+      circa = within-rel(0.0001) #Because floating points
       basically-equal = lam(l1, l2): fold2(lam(x, y, z): x and circa(y, z) end, true, l1, l2) end
       if ((self.to-list() == a.to-list()) or basically-equal(self.to-list(), a.to-list())):
         Equal
