@@ -8,7 +8,8 @@ require(["runtime", "program"], function(runtimeLib, program) {
   var main = toLoad[toLoad.length - 1];
 
   var runtime = runtimeLib.makeRuntime({
-    stdout: function(s) { console.log(s); } 
+    stdout: function(s) { process.stdout.write(s); },
+    stderr: function(s) { process.stderr.write(s); } 
   });
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
