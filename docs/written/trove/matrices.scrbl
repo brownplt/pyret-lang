@@ -710,12 +710,11 @@ These methods are available on all matrices.
 @matrix-method["get"]
 
 Returns the matrix's entry in the @math{i^th} row and the @math{j^th} column.
-@para{@bold{WARNING:} Matrix rows and columns are @bold{1-indexed}.}
 
 @examples{
 check:
-  [matrix(3,2): 1, 2, 3, 4, 5, 6].get(2,2) is 4
-  [matrix(3,2): 1, 2, 3, 4, 5, 6].get(3,1) is 5
+  [matrix(3,2): 1, 2, 3, 4, 5, 6].get(1,1) is 4
+  [matrix(3,2): 1, 2, 3, 4, 5, 6].get(2,0) is 5
 end
 }
 
