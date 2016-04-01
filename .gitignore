@@ -30,6 +30,8 @@ build/phase1
 build/phase2
 build/phase3
 build/release
+build/phaseA/program-require.js
+build/phaseA/program.js
 deps/closure-compiler
 node_modules/
 *#
@@ -39,5 +41,11 @@ tests/pyret/tests/*.arr.js
 tests/type-check/*/*.arr.js
 tests/pyret/regression/*.arr.js
 tests/pyret/bootstrap-tests/*.arr.js
+
+src/arr/compilerA/pyret-require.js
+src/arr/compilerA/pyret.jarr
+
+tests/pyret/standalone/importer-require.js
+tests/pyret/standalone/importer.jarr
 
 *.arr.js

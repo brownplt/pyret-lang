@@ -211,3 +211,71 @@ var TROVE_ARRAY = {
     }
   };
 
+
+
+
+
+
+
+
+-----
+Older design sketch:
+
+
+define(["trove/either",
+"trove/equality",
+"trove/option",
+"trove/valueskeleton"],function($E30,$equality31,$O32,$VS33) {
+
+  return {
+    dependencies: [
+      { name: "either" },
+      { name: "equality" }
+    ],
+    provides: [
+      ...
+    ],
+    oldDependencies: [ $E30, $equality31 ],
+    theModule: function($E30, $equality31) {
+      return function(r, ns) {
+        return r.loadModulesNew([$E30, $equality31], function($E30, $equality31) {
+          
+          compiled body
+
+        }
+      }
+    }
+  };
+
+}
+
+var MODULES = {};
+function legacyResolve(url) {
+  return MODULES[url] || require(url);
+}
+
+// MODULES["legacy-path://anf-loop-compiler.arr"] = (function($ANF) {
+
+//})(legacyResolve("legacy-path://ast-anf.arr"));
+define(["compiler/ast-anf.arr"],function(ANF$3) {
+
+  return {
+    dependencies: [
+      { protocol: "legacy-path", args: ["compiler/ast-anf.arr"] },
+    ],
+    provides: [
+      ...
+    ],
+    oldDependencies: [ ANF$3 ],
+    theModule: function(ANF$3) {
+      return function(r, ns) {
+        return r.loadModulesNew([$E30, $equality31], function($E30, $equality31) {
+          
+          compiled body
+
+        }
+      }
+    }
+  };
+
+}
