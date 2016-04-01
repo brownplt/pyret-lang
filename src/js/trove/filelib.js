@@ -93,6 +93,12 @@ define(["js/runtime-util", "fs"], function(util, fs) {
               "close-input-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-input-file");
                 }),
+              "create-dir": RUNTIME.makeFunction(function(directory) {
+                RUNTIME.ffi.checkArity(1, arguments, "create-dir");
+                RUNTIME.checkString(directory);
+                fs.mkdirSync(directory);
+                return true;
+              }),
               "list-files": RUNTIME.makeFunction(function(directory) {
                   RUNTIME.ffi.checkArity(1, arguments, "list-files");
                   RUNTIME.checkString(directory);

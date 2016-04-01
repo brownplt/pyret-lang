@@ -54,6 +54,9 @@ fun make-builtin-js-locator(basedir, builtin-name):
   raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
   {
     needs-compile(_, _): false end,
+    get-modified-time(self):
+      F.file-times(P.join(basedir, builtin-name)).mtime
+    end,
     get-module(_): 
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
@@ -69,7 +72,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     get-globals(_):
-      raise("Should never get compile-env for builtin module " + builtin-name)
+      CM.standard-globals
     end,
     get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)
@@ -98,6 +101,9 @@ end
 fun make-builtin-arr-locator(basedir, builtin-name):
   path = P.join(basedir, builtin-name + ".arr")
   {
+    get-modified-time(self):
+      F.file-times(path).mtime
+    end,
     get-module(self):
       when not(F.file-exists(path)):
         raise("File " + path + " does not exist")

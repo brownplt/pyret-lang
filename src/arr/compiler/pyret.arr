@@ -33,6 +33,8 @@ fun main(args):
       C.next-val(C.String, C.once, "Directory to find the source of builtin js modules"),
     "builtin-arr-dir",
       C.next-val(C.String, C.once, "Directory to find the source of builtin arr modules"),
+    "compiled-dir",
+      C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
@@ -69,6 +71,7 @@ fun main(args):
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
+      compiled-dir = r.get-value("compiled-dir")
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dir(r.get-value("builtin-js-dir"))
       end
@@ -90,7 +93,8 @@ fun main(args):
             type-check: type-check,
             ignore-unbound: false,
             proper-tail-calls: tail-calls,
-            compile-module: false
+            compile-module: false,
+            compiled-cache: compiled-dir
           }
           ).result
         cases(CS.CompileResult) result:
@@ -128,7 +132,8 @@ fun main(args):
               collect-all: false,
               ignore-unbound: false,
               proper-tail-calls: tail-calls,
-              compile-module: true
+              compile-module: true,
+              compiled-cache: compiled-dir
             })
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),

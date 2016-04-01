@@ -1,11 +1,16 @@
 provide *
 import namespace-lib as N
 import runtime-lib as R
+import builtin-modules as B
 import load-lib as L
 import either as E
 import ast as A
 import pathlib as P
+import sha as crypto
+import string-dict as SD
 import render-error-display as RED
+import file as F
+import filelib as FS
 import "compiler/js-ast.arr" as J
 import "compiler/concat-lists.arr" as C
 import "compiler/compile-lib.arr" as CL
@@ -13,6 +18,7 @@ import "compiler/compile-structs.arr" as CS
 import "compiler/locators/file.arr" as FL
 import "compiler/locators/legacy-path.arr" as LP
 import "compiler/locators/builtin.arr" as BL
+import "compiler/js-of-pyret.arr" as JSP
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -63,8 +69,76 @@ j-for = J.j-for
 
 clist = C.clist
 
+type Loadable = CL.Loadable
+
 
 type Either = E.Either
+
+fun uri-to-path(uri):
+  crypto.sha256(uri)
+end
+
+fun get-loadable(basedir, l) -> Option<Loadable>:
+  locuri = l.locator.uri()
+  saved-path = P.join(basedir, uri-to-path(locuri))
+  if not(F.file-exists(saved-path)) or
+     (F.file-times(saved-path).mtime < l.locator.get-modified-time()):
+    none
+  else:
+    raw = B.builtin-raw-locator(saved-path)
+    provs = CS.provides-from-raw-provides(locuri, {
+      uri: locuri,
+      values: raw-array-to-list(raw.get-raw-value-provides()),
+      aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+      datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+    })
+    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+  end
+end
+
+fun set-loadable(basedir, loadable):
+  when not(FS.exists(basedir)):
+    FS.create-dir(basedir)
+  end
+  locuri = loadable.provides.from-uri
+  cases(CS.CompileResult) loadable.result-printer:
+    | ok(ccp) =>
+      save-path = P.join(basedir, uri-to-path(locuri) + ".js")
+      f = F.output-file(save-path, false)
+      f.display(ccp.pyret-to-js-runnable())
+      f.close-file()
+    | err(_) => nothing
+  end
+end
+
+fun get-cli-module-storage(storage-dir :: String):
+  {
+    load-modules(self, to-compile):
+      maybe-modules = for map(t from to-compile):
+        get-loadable(storage-dir, t)
+      end
+      modules = [SD.mutable-string-dict:]
+      for each2(m from maybe-modules, t from to-compile):
+        cases(Option<Loadable>) m:
+          | none => nothing
+          | some(shadow m) =>
+            modules.set-now(t.locator.uri(), m)
+        end
+      end
+      modules
+    end,
+
+    save-modules(self, loadables):
+      for each(l from loadables): set-loadable(storage-dir, l) end 
+      s = for fold(s from "{\n", l from loadables):
+        locuri = l.provides.from-uri
+        s + "\"" + l.provides.from-uri + "\":\"" + uri-to-path(locuri) + "\"\n"
+      end
+      f = F.output-file(P.join(storage-dir, "modmap.json"), false)
+      f.display(s + "}")
+    end
+  }
+end
 
 type CLIContext = {
   current-load-path :: String
@@ -128,7 +202,11 @@ fun build-standalone(path, options):
   base-module = CS.dependency("file", [list: path])
   base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
-  compiled = CL.compile-program(wl, options)
+
+  storage = get-cli-module-storage(options.compiled-cache)
+  starter-modules = storage.load-modules(wl)
+  compiled = CL.compile-program-with(wl, starter-modules, options)
+  storage.save-modules(compiled.loadables)
 
   define-name = j-id(A.s-name(A.dummy-loc, "define"))
 
