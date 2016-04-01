@@ -47,6 +47,9 @@ type Provides = CS.Provides
 
 type Locator = {
 
+  # In milliseconds-since-epoch format
+  get-modified-time :: (-> Number),
+
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
   needs-compile :: (SD.StringDict<Provides> -> Boolean),
@@ -236,7 +239,9 @@ fun compile-program(worklist, options):
 end
 
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable:
-  if locator.needs-compile(provide-map):
+  cases(Option<Loadable>) locator.get-compiled():
+    | some(loadable) => loadable
+    | none =>
     env = CS.compile-env(locator.get-globals(), provide-map)
     libs = locator.get-extra-imports()
     mod = locator.get-module()
@@ -305,19 +310,13 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end
             end
             mod-result = module-as-string(provides, env, cr.result)
-            locator.set-compiled(mod-result, provide-map)
             mod-result
           | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
         end
       | err(_) => module-as-string(dummy-provides(locator.uri()), env, wf) #phase("Result", wf, ret)
     end
-  else:
-    cases(Option) locator.get-compiled():
-      | none => raise("No precompiled module found for " + locator.uri())
-      | some(v) => v
     end
   end
-end
 
 type PyretAnswer = Any
 type PyretMod = Any

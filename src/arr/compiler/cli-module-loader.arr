@@ -81,8 +81,8 @@ end
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri))
-  if not(F.file-exists(saved-path)) or
-     (F.file-times(saved-path).mtime < l.locator.get-modified-time()):
+  if not(F.file-exists(saved-path + ".js")) or
+     (F.file-times(saved-path + ".js").mtime < l.locator.get-modified-time()):
     none
   else:
     raw = B.builtin-raw-locator(saved-path)

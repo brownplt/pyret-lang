@@ -55,7 +55,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
   {
     needs-compile(_, _): false end,
     get-modified-time(self):
-      F.file-times(P.join(basedir, builtin-name)).mtime
+      F.file-times(P.join(basedir, builtin-name + ".js")).mtime
     end,
     get-module(_): 
       raise("Should never fetch source for builtin module " + builtin-name)

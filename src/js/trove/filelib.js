@@ -61,10 +61,10 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                   RUNTIME.checkOpaque(file);
                   var v = file.val;
                   if(!(v instanceof InputFile || v instanceof OutputFile)) {
-                    RUNTIME.RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
+                    RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
                   }
                   if(!fs.existsSync(v.name)) {
-                    RUNTIME.RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
+                    RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
                   }
                   var stats = fs.lstatSync(v.name);
                   return RUNTIME.makeObject({

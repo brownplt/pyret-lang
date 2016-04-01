@@ -224,10 +224,12 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
           w.dependency-map,
           lam(_, v): cache.get-value-now(v.uri()).provides
         end)
+      print-error("Compiling " + w.locator.uri())
       loadable = compile-module(w.locator, provide-map, cache, options)
       cache.set-now(uri, loadable)
       loadable
     else:
+      print-error("Skipping " + w.locator.uri())
       cache.get-value-now(uri)
     end
   end
