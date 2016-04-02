@@ -311,7 +311,7 @@ fun make-raw-array-fold2(start1, start2, stride1, stride2, stop1, stop2):
   end
 end
 
-fun rc-to-index-with-col-size(row :: Nat, col :: Nat, m-cols :: Nat):
+fun rc-to-index(row :: Nat, col :: Nat, m-cols :: Nat):
   (row * m-cols) + col
 end
 
@@ -350,18 +350,12 @@ where:
   list-to-raw-array([list: 1, 2, 3]) is=~ [raw-array: 1, 2, 3]
 end
 
-# TODO: Remove
-fun rc-to-index(mtx, row, col):
-  doc: "Returns the RawArray index corresponding to the given row and column"
-  (row * mtx.cols) + col
-end
-
 data Matrix:
   | matrix(rows :: NonZeroNat, cols :: NonZeroNat, elts :: RawArray<Number>)
     with:
     get(self, i :: Number, j :: Number) -> Number:
       doc: "Returns the matrix's entry in the i'th row and j'th column"
-      raw-array-get(self.elts, rc-to-index(self, i, j))
+      raw-array-get(self.elts, rc-to-index(i, j, self.cols))
     end,
     
     to-list(self) -> List<Number>:
@@ -392,7 +386,7 @@ data Matrix:
       doc: "Returns a one-row matrix with the matrix's i'th row"
       raw-arr = raw-array-of(0, self.cols)
       for each(n from range(0, self.cols)):
-        raw-array-set(raw-arr, n, raw-array-get(self.elts, rc-to-index(self, i, n)))
+        raw-array-set(raw-arr, n, raw-array-get(self.elts, rc-to-index(i, n, self.cols)))
       end
       matrix(1, self.cols, raw-arr)
     end,
@@ -400,7 +394,7 @@ data Matrix:
       doc: "Returns a one-column matrix with the matrix's j'th column"
       raw-arr = raw-array-of(0, self.rows)
       for each(n from range(0, self.rows)):
-        raw-array-set(raw-arr, n, raw-array-get(self.elts, rc-to-index(self, n, j)))
+        raw-array-set(raw-arr, n, raw-array-get(self.elts, rc-to-index(n, j, self.cols)))
       end
       matrix(self.rows, 1, raw-arr)
     end,
@@ -418,7 +412,7 @@ data Matrix:
             when c < lojl:
               colnum = loj.get(c)
               raw-array-set(raw-arr, (r * lojl) + c, 
-                raw-array-get(self.elts, rc-to-index(self, n, colnum)))
+                raw-array-get(self.elts, rc-to-index(n, colnum, self.cols)))
               fetch-cols(c + 1)
             end
           end
@@ -433,10 +427,10 @@ data Matrix:
     transpose(self) -> Matrix:
       doc: "Returns the matrix's transpose"
       raw-arr = raw-array-of(0, (self.rows * self.cols))
-      for each(r in range(0, self.rows)):
-        for each(c in range(0, self.cols)):
-          raw-array-set(raw-arr, rc-to-index-with-col-size(c, r, self.rows),
-            raw-array-get(self.elts, rc-to-index(self, r, c)))
+      for each(r from range(0, self.rows)):
+        for each(c from range(0, self.cols)):
+          raw-array-set(raw-arr, rc-to-index(c, r, self.rows),
+            raw-array-get(self.elts, rc-to-index(r, c, self.cols)))
         end
       end
       matrix(self.cols, self.rows, raw-arr)
@@ -450,7 +444,7 @@ data Matrix:
       fun fetch-diag(n :: Number):
         when n < num-diag:
           raw-array-set(raw-arr, n,
-            raw-array-get(self.elts, rc-to-index(self, n, n)))
+            raw-array-get(self.elts, rc-to-index(n, n, self.cols)))
           fetch-diag(n + 1)
         end
       end
@@ -468,8 +462,8 @@ data Matrix:
           when r < self.rows:
             fun set-col(nonzeros :: Number, on-col :: Number):
               when nonzeros > 0:
-                raw-array-set(raw-arr, rc-to-index(self, r, on-col),
-                  raw-array-get(self.elts, rc-to-index(self, r, on-col)))
+                raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
+                  raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
                 set-col(nonzeros - 1, on-col - 1)
               end
             end
@@ -492,8 +486,8 @@ data Matrix:
           when r < self.rows:
             fun set-col(nonzeros :: Number, on-col :: Number):
               when nonzeros > 0:
-                raw-array-set(raw-arr, rc-to-index(self, r, on-col),
-                  raw-array-get(self.elts, rc-to-index(self, r, on-col)))
+                raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
+                  raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
                 set-col(nonzeros - 1, on-col + 1)
               end
             end
@@ -594,7 +588,7 @@ data Matrix:
     trace(self) -> Number:
       doc: "Returns the trace of the matrix (sum of the diagonal values)"
       for L.fold(acc from 0, i from range(0, num-min(self.rows, self.cols))):
-        acc + raw-array-get(self.elts, rc-to-index(self, i, i))
+        acc + raw-array-get(self.elts, rc-to-index(i, i, self.cols))
       end
     end,
     
@@ -656,7 +650,7 @@ data Matrix:
       for each(i from range(0, self.rows)):
         for each(k from range(0, b.cols)):
           strided-fold = make-raw-array-fold2(i * self.cols, k, 1, b.cols, ((i + 1) * self.cols) - 1, (b.rows * b.cols) + k)
-          raw-array-set(raw-arr, rc-to-index(b, i, k),
+          raw-array-set(raw-arr, rc-to-index(i, k, b.cols),
             for strided-fold(base from 0, self_ij from self.elts, b_jk from b.elts):
               base + (self_ij * b_jk)
             end)
@@ -711,8 +705,8 @@ data Matrix:
       
       fun row-range(row :: Nat):
         doc: "Returns the index range for the given row"
-        range(rc-to-index(to-ret, row, 0),
-          rc-to-index(to-ret, row, to-ret.cols))
+        range(rc-to-index(row, 0, to-ret.cols),
+          rc-to-index(row, to-ret.cols, to-ret.cols))
       end
       
       fun leading-col(row :: Nat):
@@ -788,8 +782,8 @@ data Matrix:
       doc: "Returns the least-squares solution for this and the given matrix"
       # Take the QR Decomposition and pull out results (and transpose Q)
       qrres = self.qr-decomposition()
-      qt = qrres.first.transpose()
-      r = qrres.rest.first
+      qt = qrres.Q.transpose()
+      r = qrres.R
       # Solve for x: r * x = qt * b
       r.inverse() * (qt * b)
     end,
@@ -831,35 +825,35 @@ data Matrix:
       norm-first = first-col.normalize()
       for each(i from range(0, self.rows)):
         n = norm-first.get(i)
-        raw-array-set(q-arr, rc-to-index(self, i, 0), n) # Normalize and store in Q Matrix
+        raw-array-set(q-arr, rc-to-index(i, 0, self.cols), n) # Normalize and store in Q Matrix
       end
       fun get-q-col(j :: Nat) -> Vector:
         doc: "Returns the given column in the Q matrix as a vector"
         outarr = raw-array-of(0, self.rows)
         for each(n from range(0, self.rows)):
-          raw-array-set(outarr, n, raw-array-get(q-arr, rc-to-index(self, n, j)))
+          raw-array-set(outarr, n, raw-array-get(q-arr, rc-to-index(n, j, self.cols)))
         end
         vector-of-raw-array(outarr)
       end
       for each(i from range(1, self.cols)):
         v-vec = cols.get(i).to-vector() # Convert the current column into a vector (needs to be able to dot)
         first-dot = v-vec.dot(get-q-col(0)) # Dot the current vector with the first unit vector
-        raw-array-set(r-arr, rc-to-index(self, 0, i), first-dot) # Store dot in R Matrix
+        raw-array-set(r-arr, rc-to-index(0, i, self.cols), first-dot) # Store dot in R Matrix
         sum-mults = for fold(acc from get-q-col(0).scale(first-dot), j from range(1, i)): # Loop over all 
                                                                                           #   already-established
                                                                                           #   unit vectors
           dotted = v-vec.dot(get-q-col(j)) # Dot the current vector with the given unit vector
-          raw-array-set(r-arr, rc-to-index(self, j, i), dotted) # Store dot in R matrix
+          raw-array-set(r-arr, rc-to-index(j, i, self.cols), dotted) # Store dot in R matrix
           (acc + get-q-col(j).scale(dotted)) # Add the scaled unit vector to the accumulated result
         end
         v-perp = cols.get(i).to-vector() - sum-mults # Subtract the accumulated result
                                                                 #   from the current vector to get
                                                                 #   its perpendicular component
-        raw-array-set(r-arr, rc-to-index(self, i, i), v-perp.magnitude()) # Store magnitude in R matrix
+        raw-array-set(r-arr, rc-to-index(i, i, self.cols), v-perp.magnitude()) # Store magnitude in R matrix
         v-perp-norm = v-perp.normalize()
         for each(k from range(0, self.rows)):
           n = v-perp-norm.get(k)
-          raw-array-set(q-arr, rc-to-index(self, k, i), n) # Store Normalized Perp. Component in Q Matrix
+          raw-array-set(q-arr, rc-to-index(k, i, self.cols), n) # Store Normalized Perp. Component in Q Matrix
         end
       end
       # Shrink R Matrix to a (self.cols * self.cols) square matrix
@@ -920,9 +914,9 @@ data Matrix:
         end
       end
       VS.vs-str("\n" + for raw-array-fold(acc from "", n from self.elts, i from 0):
-          acc + elt-tostr(i))
-      end
-
+          acc + elt-tostr(i)
+      end)
+    end,
     
     equal-to(self, a :: Matrix, eq):
       circa = within-rel(0.0001) #Because floating points
@@ -1045,7 +1039,7 @@ fun build-matrix(rows :: NonZeroNat, cols :: NonZeroNat, proc :: (Number, Number
   raw-arr = raw-array-of(0, (rows * cols))
   for each(i from range(0, rows)):
     for each(j from range(0, cols)):
-      raw-array-set(raw-arr, rc-to-index-with-col-size(i, j, cols), proc(i, j))
+      raw-array-set(raw-arr, rc-to-index(i, j, cols), proc(i, j))
     end
   end
   matrix(rows, cols, raw-arr)
@@ -1130,7 +1124,7 @@ fun vectors-to-matrix(lst :: List<Vector>):
   raw-arr = raw-array-of(0, (rows) * (cols))
   for each(i from range(0, rows)):
     for each(j from range(0, cols)):
-      raw-array-set(raw-arr, rc-to-index-with-col-size(i, j, cols), lst.get(j).get(i))
+      raw-array-set(raw-arr, rc-to-index(i, j, cols), lst.get(j).get(i))
     end
   end
   matrix(rows, cols, raw-arr)
