@@ -92,9 +92,11 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       function checkResultsSummary(checkResults) {
         return runtime.safeCall(
           function() {
+            console.log("checkResultsSummary1");
             return gf(CH, "results-summary").app(checkResults);
           },
           function(pySummary) {
+            console.log("checkResultsSummary2");
             return {
               message: gf(pySummary, "message"),
               passed: gf(pySummary, "passed"),

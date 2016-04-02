@@ -584,7 +584,7 @@ data RuntimeError:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
     end,
-    render-reason(self): ED.embed(self.value) end
+    render-reason(self): [ED.para: ED.embed(self.value)] end
 end
 
 data ParseError:
