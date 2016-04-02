@@ -14,7 +14,7 @@
 @(provide mathjax-style math-in math-disp $ $$)
  
 @(define mathjax-source
-@(net:string->url "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"))
+@(net:string->url "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"))
 
 @(define mathjax-style
     (style #f (list (js-addition mathjax-source))))
@@ -56,6 +56,7 @@
 
 @(define mtx-type (a-id "Matrix" (xref "matrices" "Matrix")))
 @(define vec-type (a-id "Vector" (xref "matrices" "Vector")))
+@(define vec3d-type (a-id "Vector3D" (xref "matrices" "Vector3D")))
 @(define (L-of typ) `(a-app (a-id "List" (xref "lists" "List")) ,typ))
 
 @(append-gen-docs
@@ -193,6 +194,7 @@
       (args ("delta"))
       (return (a-arrow ,mtx-type ,mtx-type ,B))
       (contract (a-arrow ,N (a-arrow ,mtx-type ,mtx-type ,B))))
+    (data-spec (name "Vector3D"))
     (data-spec
       (name "Vector")
       (variants ("vector"))
@@ -219,8 +221,8 @@
           (name "cross")
           (arity 2)
           (args ("self" "other"))
-          (return ,vec-type)
-          (contract (a-arrow ,vec-type ,N)))
+          (return ,vec3d-type)
+          (contract (a-arrow ,vec3d-type ,vec3d-type)))
         (method-spec
           (name "normalize")
           (arity 1)
@@ -514,6 +516,10 @@
 @type-spec["Vector" '()]
 
 The @pyret{Vector} type represents mathematical vectors.
+
+@type-spec["Vector3D" '()]
+
+Like @pyret{Vector}, but only allows 3-dimensional vectors.
 
 @section{The Vector Datatype}
 @collection-doc["vector" #:contract `(a-arrow ("elt" ,N) ,vec-type)]

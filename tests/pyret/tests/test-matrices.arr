@@ -217,14 +217,15 @@ end
 
 check "Matrix Decomposition":
 
-  [matrix(3,3):1, 2, 3, -1, 0, -3, 0, -2, 3].qr-decomposition() is%(list-matrix-within(0.00001))
-  [list: 
+  [matrix(3,3):1, 2, 3, -1, 0, -3, 0, -2, 3].qr-decomposition() is%(matrix-within(0.00001))
+  { Q: 
     [matrix(3,3):(1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
       (-1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
-      0, (-2 / num-sqrt(6)), (1 / num-sqrt(3))],
+        0, (-2 / num-sqrt(6)), (1 / num-sqrt(3))],
+    R:
     [matrix(3,3): num-sqrt(2), num-sqrt(2), num-sqrt(18),
       0, num-sqrt(6), -1 * num-sqrt(6),
-      0, 0, num-sqrt(3)]]
+      0, 0, num-sqrt(3)] }
   
   [matrix(3,3):1, 2, 3, -1, 0, -3, 0, -2, 3].gram-schmidt() is%(matrix-within(0.00001))
     [matrix(3,3):(1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),

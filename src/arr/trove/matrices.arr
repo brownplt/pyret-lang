@@ -59,6 +59,7 @@ provide {
 } end
 provide-types {
   Vector :: Vector,
+  Vector3D :: Vector3D,
   Matrix :: Matrix
 }
 
@@ -149,6 +150,7 @@ data Vector:
         end)
     end,
 
+    # TODO: Can this be a Vector3D (i.e. is Vector3D in scope?)
     cross(self, other :: Vector) -> Vector:
       doc: "Returns the cross product of this 3D vector with the given 3D vector"
       when not(length3(self)):
@@ -165,7 +167,10 @@ data Vector:
       o0 = raw-array-get(other._contents, 0)
       o1 = raw-array-get(other._contents, 1)
       o2 = raw-array-get(other._contents, 2)
-      vector([raw-array: (s1 * o2) - (s2 * o1), (s2 * o0) - (s0 * o2), (s0 * o1) - (s1 * o0)])
+      vector([raw-array:
+          (s1 * o2) - (s2 * o1),
+          (s2 * o0) - (s0 * o2),
+          (s0 * o1) - (s1 * o0)])
     end,
 
     normalize(self) -> Vector:
@@ -230,24 +235,6 @@ data Vector:
 
     _output(self) -> VS.ValueSkeleton:
       VS.vs-collection("vector", raw-array-to-list(self._contents).map(VS.vs-value))
-    end,
-
-    _tostring(self, shadow tostring :: (Any -> String)) -> String:
-      "[vector: " +
-      for raw-array-fold(acc from tostring(raw-array-get(self._contents, 0)),
-          elt from self._contents, i from 1):
-        acc + ", " + tostring(elt)
-      end
-        + "]"
-    end,
-
-    _torepr(self, shadow torepr :: (Any -> String)) -> String:
-      "[vector: " +
-      for raw-array-fold(acc from torepr(raw-array-get(self._contents, 0)),
-          elt from self._contents, i from 1):
-        acc + ", " + torepr(elt)
-      end
-        + "]"
     end
 end
 
@@ -271,7 +258,8 @@ shadow vector = {
 
 vector3d = block:
   fun bad-arity(n):
-    "Cannot construct a 3D Vector with " + tostring(n) + " elements"
+    "Cannot construct a 3D Vector with " + tostring(n) + " element"
+      + (if (n <> 1): "s" else: "" end)
   end
   {
     make0: lam(): raise(bad-arity(0)) end,
@@ -327,6 +315,7 @@ fun rc-to-index-with-col-size(row :: Nat, col :: Nat, m-cols :: Nat):
   (row * m-cols) + col
 end
 
+# This ought to be a runtime function...
 fun raw-array-duplicate(arr :: RawArray) -> RawArray:
   # Enables pass-by-value behavior
   doc: "Returns a new copy of the given array"
@@ -361,6 +350,7 @@ where:
   list-to-raw-array([list: 1, 2, 3]) is=~ [raw-array: 1, 2, 3]
 end
 
+# TODO: Remove
 fun rc-to-index(mtx, row, col):
   doc: "Returns the RawArray index corresponding to the given row and column"
   (row * mtx.cols) + col
@@ -381,9 +371,7 @@ data Matrix:
     
     to-vector(self) -> Vector:
       doc: "Returns the one-row/one-column matrix as a vector"
-      if (self.cols == 1):
-        vector-of-raw-array(self.transpose().elts)
-      else if (self.rows == 1):
+      if ((self.cols == 1) <> (self.rows == 1)):
         vector-of-raw-array(self.elts)
       else:
         raise("Cannot convert non-vector matrix to vector")
@@ -392,7 +380,7 @@ data Matrix:
     
     to-lists(self) -> List<List<Number>>:
       doc: "Returns the matrix as a list of lists of numbers, with each list corresponding to a row"
-      self.row-list().map(lam(r): r.to-vector() end)
+      self.row-list().map(lam(r): r.to-list() end)
     end,
     
     to-vectors(self) -> List<Vector>:
@@ -445,23 +433,16 @@ data Matrix:
     transpose(self) -> Matrix:
       doc: "Returns the matrix's transpose"
       raw-arr = raw-array-of(0, (self.rows * self.cols))
-      fun set-row(r :: Number):
-        when r < self.cols:
-          fun set-col(c :: Number):
-            when c < self.rows:
-              raw-array-set(raw-arr, rc-to-index-with-col-size(r, c, self.rows), 
-                raw-array-get(self.elts, rc-to-index(self, c, r)))
-              set-col(c + 1)
-            end
-          end
-          set-col(0)
-          set-row(r + 1)
+      for each(r in range(0, self.rows)):
+        for each(c in range(0, self.cols)):
+          raw-array-set(raw-arr, rc-to-index-with-col-size(c, r, self.rows),
+            raw-array-get(self.elts, rc-to-index(self, r, c)))
         end
       end
-      set-row(0)
       matrix(self.cols, self.rows, raw-arr)
     end,
-    
+
+    # TODO: Change to for(...) loops
     diagonal(self) -> Matrix:
       doc: "Returns a one-row matrix with the matrix's diagonal entries"
       num-diag = num-min(self.rows, self.cols)
@@ -612,8 +593,8 @@ data Matrix:
     
     trace(self) -> Number:
       doc: "Returns the trace of the matrix (sum of the diagonal values)"
-      for raw-array-fold(acc from 0, n from self.diagonal().elts, i from 0):
-        acc + n
+      for L.fold(acc from 0, i from range(0, num-min(self.rows, self.cols))):
+        acc + raw-array-get(self.elts, rc-to-index(self, i, i))
       end
     end,
     
@@ -719,7 +700,7 @@ data Matrix:
     
     is-invertible(self) -> Boolean:
       doc: "Returns true if the given matrix is invertible"
-      is-square-matrix(self) and not(self.determinant() == 0)
+      is-square-matrix(self) and not(within(0.0001)(self.determinant(), 0))
     end,
     
     rref(self) -> Matrix:
@@ -737,7 +718,7 @@ data Matrix:
       fun leading-col(row :: Nat):
         doc: "Returns the leading nonzero column of the given row"
         for fold(acc from (to-ret.cols - 1), cur from range(0, to-ret.cols).reverse()):
-          if not(to-ret.get(row, cur) == 0):
+          if not(within(0.0001)(to-ret.get(row, cur), 0)):
             cur
           else:
             acc
@@ -781,7 +762,8 @@ data Matrix:
       
       to-ret
     end,
-    
+
+    # FIXME: Use submatrix
     inverse(self) -> Matrix:
       when not(self.is-invertible()):
         raise("Cannot find inverse of non-invertible matrix")
@@ -837,8 +819,8 @@ data Matrix:
       doc: "Computes the L-Infinity norm of the matrix"
       raw-array-fold(lam(acc, cur, i): num-max(acc, num-abs(cur)) end, 0, self.elts, 0)
     end,
-    
-    qr-decomposition(self) -> List<Matrix>:
+
+    qr-decomposition(self) -> {Q :: Matrix, R :: Matrix}:
       doc: "Returns the QR Decomposition of the matrix"
       # (Ample comments because debugging)
       q-arr = raw-array-duplicate(self.elts) # Copy Current List of elements for modification
@@ -885,13 +867,13 @@ data Matrix:
       for each(i from range(0, (self.cols * self.cols))):
         raw-array-set(r-ret-arr, i, raw-array-get(r-arr, i))
       end
-      [list: matrix(self.rows, self.cols, q-arr), matrix(self.cols, self.cols, r-ret-arr)]
+      { Q : matrix(self.rows, self.cols, q-arr), R : matrix(self.cols, self.cols, r-ret-arr)}
     end,
           
     
     gram-schmidt(self) -> Matrix:
       doc: "Returns an orthogonal matrix whose image is the same as the span of the Matrix's columns"
-      self.qr-decomposition().get(0)
+      self.qr-decomposition().Q
     end,
     
     _torepr(self, shadow torepr) -> String:
@@ -917,6 +899,30 @@ data Matrix:
         acc + elt-tostr(i)
       end
     end,
+
+    _output(self):
+      fun pad(str :: String, to-len :: Number):
+        if to-len <= string-length(str):
+          str
+        else:
+          string-append(
+            string-repeat(" ", (to-len - string-length(str))), str)
+        end
+      end
+      max-len = for raw-array-fold(acc from 0, n from self.elts, i from 0):
+        num-max(string-length(num-tostring(n)), acc)
+      end
+      fun elt-tostr(i :: Number):
+        if num-is-integer((i + 1) / self.cols):
+          pad(num-tostring(raw-array-get(self.elts, i)), max-len) + "\n"
+        else:
+          pad(num-tostring(raw-array-get(self.elts, i)), max-len) + "\t"
+        end
+      end
+      VS.vs-str("\n" + for raw-array-fold(acc from "", n from self.elts, i from 0):
+          acc + elt-tostr(i))
+      end
+
     
     equal-to(self, a :: Matrix, eq):
       circa = within-rel(0.0001) #Because floating points
