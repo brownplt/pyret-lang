@@ -23,6 +23,7 @@ t-boolean                 = TS.t-boolean(A.dummy-loc)
 t-array                   = TS.t-array(_, A.dummy-loc)
 t-nothing                 = TS.t-nothing(A.dummy-loc)
 t-srcloc                  = TS.t-srcloc(A.dummy-loc)
+t-array-name              = TS.t-array-name
 
 type TypeMember           = TS.TypeMember
 t-member                  = TS.t-member(_, _, A.dummy-loc)
@@ -40,7 +41,20 @@ t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
 fun make-default-aliases():
   default-aliases = [SD.mutable-string-dict:
+    A.s-type-global("Nothing").key(), t-nothing,
+    A.s-type-global("Method").key(), t-top,
+    A.s-type-global("Object").key(), t-top,
+    A.s-type-global("Function").key(), t-top,
+    A.s-type-global("RawArray").key(), t-array-name,
     A.s-type-global("Number").key(), t-number,
+    A.s-type-global("NumNonNegative").key(), t-number,
+    A.s-type-global("NumNonPositive").key(), t-number,
+    A.s-type-global("NumNegative").key(), t-number,
+    A.s-type-global("NumPositive").key(), t-number,
+    A.s-type-global("NumRational").key(), t-number,
+    A.s-type-global("NumInteger").key(), t-number,
+    A.s-type-global("Roughnum").key(), t-number,
+    A.s-type-global("Exactnum").key(), t-number,
     A.s-type-global("String").key(), t-string,
     A.s-type-global("Boolean").key(), t-boolean]
   default-aliases

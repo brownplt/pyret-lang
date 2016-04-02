@@ -1136,7 +1136,7 @@ sharing:
 end
 
 fun ann-loc(ann):
-  if is-a-blank(ann) or is-a-any(ann): dummy-loc
+  if is-a-blank(ann): dummy-loc
   else: ann.l
   end
 end
@@ -1194,7 +1194,7 @@ data Ann:
   | a-blank with:
     label(self): "a-blank" end,
     tosource(self): str-any end,
-  | a-any with:
+  | a-any(l :: Loc) with:
     label(self): "a-any" end,
     tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
@@ -1746,7 +1746,7 @@ default-map-visitor = {
   end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
@@ -2193,7 +2193,7 @@ default-iter-visitor = {
   a-blank(self):
     true
   end,
-  a-any(self):
+  a-any(self, l):
     true
   end,
   a-name(self, l, id):
@@ -2655,7 +2655,7 @@ dummy-loc-visitor = {
   end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(dummy-loc) end,
   a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):

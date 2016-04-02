@@ -439,29 +439,56 @@ data CompileError:
           ED.text(", required by "), draw-and-highlight(self.expected-loc),
           ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
-  | bad-type-instantiation(wanted :: Number, given :: Number, loc :: A.Loc) with:
-    render-reason(self):
-      [ED.error:
-        [ED.para-nospace:
-          ED.text("Expected to receive "), ED.text(tostring(self.wanted)),
-          ED.text(" arguments for type instantiation at "), draw-and-highlight(self.loc),
-          ED.text(", but instead received "), ED.text(tostring(self.given))]]
-    end
-  | incorrect-number-of-args(loc :: A.Loc) with:
+  | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Incorrect number of arguments given to function at"),
-          draw-and-highlight(self.loc)]]
+          ED.text("The type checker rejected your program because the type instantiation")],
+       [ED.para:
+          ED.code(ED.v-sequence(self.ann.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text(" at "),
+          ED.loc(self.ann.l),
+          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
+          ED.ed-params(self.given.length()),
+          ED.text(", but the type accepts "),
+          ED.embed(self.expected.length()),
+          ED.text(" parameters.")]]
     end
-  | apply-non-function(loc :: A.Loc, typ) with:
+  | incorrect-number-of-args(app-expr, fun-typ) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Tried to apply the non-function type"),
-          ED.embed(self.typ),
-          ED.text("at"),
-          draw-and-highlight(self.loc)]]
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("expects the applicant at "),
+          ED.loc(self.app-expr._fun.l),
+          ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
+        [ED.para:
+          ED.text("However, the applicant is given "),
+          ED.ed-args(self.app-expr.args.length()),
+          ED.text(" and the type signature of the applicant")],
+        [ED.para:
+          ED.embed(self.fun-typ)],
+        [ED.para:
+          ED.text("indicates that it evaluates to a function accepting exactly "),
+          ED.ed-args(self.fun-typ.args.length()),
+          ED.text(".")]]
+    end
+  | apply-non-function(app-expr :: A.Expr, typ) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the function application expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.app-expr._fun.l),
+          ED.text(" expects the applicant to evaluate to a function value. However, the type of the applicant is "),
+          ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     render-reason(self):
@@ -472,15 +499,23 @@ data CompileError:
           ED.text(") does not have the field \"" + self.field-name + "\", accessed at "),
           draw-and-highlight(self.access-loc)]]
     end
-  | unneccesary-branch(branch-name :: String, branch-loc :: A.Loc, type-name :: String, type-loc :: A.Loc) with:
+  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.Type, cases-loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The branch"), ED.code(ED.text(self.branch-name)),
-          ED.text("at"), draw-and-highlight(self.branch-loc),
-          ED.text("is not a variant of"), ED.code(ED.text(self.type-name)),
-          ED.text("at"),
-          draw-and-highlight(self.type-loc)]]
+          ED.text("The type checker rejected your program because the cases expression at "),
+          ED.loc(self.cases-loc),
+          ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
+          ED.text(self.data-type.name),
+          ED.text(". However, no variant named "),
+          ED.code(ED.text(self.branch.name)),
+          ED.text(" (mentioned in the branch at "),
+          ED.loc(self.branch.pat-loc),
+          ED.text(")"),
+          ED.text(" exists in the type "),
+          ED.text(self.data-type.name),
+          ED.text("'s variants:")],
+         ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
     #### TODO ###
@@ -491,18 +526,16 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(" is not needed since all variants of " + self.type-name + " have been exhausted.")]]
     end
-  | non-exhaustive-pattern(missing :: List<String>, type-name :: String, loc :: A.Loc) with:
-    #### TODO ###
+  | non-exhaustive-pattern(missing :: List<T.TypeVariant>, type-name :: String, loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The cases expression at"),
           draw-and-highlight(self.loc),
           ED.text("does not exhaust all variants of " + self.type-name
-            + ". It is missing: " + self.missing.join-str(", ") + ".")]]
+            + ". It is missing: " + self.missing.map(_.name).join-str(", ") + ".")]]
     end
-  | cant-match-on(type-name :: String, loc :: A.Loc) with:
-    #### TODO ###
+  | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
     render-reason(self):
       [ED.error:
         [ED.para:
@@ -511,19 +544,36 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text("cannot be used in a cases expression.")]]
     end
-  | incorrect-number-of-bindings(variant-name :: String, loc :: A.Loc, given :: Number, expected :: Number) with:
-    #### TODO ###
+  | different-branch-types(l, branch-types) with:
     render-reason(self):
       [ED.error:
-        [ED.para-nospace:
-          ED.text("Incorrect number of bindings given to "),
-          ED.text("the variant " + self.variant-name),
+        [ED.para:
+          ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
+        ED.bulleted-sequence(map_n(lam(n, branch):
+         [ED.sequence:
+          ED.loc(branch.l), ED.text(" has type "), ED.embed(branch)];,
+          0, self.branch-types))]
+    end
+  | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
+    render-reason(self):
+      fun ed-fields(n):
+        [ED.sequence:
+          ED.embed(n),
+          ED.text(if n == 1: " field"
+                  else:      " fields";)]
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker expects that the pattern at "),
+          ED.loc(self.branch.pat-loc),
+          ED.text(" in the cases branch has the same number of field bindings as the data variant "),
+          ED.code(ED.text(self.variant.name)),
           ED.text(" at "),
-          draw-and-highlight(self.loc),
-          ED.text(". "
-            + "Given " + num-tostring(self.given)
-            + ", but expected " + num-tostring(self.expected)
-            + ".")]]
+          ED.loc(self.variant.l),
+          ED.text(" has fields. However, the branch pattern binds "),
+          ed-fields(self.branch.args.length()),
+          ED.text(" and the variant is declared as having "),
+          ed-fields(self.variant.fields.length())]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
     render-reason(self):
@@ -563,6 +613,15 @@ data CompileError:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
           ED.text(". Please add an annotation.")]]
+    end
+  | toplevel-unann(arg :: A.Bind) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("argument"),[list: self.arg.l],0),
+          ED.cmcode(self.arg.l),
+          ED.text(" needs a type annotation.")]]
     end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
     render-reason(self):

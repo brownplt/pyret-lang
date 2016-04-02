@@ -887,7 +887,8 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'name-ann': function(node) {
             if (node.kids[0].value === "Any") {
-              return RUNTIME.getField(ast, 'a-any');
+              return RUNTIME.getField(ast, 'a-any')
+                  .app(pos(node.pos));
             } else {
               return RUNTIME.getField(ast, 'a-name')
                 .app(pos(node.pos), name(node.kids[0]));
