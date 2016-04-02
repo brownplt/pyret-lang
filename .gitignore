@@ -32,6 +32,8 @@ build/phase3
 build/bootstrapA
 build/bootstrapB
 build/bootstrapC
+build/pyretA.jarr
+build/pyretB.jarr
 build/release
 build/phaseA/program-require.js
 build/phaseA/program.js
