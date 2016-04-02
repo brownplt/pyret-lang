@@ -194,6 +194,290 @@
       (args ("delta"))
       (return (a-arrow ,mtx-type ,mtx-type ,B))
       (contract (a-arrow ,N (a-arrow ,mtx-type ,mtx-type ,B))))
+    (fun-spec
+     (name "vec-get")
+     (arity 2)
+     (args ("v" "index"))
+     (return ,N)
+     (contract (a-arrow ,vec-type ,N ,N)))
+    (fun-spec
+     (name "vec-dot")
+     (arity 2)
+     (args ("v1" "v2"))
+     (return ,N)
+     (contract (a-arrow ,vec-type ,vec-type ,N)))
+    (fun-spec
+     (name "vec-magnitude")
+     (arity 1)
+     (args ("v"))
+     (return ,N)
+     (contract (a-arrow ,vec-type ,N)))
+    (fun-spec
+     (name "vec-cross")
+     (arity 2)
+     (args ("v1" "v2"))
+     (return ,vec3d-type)
+     (contract (a-arrow ,vec3d-type ,vec3d-type ,vec3d-type)))
+    (fun-spec
+     (name "vec-normalize")
+     (arity 1)
+     (args ("v"))
+     (return ,vec-type)
+     (contract (a-arrow ,vec-type ,vec-type)))
+    (fun-spec
+     (name "vec-scale")
+     (arity 2)
+     (args ("v" "scalar"))
+     (return ,vec-type)
+     (contract (a-arrow ,vec-type ,N ,vec-type)))
+    (fun-spec
+     (name "vec-add")
+     (arity 2)
+     (args ("v1" "v2"))
+     (return ,vec-type)
+     (contract (a-arrow ,vec-type ,vec-type ,vec-type)))
+    (fun-spec
+     (name "vec-sub")
+     (arity 2)
+     (args ("v1" "v2"))
+     (return ,vec-type)
+     (contract (a-arrow ,vec-type ,vec-type ,vec-type)))
+    (fun-spec
+     (name "vec-length")
+     (arity 1)
+     (args ("v"))
+     (return ,N)
+     (contract (a-arrow ,vec-type ,N)))
+    (fun-spec 
+     (name "mtx-get")
+     (arity 3)
+     (args ("m" "i" "j"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N ,N ,N)))
+    (fun-spec 
+     (name "mtx-to-list")
+     (arity 1)
+     (args ("m"))
+     (return ,(L-of N))
+     (contract (a-arrow ,mtx-type ,(L-of N))))
+    (fun-spec 
+     (name "mtx-to-vector")
+     (arity 1)
+     (args ("m"))
+     (return ,vec-type)
+     (contract (a-arrow ,mtx-type ,vec-type)))
+    (fun-spec 
+     (name "mtx-to-lists")
+     (arity 1)
+     (args ("m"))
+     (return ,(L-of (L-of N)))
+     (contract (a-arrow ,mtx-type ,(L-of (L-of N)))))
+    (fun-spec 
+     (name "mtx-to-vectors")
+     (arity 1)
+     (args ("m"))
+     (return ,(L-of vec-type))
+     (contract (a-arrow ,mtx-type ,(L-of vec-type))))
+    (fun-spec 
+     (name "mtx-row")
+     (arity 2)
+     (args ("m" "i"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,N ,mtx-type)))
+    (fun-spec 
+     (name "mtx-col")
+     (arity 2)
+     (args ("m" "j"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,N ,mtx-type)))
+    (fun-spec 
+     (name "mtx-submatrix")
+     (arity 3)
+     (args ("m" "loi" "loj"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,(L-of N) ,(L-of N) ,mtx-type)))
+    (fun-spec 
+     (name "mtx-transpose")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-diagonal")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-upper-triangle")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-lower-triangle")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-row-list")
+     (arity 1)
+     (args ("m"))
+     (return ,(L-of mtx-type))
+     (contract (a-arrow ,mtx-type ,(L-of mtx-type))))
+    (fun-spec 
+     (name "mtx-col-list")
+     (arity 1)
+     (args ("m"))
+     (return ,(L-of mtx-type))
+     (contract (a-arrow ,mtx-type ,(L-of mtx-type))))
+    (fun-spec 
+     (name "mtx-map")
+     (arity 2)
+     (args ("func" "m"))
+     (return ,mtx-type)
+     (contract (a-arrow (a-arrow ,N ,N) ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-row-map")
+     (arity 2)
+     (args ("func" "m"))
+     (return ,mtx-type)
+     (contract (a-arrow (a-arrow ,mtx-type ,mtx-type) ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-col-map")
+     (arity 2)
+     (args ("func" "m"))
+     (return ,mtx-type)
+     (contract (a-arrow (a-arrow ,mtx-type ,mtx-type) ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-augment")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-stack")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-trace")
+     (arity 1)
+     (args ("m"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-scale")
+     (arity 2)
+     (args ("m" "factor"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,N ,mtx-type)))
+    (fun-spec 
+     (name "mtx-dot")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-add")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-sub")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-mult")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-expt")
+     (arity 2)
+     (args ("m" "power"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,N ,mtx-type)))
+    (fun-spec 
+     (name "mtx-determinant")
+     (arity 1)
+     (args ("m"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-is-invertible")
+     (arity 1)
+     (args ("m"))
+     (return ,B)
+     (contract (a-arrow ,mtx-type ,B)))
+    (fun-spec 
+     (name "mtx-rref")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-inverse")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-solve")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-least-squares-solve")
+     (arity 2)
+     (args ("m1" "m2"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type ,mtx-type)))
+    (fun-spec 
+     (name "mtx-lp-norm")
+     (arity 2)
+     (args ("m" "power"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N ,mtx-type)))
+    (fun-spec 
+     (name "mtx-l1-norm")
+     (arity 1)
+     (args ("m"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-l2-norm")
+     (arity 1)
+     (args ("m"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-l-inf-norm")
+     (arity 1)
+     (args ("m"))
+     (return ,N)
+     (contract (a-arrow ,mtx-type ,N)))
+    (fun-spec 
+     (name "mtx-qr-decomposition")
+     (arity 1)
+     (args ("m"))
+     (return ,(a-record (a-field "Q" mtx-type)
+                        (a-field "R" mtx-type)))
+     (contract (a-arrow ,mtx-type ,(a-record (a-field "Q" mtx-type)
+                                             (a-field "R" mtx-type)))))
+    (fun-spec 
+     (name "mtx-gram-schmidt")
+     (arity 1)
+     (args ("m"))
+     (return ,mtx-type)
+     (contract (a-arrow ,mtx-type ,mtx-type)))
     (data-spec (name "Vector3D"))
     (data-spec
       (name "Vector")
@@ -482,8 +766,10 @@
             (name "qr-decomposition")
             (arity 1)
             (args ("self"))
-            (return ,(L-of mtx-type))
-            (contract (a-arrow ,mtx-type ,(L-of mtx-type))))
+            (return ,(a-record (a-field "Q" mtx-type)
+                               (a-field "R" mtx-type)))
+            (contract (a-arrow ,mtx-type ,(a-record (a-field "Q" mtx-type)
+                                                    (a-field "R" mtx-type)))))
           (method-spec 
             (name "gram-schmidt")
             (arity 1)
@@ -558,7 +844,7 @@ Returns the dot product of this vector with the given vector.
 
 @examples{
 check:
-  [vector: 1, 2, 3], [vector: 3, 2, 1].dot() is 10
+  [vector: 1, 2, 3].dot([vector: 3, 2, 1]) is 10
 end
 }
 
@@ -625,6 +911,104 @@ Subtracts the given vector from this one.
 @examples{
 check:
   [vector: 1, 2, 3] - [vector: 4, 5, 6] is [vector: -3, -3, -3]
+end
+}
+
+@section{Vector Functions}
+
+@function["vec-get"]
+
+Returns the item at the given index in the given vector.
+
+@examples{
+check:
+  vec-get([vector: 3, 5], 1) is 5
+end
+}
+
+@function["vec-length"]
+
+Returns the length of the given vector.
+
+@examples{
+check:
+  vec-length([vector: 1, 2, 3, 4]) is 4
+end
+}
+
+@function["vec-dot"]
+
+Returns the dot product of the first vector with the second vector.
+
+@examples{
+check:
+  vec-dot[vector: 1, 2, 3], ([vector: 3, 2, 1]) is 10
+end
+}
+
+@function["vec-magnitude"]
+
+Returns the magnitude of the given vector.
+
+@examples{
+  check:
+    vec-magnitude([vector: 3, 4]) is 5
+    vec-magnitude([vector: 4, 0]) is 4
+  end
+  }
+
+@function["vec-cross"]
+
+Returns the cross product of the two given 3D vectors.
+(Raises an error if either vector is not 3-dimensional)
+
+@examples{
+check:
+  vec-cross([vector: 2, -3, 1], [vector: -2, 1, 1]) is [vector: -4, -4, -4]
+end
+}
+
+@function["vec-normalize"]
+
+Normalizes the given vector into a unit vector.
+
+@examples{
+check:
+  vec-normalize([vector: 1, 2, 3]) is 
+  [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
+end
+}
+
+
+@function["vec-scale"]
+
+Scales the given vector by the given constant.
+
+@examples{
+check:
+  vec-scale([vector: 1, 2, 3], 2) is [vector: 2, 4, 6]
+end
+}
+
+
+@function["vec-add"]
+
+Adds the second vector to first one.
+
+@examples{
+check:
+  vec-add([vector: 1, 2, 3], [vector: 4, 5, 6]) is [vector: 5, 7, 9]
+end
+}
+
+
+@function["vec-sub"]
+
+Subtracts the second vector from first one.
+
+@examples{
+check:
+  vec-sub([vector: 1, 2, 3], [vector: 4, 5, 6]) is [vector: -3, -3, -3]
 end
 }
 
@@ -1178,6 +1562,478 @@ Multiplies the given matrix on the right of the matrix
 @examples{
 check:
   [matrix(2,2): 1, 2, 3, 4] * [matrix(2,2): 3, 0, 0, 3] is
+  [matrix(2,2): 3, 6, 9, 12]
+end
+}
+
+@section{Matrix Functions}
+
+The following functions are available to be performed on matrices.
+
+@function["mtx-get"]
+
+Returns the matrix's entry in the @math{i^th} row and the @math{j^th} column.
+
+@examples{
+check:
+  mtx-get([matrix(3,2): 1, 2, 3, 4, 5, 6], 1, 1) is 4
+  mtx-get([matrix(3,2): 1, 2, 3, 4, 5, 6], 2, 0) is 5
+end
+}
+
+@function["mtx-to-list"]
+
+Returns the matrix as a list of numbers (this is just the internal
+@pyret{RawArray} representation written as a list).
+
+For example, given the matrix @math-imtx{2 & 4 & 6 \\ 8 & 10 & 12 \\ 14 & 16 & 18}:
+
+@examples{
+check:
+  mtx-to-list([matrix(3,3): 2, 4, 6, 8, 10, 12, 14, 16, 18]) is
+  [list: 2, 4, 6, 8, 10, 12, 14, 16, 18]
+end
+}
+
+@function["mtx-to-vector"]
+
+Returns a one-row/one-column matrix as a vector.
+
+@examples{
+check:
+  mtx-to-vector([matrix(2,1): 4, 5]) is [vector: 4, 5]
+  mtx-to-vector([matrix(1,2): 4, 5]) is [matrix(2,1): 4, 5].to-vector()
+end
+}
+
+@function["mtx-to-lists"]
+
+Returns the matrix as a list of lists of numbers, with each list
+corresponding to one row.
+
+@examples{
+check:
+  mtx-to-lists([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [list: [list: 1, 2, 3],
+         [list: 4, 5, 6]]
+end
+}
+
+@function["mtx-to-vectors"]
+
+Returns the matrix as a list of lists of numbers (i.e. a list of @pyret{Vector}s), 
+with each list corresponding to one column.
+
+For example, the matrix @math-imtx{1 & 2 & 3 \\ 4 & 5 & 6} corresponds to the
+vectors @math-imtx{1 \\ 4}, @math-imtx{2 \\ 5}, and @math-imtx{3 \\ 6}: 
+
+@examples{
+check:
+  mtx-to-vectors([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [list: [list: 1, 4],
+         [list: 2, 5],
+         [list: 3, 6]]
+end
+}
+
+@function["mtx-row"]
+
+Returns a one-row matrix with the matrix's given row.
+
+@examples{
+check:
+  mtx-row([matrix(2,3): 1, 2, 3, 4, 5, 6], 2) is
+  [matrix(1,3): 4, 5, 6]
+
+  mtx-row([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9], 3) is
+  [matrix(1,3): 7, 8, 9]
+end
+}
+
+@function["mtx-col"]
+
+Returns a one-column matrix with the matrix's given column.
+
+@examples{
+check:
+  mtx-col([matrix(2,3): 1, 2, 3, 4, 5, 6], 2) is
+  [matrix(2,1): 2, 5]
+
+  mtx-col([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9], 3) is
+  [matrix(3,1): 3, 6, 9]
+end
+}
+
+@function["mtx-submatrix"]
+
+Returns the submatrix of the matrix comprised of the intersection
+of the given list of rows and the given list of columns.
+
+For example, if our list of rows is @math-in{\{1, 2\}} and our
+list of columns is @math-in{\{2, 3\}}, then the positions in the
+resulting submatrix will be the elements with @math-in{(row,col)} positions
+@math-in{\{(1, 2), (1, 3), (2, 2), (2, 3)\}}.
+
+@pyret{mtx-submatrix(}@math-in{
+\left[\begin{matrix} 
+            a_{00} & a_{01} & a_{02} \\
+            a_{10} & a_{11} & a_{12} \\
+            a_{20} & a_{21} & a_{22}
+            \end{matrix}\right]}@pyret{, [list: 1,2], [list: 2,3])}
+                                     @math-in{=
+\left[\begin{matrix}
+a_{01} & a_{02} \\
+a_{11} & a_{12}\end{matrix}\right]}
+
+This is shown in the below example:
+
+@examples{
+check:
+  mtx-submatrix([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [list: 1, 2], [list: 2, 3]) is
+  [matrix(2,2): 2, 3, 4, 5]
+end
+}
+
+@function["mtx-transpose"]
+
+Returns the transposition of the matrix. For example,
+@math-disp{\begin{bmatrix}1 & 2 & 3 \\ 4 & 5 & 6\end{bmatrix}
+                 \overrightarrow{Transpose}
+                 \begin{bmatrix}1 & 4 \\ 2 & 5 \\ 3 & 6\end{bmatrix}}
+
+@examples{
+check:
+  mtx-transpose([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [matrix(3,2): 1, 4, 2, 5, 3, 6]
+end
+}
+
+@function["mtx-diagonal"]
+
+Returns a one-row matrix containing the matrix's diagonal entries.
+
+@examples{
+check:
+  mtx-diagonal([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9]) is
+  [matrix(1,3): 1, 5, 9]
+
+  mtx-diagonal([matrix(3,2): 1, 2, 3, 4, 5, 6]) is
+  [matrix(1,2): 1, 5]
+end
+}
+
+@function["mtx-upper-triangle"]
+
+Returns the upper triangle of the matrix, if the matrix is square.
+For example, the upper triangle of @math-imtx{1 & 2 & 3\\ 4 & 5 & 6\\ 7 & 8 & 9}
+would be @math-imtx{1 & 2 & 3\\ 0 & 5 & 6 \\ 0 & 0 & 9}.
+
+@examples{
+check:
+  mtx-upper-triangle([matrix(2,2): 1, 2, 3, 4]) is
+  [matrix(2,2): 1, 2, 0 ,4]
+
+  mtx-upper-triangle([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9]) is
+  [matrix(3,3): 1, 2, 3, 0, 5, 6, 0, 0, 9]
+end
+}
+
+@function["mtx-lower-triangle"]
+
+Returns the lower triangle of the matrix, if the matrix is square.
+For example, the upper triangle of @math-imtx{1 & 2 & 3\\ 4 & 5 & 6\\ 7 & 8 & 9}
+would be @math-imtx{1 & 0 & 0\\ 4 & 5 & 0\\ 7 & 8 & 9}.
+
+@examples{
+check:
+  mtx-lower-triangle([matrix(2,2): 1, 2, 3, 4]) is
+  [matrix(2,2): 1, 0, 3, 4]
+
+  mtx-lower-triangle([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9]) is
+  [matrix(3,3): 1, 0, 0, 4, 5, 0, 7, 8, 9]
+end
+}
+
+@function["mtx-row-list"]
+
+Returns the matrix as a list of one-row matrices.
+(Very similar to @pyret{mtx-to-lists()}, except this function
+returns a list of matrices instead.
+
+@examples{
+check:
+  mtx-row-list([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [list: [matrix(1,3): 1, 2, 3],
+         [matrix(1,3): 4, 5, 6]]
+end
+}
+
+@function["mtx-col-list"]
+
+Returns the matrix as a list of one-column matrices.
+(Very similar to @pyret{mtx-to-vectors()}, except this function
+returns a list of matrices instead.
+
+@examples{
+check:
+  mtx-col-list([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [list: [matrix(2,1): 1, 4],
+         [matrix(2,1): 2, 5],
+         [matrix(2,1): 3, 6]]
+end
+}
+
+@function["mtx-map"]
+
+Maps the given function entrywise over the matrix.
+
+@examples{
+check:
+  multTwo = lam(x): x * 2 end
+  mtx-map(multTwo, [matrix(2,2): 1, 2, 3, 4]) is
+  [matrix(2,2): 2, 4, 6, 8]
+end
+}
+
+@function["mtx-row-map"]
+
+Maps the given function over each row in the matrix.
+
+@examples{
+check:
+  # sumRow :: 1*n matrix
+  # Computes the total sum of all entries in the given row
+  sumRow = lam(row): [matrix(1,1): row.to-vector().foldr(_ + _)] end
+  mtx-row-map(sumRow, [matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [matrix(2,1): 6, 15]
+end
+}
+
+@function["mtx-col-map"]
+
+Maps the given function over each column in the matrix.
+
+@examples{
+check:
+  # sumCol :: m*1 matrix
+  # Computes the total sum of all entries in the given column
+  sumCol = lam(col): [matrix(1,1): col.to-vector().foldr(_ + _)] end
+  mtx-col-map(sumCol, [matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [matrix(1,3): 5, 7, 9]
+end
+}
+
+@function["mtx-augment"]
+
+Returns the matrix augmented with the given matrix. For
+example, augmenting the matrix @math-imtx{1 & 2\\4 & 5} with
+the matrix @math-imtx{3\\ 6} yields the matrix
+@math-imtx{1 & 2 & 3\\ 4 & 5 & 6}.
+
+@examples{
+check:
+  mtx-augment([matrix(2,2): 1, 2, 4, 5], [matrix(2,1): 3, 6]) is
+  [matrix(2,3): 1, 2, 3, 4, 5, 6]
+end
+}
+
+@function["mtx-stack"]
+
+Returns the matrix stacked on top of the given matrix. For
+example, stacking the matrix @math-imtx{1 & 2 & 3} on top of
+the matrix @math-imtx{4 & 5 & 6} gives the matrix
+@math-imtx{1 & 2 & 3\\ 4 & 5 & 6}.
+
+@examples{
+check:
+  mtx-stack([matrix(1,3): 1, 2, 3], [matrix(1,3): 4, 5, 6]) is
+  [matrix(2,3): 1, 2, 3, 4, 5, 6]
+end
+}
+
+@function["mtx-trace"]
+
+Returns the trace of the matrix (i.e. the sum of its diagonal values).
+
+@examples{
+check:
+  mtx-trace([matrix(3,3): 1, 2, 3, 4, 5, 6, 7, 8, 9]) is 15
+  mtx-trace([matrix(2,2): 2, 4, 6, 8]) is 10
+end
+}
+
+@function["mtx-scale"]
+
+Multiplies each entry in the matrix by the given value.
+
+@examples{
+check:
+  mtx-scale([matrix(2,2): 1, 2, 3, 4], 2) is 
+  [matrix(2,2): 2, 4, 6, 8]
+
+  mtx-scale([matrix(2,2): 2, 4, 6, 8], 1/2) is
+  [matrix(2,2): 1, 2, 3, 4]
+end
+}
+
+@function["mtx-dot"]
+
+Returns the Frobenius Product of the matrix with the given matrix (for
+1-dimensional matrices, this is simply the dot product). This is done by
+multiplying the matrix with the transposition of @pyret{other} and taking
+the trace of the result. An example of this calculation (@math-in{\ast} 
+denotes matrix multiplication):
+
+@pyret{mtx-trace(}@math-in{\left(\left[\begin{smallmatrix}1 & 2 & 3\end{smallmatrix}\right]
+\ast\left[\begin{smallmatrix}4\\ 2\\ ^4/_3 \end{smallmatrix}\right]\right)}@pyret{)}
+@math-in{=} @pyret{mtx-trace(}@math-in{
+\underbrace{\left[\begin{smallmatrix}(1\cdot 4)+(2\cdot 2)+(3\cdot \frac{4}{3})\end{smallmatrix}\right]}_{
+1\times 1 \text{ matrix}}}@pyret{)}@math-in{=12}
+
+@examples{
+check:
+  mtx-dot([matrix(1,3): 1, 2, 3], [matrix(1,3): 4, 2, 4/3]) is 12
+  mtx-dot([matrix(1,3): 1, 2, 3], [matrix(1,3): 1, 1, 1]) is 6
+end
+}
+
+@function["mtx-expt"]
+
+Multiplies the matrix by itself the given number of times.
+
+@examples{
+check:
+  a = [matrix(2,2): 1, 2, 3, 4]
+  mtx-expt(a, 1) is a
+  mtx-expt(a, 2) is a * a
+  mtx-expt(a, 3) is a * a * a
+end
+}
+
+@function["mtx-determinant"]
+
+Returns the determinant of the matrix, calculated via a recursive
+implementation of laplace expansion.
+
+@examples{
+check:
+  mtx-determinant([matrix(5,5): 1, 2, 1, 2, 3,
+                                2, 3, 1, 0, 1,
+                                2, 2, 1, 0, 0,
+                                1, 1, 1, 1, 1,
+                                0,-2, 0,-2,-2]) is -2
+end
+}
+
+@function["mtx-is-invertible"]
+
+Returns true if the matrix is invertible (i.e. it has a nonzero determinant).
+
+@function["mtx-rref"]
+
+Returns the Reduced Row Echelon Form of the matrix. For example:
+@math-disp{\begin{bmatrix}1 & 2 & 3 \\ 4 & 5 & 6\end{bmatrix}
+                 \overrightarrow{RREF}
+                 \begin{bmatrix}1 & 0 & -1\\ 0 & 1 & 2\end{bmatrix}}
+
+@examples{
+check:
+  mtx-rref([matrix(2,3): 1, 2, 3, 4, 5, 6]) is
+  [matrix(2,3): 1, 0,-1, 0, 1, 2]
+end
+}
+
+@function["mtx-inverse"]
+
+Returns the inverse of the matrix, if it is invertible (found
+by augmenting the matrix with itself and finding the reduced-row
+echelon form). For example:
+@math-disp{\begin{bmatrix}1 & 0 & 4\\ 1 & 1 & 6\\ -3 & 0 & -10\end{bmatrix}^{-1}
+                 = \begin{bmatrix}-5 & 0 & -2\\ -4 & 1 & -1\\ ^3/_2 & 0 & ^1/_2\end{bmatrix}}
+
+@examples{
+check:
+  mtx-inverse([mk-mtx(3,3): 1, 0, 4, 1, 1, 6, -3, 0, -10]) is 
+  [mk-mtx(3,3): -5, 0, -2, -4, 1, -1, 3/2, 0, 1/2]
+end
+}
+
+@function["mtx-solve"]
+
+Returns the matrix which, when multiplied on the right of the first matrix, results in the second matrix.
+In other words, this returns the solution to the system of equations represented by the given matrices.
+This function only works on invertible matrices.
+
+@function["mtx-least-squares-solve"]
+
+Returns the least squares solution for the first and the second matrix, calculated
+using QR decomposition.
+
+@function["mtx-lp-norm"]
+
+Computes the @math{L^p} norm of the matrix using the given number.
+
+@function["mtx-l1-norm"]
+@function["mtx-l2-norm"]
+@function["mtx-l-inf-norm"]
+
+Computes the @math{L^1}, @math{L^2}, and @math{L}@superscript{∞} norms of the matrix, respectively.
+
+@examples{
+check:
+  a = [matrix(3,1): 1, 2, 3]
+  b = [matrix(3,3): 1, 0, 0, 2, 0, 0, 3, 0, 0]
+
+  mtx-lp-norm(a, 3) is-within(0.00001) num-expt(35, 1/3)
+  mtx-lp-norm(b, 3) is-within(0.00001) mtx-lp-norm((b * a), 3)
+
+  mtx-l1-norm(a)  is-within(0.00001) 6
+  mtx-l2-norm(b)  is-within(0.00001) num-sqrt(14)
+  mtxl-inf-norm() is 3
+end
+}
+
+@function["mtx-qr-decomposition"]
+
+Returns the QR Decomposition of the matrix as a list with two matricies, the first being
+the Q matrix and the second being the R matrix.
+
+@function["mtx-gram-schmidt"]
+
+Returns an orthogonal matrix whose image is the same as the span of the matrix's columns.
+(The same as the first result of @pyret{qr-decomposition})
+
+@function["mtx-add"]
+
+Adds the first matrix to the second matrix.
+
+@examples{
+check:
+  mtx-add([matrix(2,2): 1, 2, 3, 4], [matrix(2,2): 1, 2, 3, 4]) is
+  [matrix(2,2): 2, 4, 6, 8]
+end
+}
+
+@function["mtx-sub"]
+
+Subtracts the second matrix from the first matrix.
+
+@examples{
+check:
+  mtx-sub([matrix(2,2): 1, 2, 3, 4], [matrix(2,2): 0, 2, 3, 3]) is
+  [matrix(2,2): 1, 0, 0, 1]
+end
+}
+
+@function["mtx-mult"]
+
+Multiplies the second matrix on the right of the first matrix
+(Reminder: Matrix Multiplication is not commutative)
+
+@examples{
+check:
+  mtx-mult([matrix(2,2): 1, 2, 3, 4], [matrix(2,2): 3, 0, 0, 3]) is
   [matrix(2,2): 3, 6, 9, 12]
 end
 }

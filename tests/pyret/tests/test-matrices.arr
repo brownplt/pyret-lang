@@ -45,6 +45,14 @@ check "Vector Operations":
 
   [vector: 1, 2, 3].normalize() is%(vector-within(0.001))
   [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
+
+  # Functional API
+  M.vec-magnitude([vector: 1, 2, 3]) is%(within(0.001)) num-sqrt(14)
+
+  M.vec-cross([vector: 2, -3, 1], [vector: -2, 1, 1]) is [vector: -4, -4, -4]
+
+  M.vec-normalize([vector: 1, 2, 3]) is%(vector-within(0.001))
+  [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
 end
 
 check "Basic Matrix Accessors":
@@ -67,6 +75,22 @@ check "Basic Matrix Accessors":
   mtx1.row(0).to-vector() is [vector: 1, 2, 3]
   mtx1.col(1).to-vector() is [vector: 2, 5]
 
+  # Functional API
+  M.mtx-get(mtx1, 1, 1) is 5
+  M.mtx-get(mtx1, 0, 2) is 3
+  
+  M.mtx-to-list(mtx1) is [list: 1, 2, 3, 4, 5, 6]
+  
+  M.mtx-row(mtx1, 0) is [matrix(1,3): 1, 2, 3]
+  M.mtx-row(mtx1, 1) is [matrix(1,3): 4, 5, 6]
+  M.mtx-col(mtx1, 1) is [matrix(2,1): 2, 
+                                      5]
+  M.mtx-col(mtx1, 2) is [matrix(2,1): 3,
+                                      6]
+  
+  M.mtx-row(mtx1, 0).to-vector() is [vector: 1, 2, 3]
+  M.mtx-col(mtx1, 1).to-vector() is [vector: 2, 5]
+
 end
 
 check "Submatrices":
@@ -78,6 +102,15 @@ check "Submatrices":
   [matrix(1,3): 4, 5, 6]
   mtx1.submatrix([list: 0], [list: 1, 2]) is
   [matrix(1,2): 2, 3]
+
+  # Functional API
+  M.mtx-submatrix(mtx1, [list: 0, 1], [list: 0, 2]) is
+  [matrix(2,2): 1, 3, 
+                4, 6]
+  M.mtx-submatrix(mtx1, [list: 1], [list: 0, 1, 2]) is
+  [matrix(1,3): 4, 5, 6]
+  M.mtx-submatrix(mtx1, [list: 0], [list: 1, 2]) is
+  [matrix(1,2): 2, 3]
 end
 
 check "Matrix Transpose":
@@ -86,6 +119,13 @@ check "Matrix Transpose":
   [matrix(3,2): 1, 4, 
                 2, 5, 
                 3, 6]
+
+  # Functional API
+  M.mtx-transpose(mtx1) is 
+  [matrix(3,2): 1, 4, 
+                2, 5, 
+                3, 6]
+
 end
 check "Matrix Diagonal":
   mtx1.diagonal() is
@@ -93,6 +133,14 @@ check "Matrix Diagonal":
   mtx2.diagonal() is
   [matrix(1,3): 1, 2, 3]
   mtx3.diagonal() is
+  [matrix(1,2): 1, 4]
+
+  # Functional API
+  M.mtx-diagonal(mtx1) is
+  [matrix(1,2): 1, 5]
+  M.mtx-diagonal(mtx2) is
+  [matrix(1,3): 1, 2, 3]
+  M.mtx-diagonal(mtx3) is
   [matrix(1,2): 1, 4]
 end
 
@@ -109,12 +157,30 @@ check "Matrix Upper/Lower Triangles":
                 2, 2, 0, 
                 3, 3, 3]
 
+  # Functional API
+  M.mtx-upper-triangle(mtx1) raises "Cannot make a non-square upper-triangular matrix"
+  M.mtx-upper-triangle(mtx2) is
+  [matrix(3, 3): 1, 1, 1,
+                 0, 2, 2, 
+                 0, 0, 3]
+  M.mtx-lower-triangle(mtx1) raises "Cannot make a non-square lower-triangular matrix"
+  M.mtx-lower-triangle(mtx2) is
+  [matrix(3,3): 1, 0, 0, 
+                2, 2, 0, 
+                3, 3, 3]
+
 end
 
 check "Matrix-to-List Conversion":
 
   mtx1.row-list() is [list: [matrix(1,3): 1, 2, 3], [matrix(1,3): 4, 5, 6]]
   mtx3.col-list() is [list: 
+    [matrix(3,1): 1, 3, 5],
+    [matrix(3,1): 2, 4, 6]]
+
+  # Functional API
+  M.mtx-row-list(mtx1) is [list: [matrix(1,3): 1, 2, 3], [matrix(1,3): 4, 5, 6]]
+  M.mtx-col-list(mtx3) is [list: 
     [matrix(3,1): 1, 3, 5],
     [matrix(3,1): 2, 4, 6]]
 
@@ -133,6 +199,18 @@ check "Matrix Morphisms":
   mtx1.col-map(lam(c): [matrix(1,1): c.dot(c)] end) is
   [matrix(1,3): 17, 29, 45]
 
+  # Functional API
+  M.mtx-map(num-sqr, mtx1) is 
+  [matrix(2,3): 1,  4,  9,
+               16, 25, 36]
+  
+  M.mtx-row-map(lam(r): r.scale(2) end, mtx1) is
+  [matrix(2,3): 2,  4,  6,
+                8, 10, 12]
+  
+  M.mtx-col-map(lam(c): [matrix(1,1): c.dot(c)] end, mtx1) is
+  [matrix(1,3): 17, 29, 45]
+
 end
 
 check "Matrix Concatenation":
@@ -149,6 +227,19 @@ check "Matrix Concatenation":
                  2, 2, 2,
                  3, 3, 3]
 
+  # Functional API
+  M.mtx-augment(mtx2, mtx3) is
+  [matrix(3,5): 1, 1, 1, 1, 2,
+                2, 2, 2, 3, 4,
+                3, 3, 3, 5, 6]
+  
+  M.mtx-stack(mtx1, mtx2) is
+  [matrix(5, 3): 1, 2, 3,
+                 4, 5, 6,
+                 1, 1, 1,
+                 2, 2, 2,
+                 3, 3, 3]
+
 end
 
 check "Matrix Scaling and Trace":
@@ -156,6 +247,12 @@ check "Matrix Scaling and Trace":
                                  8, 10, 12]
   
   mtx2.trace() is 6
+
+  # Functional API
+  M.mtx-scale(mtx1, 2) is [matrix(2,3): 2,  4,  6,
+                                        8, 10, 12]
+  
+  M.mtx-trace(mtx2) is 6
 
 end
 
@@ -187,6 +284,34 @@ check "Matrix Operations":
   [matrix(3,3): 15, 11, 15,
                 15, 11, 15, 
                 26, 19, 26]
+
+  # Functional API
+  M.mtx-add(mtx1, mtx1) is [matrix(2,3): 2,  4,  6,
+                                         8, 10, 12]
+  
+  M.mtx-add(mtx1, [matrix(2,3): 1, 1, 1,
+                                1, 1, 1]) is
+  [matrix(2,3): 2, 3, 4,
+                5, 6, 7]
+  
+  M.mtx-sub(mtx1, [matrix(2,3): 1, 1, 1,
+                                1, 1, 1]) is
+  [matrix(2,3): 0, 1, 2, 
+                3, 4, 5]  
+  
+  M.mtx-mult(mtx1, [matrix(3,2): 1, 1, 1,
+                                 1, 1, 1]) is
+  [matrix(2,2): 6,  6, 
+               15, 15]
+  
+  M.mtx-expt(mtx2, 2) is M.mtx-mult(mtx2, mtx2)
+  
+  M.mtx-expt([matrix(3,3): 1, 1, 1, 
+                           1, 1, 1, 
+                           2, 1, 2], 3) is
+  [matrix(3,3): 15, 11, 15,
+                15, 11, 15, 
+                26, 19, 26]
 end
 
 check "Matrix Determinant and Reduced-Row Echelon Form":
@@ -198,6 +323,17 @@ check "Matrix Determinant and Reduced-Row Echelon Form":
                 0,-2,0,2,-2].determinant() is -2
   
   mtx1.rref() is
+  [matrix(2,3): 1, 0, -1,
+                0, 1,  2]
+
+  # Functional API
+  M.mtx-determinant([matrix(5,5): 1, 2,1,2, 3,
+                                  2, 3,1,0, 1,
+                                  2, 2,1,0, 0,
+                                  1, 1,1,1, 1,
+                                  0,-2,0,2,-2]) is -2
+  
+  M.mtx-rref(mtx1) is
   [matrix(2,3): 1, 0, -1,
                 0, 1,  2]
 end
@@ -213,6 +349,16 @@ check "Matrix Norms":
   
   mtx5.l-inf-norm() is%(within(0.00001)) (mtx5 * mtx4).l-inf-norm()
 
+  # Functional API
+  M.mtx-lp-norm(mtx4, 3) is%(within(0.00001)) num-expt(6, 2/3)
+  M.mtx-lp-norm(mtx5, 3) is%(within(0.00001)) M.mtx-lp-norm(mtx5 * mtx4, 3)
+  
+  M.mtx-l1-norm(mtx4) is%(within(0.00001)) 6
+  M.mtx-l2-norm(mtx4) is%(within(0.00001)) num-sqrt(14)
+  M.mtx-l-inf-norm(mtx4) is%(within(0.00001)) 3
+  
+  M.mtx-l-inf-norm(mtx5) is%(within(0.00001)) M.mtx-l-inf-norm((mtx5 * mtx4))
+
 end
 
 check "Matrix Decomposition":
@@ -223,7 +369,7 @@ check "Matrix Decomposition":
   [matrix(3,3):(1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
     (-1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
     0, (-2 / num-sqrt(6)), (1 / num-sqrt(3))]
-  
+
   decomp.R is%(matrix-within(0.00001))
   [matrix(3,3): num-sqrt(2), num-sqrt(2), num-sqrt(18),
     0, num-sqrt(6), -1 * num-sqrt(6),
@@ -231,8 +377,13 @@ check "Matrix Decomposition":
   
   [matrix(3,3):1, 2, 3, -1, 0, -3, 0, -2, 3].gram-schmidt() is%(matrix-within(0.00001))
     [matrix(3,3):(1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
-      (-1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
-      0, (-2 / num-sqrt(6)), (1 / num-sqrt(3))]
+    (-1 / num-sqrt(2)), (1 / num-sqrt(6)), (1 / num-sqrt(3)),
+    0, (-2 / num-sqrt(6)), (1 / num-sqrt(3))]
+
+  # Functional API
+  func-decomp = M.mtx-qr-decomposition([matrix(3,3):1, 2, 3, -1, 0, -3, 0, -2, 3])
+  func-decomp.Q is%(matrix-within(0.00001)) decomp.Q
+  func-decomp.R is%(matrix-within(0.00001)) decomp.R
 end
 
 check "Alternative Matrix Constructors":
@@ -248,11 +399,19 @@ check "Matrix Inversion":
   [matrix(3,3): 1, 0, 4, 1, 1, 6, -3, 0, -10].inverse() is 
   [matrix(3,3): -5, 0, -2, -4, 1, -1, 3/2, 0, 1/2]
 
+  # Functional API
+  M.mtx-inverse([matrix(3,3): 1, 0, 4, 1, 1, 6, -3, 0, -10]) is 
+  [matrix(3,3): -5, 0, -2, -4, 1, -1, 3/2, 0, 1/2]
+
 end
 
 check "Linear System Solvability":
 
   [matrix(3,2): 3, -6, 4, -8, 0, 1].least-squares-solve([matrix(3,1): -1, 7, 2]) is 
+  [matrix(2,1): 5, 2]
+
+  # Functional API
+  M.mtx-least-squares-solve([matrix(3,2): 3, -6, 4, -8, 0, 1], [matrix(3,1): -1, 7, 2]) is 
   [matrix(2,1): 5, 2]
 
 end

@@ -55,7 +55,56 @@ provide {
   vectors-to-matrix: vectors-to-matrix,
   matrix-within: matrix-within,
   row-matrix: row-matrix,
-  col-matrix: col-matrix
+  col-matrix: col-matrix,
+  vec-get: vec-get,
+  vec-length: vec-length,
+  vec-dot: vec-dot,
+  vec-magnitude: vec-magnitude,
+  vec-cross: vec-cross,
+  vec-normalize: vec-normalize,
+  vec-scale: vec-scale,
+  vec-add: vec-add,
+  vec-sub: vec-sub,
+  mtx-get: mtx-get,
+  mtx-to-list: mtx-to-list,
+  mtx-to-vector: mtx-to-vector,
+  mtx-to-lists: mtx-to-lists,
+  mtx-to-vectors: mtx-to-vectors,
+  mtx-row: mtx-row,
+  mtx-col: mtx-col,
+  mtx-submatrix: mtx-submatrix,
+  mtx-transpose: mtx-transpose,
+  mtx-diagonal: mtx-diagonal,
+  mtx-upper-triangle: mtx-upper-triangle,
+  mtx-lower-triangle: mtx-lower-triangle,
+  mtx-row-list: mtx-row-list,
+  mtx-col-list: mtx-col-list,
+  mtx-map: mtx-map,
+  mtx-row-map: mtx-row-map,
+  mtx-col-map: mtx-col-map,
+  mtx-augment: mtx-augment,
+  mtx-stack: mtx-stack,
+  mtx-trace: mtx-trace,
+  mtx-scale: mtx-scale,
+  mtx-dot: mtx-dot,
+  mtx-expt: mtx-expt,
+  mtx-determinant: mtx-determinant,
+  mtx-is-invertible: mtx-is-invertible,
+  mtx-rref: mtx-rref,
+  mtx-inverse: mtx-inverse,
+  mtx-solve: mtx-solve,
+  mtx-least-squares-solve: mtx-least-squares-solve,
+  mtx-lp-norm: mtx-lp-norm,
+  mtx-l1-norm: mtx-l1-norm,
+  mtx-taxicab-norm: mtx-taxicab-norm,
+  mtx-l2-norm: mtx-l2-norm,
+  mtx-euclidean-norm: mtx-euclidean-norm,
+  mtx-l-inf-norm: mtx-l-inf-norm,
+  mtx-qr-decomposition: mtx-qr-decomposition,
+  mtx-gram-schmidt: mtx-gram-schmidt,
+  mtx-add: mtx-add,
+  mtx-sub: mtx-sub,
+  mtx-mult: mtx-mult
 } end
 provide-types {
   Vector :: Vector,
@@ -1143,4 +1192,159 @@ fun matrix-within(n :: Number) -> (Matrix, Matrix -> Boolean):
       false
     end
   end
+end
+
+
+## FUNCTION-STYLE METHOD WRAPPERS
+
+# VECTORS
+fun vec-get(v :: Vector, i :: Nat):
+  v.get(i)
+end
+fun vec-length(v :: Vector):
+  v.length()
+end
+fun vec-dot(v1 :: Vector, v2 :: Vector):
+  v1.dot(v2)
+end
+fun vec-magnitude(v :: Vector):
+  v.magnitude()
+end
+fun vec-cross(v1 :: Vector3D, v2 :: Vector3D):
+  v1.cross(v2)
+end
+fun vec-normalize(v :: Vector):
+  v.normalize()
+end
+fun vec-scale(v :: Vector, scalar :: Number):
+  v.scale(scalar)
+end
+fun vec-add(v1 :: Vector, v2 :: Vector):
+  v1 + v2
+end
+fun vec-sub(v1 :: Vector, v2 :: Vector):
+  v1 - v2
+end
+
+# MATRICES
+fun mtx-get(m :: Matrix, i :: Number, j :: Number):
+  m.get(i, j)
+end
+fun mtx-to-list(m :: Matrix):
+  m.to-list()
+end
+fun mtx-to-vector(m :: Matrix):
+  m.to-vector()
+end
+fun mtx-to-lists(m :: Matrix):
+  m.to-lists()
+end
+fun mtx-to-vectors(m :: Matrix):
+  m.to-vectors()
+end
+fun mtx-row(m :: Matrix, i :: Number):
+  m.row(i)
+end
+fun mtx-col(m :: Matrix, j :: Number):
+  m.col(j)
+end
+fun mtx-submatrix(m :: Matrix, loi :: List<Number>, loj :: List<Number>):
+  m.submatrix(loi, loj)
+end
+fun mtx-transpose(m :: Matrix):
+  m.transpose()
+end
+fun mtx-diagonal(m :: Matrix):
+  m.diagonal()
+end
+fun mtx-upper-triangle(m :: Matrix):
+  m.upper-triangle()
+end
+fun mtx-lower-triangle(m :: Matrix):
+  m.lower-triangle()
+end
+fun mtx-row-list(m :: Matrix):
+  m.row-list()
+end
+fun mtx-col-list(m :: Matrix):
+  m.col-list()
+end
+# func goes first here to be consistent w/ lists.map
+fun mtx-map(func :: (Number -> Number), m :: Matrix):
+  m.map(func)
+end
+fun mtx-row-map(func :: (Matrix -> Matrix), m :: Matrix):
+  m.row-map(func)
+end
+fun mtx-col-map(func :: (Matrix -> Matrix), m :: Matrix):
+  m.col-map(func)
+end
+fun mtx-augment(m1 :: Matrix, m2 :: Matrix):
+  m1.augment(m2)
+end
+fun mtx-stack(m1 :: Matrix, m2 :: Matrix):
+  m1.stack(m2)
+end
+fun mtx-trace(m :: Matrix):
+  m.trace()
+end
+fun mtx-scale(m :: Matrix, scalar :: Number):
+  m.scale(scalar)
+end
+fun mtx-dot(m1 :: Matrix, m2 :: Matrix):
+  m1.dot(m2)
+end
+fun mtx-expt(m :: Matrix, power :: Number):
+  m.expt(power)
+end
+fun mtx-determinant(m :: Matrix):
+  m.determinant()
+end
+fun mtx-is-invertible(m :: Matrix):
+  m.is-invertible()
+end
+fun mtx-rref(m :: Matrix):
+  m.rref()
+end
+fun mtx-inverse(m :: Matrix):
+  m.inverse()
+end
+fun mtx-solve(m1 :: Matrix, m2 :: Matrix):
+  m1.solve(m2)
+end
+fun mtx-least-squares-solve(m1 :: Matrix, m2 :: Matrix):
+  m1.least-squares-solve(m2)
+end
+fun mtx-lp-norm(m :: Matrix, power :: Number):
+  m.lp-norm(power)
+end
+fun mtx-l1-norm(m :: Matrix):
+  m.l1-norm()
+end
+fun mtx-taxicab-norm(m :: Matrix):
+  m.l1-norm()
+end
+fun mtx-l2-norm(m :: Matrix):
+  m.l2-norm()
+end
+fun mtx-euclidean-norm(m :: Matrix):
+  m.l2-norm()
+end
+fun mtx-l-inf-norm(m :: Matrix):
+  m.l-inf-norm()
+end
+fun mtx-qr-decomposition(m :: Matrix):
+  m.qr-decomposition()
+end
+fun mtx-gram-schmidt(m :: Matrix):
+  m.gram-schmidt()
+end
+fun mtx-add(m1 :: Matrix, m2 :: Matrix):
+  m1 + m2
+end
+fun mtx-sub(m1 :: Matrix, m2 :: Matrix):
+  m1 - m2
+end
+fun mtx-mult(m1 :: Matrix, m2 :: Matrix):
+  m1 * m2
 end
