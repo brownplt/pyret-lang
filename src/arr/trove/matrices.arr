@@ -257,7 +257,7 @@ data Vector:
         end)
     end,
 
-    equal-to(self, other :: Vector, eq):
+    _equals(self, other :: Vector, eq):
       circa = within-rel(0.0001) # Because floating points
       basically-equal = lam(a1, a2):
         for raw-array-fold2(acc from true, elt1 from a1, elt2 from a2, idx from 0):
@@ -269,13 +269,9 @@ data Vector:
       if (self =~ other) or basically-equal(self, other):
         Equal
       else:
-        NotEqual("Vectors are not equal")
+        NotEqual("Vectors are not equal", self, other)
       end
     end,
-
-    # Not sure why this is separate, but I'm replicating the structure
-    # of Matrix's equality checking
-    _equals(self, other :: Vector, eq): self.equal-to(other, eq) end,
 
     length(self) -> Number:
       doc: "Returns the length of this vector"
@@ -485,19 +481,14 @@ data Matrix:
       matrix(self.cols, self.rows, raw-arr)
     end,
 
-    # TODO: Change to for(...) loops
     diagonal(self) -> Matrix:
       doc: "Returns a one-row matrix with the matrix's diagonal entries"
       num-diag = num-min(self.rows, self.cols)
       raw-arr = raw-array-of(0, num-diag)
-      fun fetch-diag(n :: Number):
-        when n < num-diag:
-          raw-array-set(raw-arr, n,
-            raw-array-get(self.elts, rc-to-index(n, n, self.cols)))
-          fetch-diag(n + 1)
-        end
+      for each(n from range(0, num-diag)):
+        raw-array-set(raw-arr, n,
+          raw-array-get(self.elts, rc-to-index(n, n, self.cols)))
       end
-      fetch-diag(0)
       matrix(1, num-diag, raw-arr)
     end,
     
@@ -507,20 +498,12 @@ data Matrix:
         raise("Cannot make a non-square upper-triangular matrix")
       else:
         raw-arr = raw-array-of(0, (self.rows * self.cols))
-        fun set-row(r :: Number):
-          when r < self.rows:
-            fun set-col(nonzeros :: Number, on-col :: Number):
-              when nonzeros > 0:
-                raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
-                  raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
-                set-col(nonzeros - 1, on-col - 1)
-              end
-            end
-            set-col((self.rows - r), self.cols - 1)
-            set-row(r + 1)
+        for each(r from range(0, self.rows)):
+          for each(on-col from range(r, self.cols)):
+            raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
+              raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
           end
         end
-        set-row(0)
         matrix(self.rows, self.cols, raw-arr)
       end
     end,
@@ -531,20 +514,12 @@ data Matrix:
         raise("Cannot make a non-square lower-triangular matrix")
       else:
         raw-arr = raw-array-of(0, (self.rows * self.cols))
-        fun set-row(r :: Number):
-          when r < self.rows:
-            fun set-col(nonzeros :: Number, on-col :: Number):
-              when nonzeros > 0:
-                raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
-                  raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
-                set-col(nonzeros - 1, on-col + 1)
-              end
-            end
-            set-col((r + 1), 0)
-            set-row(r + 1)
+        for each(r from range(0, self.rows)):
+          for each(on-col from range(0, r + 1)):
+            raw-array-set(raw-arr, rc-to-index(r, on-col, self.cols),
+              raw-array-get(self.elts, rc-to-index(r, on-col, self.cols)))
           end
         end
-        set-row(0)
         matrix(self.rows, self.cols, raw-arr)
       end
     end,
@@ -813,10 +788,8 @@ data Matrix:
       end
       to-ret = matrix(self.rows, self.cols, raw-array-duplicate(self.elts))
       to-aug = identity-matrix(self.rows)
-      to-chop = to-ret.augment(to-aug).rref().col-list().drop(self.cols)
-      for fold(acc from to-chop.first, cur from to-chop.rest):
-        acc.augment(cur)
-      end
+      to-chop = to-ret.augment(to-aug).rref()
+      to-chop.submatrix(range(0, self.rows), range(self.cols, 2 * self.cols))
     end,
     
     solve(self, b :: Matrix) -> Matrix:
@@ -962,24 +935,21 @@ data Matrix:
           pad(num-tostring(e), max-len) + "\t"
         end
       end
+      row-to-seq = lam(r):
+        VS.vs-seq(L.map_n(lam(i, x): elt-tostr(i, x) ^ VS.vs-str end, 1, r))
+      end
       VS.vs-collection("matrix(" + tostring(self.rows) + ", " + tostring(self.cols) + ")",
-        for fold(acc from empty, row from self.to-lists()):
-          VS.vs-seq(L.map_n(lam(i, x): elt-tostr(i, x) ^ VS.vs-str end, 1, row)) ^ link(_, acc)
-        end)
+        self.to-lists().map(row-to-seq))
     end,
     
-    equal-to(self, a :: Matrix, eq):
+    _equals(self, a :: Matrix, eq):
       circa = within-rel(0.0001) #Because floating points
       basically-equal = lam(l1, l2): fold2(lam(x, y, z): x and circa(y, z) end, true, l1, l2) end
       if ((self.to-list() == a.to-list()) or basically-equal(self.to-list(), a.to-list())):
         Equal
       else:
-        NotEqual("Matrices are not equal")
+        NotEqual("Matrices are not equal", self, a)
       end
-    end,
-    
-    _equals(self, a :: Matrix, eq):
-      self.equal-to(a, eq)
     end
 end
 
