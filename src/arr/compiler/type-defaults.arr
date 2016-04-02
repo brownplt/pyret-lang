@@ -75,6 +75,7 @@ fun make-default-types():
   default-typs.set-now(A.s-global("raw-array-length").key(), t-top)
   default-typs.set-now(A.s-global("raw-array-to-list").key(), t-top)
   default-typs.set-now(A.s-global("raw-array-fold").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-duplicate").key(), t-top)
   default-typs.set-now(A.s-global("raw-array").key(), t-top)
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)

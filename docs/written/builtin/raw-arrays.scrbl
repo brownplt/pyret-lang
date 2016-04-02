@@ -44,6 +44,12 @@
       (arity 4)
       (args ("f" "init" "array" "start-index"))
       (doc ""))
+    (fun-spec
+      (name "raw-array-duplicate")
+      (arity 1)
+      (args ("array"))
+      (return ,ra-of-a)
+      (contract (a-arrow ,ra-of-a ,ra-of-a)))
 ))
 
 
@@ -156,6 +162,28 @@ check:
     end
   end
   str is "a: 0, b: 1, c: 2"
+end
+  }
+
+  @function["raw-array-duplicate"]
+
+  Returns an identical copy of the given array.
+  @examples{
+check:
+  a = [raw-array: 1, 2, 3]
+  b = raw-array-duplicate(a)
+  a is=~ b
+  b is=~ a
+
+  a is<=> a
+  a is-not<=> b
+  b is-not<=> a
+  b is<=> b
+
+  raw-array-set(a, 1, 1)
+
+  raw-array-get(a, 1) is 1
+  raw-array-get(b, 1) is 2
 end
   }
 

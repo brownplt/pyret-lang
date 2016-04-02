@@ -756,6 +756,7 @@ runtime-builtins = [string-dict:
   "raw-array-length", t-top,
   "raw-array-to-list", t-top,
   "raw-array-fold", t-top,
+  "raw-array-duplicate", t-top,
   "raw-array", t-record(
     [list:
       t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),

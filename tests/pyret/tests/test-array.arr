@@ -227,3 +227,22 @@ check:
   a2.set-now(1, 2)
   a1 is=~ a2
 end
+
+check "Raw Array Duplication":
+  a = [raw-array: 1, 2, 3]
+  b = raw-array-duplicate(a)
+
+  a is=~ b
+  b is=~ a
+
+  a is<=> a
+  b is<=> b
+
+  a is-not<=> b
+  b is-not<=> a
+
+  raw-array-set(a, 1, 1)
+
+  raw-array-get(a, 1) is 1
+  raw-array-get(b, 1) is 2
+end
