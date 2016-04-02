@@ -538,7 +538,6 @@ inline-lams = A.default-map-visitor.{
           end
           cases(A.Ann) ann:
             | a-blank => A.s-let-expr(l, let-binds, body.visit(self))
-            | a-any(_) => A.s-let-expr(l, let-binds, body.visit(self))
             | else =>
               A.s-let-expr(l,
                 let-binds
@@ -778,7 +777,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
 
-  # TODO(MATT): a-blank and a-any should have locations
+  # TODO(MATT): a-blank should have location
   fun ann-to-typ(a :: A.Ann) -> T.Type:
     cases(A.Ann) a:
       | a-blank => T.t-top(A.dummy-loc)

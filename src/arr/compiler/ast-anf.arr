@@ -705,7 +705,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
   lst-a = freevars-list-acc(_, seen-so-far)
   cases(A.Ann) ann:
     | a-blank => seen-so-far
-    | a-any(_) => seen-so-far
+    | a-any(l) => seen-so-far
     | a-name(l, name) => 
       seen-so-far.set-now(name.key(), name)
       seen-so-far

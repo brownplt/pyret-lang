@@ -52,7 +52,7 @@ sharing:
                 end
               | none =>
                 if mod == "builtin":
-                  self.data-types.get-now(name.toname())
+                  self.data-types.get-now(name.key())
                 else:
                   raise("No module available with the name '" + mod + "'")
                 end

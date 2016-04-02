@@ -610,9 +610,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any(A.dummy-loc), none))
+                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any(l2), none))
               else:
-                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any(A.dummy-loc), none))
+                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any(l2), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
@@ -668,7 +668,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | var-bind(loc, atom, ann, expr) =>
             A.p-value(loc, atom, ann)
           | module-bind(loc, atom, mod, expr) =>
-            A.p-value(loc, atom, A.a-any(A.dummy-loc))
+            A.p-value(loc, atom, A.a-any(loc))
           | else => raise("Shouldn't happen, defined-value is global: " + torepr(v-binding))
         end
       end

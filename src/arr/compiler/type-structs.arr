@@ -164,8 +164,10 @@ data Type:
 sharing:
   _output(self):
     cases(Type) self:
-      | t-name(module-name, id, _) => VS.vs-value(id.toname())
-      | t-var(id, _) => VS.vs-value(id.toname())
+      | t-name(module-name, id, _) =>
+        VS.vs-value(id.toname())
+      | t-var(id, _) =>
+        VS.vs-value(id.toname())
       | t-arrow(args, ret, _) =>
         VS.vs-seq([list: VS.vs-str("(")]
           + interleave(args.map(VS.vs-value), VS.vs-str(", "))
@@ -405,7 +407,7 @@ end
 # TODO(MATT): which of these should be kept
 builtin-uri = some("builtin")
 
-t-array-name = t-name(none, A.s-type-global("RawArray"), A.dummy-loc)
+t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"), A.dummy-loc)
 
 t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
 t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end
