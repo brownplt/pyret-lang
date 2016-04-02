@@ -955,16 +955,17 @@ data Matrix:
       max-len = for raw-array-fold(acc from 0, n from self.elts, i from 0):
         num-max(string-length(num-tostring(n)), acc)
       end
-      fun elt-tostr(i :: Number):
-        if num-is-integer((i + 1) / self.cols):
-          pad(num-tostring(raw-array-get(self.elts, i)), max-len) + "\n"
+      fun elt-tostr(i :: Number, e):
+        if num-is-integer(i / self.cols):
+          pad(num-tostring(e), max-len) + "\n"
         else:
-          pad(num-tostring(raw-array-get(self.elts, i)), max-len) + "\t"
+          pad(num-tostring(e), max-len) + "\t"
         end
       end
-      VS.vs-str("\n" + for raw-array-fold(acc from "", n from self.elts, i from 0):
-          acc + elt-tostr(i)
-      end)
+      VS.vs-collection("matrix(" + tostring(self.rows) + ", " + tostring(self.cols) + ")",
+        for fold(acc from empty, row from self.to-lists()):
+          VS.vs-seq(L.map_n(lam(i, x): elt-tostr(i, x) ^ VS.vs-str end, 1, row)) ^ link(_, acc)
+        end)
     end,
     
     equal-to(self, a :: Matrix, eq):
