@@ -26,14 +26,14 @@ t-srcloc                  = TS.t-srcloc(A.dummy-loc)
 t-array-name              = TS.t-array-name
 
 type TypeMember           = TS.TypeMember
-t-member                  = TS.t-member(_, _, A.dummy-loc)
+t-member                  = TS.t-member(_, _)
 
 type ModuleType           = TS.ModuleType
 t-module                  = TS.t-module
 
 type TypeVariant          = TS.TypeVariant
-t-variant                 = TS.t-variant(_, _, _, A.dummy-loc)
-t-singleton-variant       = TS.t-singleton-variant(_, _, A.dummy-loc)
+t-variant                 = TS.t-variant(_, _, _)
+t-singleton-variant       = TS.t-singleton-variant(_, _)
 
 s-atom                    = A.s-atom
 

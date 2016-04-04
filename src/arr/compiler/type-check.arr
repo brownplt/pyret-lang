@@ -94,7 +94,7 @@ t-method-binop = lam(field-name :: String, loc):
     t-arrow(
       [list:
         t-record([list:
-          t-member(field-name, t-arrow([list: t-var(A.s-atom("B", 1), loc)], t-var(A.s-atom("C", 1), loc), loc), loc)
+          t-member(field-name, t-arrow([list: t-var(A.s-atom("B", 1), loc)], t-var(A.s-atom("C", 1), loc), loc))
         ], loc),
         t-var(A.s-atom("B",1), loc)
       ],
@@ -181,7 +181,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
       val-provides = t-record(
-        for map(v from mod.values.keys-list()): t-member(v, mod.values.get-value(v), program.l) end,
+        for map(v from mod.values.keys-list()): t-member(v, mod.values.get-value(v)) end,
         program.l)
       module-type = t-module(
         key,
@@ -203,7 +203,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             when not(context.modules.has-key-now(key)):
               mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
               val-provides = t-record(
-                for map(v from mod.values.keys-list()): t-member(v, mod.values.get-value(v), l) end,
+                for map(v from mod.values.keys-list()): t-member(v, mod.values.get-value(v)) end,
                 l)
               module-type = t-module(
                 key,
@@ -885,7 +885,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
             | none =>
               fold-errors([list: C.cant-typecheck("issue with record annotation", l)])
             | some(typ) =>
-              fold-result(link(t-member(field.name, typ, l), field-typs))
+              fold-result(link(t-member(field.name, typ), field-typs))
           end
         end
       end, fields, empty)
@@ -1073,9 +1073,9 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                       for option-bind(ctxt from maybe-context):
                         b-variant = supertype.lookup-variant(a-variant.name).value
                         cases(TypeVariant) a-variant:
-                          | t-singleton-variant(_, _, _) =>
+                          | t-singleton-variant(_, _) =>
                             some(ctxt)
-                          | t-variant(_, a-var-fields, _, _) =>
+                          | t-variant(_, a-var-fields, _) =>
                             b-var-fields = b-variant.fields
                             satisfies-fields(a-var-fields, b-var-fields, context, assumptions.add(pair(subtype, supertype)))
                         end
@@ -1345,7 +1345,7 @@ fun meet-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         lub = least-upper-bound(a-field.typ, b-field.typ, loc, context)
-        link(t-member(field-name, lub, loc), meet-list)
+        link(t-member(field-name, lub), meet-list)
       | none => meet-list
     end
   end, empty)
@@ -1357,7 +1357,7 @@ fun join-fields(a-fields :: List<TypeMember>, b-fields :: List<TypeMember>, loc 
     cases(Option<TypeMember>) type-members-lookup(b-fields, field-name):
       | some(b-field) =>
         glb = greatest-lower-bound(a-field.typ, b-field.typ, loc, context)
-        link(t-member(field-name, glb, loc), join-list)
+        link(t-member(field-name, glb), join-list)
       | none =>
         link(a-field, join-list)
     end
@@ -1402,8 +1402,8 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context) -> FoldResul
         namet-key = namet.key()
         ctxt.aliases.set-now(name.key(), typ)
         new-context = ctxt.add-binding(namet-key, t-record([list:
-          t-member("test", t-arrow([list: t-top(l)], t-boolean(l), l), l),
-          t-member("brand", t-arrow([list: t-top(l)], typ, l), l)
+          t-member("test", t-arrow([list: t-top(l)], t-boolean(l), l)),
+          t-member("brand", t-arrow([list: t-top(l)], typ, l))
         ], l))
         fold-result(new-context)
     end
@@ -1500,12 +1500,12 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
         end
       context.data-types.set-now(namet.key(), new-data-type)
 
-      data-fields = link(t-member(name, t-arrow([list: t-top(l)], t-boolean(l), l), l),
+      data-fields = link(t-member(name, t-arrow([list: t-top(l)], t-boolean(l), l)),
         for map(variant-type from variant-types):
-          t-member(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars), l)
+          t-member(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars, l))
         end +
         for map(variant-type from variant-types):
-          t-member("is-" + variant-type.name, t-arrow([list: t-top(l)], t-boolean(l), l), l)
+          t-member("is-" + variant-type.name, t-arrow([list: t-top(l)], t-boolean(l), l))
         end)
 
       data-expr-type = t-record(data-fields, l)
@@ -1531,14 +1531,14 @@ fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair
             cases(Option<Type>) maybe-typ:
               | none => fold-errors([list: C.cant-typecheck("No type annotation provided on member", l)])
               | some(typ) =>
-                fold-result(t-member(member.bind.id.toname(), wrap(typ), l))
+                fold-result(t-member(member.bind.id.toname(), wrap(typ)))
             end
           end
         end
 
         for bind(type-members from map-fold-result(process-member, members)):
           new-variant = A.s-variant(l, constr-loc, name, members, new-with-members)
-          type-variant = t-variant(name, type-members, with-type-members, l)
+          type-variant = t-variant(name, type-members, with-type-members)
           fold-result(pair(new-variant, type-variant))
         end
       end
@@ -1548,7 +1548,7 @@ fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair
         new-with-members = split-result.left
         with-type-members = split-result.right
         new-variant = A.s-singleton-variant(l, name, new-with-members)
-        type-variant = t-singleton-variant(name, with-type-members, l)
+        type-variant = t-singleton-variant(name, with-type-members)
         fold-result(pair(new-variant, type-variant))
       end
   end
@@ -1562,7 +1562,7 @@ fun to-type-member(field :: A.Member, context :: Context) -> FoldResult<Pair<A.M
       else:
         synthesis(value, false, context).fold-bind(
         lam(new-value, value-typ, out-context):
-          fold-result(pair(A.s-data-field(l, name, new-value), t-member(name, value-typ, l)))
+          fold-result(pair(A.s-data-field(l, name, new-value), t-member(name, value-typ)))
         end)
       end
     | s-mutable-field(l, name, ann, value) =>
@@ -1572,9 +1572,9 @@ fun to-type-member(field :: A.Member, context :: Context) -> FoldResult<Pair<A.M
   end
 end
 
-fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params :: List<Type>) -> Type:
+fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params :: List<Type>, l :: Loc) -> Type:
   cases(TypeVariant) variant-typ:
-    | t-variant(name, fields, _, l) =>
+    | t-variant(name, fields, _) =>
       field-types = fields.map(lam(field):
         cases(Type) field.typ:
           | t-ref(ref-typ, _) => ref-typ
@@ -1586,7 +1586,7 @@ fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params 
       else:
         t-forall(params, t-arrow(field-types, t-app(brander-typ, params, l), l), l)
       end
-    | t-singleton-variant(name, _, l) =>
+    | t-singleton-variant(name, _) =>
       if is-empty(params):
         brander-typ
       else:
@@ -1902,7 +1902,7 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
   cases(Option<TypeVariant>) data-type.lookup-variant(branch.name):
     | some(tv) =>
       cases(TypeVariant) tv:
-        | t-variant(_, fields, _, _) =>
+        | t-variant(_, fields, _) =>
           cases(A.CasesBranch) branch:
             | s-cases-branch(l, pat-loc, name, args, body) =>
               fun process(new-body, typ, out-context):
@@ -1940,7 +1940,7 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
             | s-singleton-cases-branch(l, _, name, _) =>
               fold-errors([list: C.cases-singleton-mismatch(name, l, false)])
           end
-        | t-singleton-variant(_, _, _) =>
+        | t-singleton-variant(_, _) =>
           cases(A.CasesBranch) branch:
             | s-cases-branch(l, _, name, _, _) =>
               fold-errors([list: C.cases-singleton-mismatch(name, l, true)])
