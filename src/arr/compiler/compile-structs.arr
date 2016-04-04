@@ -619,8 +619,9 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("argument"),[list: self.arg.l],0),
-          ED.cmcode(self.arg.l),
+          ED.text("argument at"), draw-and-highlight(self.arg.l),
+          #ED.highlight(ED.text("argument"),[list: self.arg.l],0),
+          #ED.cmcode(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
