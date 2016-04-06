@@ -2,6 +2,7 @@ provide *
 import namespace-lib as N
 import runtime-lib as R
 import builtin-modules as B
+import make-standalone as MS
 import load-lib as L
 import either as E
 import ast as A
@@ -196,7 +197,10 @@ fun run(path, options):
   end
 end
 
-fun build-standalone(path, options):
+fun build-program(path, options):
+  doc: ```Returns the program as a JavaScript AST of module list and dependency map,
+          and its native dependencies as a list of strings```
+
   shadow options = options.{ compile-module: true }
 
   base-module = CS.dependency("file", [list: path])
@@ -208,7 +212,9 @@ fun build-standalone(path, options):
   compiled = CL.compile-program-with(wl, starter-modules, options)
   storage.save-modules(compiled.loadables)
 
-  define-name = j-id(A.s-name(A.dummy-loc, "define"))
+  natives = for fold(natives from empty, w from wl):
+    w.locator.get-native-modules().map(_.path) + natives
+  end
 
   static-modules = j-obj(for C.map_list(w from wl):
     loadable = compiled.modules.get-value-now(w.locator.uri())
@@ -236,26 +242,42 @@ fun build-standalone(path, options):
       end))
   end)
 
-  natives = j-list(true, for fold(natives from [clist:], w from wl):
-    C.map_list(lam(r): j-str(r.path) end, w.locator.get-native-modules()) + natives
-  end)
-
   to-load = j-list(false, for C.map_list(w from wl):
     j-str(w.locator.uri())
   end)
 
+  program-as-js = j-obj([clist:
+      j-field("staticModules", static-modules),
+      j-field("depMap", depmap),
+      j-field("toLoad", to-load)
+    ])
+
+  {
+    js-ast: program-as-js,
+    natives: natives
+  }
+end
+
+fun build-runnable-standalone(path, require-config-path, options):
+  program = build-program(path, options)
+  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), options.compiled-cache, require-config-path)
+end
+
+fun build-require-standalone(path, options):
+  program = build-program(path, options)
+
+  natives = j-list(true, for C.map_list(n from program.natives): n end)
+
+  define-name = j-id(A.s-name(A.dummy-loc, "define"))
+
   prog = j-block([clist:
       j-app(define-name, [clist: natives, j-fun([clist:],
         j-block([clist:
-          j-return(j-obj([clist:
-            j-field("staticModules", static-modules),
-            j-field("depMap", depmap),
-            j-field("toLoad", to-load)
-          ]))
+          j-return(program.js-ast)
         ]))
       ])
     ])
 
-  print(prog.tosource().pretty(80).join-str("\n"))
+  print(prog.to-ugly-source())
 end
 

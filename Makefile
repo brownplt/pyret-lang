@@ -95,10 +95,11 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(patsubst src/%,$(PHASE
 phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
-	bash make-standalone.sh $(PYRET_COMP0) \
-                          src/arr/compiler/pyret.arr \
-                          $(PHASEB)/pyret.jarr \
-                          $(PHASEB)
+	node build/phaseA/pyret.jarr --build-runnable src/arr/compiler/pyret.arr --builtin-js-dir src/js/trove/ --builtin-arr-dir src/arr/trove/ --compiled-dir build/phaseB/compiled2/ -no-check-mode --require-config src/scripts/standalone-config.json
+#	bash make-standalone.sh $(PYRET_COMP0) \
+#                          src/arr/compiler/pyret.arr \
+#                          $(PHASEB)/pyret.jarr \
+#                          $(PHASEB)
 
 
 .PHONY : phaseC

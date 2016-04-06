@@ -24,6 +24,10 @@ fun main(args):
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "build-standalone",
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
+    "build-runnable",
+      C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
+    "require-config",
+      C.next-val(C.String, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "build",
       C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
@@ -126,8 +130,22 @@ fun main(args):
             raise("There were compilation errors")
         end
       else:
-        if r.has-key("build-standalone"):
-          CLI.build-standalone(r.get-value("build-standalone"), {
+        if r.has-key("build-runnable"):
+          CLI.build-runnable-standalone(
+              r.get-value("build-runnable"), 
+              r.get-value("require-config"),
+              {
+                check-mode : check-mode,
+                type-check : type-check,
+                allow-shadowed : allow-shadowed,
+                collect-all: false,
+                ignore-unbound: false,
+                proper-tail-calls: tail-calls,
+                compile-module: true,
+                compiled-cache: compiled-dir
+              })
+        else if r.has-key("build-standalone"):
+          CLI.build-require-standalone(r.get-value("build-standalone"), {
               check-mode : check-mode,
               type-check : type-check,
               allow-shadowed : allow-shadowed,

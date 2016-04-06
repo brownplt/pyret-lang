@@ -4234,6 +4234,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return new JSModuleReturn(jsmod);
     }
 
+    function makeModuleReturn(values, types) {
+      return thisRuntime.makeObject({
+        "provide-plus-types": thisRuntime.makeObject({
+          "values": thisRuntime.makeObject(values),
+          "types": types
+        })
+      });
+    }
+
     function makeBrandPredicate(loc, brand, predName) {
       return makeFunction(function(val) {
         checkArityC(loc, 1, arguments);
@@ -4742,6 +4751,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'runStandalone' : runStandalone,
 
         'makeJSModuleReturn' : makeJSModuleReturn,
+        'makeModuleReturn' : makeModuleReturn,
 
         'addModuleToNamespace' : addModuleToNamespace,
 
