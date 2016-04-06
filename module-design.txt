@@ -34,7 +34,7 @@
    - Not sure what happens with the --run option
 [x] 9. New builtin/legacy-path locators that find source
 
-10. Centralized place to store serialized compiled modules
+[x] 10. Centralized place to store serialized compiled modules
     - Remove get-compiled/set-compiled/needs-compile
     - Add "modified-time" to locators
     - cli-module-loader, cpo-module-loader will do their own seralization
@@ -73,7 +73,7 @@ much sense.
       js)
 
 
-15. Build standalone compiler
+[x] 15. Build standalone compiler
 
     node build/phase1/main-wrapper.js --builtin-dir build/phaseA/trove --build-standalone pyret.arr > pyret.js
 
@@ -89,6 +89,7 @@ much sense.
 JS-implemented module.  Do we need just provide-plus-types?  answer?  checks?
 defined-values/defined-types?  
 20. Implement shorthand expansions for type syntax:
+21. Create a pyret.arr option for dumping a dependency list to enable parallel builds
 
   e.g.
 
