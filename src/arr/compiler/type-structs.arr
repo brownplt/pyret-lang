@@ -61,7 +61,7 @@ sharing:
 end
 
 data TypeMember:
-  | t-member(field-name :: String, typ :: Type, l :: A.Loc)
+  | t-member(field-name :: String, typ :: Type)
 sharing:
   _output(self):
     VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
@@ -70,10 +70,7 @@ sharing:
     self.field-name + " : " + self.typ.key()
   end,
   substitute(self, new-type :: Type, old-type :: Type):
-    t-member(self.field-name, self.typ.substitute(new-type, old-type), self.l)
-  end,
-  set-loc(self, loc :: A.Loc):
-    t-member(self.field-name, self.typ, loc)
+    t-member(self.field-name, self.typ.substitute(new-type, old-type))
   end,
   free-variable(self, var-type :: Type) -> Boolean:
     self.typ.free-variable(var-type)
@@ -91,55 +88,45 @@ type TypeMembers = List<TypeMember>
 data TypeVariant:
   | t-variant(name        :: String,
               fields      :: List<TypeMember>,
-              with-fields :: List<TypeMember>,
-              l           :: A.Loc)
+              with-fields :: List<TypeMember>)
   | t-singleton-variant(name        :: String,
-                        with-fields :: List<TypeMember>,
-                        l           :: A.Loc) with:
+                        with-fields :: List<TypeMember>) with:
     fields: empty
 sharing:
   substitute(self, new-type :: Type, old-type :: Type):
     cases(TypeVariant) self:
-      | t-variant(name, fields, with-fields, l) =>
+      | t-variant(name, fields, with-fields) =>
         new-fields = fields.map(_.substitute(new-type, old-type))
         new-with-fields = with-fields.map(_.substitute(new-type, old-type))
-        t-variant(name, new-fields, new-with-fields, l)
-      | t-singleton-variant(name, with-fields, l) =>
+        t-variant(name, new-fields, new-with-fields)
+      | t-singleton-variant(name, with-fields) =>
         new-with-fields = with-fields.map(_.substitute(new-type, old-type))
-        t-singleton-variant(name, new-with-fields, l)
-    end
-  end,
-  set-loc(self, loc :: A.Loc):
-    cases(TypeVariant) self:
-      | t-variant(name, fields, with-fields, _) =>
-        t-variant(name, fields, with-fields, loc)
-      | t-singleton-variant(name, with-fields, _) =>
-        t-singleton-variant(name, with-fields, loc)
+        t-singleton-variant(name, new-with-fields)
     end
   end,
   free-variable(self, var-type :: Type) -> Boolean:
     cases(TypeVariant) self:
-      | t-variant(_, fields, with-fields, _) =>
+      | t-variant(_, fields, with-fields) =>
         all(_.free-variable(var-type), fields) and
         all(_.free-variable(var-type), with-fields)
-      | t-singleton-variant(_, with-fields, _) =>
+      | t-singleton-variant(_, with-fields) =>
         all(_.free-variable(var-type), with-fields)
     end
   end,
   _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
     bool-result =
       cases(TypeVariant) self:
-        | t-variant(a-name, a-fields, a-with-fields, _) =>
+        | t-variant(a-name, a-fields, a-with-fields) =>
           cases(TypeVariant) other:
-            | t-variant(b-name, b-fields, b-with-fields, _) =>
+            | t-variant(b-name, b-fields, b-with-fields) =>
               (a-name == b-name) and
               compare-lists(a-fields, b-fields) and
               compare-lists(a-with-fields, b-with-fields)
             | else => false
           end
-        | t-singleton-variant(a-name, a-with-fields, _) =>
+        | t-singleton-variant(a-name, a-with-fields) =>
           cases(TypeVariant) other:
-            | t-singleton-variant(b-name, b-with-fields, _) =>
+            | t-singleton-variant(b-name, b-with-fields) =>
               (a-name == b-name) and
               compare-lists(a-with-fields, b-with-fields)
             | else => false

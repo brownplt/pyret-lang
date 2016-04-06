@@ -14,7 +14,7 @@ t-boolean = T.t-boolean(A.dummy-loc)
 t-number = T.t-number(A.dummy-loc)
 t-arrow = T.t-arrow(_, _, A.dummy-loc)
 t-top = T.t-top(A.dummy-loc)
-t-member = T.t-member(_, _, A.dummy-loc)
+t-member = T.t-member(_, _)
 t-bot = T.t-bot(A.dummy-loc)
 t-record = T.t-record(_, A.dummy-loc)
 t-forall = T.t-forall(_, _, A.dummy-loc)
@@ -23,8 +23,8 @@ t-array = T.t-array(_, A.dummy-loc)
 t-string = T.t-string(A.dummy-loc)
 t-option = T.t-option(_, A.dummy-loc)
 t-data = T.t-data(_, _, _, A.dummy-loc)
-t-variant = T.t-variant(_, _, _, A.dummy-loc)
-t-singleton-variant = T.t-variant(_, _, A.dummy-loc)
+t-variant = T.t-variant(_, _, _)
+t-singleton-variant = T.t-variant(_, _)
 t-app = T.t-app(_, _, A.dummy-loc)
 t-name = T.t-name(_, _, A.dummy-loc)
 
@@ -1340,8 +1340,9 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("argument"),[list: self.arg.l],0),
-          ED.cmcode(self.arg.l),
+          ED.text("argument at"), draw-and-highlight(self.arg.l),
+          #ED.highlight(ED.text("argument"),[list: self.arg.l],0),
+          #ED.cmcode(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
