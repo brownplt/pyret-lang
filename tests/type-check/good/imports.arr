@@ -30,10 +30,10 @@ my-s :: String = cases(E.Either<Number,String>) c:
 end
 
 
-my-err :: Err.RuntimeError = Err.numeric-binop-error(5, "hello", "+", "_plus")
+my-err :: Err.RuntimeError = Err.numeric-binop-error(5, "hello", "+", "Plus", "_plus")
 
 my-str :: String = cases(Err.RuntimeError) my-err:
-  | numeric-binop-error(_, _, _, _) =>
+  | numeric-binop-error(_, _, _, _, _) =>
     "hello"
   | else =>
     "world"
