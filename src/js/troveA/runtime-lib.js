@@ -1,6 +1,6 @@
 ({
   requires: [],
-  nativeRequires: ["runtime"],
+  nativeRequires: ["js/runtime"],
   provides: {},
   theModule: function(runtime, ns, uri, runtimeLib) {
     var get = runtime.getField;

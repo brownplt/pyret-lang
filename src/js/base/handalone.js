@@ -1,5 +1,5 @@
 require = require("requirejs");
-require(["runtime", "program"], function(runtimeLib, program) {
+require(["js/runtime", "program"], function(runtimeLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;

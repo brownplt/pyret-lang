@@ -26,6 +26,9 @@ docs/written/test-harness/
 docs/*.arr.js
 
 build/docs
+build/phaseA
+build/phaseB
+build/phaseC
 build/phase1
 build/phase2
 build/phase3

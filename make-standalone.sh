@@ -9,24 +9,24 @@ WHERE=$4
 node $COMPILER \
               --builtin-js-dir src/js/troveA/ \
               --builtin-arr-dir src/arr/troveA/ \
-              --compiled-dir $WHERE \
+              --compiled-dir $WHERE/compiled/ \
               -no-check-mode \
               --build-standalone $TARGET \
-              > build/phaseA/program.js
+              > $WHERE/program.js
 
 # keep only the initial call to define, with its dependency list...
-sed -e '/]/,$d' build/phaseA/program.js > build/phaseA/program-require.js
+sed -e '/]/,$d' $WHERE/program.js > $WHERE/program-require.js
 # and close it off...
-cat <<END >> build/phaseA/program-require.js
+cat <<END >> $WHERE/program-require.js
   ]);
-requirejs(["runtime"]);
+requirejs(["js/runtime"]);
 END
 # then rename the call from define to requirejs.
-sed -i -- 's/define/requirejs/' build/phaseA/program-require.js
+sed -i -- 's/define/requirejs/' $WHERE/program-require.js
 
 # Use requirejs to process that minimal file
 node node_modules/requirejs/bin/r.js -o src/scripts/require-build.js \
-  baseUrl=build/phaseA/ name=program-require \
+  baseUrl=$WHERE name=program-require \
   out=$TARGET-require.js
 
 # Construct the working standalone by initializing requirejs,
@@ -37,6 +37,6 @@ END
 # including the native requires,
 cat $TARGET-require.js >> $OUT
 # the program itself,
-cat build/phaseA/program.js | sed -e 's/define(\[/define("program", \[/' >> $OUT
+cat $WHERE/program.js | sed -e 's/define(\[/define("program", \[/' >> $OUT
 # and the handalone driver
-cat build/phaseA/handalone.js >> $OUT
+cat src/js/handalone.js >> $OUT
