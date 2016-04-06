@@ -28,6 +28,8 @@ fun main(args):
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "require-config",
       C.next-val(C.String, C.once, "JSON file to use for requirejs configuration of build-runnable"),
+    "outfile",
+      C.next-val(C.String, C.once, "Output file for build-runnable"),
     "build",
       C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
@@ -131,9 +133,15 @@ fun main(args):
         end
       else:
         if r.has-key("build-runnable"):
+          outfile = if r.has-key("outfile"):
+            r.get-value("outfile")
+          else:
+            r.get-value("build-runnable") + ".jarr"
+          end
           CLI.build-runnable-standalone(
-              r.get-value("build-runnable"), 
+              r.get-value("build-runnable"),
               r.get-value("require-config"),
+              outfile,
               {
                 check-mode : check-mode,
                 type-check : type-check,

@@ -10,39 +10,37 @@
 
       deps: A Pyret list of strings of the requirejs dependencies of the program
 
-      storeDir: A path to a directory to use for storing intermediate files
-
-      configPath: The path to a file containing configuration options in JSON
-      according to the requireJS spec (as a string)
+      configJSON: A JSON string to parse and use as a configuration option to
+      requirejs
 
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, storeDir, configPath) {
-      runtime.checkArity(4, arguments, ["make-standalone"]);
+    function makeStandalone(deps, body, configJSON) {
+      runtime.checkArity(3, arguments, ["make-standalone"]);
       runtime.checkList(deps);
       runtime.checkString(body);
-      runtime.checkString(storeDir);
-      runtime.checkString(configPath);
+      runtime.checkString(configJSON);
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
       console.log(process.cwd());
-      var handalone = fs.readFileSync("src/js/handalone.js");
+      var config = JSON.parse(configJSON);
+      var storeDir = config["baseUrl"];
+      var handalone = fs.readFileSync("src/js/base/handalone.js");
       var depsArr = runtime.ffi.toArray(deps);
       depsArr.push("js/runtime");
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
       var depsLine = "[" + depsStrs.join(",") + "]";
 
       var programRequires = "requirejs(" + depsLine + ")"
-      fs.writeFileSync(path.join(storeDir, "program-require"));
+      fs.writeFileSync(path.join(storeDir, "program-require.js"));
 
-      var config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       if(!("out" in config)) {
         runtime.ffi.throwMessageException("make-standalone config must have an 'out' field");
       }
       var realOut = config.out;
-      config.out = config.out + ".deps";
+      config.out = path.join(storeDir, "program-deps.js");
       runtime.pauseStack(function(restarter) {
         requirejs.optimize(config, function(result) {
           var programWithDeps = fs.readFileSync(config.out, 'utf8');

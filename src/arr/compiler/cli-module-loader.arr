@@ -5,6 +5,7 @@ import builtin-modules as B
 import make-standalone as MS
 import load-lib as L
 import either as E
+import json as JSON
 import ast as A
 import pathlib as P
 import sha as crypto
@@ -258,9 +259,16 @@ fun build-program(path, options):
   }
 end
 
-fun build-runnable-standalone(path, require-config-path, options):
+fun build-runnable-standalone(path, require-config-path, outfile, options):
   program = build-program(path, options)
-  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), options.compiled-cache, require-config-path)
+  config = JSON.read-json(F.input-file(require-config-path).read-file()).dict.unfreeze()
+  config.set-now("out", JSON.j-str(outfile))
+  when not(config.has-key-now("baseUrl")):
+    config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
+  end
+  config.set-now("name", JSON.j-str("program-require"))
+
+  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), JSON.j-obj(config.freeze()).serialize())
 end
 
 fun build-require-standalone(path, options):
