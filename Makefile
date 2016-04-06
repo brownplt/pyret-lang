@@ -251,16 +251,16 @@ docs-test: docs
 
 .PHONY : clean
 clean:
-	$(call RMDIR,$(PHASE1))
-	$(call RMDIR,$(PHASE2))
-	$(call RMDIR,$(PHASE3))
+	$(call RMDIR,$(PHASEA))
+	$(call RMDIR,$(PHASEB))
+	$(call RMDIR,$(PHASEC))
 	$(call RMDIR,$(RELEASE_DIR))
 
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
 	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
 no-diff-standalone: phaseB phaseC
-	diff $(PHASEB)/pyret.js $(PHASEC)/pyret.js
+	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 
 $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
