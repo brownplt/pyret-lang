@@ -514,7 +514,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
           | right(exn) =>
-            if not(pred(exn-unwrap(exn))):
+            if not(pred(exn-unwrap(exn).value)):
               success(loc)
             else:
               failure-raise-not-dissatisfied(loc, exn, pred)

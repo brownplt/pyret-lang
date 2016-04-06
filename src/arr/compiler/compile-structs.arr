@@ -1102,7 +1102,7 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
-  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
+  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.TypeVariant, cases-loc :: A.Loc) with:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:

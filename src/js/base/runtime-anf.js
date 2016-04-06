@@ -2279,11 +2279,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-checks"], 2, $a); }
         return nothing;
       }),
-      "check-is": makeFunction(function(code, left, right, loc) {
+      "check-is": makeFunction(function(left, right, loc) {
         if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 4, $a); }
         return nothing;
       }),
-      "check-satisfies": makeFunction(function(code, left, pred, loc) {
+      "check-satisfies": makeFunction(function(left, pred, loc) {
         if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 4, $a); }
         return nothing;
       }),

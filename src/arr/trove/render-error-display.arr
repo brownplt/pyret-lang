@@ -19,13 +19,10 @@ fun display-to-string(e, embed-display, stack):
     | paragraph(contents) => contents.map(help).join-str("") + "\n"
     | text(str) => str
     | embed(val) => 
-      print(run-task)
-      print(run-task(lam():print(val);))
-      "placeholder"
-      #print(exn-unwrap(cases(E.Either) run-task(lam():exn-unwrap(val).render-reason();):
-      #  | left(v)    => help(v)
-      #  | right(_) => embed-display(val)
-      #end))
+      cases(E.Either) run-task(lam():exn-unwrap(val).render-reason();):
+        | left(v)    => help(v)
+        | right(_) => embed-display(val)
+      end
     | loc(l) => tostring(l)
     | maybe-stack-loc(n, user-frames-only, contents-with-loc, contents-without-loc) =>
       cases(Option) nth-stack-frame(n, user-frames-only, stack):

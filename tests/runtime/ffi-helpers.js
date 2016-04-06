@@ -51,15 +51,16 @@ define(["./matchers", "../evaluator/eval-matchers", "trove/srcloc", "trove/rende
       });
 
       it("should catch type/arity errors in runtime functions", function(done) {
-        rt.loadModulesNew(rt.namespace, [rendererrorLib], function(rendererrorLib) {
-          var rendererror = rt.getField(rendererrorLib, "values");
-          // Can't use toThrow because of generative structs
-          expect(function() { ffi.throwFieldNotFound("not a srcloc", undefined, undefined); })
-            .toThrowRuntimeExn(rt, rendererror, "Expected");
-          expect(function() { rt.confirm(str("too"), str("many"), str("arguments")); })
-            .toThrowRuntimeExn(rt, rendererror, "Expected");
-          P.wait(done);
-        });
+        rt.runThunk(function() {
+          rt.loadModulesNew(rt.namespace, [rendererrorLib], function(rendererrorLib) {
+            var rendererror = rt.getField(rendererrorLib, "values");
+            // Can't use toThrow because of generative structs
+            expect(function() { ffi.throwFieldNotFound("not a srcloc", undefined, undefined); })
+              .toThrowRuntimeExn(rt, rendererror, "Expected");
+            expect(function() { rt.confirm(str("too"), str("many"), str("arguments")); })
+              .toThrowRuntimeExn(rt, rendererror, "Expected");
+          });
+        },function(){P.wait(done);});
       });
     });
   }

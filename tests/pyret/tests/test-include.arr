@@ -201,8 +201,8 @@ check:
   val("includes-a-type") is some(42)
   msg("includes-and-violates") satisfies string-contains(_, "Number")
   val("type-and-val") is some(12)
-  cmsg("overlapping-import") satisfies string-contains(_, "defined")
-  cmsg("global-shadow-import") satisfies string-contains(_, "defined")
+  cmsg("overlapping-import") satisfies string-contains(_, "shadows")
+  cmsg("global-shadow-import") satisfies string-contains(_, "shadows")
 #  cmsg("global-type-shadow-import") satisfies string-contains(_, "defined")
 
   val("include-world") is some(true)

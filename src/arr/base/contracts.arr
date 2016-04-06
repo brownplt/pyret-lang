@@ -40,8 +40,8 @@ data FieldFailure:
   | missing-field(loc, field) with:
     render-reason(self, loc, from-fail-arg):
       [ED.error:
-        [ED.para: ED.text("Missing field"), ED.code(ED.text(self.field)),
-          ED.text("is required at"), draw-and-highlight(self.loc)]]
+        [ED.para: ED.text("Missing field "), ED.code(ED.text(self.field)),
+          ED.text("is required at "), draw-and-highlight(self.loc)]]
     end
 end
 
@@ -188,7 +188,7 @@ data FailureReason:
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para:
-          ED.text("The record annotation at"),
+          ED.text("The record annotation at "),
           ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
           ED.text("failed on this value:")],
         ED.embed(self.val),
