@@ -8,10 +8,10 @@ import builtin-modules as B
 import string-dict as SD
 import file as F
 import pathlib as P
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CM
-import "compiler/type-structs.arr" as T
-import "compiler/js-of-pyret.arr" as JSP
+import file("../compile-lib.arr") as CL
+import file("../compile-structs.arr") as CM
+import file("../type-structs.arr") as T
+import file("../js-of-pyret.arr") as JSP
 
 mtd = [SD.string-dict:]
 
@@ -72,7 +72,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     get-globals(_):
-      CM.standard-globals
+      raise("Should never get compile-env for builtin module " + builtin-name)
     end,
     get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)

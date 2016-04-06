@@ -5,12 +5,12 @@ provide-types *
 import ast as A
 import string-dict as SD
 import srcloc as SL
-import "compiler/ast-util.arr" as AU
-import "compiler/compile-structs.arr" as C
-import "compiler/type-structs.arr" as TS
-import "compiler/type-check-structs.arr" as TCS
-import "compiler/type-constraints.arr" as TC
-import "compiler/list-aux.arr" as LA
+import file("ast-util.arr") as AU
+import file("compile-structs.arr") as C
+import file("type-structs.arr") as TS
+import file("type-check-structs.arr") as TCS
+import file("type-constraints.arr") as TC
+import file("list-aux.arr") as LA
 
 type Name                 = A.Name
 

@@ -3,7 +3,7 @@ provide-types *
 
 import ast as A
 import string-dict as SD
-import "compiler/list-aux.arr" as LA
+import file("list-aux.arr") as LA
 import equality as E
 import valueskeleton as VS
 

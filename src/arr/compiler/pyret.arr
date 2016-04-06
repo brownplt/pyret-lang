@@ -2,16 +2,15 @@
 
 import cmdline as C
 import file as F
-import exec as X
 import string-dict as D
-import "compiler/compile.arr" as CM
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
-import "compiler/cli-module-loader.arr" as CLI
-import "compiler/locators/builtin.arr" as B
+import file("compile.arr") as CM
+import file("compile-lib.arr") as CL
+import file("compile-structs.arr") as CS
+import file("cli-module-loader.arr") as CLI
+import file("locators/builtin.arr") as B
 import format as Format
 import either as E
-import "compiler/initialize-trove.arr" as IT
+#import file("initialize-trove.arr") as IT
 import render-error-display as RED
 format = Format.format
 Either = E.Either
@@ -99,8 +98,10 @@ fun main(args):
           ).result
         cases(CS.CompileResult) result:
           | ok(_) =>
-            var comp-object = result.code
-            result := nothing
+            #var comp-object = result.code
+            #result := nothing
+            raise("No longer supported")
+            #|
             var exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
             comp-object := nothing
             if (exec-result.success):
@@ -116,6 +117,7 @@ fun main(args):
               print(exec-result.render-error-message())
               raise("There were execution errors")
             end
+            |#
           | err(errors) =>
             print-error("Compilation errors:")
             for lists.each(e from errors):

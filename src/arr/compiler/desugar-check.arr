@@ -4,8 +4,8 @@ provide *
 provide-types *
 import ast as A
 import srcloc as SL
-import "compiler/gensym.arr" as G
-import "compiler/ast-util.arr" as U
+import file("gensym.arr") as G
+import file("ast-util.arr") as U
 
 data CheckInfo:
   | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr)

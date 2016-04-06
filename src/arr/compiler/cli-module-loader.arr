@@ -11,14 +11,14 @@ import string-dict as SD
 import render-error-display as RED
 import file as F
 import filelib as FS
-import "compiler/js-ast.arr" as J
-import "compiler/concat-lists.arr" as C
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
-import "compiler/locators/file.arr" as FL
-import "compiler/locators/legacy-path.arr" as LP
-import "compiler/locators/builtin.arr" as BL
-import "compiler/js-of-pyret.arr" as JSP
+import file("js-ast.arr") as J
+import file("concat-lists.arr") as C
+import file("compile-lib.arr") as CL
+import file("compile-structs.arr") as CS
+import file("locators/file.arr") as FL
+import file("locators/legacy-path.arr") as LP
+import file("locators/builtin.arr") as BL
+import file("js-of-pyret.arr") as JSP
 
 j-fun = J.j-fun
 j-var = J.j-var

@@ -2,13 +2,13 @@
 
 provide *
 import ast as A
-import "compiler/ast-anf.arr" as N
-import "compiler/js-ast.arr" as J
-import "compiler/gensym.arr" as G
-import "compiler/compile-structs.arr" as CS
-import "compiler/concat-lists.arr" as CL
-import "compiler/js-dag-utils.arr" as DAG
-import "compiler/ast-util.arr" as AU
+import file("ast-anf.arr") as N
+import file("js-ast.arr") as J
+import file("gensym.arr") as G
+import file("compile-structs.arr") as CS
+import file("concat-lists.arr") as CL
+import file("js-dag-utils.arr") as DAG
+import file("ast-util.arr") as AU
 import string-dict as D
 import srcloc as SL
 import sets as S

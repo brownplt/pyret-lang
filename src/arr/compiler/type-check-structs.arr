@@ -5,10 +5,10 @@ import ast as A
 import string-dict as SD
 import equality as EQ
 import valueskeleton as VS
-import "compiler/type-structs.arr" as TS
-import "compiler/type-defaults.arr" as TD
-import "compiler/compile-structs.arr" as C
-import "compiler/list-aux.arr" as LA
+import file("type-structs.arr") as TS
+import file("type-defaults.arr") as TD
+import file("compile-structs.arr") as C
+import file("list-aux.arr") as LA
 
 type Name                 = A.Name
 

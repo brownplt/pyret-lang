@@ -5,8 +5,8 @@ provide-types *
 import ast as A
 import parse-pyret as PP
 import string-dict as SD
-import "compiler/compile-structs.arr" as C
-import "compiler/ast-util.arr" as U
+import file("compile-structs.arr") as C
+import file("ast-util.arr") as U
 
 names = A.global-names
 

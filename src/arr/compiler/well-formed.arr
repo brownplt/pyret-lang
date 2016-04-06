@@ -7,7 +7,7 @@ provide-types *
 
 import ast as A
 import srcloc as SL
-import "compiler/compile-structs.arr" as C
+import file("compile-structs.arr") as C
 import format as F
 import string-dict as SD
 

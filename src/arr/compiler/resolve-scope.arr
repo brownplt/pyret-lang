@@ -6,10 +6,10 @@ import ast as A
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
-import "compiler/compile-structs.arr" as C
-import "compiler/ast-util.arr" as U
-import "compiler/gensym.arr" as G
-import "compiler/type-structs.arr" as T
+import file("compile-structs.arr") as C
+import file("ast-util.arr") as U
+import file("gensym.arr") as G
+import file("type-structs.arr") as T
 
 string-dict = SD.string-dict
 mtd = [string-dict:]

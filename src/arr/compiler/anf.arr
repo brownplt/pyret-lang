@@ -5,7 +5,7 @@ provide-types *
 
 import ast as A
 import srcloc as SL
-import "compiler/ast-anf.arr" as N
+import file("ast-anf.arr") as N
 
 type Loc = SL.Srcloc
 

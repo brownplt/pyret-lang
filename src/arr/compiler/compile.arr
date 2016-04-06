@@ -6,15 +6,15 @@ import file as F
 import ast as A
 import parse-pyret as PP
 import string-dict as SD
-import "compiler/js-of-pyret.arr" as P
-import "compiler/compile-structs.arr" as C
-import "compiler/well-formed.arr" as W
-import "compiler/ast-util.arr" as U
-import "compiler/resolve-scope.arr" as R
-import "compiler/desugar.arr" as D
-import "compiler/desugar-post-tc.arr" as DP
-import "compiler/type-check.arr" as T
-import "compiler/desugar-check.arr" as CH
+import file("js-of-pyret.arr") as P
+import file("compile-structs.arr") as C
+import file("well-formed.arr") as W
+import file("ast-util.arr") as U
+import file("resolve-scope.arr") as R
+import file("desugar.arr") as D
+import file("desugar-post-tc.arr") as DP
+import file("type-check.arr") as T
+import file("desugar-check.arr") as CH
 
 data CompilationPhase:
   | start

@@ -4,7 +4,7 @@ provide-types *
 import ast as A
 import string-dict as SD
 import srcloc as SL
-import "compiler/type-structs.arr" as TS
+import file("type-structs.arr") as TS
 
 type Type                 = TS.Type
 t-name                    = TS.t-name(_, _, A.dummy-loc)

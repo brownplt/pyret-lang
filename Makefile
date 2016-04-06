@@ -87,7 +87,7 @@ phaseA: $(PHASEA)/pyret.jarr
 
 $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 	bash make-standalone.sh $(PYRET_COMP0) \
-                          src/arr/compilerA/pyret.arr \
+                          src/arr/compiler/pyret.arr \
                           $(PHASEA)/pyret.jarr \
                           $(PHASEA)
 
@@ -96,7 +96,7 @@ phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
 	bash make-standalone.sh $(PYRET_COMP0) \
-                          src/arr/compilerA/pyret.arr \
+                          src/arr/compiler/pyret.arr \
                           $(PHASEB)/pyret.jarr \
                           $(PHASEB)
 
@@ -106,7 +106,7 @@ phaseC: $(PHASEC)/pyret.jarr
 
 $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
 	bash make-standalone.sh $(PYRET_COMP0) \
-                          src/arr/compilerA/pyret.arr \
+                          src/arr/compiler/pyret.arr \
                           $(PHASEC)/pyret.jarr \
                           $(PHASEC)
 

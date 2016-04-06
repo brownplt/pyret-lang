@@ -30,7 +30,7 @@ import repl as _
 
 # In here just so it gets included so I can run tests against it. Should
 # eventually be loaded somewhere appropriate once we're using it.
-import "compiler/locators/file.arr" as _
+import file("locators/file.arr") as _
 import plot as _
 import graph as _
 import particle as _

@@ -5,10 +5,10 @@ provide-types *
 import srcloc as SL
 import ast as A
 import parse-pyret as PP
-import "compiler/compile-structs.arr" as CS
-import "compiler/ast-anf.arr" as N
-import "compiler/type-structs.arr" as T
-import "compiler/type-check-structs.arr" as TCS
+import file("compile-structs.arr") as CS
+import file("ast-anf.arr") as N
+import file("type-structs.arr") as T
+import file("type-check-structs.arr") as TCS
 import string-dict as SD
 import either as E
 

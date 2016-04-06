@@ -3,8 +3,8 @@
 provide *
 provide-types *
 import ast as A
-import "compiler/desugar.arr" as D
-import "compiler/compile-structs.arr" as C
+import file("desugar.arr") as D
+import file("compile-structs.arr") as C
 
 mk-id = D.mk-id
 no-branches-exn = D.no-branches-exn

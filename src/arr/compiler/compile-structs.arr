@@ -6,7 +6,7 @@ import ast as A
 import srcloc as SL
 import error-display as ED
 import string-dict as SD
-import "compiler/type-structs.arr" as T
+import file("type-structs.arr") as T
 
 t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)

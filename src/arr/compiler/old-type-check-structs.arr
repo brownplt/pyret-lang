@@ -4,9 +4,9 @@ provide-types *
 import ast as A
 import string-dict as SD
 import valueskeleton as VS
-import "compiler/type-structs.arr" as TS
-import "compiler/type-defaults.arr" as TD
-import "compiler/compile-structs.arr" as C
+import file("type-structs.arr") as TS
+import file("type-defaults.arr") as TD
+import file("compile-structs.arr") as C
 
 type Name                 = A.Name
 

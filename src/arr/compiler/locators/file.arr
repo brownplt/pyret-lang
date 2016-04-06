@@ -1,10 +1,10 @@
 provide *
 
-import namespace-lib as N
 import builtin-modules as B
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
-import "compiler/js-of-pyret.arr" as JSP
+import namespace-lib as N
+import file("../compile-lib.arr") as CL
+import file("../compile-structs.arr") as CS
+import file("../js-of-pyret.arr") as JSP
 import file as F
 import pathlib as P
 
@@ -44,10 +44,10 @@ fun mockable-file-locator(file-ops):
       nothing
     end,
     needs-compile(self, provides):
-      true
+        true
     end,
     get-compiled(self):
-      none
+          none
     end,
     uri(self): "file://" + string-replace(F.real-path(self.path), P.path-sep, "/") end,
     name(self): self.path end,

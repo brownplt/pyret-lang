@@ -4,11 +4,11 @@ provide *
 provide-types *
 import ast as A
 import sets as S
-import "compiler/ast-anf.arr" as N
-import "compiler/js-ast.arr" as J
-import "compiler/gensym.arr" as G
-import "compiler/compile-structs.arr" as CS
-import "compiler/concat-lists.arr" as CL
+import file("ast-anf.arr") as N
+import file("js-ast.arr") as J
+import file("gensym.arr") as G
+import file("compile-structs.arr") as CS
+import file("concat-lists.arr") as CL
 #import "compiler/live-ranges.arr" as LR
 import string-dict as D
 import srcloc as SL

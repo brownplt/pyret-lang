@@ -5,7 +5,7 @@ provide-types *
 import pprint as PP
 import format as F
 import ast as A
-import "compiler/concat-lists.arr" as CL
+import file("concat-lists.arr") as CL
 
 type CList = CL.ConcatList
 clist = CL.clist

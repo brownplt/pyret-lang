@@ -2,10 +2,10 @@
 
 provide *
 import srcloc as S
-import "compiler/compile-structs.arr" as C
-import "compiler/compile-lib.arr" as CL
-import "compiler/locators/builtin.arr" as B
-import "compiler/type-structs.arr" as TS
+import file("compile-structs.arr") as C
+import file("compile-lib.arr") as CL
+import file("locators/builtin.arr") as B
+import file("type-structs.arr") as TS
 import ast as A
 import error as E
 import parse-pyret as P

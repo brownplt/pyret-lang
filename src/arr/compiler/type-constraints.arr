@@ -15,10 +15,10 @@ import ast as A
 import string-dict as SD
 import srcloc as SL
 import valueskeleton as VS
-import "compiler/type-structs.arr" as TS
-import "compiler/type-check-structs.arr" as TCS
-import "compiler/list-aux.arr" as LA
-import "compiler/compile-structs.arr" as C
+import file("type-structs.arr") as TS
+import file("type-check-structs.arr") as TCS
+import file("list-aux.arr") as LA
+import file("compile-structs.arr") as C
 
 all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict

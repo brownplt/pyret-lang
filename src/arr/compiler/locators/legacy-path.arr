@@ -3,8 +3,8 @@ provide {
 } end
 import namespace-lib as N
 import legacy-path as P
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
+import file("../compile-lib.arr") as CL
+import file("../compile-structs.arr") as CS
 import string-dict as SD
 
 mtd = [SD.string-dict:]
