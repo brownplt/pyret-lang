@@ -150,6 +150,7 @@ data Type:
   | t-data(name :: String, variants :: List<TypeVariant>, fields :: List<TypeMember>, l :: A.Loc)
 sharing:
   _output(self):
+    VS.vs-seq([list:
     cases(Type) self:
       | t-name(module-name, id, _) =>
         VS.vs-value(id.toname())
@@ -178,6 +179,7 @@ sharing:
       | t-existential(id, _) => VS.vs-str(id.key())
       | t-data(name, variants, fields, _) => VS.vs-str(name)
     end
+    , VS.vs-value(self.l)])
   end,
   key(self) -> String:
     cases(Type) self:

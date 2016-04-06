@@ -146,18 +146,18 @@ data TypingResult:
 end
 
 data FoldResult<V>:
-  | fold-result(v :: V) with:
-    bind<Z>(self, f :: (V -> FoldResult<Z>)) -> FoldResult<Z>:
-      f(self.v)
+  | fold-result(v :: V, context :: Context) with:
+    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
+      f(self.v, self.context)
     end,
-    typing-bind(self, f :: (V -> TypingResult)) -> TypingResult:
-      f(self.v)
+    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
+      f(self.v, self.context)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    bind<Z>(self, f :: (V -> FoldResult<Z>)) -> FoldResult<Z>:
+    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
       fold-errors(self.errors)
     end,
-    typing-bind(self, f :: (V -> TypingResult)) -> TypingResult:
+    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
       typing-error(self.errors)
     end
 end
@@ -201,40 +201,38 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
   end
 end
 
-fun map-fold-result<X, Y>(f :: (X -> FoldResult<Y>), lst :: List<X>) -> FoldResult<List<Y>>:
+fun map-fold-result<X, Y>(f :: (X, Context -> FoldResult<Y>), lst :: List<X>, context :: Context) -> FoldResult<List<Y>>:
   cases(List<X>) lst:
-    | empty => fold-result(empty)
+    | empty => fold-result(empty, context)
     | link(first, rest) =>
-      initial-result = f(first)
-      for bind(result from initial-result):
-        for bind(rest-results from map-fold-result(f, rest)):
-          fold-result(link(result, rest-results))
-        end
-      end
+      f(first, context).bind(lam(result, rest-context):
+        map-fold-result(f, rest, rest-context).bind(lam(rest-results, out-context):
+          fold-result(link(result, rest-results), out-context)
+        end)
+      end)
   end
 end
 
-fun foldr-fold-result<X, Y>(f :: (X, Y -> FoldResult<Y>), lst :: List<X>, base :: Y) -> FoldResult<Y>:
+fun foldr-fold-result<X, Y>(f :: (X, Context, Y -> FoldResult<Y>), lst :: List<X>, context :: Context, base :: Y) -> FoldResult<Y>:
   cases(List<X>) lst:
-    | empty => fold-result(base)
+    | empty => fold-result(base, context)
     | link(first, rest) =>
-      rest-result = foldr-fold-result(f, rest, base)
-      for bind(result from rest-result):
-        f(first, result)
-      end
+      foldr-fold-result(f, rest, context, base).bind(lam(rest-result, rest-context):
+        f(first, rest-context, rest-result)
+      end)
   end
 end
 
 # TODO(MATT): determine if it's okay that this is a foldl
-fun fold-typing<X>(f :: (X, Context -> TypingResult), lst :: List<X>, context :: Context) -> FoldResult<Pair<Context, List<A.Expr>>>:
+fun fold-typing<X>(f :: (X, Context -> TypingResult), lst :: List<X>, context :: Context) -> FoldResult<List<A.Expr>>:
   cases(List<X>) lst:
-    | empty => fold-result(pair(context, empty))
+    | empty => fold-result(empty, context)
     | link(first, rest) =>
       cases(TypingResult) f(first, context):
         | typing-error(errors) => fold-errors(errors)
         | typing-result(ast, typ, out-context) =>
-          fold-typing(f, rest, out-context).bind(lam(context-and-exprs):
-            fold-result(pair(context-and-exprs.left, link(ast, context-and-exprs.right)))
+          fold-typing(f, rest, out-context).bind(lam(exprs, rest-context):
+            fold-result(link(ast, exprs), rest-context)
           end)
       end
   end
