@@ -1,39 +1,40 @@
-function Plot(type, points, f, option) {
-  this.type = type;
-  this.points = points;
-  this.f = f;
-  this.option = option;
-}
+({
+  requires: [
+    { "import-type": "builtin", "name": "either" },
+    { "import-type": "builtin", "name": "option" },
+    { "import-type": "builtin", "name": "string-dict" },
+    { "import-type": "builtin", "name": "image" },
+    { "import-type": "builtin", "name": "image-structs" },
+    { "import-type": "builtin", "name": "plot-structs" },
+    { "import-type": "builtin", "name": "d3-lib" },
+  ],
+  nativeRequires: [
+    "js/js-numbers",
+    "../../node_modules/d3/d3.min",
+    "../../node_modules/d3-tip/index"
+  ],
+  provides: {},
+  theModule: function(RUNTIME, NAMESPACE, uri, EITHER, OPTION, SD, IMAGE, IMAGESTRUCTS, STRUCTS, clib, jsnums, d3, d3tipLib) {
 
-Plot.LINE =  0;
-Plot.SCATTER = 1;
-Plot.XY = 2;
+    function Plot(type, points, f, option) {
+      this.type = type;
+      this.points = points;
+      this.f = f;
+      this.option = option;
+    }
 
-define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
-        "../../../node_modules/d3/d3.min",
-        "../../../node_modules/d3-tip/index"],
-        function(util, jsnums, clib, d3, d3tipLib) {
+    Plot.LINE =  0;
+    Plot.SCATTER = 1;
+    Plot.XY = 2;
+    
 
-  return util.definePyretModule("plot",
-    [],
-    [
-      util.modBuiltin("either"),
-      util.modBuiltin("option"),
-      util.modBuiltin("string-dict"),
-      util.modBuiltin("image-lib"),
-      util.modBuiltin("image-structs"),
-      util.modBuiltin("plot-structs")
-    ],
-    {},
-    function(RUNTIME, NAMESPACE, EITHER, OPTION, SD, IMAGE, IMAGESTRUCTS, STRUCTS) {
-
-  var HISTOGRAM_N = 100;
-  var CError = {
-    "RANGE": "x-min and y-min must be strictly less than " +
-    "x-max and y-max respectively."
-  };
-  var libs = clib(d3);
-  var libData =    libs.libData,
+    var HISTOGRAM_N = 100;
+    var CError = {
+      "RANGE": "x-min and y-min must be strictly less than " +
+        "x-max and y-max respectively."
+    };
+    var libs = clib(d3);
+    var libData =    libs.libData,
     libNum =       libs.libNum,
     libJS =        libs.libJS,
     libColor =     libs.libColor,
@@ -48,123 +49,123 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
     d3tip =        libs.d3common.d3tipBuilder(d3tipLib);
 
 
-  function appendAxis(xMin, xMax, yMin, yMax, width, height, canvas) {
-    /*
-     * Appends axes to canvas
-     *
-     * @param {jsnums} xMin
-     * @param {jsnums} xMax
-     * @param {jsnums} yMin
-     * @param {jsnums} yMax
-     * @param {fixnum} width
-     * @param {fixnum} height
-     * @param {d3 selection} canvas
-     */
+    function appendAxis(xMin, xMax, yMin, yMax, width, height, canvas) {
+      /*
+       * Appends axes to canvas
+       *
+       * @param {jsnums} xMin
+       * @param {jsnums} xMax
+       * @param {jsnums} yMin
+       * @param {jsnums} yMax
+       * @param {fixnum} width
+       * @param {fixnum} height
+       * @param {d3 selection} canvas
+       */
 
-    function getAxisConf(aMin, aMax) {
-      var conf = {},
+      function getAxisConf(aMin, aMax) {
+        var conf = {},
         scaler = libNum.scaler(aMin, aMax, 0, 1, false),
         pos = jsnums.toFixnum(scaler(0));
 
-      if (0 <= pos && pos <= 1) {
-        conf.bold = true;
-        conf.pos = pos;
-      } else if (pos > 1) {
-        conf.bold = false;
-        conf.pos = 1;
-      } else if (pos < 0) {
-        conf.bold = false;
-        conf.pos = 0;
+        if (0 <= pos && pos <= 1) {
+          conf.bold = true;
+          conf.pos = pos;
+        } else if (pos > 1) {
+          conf.bold = false;
+          conf.pos = 1;
+        } else if (pos < 0) {
+          conf.bold = false;
+          conf.pos = 0;
+        }
+        return conf;
       }
-      return conf;
-    }
 
-    var xAxisConf = getAxisConf(yMin, yMax),
-        yAxisConf = getAxisConf(xMin, xMax);
-    xAxisConf.pos = 1 - xAxisConf.pos;
+      var xAxisConf = getAxisConf(yMin, yMax),
+      yAxisConf = getAxisConf(xMin, xMax);
+      xAxisConf.pos = 1 - xAxisConf.pos;
 
-    var tickNum = 7;
+      var tickNum = 7;
 
-    var xAxisScaler = d3.scale.linear()
+      var xAxisScaler = d3.scale.linear()
         .domain([0, tickNum - 1]).range([0, width - 1]),
       yAxisScaler = d3.scale.linear()
         .domain([0, tickNum - 1]).range([height - 1, 0]);
 
-    var allValues = d3.range(0, tickNum);
+      var allValues = d3.range(0, tickNum);
 
-    var xAxisDisplayScaler = libNum.scaler(0, tickNum - 1, xMin, xMax),
+      var xAxisDisplayScaler = libNum.scaler(0, tickNum - 1, xMin, xMax),
       yAxisDisplayScaler = libNum.scaler(0, tickNum - 1, yMin, yMax);
 
-    var xAxis = d3.svg.axis().scale(xAxisScaler)
+      var xAxis = d3.svg.axis().scale(xAxisScaler)
         .orient((xAxisConf.pos === 0) ? "top" : "bottom")
         .tickValues(allValues).tickFormat(
           function (d, i) {
             return libNum.format(xAxisDisplayScaler(i), 10);
           });
 
-    canvas.append("g")
-      .attr("class", "x axis").attr(
-        "transform",
-        svgTranslate(0, xAxisConf.pos * (height - 1)))
-      .call(xAxis);
+      canvas.append("g")
+        .attr("class", "x axis").attr(
+          "transform",
+          svgTranslate(0, xAxisConf.pos * (height - 1)))
+        .call(xAxis);
 
-    var yAxis = d3.svg.axis().scale(yAxisScaler)
+      var yAxis = d3.svg.axis().scale(yAxisScaler)
         .orient((yAxisConf.pos === 1) ? "right" : "left")
         .tickValues(allValues).tickFormat(
           function (d, i) {
             return libNum.format(yAxisDisplayScaler(i), 10);
           });
 
-    canvas.append("g")
-      .attr("class", "y axis").attr(
-        "transform",
-        svgTranslate(yAxisConf.pos * (width - 1), 0))
-      .call(yAxis);
+      canvas.append("g")
+        .attr("class", "y axis").attr(
+          "transform",
+          svgTranslate(yAxisConf.pos * (width - 1), 0))
+        .call(yAxis);
 
-    canvas.selectAll('.x.axis path').style({
-      'stroke': 'black',
-      'stroke-width': xAxisConf.bold ? 2 : 0,
-      'fill': 'none'
-    });
-    canvas.selectAll('.y.axis path').style({
-      'stroke': 'black',
-      'stroke-width': yAxisConf.bold ? 2 : 0,
-      'fill': 'none'
-    });
+      canvas.selectAll('.x.axis path').style({
+        'stroke': 'black',
+        'stroke-width': xAxisConf.bold ? 2 : 0,
+        'fill': 'none'
+      });
+      canvas.selectAll('.y.axis path').style({
+        'stroke': 'black',
+        'stroke-width': yAxisConf.bold ? 2 : 0,
+        'fill': 'none'
+      });
 
-    canvas.selectAll("g.y.axis g.tick line")
-      .attr("x1", -yAxisConf.pos * (width - 1))
-      .attr("x2", (1 - yAxisConf.pos) * (width - 1));
-    canvas.selectAll("g.x.axis g.tick line")
-      .attr("y1", -xAxisConf.pos * (height - 1))
-      .attr("y2", (1 - xAxisConf.pos) * (height - 1));
+      canvas.selectAll("g.y.axis g.tick line")
+        .attr("x1", -yAxisConf.pos * (width - 1))
+        .attr("x2", (1 - yAxisConf.pos) * (width - 1));
+      canvas.selectAll("g.x.axis g.tick line")
+        .attr("y1", -xAxisConf.pos * (height - 1))
+        .attr("y2", (1 - xAxisConf.pos) * (height - 1));
 
-    canvas.selectAll('.axis').style({'shape-rendering': 'crispEdges'});
-    canvas.selectAll('.axis text').style({'font-size': '10px'});
-    canvas.selectAll('.axis line').style({
-      'stroke': 'lightgray',
-      'opacity': 0.6
-    });
-  }
+      canvas.selectAll('.axis').style({'shape-rendering': 'crispEdges'});
+      canvas.selectAll('.axis text').style({'font-size': '10px'});
+      canvas.selectAll('.axis line').style({
+        'stroke': 'lightgray',
+        'opacity': 0.6
+      });
+    }
 
-  function plotBar(xMin, xMax, yMin, yMax, width, height, data, histogramn, detached, canvas) {
+    function plotBar(xMin, xMax, yMin, yMax, width, height, data, histogramn, detached, canvas) {
 
-    /*
-     * Plot a histogram
-     *
-     * Part of this function is adapted from
-     * http://www.frankcleary.com/making-an-interactive-histogram-in-d3-js/
-     */
+      /*
+       * Plot a histogram
+       *
+       * Part of this function is adapted from
+       * http://www.frankcleary.com/making-an-interactive-histogram-in-d3-js/
+       */
 
-    var x = d3.scale.linear()
+      var x = d3.scale.linear()
         .domain([0, histogramn])
         .range([0, width]);
 
-    var y = d3.scale.linear()
+      var y = d3.scale.linear()
         .domain([0, d3.max(data, function (d) { return d.y; })])
         .range([height, 0]);
 
-    var tip = d3tip(detached)
+      var tip = d3tip(detached)
         .attr('class', 'd3-tip')
         .direction('e')
         .offset([0, 20])
@@ -176,147 +177,147 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
             "freq: " + d.y;
         });
 
-    canvas.call(tip);
+      canvas.call(tip);
 
-    var bar = canvas.selectAll(".bar")
+      var bar = canvas.selectAll(".bar")
         .data(data)
         .enter().append("g")
         .attr("class", "bar")
         .on("mouseover", tip.show)
         .on("mouseout", tip.hide);
 
-    bar.append("rect")
-      .attr("x", function (d) { return x(d.x); })
-      .attr("y", function (d) { return y(d.y); })
-      .attr("width", x(data[0].dx) - 1)
-      .attr("height", function (d) { return height - y(d.y); });
+      bar.append("rect")
+        .attr("x", function (d) { return x(d.x); })
+        .attr("y", function (d) { return y(d.y); })
+        .attr("width", x(data[0].dx) - 1)
+        .attr("height", function (d) { return height - y(d.y); });
 
-    canvas.selectAll('.bar rect')
-      .style({
-        'fill': 'steelblue',
-        'fill-opacity': '0.8',
-        'shape-rendering': 'crispEdges'
-      })
-      .on('mouseover', function (d) {
-        d3.select(this).style('fill', "black");
-      })
-      .on('mouseout', function (d) {
-        d3.select(this).style('fill', "steelblue");
-      });
+      canvas.selectAll('.bar rect')
+        .style({
+          'fill': 'steelblue',
+          'fill-opacity': '0.8',
+          'shape-rendering': 'crispEdges'
+        })
+        .on('mouseover', function (d) {
+          d3.select(this).style('fill', "black");
+        })
+        .on('mouseout', function (d) {
+          d3.select(this).style('fill', "steelblue");
+        });
 
-    stylizeTip(detached);
-  }
+      stylizeTip(detached);
+    }
 
-  function putLabel(label, width, height, detached, margin) {
-    var supportedTags = [
-      ["<sup>", "<tspan baseline-shift='super'>"],
-      ["</sup>", "</tspan>"],
-      ["<sub>", "<tspan baseline-shift='sub'>"],
-      ["</sub>", "</tspan>"]
-    ];
+    function putLabel(label, width, height, detached, margin) {
+      var supportedTags = [
+        ["<sup>", "<tspan baseline-shift='super'>"],
+        ["</sup>", "</tspan>"],
+        ["<sub>", "<tspan baseline-shift='sub'>"],
+        ["</sub>", "</tspan>"]
+      ];
 
-    var processedLabel = supportedTags.reduce(function (prev, current) {
-      return prev.replace(
-        libJS.htmlspecialchars(current[0]), current[1]);
-    }, libJS.htmlspecialchars(label));
+      var processedLabel = supportedTags.reduce(function (prev, current) {
+        return prev.replace(
+          libJS.htmlspecialchars(current[0]), current[1]);
+      }, libJS.htmlspecialchars(label));
 
-    var legend = detached.select('.maing')
+      var legend = detached.select('.maing')
         .append("text")
         .attr("x", (margin.left + width + margin.right) / 2)
         .attr("y", height + margin.top + 30)
         .html(processedLabel);
 
-    legend.style({
-      'position': 'absolute',
-      'font-size': '8pt',
-      'text-anchor': 'middle'
-    });
-  }
-
-  function inferBounds(arrOfPlot) {
-    var dataPoints = libData.flatten(
-      arrOfPlot
-        .filter(function(plot){ return plot.type != Plot.XY; })
-        .map(function(plot){ return plot.points; }));
-
-    var xMin, xMax, yMin, yMax;
-
-    if (dataPoints.length === 0) {
-      xMin = -10;
-      xMax = 10;
-      yMin = -10;
-      yMax = 10;
-    } else {
-      xMin = dataPoints
-        .map(function (d) { return d.x; })
-        .reduce(libNum.min);
-      xMax = dataPoints
-        .map(function (d) { return d.x; })
-        .reduce(libNum.max);
-      yMin = dataPoints
-        .map(function (d) { return d.y; })
-        .reduce(libNum.min);
-      yMax = dataPoints
-        .map(function (d) { return d.y; })
-        .reduce(libNum.max);
-
-      var blockPortion = 10;
-      var xOneBlock = jsnums.divide(jsnums.subtract(xMax, xMin),
-                      blockPortion);
-      var yOneBlock = jsnums.divide(jsnums.subtract(yMax, yMin),
-                      blockPortion);
-
-      xMin = jsnums.subtract(xMin, xOneBlock);
-      xMax = jsnums.add(xMax, xOneBlock);
-      yMin = jsnums.subtract(yMin, yOneBlock);
-      yMax = jsnums.add(yMax, yOneBlock);
-
-      // Plotting 1 point should be possible
-      // but we need a wider range
-      if (jsnums.equals(xMin, xMax)) {
-        xMin = jsnums.subtract(xMin, 1);
-        xMax = jsnums.add(xMax, 1);
-      }
-      if (jsnums.equals(yMin, yMax)) {
-        yMin = jsnums.subtract(yMin, 1);
-        yMax = jsnums.add(yMax, 1);
-      }
-    }
-    return {xMin: xMin, xMax: xMax, yMin: yMin, yMax: yMax};
-  }
-
-  function isInBoundGenerator(xMin, xMax, yMin, yMax){
-    return function(point) {
-      return jsnums.lessThanOrEqual(xMin, point.x) &&
-             jsnums.lessThanOrEqual(point.x, xMax) &&
-             jsnums.lessThanOrEqual(yMin, point.y) &&
-             jsnums.lessThanOrEqual(point.y, yMax);
-    };
-  }
-
-  function adjustLinePlot(points, option, xMin, xMax, yMin, yMax) {
-    var isPointInBound = points.map(isInBoundGenerator(xMin, xMax, yMin, yMax));
-    var newPoints = [[]];
-
-    for(var i = 0; i < points.length; i++) {
-      var subArr = libData.lastElement(newPoints);
-      if (i > 0 && isPointInBound[i - 1] && !isPointInBound[i]) {
-        subArr.push(libNum.calcPointOnEdge(points[i - 1], points[i],
-                                           xMin, xMax, yMin, yMax));
-        newPoints.push([]);
-      } else if (i > 0 && !isPointInBound[i - 1] && isPointInBound[i]) {
-        subArr.push(libNum.calcPointOnEdge(points[i], points[i - 1],
-                                           xMin, xMax, yMin, yMax));
-        subArr.push(points[i]);
-      } else if (isPointInBound[i]) {
-        subArr.push(points[i]);
-      }
+      legend.style({
+        'position': 'absolute',
+        'font-size': '8pt',
+        'text-anchor': 'middle'
+      });
     }
 
-    return newPoints.map(function(pts) {
-      return new Plot(Plot.LINE, pts, undefined, option);
-    });
-  }
+    function inferBounds(arrOfPlot) {
+      var dataPoints = libData.flatten(
+        arrOfPlot
+          .filter(function(plot){ return plot.type != Plot.XY; })
+          .map(function(plot){ return plot.points; }));
+
+      var xMin, xMax, yMin, yMax;
+
+      if (dataPoints.length === 0) {
+        xMin = -10;
+        xMax = 10;
+        yMin = -10;
+        yMax = 10;
+      } else {
+        xMin = dataPoints
+          .map(function (d) { return d.x; })
+          .reduce(libNum.min);
+        xMax = dataPoints
+          .map(function (d) { return d.x; })
+          .reduce(libNum.max);
+        yMin = dataPoints
+          .map(function (d) { return d.y; })
+          .reduce(libNum.min);
+        yMax = dataPoints
+          .map(function (d) { return d.y; })
+          .reduce(libNum.max);
+
+        var blockPortion = 10;
+        var xOneBlock = jsnums.divide(jsnums.subtract(xMax, xMin),
+                                      blockPortion);
+        var yOneBlock = jsnums.divide(jsnums.subtract(yMax, yMin),
+                                      blockPortion);
+
+        xMin = jsnums.subtract(xMin, xOneBlock);
+        xMax = jsnums.add(xMax, xOneBlock);
+        yMin = jsnums.subtract(yMin, yOneBlock);
+        yMax = jsnums.add(yMax, yOneBlock);
+
+        // Plotting 1 point should be possible
+        // but we need a wider range
+        if (jsnums.equals(xMin, xMax)) {
+          xMin = jsnums.subtract(xMin, 1);
+          xMax = jsnums.add(xMax, 1);
+        }
+        if (jsnums.equals(yMin, yMax)) {
+          yMin = jsnums.subtract(yMin, 1);
+          yMax = jsnums.add(yMax, 1);
+        }
+      }
+      return {xMin: xMin, xMax: xMax, yMin: yMin, yMax: yMax};
+    }
+
+    function isInBoundGenerator(xMin, xMax, yMin, yMax){
+      return function(point) {
+        return jsnums.lessThanOrEqual(xMin, point.x) &&
+          jsnums.lessThanOrEqual(point.x, xMax) &&
+          jsnums.lessThanOrEqual(yMin, point.y) &&
+          jsnums.lessThanOrEqual(point.y, yMax);
+      };
+    }
+
+    function adjustLinePlot(points, option, xMin, xMax, yMin, yMax) {
+      var isPointInBound = points.map(isInBoundGenerator(xMin, xMax, yMin, yMax));
+      var newPoints = [[]];
+
+      for(var i = 0; i < points.length; i++) {
+        var subArr = libData.lastElement(newPoints);
+        if (i > 0 && isPointInBound[i - 1] && !isPointInBound[i]) {
+          subArr.push(libNum.calcPointOnEdge(points[i - 1], points[i],
+                                             xMin, xMax, yMin, yMax));
+          newPoints.push([]);
+        } else if (i > 0 && !isPointInBound[i - 1] && isPointInBound[i]) {
+          subArr.push(libNum.calcPointOnEdge(points[i], points[i - 1],
+                                             xMin, xMax, yMin, yMax));
+          subArr.push(points[i]);
+        } else if (isPointInBound[i]) {
+          subArr.push(points[i]);
+        }
+      }
+
+      return newPoints.map(function(pts) {
+        return new Plot(Plot.LINE, pts, undefined, option);
+      });
+    }
 
     var gf = RUNTIME.getField;
     var colorConverter = libColor.convertColor(RUNTIME, IMAGE);
@@ -354,17 +355,17 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       var isInBound = isInBoundGenerator(xMin, xMax, yMin, yMax);
 
       var marginType = "normal",
-        margin = getMargin(marginType),
-        dimension = getDimension(margin),
-        width = dimension.width,
-        height = dimension.height;
+      margin = getMargin(marginType),
+      dimension = getDimension(margin),
+      width = dimension.width,
+      height = dimension.height;
 
       var detached = createDiv();
       var canvas = createCanvas(detached, margin, "top-left");
       appendAxis(xMin, xMax, yMin, yMax, width, height, canvas);
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true),
-          yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
+      yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
 
 
       function plotLine(plot) {
@@ -377,8 +378,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
 
 
         var line = d3.svg.line()
-            .x(function (d) { return xToPixel(d.x); })
-            .y(function (d) { return yToPixel(d.y); });
+          .x(function (d) { return xToPixel(d.x); })
+          .y(function (d) { return yToPixel(d.y); });
 
         canvas.append("path")
           .attr("d", line(plot.points))
@@ -394,15 +395,15 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
          */
 
         var tip = d3tip(detached)
-            .attr('class', 'd3-tip')
-            .direction('e')
-            .offset([0, 20])
-            .html(function (d) {
-              var x = libNum.format(d.x, 6);
-              var y = libNum.format(d.y, 6);
-              return "x: " + x.toString() + "<br />" +
-                     "y: " + y.toString() + "<br />";
-            });
+          .attr('class', 'd3-tip')
+          .direction('e')
+          .offset([0, 20])
+          .html(function (d) {
+            var x = libNum.format(d.x, 6);
+            var y = libNum.format(d.y, 6);
+            return "x: " + x.toString() + "<br />" +
+              "y: " + y.toString() + "<br />";
+          });
 
         canvas.call(tip);
 
@@ -441,18 +442,18 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       var yMax = option.yMax;
 
       var marginType = "normal",
-        margin = getMargin(marginType),
-        dimension = getDimension(margin),
-        width = dimension.width,
-        height = dimension.height,
-        K = 702,       // TODO: optimal?
-        DELTA = 0.001; // TODO: not a good treshold
+      margin = getMargin(marginType),
+      dimension = getDimension(margin),
+      width = dimension.width,
+      height = dimension.height,
+      K = 702,       // TODO: optimal?
+      DELTA = 0.001; // TODO: not a good treshold
 
       var inputScaler = libNum.scaler(
-          0, width - 1, xMin, xMax, false),
+        0, width - 1, xMin, xMax, false),
 
-        outputScaler = libNum.scaler(
-          yMin, yMax, height - 1, 0, false);
+      outputScaler = libNum.scaler(
+        yMin, yMax, height - 1, 0, false);
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true);
       var yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true);
@@ -468,14 +469,14 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
 
       function isAllOccupied(left, right) {
         return (Math.floor(left.px) == Math.floor(right.px)) &&
-                logtable[Math.floor(left.px)].isRangedOccupied(
-                  Math.floor(left.py), Math.floor(right.py)
-                );
+          logtable[Math.floor(left.px)].isRangedOccupied(
+            Math.floor(left.py), Math.floor(right.py)
+          );
       }
 
       function closeEnough(coordA, coordB) {
         return ((Math.abs(coordA.py - coordB.py) <= 1) &&
-               (coordB.px - coordA.px <= 1));
+                (coordB.px - coordA.px <= 1));
       }
 
       function tooClose(coordA, coordB) {
@@ -500,8 +501,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
                     jsnums.lessThanOrEqual(yMin, val) &&
                     jsnums.lessThanOrEqual(val, yMax)) {
 
-                    pt.y = val;
-                    pt.py = yToPixel(val);
+                  pt.y = val;
+                  pt.py = yToPixel(val);
                 }
                 return 0;
               },
@@ -589,10 +590,10 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
 
         function divideSubintervalUnsafe(left, right, depth) {
           /*
-          Input: two X values
-          Output: list of [2-length long list of points]
-          Note: invalid for two ends is still okay
-          invalid for K points indicate that it should not be plotted!
+            Input: two X values
+            Output: list of [2-length long list of points]
+            Note: invalid for two ends is still okay
+            invalid for K points indicate that it should not be plotted!
           */
 
           occupy(left);
@@ -733,8 +734,8 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       checkListofNumber(lst);
 
       if ((!jsnums.isInteger(n)) ||
-        (n < 1) ||
-        (n > HISTOGRAM_N)) {
+          (n < 1) ||
+          (n > HISTOGRAM_N)) {
         RUNTIME.throwMessageException(
           "n must be an interger between 1 and " + HISTOGRAM_N.toString());
       }
@@ -743,7 +744,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
 
       if (data.length === 0) {
         RUNTIME.throwMessageException("There must be at least " +
-                                 "one Number in the list.");
+                                      "one Number in the list.");
       }
 
       var xMin = data.reduce(libNum.min);
@@ -751,17 +752,17 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       var dataScaler = libNum.scaler(xMin, xMax, 0, HISTOGRAM_N, false);
 
       var histogramData = d3.layout.histogram()
-          .bins(n).value(function (val) {
-            return jsnums.toFixnum(dataScaler(val));
-          })(data);
+        .bins(n).value(function (val) {
+          return jsnums.toFixnum(dataScaler(val));
+        })(data);
 
       var yMax = d3.max(histogramData, function (d) { return d.y; });
 
       var marginType = "normal",
-        margin = getMargin(marginType),
-        dimension = getDimension(margin),
-        width = dimension.width,
-        height = dimension.height;
+      margin = getMargin(marginType),
+      dimension = getDimension(margin),
+      width = dimension.width,
+      height = dimension.height;
 
       var detached = createDiv();
       var canvas = createCanvas(detached, margin, "top-left");
@@ -769,7 +770,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       appendAxis(xMin, xMax, 0, yMax, width, height, canvas);
 
       plotBar(xMin, xMax, 0, yMax, width, height,
-          histogramData, HISTOGRAM_N, detached, canvas);
+              histogramData, HISTOGRAM_N, detached, canvas);
 
       callBigBang(RUNTIME, detached);
       return lst;
@@ -796,7 +797,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
 
       if (keys.length === 0) {
         RUNTIME.throwMessageException("There must be at least " +
-                                 "one entry in the list.");
+                                      "one entry in the list.");
       }
 
       var data = keys.map(function (k) {
@@ -807,48 +808,48 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       });
 
       var sum = data.map(function (e) { return e.value; })
-          .reduce(jsnums.add);
+        .reduce(jsnums.add);
 
       var scaler = libNum.scaler(0, sum, 0, 100);
 
       var marginType = "normal",
-        margin = getMargin(marginType),
-        dimension = getDimension(margin),
-        width = dimension.width,
-        height = dimension.height;
+      margin = getMargin(marginType),
+      dimension = getDimension(margin),
+      width = dimension.width,
+      height = dimension.height;
 
       var radius = Math.min(width, height) / 2;
       var color = d3.scale.category20();
       var arc = d3.svg.arc()
-          .outerRadius(radius)
-          .innerRadius(0);
+        .outerRadius(radius)
+        .innerRadius(0);
 
       var pie = d3.layout.pie()
-          .sort(null)
-          .value(function (d) { return d.value; });
+        .sort(null)
+        .value(function (d) { return d.value; });
 
       var detached = createDiv();
 
       var tip = d3tip(detached)
-          .attr('class', 'd3-tip')
-          .direction('e')
-          .offset([0, 20])
-          .html(function (d) {
-            return "value: <br />" +
-              libNum.format(d.data.value, 10) + "<br />" +
-              "percent: <br />" +
-              libNum.format(
-                jsnums.toFixnum(
-                  scaler(d.data.value)), 7) + "%";
-          });
+        .attr('class', 'd3-tip')
+        .direction('e')
+        .offset([0, 20])
+        .html(function (d) {
+          return "value: <br />" +
+            libNum.format(d.data.value, 10) + "<br />" +
+            "percent: <br />" +
+            libNum.format(
+              jsnums.toFixnum(
+                scaler(d.data.value)), 7) + "%";
+        });
 
       var canvas = createCanvas(detached, margin, "center");
       canvas.call(tip);
 
       var g = canvas.selectAll(".arc")
-          .data(pie(data))
-          .enter().append("g")
-          .attr("class", "arc");
+        .data(pie(data))
+        .enter().append("g")
+        .attr("class", "arc");
 
       g.append("path").attr("class", "path").attr("d", arc);
 
@@ -889,32 +890,37 @@ define(["js/runtime-util", "js/js-numbers", "trove/d3-lib",
       return sdValue;
     }
 
-    return util.makeModuleReturn(RUNTIME, {
-      Posn: typeFromStructs("Posn"),
-      Plot: typeFromStructs("Plot"),
-      PlotOptions: typeFromStructs("PlotOptions"),
-      PlotWindowOptions: typeFromStructs("PlotWindowOptions")
-    }, {
-      // TODO: provide is-...?
-      "plot-multi": RUNTIME.makeFunction(plotMulti),
-      "histogram": RUNTIME.makeFunction(histogram),
-      "pie-chart": RUNTIME.makeFunction(pieChart),
-      "plot-window-options": RUNTIME.makeObject({
-        "x-min": -10,
-        "x-max": 10,
-        "y-min": -10,
-        "y-max": 10,
-        "infer-bounds": RUNTIME.pyretFalse,
-        "label": "",
-        "safe": RUNTIME.pyretTrue
-      }),
-      "plot-options": RUNTIME.makeObject({
-        "color": PyretBlue
-      }),
-      "posn": valFromStructs("posn"),
-      "line-plot": valFromStructs("line-plot"),
-      "scatter-plot": valFromStructs("scatter-plot"),
-      "xy-plot": valFromStructs("xy-plot")
+    return RUNTIME.makeObject({
+      "provide-plus-types": RUNTIME.makeObject({
+        types: RUNTIME.makeObject({
+          Posn: typeFromStructs("Posn"),
+          Plot: typeFromStructs("Plot"),
+          PlotOptions: typeFromStructs("PlotOptions"),
+          PlotWindowOptions: typeFromStructs("PlotWindowOptions")
+        }),
+        values: RUNTIME.makeObject({
+          // TODO: provide is-...?
+          "plot-multi": RUNTIME.makeFunction(plotMulti),
+          "histogram": RUNTIME.makeFunction(histogram),
+          "pie-chart": RUNTIME.makeFunction(pieChart),
+          "plot-window-options": RUNTIME.makeObject({
+            "x-min": -10,
+            "x-max": 10,
+            "y-min": -10,
+            "y-max": 10,
+            "infer-bounds": RUNTIME.pyretFalse,
+            "label": "",
+            "safe": RUNTIME.pyretTrue
+          }),
+          "plot-options": RUNTIME.makeObject({
+            "color": PyretBlue
+          }),
+          "posn": valFromStructs("posn"),
+          "line-plot": valFromStructs("line-plot"),
+          "scatter-plot": valFromStructs("scatter-plot"),
+          "xy-plot": valFromStructs("xy-plot")
+        })
+      })
     });
-  });
-});
+  }
+})

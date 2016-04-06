@@ -1,9 +1,9 @@
-define(["js/runtime-util", "fs"], function(util, fs) {
-  return util.definePyretModule("filelib",
-    [],
-    [],
-    {},
-    function(RUNTIME, NAMESPACE) {
+({
+  requires: [],
+  provides: {},
+  nativeRequires: ["fs"],
+  theModule: 
+    function(RUNTIME, NAMESPACE, uri, fs) {
       function InputFile(name) {
         this.name = name;
       }
@@ -110,6 +110,6 @@ define(["js/runtime-util", "fs"], function(util, fs) {
             }),
           answer: NAMESPACE.get("nothing")
         });
-  });    
-});
+  }
+})
 

@@ -1,5 +1,8 @@
-define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
-  return util.definePyretModule("runtime-lib", [], [], {values: ["make-runtime"], types: ["Runtime"]}, function(runtime, ns) {
+({
+  requires: [],
+  nativeRequires: ["js/runtime"],
+  provides: {},
+  theModule: function(runtime, ns, uri, runtimeLib) {
     var get = runtime.getField;
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
@@ -31,6 +34,6 @@ define(["js/runtime-util", "js/runtime-anf"], function(util, runtimeLib) {
         }
       })
     });
-  });
-});
+  }
+})
 

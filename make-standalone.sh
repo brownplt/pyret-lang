@@ -7,8 +7,8 @@ WHERE=$4
 #COMPILER=src/arr/compilerA/pyret.jarr
 
 node $COMPILER \
-              --builtin-js-dir src/js/troveA/ \
-              --builtin-arr-dir src/arr/troveA/ \
+              --builtin-js-dir src/js/trove/ \
+              --builtin-arr-dir src/arr/trove/ \
               --compiled-dir $WHERE/compiled/ \
               -no-check-mode \
               --build-standalone $TARGET \

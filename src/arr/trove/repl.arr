@@ -1,5 +1,6 @@
 
 provide { make-repl: make-repl } end
+import base as _
 import either as E
 import load-lib as L
 import namespace-lib as N

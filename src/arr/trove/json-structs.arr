@@ -1,7 +1,19 @@
 provide *
 provide-types *
 
+import base as _
 import string-dict as SD
+import lists as lists
+import arrays as arrays
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+is-empty = lists.is-empty
+is-link = lists.is-link
+map = lists.map
+
+is-array = arrays.is-array
 
 data JSON:
   | j-obj(dict :: SD.StringDict<JSON>) with:
