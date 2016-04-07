@@ -266,7 +266,6 @@ fun build-runnable-standalone(path, require-config-path, outfile, options):
   when not(config.has-key-now("baseUrl")):
     config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
   end
-  config.set-now("name", JSON.j-str("program-require"))
 
   MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), JSON.j-obj(config.freeze()).serialize())
 end

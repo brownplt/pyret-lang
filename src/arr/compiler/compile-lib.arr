@@ -11,6 +11,7 @@ import sets as S
 import string-dict as SD
 import file("compile.arr") as CM
 import file("compile-structs.arr") as CS
+import file("gensym.arr") as G
 import file("js-of-pyret.arr") as JSP
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
@@ -239,6 +240,7 @@ fun compile-program(worklist, options):
 end
 
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable:
+  G.reset()
   cases(Option<Loadable>) locator.get-compiled():
     | some(loadable) => loadable
     | none =>

@@ -34,13 +34,15 @@
       var depsLine = "[" + depsStrs.join(",") + "]";
 
       var programRequires = "requirejs(" + depsLine + ")"
-      fs.writeFileSync(path.join(storeDir, "program-require.js"));
+      fs.writeFileSync(path.join(storeDir, "program-require.js"), programRequires);
 
       if(!("out" in config)) {
         runtime.ffi.throwMessageException("make-standalone config must have an 'out' field");
       }
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
+      config.name = "program-require";
+      console.log("Config: ", config);
       runtime.pauseStack(function(restarter) {
         requirejs.optimize(config, function(result) {
           var programWithDeps = fs.readFileSync(config.out, 'utf8');

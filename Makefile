@@ -22,6 +22,7 @@ DOCS             = docs
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
+COMPILER_FILES = $(wildcard src/compiler/*.arr) $(wildcard src/compiler/locators/*.arr) $(wildcard src/js/trove/*.js)
 
 # You can download the script to work with s3 here:
 #
@@ -85,7 +86,7 @@ endif
 .PHONY : phaseA
 phaseA: $(PHASEA)/pyret.jarr
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) 
 	bash make-standalone.sh $(PYRET_COMP0) \
                           src/arr/compiler/pyret.arr \
                           $(PHASEA)/pyret.jarr \
@@ -95,21 +96,14 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(patsubst src/%,$(PHASE
 phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
-	node build/phaseA/pyret.jarr --outfile build/phaseB/pyretB.jarr --build-runnable src/arr/compiler/pyret.arr --builtin-js-dir src/js/trove/ --builtin-arr-dir src/arr/trove/ --compiled-dir build/phaseB/compiled2/ -no-check-mode --require-config src/scripts/standalone-config.json
-#	bash make-standalone.sh $(PYRET_COMP0) \
-#                          src/arr/compiler/pyret.arr \
-#                          $(PHASEB)/pyret.jarr \
-#                          $(PHASEB)
+	node build/phaseA/pyret.jarr --outfile build/phaseB/pyret.jarr --build-runnable src/arr/compiler/pyret.arr --builtin-js-dir src/js/trove/ --builtin-arr-dir src/arr/trove/ --compiled-dir build/phaseB/compiled2/ -no-check-mode --require-config src/scripts/standalone-configB.json
 
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
 
 $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
-	bash make-standalone.sh $(PYRET_COMP0) \
-                          src/arr/compiler/pyret.arr \
-                          $(PHASEC)/pyret.jarr \
-                          $(PHASEC)
+	node build/phaseB/pyret.jarr --outfile build/phaseC/pyret.jarr --build-runnable src/arr/compiler/pyret.arr --builtin-js-dir src/js/trove/ --builtin-arr-dir src/arr/trove/ --compiled-dir build/phaseC/compiled2/ -no-check-mode --require-config src/scripts/standalone-configC.json
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
 
