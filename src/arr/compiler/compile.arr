@@ -45,7 +45,9 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
     | ok(_) =>
       var wf-ast = wf.code
       wf := nothing
-      var traced-ast = TR.trace(wf-ast)
+      var traced-ast =
+        if options.trace: TR.trace(wf-ast)
+        else: wf-ast;
       wf-ast := nothing
       when options.collect-all: ret := phase("Traced", traced-ast, ret) end
       var checked = checker(traced-ast)
