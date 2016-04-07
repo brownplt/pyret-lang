@@ -5,25 +5,25 @@
 
 "use strict";
 
-var margin = {top: 20, right: 120, bottom: 20, left: 120};
-var width = 960 - margin.right - margin.left;
-var height = 800 - margin.top - margin.bottom;
+var MARGIN = {top: 20, right: 120, bottom: 20, left: 120};
+var WIDTH = 960 - MARGIN.right - MARGIN.left;
+var HEIGHT = 800 - MARGIN.top - MARGIN.bottom;
+var DURATION = 750;
 
-var i = 0,
-    DURATION = 750,
-    root;
+var ROOT;
+var NEXT_ID = 0;
 
 var TREE_LAYOUT = d3.layout.tree()
-    .size([height, width]);
+    .size([HEIGHT, WIDTH]);
 
-var diagonal = d3.svg.diagonal()
+var DIAGONAL = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; });
 
-var svg = d3.select("body").append("svg")
-    .attr("width", width + margin.right + margin.left)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+var SVG = d3.select("body").append("svg")
+    .attr("width", WIDTH + MARGIN.right + MARGIN.left)
+    .attr("height", HEIGHT + MARGIN.top + MARGIN.bottom)
+    .append("g")
+    .attr("transform", "translate(" + MARGIN.left + "," + MARGIN.top + ")");
 
 
 function load_log() {
@@ -85,15 +85,8 @@ function init() {
   }
 
   var log = load_log();
-  root = log_to_tree({label: "Program"}, log);
-  console.log(root);
-  
-/*  data_list = load_data();
-  
-  root = {
-    label: "Program",
-    children: data_to_tree_list(data_list)
-  }*/
+  ROOT = log_to_tree({label: "Program"}, log);
+  console.log(ROOT);
   
   function data_to_tree(data) {
     var label = data.call_string + " → " + data.return_string;
@@ -114,8 +107,8 @@ function init() {
     });
   }
 
-  root.x0 = height / 2;
-  root.y0 = 0;
+  ROOT.x0 = HEIGHT / 2;
+  ROOT.y0 = 0;
 
   function collapse(d) {
     if (d.children) {
@@ -125,8 +118,8 @@ function init() {
     }
   }
 
-//  root.children.forEach(collapse);
-  update(root);
+//  ROOT.children.forEach(collapse);
+  update(ROOT);
 
 };
 init();
@@ -136,15 +129,15 @@ d3.select(self.frameElement).style("height", "800px");
 function update(source) {
 
   // Compute the new tree layout.
-  var nodes = TREE_LAYOUT.nodes(root).reverse(),
+  var nodes = TREE_LAYOUT.nodes(ROOT).reverse(),
       links = TREE_LAYOUT.links(nodes);
 
   // Normalize for fixed-depth.
   nodes.forEach(function(d) { d.y = d.depth * 180; });
 
   // Update the nodes…
-  var node = svg.selectAll("g.node")
-      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+  var node = SVG.selectAll("g.node")
+      .data(nodes, function(d) { return d.id || (d.id = ++NEXT_ID); });
 
   // Enter any new nodes at the parent's previous position.
   var nodeEnter = node.enter().append("g")
@@ -189,7 +182,7 @@ function update(source) {
       .style("fill-opacity", 1e-6);
 
   // Update the links…
-  var link = svg.selectAll("path.link")
+  var link = SVG.selectAll("path.link")
       .data(links, function(d) { return d.target.id; });
 
   // Enter any new links at the parent's previous position.
@@ -197,20 +190,20 @@ function update(source) {
       .attr("class", "link")
       .attr("d", function(d) {
         var o = {x: source.x0, y: source.y0};
-        return diagonal({source: o, target: o});
+        return DIAGONAL({source: o, target: o});
       });
 
   // Transition links to their new position.
   link.transition()
       .duration(DURATION)
-      .attr("d", diagonal);
+      .attr("d", DIAGONAL);
 
   // Transition exiting nodes to the parent's new position.
   link.exit().transition()
       .duration(DURATION)
       .attr("d", function(d) {
         var o = {x: source.x, y: source.y};
-        return diagonal({source: o, target: o});
+        return DIAGONAL({source: o, target: o});
       })
       .remove();
 
