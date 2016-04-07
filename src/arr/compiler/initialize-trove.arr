@@ -12,6 +12,7 @@ import error as _
 import exec as _
 import file as _
 import filelib as _
+import tracerlib as _
 import format as _
 import image as _
 import image-structs as _
