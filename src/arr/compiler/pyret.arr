@@ -39,7 +39,9 @@ fun main(args):
     "improper-tail-calls",
       C.flag(C.once, "Run without proper tail calls"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation")
+      C.flag(C.once, "Type-check the program during compilation"),
+    "trace",
+      C.flag(C.once, "Generate a trace as the program runs")
   ]
   
   params-parsed = C.parse-args(options, args)
@@ -62,6 +64,7 @@ fun main(args):
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
+      trace = r.has-key("trace")
       if not(is-empty(rest)):
         program-name = rest.first
         var result = CM.compile-js(
@@ -75,6 +78,7 @@ fun main(args):
             allow-shadowed : allow-shadowed,
             collect-all: false,
             type-check: type-check,
+            trace : trace,
             ignore-unbound: false,
             proper-tail-calls: tail-calls
           }
@@ -111,6 +115,7 @@ fun main(args):
             {
               check-mode : check-mode,
               type-check : type-check,
+              trace : trace,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
@@ -130,6 +135,7 @@ fun main(args):
             {
               check-mode : check-mode,
               type-check : type-check,
+              trace : trace,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
@@ -145,6 +151,7 @@ fun main(args):
             {
               check-mode : check-mode,
               type-check : type-check,
+              trace: trace,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,

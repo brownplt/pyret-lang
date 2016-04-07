@@ -15,6 +15,7 @@ import "compiler/desugar.arr" as D
 import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
 import "compiler/desugar-check.arr" as CH
+import "compiler/trace.arr" as TR
 
 data CompilationPhase:
   | start
@@ -44,8 +45,11 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
     | ok(_) =>
       var wf-ast = wf.code
       wf := nothing
-      var checked = checker(wf-ast)
+      var traced-ast = TR.trace(wf-ast)
       wf-ast := nothing
+      when options.collect-all: ret := phase("Traced", traced-ast, ret) end
+      var checked = checker(traced-ast)
+      traced-ast := nothing
       when options.collect-all:
         ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
           checked, ret)
