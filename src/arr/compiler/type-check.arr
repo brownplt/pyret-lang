@@ -50,6 +50,7 @@ t-forall = TS.t-forall
 t-ref = TS.t-ref
 t-existential = TS.t-existential
 t-data = TS.t-data
+t-data-refinement = TS.t-data-refinement
 
 t-array-name = TS.t-array-name
 t-number = TS.t-number
@@ -268,7 +269,7 @@ fun checking(e, expect-typ, top-level, context):
   result
 end
 
-fun _checking(e :: Expr,  expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
+fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
   cases(Type) expect-type:
     | t-existential(_, _) =>
       check-synthesis(e, expect-type, top-level, context)
@@ -453,7 +454,32 @@ fun _checking(e :: Expr,  expect-type :: Type, top-level :: Boolean, context :: 
         | s-update(l, obj, fields) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-obj(l, fields) =>
-          check-synthesis(e, expect-type, top-level, context)
+          cases(Type) expect-type:
+            | t-record(t-fields, t-l) =>
+              map-fold-result(collect-member(_, true, _), fields, context).typing-bind(lam(field-types, shadow context):
+                temp-obj-type = t-record(field-types, l)
+                cases(Option<Context>) satisfies-type(temp-obj-type, expect-type, context):
+                  | none =>
+                    typing-error([list: C.incorrect-type(tostring(temp-obj-type), temp-obj-type.l, tostring(expect-type), expect-type.l)])
+                  | some(shadow context) =>
+                    new-obj-type = context.apply(temp-obj-type)
+                    fields-and-types = map2(lam(field, field-type):
+                      pair(field, field-type)
+                    end, fields, new-obj-type.fields)
+                    fold-new-field-types = map-fold-result(lam(field-and-type, shadow context):
+                      to-type-member(field-and-type.left, field-and-type.right, new-obj-type, true, context)
+                    end, fields-and-types, context)
+
+                    fold-new-field-types.typing-bind(lam(_, shadow context):
+                      typing-result(A.s-obj(l, fields), expect-type, context)
+                    end)
+                end
+              end)
+            | t-top(t-l) =>
+              check-synthesis(e, expect-type, top-level, context)
+            | else =>
+              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "an object type", l)])
+          end
         | s-array(l, values) =>
           wrapped = cases(Type) expect-type:
             | t-app(rarray, args, tl) =>
@@ -667,13 +693,18 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-update(l, obj, fields) =>
       synthesis(obj, top-level, context).bind(synthesis-update(l, _, _, fields, _))
     | s-obj(l, fields) =>
-      map-fold-result(to-type-member(_, _), fields, context).typing-bind(lam(result, new-context):
-        split-fields = split(result)
-        new-fields = split-fields.left
-        field-types = split-fields.right
-        new-obj = A.s-obj(l, new-fields)
-        obj-typ = t-record(field-types, l)
-        typing-result(new-obj, obj-typ, new-context)
+      map-fold-result(collect-member(_, false, _), fields, context).typing-bind(lam(field-types, shadow context):
+        initial-obj-type = t-record(field-types, l)
+        fields-and-types = map2(lam(field, field-type):
+          pair(field, field-type)
+        end, fields, field-types)
+        fold-new-field-types = map-fold-result(lam(field-and-type, shadow context):
+          to-type-member(field-and-type.left, field-and-type.right, initial-obj-type, false, context)
+        end, fields-and-types, context)
+
+        fold-new-field-types.typing-bind(lam(new-field-types, shadow context):
+          typing-result(A.s-obj(l, fields), t-record(new-field-types, l), context)
+        end)
       end)
     | s-array(l, values) =>
       fun process(value :: A.Expr, ctxt :: Context) -> FoldResult<Pair<A.Expr, Type>>:
@@ -1094,6 +1125,9 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                   satisfies-fields(a-fields, b-fields, context, assumptions)
                 | else => none
               end
+            | t-data-refinement(a-data-type, _, _) =>
+              # TODO(MATT): do more than just check the underlying data-type?
+              satisfies-assuming(a-data-type, supertype, context, assumptions)
           end
       end
     end
@@ -1163,6 +1197,8 @@ fun _instantiate-right(subtype :: Type, supertype :: Type, context :: Context) -
           context.assign-existential(supertype, subtype)
         | t-data(_, variants, fields, _) =>
           context.assign-existential(supertype, subtype)
+        | t-data-refinement(_, _, _) =>
+          context.assign-existential(supertype, subtype)
       end
     | else => raise("cannot instantiate non-existential")
   end
@@ -1210,6 +1246,8 @@ fun _instantiate-left(subtype :: Type, supertype :: Type, context :: Context) ->
         | t-existential(b-id, _) =>
           context.assign-existential(supertype, subtype)
         | t-data(_, variants, fields, _) =>
+          context.assign-existential(subtype, supertype)
+        | t-data-refinement(_, _, _) =>
           context.assign-existential(subtype, supertype)
       end
     | else => raise("cannot instantiate non-existential")
@@ -1465,52 +1503,241 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
   brander-type = t-name(none, namet, l)
   t-vars = params.map(t-var(_, l))
 
-  map-fold-result(to-type-variant, variants, context).typing-bind(lam(variants-result, new-context):
-    split-variants = split(variants-result)
-    new-variants = split-variants.left
-    variant-types = split-variants.right
+  map-fold-result(collect-variants, variants, context).typing-bind(lam(initial-variants-and-types, new-context):
+    map-fold-result(collect-member(_, false, _), fields, new-context).typing-bind(lam(initial-shared-field-types, new-ctxt):
+      split-result = split(initial-variants-and-types)
+      initial-variants = split-result.left
+      initial-variant-types = split-result.right
 
-    map-fold-result(to-type-member, fields, new-context).typing-bind(lam(fields-result, fields-context):
-      split-fields = split(fields-result)
-
-      variant-type-fields = variant-types.map(lam(var-type):
-        var-type.fields.append(var-type.with-fields)
-      end)
-      variants-meet = cases(List<TypeMember>) variant-type-fields:
-        | empty => empty
-        | link(first, rest) =>
-          cases(List<TypeMember>) rest:
-            | empty => first
-            | link(_, _) =>
-              rest.foldr(meet-fields(_, _, l, fields-context), first)
-          end
-      end
-
-      data-type-fields = split-fields.right.append(variants-meet)
-
-      new-data-expr = A.s-data-expr(l, name, namet, params, mixins, new-variants, split-fields.left, _check)
-
-      temp-data-type = t-data(name, variant-types, data-type-fields, l)
-      new-data-type =
+      temp-initial-data-type = t-data(name, initial-variant-types, initial-shared-field-types, l)
+      initial-data-type =
         if is-empty(t-vars):
-          temp-data-type
+          temp-initial-data-type
         else:
-          t-forall(t-vars, temp-data-type, l)
+          t-forall(t-vars, temp-initial-data-type, l)
         end
-      fields-context.data-types.set-now(namet.key(), new-data-type)
 
-      data-fields = link(t-member(name, t-arrow([list: t-top(l)], t-boolean(l), l)),
-        for map(variant-type from variant-types):
-          t-member(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars, l))
-        end +
-        for map(variant-type from variant-types):
-          t-member("is-" + variant-type.name, t-arrow([list: t-top(l)], t-boolean(l), l))
+      new-ctxt.data-types.set-now(namet.key(), initial-data-type)
+
+      fold-new-variants = map-fold-result(lam(variant-and-type-variant, current-context):
+        variant = variant-and-type-variant.left
+        type-variant = variant-and-type-variant.right
+        current-data-type = t-data-refinement(if is-empty(t-vars): brander-type else: t-app(brander-type, t-vars, l) end, variant.name, l)
+
+        paired-with-members = map2(lam(with-member, with-type-member):
+          pair(with-member, with-type-member)
+        end, variant.with-members, type-variant.with-fields)
+
+        fold-new-with-fields = map-fold-result(lam(paired-with-member, current-ctxt):
+          with-member = paired-with-member.left
+          with-type-member = paired-with-member.right
+          to-type-member(with-member, with-type-member, current-data-type, false, current-ctxt).bind(lam(new-with-type-member, result-context):
+            fold-result(new-with-type-member, result-context)
+          end)
+        end, paired-with-members, current-context)
+
+        fold-new-with-fields.bind(lam(new-with-fields, new-with-context):
+          cases(TypeVariant) type-variant:
+            | t-variant(variant-name, variant-fields, _) =>
+              fold-result(t-variant(variant-name, variant-fields, new-with-fields), new-with-context)
+            | t-singleton-variant(variant-name, _) =>
+              fold-result(t-singleton-variant(variant-name, new-with-fields), new-with-context)
+          end
         end)
+      end, initial-variants-and-types, new-ctxt)
 
-      data-expr-type = t-record(data-fields, l)
-      typing-result(new-data-expr, data-expr-type, fields-context)
+      fold-new-variants.typing-bind(lam(new-variant-types, shadow new-context):
+        variant-type-fields = new-variant-types.map(lam(var-type):
+          var-type.fields.append(var-type.with-fields)
+        end)
+        variants-meet = cases(List<TypeMember>) variant-type-fields:
+          | empty => empty
+          | link(first, rest) =>
+            cases(List<TypeMember>) rest:
+              | empty => first
+              | link(_, _) =>
+                rest.foldr(meet-fields(_, _, l, new-context), first)
+            end
+        end
+
+        data-type-fields = initial-shared-field-types.append(variants-meet)
+        # TODO(MATT): update each of these
+        new-data-expr = A.s-data-expr(l, name, namet, params, mixins, initial-variants, fields, _check)
+
+        temp-data-type = t-data(name, new-variant-types, data-type-fields, l)
+        new-data-type =
+          if is-empty(t-vars):
+            temp-data-type
+          else:
+            t-forall(t-vars, temp-data-type, l)
+          end
+        new-context.data-types.set-now(namet.key(), new-data-type)
+
+        data-fields = link(t-member(name, t-arrow([list: t-top(l)], t-boolean(l), l)),
+          for map(variant-type from new-variant-types):
+            t-member(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars, l))
+          end +
+          for map(variant-type from new-variant-types):
+            t-member("is-" + variant-type.name, t-arrow([list: t-top(l)], t-boolean(l), l))
+          end)
+
+        data-expr-type = t-record(data-fields, l)
+        typing-result(new-data-expr, data-expr-type, new-context)
+      end)
     end)
   end)
+end
+
+# TODO(MATT): also return the "changed" A.Member?
+# doesn't check data-fields that aren't methods or functions
+# only checks data-fields that are functions when type-check-functions is true
+fun to-type-member(member :: A.Member, type-member :: TypeMember, self-type :: Type, type-check-functions :: Boolean, context :: Context) -> FoldResult<TypeMember>:
+  fun add-self-type(fun-type :: Type) -> Type:
+    cases(Type) fun-type:
+      | t-arrow(args, ret, l) =>
+        t-arrow(link(self-type, args), ret, l)
+      | t-forall(introduces, onto-arrow, l) =>
+        cases(Type) onto-arrow:
+        | t-arrow(args, ret, inner-l) =>
+          t-forall(introduces, t-arrow(link(self-type, args), ret, inner-l), l)
+        | else =>
+          raise("method type is not a function (this shouldn't happen")
+        end
+      | else =>
+        raise("method type is not a function (this shouldn't happen")
+    end
+  end
+
+  fun remove-self-type(fun-type :: Type) -> Type:
+    cases(Type) fun-type:
+      | t-arrow(args, ret, l) =>
+        t-arrow(args.rest, ret, l)
+      | t-forall(introduces, onto-arrow, l) =>
+        cases(Type) onto-arrow:
+        | t-arrow(args, ret, inner-l) =>
+          t-forall(introduces, t-arrow(args.rest, ret, inner-l), l)
+        | else =>
+          raise("method type is not a function (this shouldn't happen")
+        end
+      | else =>
+        raise("method type is not a function (this shouldn't happen")
+    end
+  end
+
+  cases(A.Member) member:
+    | s-data-field(l, name, value) =>
+      cases(Expr) value:
+        | s-method(m-l, params, args, ann, doc, body, _check) =>
+          new-type = add-self-type(type-member.typ)
+          check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, params, _, _, doc, _, _check), context)
+            .fold-bind(lam(_, out-type, out-context):
+              fold-result(t-member(name, remove-self-type(out-context.apply(out-type))), out-context)
+            end)
+        | s-lam(l-l, params, args, ann, doc, body, _check) =>
+          if type-check-functions:
+            # TODO(MATT): false or true for top-level?
+            checking(value, type-member.typ, false, context)
+              .fold-bind(lam(new-ast, new-type, new-context):
+                fold-result(type-member(name, new-type), new-context)
+              end)
+          else:
+            fold-result(type-member, context)
+          end
+        | else =>
+          fold-result(type-member, context)
+      end
+    | s-mutable-field(l, name, ann, value) =>
+      raise("Mutable fields not handled yet")
+    | s-method-field(m-l, name, params, args, ann, doc, body, _check) =>
+      new-type = add-self-type(type-member.typ)
+      check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, params, _, _, doc, _, _check), context)
+        .fold-bind(lam(_, out-type, out-context):
+          fold-result(t-member(name, remove-self-type(out-context.apply(out-type))), out-context)
+        end)
+  end
+end
+
+# collect-functions: if true gather annotations from lambda terms
+#                    else synthesize lambda terms
+fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: Context) -> FoldResult<TypeMember>:
+  cases(A.Member) member:
+    | s-data-field(l, name, value) =>
+      folded-field-type = cases(Expr) value:
+        | s-method(m-l, params, args, ann, _, _, _) =>
+          cases(List<A.Bind>) args:
+            | empty =>
+              fold-errors([list: C.method-missing-self(value)])
+            | link(self, rest) =>
+              collect-bindings(rest, context).bind(lam(bindings, new-context):
+                lam-to-type(bindings, m-l, params, args.rest, ann, not(collect-functions), new-context)
+              end)
+          end
+        | s-lam(l-l, params, args, ann, _, _, _) =>
+          if collect-functions:
+            collect-bindings(args, context).bind(lam(bindings, new-context):
+              lam-to-type(bindings, l-l, params, args.rest, ann, false, new-context)
+            end)
+          else:
+            synthesis(value, true, context)
+              .fold-bind(lam(_, value-type, out-context):
+                fold-result(value-type, out-context)
+              end)
+          end
+        | else =>
+          synthesis(value, false, context)
+            .fold-bind(lam(_, value-type, out-context):
+              fold-result(value-type, out-context)
+            end)
+      end
+      folded-field-type.bind(lam(field-type, out-context):
+        fold-result(t-member(name, field-type), out-context)
+      end)
+    | s-mutable-field(l, name, ann, value) =>
+      raise("Mutable fields not handled yet")
+    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
+      cases(List<A.Bind>) args:
+        | empty =>
+          fold-errors([list: C.method-missing-self(member)])
+        | link(self, rest) =>
+          collect-bindings(rest, context).bind(lam(bindings, new-context):
+            lam-to-type(bindings, l, params, args.rest, ann, not(collect-functions), new-context)
+              .bind(lam(lam-type, out-context): fold-result(t-member(name, lam-type), out-context) end)
+          end)
+      end
+  end
+end
+
+fun collect-variants(variant :: A.Variant, context :: Context) -> FoldResult<Pair<A.Variant, TypeVariant>>:
+  cases(A.Variant) variant:
+    | s-variant(l, constr-loc, name, members, with-members) =>
+      fun process-member(member, ctxt):
+        wrap = cases(A.VariantMemberType) member.member-type:
+          | s-normal => lam(x): x.set-loc(member.l) end
+          | s-mutable => lam(x): t-ref(x.set-loc(member.l), member.l) end
+        end
+        to-type(member.bind.ann, ctxt).bind(lam(maybe-typ, new-ctxt):
+          cases(Option<Type>) maybe-typ:
+            | none => fold-errors([list: C.cant-typecheck("No type annotation provided on member", l)])
+            | some(typ) =>
+              fold-result(t-member(member.bind.id.toname(), wrap(typ)), new-ctxt)
+          end
+        end)
+      end
+
+      map-fold-result(process-member, members, context).bind(lam(type-members, new-context):
+        map-fold-result(collect-member(_, false, _), with-members, new-context).bind(lam(type-with-members, out-context):
+          new-variant = A.s-variant(l, constr-loc, name, members, with-members)
+          type-variant = t-variant(name, type-members, type-with-members)
+          fold-result(pair(new-variant, type-variant), out-context)
+        end)
+      end)
+    | s-singleton-variant(l, name, with-members) =>
+      map-fold-result(collect-member(_, false, _), with-members, context).bind(lam(type-with-members, new-context):
+        new-variant = A.s-singleton-variant(l, name, with-members)
+        type-variant = t-singleton-variant(name, type-with-members)
+        fold-result(pair(new-variant, type-variant), new-context)
+      end)
+  end
 end
 
 fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair<A.Variant, TypeVariant>>:
@@ -1524,7 +1751,7 @@ fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair
         fun process-member(member, ctxt):
           wrap = cases(A.VariantMemberType) member.member-type:
             | s-normal => lam(x): x.set-loc(member.l) end
-            | s-mutable => t-ref(_, member.l)
+            | s-mutable => lam(x): t-ref(x.set-loc(member.l), member.l) end
           end
           to-type(member.bind.ann, ctxt).bind(lam(maybe-typ, out-context):
             cases(Option<Type>) maybe-typ:
@@ -1550,24 +1777,6 @@ fun to-type-variant(variant :: A.Variant, context :: Context) -> FoldResult<Pair
         type-variant = t-singleton-variant(name, with-type-members)
         fold-result(pair(new-variant, type-variant), out-context)
       end)
-  end
-end
-
-fun to-type-member(field :: A.Member, context :: Context) -> FoldResult<Pair<A.Member, TypeMember>>:
-  cases(A.Member) field:
-    | s-data-field(l, name, value) =>
-      if A.is-s-method(value): # TODO(cody): Type-check methods.
-        raise("to-type member on method not done yet")
-      else:
-        synthesis(value, false, context).fold-bind(
-        lam(new-value, value-typ, out-context):
-          fold-result(pair(A.s-data-field(l, name, new-value), t-member(name, value-typ)), out-context)
-        end)
-      end
-    | s-mutable-field(l, name, ann, value) =>
-      raise("to-type member for s-mutable-field")
-    | s-method(l, name, args, ann, doc, body, _check) =>
-      raise("to-type member for s-method")
   end
 end
 
@@ -1621,8 +1830,27 @@ fun record-view(access-loc :: Loc, obj-type-loc :: Loc, obj-type :: Type,
       handle(obj-type-loc, some(members))
     | t-data(_, variants, fields, _) =>
       handle(obj-type-loc, some(fields))
-    | t-forall(introduces, onto, _) =>
-      raise("record view of forall")
+    | t-forall(introduces, onto, l) =>
+      new-obj-type = introduces.foldr(lam(type-var, new-type):
+        new-type.substitute(new-existential(l), type-var)
+      end, onto)
+      record-view(access-loc, obj-type-loc, new-obj-type, handle, context)
+    | t-data-refinement(data-type, variant-name, _) =>
+      cases(Option<Type>) context.get-data-type(data-type):
+        | some(typ) =>
+          cases(Type) typ:
+            | t-data(_, variants, data-fields, _) =>
+              variant = find(lam(variant): variant.name == variant-name end, variants).value
+              cases(TypeVariant) variant:
+                | t-variant(_, fields, with-fields) =>
+                  handle(obj-type-loc, some(fields + with-fields + data-fields))
+                | t-singleton-variant(_, with-fields) =>
+                  handle(obj-type-loc, some(with-fields + data-fields))
+              end
+            | else => non-obj-err
+          end
+        | none => non-obj-err
+      end
     | t-bot(_) =>
       handle(obj-type-loc, none)
     | else =>
@@ -1997,8 +2225,7 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
         end)
       end)
     | t-forall(introduces, onto, l) =>
-      # TODO(MATT): determine if this works
-      checking(recreate(args, ret-ann, body), onto, false, context)
+      check-fun(fun-loc, body, params, args, ret-ann, onto, recreate, context)
         .map-type(t-forall(introduces, _, l))
     | t-existential(id, _) =>
       check-synthesis(recreate(args, ret-ann, body), expect-type, false, context)
@@ -2084,8 +2311,11 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
     end
   end
 
-  map-fold-result(to-type-member, fields, context).typing-bind(lam(atms, new-context):
-    record-view(update-loc, obj-type.l, obj-type, process-fields(_, _, atms), new-context)
+  map-fold-result(collect-member(_, false, _), fields, context).typing-bind(lam(initial-new-members, shadow context):
+    atms = map2(lam(atm, new-member):
+      pair(atm, new-member)
+    end, fields, initial-new-members)
+    record-view(update-loc, obj-type.l, obj-type, process-fields(_, _, atms), context)
       .map-type(_.set-loc(update-loc))
   end)
 end

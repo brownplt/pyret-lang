@@ -477,6 +477,18 @@ data CompileError:
           ED.ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end
+  | method-missing-self(method-expr :: A.Expr) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the method expression")],
+        [ED.para:
+          ED.code(ED.v-sequence(self.method-expr.tosource().pretty(800).map(ED.text)))],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.method-expr.l),
+          ED.text(" requires at least a 'self' argument.")]]
+    end
   | apply-non-function(app-expr :: A.Expr, typ) with:
     render-reason(self):
       [ED.error:

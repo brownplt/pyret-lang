@@ -148,6 +148,7 @@ data Type:
   | t-ref(typ :: Type, l :: A.Loc)
   | t-existential(id :: Name, l :: A.Loc)
   | t-data(name :: String, variants :: List<TypeVariant>, fields :: List<TypeMember>, l :: A.Loc)
+  | t-data-refinement(data-type :: Type, variant-name :: String, l :: A.Loc)
 sharing:
   _output(self):
     cases(Type) self:
@@ -176,7 +177,12 @@ sharing:
       | t-ref(typ, _) =>
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
       | t-existential(id, _) => VS.vs-str(id.key())
-      | t-data(name, variants, fields, _) => VS.vs-str(name)
+      | t-data(name, variants, fields, _) =>
+        VS.vs-str(name)
+      | t-data-refinement(data-type, variant-name, _) =>
+        VS.vs-seq([list: VS.vs-value("("),
+                         VS.vs-value(data-type),
+                         VS.vs-str(" % is-" + variant-name + ")")])
     end
   end,
   key(self) -> String:
@@ -208,6 +214,11 @@ sharing:
         "ref " + typ.key()
       | t-existential(id, _) => id.key()
       | t-data(name, variants, fields, _) => name
+      | t-data-refinement(data-type, variant-name, _) =>
+        "("
+          + data-type.key()
+          + " %is-" + variant-name
+          + ")"
     end
   end,
   substitute(self, new-type :: Type, old-type :: Type):
@@ -236,6 +247,10 @@ sharing:
                  variants.map(_.substitute(new-type, old-type)),
                  fields.map(_.substitute(new-type, old-type)),
                  l)
+        | t-data-refinement(data-type, variant-name, l) =>
+          t-data-refinement(data-type.substitute(new-type, old-type),
+                            variant-name,
+                            l)
         | else => self
       end
     end
@@ -279,6 +294,8 @@ sharing:
         | t-data(_, variants, fields, _) =>
           all(_.free-variable(var-type), variants) and
           all(_.free-variable(var-type), fields)
+        | t-data-refinement(data-type, _, _) =>
+          data-type.free-variable(var-type)
       end
     end
   end,
@@ -313,6 +330,8 @@ sharing:
         t-existential(id, loc)
       | t-data(name, variants, fields, _) =>
         t-data(name, variants, fields, loc)
+      | t-data-refinement(data-type, variant-name, _) =>
+        t-data-refinement(data-type, variant-name, loc)
     end
   end,
   _equals(self, other :: Type, _) -> E.EqualityResult:
@@ -384,6 +403,13 @@ sharing:
             | t-data(b-name, b-variants, b-fields, _) =>
               compare-lists(a-variants, b-variants) and
               compare-lists(a-fields, b-fields)
+            | else => false
+          end
+        | t-data-refinement(a-data-type, a-field-name, _) =>
+          cases(Type) other:
+            | t-data-refinement(b-data-type, b-field-name, _) =>
+              (a-data-type == b-data-type) and
+              (a-field-name == b-field-name)
             | else => false
           end
       end
