@@ -6,6 +6,7 @@ import ast as A
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
+import "compiler/gensym.arr" as G
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 
@@ -15,64 +16,53 @@ import "compiler/ast-util.arr" as U
 names = A.global-names
 dummy-loc = S.builtin("dummy location")
 
-fun V_DEPTH(l):   A.s-name(l, "$trace_depth") end
-fun ID_DEPTH(l):  A.s-id(l, V_DEPTH(l)) end
+# Security through untypability
+fun V_TRACER(l):  A.s-name(l, "$TRACER") end
+fun ID_TRACER(l): A.s-id(l, V_TRACER(l)) end
 fun V_ANSWER(l):  A.s-name(l, "$trace_answer") end
 fun ID_ANSWER(l): A.s-id(l, V_ANSWER(l)) end
 fun V_ARG(l, arg, n):  A.s-name(l, "$trace_arg" + torepr(n)) end
 fun ID_ARG(l, arg, n): A.s-id(l, V_ARG(l, arg, n)) end
 
-#fun gid(l, id): A.s-id(l, A.s-global(id));
-fun gid(l, id): A.s-id(l, A.s-name(l, id)); # hack
+fun gid(l, id): A.s-id(l, A.s-name(l, id)) end
+
+fun TRACER(l, func, args):
+  A.s-app(l, A.s-dot(l, ID_TRACER(l), func), args)
+end
+
+fun BEGIN_TRACE(l):
+  TRACER(l, "begin-trace", [list:])
+end
+
+fun END_TRACE(l):
+  TRACER(l, "end-trace", [list:])
+end
+
+fun LOG_CALL(l, call-string):
+  TRACER(l, "log-call", [list: call-string])
+end
+
+fun LOG_RETURN(l, return-string):
+  TRACER(l, "log-return", [list: return-string])
+end
 
 fun PRINT(l, msg):
   A.s-app(l, gid(l, "print"), [list: msg])
 end
 
-fun PRINT_STR(l, msg):
-  PRINT(l, A.s-str(l, msg))
-end
-
-fun PRINT_EXPR(l, msg, expr):
-  A.s-block(l, [list: PRINT(l, msg), expr])
-end
-
-fun EMPTY_LIST(l):
-  gid(l, "list")
+fun IMPORT(l, module-str, name):
+  A.s-import(l, A.s-const-import(l, module-str), name)
 end
 
 fun LET(l, v, expr):
   A.s-let(l, A.s-bind(l, false, v, A.a-blank), expr, false)
 end
 
-fun LET_VAR(l, v, expr):
-  A.s-var(l, A.s-bind(l, false, v, A.a-blank), expr)
-end
-
 fun PLUS(l, a, b):  A.s-op(l, "op+", a, b) end
 fun PLUS3(l, a, b, c): PLUS(l, a, PLUS(l, b, c)) end
-fun PLUS4(l, a,b ,c ,d): PLUS(l, a, PLUS(l, b, PLUS(l, c, d))) end
-
-fun INDENT(l):
-  A.s-assign(l, V_DEPTH(l), PLUS(l, ID_DEPTH(l), A.s-num(l, 1)))
-end
-
-fun DEDENT(l):
-  A.s-assign(l, V_DEPTH(l), PLUS(l, ID_DEPTH(l), A.s-num(l, -1)))
-end
-
-fun REPEAT_STR(l, a, b):
-  A.s-app(l, gid(l, "string-repeat"), [list: a, b])
-end
 
 fun TO_REPR(l, a):
   A.s-app(l, gid(l, "torepr"), [list: a])
-end
-
-fun PRINT_INDENTED(l, msg):
-  PRINT(l, PLUS(l,
-      REPEAT_STR(l, A.s-str(l, " "), ID_DEPTH(l)),
-      msg))
 end
 
 fun LET_ARGS(l, args):
@@ -95,12 +85,11 @@ fun SHOW_ARGS(l, args):
         PLUS3(l, expr, A.s-str(l, ", "), TO_REPR(l, arg))
       end
   end
-#  A.s-str(l, "")
 end
 
 ### Rewrite an AST to trace its execution ###
 
-fun wrap-app(name, l, func, args):
+fun xform-app(name, l, func, args):
   shadow name = cases(A.Name) name:
     | s-global(str)  => str
     | s-atom(str, _) => str
@@ -111,20 +100,14 @@ fun wrap-app(name, l, func, args):
   A.s-block(l,
     LET_ARGS(l, args) +
     [list:
-      PRINT_INDENTED(l,
+      LOG_CALL(l,
         PLUS3(l,
           A.s-str(l, name + "("),
           SHOW_ARGS(l, args),
           A.s-str(l, ")"))),
-      INDENT(l),
       LET(l, V_ANSWER(l), A.s-app(l, func, ARG_IDS(l, args))),
-      DEDENT(l),
-      PRINT_INDENTED(l,
-        PLUS4(l,
-          A.s-str(l, name + "("),
-          SHOW_ARGS(l, args),
-          A.s-str(l, ") = "),
-          TO_REPR(l, ID_ANSWER(l)))),
+      LOG_RETURN(l,
+        TO_REPR(l, ID_ANSWER(l))),
       ID_ANSWER(l)
     ])
 end
@@ -133,22 +116,27 @@ trace-visitor =
   A.default-map-visitor.{
     s-app(self, l, func, args):
       cases(A.Expr) func:
-        | s-id(_, v)           => wrap-app(v, l, func, args)
-        | s-id-var(_, v)       => wrap-app(v, l, func, args)
-        | s-id-letrec(_, v, _) => wrap-app(v, l, func, args)
+        | s-id(_, v)           => xform-app(v, l, func, args)
+        | s-id-var(_, v)       => xform-app(v, l, func, args)
+        | s-id-letrec(_, v, _) => xform-app(v, l, func, args)
         | else => A.s-app(l, func, args)
       end
     end
   }
 
-fun wrap-program(l, stmts :: List<A.Expr>):
+fun xform-program(l, stmts :: List<A.Expr>):
   shadow stmts = for map(stmt from stmts):
     stmt.visit(trace-visitor)
   end
+  id-result = A.s-name(l, G.make-name("result-after-trace"))
+  last-expr = stmts.last()
   A.s-block(l,
-    link(PRINT_STR(l, "Begin trace."),
-      link(LET_VAR(l, V_DEPTH(l), A.s-num(l, 0)),
-        stmts)))
+    link(BEGIN_TRACE(l),
+      stmts.take(stmts.length() - 1) +
+      [list:
+        LET(l, id-result, last-expr),
+        END_TRACE(l),
+        A.s-id(l, id-result)]))
 end
 
 fun trace(program :: A.Program):
@@ -156,7 +144,9 @@ fun trace(program :: A.Program):
     | s-program(l, _prov, _provty, _imp, body) =>
       cases(A.Expr) body:
         | s-block(shadow l, block) =>
-          A.s-program(l, _prov, _provty, _imp, wrap-program(l, block))
+          shadow _imp = link(IMPORT(l, "tracerlib", V_TRACER(l)), _imp)
+          A.s-program(l, _prov, _provty, _imp,
+            xform-program(l, block))
         | else =>
           raise("Error when tracing - found non-block: " +
             torepr(body))
