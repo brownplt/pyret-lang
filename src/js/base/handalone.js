@@ -32,9 +32,25 @@ require(["js/runtime", "program"], function(runtimeLib, program) {
 
       runtime["checkEQ"] = runtime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
     },
+    "builtin://checker": function(checker) {
+      checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
+      // NOTE(joe): This is the place to add checkAll
+      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), false);
+      runtime.setParam("current-checker", currentChecker);
+    }
   };
   postLoadHooks[main] = function(answer) {
-    //console.log("Final answer: ", answer);
+    var checkerLib = runtime.modules["builtin://checker"];
+    var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
+    var toCall = runtime.getField(checker, "render-check-results");
+    var checks = runtime.getField(answer, "checks");
+    runtime.safeCall(function() {
+      return toCall.app(checks);
+    }, function(printedCheckResult) {
+      if(runtime.isString(printedCheckResult)) {
+        process.stdout.write(printedCheckResult);
+      }
+    });
   }
 
   function onComplete(result) {

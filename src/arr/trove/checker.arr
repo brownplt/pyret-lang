@@ -6,6 +6,8 @@ import srcloc as SL
 import error-display as ED
 import render-error-display as RED
 
+import ffi as _
+
 import either as either
 import lists as lists
 import option as option

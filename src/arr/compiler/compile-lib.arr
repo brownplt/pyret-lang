@@ -239,6 +239,10 @@ fun compile-program(worklist, options):
   compile-program-with(worklist, SD.make-mutable-string-dict(), options)
 end
 
+fun is-builtin-module(uri :: String) -> Boolean:
+  string-index-of(uri, "builtin://") == 0
+end
+
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable:
   G.reset()
   cases(Option<Loadable>) locator.get-compiled():
@@ -261,7 +265,11 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
     end
     wf = W.check-well-formed(ast-ended.or-else(ast))
     when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
-    checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
+    checker = if options.check-mode and not(is-builtin-module(locator.uri())):
+        CH.desugar-check
+      else:
+        CH.desugar-no-checks
+      end
     cases(CS.CompileResult) wf:
       | ok(wf-ast) =>
         checked = checker(wf-ast)

@@ -42,7 +42,6 @@
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
       config.name = "program-require";
-      console.log("Config: ", config);
       runtime.pauseStack(function(restarter) {
         requirejs.optimize(config, function(result) {
           var programWithDeps = fs.readFileSync(config.out, 'utf8');
