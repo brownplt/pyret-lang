@@ -239,14 +239,14 @@ fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
 end
 
 fun opname(op): string-substring(op, 2, string-length(op)) end
-fun reachable-ops(self, l, op, ast):
+fun reachable-ops(self, l, op-l, op, ast):
   cases(A.Expr) ast:
-    | s-op(l2, _, op2, left2, right2) =>
+    | s-op(l2, op-l2, op2, left2, right2) =>
       if (op == op2):
-        reachable-ops(self, l, op, left2)
-        reachable-ops(self, l, op, right2)
+        reachable-ops(self, l, op-l, op, left2)
+        reachable-ops(self, l, op-l, op, right2)
       else:
-        add-error(C.mixed-binops(opname(op), l,  opname(op2), l2))
+        add-error(C.mixed-binops(opname(op), op-l,  opname(op2), op-l2))
       end
       true
     | else => ast.visit(self)
@@ -340,9 +340,9 @@ well-formed-visitor = A.default-iter-visitor.{
     add-error(C.non-toplevel("type alias", l))
     true
   end,
-  s-op(self, l, _, op, left, right):
+  s-op(self, l, op-l, op, left, right):
     last-visited-loc := l
-    reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
+    reachable-ops(self, l, op-l, op, left) and reachable-ops(self, l, op-l, op, right)
   end,
   s-cases-branch(self, l, pat-loc, name, args, body):
     last-visited-loc := l
