@@ -3436,6 +3436,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return arr;
     };
 
+    var raw_array_duplicate = function(arr) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-duplicate"], 1, $a); }
+      thisRuntime.checkArray(arr);
+      return [].concat(arr);
+    }
+
     var raw_array_maker = makeObject({
       make:  makeFunction(raw_array_constructor),
       make0: makeFunction(function() { return []; }),
@@ -4312,6 +4318,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
+          'raw-array-duplicate': makeFunction(raw_array_duplicate),
           'raw-array': raw_array_maker,
 
           'not': makeFunction(bool_not),
