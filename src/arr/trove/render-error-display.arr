@@ -1,5 +1,5 @@
 provide *
-
+import either as E
 import error-display as ED
 import srcloc as S
 
@@ -16,8 +16,13 @@ end
 fun display-to-string(e, embed-display, stack):
   help = display-to-string(_, embed-display, stack)
   cases(ED.ErrorDisplay) e:
+    | paragraph(contents) => contents.map(help).join-str("") + "\n"
     | text(str) => str
-    | embed(val) => embed-display(val)
+    | embed(val) => 
+      cases(E.Either) run-task(lam():exn-unwrap(val).render-reason();):
+        | left(v)    => help(v)
+        | right(_) => embed-display(val)
+      end
     | loc(l) => tostring(l)
     | maybe-stack-loc(n, user-frames-only, contents-with-loc, contents-without-loc) =>
       cases(Option) nth-stack-frame(n, user-frames-only, stack):
@@ -40,10 +45,7 @@ fun display-to-string(e, embed-display, stack):
       contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str("\n")
     | bulleted-sequence(contents) =>
       contents.map(lam(elt): "* " + help(elt) end).join-str("\n")
-    | numbered-sequence(contents) =>
-      for map_n(n from 1, elt from contents):
-        tostring(n) + " " + help(elt)
-      end.join-str("\n")
     | optional(_) => ""
+    | highlight(contents, locs, _) => help(ED.loc-display(contents, "", locs.first))
   end
 end
