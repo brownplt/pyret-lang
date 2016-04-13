@@ -1344,8 +1344,10 @@ data CompileError:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The argument at "),
-          ED.loc(self.arg.l),
+          ED.text("The "),
+          ED.highlight(ED.text("argument"), [list: self.arg.l], 0),
+          ED.text(" at "),
+          ED.cmcode(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end,
     render-reason(self):
@@ -1353,8 +1355,6 @@ data CompileError:
         [ED.para:
           ED.text("The "),
           ED.text("argument at"), draw-and-highlight(self.arg.l),
-          #ED.highlight(ED.text("argument"),[list: self.arg.l],0),
-          #ED.cmcode(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
