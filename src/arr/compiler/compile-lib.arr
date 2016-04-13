@@ -19,6 +19,7 @@ import "compiler/desugar-post-tc.arr" as DP
 import "compiler/type-check.arr" as T
 import "compiler/desugar-check.arr" as CH
 import "compiler/resolve-scope.arr" as RS
+import "compiler/trace.arr" as TR
 
 left = E.left
 right = E.right
@@ -241,7 +242,11 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
     checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
     cases(CS.CompileResult) wf:
       | ok(wf-ast) =>
-        checked = checker(wf-ast)
+        traced-ast =
+          if options.trace: TR.trace(wf-ast)
+          else: wf-ast;
+        when options.collect-all: ret := phase("Traced", traced-ast, ret) end
+        checked = checker(traced-ast)
         when options.collect-all:
           ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
             checked, ret)

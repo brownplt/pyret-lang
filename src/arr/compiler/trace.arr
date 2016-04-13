@@ -17,7 +17,7 @@ names = A.global-names
 dummy-loc = S.builtin("dummy location")
 
 # Security through untypability
-fun V_TRACER(l):  A.s-name(l, "$TRACER") end
+fun V_TRACER(l):  A.s-name(l, "TRACER") end
 fun ID_TRACER(l): A.s-id(l, V_TRACER(l)) end
 fun V_ANSWER(l):  A.s-name(l, "$trace_answer") end
 fun ID_ANSWER(l): A.s-id(l, V_ANSWER(l)) end
@@ -51,6 +51,8 @@ fun PRINT(l, msg):
 end
 
 fun IMPORT(l, module-str, name):
+  #impt = A.s-const-import(l, module-str)
+  #A.s-import-complete(l, [list:], [list:], impt, name, name)
   A.s-import(l, A.s-const-import(l, module-str), name)
 end
 
@@ -140,13 +142,21 @@ fun xform-program(l, stmts :: List<A.Expr>):
 end
 
 fun trace(program :: A.Program):
+  # TODO: # FIXME: debugging!
+  print("TRACING")
+  print(torepr(program))
   cases(A.Program) program:
     | s-program(l, _prov, _provty, _imp, body) =>
       cases(A.Expr) body:
         | s-block(shadow l, block) =>
-          shadow _imp = link(IMPORT(l, "tracerlib", V_TRACER(l)), _imp)
-          A.s-program(l, _prov, _provty, _imp,
-            xform-program(l, block))
+          new-imp = A.s-import(l, A.s-const-import(l, "tracerlib"), A.s-name(l, "TR"))
+          print(new-imp) # TEMP
+          shadow _imp = link(new-imp, _imp)
+#          shadow _imp = link(IMPORT(l, "tracerlib", V_TRACER(l)), _imp)
+          ans = A.s-program(l, _prov, _provty, _imp, A.s-block(l, block))
+          print(torepr(ans))
+          ans
+#            xform-program(l, block))
         | else =>
           raise("Error when tracing - found non-block: " +
             torepr(body))

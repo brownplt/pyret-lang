@@ -47,6 +47,7 @@ fun make-repl<a>(
   var globals = defs-locator.get-globals()
   var modules = SD.make-mutable-string-dict()
   var current-type-check = false
+  var current-trace      = false
 
   fun update-env(result, loc):
     nspace := N.make-namespace-from-result(result)
@@ -72,12 +73,16 @@ fun make-repl<a>(
     #end
   end
 
-  fun restart-interactions(type-check :: Boolean):
-    current-type-check := type-check
+  fun restart-interactions(options):
+    current-type-check := options.type-check
+    current-trace      := options.trace
+    shadow options = CS.default-compile-options.{
+      type-check: current-type-check,
+      trace: current-trace}
     modules := SD.make-mutable-string-dict()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
-    compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: current-type-check})
-    result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: current-type-check})
+    compiled = CL.compile-program-with(worklist, modules, options)
+    result = CL.run-program(worklist, compiled, runtime, options)
     globals := defs-locator.get-globals()
     cases(Either) result:
       | right(answer) =>

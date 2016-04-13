@@ -1397,6 +1397,7 @@ end
 default-compile-options = {
   check-mode : true,
   type-check : false,
+  trace: false,
   allow-shadowed : false,
   collect-all: false,
   ignore-unbound: false,

@@ -10,6 +10,7 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                         console.log("BEGIN TRACE");
                         ffi.checkArity(0, arguments, "begin-trace");
                         LOG = [];
+                        return RUNTIME.nothing;
                     }),
                     "end-trace": RUNTIME.makeFunction(function() {
                         ffi.checkArity(0, arguments, "end-trace");
@@ -18,18 +19,21 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                         });
                         console.log("END TRACE");
                         // TODO: Call out to code.pyret.org to display
+                        return RUNTIME.nothing;
                     }),
                     "log-call": RUNTIME.makeFunction(function(data) {
                         ffi.checkArity(1, arguments, "log-call");
                         RUNTIME.checkString(data);
                         var data_str = RUNTIME.unwrap(data);
                         LOG.push({"type": "CALL", "data": data_str});
+                        return RUNTIME.nothing;
                     }),
                     "log-return": RUNTIME.makeFunction(function(data) {
                         ffi.checkArity(1, arguments, "log-return");
                         RUNTIME.checkString(data);
                         var data_str = RUNTIME.unwrap(data);
                         LOG.push({"type": "RETURN", "data": data_str});
+                        return RUNTIME.nothing;
                     })
                 }),
                 "answer": NAMESPACE.get("nothing")
