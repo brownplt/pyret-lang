@@ -20,6 +20,95 @@ data RuntimeError:
     render-reason(self):
       [ED.error: [ED.para: ED.text(self.message)]]
     end
+  | update-non-obj(loc, obj, objloc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("failed because the "),
+          ED.highlight(ED.text("left hand side"), [ED.locs: self.objloc], 0),
+          ED.text(" is expected to evaluate to an object, but its value was: ")],
+        ED.embed(self.obj)]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" failed because the left hand side is expected to evaluate to an object, but its value was:")],
+         ED.embed(self.obj)]
+    end
+  | update-frozen-ref(loc, obj, objloc, field, fieldloc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("failed because the "),
+          ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+          ED.text(" is frozen in the "),
+          ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
+        ED.embed(self.obj)]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" failed because the field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" is frozen in the object:")],
+        ED.embed(self.obj)]
+    end
+  | update-non-ref(loc, obj, objloc, field, fieldloc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("failed because the "),
+          ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+          ED.text(" is not a reference in the "),
+          ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
+        ED.embed(self.obj)]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" failed because the field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" is not a reference cell in the object:")],
+        ED.embed(self.obj)]
+    end
+  | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("failed because the "),
+          ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+          ED.text(" is does not exist in the "),
+          ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
+        ED.embed(self.obj)]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The reference update expression at "),
+          draw-and-highlight(self.loc),
+          ED.text(" failed because the field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" does not exist in the object:")],
+        ED.embed(self.obj)]
+    end
   | no-cases-matched(loc, val) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-cse = loc-to-ast(self.loc).block.stmts.first

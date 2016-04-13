@@ -2436,8 +2436,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return checkI(0);
     }
-    function checkRefAnns(obj, fields, vals, locs) {
-      if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
+
+    function checkRefAnns(obj, fields, vals, locs, exprloc, objloc) {
+      if (!isObject(obj)) { ffi.throwUpdateNonObj(makeSrcloc(exprloc), obj, makeSrcloc(objloc));}
       var anns = new Array(fields.length);
       var refs = new Array(fields.length);
       var field = null;
@@ -2448,17 +2449,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
           ref = obj.dict[field];
           if(isRef(ref)) {
             if(isRefFrozen(ref)) {
-              ffi.throwMessageException("Update of frozen ref " + field);
+              ffi.throwUpdateFrozenRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
             }
             anns[i] = getRefAnns(ref);
             refs[i] = ref;
           }
           else {
-            ffi.throwMessageException("Update of non-ref field " + field);
+            ffi.throwUpdateNonRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
           }
         }
         else {
-          ffi.throwMessageException("Update of non-existent field " + field);
+          ffi.throwUpdateNonExistentField(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
         }
       }
       function afterCheck() {

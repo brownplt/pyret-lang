@@ -903,7 +903,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
     new-cases)
 end
 
-fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
+fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
@@ -916,7 +916,14 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-update-label)),
-        j-expr(j-assign(ans, rt-method("checkRefAnns", [clist: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
+        j-expr(j-assign(ans, rt-method("checkRefAnns", 
+          [clist: 
+            compiled-obj,
+            j-list(false, field-names), 
+            j-list(false, compiled-field-vals), 
+            j-list(false, field-locs),
+            compiler.get-loc(loc),
+            compiler.get-loc(obj.l)]))),
         j-break]),
     new-cases)
 
@@ -997,7 +1004,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, some(b), obj, fields, some(body))
+        compile-split-update(self, l2, some(b), obj, fields, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -1029,7 +1036,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, none, typ, val, branches, _else, some(e2))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, none, obj, fields, some(e2))
+        compile-split-update(self, l2, none, obj, fields, some(e2))
       | else =>
         e1-visit = e1.visit(self)
         e2-visit = e2.visit(self)
@@ -1060,7 +1067,7 @@ compiler-visitor = {
       | a-cases(l, typ, val, branches, _else) =>
         compile-split-cases(self, l, none, typ, val, branches, _else, none)
       | a-update(l, obj, fields) =>
-        compile-split-update(self, none, obj, fields, none)
+        compile-split-update(self, l, none, obj, fields, none)
       | else =>
         visit-e = e.visit(self)
         c-block(
