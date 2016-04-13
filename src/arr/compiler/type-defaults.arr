@@ -23,16 +23,17 @@ t-boolean                 = TS.t-boolean(A.dummy-loc)
 t-array                   = TS.t-array(_, A.dummy-loc)
 t-nothing                 = TS.t-nothing(A.dummy-loc)
 t-srcloc                  = TS.t-srcloc(A.dummy-loc)
+t-array-name              = TS.t-array-name
 
 type TypeMember           = TS.TypeMember
-t-member                  = TS.t-member(_, _, A.dummy-loc)
+t-member                  = TS.t-member(_, _)
 
 type ModuleType           = TS.ModuleType
 t-module                  = TS.t-module
 
 type TypeVariant          = TS.TypeVariant
-t-variant                 = TS.t-variant(_, _, _, A.dummy-loc)
-t-singleton-variant       = TS.t-singleton-variant(_, _, A.dummy-loc)
+t-variant                 = TS.t-variant(_, _, _)
+t-singleton-variant       = TS.t-singleton-variant(_, _)
 
 s-atom                    = A.s-atom
 
@@ -40,7 +41,20 @@ t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
 fun make-default-aliases():
   default-aliases = [SD.mutable-string-dict:
+    A.s-type-global("Nothing").key(), t-nothing,
+    A.s-type-global("Method").key(), t-top,
+    A.s-type-global("Object").key(), t-top,
+    A.s-type-global("Function").key(), t-top,
+    A.s-type-global("RawArray").key(), t-array-name,
     A.s-type-global("Number").key(), t-number,
+    A.s-type-global("NumNonNegative").key(), t-number,
+    A.s-type-global("NumNonPositive").key(), t-number,
+    A.s-type-global("NumNegative").key(), t-number,
+    A.s-type-global("NumPositive").key(), t-number,
+    A.s-type-global("NumRational").key(), t-number,
+    A.s-type-global("NumInteger").key(), t-number,
+    A.s-type-global("Roughnum").key(), t-number,
+    A.s-type-global("Exactnum").key(), t-number,
     A.s-type-global("String").key(), t-string,
     A.s-type-global("Boolean").key(), t-boolean]
   default-aliases
@@ -104,7 +118,6 @@ fun make-default-types():
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
-  default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("not").key(), t-arrow([list: t-boolean], t-boolean))
@@ -574,9 +587,9 @@ module-const-error = t-module("pyret-builtin://error",
     t-member("is-outside-numeric-range", t-arrow([list: t-top], t-boolean)),
     t-member("plus-error", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-plus-error", t-arrow([list: t-top], t-boolean)),
-    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-numeric-binop-error", t-arrow([list: t-top], t-boolean)),
-    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-cases-arity-mismatch", t-arrow([list: t-top], t-boolean)),
     t-member("cases-singleton-mismatch", t-arrow([list: t-top, t-boolean], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-cases-singleton-mismatch", t-arrow([list: t-top], t-boolean)),
@@ -632,17 +645,12 @@ module-const-error = t-module("pyret-builtin://error",
           t-variant("field-not-found", [list: t-member("loc", t-top), t-member("obj", t-top), t-member("field", t-string)], empty),
           t-variant("lookup-non-object", [list: t-member("loc", t-top), t-member("non-obj", t-top), t-member("field", t-string)], empty),
           t-variant("extend-non-object", [list: t-member("loc", t-top), t-member("non-obj", t-top)], empty),
-          t-variant("non-boolean-condition", [list: t-member("loc", t-top), t-member("typ", t-top), t-member("value", t-top)], empty),
-          t-variant("non-boolean-op", [list: t-member("loc", t-top), t-member("position", t-top), t-member("typ", t-top), t-member("value", t-top)], empty),
           t-variant("generic-type-mismatch", [list: t-member("val", t-top), t-member("typ", t-string)], empty),
-          t-variant("outside-numeric-range", [list: t-member("val", t-top), t-member("low", t-top), t-member("high", t-top)], empty),
-          t-variant("plus-error", [list: t-member("val1", t-top), t-member("val2", t-top)], empty),
-          t-variant("numeric-binop-error", [list: t-member("val1", t-top), t-member("val2", t-top), t-member("opname", t-top), t-member("methodname", t-top)], empty),
-          t-variant("cases-arity-mismatch", [list: t-member("branch-loc", t-top), t-member("num-args", t-top), t-member("actual-arity", t-top)], empty),
-          t-variant("cases-singleton-mismatch", [list: t-member("branch-loc", t-top), t-member("should-be-singleton", t-boolean)], empty),
-          t-variant("arity-mismatch", [list: t-member("fun-loc", t-top), t-member("expected-arity", t-top), t-member("args", t-top)], empty),
+          t-variant("numeric-binop-error", [list: t-member("val1", t-top), t-member("val2", t-top), t-member("opname", t-top), t-member("opdesc", t-top), t-member("methodname", t-top)], empty),
+          t-variant("cases-arity-mismatch", [list: t-member("branch-loc", t-top), t-member("num-args", t-top), t-member("actual-arity", t-top), t-member("cases-loc", t-top)], empty),
+          t-variant("cases-singleton-mismatch", [list: t-member("name", t-top), t-member("branch-loc", t-top), t-member("should-be-singleton", t-boolean)], empty),
+          t-variant("arity-mismatch", [list: t-member("fun-def-loc", t-top), t-member("fun-def-arity", t-top), t-member("fun-app-args", t-top)], empty),
           t-variant("non-function-app", [list: t-member("loc", t-top), t-member("non-fun-val", t-top)], empty),
-          t-variant("bad-app", [list: t-member("loc", t-top), t-member("fun-name", t-string), t-member("message", t-string), t-member("arg-position", t-number), t-member("arg-val", t-top)], empty),
           t-variant("uninitialized-id", [list: t-member("loc", t-top), t-member("name", t-string)], empty),
           t-variant("module-load-failure", [list: t-member("names", t-top)], empty),
           t-variant("invalid-array-index", [list: t-member("method-name", t-string), t-member("array", t-top), t-member("index", t-number), t-member("reason", t-string)], empty),

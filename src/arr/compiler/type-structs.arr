@@ -61,7 +61,7 @@ sharing:
 end
 
 data TypeMember:
-  | t-member(field-name :: String, typ :: Type, l :: A.Loc)
+  | t-member(field-name :: String, typ :: Type)
 sharing:
   _output(self):
     VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
@@ -70,10 +70,7 @@ sharing:
     self.field-name + " : " + self.typ.key()
   end,
   substitute(self, new-type :: Type, old-type :: Type):
-    t-member(self.field-name, self.typ.substitute(new-type, old-type), self.l)
-  end,
-  set-loc(self, loc :: A.Loc):
-    t-member(self.field-name, self.typ, loc)
+    t-member(self.field-name, self.typ.substitute(new-type, old-type))
   end,
   free-variable(self, var-type :: Type) -> Boolean:
     self.typ.free-variable(var-type)
@@ -91,55 +88,45 @@ type TypeMembers = List<TypeMember>
 data TypeVariant:
   | t-variant(name        :: String,
               fields      :: List<TypeMember>,
-              with-fields :: List<TypeMember>,
-              l           :: A.Loc)
+              with-fields :: List<TypeMember>)
   | t-singleton-variant(name        :: String,
-                        with-fields :: List<TypeMember>,
-                        l           :: A.Loc) with:
+                        with-fields :: List<TypeMember>) with:
     fields: empty
 sharing:
   substitute(self, new-type :: Type, old-type :: Type):
     cases(TypeVariant) self:
-      | t-variant(name, fields, with-fields, l) =>
+      | t-variant(name, fields, with-fields) =>
         new-fields = fields.map(_.substitute(new-type, old-type))
         new-with-fields = with-fields.map(_.substitute(new-type, old-type))
-        t-variant(name, new-fields, new-with-fields, l)
-      | t-singleton-variant(name, with-fields, l) =>
+        t-variant(name, new-fields, new-with-fields)
+      | t-singleton-variant(name, with-fields) =>
         new-with-fields = with-fields.map(_.substitute(new-type, old-type))
-        t-singleton-variant(name, new-with-fields, l)
-    end
-  end,
-  set-loc(self, loc :: A.Loc):
-    cases(TypeVariant) self:
-      | t-variant(name, fields, with-fields, _) =>
-        t-variant(name, fields, with-fields, loc)
-      | t-singleton-variant(name, with-fields, _) =>
-        t-singleton-variant(name, with-fields, loc)
+        t-singleton-variant(name, new-with-fields)
     end
   end,
   free-variable(self, var-type :: Type) -> Boolean:
     cases(TypeVariant) self:
-      | t-variant(_, fields, with-fields, _) =>
+      | t-variant(_, fields, with-fields) =>
         all(_.free-variable(var-type), fields) and
         all(_.free-variable(var-type), with-fields)
-      | t-singleton-variant(_, with-fields, _) =>
+      | t-singleton-variant(_, with-fields) =>
         all(_.free-variable(var-type), with-fields)
     end
   end,
   _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
     bool-result =
       cases(TypeVariant) self:
-        | t-variant(a-name, a-fields, a-with-fields, _) =>
+        | t-variant(a-name, a-fields, a-with-fields) =>
           cases(TypeVariant) other:
-            | t-variant(b-name, b-fields, b-with-fields, _) =>
+            | t-variant(b-name, b-fields, b-with-fields) =>
               (a-name == b-name) and
               compare-lists(a-fields, b-fields) and
               compare-lists(a-with-fields, b-with-fields)
             | else => false
           end
-        | t-singleton-variant(a-name, a-with-fields, _) =>
+        | t-singleton-variant(a-name, a-with-fields) =>
           cases(TypeVariant) other:
-            | t-singleton-variant(b-name, b-with-fields, _) =>
+            | t-singleton-variant(b-name, b-with-fields) =>
               (a-name == b-name) and
               compare-lists(a-with-fields, b-with-fields)
             | else => false
@@ -161,11 +148,14 @@ data Type:
   | t-ref(typ :: Type, l :: A.Loc)
   | t-existential(id :: Name, l :: A.Loc)
   | t-data(name :: String, variants :: List<TypeVariant>, fields :: List<TypeMember>, l :: A.Loc)
+  | t-data-refinement(data-type :: Type, variant-name :: String, l :: A.Loc)
 sharing:
   _output(self):
     cases(Type) self:
-      | t-name(module-name, id, _) => VS.vs-value(id.toname())
-      | t-var(id, _) => VS.vs-value(id.toname())
+      | t-name(module-name, id, _) =>
+        VS.vs-value(id.toname())
+      | t-var(id, _) =>
+        VS.vs-value(id.toname())
       | t-arrow(args, ret, _) =>
         VS.vs-seq([list: VS.vs-str("(")]
           + interleave(args.map(VS.vs-value), VS.vs-str(", "))
@@ -187,7 +177,12 @@ sharing:
       | t-ref(typ, _) =>
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
       | t-existential(id, _) => VS.vs-str(id.key())
-      | t-data(name, variants, fields, _) => VS.vs-str(name)
+      | t-data(name, variants, fields, _) =>
+        VS.vs-str(name)
+      | t-data-refinement(data-type, variant-name, _) =>
+        VS.vs-seq([list: VS.vs-value("("),
+                         VS.vs-value(data-type),
+                         VS.vs-str(" % is-" + variant-name + ")")])
     end
   end,
   key(self) -> String:
@@ -219,6 +214,11 @@ sharing:
         "ref " + typ.key()
       | t-existential(id, _) => id.key()
       | t-data(name, variants, fields, _) => name
+      | t-data-refinement(data-type, variant-name, _) =>
+        "("
+          + data-type.key()
+          + " %is-" + variant-name
+          + ")"
     end
   end,
   substitute(self, new-type :: Type, old-type :: Type):
@@ -247,6 +247,10 @@ sharing:
                  variants.map(_.substitute(new-type, old-type)),
                  fields.map(_.substitute(new-type, old-type)),
                  l)
+        | t-data-refinement(data-type, variant-name, l) =>
+          t-data-refinement(data-type.substitute(new-type, old-type),
+                            variant-name,
+                            l)
         | else => self
       end
     end
@@ -290,6 +294,8 @@ sharing:
         | t-data(_, variants, fields, _) =>
           all(_.free-variable(var-type), variants) and
           all(_.free-variable(var-type), fields)
+        | t-data-refinement(data-type, _, _) =>
+          data-type.free-variable(var-type)
       end
     end
   end,
@@ -324,6 +330,8 @@ sharing:
         t-existential(id, loc)
       | t-data(name, variants, fields, _) =>
         t-data(name, variants, fields, loc)
+      | t-data-refinement(data-type, variant-name, _) =>
+        t-data-refinement(data-type, variant-name, loc)
     end
   end,
   _equals(self, other :: Type, _) -> E.EqualityResult:
@@ -397,6 +405,13 @@ sharing:
               compare-lists(a-fields, b-fields)
             | else => false
           end
+        | t-data-refinement(a-data-type, a-field-name, _) =>
+          cases(Type) other:
+            | t-data-refinement(b-data-type, b-field-name, _) =>
+              (a-data-type == b-data-type) and
+              (a-field-name == b-field-name)
+            | else => false
+          end
       end
     E.from-boolean(bool-result)
   end
@@ -405,7 +420,7 @@ end
 # TODO(MATT): which of these should be kept
 builtin-uri = some("builtin")
 
-t-array-name = t-name(none, A.s-type-global("RawArray"), A.dummy-loc)
+t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"), A.dummy-loc)
 
 t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
 t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end

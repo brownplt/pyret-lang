@@ -17,6 +17,18 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             n(p.endChar)
           );
       }
+      function combinePyretPos(fileName, p1, p2) {
+        var n = RUNTIME.makeNumber;
+        return RUNTIME.getField(srcloc, "srcloc").app(
+            RUNTIME.makeString(fileName),
+            n(p1.startRow),
+            n(p1.startCol),
+            n(p1.startChar),
+            n(p2.endRow),
+            n(p2.endCol),
+            n(p2.endChar)
+          );
+      }
       function translate(node, fileName) {
         // NOTE: This translation could blow the stack for very deep ASTs
         // We might have to rewrite the whole algorithm
@@ -30,6 +42,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           return translators[node.name](node);
         }
         var pos = function(p) { return makePyretPos(fileName, p); };
+        var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
         var makeList = RUNTIME.ffi.makeList;
         function name(tok) {
           if (tok.value === "_")
@@ -383,9 +396,17 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               return tr(node.kids[0]);
             } else {
               var mkOp = RUNTIME.getField(ast, 's-op').app;
-              var expr = mkOp(pos(node.pos), tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2]));
+              var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
+                              pos(node.kids[1].pos),
+                              tr(node.kids[1]), 
+                              tr(node.kids[0]),
+                              tr(node.kids[2]));
               for(var i = 4; i < node.kids.length; i += 2) {
-                expr = mkOp(pos(node.pos), tr(node.kids[i - 1]), expr, tr(node.kids[i]));
+                expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos), 
+                            pos(node.kids[i - 1].pos),
+                            tr(node.kids[i - 1]), 
+                            expr, 
+                            tr(node.kids[i]));
               }
               return expr;
             }
@@ -887,7 +908,8 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'name-ann': function(node) {
             if (node.kids[0].value === "Any") {
-              return RUNTIME.getField(ast, 'a-any');
+              return RUNTIME.getField(ast, 'a-any')
+                .app(pos(node.pos));
             } else {
               return RUNTIME.getField(ast, 'a-name')
                 .app(pos(node.pos), name(node.kids[0]));
@@ -1042,6 +1064,5 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
     });
   });
 });
-
 
 

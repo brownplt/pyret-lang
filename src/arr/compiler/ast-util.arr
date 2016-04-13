@@ -518,7 +518,7 @@ fun bad-assignments(initial-env, ast):
         | none => nothing
         | some(b) =>
           when not(b.mut):
-            add-error(CS.bad-assignment(id.toname(), loc, b.loc))
+            add-error(CS.bad-assignment(A.s-assign(loc, id, value), b.loc))
           end
       end
       value.visit(self)
@@ -538,7 +538,6 @@ inline-lams = A.default-map-visitor.{
           end
           cases(A.Ann) ann:
             | a-blank => A.s-let-expr(l, let-binds, body.visit(self))
-            | a-any => A.s-let-expr(l, let-binds, body.visit(self))
             | else =>
               A.s-let-expr(l,
                 let-binds
@@ -719,7 +718,7 @@ is-s-data-expr = A.is-s-data-expr
 
 fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   fun field-to-typ(f :: A.AField) -> T.TypeMember:
-    T.t-member(f.name, ann-to-typ(f.ann), f.l)
+    T.t-member(f.name, ann-to-typ(f.ann))
   end
 
   fun collect-shared-fields(vs :: List<A.Variant>):
@@ -755,34 +754,34 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           else:
             ann-to-typ(bind.ann)
           end
-        T.t-member(bind.id.toname(), typ, l)
+        T.t-member(bind.id.toname(), typ)
     end
   end
 
   fun member-to-t-member(m):
     cases(A.Member) m:
       | s-data-field(l, name, val) =>
-        T.t-member(name, T.t-top(l), l)
+        T.t-member(name, T.t-top(l))
       | s-mutable-field(l, name, ann, val) =>
-        T.t-member(name, T.t-ref(ann-to-typ(ann)), l)
+        T.t-member(name, T.t-ref(ann-to-typ(ann)))
       | s-method-field(l, name, params, args, ann, _, _, _) =>
         arrow-part =
           T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann), l)
         typ =
           if is-empty(params): arrow-part
           else:
-            tvars = for map(p from params): T.t-var(p, T.t-top(l), T.invariant, l) end
+            tvars = for map(p from params): T.t-var(p, l) end
             T.t-forall(tvars, arrow-part, l)
           end
-        T.t-member(name, typ, l)
+        T.t-member(name, typ)
     end
   end
 
-  # TODO(MATT): a-blank and a-any should have locations
+  # TODO(MATT): a-blank should have location
   fun ann-to-typ(a :: A.Ann) -> T.Type:
     cases(A.Ann) a:
       | a-blank => T.t-top(A.dummy-loc)
-      | a-any => T.t-top(A.dummy-loc)
+      | a-any(l) => T.t-top(l)
       | a-name(l, id) => T.t-name(some(uri), id, l)
       | a-type-var(l, id) =>
         T.t-var(id, l)
@@ -828,13 +827,11 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               T.t-variant(
                 vname,
                 map(v-member-to-t-member, members),
-                map(member-to-t-member, with-members),
-                l2)
+                map(member-to-t-member, with-members))
             | s-singleton-variant(l2, vname, with-members) =>
               T.t-singleton-variant(
                 vname,
-                map(member-to-t-member, with-members),
-                l2)
+                map(member-to-t-member, with-members))
           end
         end
 
@@ -892,17 +889,17 @@ end
 
 fun canonicalize-members(ms :: T.TypeMembers, uri :: URI) -> T.TypeMembers:
   for map(f from ms):
-    T.t-member(f.field-name, canonicalize-names(f.typ, uri), f.l)
+    T.t-member(f.field-name, canonicalize-names(f.typ, uri))
   end
 end
 
 fun canonicalize-variant(v :: T.TypeVariant, uri :: URI) -> T.TypeVariant:
   c = canonicalize-members(_, uri)
   cases(T.TypeVariant) v:
-    | t-variant(name, fields, with-fields, l) =>
-      T.t-variant(name, c(fields), c(with-fields), l)
-    | t-singleton-variant(name, with-fields, l) =>
-      T.t-singleton-variant(name, c(with-fields), l)
+    | t-variant(name, fields, with-fields) =>
+      T.t-variant(name, c(fields), c(with-fields))
+    | t-singleton-variant(name, with-fields) =>
+      T.t-singleton-variant(name, c(with-fields))
   end
 end
 

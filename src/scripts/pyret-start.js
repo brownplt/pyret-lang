@@ -11,7 +11,13 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     } else if (rt.isFailureResult(result)) {
       var exnStack = result.exn.stack; result.exn.stack = undefined;
       var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
-      if (rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
+      if (rt.isObject(result.exn.exn)
+        && rt.hasField(result.exn.exn, "value") 
+        && rt.getField(result.exn.exn, "value") === "There were test errors") {
+        console.error(rt.getField(result.exn.exn, "value"));
+        process.exit(1);
+      }
+      else if (rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
         rt.run(function(_, _) {
           return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
         }, rt.namespace, {sync: true}, function(outputResult) {
@@ -31,12 +37,14 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
                   rt.namespace.get("tostring"), 
                   rt.ffi.makeList(pyretStack.map(rt.makeSrcloc)));
               }, rt.namespace, {sync: true}, function(printResult) {
+                console.log("PYRET-START");
                 if(rt.isFailureResult(printResult)) {
                   console.error('While trying to report that Pyret terminated with error:\n' + JSON.stringify(result)
                                 + "\nstringifying that error produced another error:\n" + JSON.stringify(printResult)
                                 + "\nStack:\n" + JSON.stringify(exnStack)
                                 + "\nPyret stack:\n" + rt.printPyretStack(pyretStack));
-                  process.exit(1);
+                  process.exit(1);console.error(result.exn.exn);
+        process.exit(1);
                 } else {
                   console.error('Pyret terminated with an error:\n' + printResult.result + "\nStack:\n"  +
                                 "\nPyret stack:\n" + rt.printPyretStack(pyretStack));

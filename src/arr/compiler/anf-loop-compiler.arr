@@ -254,7 +254,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
-    | a-any => c-exp(rt-field("Any"), cl-empty)
+    | a-any(l) => c-exp(rt-field("Any"), cl-empty)
   end
 end
 
@@ -589,7 +589,7 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    if A.is-a-blank(b.ann):
       acc
     else:
       compiled-ann = compile-ann(b.ann, visitor)
@@ -610,7 +610,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
 end
 
 fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
-  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+  if A.is-a-blank(b.ann):
     c-block(
       j-block(
         compiled-e.other-stmts +
@@ -770,10 +770,10 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
       ]),
     new-cases)
 end
-fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
+fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases-loc):
   compiled-body = branch.body.visit(compiler)
   if compiled-body.new-cases.length() < 5:
-    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body)
+    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc)
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
     branch-args =
@@ -790,7 +790,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     end
     compiled-branch-fun =
       compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-    preamble = cases-preamble(compiler, compiled-val, branch)
+    preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
       [clist:
@@ -806,7 +806,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       cl-empty)
   end
 end
-fun cases-preamble(compiler, compiled-val, branch):
+fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
@@ -816,22 +816,23 @@ fun cases-preamble(compiler, compiled-val, branch):
             j-if1(j-binop(branch-given-arity, j-neq, obj-expected-arity),
               j-block([clist:
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity]))]))]),
+                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
         j-block([clist:
-            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-true]))]))
+            j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
+      obj-expected-arity = j-dot(compiled-val, "$arity")
       checker =
-        j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
+        j-if1(j-binop(obj-expected-arity, j-neq, j-num(-1)),
           j-block([clist:
-              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-false]))]))
+              j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                  [clist: compiler.get-loc(pat-loc), j-num(0), obj-expected-arity, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
   end
 end
-fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body):
-  preamble = cases-preamble(compiler, compiled-val, branch)
+fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc):
+  preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
   if N.is-a-cases-branch(branch):
     entry-label = compiler.make-label()
     ann-cases = compile-anns(compiler, compiler.cur-step, branch.args.map(get-bind), entry-label)
@@ -869,7 +870,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
-  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
+  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _, cases-loc))
   compiled-else = _else.visit(compiler-after-cases)
   branch-labels = branches.map(lam(_): compiler.make-label() end)
   else-label = compiler.make-label()
@@ -1112,7 +1113,7 @@ compiler-visitor = {
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts)
+    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1231,7 +1232,7 @@ compiler-visitor = {
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
       
       nonblank-anns = for filter(m from members):
-        not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
+        not(A.is-a-blank(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
         compiled = compile-ann(m.bind.ann, self)
