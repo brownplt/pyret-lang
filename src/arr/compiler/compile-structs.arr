@@ -1594,7 +1594,7 @@ standard-builtins = compile-env(standard-globals, [string-dict:])
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
-    [list:
+   [list:
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",
@@ -1670,6 +1670,5 @@ standard-imports = extra-imports(
         ],
         [list: "Set"],
         lam(opt): true;),
-      extra-import(builtin("tracerlib"), "$tracer", [list:], [list:], lam(opt): opt.trace;)
+      extra-import(builtin("tracer-lib"), "$tracer", [list:], [list:], lam(opt): opt.trace;)
     ])
-

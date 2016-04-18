@@ -1,5 +1,5 @@
 define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
-    return util.memoModule("tracerlib", function(runtime, namespace) {
+    return util.memoModule("tracer-lib", function(runtime, namespace) {
         return runtime.loadJSModules(namespace, [ffiLib], function(ffi) {
             
             var LOG = [];
