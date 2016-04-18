@@ -251,7 +251,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
             checked, ret)
         end
-        imported = AU.wrap-extra-imports(checked, libs)
+        imported = AU.wrap-extra-imports(checked, libs, options)
         when options.collect-all: ret := phase("Added imports", imported, ret) end
         scoped = RS.desugar-scope(imported, env)
         when options.collect-all: ret := phase("Desugared scope", scoped, ret) end

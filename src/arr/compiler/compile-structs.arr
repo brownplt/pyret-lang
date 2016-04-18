@@ -65,8 +65,10 @@ data ExtraImports:
 end
 
 # Import this module, and bind the given value and type bindings from it
+# `opt-pred` is a predicate over the command line options, saying
+# weather this import should be used given a set of options (typically: yes).
 data ExtraImport:
-  | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>)
+  | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>, opt-pred :: Function)
 end
 
 data CompileEnvironment:
@@ -1592,7 +1594,7 @@ standard-builtins = compile-env(standard-globals, [string-dict:])
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
-   [list:
+    [list:
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",
@@ -1604,7 +1606,8 @@ standard-imports = extra-imports(
           "array-length",
           "array-to-list-now"
         ],
-        [list: "Array"]),
+        [list: "Array"],
+        lam(opt): true;),
       extra-import(builtin("lists"), "lists", [list:
           "list",
           "is-List",
@@ -1641,7 +1644,8 @@ standard-imports = extra-imports(
           "fold3",
           "fold4"
         ],
-        [list: "List"]),
+        [list: "List"],
+        lam(opt): true;),
       extra-import(builtin("option"), "option", [list:
           "Option",
           "is-Option",
@@ -1650,8 +1654,9 @@ standard-imports = extra-imports(
           "none",
           "some"
         ],
-        [list: "Option"]),
-      extra-import(builtin("error"), "error", [list: ], [list:]),
+        [list: "Option"],
+        lam(opt): true;),
+      extra-import(builtin("error"), "error", [list: ], [list:], lam(opt): true;),
       extra-import(builtin("sets"), "sets", [list:
           "set",
           "tree-set",
@@ -1663,5 +1668,8 @@ standard-imports = extra-imports(
           "list-to-list-set",
           "list-to-tree-set"
         ],
-        [list: "Set"])
+        [list: "Set"],
+        lam(opt): true;),
+      extra-import(builtin("tracerlib"), "$tracer", [list:], [list:], lam(opt): opt.trace;)
     ])
+

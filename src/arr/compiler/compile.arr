@@ -56,7 +56,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
         ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
           checked, ret)
       end
-      var imported = U.wrap-extra-imports(checked, libs)
+      var imported = U.wrap-extra-imports(checked, libs, options)
       checked := nothing
       when options.collect-all: ret := phase("Added imports", imported, ret) end
       var scoped = R.desugar-scope(imported, env)

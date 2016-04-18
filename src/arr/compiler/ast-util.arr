@@ -657,31 +657,34 @@ fun make-renamer(replacements :: SD.StringDict):
   }
 end
 
-fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
+fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports, options :: Object) -> A.Program:
   expr = p.block
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
-      full-imports = p.imports + for map(i from imports):
-          cases(CS.Dependency) i.dependency:
-            | builtin(name) =>
-              loc = SL.builtin(i.as-name)
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(loc, _)),
-                i.types.map(A.s-name(loc, _)),
-                A.s-const-import(p.l, name),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
-            | dependency(protocol, args) =>
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(p.l, _)),
-                i.types.map(A.s-name(p.l, _)),
-                A.special-import(p.l, protocol, args),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
-          end
+      filtered-imports = for filter(i from imports):
+        i.opt-pred(options) # Some imports are dependent on command line options.
+      end
+      full-imports = p.imports + for map(i from filtered-imports):
+        cases(CS.Dependency) i.dependency:
+          | builtin(name) =>
+            loc = SL.builtin(i.as-name)
+            A.s-import-complete(
+              p.l,
+              i.values.map(A.s-name(loc, _)),
+              i.types.map(A.s-name(loc, _)),
+              A.s-const-import(p.l, name),
+              A.s-name(p.l, i.as-name),
+              A.s-name(p.l, i.as-name))
+          | dependency(protocol, args) =>
+            A.s-import-complete(
+              p.l,
+              i.values.map(A.s-name(p.l, _)),
+              i.types.map(A.s-name(p.l, _)),
+              A.special-import(p.l, protocol, args),
+              A.s-name(p.l, i.as-name),
+              A.s-name(p.l, i.as-name))
         end
+      end
       A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
   end
 end
