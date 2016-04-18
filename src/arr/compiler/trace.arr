@@ -17,6 +17,8 @@ import "compiler/ast-util.arr" as U
 fun V_TRACER(l):  A.s-name(l, "$tracer") end # Defined in arr/compiler/compile-structs.arr
 fun ID_TRACER(l): A.s-id(l, V_TRACER(l)) end
 fun V_ANSWER(l):  A.s-name(l, "$trace_answer") end
+fun V_ID(l): A.s-name(l, "$trace_id") end
+fun ID_ID(l): A.s-id(l, V_ID(l)) end
 fun ID_ANSWER(l): A.s-id(l, V_ANSWER(l)) end
 fun V_ARG(l, arg, n):  A.s-name(l, "$trace_arg" + torepr(n)) end
 fun ID_ARG(l, arg, n): A.s-id(l, V_ARG(l, arg, n)) end
@@ -27,20 +29,20 @@ fun TRACER(l, func, args):
   A.s-app(l, A.s-dot(l, ID_TRACER(l), func), args)
 end
 
-fun BEGIN_TRACE(l):
-  TRACER(l, "begin-trace", [list:])
+fun SHOW_TRACE(l):
+  TRACER(l, "show-trace", [list:])
 end
 
-fun END_TRACE(l):
-  TRACER(l, "end-trace", [list:])
+fun LIST(l, elems):
+  A.s-construct(l, A.s-construct-normal, gid(l, "list"), elems)
 end
 
-fun LOG_CALL(l, call-string):
-  TRACER(l, "log-call", [list: call-string])
+fun LOG_CALL(l, func, args):
+  TRACER(l, "log-call", [list: func, LIST(l, args)])
 end
 
-fun LOG_RETURN(l, return-string):
-  TRACER(l, "log-return", [list: return-string])
+fun LOG_RETURN(l, return-val, id):
+  TRACER(l, "log-return", [list: return-val, id])
 end
 
 fun PRINT(l, msg):
@@ -75,12 +77,8 @@ fun ARG_IDS(l, args):
 end
 
 fun SHOW_ARGS(l, args):
-  cases(List) args:
-    | empty => A.s-str(l, "")
-    | link(first-arg, shadow args) =>
-      for fold(expr from TO_REPR(l, first-arg), arg from args):
-        PLUS3(l, expr, A.s-str(l, ", "), TO_REPR(l, arg))
-      end
+  for map(arg from args):
+    TO_REPR(l, arg)
   end
 end
 
@@ -98,14 +96,9 @@ fun xform-app(name, l, func, args):
   A.s-block(l,
     LET_ARGS(l, args) +
     [list:
-      LOG_CALL(l,
-        PLUS3(l,
-          A.s-str(l, name + "("),
-          SHOW_ARGS(l, args),
-          A.s-str(l, ")"))),
+      LET(l, V_ID(l), LOG_CALL(l, A.s-str(l, name), SHOW_ARGS(l, args))),
       LET(l, V_ANSWER(l), A.s-app(l, func, ARG_IDS(l, args))),
-      LOG_RETURN(l,
-        TO_REPR(l, ID_ANSWER(l))),
+      LOG_RETURN(l, TO_REPR(l, ID_ANSWER(l)), ID_ID(l)),
       ID_ANSWER(l)
     ])
 end
@@ -129,12 +122,11 @@ fun xform-program(l, stmts :: List<A.Expr>):
   id-result = A.s-name(l, G.make-name("result-after-trace"))
   last-expr = stmts.last()
   A.s-block(l,
-    link(BEGIN_TRACE(l),
-      stmts.take(stmts.length() - 1) +
-      [list:
-        LET(l, id-result, last-expr),
-        END_TRACE(l),
-        A.s-id(l, id-result)]))
+    stmts.take(stmts.length() - 1) +
+    [list:
+      LET(l, id-result, last-expr),
+#      SHOW_TRACE(l),
+      A.s-id(l, id-result)])
 end
 
 fun trace(program :: A.Program):
