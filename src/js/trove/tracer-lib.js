@@ -15,6 +15,20 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                 ID = ID + 1;
                 return ID;
             }
+
+            function debug_log() {
+                for (var i in LOG) {
+                    var event = LOG[i];
+                    var data;
+                    switch (LOG.type) {
+                    case "ENTER":  data = event.loc; break;
+                    case "EXIT":   data = event.loc; break;
+                    case "CALL":   data = event.func; break;
+                    case "RETURN": data = event.value; break;
+                    }
+                    console.log("\t" + event.type + "\t" + data);
+                }
+            }
             
             return runtime.makeObject({
                 "provide": runtime.makeObject({
@@ -25,7 +39,8 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                         return runtime.nothing;
                     }),
                     "exit": runtime.makeFunction(function(srcloc) {
-                        ffi.checkArity(1, arguments, "enter");
+                        ffi.checkArity(1, arguments, "exit");
+                        var srcloc = runtime.makeSrcloc(srcloc);
                         LOG.push({type: "EXIT", loc: srcloc});
                         return runtime.nothing;
                     }),
@@ -41,6 +56,8 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                         } else {
                             console.log("Tracer popup blocked");
                         }
+                        // TODO: Temporary logging
+                        debug_log();
                         reset();
                         return runtime.nothing;
                     }),
