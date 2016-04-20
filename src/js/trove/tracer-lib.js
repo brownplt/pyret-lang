@@ -20,13 +20,15 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                 for (var i in LOG) {
                     var event = LOG[i];
                     var data;
-                    switch (LOG.type) {
+                    switch (event.type) {
                     case "ENTER":  data = event.loc; break;
                     case "EXIT":   data = event.loc; break;
                     case "CALL":   data = event.func; break;
                     case "RETURN": data = event.value; break;
                     }
-                    console.log("\t" + event.type + "\t" + data);
+                    console.log("\t" + event.type +
+                                "\t" + event.id +
+                                "\t" + data);
                 }
             }
             
@@ -35,30 +37,20 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                     "enter": runtime.makeFunction(function(srcloc) {
                         ffi.checkArity(1, arguments, "enter");
                         var srcloc = runtime.makeSrcloc(srcloc);
-                        LOG.push({type: "ENTER", loc: srcloc});
-                        return runtime.nothing;
+                        var id = next_id();
+                        LOG.push({"type": "ENTER",
+                                  "loc": srcloc,
+                                  "id": id});
+                        return runtime.makeNumber(id);
                     }),
-                    "exit": runtime.makeFunction(function(srcloc) {
-                        ffi.checkArity(1, arguments, "exit");
+                    "exit": runtime.makeFunction(function(srcloc, id) {
+                        ffi.checkArity(2, arguments, "exit");
                         var srcloc = runtime.makeSrcloc(srcloc);
-                        LOG.push({type: "EXIT", loc: srcloc});
-                        return runtime.nothing;
-                    }),
-                    "show-trace": runtime.makeFunction(function() {
-                        ffi.checkArity(0, arguments, "show-trace");
-                        if (POPUP) {
-                            POPUP.close();
-                            POPUP = null;
-                        }
-                        POPUP = window.open("/tracer");
-                        if (POPUP) {
-                            POPUP.window.LOG = LOG;
-                        } else {
-                            console.log("Tracer popup blocked");
-                        }
-                        // TODO: Temporary logging
-                        debug_log();
-                        reset();
+                        runtime.checkNumber(id);
+                        var id = runtime.unwrap(id);
+                        LOG.push({"type": "EXIT",
+                                  "loc": srcloc,
+                                  "id": id});
                         return runtime.nothing;
                     }),
                     "log-call": runtime.makeFunction(function(func, args) {
@@ -83,6 +75,23 @@ define(["js/runtime-util", "js/ffi-helpers"], function(util, ffiLib) {
                         LOG.push({"type": "RETURN",
                                   "value": value,
                                   "id": id});
+                        return runtime.nothing;
+                    }),
+                    "show-trace": runtime.makeFunction(function() {
+                        ffi.checkArity(0, arguments, "show-trace");
+                        if (POPUP) {
+                            POPUP.close();
+                            POPUP = null;
+                        }
+                        POPUP = window.open("/tracer");
+                        if (POPUP) {
+                            POPUP.window.LOG = LOG;
+                        } else {
+                            console.log("Tracer popup blocked");
+                        }
+                        // TODO: Temporary logging
+                        debug_log();
+                        reset();
                         return runtime.nothing;
                     })
                 }),

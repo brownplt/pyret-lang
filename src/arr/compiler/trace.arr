@@ -41,8 +41,8 @@ fun ENTER(l, srcloc):
   TRACER(l, "enter", [list: AST(l, srcloc)])
 end
 
-fun EXIT(l, srcloc):
-  TRACER(l, "exit", [list: AST(l, srcloc)])
+fun EXIT(l, srcloc, id):
+  TRACER(l, "exit", [list: AST(l, srcloc), id])
 end
 
 fun LIST(l, elems):
@@ -63,6 +63,15 @@ end
 
 fun IMPORT(l, module-str, name):
   A.s-import(l, A.s-const-import(l, module-str), name)
+end
+
+fun BLOCK(l, stmts):
+  A.s-block(l, stmts)
+end
+
+fun TRY(l, block):
+  thunk = A.s-lam(l, [list:], [list:], A.a-blank, "", block, none)
+  A.s-app(l, gid(l, "run-task"), [list: thunk])
 end
 
 fun LET(l, v, expr):
@@ -105,7 +114,7 @@ fun xform-app(name, l, func, args):
     | else =>
       raise("Error when tracing: unexpected variable type: " + torepr(name))
   end
-  A.s-block(l,
+  BLOCK(l,
     LET_ARGS(l, args) +
     [list:
       LET(l, V_ID(l), LOG_CALL(l, A.s-str(l, name), SHOW_ARGS(l, args.length()))),
@@ -116,12 +125,10 @@ fun xform-app(name, l, func, args):
 end
 
 fun xform-check(l, block :: A.Expr):
-  A.s-block(l, [list:
-      ENTER(l, l),
-      LET(l, V_ANSWER(l), block),
-#      block,
-      EXIT(l, l),
-      ID_ANSWER(l)
+  BLOCK(l, [list:
+      LET(l, V_ID(l), ENTER(l, l)),
+      TRY(l, block),
+      EXIT(l, l, ID_ID(l))
     ])
 end
 
@@ -176,11 +183,10 @@ fun xform-program(l, stmts :: List<A.Expr>):
   end
   id-result = A.s-name(l, G.make-name("result-after-trace"))
   last-expr = stmts.last()
-  A.s-block(l,
+  BLOCK(l,
     stmts.take(stmts.length() - 1) +
     [list:
       LET(l, id-result, last-expr),
-#      SHOW_TRACE(l),
       A.s-id(l, id-result)])
 end
 
