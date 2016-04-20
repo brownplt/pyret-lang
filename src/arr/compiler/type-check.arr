@@ -728,12 +728,12 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-app(l, _fun, args) =>
       synthesis-app-fun(l, _fun, args, context)
         .typing-bind(lam(result-obj, shadow context):
-          synthesis-spine(context.apply(result-obj.fun-type), result-obj.is-binop, A.s-app(l, _fun, _), args, l, context)
+          synthesis-spine(context.apply(result-obj.fun-type), A.s-app(l, _fun, _), args, l, context)
             .map-type(_.set-loc(l))
         end)
     | s-prim-app(l, _fun, args) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, _):
-        synthesis-spine(arrow-type, false, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
@@ -797,8 +797,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
   end)
 end
 
-fun synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context):
-  result = _synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context)
+fun synthesis-spine(fun-type, recreate, args, app-loc, context):
+  result = _synthesis-spine(fun-type, recreate, args, app-loc, context)
   #print("")
   #print("spine synthesis with type: " + tostring(fun-type))
   #print("args:")
@@ -808,14 +808,9 @@ fun synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context):
   result
 end
 
-fun _synthesis-spine(fun-type :: Type, is-binop :: Boolean, recreate :: (List<Expr> -> Expr), args :: List<Expr>, app-loc :: Loc, context :: Context) -> TypingResult:
+fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: List<Expr>, app-loc :: Loc, context :: Context) -> TypingResult:
   cases(Type) fun-type:
     | t-arrow(arg-types, ret-type, _) =>
-      # TODO(MATT): when Jack gives us hooks this is where we're going to have binop-specific errors
-      # TODO(MATT): investigate a method for heuristics for errors in general
-      when is-binop:
-        nothing
-      end
       result = fold2-strict(lam(acc, arg, arg-type):
         acc.bind(lam(exprs, shadow context):
           checking(arg, arg-type, false, context)
@@ -837,7 +832,7 @@ fun _synthesis-spine(fun-type :: Type, is-binop :: Boolean, recreate :: (List<Ex
       new-type = introduces.foldr(lam(type-var, new-type):
         new-type.substitute(new-existential(l), type-var)
       end, onto)
-      synthesis-spine(new-type, false, recreate, args, app-loc, context)
+      synthesis-spine(new-type, recreate, args, app-loc, context)
     | t-bot(l) =>
       result = fold-typing(lam(arg, shadow context):
         checking(arg, t-top(l), false, context)
