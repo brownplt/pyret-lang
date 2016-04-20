@@ -834,8 +834,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-construct not implemented")
     | s-app(l, _fun, args) =>
       synthesis-app-fun(l, _fun, args, context)
-        .bind(lam(new-fun, new-fun-type, shadow context):
-          synthesis-spine(context.apply(new-fun-type), A.s-app(l, _fun, _), args, l, context)
+        .typing-bind(lam(result-obj, shadow context):
+          synthesis-spine(context.apply(result-obj.fun-type), A.s-app(l, _fun, _), args, l, context)
             .map-type(_.set-loc(l))
         end)
     | s-prim-app(l, _fun, args) =>
@@ -966,7 +966,7 @@ fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args ::
         typing-result(recreate(new-exprs), existential-ret, context)
       end)
     | else =>
-      typing-error([list: C.apply-non-function(app-loc, fun-type)])
+      typing-error([list: C.apply-non-function(recreate(args), fun-type)])
   end.bind(lam(ast, typ, shadow context):
     typing-result(ast, context.apply(typ.set-loc(app-loc)), context)
   end)
@@ -1562,7 +1562,17 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
     to-type(binding.ann, context).bind(lam(maybe-type, _):
       new-type = cases(Option<Type>) maybe-type:
         | some(typ) => typ.set-loc(binding.l)
-        | none => new-existential(binding.l)
+        | none =>
+          cases(A.Name) binding.id:
+            | s-atom(base, _) =>
+              if base == "$underscore":
+                t-top(binding.l) # TODO(MATT): this probably should be t-forall instead but then we'll need to figure out skolemization
+              else:
+                new-existential(binding.l)
+              end
+            | else =>
+              new-existential(binding.l)
+          end
       end
       fold-result(dict.set(binding.id.key(), new-type), context)
     end)
@@ -2427,24 +2437,27 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
   end)
 end
 
-fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> TypingResult:
-  cases(A.Expr) _fun:
+fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<{fun-type :: Type, is-binop :: Boolean}>:
+  cases(Expr) _fun:
     | s-id(fun-loc, id) =>
+      binop-result = lam(new-type, shadow context):
+        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: true}, context)
+      end
       result = lam(new-type, shadow context):
-        typing-result(_fun, new-type.set-loc(app-loc), context)
+        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
       end
       fun pick2(num-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
-          | empty      =>
-            typing-error([list: C.incorrect-number-of-args(app-loc)])
+          | empty =>
+            fold-errors([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
-            synthesis(f, false, context).bind(
+            synthesis(f, false, context).fold-bind(
               lam(_, f-typ, shadow context):
                 ask:
                   | f-typ == t-number(A.dummy-loc) then: result(num-typ-f(fun-loc), context)
                   | is-t-record(f-typ) then: result(rec-typ-f(fun-loc), context)
-                  | is-t-existential(f-typ) then: typing-error([list:C.unable-to-infer(f-typ.l)])
-                  | otherwise: typing-error([list:
+                  | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
+                  | otherwise: fold-errors([list:
                       C.incorrect-type(tostring(f-typ), f-typ.l, "Number or an object with the field " + id.toname(), app-loc)])
                 end
               end)
@@ -2452,17 +2465,17 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
       end
       fun pick3(num-typ-f :: (A.Loc -> Type), str-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
-          | empty      =>
-            typing-error([list: C.incorrect-number-of-args(app-loc)])
+          | empty =>
+            fold-errors([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
-            synthesis(f, false, context).bind(
+            synthesis(f, false, context).fold-bind(
               lam(_, f-typ, shadow context):
                 ask:
-                  | f-typ == t-number(A.dummy-loc) then: result(num-typ-f(fun-loc), context)
-                  | f-typ == t-string(A.dummy-loc) then: result(str-typ-f(fun-loc), context)
-                  | is-t-record(f-typ) then: result(rec-typ-f(fun-loc), context)
-                  | is-t-existential(f-typ) then: typing-error([list:C.unable-to-infer(f-typ.l)])
-                  | otherwise: typing-error([list:
+                  | f-typ == t-number(A.dummy-loc) then: binop-result(num-typ-f(fun-loc), context)
+                  | f-typ == t-string(A.dummy-loc) then: binop-result(str-typ-f(fun-loc), context)
+                  | is-t-record(f-typ) then: binop-result(rec-typ-f(fun-loc), context)
+                  | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
+                  | otherwise: fold-errors([list:
                     C.incorrect-type(tostring(f-typ), f-typ.l, "Number, String or an object with the field " + id.toname(), app-loc)])
                 end
               end)
@@ -2479,10 +2492,14 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
         | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
         | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
         | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
-        | otherwise: synthesis(_fun, false, context).map-type(_.set-loc(app-loc))
+        | otherwise: synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
+            fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
+          end)
       end
     | else =>
-      synthesis(_fun, false, context).map-type(_.set-loc(app-loc))
+      synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
+        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
+      end)
   end
 end
 

@@ -190,6 +190,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(methodname);
         raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
+      
       function throwNumericBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
@@ -197,6 +198,40 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(opdesc);
         runtime.checkString(methodname);
         raise(err("numeric-binop-error")(left, right, opname, opdesc, methodname));
+      }
+      
+      function throwUpdateNonObj(loc, objval, objloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        raise(err("update-non-obj")(loc, objval, objloc));
+      }
+      
+      function throwUpdateFrozenRef(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-frozen-ref")(loc, objval, objloc, fieldname, fieldloc));
+      }
+      
+      function throwUpdateNonRef(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-non-ref")(loc, objval, objloc, fieldname, fieldloc));
+      }
+      
+      function throwUpdateNonExistentField(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-non-existent-field")(loc, objval, objloc, fieldname, fieldloc));
       }
 
       function throwUninitializedId(loc, name) {
@@ -323,6 +358,10 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
+        throwUpdateNonObj : throwUpdateNonObj,
+        throwUpdateFrozenRef : throwUpdateFrozenRef,
+        throwUpdateNonRef : throwUpdateNonRef,
+        throwUpdateNonExistentField : throwUpdateNonExistentField,
         throwNumStringBinopError: throwNumStringBinopError,
         throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,

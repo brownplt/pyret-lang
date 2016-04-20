@@ -633,7 +633,6 @@ data Expr:
         last-loc.end-column,
         last-loc.end-char)
     end,
-    
     tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
@@ -749,7 +748,6 @@ data Expr:
       self.l.end-column,
       self.l.end-char)
     end,
-    
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
     tosource(self):
@@ -2054,7 +2052,7 @@ default-iter-visitor = {
   s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-   
+
   s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,

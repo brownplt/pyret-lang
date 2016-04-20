@@ -37,7 +37,6 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
                   rt.namespace.get("tostring"), 
                   rt.ffi.makeList(pyretStack.map(rt.makeSrcloc)));
               }, rt.namespace, {sync: true}, function(printResult) {
-                console.log("PYRET-START");
                 if(rt.isFailureResult(printResult)) {
                   console.error('While trying to report that Pyret terminated with error:\n' + JSON.stringify(result)
                                 + "\nstringifying that error produced another error:\n" + JSON.stringify(printResult)
