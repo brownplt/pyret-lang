@@ -1357,6 +1357,54 @@ data CompileError:
           ED.text("argument at"), draw-and-highlight(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end
+  | binop-type-error(binop :: A.Expr, tl :: T.Type, tr :: T.Type, etl :: T.Type, etr :: T.Type) with:
+    render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The typechecker thinks there's a problem with the "),
+          ED.code(ED.highlight(ED.text(self.binop.op),[list: self.binop.op-l], 0)),
+          ED.text(" binary operator expression:")],
+         ED.cmcode(self.binop.l),
+        [ED.para:
+          ED.text("where the it thinks the "),
+          ED.highlight(ED.text("left hand side"), [list: self.binop.left.l], 1),
+          ED.text(" is a "), ED.embed(self.tl),
+          ED.text(" and the "),
+          ED.highlight(ED.text("right hand side"), [list: self.binop.right.l], 2),
+          ED.text(" is a "), ED.embed(self.tr), ED.text(".")],
+        [ED.para:
+          ED.text("When the type checker sees a "),
+          ED.highlight(ED.embed(self.etl), [list: self.binop.left.l], 1),
+          ED.text("to the left of a "),
+          ED.code(ED.highlight(ED.text(self.binop.op),[list: self.binop.op-l], 0)),
+          ED.text(" it thinks that the "),
+          ED.highlight(ED.text("right hand side"), [list: self.binop.right.l], 2),
+          ED.text(" should be a "),
+          ED.embed(self.etr)]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The typechecker thinks there's a problem with the "),
+          ED.code(ED.highlight(ED.text(self.binop.op),[list: self.binop.op-l], 0)),
+          ED.text(" binary operator expression at "), ED.loc(self.binop.op-l)],
+        [ED.para:
+          ED.text("where the it thinks the "),
+          ED.highlight(ED.text("left hand side"), [list: self.binop.left.l], 1),
+          ED.text(" is a "), ED.embed(self.tl),
+          ED.text(" and the "),
+          ED.highlight(ED.text("right hand side"), [list: self.binop.right.l], 2),
+          ED.text(" is a "), ED.embed(self.tr), ED.text(".")],
+        [ED.para:
+          ED.text("When the type checker sees a "),
+          ED.highlight(ED.embed(self.tl), [list: self.binop.left.l], 1),
+          ED.text("to the left of a "),
+          ED.code(ED.highlight(ED.text(self.binop.op),[list: self.binop.op-l], 0)),
+          ED.text(" it thinks that the "),
+          ED.highlight(ED.text("right hand side"), [list: self.binop.right.l], 2),
+          ED.text(" should be a "),
+          ED.embed(self.etr)]]
+    end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
     render-fancy-reason(self):
       self.render-reason()
