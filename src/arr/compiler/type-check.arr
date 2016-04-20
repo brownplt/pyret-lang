@@ -859,7 +859,7 @@ fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args ::
         typing-result(recreate(new-exprs), existential-ret, context)
       end)
     | else =>
-      typing-error([list: C.apply-non-function(app-loc, fun-type)])
+      typing-error([list: C.apply-non-function(recreate(args), fun-type)])
   end.bind(lam(ast, typ, shadow context):
     typing-result(ast, context.apply(typ.set-loc(app-loc)), context)
   end)
@@ -1455,7 +1455,17 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
     to-type(binding.ann, context).bind(lam(maybe-type, _):
       new-type = cases(Option<Type>) maybe-type:
         | some(typ) => typ.set-loc(binding.l)
-        | none => new-existential(binding.l)
+        | none =>
+          cases(A.Name) binding.id:
+            | s-atom(base, _) =>
+              if base == "$underscore":
+                t-top(binding.l) # TODO(MATT): this probably should be t-forall instead but then we'll need to figure out skolemization
+              else:
+                new-existential(binding.l)
+              end
+            | else =>
+              new-existential(binding.l)
+          end
       end
       fold-result(dict.set(binding.id.key(), new-type), context)
     end)
@@ -2328,7 +2338,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
       end
       fun pick2(num-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
-          | empty      =>
+          | empty =>
             typing-error([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
             synthesis(f, false, context).bind(
@@ -2345,7 +2355,7 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
       end
       fun pick3(num-typ-f :: (A.Loc -> Type), str-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
         cases(List<A.Expr>) args:
-          | empty      =>
+          | empty =>
             typing-error([list: C.incorrect-number-of-args(app-loc)])
           | link(f, r) =>
             synthesis(f, false, context).bind(

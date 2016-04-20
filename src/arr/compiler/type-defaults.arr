@@ -39,6 +39,13 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
+# TODO(MATT): does this break things?
+tva = t-var(A.global-names.make-atom("A"))
+tvb = t-var(A.global-names.make-atom("B"))
+tvc = t-var(A.global-names.make-atom("C"))
+tvd = t-var(A.global-names.make-atom("D"))
+tve = t-var(A.global-names.make-atom("E"))
+
 fun make-default-aliases():
   default-aliases = [SD.mutable-string-dict:
     A.s-type-global("Nothing").key(), t-nothing,
@@ -83,12 +90,12 @@ fun make-default-types():
   ]))
 
   # Need to be fixed to correct type:
-  default-typs.set-now(A.s-global("raw-array-get").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-set").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-of").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-length").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-fold").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-get").key(), t-forall([list: tva], t-arrow([list: t-array(tva), t-number], tva)))
+  default-typs.set-now(A.s-global("raw-array-set").key(), t-forall([list: tva], t-arrow([list: t-array(tva), t-number, tva], t-array(tva))))
+  default-typs.set-now(A.s-global("raw-array-of").key(), t-forall([list: tva], t-arrow([list: tva, t-number], t-array(tva))))
+  default-typs.set-now(A.s-global("raw-array-length").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], t-number)))
+  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], mk-list(tva))))
+  default-typs.set-now(A.s-global("raw-array-fold").key(), t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva, t-number], tvb), tvb, t-array(tva), t-number], tvb)))
   default-typs.set-now(A.s-global("raw-array").key(), t-top)
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)
@@ -108,12 +115,8 @@ fun make-default-types():
   default-typs.set-now(A.s-global("string-index-of").key(), t-top)
   default-typs.set-now(A.s-global("string-to-code-points").key(), t-top)
   default-typs.set-now(A.s-global("string-from-code-points").key(), t-top)
-  default-typs.set-now(A.s-global("_empty").key(), let tva = s-atom("A", 37):
-    t-forall([list: t-var(tva)], mk-list(t-var(tva)))
-  end)
-  default-typs.set-now(A.s-global("_link").key(), let tva = s-atom("A", 37), tv = t-var(tva):
-    t-forall([list: tv], t-arrow([list: tv, mk-list(tv)], mk-list(tv)))
-  end)
+  default-typs.set-now(A.s-global("_empty").key(), t-forall([list: tva], mk-list(tva)))
+  default-typs.set-now(A.s-global("_link").key(), t-forall([list: tva], t-arrow([list: tva, mk-list(tva)], mk-list(tva))))
   default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
@@ -214,9 +217,8 @@ fun make-default-types():
   default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
   default-typs.set-now(A.s-global("_greaterthan").key(), t-number-binop)
   default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
-  print-variable = A.s-atom(gensym("A"), 1)
-  default-typs.set-now(A.s-global("print").key(), t-forall([list: t-var(print-variable)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
-  default-typs.set-now(A.s-global("display").key(), t-forall([list: t-var(print-variable)], t-arrow([list: t-var(print-variable)], t-var(print-variable))))
+  default-typs.set-now(A.s-global("print").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
+  default-typs.set-now(A.s-global("display").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
 
   default-typs
 end
@@ -288,46 +290,26 @@ module-const-equality = t-module("pyret-builtin://equality",
 
 module-const-arrays = t-module("pyret-builtin://arrays",
   t-record([list:
-    t-member("array", let tv = t-var(s-atom("A", 1)):
-        t-top
-    end),
-    t-member("build-array", let tva = s-atom("A", 2), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: t-arrow([list: t-number], tv), t-number], mk-array(tv)))
-    end),
-    t-member("array-from-list", let tva = s-atom("A", 3), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: mk-list(tv)], mk-array(tv)))
-    end),
-    t-member("is-array", let tva = s-atom("A", 4), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: t-top], t-boolean))
-    end),
-    t-member("array-of", let tva = s-atom("A", 5), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: tv, t-number], mk-array(tv)))
-    end),
-    t-member("array-set-now", let tva = s-atom("A", 6), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: mk-array(tv), t-number, tv], t-nothing))
-    end),
-    t-member("array-get-now", let tva = s-atom("A", 7), tv = t-var(tva):
-        t-forall([list: t-var(tva)], t-arrow([list: mk-array(tv), t-number], tv))
-    end),
-    t-member("array-length", let tva = s-atom("A", 8), tv = t-var(tva):
-      t-forall([list: t-var(tva)], t-arrow([list: mk-array(tv)], t-number))
-    end),
-    t-member("array-to-list-now", let tva = s-atom("A", 9), tv = t-var(tva):
-      t-forall([list: t-var(tva)], t-arrow([list: mk-array(tv)], mk-list(tv)))
-    end)
+    t-member("array", t-top),
+    t-member("build-array", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number], tva), t-number], mk-array(tva)))),
+    t-member("array-from-list", t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-array(tva)))),
+    t-member("is-array", t-forall([list: tva], t-arrow([list: t-top], t-boolean))),
+    t-member("array-of", t-forall([list: tva], t-arrow([list: tva, t-number], mk-array(tva)))),
+    t-member("array-set-now", t-forall([list: tva], t-arrow([list: mk-array(tva), t-number, tva], t-nothing))),
+    t-member("array-get-now", t-forall([list: tva], t-arrow([list: mk-array(tva), t-number], tva))),
+    t-member("array-length", t-forall([list: tva], t-arrow([list: mk-array(tva)], t-number))),
+    t-member("array-to-list-now", t-forall([list: tva], t-arrow([list: mk-array(tva)], mk-list(tva))))
   ]),
-  let tva = s-atom("A", 10),
-      tv = t-var(tva),
-      tv-arg = [list: tv]:
+  let tv-arg = [list: tva]:
     SD.make-string-dict()
-      .set("Array", t-forall([list: tv],
+      .set("Array", t-forall([list: tva],
         t-data(
           "Array",
           [list: ],
           [list:
-              t-member("get-now", t-arrow([list: t-number], tv)),
-              t-member("set-now", t-arrow([list: t-number, tv], t-nothing)),
-              t-member("to-list-now", t-arrow(empty, mk-list(tv))),
+              t-member("get-now", t-arrow([list: t-number], tva)),
+              t-member("set-now", t-arrow([list: t-number, tva], t-nothing)),
+              t-member("to-list-now", t-arrow(empty, mk-list(tva))),
               t-member("length", t-arrow(empty, t-number)),
               t-member("_torepr", t-torepr),
               t-member("_tostring", t-tostring)
@@ -338,63 +320,50 @@ module-const-arrays = t-module("pyret-builtin://arrays",
     .set("Array", t-name(none, A.s-name(A.dummy-loc, "Array")))
 )
 
-fun set-constructor(tva :: A.Name):
-  tv = t-var(tva)
+set-constructor =
   t-record([list:
-      t-member("make", t-forall([list: tv], t-arrow([list: t-array(tv)], mk-set(tv)))),
-      t-member("make0", t-forall([list: tv], t-arrow([list: ], mk-set(tv)))),
-      t-member("make1", t-forall([list: tv], t-arrow([list: tv], mk-set(tv)))),
-      t-member("make2", t-forall([list: tv], t-arrow([list: tv, tv], mk-set(tv)))),
-      t-member("make3", t-forall([list: tv], t-arrow([list: tv, tv, tv], mk-set(tv)))),
-      t-member("make4", t-forall([list: tv], t-arrow([list: tv, tv, tv, tv], mk-set(tv)))),
-      t-member("make5", t-forall([list: tv], t-arrow([list: tv, tv, tv, tv, tv], mk-set(tv))))
+      t-member("make", t-forall([list: tva], t-arrow([list: t-array(tva)], mk-set(tva)))),
+      t-member("make0", t-forall([list: tva], t-arrow([list: ], mk-set(tva)))),
+      t-member("make1", t-forall([list: tva], t-arrow([list: tva], mk-set(tva)))),
+      t-member("make2", t-forall([list: tva], t-arrow([list: tva, tva], mk-set(tva)))),
+      t-member("make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], mk-set(tva)))),
+      t-member("make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], mk-set(tva)))),
+      t-member("make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], mk-set(tva))))
     ])
-end
 
-fun mk-empty-set(tva :: A.Name):
-  tv = t-var(tva)
-  t-forall([list: t-var(tva)], mk-set(tv))
-end
+t-empty-set = t-forall([list: tva], mk-set(tva))
 
-fun mk-list-to-set(tva :: A.Name):
-  tv = t-var(tva)
-  t-forall([list: t-var(tva)], t-arrow([list: mk-list(tv)], mk-set(tv)))
-end
+t-list-to-set = t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-set(tva)))
 
 module-const-sets = t-module("pyret-builtin://sets",
   t-record([list:
-    t-member("set", set-constructor(s-atom("A", 11))),
-    t-member("list-set", set-constructor(s-atom("A", 12))),
-    t-member("tree-set", set-constructor(s-atom("A", 13))),
-    t-member("empty-set", mk-empty-set(s-atom("A", 14))),
-    t-member("empty-list-set", mk-empty-set(s-atom("A", 15))),
-    t-member("empty-tree-set", mk-empty-set(s-atom("A", 16))),
-    t-member("list-to-set", mk-list-to-set(s-atom("A", 17))),
-    t-member("list-to-list-set", mk-list-to-set(s-atom("A", 18))),
-    t-member("list-to-tree-set", mk-list-to-set(s-atom("A", 19)))
+    t-member("set", set-constructor),
+    t-member("list-set", set-constructor),
+    t-member("tree-set", set-constructor),
+    t-member("empty-set", t-empty-set),
+    t-member("empty-list-set", t-empty-set),
+    t-member("empty-tree-set", t-empty-set),
+    t-member("list-to-set", t-list-to-set),
+    t-member("list-to-list-set", t-list-to-set),
+    t-member("list-to-tree-set", t-list-to-set)
   ]),
-  let tva = s-atom("A", 20),
-      tv = t-var(tva),
-      tv-set = mk-set(tv),
+  let tv-set = mk-set(tva),
       tv-to-tv = t-arrow([list: tv-set], tv-set),
-      tv-arg = [list: tv]:
+      tv-arg = [list: tva]:
     SD.make-string-dict()
-      .set("Set", t-forall([list: tv],
+      .set("Set", t-forall([list: tva],
         t-data(
           "Set",
           [list: ],
           [list:
               t-member("length", t-arrow(empty, t-number)),
-              t-member("pick", t-arrow(empty, t-app(t-name(some("pyret-builtin://pick"), A.s-type-global("Pick")), [list: tv, mk-set(tv)]))),
+              t-member("pick", t-arrow(empty, t-app(t-name(some("pyret-builtin://pick"), A.s-type-global("Pick")), [list: tva, mk-set(tva)]))),
               t-member("_torepr", t-torepr),
-              t-member("fold", let otva = s-atom("B", 21),
-                                  otv  = t-var(otva):
-                t-arrow([list: t-arrow(tv-arg, otv), otv], otv)
-              end),
-              t-member("member", t-arrow([list: tv], t-boolean)),
-              t-member("add", t-arrow([list: tv], tv-set)),
-              t-member("remove", t-arrow([list: tv], tv-set)),
-              t-member("to-list", t-arrow(empty, mk-list(tv))),
+              t-member("fold", t-forall([list: tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb], tvb))),
+              t-member("member", t-arrow([list: tva], t-boolean)),
+              t-member("add", t-arrow([list: tva], tv-set)),
+              t-member("remove", t-arrow([list: tva], tv-set)),
+              t-member("to-list", t-arrow(empty, mk-list(tva))),
               t-member("union", tv-to-tv),
               t-member("intersect", tv-to-tv),
               t-member("difference", tv-to-tv),
@@ -410,78 +379,76 @@ module-const-lists = t-module("pyret-builtin://lists",
   t-record([list:
     t-member("List", t-arrow([list: t-top], t-boolean)),
     t-member("is-List", t-arrow([list: t-top], t-boolean)),
-    t-member("empty", t-forall([list: t-var(s-atom("A", 37))], mk-list(t-var(s-atom("A", 37))))),
+    t-member("empty", t-forall([list: tva], mk-list(tva))),
     t-member("is-empty", t-arrow([list: t-top], t-boolean)),
-    t-member("link", t-forall([list: t-var(s-atom("A", 37))], t-arrow([list: t-var(s-atom("A", 37)), mk-list(t-var(s-atom("A", 37)))], mk-list(t-var(s-atom("A", 37)))))),
+    t-member("link", t-forall([list: tva], t-arrow([list: tva, mk-list(tva)], mk-list(tva)))),
     t-member("is-link", t-arrow([list: t-top], t-boolean)),
     t-member("range", t-arrow([list: t-number, t-number], mk-list(t-number))),
     t-member("range-by", t-arrow([list: t-number, t-number, t-number], mk-list(t-number))),
-    t-member("repeat", t-forall([list: t-var(s-atom("A", 157))], t-arrow([list: t-number, t-var(s-atom("A", 157))], mk-list(t-var(s-atom("A", 157)))))),
-    t-member("filter", t-forall([list: t-var(s-atom("A", 160))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 160))], t-boolean), mk-list(t-var(s-atom("A", 160)))], mk-list(t-top)))),
-    t-member("partition", t-forall([list: t-var(s-atom("A", 165))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 165))], t-boolean), mk-list(t-var(s-atom("A", 165)))], t-record([list: t-member("is-true", mk-list(t-var(s-atom("A", 165)))), t-member("is-false", mk-list(t-var(s-atom("A", 165))))])))),
-    t-member("find", t-forall([list: t-var(s-atom("A", 174))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 174))], t-boolean), mk-list(t-var(s-atom("A", 174)))], t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: t-var(s-atom("A", 174))])))),
-    t-member("split-at", t-forall([list: t-var(s-atom("A", 179))], t-arrow([list: t-number, mk-list(t-var(s-atom("A", 179)))], t-record([list: t-member("prefix", mk-list(t-var(s-atom("A", 179)))), t-member("suffix", mk-list(t-var(s-atom("A", 179))))])))),
-    t-member("any", t-forall([list: t-var(s-atom("A", 189))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 189))], t-boolean), mk-list(t-var(s-atom("A", 189)))], t-boolean))),
-    t-member("all", t-forall([list: t-var(s-atom("A", 192))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 192))], t-boolean), mk-list(t-var(s-atom("A", 192)))], t-boolean))),
-    t-member("all2", t-forall([list: t-var(s-atom("A", 199)), t-var(s-atom("B", 200))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 199)), t-var(s-atom("B", 200))], t-boolean), mk-list(t-var(s-atom("A", 199))), mk-list(t-var(s-atom("B", 200)))], t-boolean))),
-    t-member("map", t-forall([list: t-var(s-atom("A", 211)), t-var(s-atom("B", 212))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 211))], t-var(s-atom("B", 212))), mk-list(t-var(s-atom("A", 211)))], mk-list(t-var(s-atom("B", 212)))))),
-    t-member("map2", t-top),
-    t-member("map3", t-top),
-    t-member("map4", t-top),
-    t-member("map_n", t-top),
-    t-member("map2_n", t-top),
-    t-member("map3_n", t-top),
-    t-member("map4_n", t-top),
-    t-member("each", t-forall([list: t-var(s-atom("A", 217))], t-arrow([list: t-arrow([list: t-var(s-atom("A", 217))], t-top), mk-list(t-var(s-atom("A", 217)))], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each2", t-top),
-    t-member("each3", t-top),
-    t-member("each4", t-top),
-    t-member("each_n", t-top),
-    t-member("each2_n", t-top),
-    t-member("each3_n", t-top),
-    t-member("each4_n", t-top),
-    t-member("fold", t-forall([list: t-var(s-atom("A", 224)), t-var(s-atom("B", 225))], t-arrow([list: t-arrow([list: t-var(s-atom("B", 225)), t-var(s-atom("A", 224))], t-var(s-atom("B", 225))), t-var(s-atom("B", 225)), mk-list(t-var(s-atom("A", 224)))], t-var(s-atom("B", 225))))),
-    t-member("fold2", t-top),
-    t-member("fold3", t-top),
-    t-member("fold4", t-top),
-    t-member("fold_n", t-top),
-    t-member("list", let tva = s-atom("A", 160), tv = t-var(tva):
+    t-member("repeat", t-forall([list: tva], t-arrow([list: t-number, tva], mk-list(tva)))),
+    t-member("filter", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], mk-list(tva)))),
+    t-member("partition", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-record([list: t-member("is-true", mk-list(tva)), t-member("is-false", mk-list(tva))])))),
+    t-member("find", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: tva])))),
+    t-member("split-at", t-forall([list: tva], t-arrow([list: t-number, mk-list(tva)], t-record([list: t-member("prefix", mk-list(tva)), t-member("suffix", mk-list(tva))])))),
+    t-member("any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean))),
+    t-member("all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean))),
+    t-member("all2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-boolean), mk-list(tva), mk-list(tvb)], t-boolean))),
+    t-member("map", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva], tvb), mk-list(tva)], mk-list(tvb)))),
+    t-member("map2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb], tvc), mk-list(tva), mk-list(tvb)], mk-list(tvc)))),
+    t-member("map3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc], tvd), mk-list(tva), mk-list(tvb), mk-list(tvc)], mk-list(tvd)))),
+    t-member("map4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tve), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], mk-list(tve)))),
+    t-member("map_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva], tvb), t-number, mk-list(tva)], mk-list(tvb)))),
+    t-member("map2_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb], tvc), t-number, mk-list(tva), mk-list(tvb)], mk-list(tvc)))),
+    t-member("map3_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], tvd), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], mk-list(tvd)))),
+    t-member("map4_n", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], tve), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], mk-list(tve)))),
+    t-member("each", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-top), mk-list(tva)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-top), mk-list(tva), mk-list(tvb)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each3", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each4", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each_n", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number, tva], t-top), t-number, mk-list(tva)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each2_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], t-top), t-number, mk-list(tva), mk-list(tvb)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each3_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each4_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], tva), tva, mk-list(tvb)], tva))),
+    t-member("fold2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], tva), tva, mk-list(tvb), mk-list(tvc)], tva))),
+    t-member("fold3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd)], tva))),
+    t-member("fold4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd, tve], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd), mk-list(tve)], tva))),
+    t-member("fold_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], tva), t-number, tva, mk-list(tvb)], tva))),
+    t-member("list",
         t-record([list:
-              t-member("make", t-forall([list: tv], t-arrow([list: t-array(tv)], mk-list(tv)))),
-              t-member("make0", t-forall([list: tv], t-arrow([list: ], mk-list(tv)))),
-              t-member("make1", t-forall([list: tv], t-arrow([list: tv], mk-list(tv)))),
-              t-member("make2", t-forall([list: tv], t-arrow([list: tv, tv], mk-list(tv)))),
-              t-member("make3", t-forall([list: tv], t-arrow([list: tv, tv, tv], mk-list(tv)))),
-              t-member("make4", t-forall([list: tv], t-arrow([list: tv, tv, tv, tv], mk-list(tv)))),
-              t-member("make5", t-forall([list: tv], t-arrow([list: tv, tv, tv, tv, tv], mk-list(tv))))
-            ])
-    end)
+              t-member("make", t-forall([list: tva], t-arrow([list: t-array(tva)], mk-list(tva)))),
+              t-member("make0", t-forall([list: tva], t-arrow([list: ], mk-list(tva)))),
+              t-member("make1", t-forall([list: tva], t-arrow([list: tva], mk-list(tva)))),
+              t-member("make2", t-forall([list: tva], t-arrow([list: tva, tva], mk-list(tva)))),
+              t-member("make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], mk-list(tva)))),
+              t-member("make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], mk-list(tva)))),
+              t-member("make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], mk-list(tva))))
+            ]))
   ]),
-  let tv = t-var(s-atom("A", 37)),
-      lotv = mk-list(tv),
-      tv-arg = [list: tv]:
+  let lotv = mk-list(tva),
+      tv-arg = [list: tva]:
     SD.make-string-dict()
-      .set("List", t-forall([list: tv],
+      .set("List", t-forall([list: tva],
         t-data(
           "List",
           [list:
             t-singleton-variant("empty", empty),
-            t-variant("link", [list: t-member("first", tv), t-member("rest", mk-list(tv))], empty)
+            t-variant("link", [list: t-member("first", tva), t-member("rest", mk-list(tva))], empty)
           ],
           [list:
             t-member("join-str", t-arrow([list: t-string], t-string)),
             t-member("sort", t-arrow(empty, lotv)),
-            t-member("sort-by", t-arrow([list: t-arrow([list: tv, tv], t-boolean), t-arrow([list: tv, tv], t-boolean)], lotv)),
+            t-member("sort-by", t-arrow([list: t-arrow([list: tva, tva], t-boolean), t-arrow([list: tva, tva], t-boolean)], lotv)),
             t-member("_tostring", t-tostring),
             t-member("reverse", t-arrow(empty, lotv)),
-            t-member("last", t-arrow(empty, tv)),
+            t-member("last", t-arrow(empty, tva)),
             t-member("append", t-arrow([list: lotv], lotv)),
-            t-member("foldl", let tb = s-atom("B", 200): t-forall([list: t-var(tb)], t-arrow([list: t-arrow([list: tv, t-var(tb)], t-var(tb)), t-var(tb)], t-var(tb)));),
-            t-member("foldr", let tb = s-atom("B", 201): t-forall([list: t-var(tb)], t-arrow([list: t-arrow([list: tv, t-var(tb)], t-var(tb)), t-var(tb)], t-var(tb)));),
+            t-member("foldl", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], tvb), tvb], tvb))),
+            t-member("foldr", t-forall([list: tvb], t-arrow([list: t-arrow([list: tva, tvb], tvb), tvb], tvb))),
             t-member("member", t-arrow(tv-arg, t-boolean)),
-            t-member("filter", t-arrow([list: t-arrow([list: tv], t-boolean)], lotv)),
-            t-member("map", let tb = s-atom("B", 202): t-forall([list: t-var(tb)], t-arrow([list: t-arrow([list: tv], t-var(tb))], mk-list(t-var(tb))));),
-            t-member("each", t-arrow([list: t-arrow([list: tv], t-nothing)], t-nothing)),
+            t-member("filter", t-arrow([list: t-arrow([list: tva], t-boolean)], lotv)),
+            t-member("map", t-forall([list: tvb], t-arrow([list: t-arrow([list: tva], tvb)], mk-list(tvb)))),
+            t-member("each", t-arrow([list: t-arrow([list: tva], t-top)], t-nothing)),
             t-member("length", t-arrow(empty, t-number)),
             t-member("_torepr", t-torepr),
             t-member("_match", t-top),
@@ -493,42 +460,38 @@ module-const-lists = t-module("pyret-builtin://lists",
             ]))),
             t-member("take", t-arrow([list: t-number], lotv)),
             t-member("drop", t-arrow([list: t-number], lotv)),
-            t-member("get", t-arrow([list: t-number], tv)),
-            t-member("set", t-arrow([list: t-number, tv], lotv))
+            t-member("get", t-arrow([list: t-number], tva)),
+            t-member("set", t-arrow([list: t-number, tva], lotv))
         ])
       ))
   end,
   SD.make-string-dict()
-    .set("List", t-name(some("pyret-builtin://lists"), A.s-name(A.dummy-loc, "List")))
-)
+    .set("List", t-name(some("pyret-builtin://lists"), A.s-name(A.dummy-loc, "List"))))
 
-t-option = lam(param :: A.Name):
-  t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: t-var(param)])
+t-option = lam(param :: Type):
+  t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: param])
 end
 
-t-and-then = lam(from-param, to-param :: A.Name):
+t-and-then =
   t-forall(
-    [list: t-var(to-param)],
+    [list: tva],
     t-arrow(
       [list:
-        t-arrow([list: t-var(from-param)], t-option(to-param))
+        t-arrow([list: tva], t-option(tvb))
       ],
-      t-option(to-param)
-    )
-  )
-end
+      t-option(tvb)))
 
 module-const-option = t-module("pyret-builtin://option",
   t-record([list:
     t-member("Option", t-arrow([list: t-top], t-boolean)),
     t-member("is-Option", t-arrow([list: t-top], t-boolean)),
-    t-member("none", t-forall([list: t-var(s-atom("A", 10))], t-option(s-atom("A", 10)))),
+    t-member("none", t-forall([list: tva], t-option(tva))),
     t-member("is-none", t-arrow([list: t-top], t-boolean)),
-    t-member("some", t-forall([list: t-var(s-atom("A90", 10))], t-arrow([list: t-var(s-atom("A90", 10))], t-option(s-atom("A90", 10))))),
+    t-member("some", t-forall([list: tva], t-arrow([list: tva], t-option(tva)))),
     t-member("is-some", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
-    .set("Option", t-forall([list: t-var(s-atom("A", 10))],
+    .set("Option", t-forall([list: tva],
       t-data(
         "Option",
         [list:
@@ -536,23 +499,23 @@ module-const-option = t-module("pyret-builtin://option",
             [list:
               t-member("_match", t-top),
               t-member("_torepr", t-torepr),
-              t-member("or-else", t-arrow([list: t-var(s-atom("A", 10))], t-var(s-atom("A", 10)))),
-              t-member("and-then", t-and-then(s-atom("A", 10), s-atom("B", 10)))
+              t-member("or-else", t-arrow([list: tva], tva)),
+              t-member("and-then", t-and-then)
             ]
           ),
           t-variant("some",
-            [list: t-member("value", t-var(s-atom("A", 10)))],
+            [list: t-member("value", tva)],
             [list:
               t-member("_match", t-top),
               t-member("_torepr", t-torepr),
-              t-member("or-else", t-arrow([list: t-var(s-atom("A", 10))], t-var(s-atom("A", 10)))),
-              t-member("and-then", t-and-then(s-atom("A", 10), s-atom("B", 11)))
+              t-member("or-else", t-arrow([list: tva], tva)),
+              t-member("and-then", t-and-then)
             ]
           )
         ],
         [list:
-          t-member("and-then", t-and-then(s-atom("A", 10), s-atom("B", 12))),
-          t-member("or-else", t-arrow([list: t-var(s-atom("A", 10))], t-var(s-atom("A", 10)))),
+          t-member("and-then", t-and-then),
+          t-member("or-else", t-arrow([list: tva], tva)),
           t-member("_torepr", t-torepr),
           t-member("_match", t-top)
       ])
@@ -689,50 +652,47 @@ module-const-error = t-module("pyret-builtin://error",
 )
 
 module-const-either =
-  let tva = t-var(s-atom("A", 10)),
-      tvb = t-var(s-atom("B", 11)):
-    t-module("pyret-builtin://either",
-      t-record([list:
-        t-member("Either", t-arrow([list: t-top], t-boolean)),
-        t-member("is-Either", t-arrow([list: t-top], t-boolean)),
-        t-member("left", t-forall([list: t-var(s-atom("a792", 10)), t-var(s-atom("b793", 11))], t-arrow([list: t-var(s-atom("a792", 10))], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: t-var(s-atom("a792", 10)), t-var(s-atom("b793", 11))])))),
-        t-member("is-left", t-arrow([list: t-top], t-boolean)),
-        t-member("right", t-forall([list: t-var(s-atom("a794", 10)), t-var(s-atom("b795", 11))], t-arrow([list: t-var(s-atom("b795", 11))], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: t-var(s-atom("a794", 10)), t-var(s-atom("b795", 11))])))),
-        t-member("is-right", t-arrow([list: t-top], t-boolean))
-      ]),
-      SD.make-string-dict()
-        .set("Either", t-forall([list: tva, tvb],
-          t-data(
-            "Either",
-            [list:
-              t-variant("left",
-                [list:
-                  t-member("v", tva)
-                ],
-                [list:
-                  t-member("_match", t-top),
-                  t-member("_torepr", t-torepr)
-                ]
-              ),
-              t-variant("right",
-                [list:
-                  t-member("v", tvb)
-                ],
-                [list:
-                  t-member("_match", t-top),
-                  t-member("_torepr", t-torepr)
-                ]
-              )
-            ],
-            [list:
-              t-member("v", t-top),
-              t-member("_torepr", t-torepr),
-              t-member("_match", t-top)
-          ])
-        )),
-      SD.make-string-dict()
-        .set("Either", t-name(some("pyret-builtin://either"), A.s-name(A.dummy-loc, "Either"))))
-  end
+  t-module("pyret-builtin://either",
+    t-record([list:
+      t-member("Either", t-arrow([list: t-top], t-boolean)),
+      t-member("is-Either", t-arrow([list: t-top], t-boolean)),
+      t-member("left", t-forall([list: tva, tvb], t-arrow([list: tva], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
+      t-member("is-left", t-arrow([list: t-top], t-boolean)),
+      t-member("right", t-forall([list: tva, tvb], t-arrow([list: tvb], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
+      t-member("is-right", t-arrow([list: t-top], t-boolean))
+    ]),
+    SD.make-string-dict()
+      .set("Either", t-forall([list: tva, tvb],
+        t-data(
+          "Either",
+          [list:
+            t-variant("left",
+              [list:
+                t-member("v", tva)
+              ],
+              [list:
+                t-member("_match", t-top),
+                t-member("_torepr", t-torepr)
+              ]
+            ),
+            t-variant("right",
+              [list:
+                t-member("v", tvb)
+              ],
+              [list:
+                t-member("_match", t-top),
+                t-member("_torepr", t-torepr)
+              ]
+            )
+          ],
+          [list:
+            t-member("v", t-top),
+            t-member("_torepr", t-torepr),
+            t-member("_match", t-top)
+        ])
+      )),
+    SD.make-string-dict()
+      .set("Either", t-name(some("pyret-builtin://either"), A.s-name(A.dummy-loc, "Either"))))
 
 t-s-exp = t-name(some("pyret-builtin://s-exp-structs"), A.s-type-global("S-Exp"))
 
