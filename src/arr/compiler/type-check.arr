@@ -1133,6 +1133,12 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                     | some(data-type) =>
                       satisfies-assuming(data-type, supertype, context, assumptions)
                   end
+                | t-data(b-name, b-variants, b-fields, _) =>
+                  cases(Option<Type>) context.get-data-type(subtype):
+                    | none => none
+                    | some(data-type) =>
+                      satisfies-assuming(data-type, subtype, context, assumptions)
+                  end
                 | else => none
               end
             | t-var(a-id, _) =>
@@ -1230,6 +1236,12 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                   end
                 | t-record(b-fields, _) =>
                   satisfies-fields(a-fields, b-fields, context, assumptions)
+                | t-name(_, _, _) =>
+                  cases(Option<Type>) context.get-data-type(supertype):
+                    | none => none
+                    | some(data-type) =>
+                      satisfies-assuming(subtype, data-type, context, assumptions)
+                  end
                 | else => none
               end
             | t-data-refinement(a-data-type, _, _) =>
@@ -2168,44 +2180,57 @@ fun synthesis-cases-no-else(l :: Loc, ann :: A.Ann, new-val :: Expr, split-resul
   end)
 end
 
-# TODO(MATT): substitution on typ?
 fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<Expr>, maybe-expect :: Option<Type>, context :: Context, has-else, no-else) -> TypingResult:
   to-type(ann, context).typing-bind(lam(maybe-type, shadow context):
     cases(Option<Type>) maybe-type:
       | some(typ) =>
-        # TODO(MATT): applied types and non-applied types
         cases(Option<Type>) context.get-data-type(typ):
           | some(data-type) =>
-            checking(val, typ, false, context).bind(lam(new-val, _, shadow context):
-              branch-tracker = track-branches(data-type)
-              temp-result = map-fold-result(lam(branch, shadow context):
-                branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
-                branch-result.bind(lam(branch-type-pair, shadow context):
-                  fold-result(branch-type-pair, context)
-                end)
-              end, branches, context)
+            synthesis(val, false, context).bind(lam(new-val, val-type, shadow context):
+              body-data-type = cases(Type) data-type:
+                | t-forall(introduces, onto-data-type, forall-l) =>
+                  introduces.foldr(lam(type-var, new-type):
+                    new-type.substitute(new-existential(forall-l), type-var)
+                  end, onto-data-type)
+                | else => data-type
+              end
+              cases(Option<Context>) satisfies-type(val-type, body-data-type, context):
+                | some(shadow context) =>
+                  shadow data-type = context.apply(body-data-type)
+                  branch-tracker = track-branches(data-type)
+                  temp-result = map-fold-result(lam(branch, shadow context):
+                    branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
+                    branch-result.bind(lam(branch-type-pair, shadow context):
+                      fold-result(branch-type-pair, context)
+                    end)
+                  end, branches, context)
 
-              temp-result.typing-bind(lam(result, shadow context):
-                split-result = split(result)
-                remaining-branches = branch-tracker.get().to-list()
-                cases(Option<A.Expr>) maybe-else:
-                  | some(_else) =>
-                    if is-empty(remaining-branches):
-                      typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
-                    else:
-                      has-else(l, ann, new-val, split-result, _else, context)
+                  temp-result.typing-bind(lam(result, shadow context):
+                    split-result = split(result)
+                    remaining-branches = branch-tracker.get().to-list()
+                    cases(Option<A.Expr>) maybe-else:
+                      | some(_else) =>
+                        if is-empty(remaining-branches):
+                          typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
+                        else:
+                          has-else(l, ann, new-val, split-result, _else, context)
+                        end
+                      | none =>
+                        if is-empty(remaining-branches):
+                          no-else(l, ann, new-val, split-result, context)
+                        else:
+                          # TODO(MATT): more appropriate error here
+                          typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
+                        end
                     end
-                  | none =>
-                    if is-empty(remaining-branches):
-                      no-else(l, ann, new-val, split-result, context)
-                    else:
-                      # TODO(MATT): more appropriate error here
-                      typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
-                    end
-                end
-              end)
+                  end)
+                | none =>
+                  typing-error([list: C.incorrect-type(tostring(val-type), val-type.l, tostring(typ), typ.l)])
+              end
             end)
-          | none => typing-error([list: C.cant-typecheck("No type provided for cases", l)])
+          | none =>
+            # TODO(MATT): this needs to be a much better error
+            typing-error([list: C.cant-typecheck("No datatype provided for cases", l)])
         end
     end
   end)
