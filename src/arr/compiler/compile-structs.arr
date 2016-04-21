@@ -256,9 +256,9 @@ data CompileError:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
         [ED.para:
-          ED.code(ED.highlight([ED.sequence: 
+          ED.code(ED.highlight([ED.sequence:
                                   ED.embed(self.numerator),
-                                  ED.text(" / 0")], 
+                                  ED.text(" / 0")],
                                [list: self.loc], 0))],
         [ED.para:
           ED.text("because its denominator is zero.")]]
@@ -268,7 +268,7 @@ data CompileError:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
         [ED.para:
-          ED.code([ED.sequence: 
+          ED.code([ED.sequence:
                     ED.embed(self.numerator),
                     ED.text(" / 0")])],
         [ED.para:
@@ -278,8 +278,8 @@ data CompileError:
     end
   | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
           ED.text(" at the same level as "),
@@ -287,8 +287,8 @@ data CompileError:
           ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
           ED.code(ED.text(self.op-a-name)),
           ED.text(" at "),
@@ -301,15 +301,15 @@ data CompileError:
     end
   | block-ending(l :: Loc, kind) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
           ED.highlight(ED.text(self.kind), [list: self.l], 0),
           ED.text(".")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
           ED.text(self.kind),
           ED.text(" at "),
@@ -318,8 +318,8 @@ data CompileError:
     end
   | single-branch-if(expr :: A.Expr) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("If-expressions must have more than one branch, but the if-expression")],
          ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
         [ED.para:
@@ -328,16 +328,16 @@ data CompileError:
           ED.text(".")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("If-expressions may not only have one branch, but the if-expression at "),
           ED.loc(self.expr.l),
           ED.text(" does not have any other branches.")]]
     end
   | unwelcome-where(kind, loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.code(ED.text("`where`")),
           ED.text(" blocks are only allowed on named function and declarations; a where block may not be added to a "),
           ED.code(ED.highlight(ED.text(self.kind), [list: self.loc], 0)),
@@ -355,8 +355,8 @@ data CompileError:
     end
   | non-example(expr :: A.Expr) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.code(ED.text("`example`")),
           ED.text("blocks must only contain testing statements, but ")],
          ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
@@ -364,8 +364,8 @@ data CompileError:
           ED.text(" isn't a testing statement.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.code(ED.text("`example`")),
           ED.text("blocks must only contain testing statements, but the statement at "),
           ED.loc(self.expr.l),
@@ -373,31 +373,31 @@ data CompileError:
     end
   | no-arguments(expr) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Method declarations are expected to accept at least one argument, but the method declaration")],
          ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
         [ED.para:
           ED.text("has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
   | non-toplevel(kind, l :: Loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("You may only define a "),
           ED.code(ED.highlight(ED.text(self.kind), [ED.locs: self.l], 0)),
           ED.text(" at the top-level.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("You may only define the "),
           ED.code(ED.text(self.kind)),
           ED.text(" at "),
@@ -406,8 +406,8 @@ data CompileError:
     end
   | underscore-as(l :: Loc, kind) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text(" cannot be used as "),
@@ -415,8 +415,8 @@ data CompileError:
           ED.text(".")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.text("_")),
           ED.text(" at "),
@@ -427,8 +427,8 @@ data CompileError:
     end
   | underscore-as-pattern(l :: Loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text(" cannot be used as a pattern in a cases expression. If you want to match all cases not matched by the previous branches, use the pattern "),
@@ -436,8 +436,8 @@ data CompileError:
           ED.text(" instead.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.text("_")),
           ED.text(" at "),
@@ -448,15 +448,15 @@ data CompileError:
     end
   | underscore-as-expr(l :: Loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text(" cannot be used where an expression is expected.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.text("_")),
           ED.text(" at "),
@@ -465,15 +465,15 @@ data CompileError:
     end
   | underscore-as-ann(l :: Loc) with:
     render-fancy-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text("cannot be used where a type annotation is expected.")]]
     end,
     render-reason(self):
-      [ED.error: 
-        [ED.para: 
+      [ED.error:
+        [ED.para:
           ED.text("The underscore "),
           ED.code(ED.text("_")),
           ED.text(" at "),
@@ -491,7 +491,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "), 
+              ED.text("The identifier "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
               ED.text(" is unbound. It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
@@ -508,7 +508,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "), 
+              ED.text("The identifier "),
               ED.code(ED.text(self.id.id.toname())),
               ED.text(" at "),
               ED.loc(self.id.l),
@@ -527,7 +527,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The variable "), 
+              ED.text("The variable "),
               ED.code(ED.highlight(ED.text(self.id), [ED.locs: self.loc], 0)),
               ED.text(" is unbound. It is "),
               ED.highlight(ED.text("assigned to"), [ED.locs: self.loc], 0),
@@ -544,7 +544,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The variable "), 
+              ED.text("The variable "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -646,7 +646,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining the anonymous recursive identifier "), 
+              ED.text("Defining the anonymous recursive identifier "),
               ED.code(ED.highlight(ED.text("rec _"), [ED.locs: self.loc], 0)),
               ED.text(" is pointless since there is no name to call recursively.")]]
       end
@@ -661,7 +661,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining the anonymous recursive identifier "), 
+              ED.text("Defining the anonymous recursive identifier "),
               ED.code(ED.text("rec _")),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -886,7 +886,7 @@ data CompileError:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because it found a "), 
+          ED.text("The type checker rejected your program because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
           ED.text(" but it "),
           ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
@@ -967,10 +967,10 @@ data CompileError:
           ED.text("expects the "), ed-applicant,
           ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
         [ED.para:
-          ED.text("However, the "), 
+          ED.text("However, the "),
           ed-applicant,
           ED.text(" is given "),
-          ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1), 
+          ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1),
           ED.text(" and the type signature of the "),
           ed-applicant],
         [ED.para:
@@ -992,7 +992,7 @@ data CompileError:
           ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
         [ED.para:
           ED.text("However, the applicant is given "),
-          ED.ed-args(self.app-expr.args.length()), 
+          ED.ed-args(self.app-expr.args.length()),
           ED.text(" and the type signature of the applicant")],
         [ED.para:
           ED.embed(self.fun-typ)],
@@ -1029,7 +1029,7 @@ data CompileError:
             ED.text(")")])],
         [ED.para:
           ED.text("expects the "), ed-applicant,
-          ED.text(" to evaluate to a function value. However, the type of the "), 
+          ED.text(" to evaluate to a function value. However, the type of the "),
           ed-applicant,
           ED.text(" is "),
           ED.embed(self.typ)]]
@@ -1043,7 +1043,7 @@ data CompileError:
         [ED.para:
           ED.text("at "),
           ED.loc(self.app-expr._fun.l),
-          ED.text(" expects the applicant to evaluate to a function value. However, the type of the applicant is "), 
+          ED.text(" expects the applicant to evaluate to a function value. However, the type of the applicant is "),
           ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
@@ -1121,11 +1121,11 @@ data CompileError:
           ED.text("The type checker rejected your program because the "),
           ED.highlight(ED.text("cases expression"),[list: self.cases-loc], 0),
           ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
-          ED.text(self.data-type.name), 
+          ED.text(self.data-type.name),
           ED.text(". However, no variant named "),
           ED.code(ED.highlight(ED.text(self.branch.name), [list: self.branch.pat-loc], 1)),
           ED.text(" exists in "),
-          ED.text(self.data-type.name), 
+          ED.text(self.data-type.name),
           ED.text("'s "),
           ED.highlight(ED.text("variants"),self.data-type.variants.map(_.l), 2),
           ED.text(":")],
@@ -1138,14 +1138,14 @@ data CompileError:
           ED.text("The type checker rejected your program because the cases expression at "),
           ED.loc(self.cases-loc),
           ED.text(" expects that all of its branches have a variant of the same name in the data-type "),
-          ED.text(self.data-type.name), 
+          ED.text(self.data-type.name),
           ED.text(". However, no variant named "),
           ED.code(ED.text(self.branch.name)),
           ED.text(" (mentioned in the branch at "),
           ED.loc(self.branch.pat-loc),
           ED.text(")"),
           ED.text(" exists in the type "),
-          ED.text(self.data-type.name), 
+          ED.text(self.data-type.name),
           ED.text("'s variants:")],
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
@@ -1156,7 +1156,7 @@ data CompileError:
           ED.text("The type checker rejected your program because the "),
           ED.highlight(ED.text("cases expression"),[list: self.loc], 0),
           ED.text(" has a branch for every variant of "),
-          ED.code(ED.text(self.type-name)), 
+          ED.code(ED.text(self.type-name)),
           ED.text(". Therefore, the "),
           ED.code(ED.text("else")),
           ED.text(" branch is unreachable.")]]
@@ -1277,13 +1277,13 @@ data CompileError:
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
-            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.text("The type checker rejected your program because the cases branch named "),
             ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], 0)),
             ED.text(" has an argument list, but the variant is a singleton.")]]
       else:
         [ED.error:
           [ED.para:
-            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.text("The type checker rejected your program because the cases branch named "),
             ED.code(ED.highlight(ED.text(self.name), [list: self.branch-loc], 0)),
             ED.text(" has an argument list, but the variant is not a singleton.")]]
       end
@@ -1292,7 +1292,7 @@ data CompileError:
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
-            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.text("The type checker rejected your program because the cases branch named "),
             ED.code(ED.text(self.name)),
             ED.text(" at "),
             ED.loc(self.branch-loc),
@@ -1300,7 +1300,7 @@ data CompileError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The type checker rejected your program because the cases branch named "), 
+            ED.text("The type checker rejected your program because the cases branch named "),
             ED.code(ED.text(self.name)),
             ED.text(" at "),
             ED.loc(self.branch-loc),
