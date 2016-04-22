@@ -52,7 +52,7 @@ fun mockable-file-locator(file-ops):
     get-compiled(self):
           none
     end,
-    uri(self): "file://" + string-replace(F.real-path(self.path), P.path-sep, "/") end,
+    uri(self): "file://" + string-replace(file-ops.real-path(self.path), P.path-sep, "/") end,
     name(self): self.path end,
     _equals(self, other, eq): eq(self.uri(), other.uri()) end
   } end
@@ -63,4 +63,5 @@ file-locator = mockable-file-locator({
     output-file: F.output-file(_, false),
     file-exists: F.file-exists,
     file-times: F.file-times,
+    real-path: F.real-path
 })

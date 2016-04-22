@@ -51,6 +51,8 @@ type Locator = {
   # In milliseconds-since-epoch format
   get-modified-time :: (-> Number),
 
+  get-options :: (CS.CompileOptions -> CS.CompileOptions),
+
   # Could either have needs-provide be implicitly stateful, and cache
   # the most recent map, or use explicit interface below
   needs-compile :: (SD.StringDict<Provides> -> Boolean),

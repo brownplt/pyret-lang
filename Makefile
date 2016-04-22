@@ -213,7 +213,7 @@ repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
 parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
-tests/pyret/main2.jarr: $(PHASEA) tests/pyret/main2.arr
+tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	node build/phaseA/pyret.jarr \
     --outfile tests/pyret/main2.jarr \
     --build-runnable tests/pyret/main2.arr \
@@ -223,8 +223,9 @@ tests/pyret/main2.jarr: $(PHASEA) tests/pyret/main2.arr
     --require-config src/scripts/standalone-configA.json \
     -check-all # NOTE(joe): check-all doesn't yet do anything
 
+TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
 .PHONY : pyret-test
-pyret-test: $(PHASEA) tests/pyret/main2.jarr tests/pyret/tests/*.arr
+pyret-test: phaseA tests/pyret/main2.jarr
 	$(NODE) tests/pyret/main2.jarr
 
 TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
