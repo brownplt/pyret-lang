@@ -49,6 +49,7 @@ require(["js/runtime", "program"], function(runtimeLib, program) {
     }, function(printedCheckResult) {
       if(runtime.isString(printedCheckResult)) {
         process.stdout.write(printedCheckResult);
+        process.stdout.write("\n");
       }
     });
   }
