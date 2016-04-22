@@ -84,6 +84,7 @@ much sense.
 15a. Check mode on a per-file basis to avoid running checks in base modules
     (e.g. method on locator)
 15b. Make tests run again
+15c. Refactor locators to get rid of common implementations of shared methods
 16. Some kind of eval probably needed for some of 15b
 17. How do we REPL?
 18. Right place for printing errors/returning compile results in pyret.arr
