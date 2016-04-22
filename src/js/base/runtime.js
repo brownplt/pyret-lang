@@ -1490,7 +1490,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return thisRuntime.safeCall(function() {
           display.app(val);
         }, function(_) {
-          theOutsideWorld.stdout("\n");
           return val;
         });
     });

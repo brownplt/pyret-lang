@@ -98,7 +98,7 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
   end
 end
 
-fun set-loadable(basedir, loadable):
+fun set-loadable(basedir, locator, loadable):
   when not(FS.exists(basedir)):
     FS.create-dir(basedir)
   end
@@ -202,16 +202,30 @@ fun build-program(path, options):
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
-  shadow options = options.{ compile-module: true }
 
+  print("Gathering dependencies...")
   base-module = CS.dependency("file", [list: path])
   base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
+  total-modules = wl.length()
+  var num-compiled = 0
+  shadow options = options.{
+    compile-module: true,
+    on-compile: lam(locator, loadable):
+      num-compiled := num-compiled + 1
+      print("\r" + num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled")
+      when num-compiled == total-modules:
+        print("\nCleaning up and generating standalone...\n")
+      end
+      set-loadable(options.compiled-cache, locator, loadable)
+    end
+  }
+
   storage = get-cli-module-storage(options.compiled-cache)
   starter-modules = storage.load-modules(wl)
   compiled = CL.compile-program-with(wl, starter-modules, options)
-  storage.save-modules(compiled.loadables)
+  #storage.save-modules(compiled.loadables)
 
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
@@ -260,11 +274,6 @@ fun build-program(path, options):
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options):
-  shadow options = options.{
-    on-compile: lam(locator, loadable):
-      print("Compiled " + locator.name())
-    end
-  }
   program = build-program(path, options)
   config = JSON.read-json(F.input-file(require-config-path).read-file()).dict.unfreeze()
   config.set-now("out", JSON.j-str(outfile))
