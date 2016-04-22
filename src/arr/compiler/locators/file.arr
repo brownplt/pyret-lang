@@ -20,6 +20,9 @@ fun mockable-file-locator(file-ops):
     get-modified-time(self):
       file-ops.file-times(path).mtime
     end,
+    get-options(self, options):
+      options
+    end,
     get-module(self):
       when not(file-ops.file-exists(self.path)):
         raise("File " + self.path + " does not exist")

@@ -57,6 +57,9 @@ fun make-builtin-js-locator(basedir, builtin-name):
     get-modified-time(self):
       F.file-times(P.join(basedir, builtin-name + ".js")).mtime
     end,
+    get-options(self, options):
+      options.{ check-mode: false }
+    end,
     get-module(_): 
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
@@ -103,6 +106,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   {
     get-modified-time(self):
       F.file-times(path).mtime
+    end,
+    get-options(self, options):
+      options.{ check-mode: false }
     end,
     get-module(self):
       when not(F.file-exists(path)):

@@ -88,6 +88,8 @@ type Locator = {
   _equals :: Method
 }
 
+
+
 fun string-locator(uri :: URI, s :: String):
   {
     needs-compile(self, _): true end,
@@ -248,6 +250,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   cases(Option<Loadable>) locator.get-compiled():
     | some(loadable) => loadable
     | none =>
+    shadow options = locator.get-options(options)
     env = CS.compile-env(locator.get-globals(), provide-map)
     libs = locator.get-extra-imports()
     mod = locator.get-module()

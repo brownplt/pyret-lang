@@ -591,6 +591,17 @@ data CompileError:
     end
 end
 
+type CompileOptions = {
+  check-mode :: Boolean,
+  type-check :: Boolean,
+  allow-shadowed :: Boolean,
+  collect-all :: Boolean,
+  ignore-unbound :: Boolean,
+  proper-tail-calls :: Boolean,
+  compile-module :: Boolean,
+  compiled-cache :: String
+}
+
 default-compile-options = {
   check-mode : true,
   type-check : false,

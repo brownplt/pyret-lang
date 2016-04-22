@@ -104,7 +104,6 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
-                      -no-check-mode \
                       --require-config src/scripts/standalone-configB.json
 
 
@@ -117,7 +116,6 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
-                      -no-check-mode \
                       --require-config src/scripts/standalone-configC.json
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
@@ -187,11 +185,17 @@ else
 endif
 endif
 
-.PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+.PHONY : old-test
+old-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+
+.PHONY : old-test-all
+old-test-all: test docs-test benchmark-test
 
 .PHONY : test-all
-test-all: test docs-test benchmark-test
+test-all: test docs-test
+
+.PHONY : test
+test: pyret-test
 
 .PHONY : runtime-test
 runtime-test : $(PYRET_TEST_PREREQ)
@@ -208,6 +212,20 @@ repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
+
+tests/pyret/main2.jarr: $(PHASEA) tests/pyret/main2.arr
+	node build/phaseA/pyret.jarr \
+    --outfile tests/pyret/main2.jarr \
+    --build-runnable tests/pyret/main2.arr \
+    --builtin-js-dir src/js/trove/ \
+    --builtin-arr-dir src/arr/trove/ \
+    --compiled-dir tests/pyret/compiled/ \
+    --require-config src/scripts/standalone-configA.json \
+    -check-all # NOTE(joe): check-all doesn't yet do anything
+
+.PHONY : pyret-test
+pyret-test: $(PHASEA) tests/pyret/main2.jarr tests/pyret/tests/*.arr
+	$(NODE) tests/pyret/main2.jarr
 
 TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
 TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
@@ -228,11 +246,6 @@ regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
     --module-load-dir tests/pyret \
     -check-all tests/pyret/regression.arr
 
-.PHONY : pyret-test
-pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    -check-all tests/pyret/main.arr
 
 .PHONY : type-check-test
 type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
