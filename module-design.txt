@@ -81,10 +81,15 @@ much sense.
 
     node pyret2.js --builtin-js src/js/trove --builtin-arr src/arr/trove/ --build-standalone pyret.arr > pyret3.js
 
-15a. Check mode on a per-file basis to avoid running checks in base modules
+[x] 15a. Check mode on a per-file basis to avoid running checks in base modules
     (e.g. method on locator)
 15b. Make tests run again
 15c. Refactor locators to get rid of common implementations of shared methods
+15d. Building tests as standalone requires recompiling lots of the compiler.
+Should we support read-only access to multiple compiled/ directories in order
+to make that work better?  We could have the module cache just read from, but
+not write to, things like phaseA/compiled/, to avoid regenerating AST and
+whatnot every time.  This gets into tricky staleness/recompile questions.
 16. Some kind of eval probably needed for some of 15b
 17. How do we REPL?
 18. Right place for printing errors/returning compile results in pyret.arr
