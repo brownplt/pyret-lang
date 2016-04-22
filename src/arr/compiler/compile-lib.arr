@@ -95,7 +95,10 @@ type Locator = {
 fun string-locator(uri :: URI, s :: String):
   {
     needs-compile(self, _): true end,
+    get-modified-time(self): 0 end,
+    get-options(self, options): options end,
     get-module(self): pyret-string(s) end,
+    get-native-modules(self): [list:] end,
     get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
     get-extra-imports(self): CS.standard-imports end,
     get-globals(self): CS.standard-globals end,
@@ -231,6 +234,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
         end)
       loadable = compile-module(w.locator, provide-map, cache, options)
       cache.set-now(uri, loadable)
+      options.on-compile(w.locator, loadable)
       loadable
     else:
       cache.get-value-now(uri)

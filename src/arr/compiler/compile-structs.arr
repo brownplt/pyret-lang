@@ -610,7 +610,8 @@ default-compile-options = {
   ignore-unbound: false,
   proper-tail-calls: true,
   compile-module: false,
-  compiled-cache: "compiled"
+  compiled-cache: "compiled",
+  on-compile: lam(locator, loadable): nothing end
 }
 
 t-pred = t-arrow([list: t-top], t-boolean)

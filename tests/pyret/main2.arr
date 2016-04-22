@@ -25,7 +25,7 @@ import file("./tests/test-file.arr") as _
 import file("./tests/test-path.arr") as _
 #import file("./tests/test-repl.arr") as _
 import file("./tests/test-file-locators.arr") as _
-#import file("./tests/test-builtin-locator.arr") as _
+import file("./tests/test-builtin-locator.arr") as _
 #import file("./tests/test-compile-lib.arr") as _
 #import file("./tests/test-include.arr") as _
 import file("./tests/test-examples.arr") as _

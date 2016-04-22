@@ -260,6 +260,11 @@ fun build-program(path, options):
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options):
+  shadow options = options.{
+    on-compile: lam(locator, loadable):
+      print("Compiled " + locator.name())
+    end
+  }
   program = build-program(path, options)
   config = JSON.read-json(F.input-file(require-config-path).read-file()).dict.unfreeze()
   config.set-now("out", JSON.j-str(outfile))
