@@ -728,12 +728,12 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-app(l, _fun, args) =>
       synthesis-app-fun(l, _fun, args, context)
         .typing-bind(lam(result-obj, shadow context):
-          synthesis-spine(context.apply(result-obj.fun-type), result-obj.is-binop, A.s-app(l, _fun, _), args, l, context)
+          synthesis-spine(context.apply(result-obj.fun-type), A.s-app(l, _fun, _), args, l, context)
             .map-type(_.set-loc(l))
         end)
     | s-prim-app(l, _fun, args) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, _):
-        synthesis-spine(arrow-type, false, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
@@ -797,8 +797,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
   end)
 end
 
-fun synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context):
-  result = _synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context)
+fun synthesis-spine(fun-type, recreate, args, app-loc, context):
+  result = _synthesis-spine(fun-type, recreate, args, app-loc, context)
   #print("")
   #print("spine synthesis with type: " + tostring(fun-type))
   #print("args:")
@@ -808,14 +808,9 @@ fun synthesis-spine(fun-type, is-binop, recreate, args, app-loc, context):
   result
 end
 
-fun _synthesis-spine(fun-type :: Type, is-binop :: Boolean, recreate :: (List<Expr> -> Expr), args :: List<Expr>, app-loc :: Loc, context :: Context) -> TypingResult:
+fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: List<Expr>, app-loc :: Loc, context :: Context) -> TypingResult:
   cases(Type) fun-type:
     | t-arrow(arg-types, ret-type, _) =>
-      # TODO(MATT): when Jack gives us hooks this is where we're going to have binop-specific errors
-      # TODO(MATT): investigate a method for heuristics for errors in general
-      when is-binop:
-        nothing
-      end
       result = fold2-strict(lam(acc, arg, arg-type):
         acc.bind(lam(exprs, shadow context):
           checking(arg, arg-type, false, context)
@@ -837,7 +832,7 @@ fun _synthesis-spine(fun-type :: Type, is-binop :: Boolean, recreate :: (List<Ex
       new-type = introduces.foldr(lam(type-var, new-type):
         new-type.substitute(new-existential(l), type-var)
       end, onto)
-      synthesis-spine(new-type, false, recreate, args, app-loc, context)
+      synthesis-spine(new-type, recreate, args, app-loc, context)
     | t-bot(l) =>
       result = fold-typing(lam(arg, shadow context):
         checking(arg, t-top(l), false, context)
@@ -1031,6 +1026,12 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                     | some(data-type) =>
                       satisfies-assuming(data-type, supertype, context, assumptions)
                   end
+                | t-data(b-name, b-variants, b-fields, _) =>
+                  cases(Option<Type>) context.get-data-type(subtype):
+                    | none => none
+                    | some(data-type) =>
+                      satisfies-assuming(data-type, subtype, context, assumptions)
+                  end
                 | else => none
               end
             | t-var(a-id, _) =>
@@ -1128,6 +1129,12 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                   end
                 | t-record(b-fields, _) =>
                   satisfies-fields(a-fields, b-fields, context, assumptions)
+                | t-name(_, _, _) =>
+                  cases(Option<Type>) context.get-data-type(supertype):
+                    | none => none
+                    | some(data-type) =>
+                      satisfies-assuming(subtype, data-type, context, assumptions)
+                  end
                 | else => none
               end
             | t-data-refinement(a-data-type, _, _) =>
@@ -2066,44 +2073,57 @@ fun synthesis-cases-no-else(l :: Loc, ann :: A.Ann, new-val :: Expr, split-resul
   end)
 end
 
-# TODO(MATT): substitution on typ?
 fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBranch>, maybe-else :: Option<Expr>, maybe-expect :: Option<Type>, context :: Context, has-else, no-else) -> TypingResult:
   to-type(ann, context).typing-bind(lam(maybe-type, shadow context):
     cases(Option<Type>) maybe-type:
       | some(typ) =>
-        # TODO(MATT): applied types and non-applied types
         cases(Option<Type>) context.get-data-type(typ):
           | some(data-type) =>
-            checking(val, typ, false, context).bind(lam(new-val, _, shadow context):
-              branch-tracker = track-branches(data-type)
-              temp-result = map-fold-result(lam(branch, shadow context):
-                branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
-                branch-result.bind(lam(branch-type-pair, shadow context):
-                  fold-result(branch-type-pair, context)
-                end)
-              end, branches, context)
+            synthesis(val, false, context).bind(lam(new-val, val-type, shadow context):
+              body-data-type = cases(Type) data-type:
+                | t-forall(introduces, onto-data-type, forall-l) =>
+                  introduces.foldr(lam(type-var, new-type):
+                    new-type.substitute(new-existential(forall-l), type-var)
+                  end, onto-data-type)
+                | else => data-type
+              end
+              cases(Option<Context>) satisfies-type(val-type, body-data-type, context):
+                | some(shadow context) =>
+                  shadow data-type = context.apply(body-data-type)
+                  branch-tracker = track-branches(data-type)
+                  temp-result = map-fold-result(lam(branch, shadow context):
+                    branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
+                    branch-result.bind(lam(branch-type-pair, shadow context):
+                      fold-result(branch-type-pair, context)
+                    end)
+                  end, branches, context)
 
-              temp-result.typing-bind(lam(result, shadow context):
-                split-result = split(result)
-                remaining-branches = branch-tracker.get().to-list()
-                cases(Option<A.Expr>) maybe-else:
-                  | some(_else) =>
-                    if is-empty(remaining-branches):
-                      typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
-                    else:
-                      has-else(l, ann, new-val, split-result, _else, context)
+                  temp-result.typing-bind(lam(result, shadow context):
+                    split-result = split(result)
+                    remaining-branches = branch-tracker.get().to-list()
+                    cases(Option<A.Expr>) maybe-else:
+                      | some(_else) =>
+                        if is-empty(remaining-branches):
+                          typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
+                        else:
+                          has-else(l, ann, new-val, split-result, _else, context)
+                        end
+                      | none =>
+                        if is-empty(remaining-branches):
+                          no-else(l, ann, new-val, split-result, context)
+                        else:
+                          # TODO(MATT): more appropriate error here
+                          typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
+                        end
                     end
-                  | none =>
-                    if is-empty(remaining-branches):
-                      no-else(l, ann, new-val, split-result, context)
-                    else:
-                      # TODO(MATT): more appropriate error here
-                      typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
-                    end
-                end
-              end)
+                  end)
+                | none =>
+                  typing-error([list: C.incorrect-type(tostring(val-type), val-type.l, tostring(typ), typ.l)])
+              end
             end)
-          | none => typing-error([list: C.cant-typecheck("No type provided for cases", l)])
+          | none =>
+            # TODO(MATT): this needs to be a much better error
+            typing-error([list: C.cant-typecheck("No datatype provided for cases", l)])
         end
     end
   end)
