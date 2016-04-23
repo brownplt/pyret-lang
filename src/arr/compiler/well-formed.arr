@@ -407,12 +407,12 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     when is-some(refinement):
       cases(A.CheckOp) op:
-        | s-op-is            => nothing
-        | s-op-is-not        => nothing
-        | s-op-satisfies     =>
+        | s-op-is(_)            => nothing
+        | s-op-is-not(_)        => nothing
+        | s-op-satisfies(_)     =>
           wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
               + "Consider changing the predicate instead.", l)
-        | s-op-satisfies-not =>
+        | s-op-satisfies-not(_) =>
           wf-error("Cannot use refinement syntax `%(...)` with `violates`. "
               + "Consider changing the predicate instead.", l)
         | else               =>

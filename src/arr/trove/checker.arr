@@ -6,11 +6,19 @@ import srcloc as SL
 import either as E
 import error-display as ED
 import render-error-display as RED
+import ast as A
 type Loc = SL.Srcloc
 type Either = E.Either
-
+type Expr = A.Expr
+get-op-fun-name = A.get-op-fun-name
 is-right = E.is-right
 is-left = E.is-left
+
+data CheckOperand:
+  | on-left
+  | on-right
+  | on-refinement
+end
 
 data CheckBlockResult:
   | check-block-result(
@@ -19,16 +27,6 @@ data CheckBlockResult:
       test-results :: List<TestResult>,
       maybe-err :: Option<Any>
     )
-end
-
-# copied from ast.arr, remove once import situation is resolved
-fun get-op-fun-name(opname):
-  ask:
-    | opname == "op==" then: ED.code(ED.text("equal-always"))
-    | opname == "op=~" then: ED.code(ED.text("equal-now"))
-    | opname == "op<=>" then: ED.code(ED.text("identical"))
-    | otherwise: raise("Unknown op: " + opname)
-  end
 end
 
 fun report-value(operand, refinement, value):
@@ -233,23 +231,29 @@ data TestResult:
         [ED.para: ED.text("and expected it not to contain ")],
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
-  | failure-exn(loc :: Loc, actual-exn, l-operand) with:
+  | failure-exn(loc :: Loc, actual-exn, exn-place :: CheckOperand) with:
     render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
-      rhs-ast = test-ast.right
-      ed-op = ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"") 
-      ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
+      rhs-ast = test-ast.right.value
       [ED.error:
         [ED.para:
-          ED.text("The binary test operator "),
-          ED.code(ED.text("raises-satisfies")),
-          ED.text(" reported failure for the test ")],
+          ED.text("The testing statement")],
          ED.cmcode(self.loc),
-        [ED.para:
-          ED.text("because it did not expect the evaluation of the "),
-          if self.l-operand: ed-lhs else: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.value.l], 2);,
-          ED.text(" to raise an exception:")],
+        ED.paragraph(
+          [list: ED.text("reported failure for the test, because it did not expect the evaluation of the ")] +
+          cases(CheckOperand) self.exn-place:
+            | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)]
+            | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 0)]
+            | on-refinement => 
+              cases(Option<Expr>) test-ast.refinement:
+                | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], 0)]
+                # this branch shouldn't happen
+                | none    => [list: 
+                                ED.text("predicate"), 
+                                ED.code(ED.text(get-op-fun-name(test-ast.op.op)))]
+              end
+          end + [list: ED.text(" to raise an exception:")]),
         ED.embed(self.actual-exn)]
     end,
     render-reason(self):
@@ -354,20 +358,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   end
   fun left-right-check(loc):
     lam(with-vals, left, right):
-      run = lam():
-        # TODO(joe): Once a bootstrap has happened, these ifs can be changed
-        # to just thunk applications.  Need the if-test to accommodate two
-        # desugar styles at once.
-        lv = if is-function(left): left() else: left end
-        rv = if is-function(right): right() else: right end
-        with-vals(lv, rv)
-      end
-      cases(Either) run-task(run):
-        | left(v) => v
-        | right(e) => add-result(failure-exn(loc, e,
-            E.is-right(run-task(lam():if is-function(left):left() else: left;;))
-        ))
-      end
+      lv = run-task(left)
+      if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))  else:
+      rv = run-task(right)
+      if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right)) else:
+      res = run-task(lam():with-vals(lv, rv);)
+      if is-right(res): add-result(failure-exn(loc, res.v, on-refinement)) 
+      else: res.v;;;
     end
   end
   fun check-bool(loc, test-result, on-failure):
