@@ -66,7 +66,7 @@ data TestResult:
          ED.cmcode(self.loc),
         [ED.para:
           cases(Any) test-ast.op:
-            | s-op-is => [ED.sequence:
+            | s-op-is(_) => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "), 
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
@@ -74,7 +74,7 @@ data TestResult:
               end,
               ED.text(" is satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-            | s-op-is-op(op) => 
+            | s-op-is-op(_, op) => 
               [ED.sequence:
                 ED.text("because it reports success if and only if the predicate "),
                 get-op-fun-name(op), ED.text(" is satisfied when the "), 
@@ -118,7 +118,7 @@ data TestResult:
          ED.cmcode(self.loc),
         [ED.para:
           cases(Any) test-ast.op:
-            | s-op-is-not => [ED.sequence:
+            | s-op-is-not(_) => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "), 
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
@@ -126,7 +126,7 @@ data TestResult:
               end,
               ED.text(" is not satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-            | s-op-is-not-op(op) => [ED.sequence:
+            | s-op-is-not-op(_, op) => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "),
               get-op-fun-name(op), ED.text(" is not satisfied when the "), 
               ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
@@ -358,11 +358,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   end
   fun left-right-check(loc):
     lam(with-vals, left, right):
-      lv = run-task(left)
+      lv = run-task(if is-function(left): left else: left.v;)
       if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))  else:
-      rv = run-task(right)
+      rv = run-task(if is-function(right): right else: right.v;)
       if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right)) else:
-      res = run-task(lam():with-vals(lv, rv);)
+      res = run-task(lam():with-vals(lv.v, rv.v);)
       if is-right(res): add-result(failure-exn(loc, res.v, on-refinement)) 
       else: res.v;;;
     end
