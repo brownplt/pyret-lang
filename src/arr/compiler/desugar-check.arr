@@ -36,37 +36,37 @@ check-stmts-visitor = A.default-map-visitor.{
         [list: refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
-      | s-op-is            =>
+      | s-op-is(_)                =>
         cases(Option) refinement:
           | none                    => check-op("check-is")
           | some(shadow refinement) => check-refinement(refinement, "check-is-refinement")
         end
-      | s-op-is-not        =>
+      | s-op-is-not(_)              =>
         cases(Option) refinement:
           | none                    => check-op("check-is-not")
           | some(shadow refinement) => check-refinement(refinement, "check-is-not-refinement")
         end
-      | s-op-is-op(opname)    =>
+      | s-op-is-op(_, opname)     =>
         check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-refinement")
-      | s-op-is-not-op(opname) =>
+      | s-op-is-not-op(_, opname) =>
         check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-not-refinement")
-      | s-op-satisfies        =>
+      | s-op-satisfies(_)         =>
         check-op("check-satisfies-delayed")
-      | s-op-satisfies-not    =>
+      | s-op-satisfies-not(_)     =>
         check-op("check-satisfies-not-delayed")
-      | s-op-raises           =>
+      | s-op-raises(_)            =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
           [list: ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-not       =>
+      | s-op-raises-not(_)        =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
           [list: ast-lam(left), ast-srcloc(l)])
-      | s-op-raises-other     =>
+      | s-op-raises-other(_)      =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
           [list: ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-satisfies =>
+      | s-op-raises-satisfies(_)  =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-satisfies"),
           [list: ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-violates  =>
+      | s-op-raises-violates(_)   =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-violates"),
           [list: ast-lam(left), right.value, ast-srcloc(l)])
       | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))

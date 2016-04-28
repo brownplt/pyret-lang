@@ -1211,37 +1211,37 @@ fun get-op-fun-name(opname):
 end
 
 data CheckOp:
-  | s-op-is with:
+  | s-op-is(l :: Loc) with:
     label(self): "s-op-is" end,
     tosource(self): str-is end
-  | s-op-is-op(op :: String) with:
+  | s-op-is-op(l :: Loc, op :: String) with:
     label(self): "s-op-is-op" end,
     tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-is-not with:
+  | s-op-is-not(l :: Loc) with:
     label(self): "s-op-is-not" end,
     tosource(self): str-is-not end
-  | s-op-is-not-op(op :: String) with:
+  | s-op-is-not-op(l :: Loc, op :: String) with:
     label(self): "s-op-is-not-op" end,
     tosource(self): str-is-not + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-satisfies with:
+  | s-op-satisfies(l :: Loc) with:
     label(self): "s-op-satisfies" end,
     tosource(self): str-satisfies end
-  | s-op-satisfies-not with:
+  | s-op-satisfies-not(l :: Loc) with:
     label(self): "s-op-satisfies-not" end,
     tosource(self): str-satisfies-not end
-  | s-op-raises with:
+  | s-op-raises(l :: Loc) with:
     label(self): "s-op-raises" end,
     tosource(self): str-raises end
-  | s-op-raises-other with:
+  | s-op-raises-other(l :: Loc) with:
     label(self): "s-op-raises-other" end,
     tosource(self): str-raises-other end
-  | s-op-raises-not with:
+  | s-op-raises-not(l :: Loc) with:
     label(self): "s-op-raises-not" end,
     tosource(self): str-raises-not end
-  | s-op-raises-satisfies with:
+  | s-op-raises-satisfies(l :: Loc) with:
     label(self): "s-op-raises-satisfies" end,
     tosource(self): str-raises-satisfies end
-  | s-op-raises-violates with:
+  | s-op-raises-violates(l :: Loc) with:
     label(self): "s-op-raises-violates" end,
     tosource(self): str-raises-violates end
 sharing:
