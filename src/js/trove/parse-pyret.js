@@ -829,6 +829,18 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (for-bind-elt b COMMA)
             return tr(node.kids[0]);
           },
+          'sql-expr': function(node) {
+            var inspect = tr(node.kids[1]);
+            var where = node.kids.length == 5
+              ? RUNTIME.ffi.makeNone()
+              : RUNTIME.ffi.makeSome(tr(node.kids[3]));
+            var project = tr(node.kids[node.kids.length - 2]);
+            return RUNTIME.getField(ast, 's-sql')
+              .app( pos(node.pos), 
+                    inspect, // from
+                    where, // where
+                    project); // project
+          },
           'user-block-expr': function(node) {
             // (user-block-expr BLOCK body END)
             return RUNTIME.getField(ast, 's-user-block')

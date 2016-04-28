@@ -234,6 +234,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
+    {name: "INSPECT", val: new RegExp(colonKw("inspect:"), STICKY_REGEXP)},
+    {name: "PROJECT", val: new RegExp(colonKw("project:"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
     {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},

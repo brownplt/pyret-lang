@@ -112,6 +112,7 @@ expr: paren-expr | id-expr | prim-expr
     | multi-let-expr | letrec-expr
     | type-let-expr
     | construct-expr
+    | sql-expr
 
 bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
 
@@ -181,6 +182,8 @@ cases-branch: BAR NAME [cases-args] THICKARROW block
 for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
 for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
+
+sql-expr: INSPECT for-bind [WHERE binop-expr] PROJECT expr end
 
 user-block-expr: BLOCK block end
 

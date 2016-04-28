@@ -379,6 +379,19 @@ fun desugar-expr(expr :: A.Expr):
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
+    | s-sql(l, inspect-clause, where-clause, project-clause) =>
+      d-map    = lam(e): A.s-dot(e.l, e, "map");
+      d-filter = lam(e): A.s-dot(e.l, e, "filter");
+      d-app    = lam(m, p):
+        A.s-app(A.dummy-loc, m, [list:
+          A.s-lam(p.l, empty, [list: inspect-clause.bind], A.a-blank, "", p, none)]);
+      desugar-expr(
+        cases(Option) where-clause:
+          | some(pred) =>
+            d-app(d-map(d-app(d-filter(inspect-clause.value), pred)), project-clause)
+          | none       =>
+            d-app(d-map(inspect-clause.value) , project-clause)
+        end)
     | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>

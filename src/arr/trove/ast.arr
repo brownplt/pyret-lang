@@ -949,6 +949,17 @@ data Expr:
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
+  | s-sql(
+      l :: Loc,
+      from-clause :: ForBind,
+      where-clause :: Option<Expr>,
+      project-clause :: Expr
+   ) with:
+    label(self): "s-sql" end,
+    tosource(self):
+      # TODO
+      PP.lbrace
+    end
   | s-check(
       l :: Loc,
       name :: Option<String>,
@@ -1743,6 +1754,19 @@ default-map-visitor = {
     ):
     s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
+  s-sql(
+      self,
+      l :: Loc,
+      from-clause :: ForBind,
+      where-clause :: Option<Expr>,
+      project-clause :: Expr
+    ):
+    s-sql(
+      l,
+      from-clause.visit(self),
+      self.option(where-clause),
+      project-clause.visit(self))
+  end,
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     s-check(l, name, body.visit(self), keyword-check)
   end,
@@ -2194,6 +2218,19 @@ default-iter-visitor = {
       ):
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
+  s-sql(
+      self,
+      l :: Loc,
+      from-clause :: ForBind,
+      where-clause :: Option<Expr>,
+      project-clause :: Expr
+      ):
+    from-clause.visit(self) and project-clause.visit(self) and
+      cases(Option) where-clause:
+        | some(v) => v.visit(self)
+        | none    => true
+      end
+  end,
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
   end,
@@ -2642,16 +2679,20 @@ dummy-loc-visitor = {
         self.option(_check)
       )
   end,
-  s-for(
+  s-sql(
       self,
       l :: Loc,
-      iterator :: Expr,
-      bindings :: List<ForBind>,
-      ann :: Ann,
-      body :: Expr
-    ):
-    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+      from-clause :: ForBind,
+      where-clause :: Option<Expr>,
+      project-clause :: Expr
+      ):
+    s-sql(
+      dummy-loc,
+      from-clause.visit(self),
+      self.option(where-clause),
+      project-clause.visit(self))
   end,
+  
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     s-check(dummy-loc, name, body.visit(self), keyword-check)
   end,
