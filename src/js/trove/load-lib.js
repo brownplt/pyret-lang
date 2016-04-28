@@ -14,6 +14,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
           "is-failure-result",
           "get-result-answer",
           "get-result-compile-env",
+          "get-result-provides",
           "render-check-results",
           "render-error-message"
         ],
@@ -23,8 +24,8 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
       ]
     },
     function(runtime, namespace, runtimeLib) {
-      var brandModule = runtime.namedBrander("module");
-      var brandModuleResult = runtime.namedBrander("module-result");
+      var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
+      var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);
 
       var annModule = runtime.makeBranderAnn(brandModule, "Module");
       var annModuleResult = runtime.makeBranderAnn(brandModuleResult, "ModuleResult");
@@ -41,11 +42,11 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
         return m;
       }
 
-      function makeModuleResult(runtimeForModule, result, compileEnv) {
+      function makeModuleResult(runtimeForModule, result, compileResult) {
         return runtime.makeOpaque({
           runtime: runtimeForModule,
           result: result,
-          compileEnv: compileEnv
+          compileResult: compileResult
         });
       }
 
@@ -76,8 +77,11 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
           return runtime.ffi.makeNone();
         }
       }
-      function getResultCompileEnv(mr) {
-        return mr.val.compileEnv;
+      function getResultCompileResult(mr) {
+        return mr.val.compileResult;
+      }
+      function getResultProvides(mr) {
+        return mr.val.provides;
       }
       function getModuleResultRuntime(mr) {
         return mr.val.runtime;
@@ -176,7 +180,6 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
                 if(execRt.isSuccessResult(v)) {
                   return restarter.resume(v.result)
                 } else {
-                  debugger;
                   console.error("load error");
                   console.error("There was an exception while rendering the exception: ",  r.exn, v.exn);
 
@@ -235,14 +238,14 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             function setCheckAll(newCheckAll) {
               checkAll = newCheckAll;
             }
-            function run(modval, compileEnv, modname) {
+            function run(modval, compileResult, modname) {
               loadRuntime.setParam("command-line-arguments", cca);
               var checker = loadRuntime.getField(checkerLib, "values");
               var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
               loadRuntime.setParam("current-checker", currentChecker);
               runtime.pauseStack(function(restarter) {
                 loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
-                  var modResult = makeModuleResult(loadRuntime, result, compileEnv);
+                  var modResult = makeModuleResult(loadRuntime, result, compileResult);
                   restarter.resume(modResult);
                 });
               });
@@ -260,7 +263,7 @@ define(["js/secure-loader", "js/runtime-util"], function(loader, util) {
             "is-success-result": runtime.makeFunction(isSuccessResult),
             "is-failure-result": runtime.makeFunction(isFailureResult),
             "get-result-answer": runtime.makeFunction(getAnswerForPyret),
-            "get-result-compile-env": runtime.makeFunction(getResultCompileEnv),
+            "get-result-compile-result": runtime.makeFunction(getResultCompileResult),
             "render-check-results": runtime.makeFunction(renderCheckResults),
             "render-error-message": runtime.makeFunction(renderErrorMessage)
           }),

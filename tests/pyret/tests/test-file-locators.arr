@@ -98,15 +98,13 @@ check "File locators":
     CL.located(l, nothing)
   end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = file-loc("foo", CM.standard-globals)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
-  wlist = clib.compile-worklist(floc, {})
+  wlist = CL.compile-worklist(dfind, floc, {})
   wlist.length() is 12
   wlist.get(11).locator is floc
   wlist.get(10).locator is file-loc("bar", CM.standard-globals)
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
+  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   ans.v satisfies LL.is-success-result
 end

@@ -246,6 +246,11 @@
     }
     @shared{
       @method-spec[
+        "_output"
+        ;; N.B. Pyret contract: (Srcloc -> Any)
+        
+      ]
+      @method-spec[
         "after"
         ;; N.B. Pyret contract: (Srcloc, Any -> Any)
         

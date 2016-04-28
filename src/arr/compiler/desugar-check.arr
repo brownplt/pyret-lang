@@ -29,11 +29,11 @@ check-stmts-visitor = A.default-map-visitor.{
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
+        [list: ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
+        [list: refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
       | s-op-is            =>
@@ -56,19 +56,19 @@ check-stmts-visitor = A.default-map-visitor.{
         check-op("check-satisfies-not-delayed")
       | s-op-raises           =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
       | s-op-raises-not       =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
-          [list: ast-pretty(term), ast-lam(left), ast-srcloc(l)])
+          [list: ast-lam(left), ast-srcloc(l)])
       | s-op-raises-other     =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
       | s-op-raises-satisfies =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-satisfies"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
       | s-op-raises-violates  =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-violates"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
       | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))
     end
   end,

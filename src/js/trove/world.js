@@ -1,24 +1,72 @@
-define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers"], function(util, imageLib, worldLib, ffiLib) {
+define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util", "trove/string-dict"], function(util, imageLib, worldLib, t, strDictLib) {
+
+  var wcOfA = t.tyapp(t.localType("WorldConfig"), [t.tyvar("a")]);
 
   return util.definePyretModule(
     "world",
     [],
     {
-      values: [
-        "big-bang",
-        "on-tick",
-        "on-tick-n",
-        "to-draw",
-        "stop-when",
-        "on-key",
-        "on-mouse",
-        "is-world-config",
-        "is-key-equal"
-      ],
-      types: [ ]
+      values: {
+        "big-bang":
+          t.forall(["a"], t.arrow([
+              t.tyvar("a"),
+              t.tyapp(t.libName("lists", "List"), [wcOfA])
+            ],
+            t.tyvar("a"))),
+        "on-tick":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number], t.tyvar("a"))
+              ],
+              wcOfA)),
+        "on-tick-n":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number], t.tyvar("a")),
+                t.number
+              ],
+              wcOfA)),
+        "to-draw":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.libName("image", "Image")),
+              ],
+              wcOfA)),
+        "stop-when":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a")], t.boolean),
+              ],
+              wcOfA)),
+        "on-key":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.string], t.tyvar("a")),
+              ],
+              wcOfA)),
+        "on-mouse":
+          t.forall(["a"],
+            t.arrow([
+                t.arrow([t.tyvar("a"), t.number, t.number, t.string], t.tyvar("a")),
+              ],
+              wcOfA)),
+        "is-world-config": t.arrow([t.any], t.boolean),
+        "is-key-equal": t.arrow([t.string, t.string], t.boolean)
+      },
+      aliases: {
+        "WorldConfig": t.localType("WorldConfig") 
+      },
+      datatypes: {
+        "WorldConfig": t.dataType(
+          "WorldConfig",
+          ["a"],
+          [],
+          {}
+        )
+      }
     },
     function(runtime, namespace) {
-      return runtime.loadJSModules(namespace, [imageLib, worldLib, ffiLib], function(imageLibrary, rawJsworld, ffi) {
+        return runtime.loadJSModules(namespace, [imageLib, worldLib, strDictLib], function(imageLibrary, rawJsworld, strDict) {
         var isImage = imageLibrary.isImage;
 
         //////////////////////////////////////////////////////////////////////
@@ -359,7 +407,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
               }, function(str) {
                   textNode.text(str);
                   success([toplevelNode,
-                           rawJsworld.node_to_tree(textNode[0])]);
+                          rawJsworld.node_to_tree(textNode[0])]);
               });
             };
             var cssFunction = function(w, success) { success([]); }
@@ -387,7 +435,7 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         };
 
         var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
-
+        //////////////////////////////////////////////////////////////////////
 
 
         // The default tick delay is 28 times a second.
@@ -397,61 +445,69 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/ffi-helpers
         var makeFunction = runtime.makeFunction;
 
         return makeObject({
-          "provide": makeObject({
-            "big-bang": makeFunction(function(init, handlers) {
-              ffi.checkArity(2, arguments, "big-bang");
-              runtime.checkList(handlers);
-              var arr = ffi.toArray(handlers);
-              var initialWorldValue = init;
-              arr.map(function(h) { checkHandler(h); });
-              bigBang(initialWorldValue, arr);
-              ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
+          "provide-plus-types": makeObject({
+            "values": makeObject({
+              "big-bang": makeFunction(function(init, handlers) {
+                runtime.ffi.checkArity(2, arguments, "big-bang");
+                runtime.checkList(handlers);
+                var arr = runtime.ffi.toArray(handlers);
+                var initialWorldValue = init;
+                arr.map(function(h) { checkHandler(h); });
+                bigBang(initialWorldValue, arr);
+                runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
+              }),
+              "on-tick": makeFunction(function(handler) {
+                runtime.ffi.checkArity(1, arguments, "on-tick");
+                runtime.checkFunction(handler);
+                return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+              }),
+              "on-tick-n": makeFunction(function(handler, n) {
+                runtime.ffi.checkArity(2, arguments, "on-tick-n");
+                runtime.checkFunction(handler);
+                runtime.checkNumber(n);
+                var fixN = typeof n === "number" ? fixN : n.toFixnum();
+                return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
+              }),
+              "to-draw": makeFunction(function(drawer) {
+                runtime.ffi.checkArity(1, arguments, "to-draw");
+                runtime.checkFunction(drawer);
+                return runtime.makeOpaque(new ToDraw(drawer));
+              }),
+              "stop-when": makeFunction(function(stopper) {
+                runtime.ffi.checkArity(1, arguments, "stop-when");
+                runtime.checkFunction(stopper);
+                return runtime.makeOpaque(new StopWhen(stopper));
+              }),
+              "on-key": makeFunction(function(onKey) {
+                runtime.ffi.checkArity(1, arguments, "on-key");
+                runtime.checkFunction(onKey);
+                return runtime.makeOpaque(new OnKey(onKey));
+              }),
+              "on-mouse": makeFunction(function(onMouse) {
+                runtime.ffi.checkArity(1, arguments, "on-mouse");
+                runtime.checkFunction(onMouse);
+                return runtime.makeOpaque(new OnMouse(onMouse));
+              }),
+              "is-world-config": makeFunction(function(v) {
+                runtime.ffi.checkArity(1, arguments, "is-world-config");
+                if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
+                return runtime.makeBoolean(isWorldConfigOption(v.val));
+              }),
+              "is-key-equal": makeFunction(function(key1, key2) {
+                runtime.ffi.checkArity(2, arguments, "is-key-equal");
+                runtime.checkString(key1);
+                runtime.checkString(key2);
+                return key1.toString().toLowerCase() === key2.toString().toLowerCase();
+              })
             }),
-            "on-tick": makeFunction(function(handler) {
-              ffi.checkArity(1, arguments, "on-tick");
-              runtime.checkFunction(handler);
-              return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+            "types": makeObject({
             }),
-            "on-tick-n": makeFunction(function(handler, n) {
-              ffi.checkArity(2, arguments, "on-tick-n");
-              runtime.checkFunction(handler);
-              runtime.checkNumber(n);
-              var fixN = typeof n === "number" ? fixN : n.toFixnum();
-              return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
-            }),
-            "to-draw": makeFunction(function(drawer) {
-              ffi.checkArity(1, arguments, "to-draw");
-              runtime.checkFunction(drawer);
-              return runtime.makeOpaque(new ToDraw(drawer));
-            }),
-            "stop-when": makeFunction(function(stopper) {
-              ffi.checkArity(1, arguments, "stop-when");
-              runtime.checkFunction(stopper);
-              return runtime.makeOpaque(new StopWhen(stopper));
-            }),
-            "on-key": makeFunction(function(onKey) {
-              ffi.checkArity(1, arguments, "on-key");
-              runtime.checkFunction(onKey);
-              return runtime.makeOpaque(new OnKey(onKey));
-            }),
-            "on-mouse": makeFunction(function(onMouse) {
-              ffi.checkArity(1, arguments, "on-mouse");
-              runtime.checkFunction(onMouse);
-              return runtime.makeOpaque(new OnMouse(onMouse));
-            }),
-            "is-world-config": makeFunction(function(v) {
-              ffi.checkArity(1, arguments, "is-world-config");
-              if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
-              return runtime.makeBoolean(isWorldConfigOption(v.val));
-            }),
-            "is-key-equal": makeFunction(function(key1, key2) {
-              ffi.checkArity(2, arguments, "is-key-equal");
-              runtime.checkString(key1);
-              runtime.checkString(key2);
-              return key1.toString().toLowerCase() === key2.toString().toLowerCase();
-            })
+            "internal": {
+              WorldConfigOption: WorldConfigOption,
+              adaptWorldFunction: adaptWorldFunction
+            }
           })
-        });
       });
     });
+  });
 });

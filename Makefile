@@ -130,15 +130,15 @@ $(PHASE3):
 
 $(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
 	cd $(PHASE1) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util include=js/ffi-helpers
 
 $(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
 	cd $(PHASE2) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util include=js/ffi-helpers
 
 $(PHASE3)/pyret.js: $(PHASE3_ALL_DEPS) $(PHASE3)/pyret-start.js
 	cd $(PHASE3) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib include=js/type-util include=js/ffi-helpers
 
 $(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
 	cp $< $@
@@ -322,7 +322,7 @@ lib-test: $(PYRET_TEST_PREREQ)
 
 .PHONY : benchmark-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
-	cd tools/benchmark && node tests
+	cd tools/benchmark/ && make test
 
 .PHONY : docs-test
 docs-test: docs

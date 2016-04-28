@@ -113,12 +113,79 @@ define(["js/js-numbers"],
             return num;
         }
     }
+
+    function between(b, a, c) {
+      return (jsnums.lessThanOrEqual(a, b) && jsnums.lessThanOrEqual(b, c)) ||
+             (jsnums.lessThanOrEqual(c, b) && jsnums.lessThanOrEqual(b, a));
+    }
+
+    function calcPointOnEdge(pin, pout, xMin, xMax, yMin, yMax) {
+      // This function is used to calculate the point on edge
+      // of a window [xMin, xMax] x [yMin, yMax] between pin and pout
+      // pin, pout: {x: ..., y: ...}
+
+      // y = m * x + c // [3]
+      // y2 = m * x2 + c
+      // y - y2 = m * (x - x2)
+      // m = (y - y2) / (x - x2) [1]
+      // c = y - m * x [2]
+      // x = (y - c) / m // [4]
+
+      if(jsnums.eqv(pin.x, pout.x)) {
+        // special mode
+        if (jsnums.lessThan(pout.y, yMin)) {
+          return {x: pin.x, y: yMin};
+        } else {
+          return {x: pin.x, y: yMax};
+        }
+      }
+
+      var m = jsnums.divide(
+                jsnums.subtract(pin.y, pout.y),
+                jsnums.subtract(pin.x, pout.x)); // [1]
+      var c = jsnums.subtract(pin.y, jsnums.multiply(m, pin.x)); // [2]
+
+      function f(x) { return jsnums.add(jsnums.multiply(m, x), c); } // [3]
+      function g(y) { return jsnums.divide(jsnums.subtract(y, c), m); } // [4]
+
+      var yCurrent = f(xMin); // if (xMin, yCurrent) is the answer
+      if (between(xMin, pin.x, pout.x) &&
+          between(yCurrent, yMin, yMax) &&
+          between(yCurrent, pin.y, pout.y)) {
+        return {x: xMin, y: yCurrent};
+      }
+
+      yCurrent = f(xMax); // if (xMax, yCurrent) is the answer
+      if (between(xMax, pin.x, pout.x) &&
+          between(yCurrent, yMin, yMax) &&
+          between(yCurrent, pin.y, pout.y)) {
+        return {x: xMax, y: yCurrent};
+      }
+
+      var xCurrent = g(yMin); // if (xCurrent, yMin) is the answer
+      if (between(yMin, pin.y, pout.y) &&
+          between(xCurrent, xMin, xMax) &&
+          between(xCurrent, pin.x, pout.x)) {
+        return {x: xCurrent, y: yMin};
+      }
+
+      var xCurrent = g(yMax); // if (xCurrent, yMax) is the answer
+      if (between(yMax, pin.y, pout.y) &&
+          between(xCurrent, xMin, xMax) &&
+          between(xCurrent, pin.x, pout.x)) {
+        return {x: xCurrent, y: yMax};
+      }
+      throw "algorithm to calculate a point on the edge is buggy";
+    }
+
     var libNum = {
-        'scaler': scaler,
-        'adjustInRange': adjustInRange,
-        'max': max,
-        'min': min,
-        'format': format
+        scaler: scaler,
+        adjustInRange: adjustInRange,
+        max: max,
+        min: min,
+        format: format,
+        between: between,
+        calcPointOnEdge: calcPointOnEdge
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -343,16 +410,6 @@ define(["js/js-numbers"],
             return this.sum(r) - this.sum(l - 1);
         };
     }
-
-    var testFenwick = new FenwickTree(10);
-    testFenwick.add(1, 2);
-    assert(testFenwick.sumInterval(1, 10) === 2);
-    testFenwick.add(1, 3);
-    assert(testFenwick.sumInterval(1, 10) === 5);
-    testFenwick.add(3, 4);
-    assert(testFenwick.sumInterval(1, 10) === 9);
-    assert(testFenwick.sumInterval(1, 2) === 5);
-    assert(testFenwick.sumInterval(2, 3) === 4);
 
     function LogTable(n) {
         /*
@@ -671,3 +728,18 @@ define(["js/js-numbers"],
 
     }
 });
+
+/*
+var testFenwick = new FenwickTree(10);
+testFenwick.add(1, 2);
+assert(testFenwick.sumInterval(1, 10) === 2);
+testFenwick.add(1, 3);
+assert(testFenwick.sumInterval(1, 10) === 5);
+testFenwick.add(3, 4);
+assert(testFenwick.sumInterval(1, 10) === 9);
+assert(testFenwick.sumInterval(1, 2) === 5);
+assert(testFenwick.sumInterval(2, 3) === 4);
+
+assert(calcPointOnEdge({x: 0, y: 0}, {x: -20, y: -30}, -10, 10, -10, 10), jsnums.divide(-20, 3));
+assert(calcPointOnEdge({x: -20, y: -30}, {x: 0, y: 0}, -10, 10, -10, 10), jsnums.divide(-20, 3));
+*/

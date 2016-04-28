@@ -1,5 +1,3 @@
-/*jslint white:true */
-
 var sortListProgram =
 'fun isort(l):\n \
   cases (List) l:\n \

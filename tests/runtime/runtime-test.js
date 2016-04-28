@@ -14,12 +14,20 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
     }
 
     function performTest(useCompiled) {
-      var output;
+      var output, consoleLog, consoleErr;
       var rt;
 
       /**@ param {string} str, output*/
       function stdout(str) {
           output += str;
+      }
+      function logConsole() {
+        for (var i = 0; i < arguments.length; i++)
+          consoleLog += String(arguments[i]);
+      }
+      function errConsole() {
+        for (var i = 0; i < arguments.length; i++)
+          consoleErr += String(arguments[i]);
       }
 
       //Test functions for creating functions/method
@@ -43,7 +51,14 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
 
       beforeEach(function(){
           output = "";
-          rt = rtLib.makeRuntime({'stdout' : stdout});
+          consoleLog = "";
+          consoleErr = "";
+          rt = rtLib.makeRuntime({
+            'stdout' : stdout, 
+            'console' : {
+              'log' : logConsole,
+              'error' : errConsole
+            }});
           addPyretMatchers(this, rt);
 
           //Make Examples for testing
@@ -270,6 +285,15 @@ define(["js/runtime-anf", "./matchers"], function(rtLib, matchers) {
         expect(simulateHasBrand(aNum, "1"));
         expect(simulateHasBrand(y, "1"));
           });
+      });
+
+      describe("Printing", function() {
+        it("should not hang on unknown values", function() {
+          function foo() { return 42; }
+          rt.namespace.get("print").app(foo);
+          expect(output).toEqual("<Unknown value: details logged to console>\n");
+          expect(consoleLog).toEqual("UNKNOWN VALUE: " + foo.toString());
+        });
       });
 
       describe("Sameness testing", function() {

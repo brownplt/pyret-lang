@@ -288,7 +288,7 @@ numbers and rough numbers (``roughnums''). Both are to base ten;
 real; and finite.
 
 Exact numbers are arbitrarily precise rational numbers: these
-include integers and rational fractions.  For integers whose 
+include integers and rational fractions.  For integers whose
 magnitude is less than @pyret{(2^53 - 1)},
 Pyret internally uses JavaScript
 fixnums, in order to optimize basic arithmetic.
@@ -319,7 +319,7 @@ roughnums for equality throws an error.
 
 An operation whose numerical result is not determinate or finite
 throws an error, with the message signaling either an
-overflow or some more specific problem. 
+overflow or some more specific problem.
 
 @section{Number Annotations}
 
@@ -885,8 +885,9 @@ end
   }
   @function["num-within-rel" #:contract (a-arrow N A)]{
 
-Returns a predicate that checks if the relative difference of its two
-number arguments is less than @pyret{tol}.
+Returns a predicate that checks that its first number argument
+is no more than the fraction @pyret{tol} off from its second
+argument.
 
 This function is a.k.a. @pyret{num-within}.
 
