@@ -325,7 +325,7 @@ well-formed-visitor = A.default-iter-visitor.{
     add-error(C.non-toplevel("data declaration", l))
     true
   end,
-  s-type(self, l, name, ann):
+  s-type(self, l, name, params, ann):
     last-visited-loc := l
     add-error(C.non-toplevel("type alias", l))
     true
@@ -541,7 +541,7 @@ top-level-visitor = A.default-iter-visitor.{
     end
     ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
-  s-type(self, l, name, ann):
+  s-type(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
   end,
   s-newtype(self, l, name, namet):
@@ -550,7 +550,7 @@ top-level-visitor = A.default-iter-visitor.{
   s-type-let-expr(self, l, binds, body):
     lists.all(_.visit(self), binds) and body.visit(well-formed-visitor)
   end,
-  s-type-bind(self, l, name, ann):
+  s-type-bind(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
   end,
   s-newtype-bind(self, l, name, namet):

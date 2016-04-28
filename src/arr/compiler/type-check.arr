@@ -388,7 +388,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-user-block should have already been desugared")
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           raise("s-fun should have already been desugared")
-        | s-type(l, name, ann) =>
+        | s-type(l, name, params, ann) =>
           raise("checking for s-type not implemented")
         | s-newtype(l, name, namet) =>
           raise("checking for s-newtype not implemented")
@@ -626,7 +626,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-user-block should have already been desugared")
     | s-fun(l, name, params, args, ann, doc, body, _check) =>
       raise("s-fun should have already been desugared")
-    | s-type(l, name, ann) =>
+    | s-type(l, name, params, ann) =>
       raise("synthesis for s-type not implemented")
     | s-newtype(l, name, namet) =>
       raise("synthesis for s-newtype not implemented")
@@ -881,7 +881,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         | some(t) =>
           result-type = resolve-alias(t, context).set-loc(l)
           fold-result(some(result-type), context)
-        | none => fold-errors([list: C.unbound-type-id(in-ann)])
+        | none =>
+          fold-errors([list: C.unbound-type-id(in-ann)])
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l)), context)
@@ -1069,6 +1070,8 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
             | t-app(a-onto, a-args, _) =>
               cases(Type) supertype:
                 | t-top(_) => some(context)
+                | t-forall(_, _, _) =>
+                  satisfies-assuming(a-onto.introduce(a-args), supertype, context, assumptions)
                 | else =>
                   for option-bind(data-type from context.get-data-type(a-onto)):
                     satisfies-assuming(data-type.introduce(a-args), supertype, context, assumptions)
@@ -1124,8 +1127,13 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                     none
                   end
                 | t-app(b-onto, b-args, _) =>
-                  for option-bind(data-type from context.get-data-type(b-onto)):
-                    satisfies-assuming(subtype, data-type.introduce(b-args), context, assumptions)
+                  cases(Type) b-onto:
+                    | t-forall(_, _, _) =>
+                      satisfies-assuming(subtype, b-onto.introduce(b-args), context, assumptions)
+                    | else =>
+                      for option-bind(data-type from context.get-data-type(b-onto)):
+                        satisfies-assuming(subtype, data-type.introduce(b-args), context, assumptions)
+                      end
                   end
                 | t-record(b-fields, _) =>
                   satisfies-fields(a-fields, b-fields, context, assumptions)
@@ -1439,13 +1447,20 @@ end
 fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -> FoldResult<Nothing>:
   map-fold-result(lam(binding, shadow context):
     cases(A.TypeLetBind) binding:
-      | s-type-bind(_, name, ann) =>
+      | s-type-bind(l, name, params, ann) =>
         to-type(ann, context).bind(lam(maybe-typ, _):
           cases(Option<Type>) maybe-typ:
             | none => # TODO(MATT): is this correct?
               fold-errors([list: C.unbound-type-id(ann)])
             | some(typ) =>
-              context.aliases.set-now(name.key(), typ)
+              alias-type =
+                if is-empty(params):
+                  typ
+                else:
+                  forall = for map(param from params): t-var(param, l) end
+                  t-forall(forall, typ, l)
+                end
+              context.aliases.set-now(name.key(), alias-type)
               fold-result(nothing, context)
           end
         end)

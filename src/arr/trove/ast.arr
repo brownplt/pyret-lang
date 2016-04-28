@@ -404,10 +404,12 @@ sharing:
 end
 
 data TypeLetBind:
-  | s-type-bind(l :: Loc, name :: Name, ann :: Ann) with:
+  | s-type-bind(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     label(self): "s-type-bind" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
+      params = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+        self.params.map(_.tosource()))
+      PP.group(PP.nest(INDENT, self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype-bind(l :: Loc, name :: Name, namet :: Name) with:
     label(self): "s-newtype-bind" end,
@@ -529,11 +531,13 @@ data Expr:
       funlam-tosource(str-fun,
         self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
-  | s-type(l :: Loc, name :: Name, ann :: Ann) with:
+  | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     label(self): "s-type" end,
     tosource(self):
+      params = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+        self.params.map(_.tosource()))
       PP.group(PP.nest(INDENT,
-          str-type + self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
+          str-type + self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype(l :: Loc, name :: Name, namet :: Name) with:
     label(self): "s-newtype" end,
@@ -1324,7 +1328,7 @@ end
 fun binding-type-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
     | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
-    | s-type(l, name, _) => [list: {bind-type: "normal", name: name}]
+    | s-type(l, name, params, _) => [list: {bind-type: "normal", name: name}]
     | s-data(l, name, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
     | else => empty
   end
@@ -1475,8 +1479,8 @@ default-map-visitor = {
     s-let-bind(l, bind.visit(self), expr.visit(self))
   end,
 
-  s-type-bind(self, l, name, ann):
-    s-type-bind(l, name.visit(self), ann.visit(self))
+  s-type-bind(self, l, name, params, ann):
+    s-type-bind(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   s-newtype-bind(self, l, name, namet):
@@ -1519,8 +1523,8 @@ default-map-visitor = {
     s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    s-type(l, name.visit(self), ann.visit(self))
+  s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    s-type(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   s-newtype(self, l :: Loc, name :: Name, namet :: Name):
@@ -1932,8 +1936,8 @@ default-iter-visitor = {
     bind.visit(self) and expr.visit(self)
   end,
 
-  s-type-bind(self, l, name, ann):
-    name.visit(self) and ann.visit(self)
+  s-type-bind(self, l, name, params, ann):
+    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
   end,
 
   s-newtype-bind(self, l, name, namet):
@@ -1977,8 +1981,8 @@ default-iter-visitor = {
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    name.visit(self) and ann.visit(self)
+  s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
   end,
 
   s-newtype(self, l :: Loc, name :: Name, namet :: Name):
@@ -2384,8 +2388,8 @@ dummy-loc-visitor = {
     s-let-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
-  s-type-bind(self, l, name, ann):
-    s-type-bind(dummy-loc, name, ann)
+  s-type-bind(self, l, name, params, ann):
+    s-type-bind(dummy-loc, name, params, ann)
   end,
 
   s-newtype-bind(self, l, name, namet):
@@ -2428,8 +2432,8 @@ dummy-loc-visitor = {
     s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    s-type(dummy-loc, name.visit(self), ann.visit(self))
+  s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    s-type(dummy-loc, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   s-newtype(self, l :: Loc, name :: Name, namet :: Name):
