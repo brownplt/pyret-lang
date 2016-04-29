@@ -2679,6 +2679,16 @@ dummy-loc-visitor = {
         self.option(_check)
       )
   end,
+  s-for(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+      ):
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+  end,
   s-sql(
       self,
       l :: Loc,
