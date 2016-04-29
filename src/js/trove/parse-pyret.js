@@ -443,7 +443,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (check-op-postfix str)
             var opname = String(node.kids[0].value).trim();
             if (opLookup[opname]) {
-              return opLookup[opname].app(pos(node.pos));
+              return opLookup[opname](pos(node.pos));
             }
             else {
               throw "Unknown operator: " + opname;
