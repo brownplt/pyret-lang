@@ -44,6 +44,7 @@ str-elsespace = PP.str("else ")
 str-end = PP.str("end")
 str-except = PP.str("except")
 str-for = PP.str("for ")
+str-do = PP.str("do ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
@@ -949,6 +950,33 @@ data Expr:
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
+  | s-for-do(
+      l :: Loc,
+      from-clause :: ForBind,
+      dos :: List<Expr>
+    ) with:
+      label(self): "s-for-do" end,
+    tosource(self):
+      # TODO
+      PP.lbrace
+    end
+  | s-do(
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+    ) with:
+      label(self): "s-do" end,
+    tosource(self):
+      header = PP.group(str-do
+          + self.iterator.tosource()
+          + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
+          self.bindings.map(lam(b): b.tosource() end))
+          + PP.group(PP.nest(2 * INDENT,
+            break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
+      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
+    end
   | s-sql(
       l :: Loc,
       from-clause :: ForBind,
@@ -1754,6 +1782,24 @@ default-map-visitor = {
     ):
     s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
+  s-for-do(
+      self,
+      l :: Loc,
+      from-clause :: ForBind,
+      dos :: List<Expr>
+    ):
+    s-for-do(l, from-clause.visit(self), dos.map(_.visit(self)))
+  end,
+  s-do(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+    ):
+    s-do(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+  end,
   s-sql(
       self,
       l :: Loc,
@@ -2209,6 +2255,24 @@ default-iter-visitor = {
     and self.option(_check)
   end,
   s-for(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+      ):
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+  end,
+  s-for-do(
+      self,
+      l :: Loc,
+      from-clause :: ForBind,
+      dos :: List<Expr>
+    ):
+    from-clause.visit(self) and from-clause.visit(self) and lists.all(_.visit(self), dos)
+  end,
+  s-do(
       self,
       l :: Loc,
       iterator :: Expr,
@@ -2687,7 +2751,25 @@ dummy-loc-visitor = {
       ann :: Ann,
       body :: Expr
       ):
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+  end,
+  s-for-do(
+      self,
+      l :: Loc,
+      from-clause :: ForBind,
+      dos :: List<Expr>
+    ):
+    s-for-do(dummy-loc, from-clause.visit(self), from-clause.visit(self), dos.map(_.visit(self)))
+  end,
+  s-do(
+      self,
+      l :: Loc,
+      iterator :: Expr,
+      bindings :: List<ForBind>,
+      ann :: Ann,
+      body :: Expr
+      ):
+    s-do(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
   s-sql(
       self,

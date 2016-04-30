@@ -379,6 +379,13 @@ fun desugar-expr(expr :: A.Expr):
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
+    | s-for-do(l, from-clause, dos) =>
+      for fold(shadow expr from desugar-expr(from-clause.value), fdo from dos):
+        A.s-app(l, desugar-expr(fdo.iterator),
+          link(A.s-lam(l, [list: ], 
+                link(desugar-bind(from-clause.bind), fdo.bindings.map(_.bind).map(desugar-bind)), 
+                desugar-ann(fdo.ann), "", desugar-expr(fdo.body), none),
+               fdo.bindings.map(_.value).map(desugar-expr) + [list: expr]));
     | s-sql(l, inspect-clause, where-clause, project-clause) =>
       d-map    = lam(e): A.s-dot(e.l, e, "map");
       d-filter = lam(e): A.s-dot(e.l, e, "filter");

@@ -841,6 +841,19 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                     where, // where
                     project); // project
           },
+          'do-expr': function(node) {
+            // (do FOR iter binds ... return COLON body END)
+            return RUNTIME.getField(ast, 's-do')
+              .app(pos(node.pos), 
+                tr(node.kids[1]),                         // iterator
+                makeList(node.kids.slice(3, -5).map(tr)), // bindings
+                tr(node.kids[node.kids.length - 4]),      // return-ann
+                tr(node.kids[node.kids.length - 2]));     // body
+          },
+          'for-do': function(node) {
+            return RUNTIME.getField(ast, 's-for-do')
+              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
+          },
           'user-block-expr': function(node) {
             // (user-block-expr BLOCK body END)
             return RUNTIME.getField(ast, 's-user-block')

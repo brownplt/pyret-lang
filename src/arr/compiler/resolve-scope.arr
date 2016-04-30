@@ -766,23 +766,30 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
     end,
-    s-sql(self, l, inspect-clause, where-clause, project-clause):
-      env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from [list: inspect-clause]):
+    s-for-do(self, l, from-clause, dos):
+      env-and-bind = cases(A.ForBind) from-clause:
+        | s-for-bind(l2, bind, val) => 
+          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
+          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
+          visit-val = val.visit(self)
+          update-binding-expr(atom-env.atom, some(visit-val))
+          new-fb = A.s-for-bind(l2, new-bind, visit-val)
+          { env: atom-env.env, fb: new-fb };
+      A.s-for-do(l, env-and-bind.fb, dos.map(_.visit(self.{env: env-and-bind.env})))
+    end,
+    s-do(self, l, iter, binds, ann, body):
+      env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):
         cases(A.ForBind) fb:
-            | s-for-bind(l2, bind, val) => 
-              atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind(_, _, bind.ann, none))
-              new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
-              visit-val = val.visit(self)
-              update-binding-expr(atom-env.atom, some(visit-val))
-              new-fb = A.s-for-bind(l2, new-bind, visit-val)
-              { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
-          end
+          | s-for-bind(l2, bind, val) => 
+            atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind(_, _, bind.ann, none))
+            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
+            visit-val = val.visit(self)
+            update-binding-expr(atom-env.atom, some(visit-val))
+            new-fb = A.s-for-bind(l2, new-bind, visit-val)
+            { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
         end
-      A.s-sql(l, env-and-binds.fbs.first, 
-        cases(Option) where-clause:
-          | some(w) => some(w.visit(self.{env: env-and-binds.env}))
-          | none => none
-        end, project-clause.visit(self.{env: env-and-binds.env}))
+      end
+      A.s-do(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args.map(_.bind)):

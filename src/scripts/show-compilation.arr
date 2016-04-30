@@ -46,7 +46,8 @@ cases (C.ParsedArguments) parsed-options:
       | link(file, _) =>
         print("File is " + file)
         file-contents = F.file-to-string(file)
-        print("")
+        print("File contents: ")
+        print(file-contents)
 
         comp = CM.compile-js(CM.start, file-contents, file, CS.standard-builtins, libs,
           {
@@ -56,7 +57,7 @@ cases (C.ParsedArguments) parsed-options:
             type-check: type-check,
             proper-tail-calls: true
           }).tolist()
-
+        print("dfasf")
         for each(phase from comp):
           print(">>>>>>>>>>>>>>>>>>")
           print(phase.name + ":")
