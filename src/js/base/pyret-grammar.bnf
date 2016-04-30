@@ -182,7 +182,7 @@ cases-branch: BAR NAME [cases-args] THICKARROW block
 
 for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
-do-expr: DO expr [PARENNOSPACE for-bind-elt* for-bind RPAREN] return-ann COLON block end
+do-expr: DO expr [PARENNOSPACE for-bind-elt* for-bind RPAREN] return-ann COLON block
 for-do: FOR for-bind COLON do-expr* end
 for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block end
 

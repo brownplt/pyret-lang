@@ -846,9 +846,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             return RUNTIME.getField(ast, 's-do')
               .app(pos(node.pos), 
                 tr(node.kids[1]),                         // iterator
-                makeList(node.kids.slice(3, -5).map(tr)), // bindings
-                tr(node.kids[node.kids.length - 4]),      // return-ann
-                tr(node.kids[node.kids.length - 2]));     // body
+                makeList(node.kids.slice(3, -4).map(tr)), // bindings
+                tr(node.kids[node.kids.length - 3]),      // return-ann
+                tr(node.kids[node.kids.length - 1]));     // body
           },
           'for-do': function(node) {
             return RUNTIME.getField(ast, 's-for-do')
