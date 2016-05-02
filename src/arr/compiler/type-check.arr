@@ -858,6 +858,8 @@ fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args ::
       result.typing-bind(lam(new-exprs, shadow context):
         typing-result(recreate(new-exprs), existential-ret, context)
       end)
+    | t-app(onto, type-args, _) =>
+      synthesis-spine(onto.introduce(type-args), recreate, args, app-loc, context)
     | else =>
       typing-error([list: C.apply-non-function(recreate(args), fun-type)])
   end.bind(lam(ast, typ, shadow context):
@@ -2279,6 +2281,8 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
         .map-type(t-forall(introduces, _, l))
     | t-existential(id, _) =>
       check-synthesis(recreate(args, ret-ann, body), expect-type, false, context)
+    | t-app(onto, type-args, _) =>
+      check-fun(fun-loc, body, params, args, ret-ann, onto.introduce(type-args), recreate, context)
     | else =>
       typing-error([list: C.incorrect-type("a function", fun-loc, tostring(expect-type), expect-type.l)])
   end
