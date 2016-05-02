@@ -87,7 +87,7 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr>:
   var rev-stmts = empty
   for lists.each(s from stmts):
     cases(A.Expr) s:
-      | s-type(l, name, ann) =>
+      | s-type(l, name, params, ann) =>
         rev-stmts := link(s, rev-stmts)
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
@@ -169,8 +169,8 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
     | empty => raise("Should not get an empty block in desugar-scope-block")
     | link(f, rest-stmts) =>
       cases(A.Expr) f:
-        | s-type(l, name, ann) =>
-          add-type-let-bind(binding-group, A.s-type-bind(l, name, ann), rest-stmts)
+        | s-type(l, name, params, ann) =>
+          add-type-let-bind(binding-group, A.s-type-bind(l, name, params, ann), rest-stmts)
         | s-let(l, bind, expr, _) =>
           add-let-bind(binding-group, A.s-let-bind(l, bind, expr), rest-stmts)
         | s-var(l, bind, expr) =>
@@ -700,9 +700,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     s-type-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
         cases(A.TypeLetBind) b:
-          | s-type-bind(l2, name, ann) =>
+          | s-type-bind(l2, name, params, ann) =>
+            new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
+              atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
+              { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+            end
             atom-env = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: acc.e, type-env: acc.te}))
+            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: acc.e, type-env: new-types.env}))
             update-type-binding-ann(atom-env.atom, some(new-bind.ann))
             { e: acc.e, te: atom-env.env, bs: link(new-bind, acc.bs) }
           | s-newtype-bind(l2, name, tname) =>
