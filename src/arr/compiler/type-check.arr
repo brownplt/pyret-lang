@@ -2857,7 +2857,7 @@ fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> O
     cases(A.Expr) stmt:
       | s-check-test(l, op, refinement, lhs, rhs) =>
         cases(A.CheckOp) op:
-          | s-op-is =>
+          | s-op-is(_) =>
             cases(Option<A.Expr>) refinement:
               | some(_) => types-and-existentials
               | none =>
