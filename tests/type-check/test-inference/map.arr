@@ -2,7 +2,14 @@ fun add1(x :: Number) -> Number:
   x + 1
 where:
   add1(1) is 2
-  add1(2) is 3
+end
+
+fun complex-test(x :: Number) -> Number:
+  x
+where:
+  x = 1
+  y = 1
+  add1(x) is y
 end
 
 fun str-to-str(s :: String) -> String:

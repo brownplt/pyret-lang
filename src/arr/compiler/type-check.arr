@@ -126,6 +126,8 @@ type Either = E.Either
 
 ########################## TEST INFERENCE ###########################
 
+var STMTS = empty
+
 data PathElement:
   | arg-path(arg-num :: Number)
   | ret-path
@@ -512,8 +514,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-op(loc, op, l, r) =>
           raise("checking for s-op not implemented")
         | s-check-test(loc, op, refinement, l, r) =>
+          STMTS := link(e, STMTS)
           typing-result(e, expect-type, context)
-          raise("checking for s-check-test not implemented")
         | s-check-expr(l, expr, ann) =>
           raise("checking for s-check-expr not implemented")
         | s-paren(l, expr) =>
@@ -786,6 +788,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op, l, r) =>
       raise("synthesis for s-op not implemented")
     | s-check-test(loc, op, refinement, l, r) =>
+      STMTS := link(e, STMTS)
       typing-result(e, t-top(loc), context)
     | s-check-expr(l, expr, ann) =>
       raise("synthesis for s-check-expr not implemented")
@@ -2852,7 +2855,9 @@ fun test-inference(name :: Name, check-block :: A.Expr, context :: Context) -> O
     end
   end
 
-  stmts = check-block.stmts
+  checking(check-block, t-top(check-block.l), false, context)
+  stmts = STMTS
+  STMTS := empty
   types-and-existentials = stmts.foldl(lam(stmt, types-and-existentials):
     cases(A.Expr) stmt:
       | s-check-test(l, op, refinement, lhs, rhs) =>
