@@ -994,6 +994,9 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
       shadow subtype = resolve-alias(subtype, context)
       shadow supertype = resolve-alias(supertype, context)
       cases(Type) supertype:
+        | t-app(b-onto, b-args, _) =>
+          new-supertype = context.get-data-type(b-onto).or-else(b-onto)
+          satisfies-assuming(subtype, new-supertype.introduce(b-args), context, assumptions)
         | t-existential(b-id, _) =>
           cases(Type) subtype:
             | t-existential(a-id, _) =>
@@ -1074,10 +1077,6 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                 | t-top(_) => some(context)
                 | t-forall(_, _, _) =>
                   satisfies-assuming(a-onto.introduce(a-args), supertype, context, assumptions)
-                | t-app(b-onto, b-args, _) =>
-                  new-subtype = context.get-data-type(a-onto).or-else(a-onto)
-                  new-supertype = context.get-data-type(b-onto).or-else(b-onto)
-                  satisfies-assuming(new-subtype.introduce(a-args), new-supertype.introduce(b-args), context, assumptions)
                 | else =>
                   new-subtype = context.get-data-type(a-onto).or-else(a-onto)
                   satisfies-assuming(new-subtype.introduce(a-args), supertype, context, assumptions)
