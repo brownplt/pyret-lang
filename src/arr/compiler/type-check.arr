@@ -1079,9 +1079,8 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                   new-supertype = context.get-data-type(b-onto).or-else(b-onto)
                   satisfies-assuming(new-subtype.introduce(a-args), new-supertype.introduce(b-args), context, assumptions)
                 | else =>
-                  for option-bind(data-type from context.get-data-type(a-onto)):
-                    satisfies-assuming(data-type.introduce(a-args), supertype, context, assumptions)
-                  end
+                  new-subtype = context.get-data-type(a-onto).or-else(a-onto)
+                  satisfies-assuming(new-subtype.introduce(a-args), supertype, context, assumptions)
               end
             | t-top(_) =>
               if TS.is-t-top(supertype):
