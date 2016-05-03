@@ -86,6 +86,8 @@ str-raises-not = PP.str("does-not-raise")
 str-raises-satisfies = PP.str("raises-satisfies")
 str-raises-violates = PP.str("raises-violates")
 str-percent = PP.str("%")
+str-tablecolon = PP.str("table:")
+str-rowcolon = PP.str("row:")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -1006,6 +1008,35 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
+  | s-table(
+      l :: Loc,
+      headers :: List<FieldName>,
+      rows :: List<TableRow>)
+    with:
+    label(self): "s-table" end,
+    tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-tablecolon,
+            PP.flow-map(PP.commabreak, _.tosource(), self.headers)]),
+        PP.flow-map(PP.hardline, _.tosource(), self.rows),
+        str-end)
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data TableRow:
+  | s-table-row(
+      l :: Loc,
+      elems :: List<Expr>)
+    with:
+    label(self): "s-table-row" end,
+    tosource(self):
+      PP.flow([list: str-rowcolon,
+          PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1076,6 +1107,16 @@ data Member:
       funlam-tosource(name-part,
         nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data FieldName:
+  | s-field-name(l :: Loc, name :: String) with:
+    label(self): "s-field-name" end,
+    tosource(self): PP.str(self.name) end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1407,7 +1448,7 @@ fun toplevel-ids(program :: Program) -> List<Name>:
     | else => raise("Non-program given to toplevel-ids")
   end
 end
-
+    
 default-map-visitor = {
   option(self, opt):
     cases(Option) opt:
@@ -1684,6 +1725,15 @@ default-map-visitor = {
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
+  s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+    s-table(l, headers, rows.map(_.visit(self)))
+  end,
+  s-table-row(self, l :: Loc, elems :: List<Expr>):
+    s-table-row(l, elems.map(_.visit(self)))
+  end,
+  s-field-name(self, l :: Loc, name :: String):
+    s-field-name(self, l, name)
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
@@ -2175,6 +2225,15 @@ default-iter-visitor = {
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
+  s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+    lists.all(_.visit(self), headers) and lists.all(_.visit(self), rows)
+  end,
+  s-table-row(self, l :: Loc, elems :: List<Expr>):
+    lists.all(_.visit(self), elems)
+  end,
+  s-field-name(self, l :: Loc, name :: String):
+    true
+  end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
   end,
@@ -2655,6 +2714,15 @@ dummy-loc-visitor = {
   end,
   s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
+  s-table(self, l :: Loc, headers :: List<String>, rows :: List<TableRow>):
+    s-table(dummy-loc, headers, rows.map(_.visit(self)))
+  end,
+  s-table-row(self, l :: Loc, elems :: List<Expr>):
+    s-table-row(dummy-loc, elems.map(_.visit(self)))
+  end,
+  s-field-name(self, l :: Loc, name :: String):
+    s-field-name(dummy-loc, name)
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))

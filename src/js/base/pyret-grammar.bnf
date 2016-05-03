@@ -114,6 +114,7 @@ expr: paren-expr | id-expr | prim-expr
     | construct-expr
     | sql-expr
     | for-do
+    | table-expr
 
 bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
 
@@ -160,6 +161,15 @@ key: NAME
 construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr] RBRACK
 construct-modifier: | LAZY
 list-elt: binop-expr COMMA
+
+table-expr: TABLE COLON table-headers table-rows end
+table-headers: [list-table-header* table-header]
+list-table-header: table-header COMMA
+table-header: NAME
+table-rows: table-row* table-row
+table-row: ROW COLON table-items
+table-items: [list-table-item* binop-expr]
+list-table-item: binop-expr COMMA
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK

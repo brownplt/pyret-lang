@@ -742,6 +742,41 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             return RUNTIME.getField(ast, 's-construct')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))
           },
+          'table-expr': function(node) {
+            // (TABLE COLON table-headers table-rows end)
+            return RUNTIME.getField(ast, 's-table')
+              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[3]));
+          },
+          'table-headers': function(node) {
+            // [list-table-header* table-header]
+            return makeList(node.kids.map(tr));
+          },
+          'list-table-header': function(node) {
+            // (table-header COMMA)
+            return tr(node.kids[0]);
+          },
+          'table-header': function(node) {
+            // NAME
+            return RUNTIME.getField(ast, 's-field-name')
+              .app(pos(node.pos), symbol(node.kids[0]));
+          },
+          'table-rows': function(node) {
+            // (table-row* table-row)
+            return makeList(node.kids.map(tr));
+          },
+          'table-row': function(node) {
+            // (ROW COLON table-items)
+            return RUNTIME.getField(ast, 's-table-row')
+              .app(pos(node.pos), tr(node.kids[2]));
+          },
+          'table-items': function(node) {
+            // [list-table-item* binop-expr]
+            return makeList(node.kids.map(tr));
+          },
+          'list-table-item': function(node) {
+            // (binop-expr COMMA)
+            return tr(node.kids[0]);
+          },
           'construct-modifier': function(node) {
             if (node.kids.length === 0) {
               return RUNTIME.getField(ast, 's-construct-normal');

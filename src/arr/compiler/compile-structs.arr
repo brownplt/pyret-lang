@@ -1440,6 +1440,85 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(")")]]
     end
+  | table-empty-header(loc :: A.Loc) with:
+    render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table at "),
+          draw-and-highlight(self.loc),
+          ED.text(" has no headers.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table at"),
+          ED.loc(self.loc),
+          ED.text("has no headers.")]]
+    end
+  | table-empty-row(loc :: A.Loc) with:
+    render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table row at "),
+          draw-and-highlight(self.loc),
+          ED.text(" is empty.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table row at"),
+          ED.loc(self.loc),
+          ED.text("is empty.")]]
+    end
+  | table-row-wrong-size(header-loc :: A.Loc, row-loc :: A.Loc, header :: List<A.FieldName>, _row :: List<A.Expr>) with:
+    render-fancy-reason(self):
+      fun ed-cols(n, ls, c):
+        ED.highlight([ED.sequence:
+            ED.embed(n),
+            if n <> 1:
+              ED.text("columns")
+            else:
+              ED.text("column")
+            end], ls, c)
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The table row")],
+        ED.cmcode(self.row-loc),
+        [ED.para:
+          ED.text("has "),
+          ed-cols(self._row.length(), self._row.map(_.l), 0),
+          ED.text(", but the table header")],
+        ED.cmcode(self.header-loc),
+        [ED.para:
+          ED.text(" declares "),
+          ed-cols(self.header.length(), self.header.map(_.l), 1),
+          ED.text(".")]]
+    end,
+    render-reason(self):
+      fun ed-cols(n):
+        [ED.sequence:
+          ED.embed(n),
+          if n <> 1:
+            ED.text("columns")
+          else:
+            ED.text("column")
+          end]
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("The table row at")],
+        ED.loc(self.row-loc),
+        [ED.para:
+          ED.text("has "),
+          ed-cols(self._row.length()),
+          ED.text(", but the table header")],
+        ED.loc(self.header-loc),
+        [ED.para:
+          ED.text(" declares "),
+          ed-cols(self.header.length()),
+          ED.text(".")]]
+    end
 end
 
 default-compile-options = {

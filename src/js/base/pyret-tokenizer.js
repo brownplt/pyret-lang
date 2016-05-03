@@ -225,6 +225,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LETREC", val: new RegExp(kw("letrec"), STICKY_REGEXP)},
     {name: "LET", val: new RegExp(kw("let"), STICKY_REGEXP)},
     {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
+    {name: "TABLE", val: new RegExp(kw("table"), STICKY_REGEXP)},
+    {name: "ROW", val: new RegExp(kw("row"), STICKY_REGEXP)},
     {name: "LAM", val: new RegExp(kw("lam"), STICKY_REGEXP)},
     {name: "TRUE", val: new RegExp(kw("true"), STICKY_REGEXP)},
     {name: "FALSE", val: new RegExp(kw("false"), STICKY_REGEXP)},

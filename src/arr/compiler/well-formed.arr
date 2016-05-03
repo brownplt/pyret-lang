@@ -601,7 +601,28 @@ top-level-visitor = A.default-iter-visitor.{
     is-empty(underscores) and
       ret and wrap-visit-check(well-formed-visitor, _check)
   end,
-
+  s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>):
+    expected-len = header.length()
+    if expected-len == 0:
+      add-error(C.table-empty-header(l))
+      true
+    else:
+      for lists.all(_row from rows):
+        actual-len = _row.elems.length()
+        when actual-len == 0:
+          add-error(C.table-empty-row(_row.l))
+        end
+        when (actual-len <> 0) and (actual-len <> expected-len):
+          header-loc = header   .get(0).l + header   .last().l
+          row-loc    = _row.elems.get(0).l + _row.elems.last().l
+          add-error(C.table-row-wrong-size(header-loc, row-loc, header, _row))
+        end
+        for lists.all(elem from _row.elems):
+          elem.visit(well-formed-visitor)
+        end
+      end
+    end
+  end,
 
   # Everything else delegates to the non-toplevel visitor
   s-import(_, l, import-type, name):
