@@ -987,7 +987,26 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           'app-ann-elt': function(node) {
             // (app-ann-elt ann COMMA)
             return tr(node.kids[0]);
-          }
+          },
+          'table-extend': function(node) {
+            return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos), 
+              tr(node.kids[1]), // from-clause
+              tr(node.kids[3]));
+          },
+          'table-select': function(node) {
+            return RUNTIME.getField(ast, 's-table-select').app(pos(node.pos), 
+              tr(node.kids[1]),
+              makeList(node.kids.slice(3, -1).map(
+                function(k) {
+                  return RUNTIME.getField(ast, 's-field-name').app(pos(k.pos), 
+                          RUNTIME.makeString(k.value));
+                })));
+          },
+          'table-filter': function(node) {
+            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos), 
+              tr(node.kids[1]), // from-clause
+              tr(node.kids[3]));
+          },
         };
         return tr(node);
       }

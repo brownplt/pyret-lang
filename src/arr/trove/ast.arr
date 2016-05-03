@@ -1006,6 +1006,18 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
+  | s-table-extend(l :: Loc,
+      from-clause :: ForBind,
+      into-clause :: List<Member>)
+  | s-table-select(l :: Loc,
+      from-clause :: Expr,
+      into-clause :: List<FieldName>)
+  | s-table-order(l :: Loc,
+      from-clause :: Expr,
+      into-clause :: List<ColumnSort>)
+  | s-table-filter(l :: Loc,
+      from-clause :: ForBind,
+      pred-clause :: Expr)
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1091,6 +1103,34 @@ data ForBind:
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data FieldName:
+  | s-field-name(l :: Loc, name :: String)
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data ColumnSortOrder:
+  | ascending
+  | descending
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data ColumnSort:
+  | s-column-sort(
+      l     :: Loc,
+      name  :: FieldName,
+      order :: ColumnSortOrder)
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
 end
 
@@ -1870,7 +1910,21 @@ default-map-visitor = {
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-
+  s-field-name(self, l, name):
+    s-field-name(l, name)
+  end,
+  s-table-extend(self, l, from-clause, columns):
+    s-table-extend(l, from-clause.visit(self), columns.map(_.visit(self)))
+  end,
+  s-table-filter(self, l, from-clause, pred):
+    s-table-filter(l, from-clause.visit(self), pred.visit(self))
+  end,
+  s-table-select(self, l, table, columns):
+    s-table-select(l, table.visit(self), columns.map(_.visit(self)))
+  end,
+  s-table-order(self, l, table, sorts):
+    raise("not implemented")
+  end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
@@ -2346,6 +2400,21 @@ default-iter-visitor = {
       with-members :: List<Member>
       ):
     lists.all(_.visit(self), with-members)
+  end,
+  s-field-name(self, l, name):
+    true
+  end,
+  s-table-extend(self, l, from-clause, columns):
+    from-clause.visit(self) and columns.all(_.visit(self))
+  end,
+  s-table-filter(self, l, from-clause, pred):
+    from-clause.visit(self) and pred.visit(self)
+  end,
+  s-table-select(self, l, table, columns):
+    table.visit(self) and columns.all(_.visit(self))
+  end,
+  s-table-order(self, l, table, sorts):
+    raise("not implemented")
   end,
   a-blank(self):
     true
@@ -2842,7 +2911,21 @@ dummy-loc-visitor = {
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-
+  s-field-name(self, l, name):
+    s-field-name(l, dummy-loc)
+  end,
+  s-table-extend(self, l, from-clause, columns):
+    s-table-extend(dummy-loc, from-clause.visit(self), columns.map(_.visit(self)))
+  end,
+  s-table-filter(self, l, from-clause, pred):
+    s-table-filter(dummy-loc, from-clause.visit(self), pred.visit(self))
+  end,
+  s-table-select(self, l, table, columns):
+    s-table-select(dummy-loc, table.visit(self), columns.map(_.visit(self)))
+  end,
+  s-table-order(self, l, table, sorts):
+    raise("TODO: not implemented")
+  end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,

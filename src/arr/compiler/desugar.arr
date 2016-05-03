@@ -511,6 +511,31 @@ fun desugar-expr(expr :: A.Expr):
       A.s-check(l, name, desugar-expr(body), keyword-check)
     | s-check-test(l, op, refinement, left, right) =>
       A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-table-extend(l, from-clause, bindings) =>
+      table-value = desugar-expr(from-clause.value)
+      table-id    = A.s-id(A.dummy-loc, from-clause.bind.id)
+      A.s-app(
+        A.dummy-loc, 
+        A.s-dot(A.dummy-loc, table-value, "map"),
+        [list:  A.s-lam(
+                  A.dummy-loc, empty, [list: desugar-bind(from-clause.bind)], A.a-blank, "",
+                  A.s-extend(l, table-id, bindings.map(desugar-member)), none)])
+    | s-table-select(l, from-clause, columns) =>
+      arg = mk-id(A.dummy-loc, "_row")
+      A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, from-clause, "map"),
+        [list:
+          A.s-lam(A.dummy-loc, empty, [list: arg.id-b], A.a-blank, "",
+            A.s-obj(l, columns.map(
+              lam(c):
+                A.s-data-field(c.l, c.name, A.s-dot(A.dummy-loc, arg.id-e, c.name))
+              end)), none)])
+    | s-table-order(l,  from-clause, into-clause) => 
+      raise("TODO: not implemented")
+    | s-table-filter(l, from-clause, pred-clause) =>
+      table-value = desugar-expr(from-clause.value)
+      A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, table-value, "filter"),
+        [list:
+          A.s-lam(A.dummy-loc, empty, [list: desugar-bind(from-clause.bind)], A.a-blank, "", desugar-expr(pred-clause), none)])
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
