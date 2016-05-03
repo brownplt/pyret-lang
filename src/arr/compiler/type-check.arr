@@ -504,6 +504,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end)
         | s-construct(l, modifier, constructor, values) =>
           raise("checking for s-construct not implemented")
+        | s-table(l, headers, rows) =>
+          raise("checking for s-table not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-app(l, _fun, args) =>
