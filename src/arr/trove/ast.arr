@@ -1016,7 +1016,7 @@ data Expr:
       into-clause :: List<FieldName>)
   | s-table-order(l :: Loc,
       from-clause :: Expr,
-      into-clause :: List<ColumnSort>)
+      into-clause :: ColumnSort)
   | s-table-filter(l :: Loc,
       from-clause :: ForBind,
       pred-clause :: Expr)
@@ -1158,9 +1158,9 @@ end
 
 data ColumnSort:
   | s-column-sort(
-      l     :: Loc,
-      name  :: FieldName,
-      order :: ColumnSortOrder)
+      l         :: Loc,
+      column    :: FieldName,
+      direction :: ColumnSortOrder)
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
@@ -1961,8 +1961,8 @@ default-map-visitor = {
   s-table-select(self, l, table, columns):
     s-table-select(l, table.visit(self), columns.map(_.visit(self)))
   end,
-  s-table-order(self, l, table, sorts):
-    raise("not implemented")
+  s-table-order(self, l, table, ordering):
+    s-table-order(l, table.visit(self), ordering)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2459,7 +2459,7 @@ default-iter-visitor = {
     table.visit(self) and columns.all(_.visit(self))
   end,
   s-table-order(self, l, table, sorts):
-    raise("not implemented")
+    table.visit(self)
   end,
   a-blank(self):
     true
@@ -2975,7 +2975,7 @@ dummy-loc-visitor = {
     s-table-select(dummy-loc, table.visit(self), columns.map(_.visit(self)))
   end,
   s-table-order(self, l, table, sorts):
-    raise("TODO: not implemented")
+    s-table-order(dummy-loc, table.visit(self), sorts)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,

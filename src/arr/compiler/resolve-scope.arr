@@ -971,6 +971,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           { env: atom-env.env, fb: new-fb };
       A.s-table-extend(l, env-and-bind.fb, columns.map(_.visit(self.{env: env-and-bind.env})))
     end,
+    s-table-order(self, l, from-clause, ordering):
+      A.s-table-order(l, from-clause.visit(self), ordering)
+    end,
     s-table-filter(self, l, from-clause, pred):
       env-and-bind = cases(A.ForBind) from-clause:
         | s-for-bind(l2, bind, val) => 
