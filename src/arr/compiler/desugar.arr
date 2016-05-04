@@ -537,8 +537,23 @@ fun desugar-expr(expr :: A.Expr):
               lam(c):
                 A.s-data-field(c.l, c.name, A.s-dot(A.dummy-loc, arg.id-e, c.name))
               end)), none)])
-    | s-table-order(l,  from-clause, into-clause) => 
-      raise("TODO: not implemented")
+    | s-table-order(l,  from-clause, ordering) =>
+      table-value = desugar-expr(from-clause)
+      table = mk-id(A.dummy-loc, "table")
+      arg-l = mk-id(A.dummy-loc, "_l")
+      arg-r = mk-id(A.dummy-loc, "_r")
+      comp  = A.s-op(A.dummy-loc, A.dummy-loc, _, _, _)
+      col   = A.s-dot(A.dummy-loc, _, ordering.column.name)
+      A.s-let-expr(l, [list: A.s-let-bind(A.dummy-loc, table.id-b, table-value)],
+        A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, table.id-e, "sort-by"),
+          [list:
+            A.s-lam(A.dummy-loc, empty, [list: arg-l.id-b, arg-r.id-b], A.a-blank, "",
+              cases(A.ColumnSortOrder) ordering.direction:
+                | ascending  => desugar-expr(comp("op<", col(arg-l.id-e), col(arg-r.id-e)))
+                | descending => desugar-expr(comp("op<", col(arg-r.id-e), col(arg-l.id-e)))
+              end, none),
+            A.s-lam(A.dummy-loc, empty, [list: arg-l.id-b, arg-r.id-b], A.a-blank, "", 
+              desugar-expr(comp("op==", col(arg-l.id-e), col(arg-r.id-e))), none)]))
     | s-table-filter(l, from-clause, pred-clause) =>
       table-value = desugar-expr(from-clause.value)
       A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, table-value, "filter"),
