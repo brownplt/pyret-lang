@@ -2027,11 +2027,11 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end
     fold-arg-types = map-fold-result(lam(arg, shadow context):
       arg-type = coll.get-value(arg.id.key())
-      #if top-level and is-t-existential(arg-type):
-      #  fold-errors([list: C.toplevel-unann(arg)])
-      #else:
+      if top-level and is-t-existential(arg-type):
+        fold-errors([list: C.toplevel-unann(arg)])
+      else:
         fold-result(arg-type, context)
-      #end
+      end
     end, args, context)
 
     fold-arg-types.bind(lam(arg-types, shadow context):
