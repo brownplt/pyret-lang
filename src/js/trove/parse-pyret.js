@@ -1037,6 +1037,24 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                           RUNTIME.makeString(k.value));
                 })));
           },
+          'column-order': function(node) {
+            var name = RUNTIME.getField(ast, 's-field-name').app(
+                    pos(node.kids[0].pos), 
+                    RUNTIME.makeString(node.kids[0].value));
+            var direction = node.kids[2].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ascending')
+                      : node.kids[2].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
+                      : undefined;
+            return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
+              name,
+              direction);
+          },
+          'table-order': function(node) {
+            var val = RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), 
+              tr(node.kids[1]),
+              tr(node.kids[3]));
+            console.log(val);
+            return val;
+          },
           'table-filter': function(node) {
             return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos), 
               tr(node.kids[1]), // from-clause

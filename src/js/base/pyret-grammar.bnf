@@ -202,10 +202,10 @@ for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON b
 
 sql-expr: INSPECT for-bind [WHERE binop-expr] PROJECT expr end
     
-column-order: NAME (ASCENDING | DESCENDING) COMMA
+column-order: NAME COLON (ASCENDING|DESCENDING)
 table-extend: TABLE-EXTEND for-bind COLON obj-fields   end
 table-select: TABLE-SELECT     expr COLON NAME*        end
-table-order : TABLE-ORDER  for-bind COLON column-order end
+table-order : TABLE-ORDER      expr COLON column-order end
 table-filter: TABLE-FILTER for-bind COLON binop-expr   end
 
 user-block-expr: BLOCK block end
