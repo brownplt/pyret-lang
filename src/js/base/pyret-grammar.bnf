@@ -114,6 +114,10 @@ expr: paren-expr | id-expr | prim-expr
     | construct-expr
     | sql-expr
     | for-do
+    | table-select
+    | table-extend
+    | table-filter
+    | table-order
     | table-expr
 
 bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
@@ -197,6 +201,12 @@ for-do: FOR for-bind COLON do-expr* end
 for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block end
 
 sql-expr: INSPECT for-bind [WHERE binop-expr] PROJECT expr end
+    
+column-order: NAME (ASCENDING|DESCENDING)
+table-extend: TABLE-EXTEND for-bind COLON obj-fields   end
+table-select: TABLE-SELECT     expr COLON NAME (COMMA NAME)* end
+table-order : TABLE-ORDER      expr BY COLON column-order end
+table-filter: TABLE-FILTER for-bind COLON binop-expr   end
 
 user-block-expr: BLOCK block end
 

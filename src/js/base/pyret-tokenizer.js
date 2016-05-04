@@ -159,8 +159,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
+  
 
-  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>)", STICKY_REGEXP);
+  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", STICKY_REGEXP);
 
   // English ops don't require whitespace. That way it is possible to catch them in ID position
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
@@ -217,6 +218,8 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
+    {name: "ASCENDING", val: new RegExp(kw("ascending"), STICKY_REGEXP)},
+    {name: "DESCENDING", val: new RegExp(kw("descending"), STICKY_REGEXP)},
     {name: "NEWTYPE", val: new RegExp(kw("newtype"), STICKY_REGEXP)},
     {name: "TYPE-LET", val: new RegExp(kw("type-let"), STICKY_REGEXP)},
     {name: "TYPE", val: new RegExp(kw("type"), STICKY_REGEXP)},
@@ -234,15 +237,18 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
-    {name: "INSPECT", val: new RegExp(colonKw("inspect:"), STICKY_REGEXP)},
-    {name: "PROJECT", val: new RegExp(colonKw("project:"), STICKY_REGEXP)},
     {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
     {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
+    {name: "TABLE-EXTEND", val: new RegExp(kw("extend"), STICKY_REGEXP)},
+    {name: "TABLE-SELECT", val: new RegExp(kw("select"), STICKY_REGEXP)},
+    {name: "TABLE-FILTER", val: new RegExp(kw("sieve"), STICKY_REGEXP)},
+    {name: "TABLE-ORDER",  val: new RegExp(kw("order"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
     {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
+    {name: "OF", val: new RegExp(kw("of"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
@@ -258,6 +264,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "DO", val: new RegExp(kw("do"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
+    {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
     {name: "DOT", val: period},

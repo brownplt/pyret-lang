@@ -1022,7 +1022,45 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           'app-ann-elt': function(node) {
             // (app-ann-elt ann COMMA)
             return tr(node.kids[0]);
-          }
+          },
+          'table-extend': function(node) {
+            return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos), 
+              tr(node.kids[1]), // from-clause
+              tr(node.kids[3]));
+          },
+          'table-select': function(node) {
+            var fields = [];
+            for (var i = 3; i < node.kids.length - 1; i += 2) {
+              var k = node.kids[i];
+              fields.push(RUNTIME.getField(ast, 's-field-name').app(
+                pos(k.pos), symbol(k)));
+            }
+            return RUNTIME.getField(ast, 's-table-select').app(
+              pos(node.pos), tr(node.kids[1]), makeList(fields));
+          },
+          'column-order': function(node) {
+            var name = RUNTIME.getField(ast, 's-field-name').app(
+                    pos(node.kids[0].pos), 
+                    RUNTIME.makeString(node.kids[0].value));
+            var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ascending')
+                      : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
+                      : undefined;
+            return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
+              name,
+              direction);
+          },
+          'table-order': function(node) {
+            var val = RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), 
+              tr(node.kids[1]),
+              tr(node.kids[4]));
+            console.log(val);
+            return val;
+          },
+          'table-filter': function(node) {
+            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos), 
+              tr(node.kids[1]), // from-clause
+              tr(node.kids[3]));
+          },
         };
         return tr(node);
       }

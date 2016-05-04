@@ -956,7 +956,32 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           A.a-blank
       end
     end,
-    a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
+    a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
+    s-table-select(self, l, from-clause, columns):
+      A.s-table-select(l, from-clause.visit(self), columns)
+    end,
+    s-table-extend(self, l, from-clause, columns):
+      env-and-bind = cases(A.ForBind) from-clause:
+        | s-for-bind(l2, bind, val) => 
+          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
+          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
+          visit-val = val.visit(self)
+          update-binding-expr(atom-env.atom, some(visit-val))
+          new-fb = A.s-for-bind(l2, new-bind, visit-val)
+          { env: atom-env.env, fb: new-fb };
+      A.s-table-extend(l, env-and-bind.fb, columns.map(_.visit(self.{env: env-and-bind.env})))
+    end,
+    s-table-filter(self, l, from-clause, pred):
+      env-and-bind = cases(A.ForBind) from-clause:
+        | s-for-bind(l2, bind, val) => 
+          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
+          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
+          visit-val = val.visit(self)
+          update-binding-expr(atom-env.atom, some(visit-val))
+          new-fb = A.s-for-bind(l2, new-bind, visit-val)
+          { env: atom-env.env, fb: new-fb };
+      A.s-table-filter(l, env-and-bind.fb, pred.visit(self.{env: env-and-bind.env}))
+    end
   }
   C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end

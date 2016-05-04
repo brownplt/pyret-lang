@@ -790,13 +790,13 @@ top-level-visitor = A.default-iter-visitor.{
   s-check(_, l :: Loc, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
     well-formed-visitor.s-check(l, name, body, keyword-check)
   end,
-  s-data-field(_, l :: Loc, name :: A.Expr, value :: A.Expr):
+  s-data-field(_, l :: Loc, name :: String, value :: A.Expr):
     well-formed-visitor.s-data-field(l, name, value)
   end,
-  s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
+  s-mutable-field(_, l :: Loc, name :: String, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+  s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check)
   end,
   s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
