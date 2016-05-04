@@ -339,6 +339,14 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("provide _ end", "The underscore");
         P.wait(done);
       });
+/*      it("tables", function(done) {
+        P.checkCompileErrorMsg("table: row: end", "table");
+        P.checkCompileErrorMsg("table: row: 1 end", "table");
+        P.checkCompileErrorMsg("table: h1 row: end", "row");
+        P.checkCompileErrorMsg("table: h1, h2 row: 1 end", "row");
+        P.checkCompileErrorMsg("table: h1 row: 1, 2 end", "row");
+        P.wait(done);
+      });*/
     });
   }
   return { performTest: performTest };

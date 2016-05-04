@@ -162,12 +162,12 @@ construct-expr: LBRACK construct-modifier binop-expr COLON [list-elt* binop-expr
 construct-modifier: | LAZY
 list-elt: binop-expr COMMA
 
-table-expr: TABLE COLON table-headers table-rows end
+table-expr: TABLE table-headers table-rows end
 table-headers: [list-table-header* table-header]
 list-table-header: table-header COMMA
 table-header: NAME
 table-rows: table-row* table-row
-table-row: ROW COLON table-items
+table-row: ROW table-items
 table-items: [list-table-item* binop-expr]
 list-table-item: binop-expr COMMA
 

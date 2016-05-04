@@ -743,9 +743,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), makeList(node.kids.slice(4, -1).map(tr)))
           },
           'table-expr': function(node) {
-            // (TABLE COLON table-headers table-rows end)
+            // (TABLE table-headers table-rows end)
             return RUNTIME.getField(ast, 's-table')
-              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[3]));
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
           },
           'table-headers': function(node) {
             // [list-table-header* table-header]
@@ -765,9 +765,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             return makeList(node.kids.map(tr));
           },
           'table-row': function(node) {
-            // (ROW COLON table-items)
+            // (ROW table-items)
             return RUNTIME.getField(ast, 's-table-row')
-              .app(pos(node.pos), tr(node.kids[2]));
+              .app(pos(node.pos), tr(node.kids[1]));
           },
           'table-items': function(node) {
             // [list-table-item* binop-expr]
