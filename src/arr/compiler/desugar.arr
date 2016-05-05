@@ -519,47 +519,84 @@ fun desugar-expr(expr :: A.Expr):
       A.s-check(l, name, desugar-expr(body), keyword-check)
     | s-check-test(l, op, refinement, left, right) =>
       A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
-    | s-table-extend(l, from-clause, bindings) =>
-      table-value = desugar-expr(from-clause.value)
-      table-id    = A.s-id(A.dummy-loc, from-clause.bind.id)
-      A.s-app(
-        A.dummy-loc, 
-        A.s-dot(A.dummy-loc, table-value, "map"),
-        [list:  A.s-lam(
-                  A.dummy-loc, empty, [list: desugar-bind(from-clause.bind)], A.a-blank, "",
-                  A.s-extend(l, table-id, bindings.map(desugar-member)), none)])
-    | s-table-select(l, from-clause, columns) =>
-      arg = mk-id(A.dummy-loc, "_row")
-      A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, from-clause, "map"),
-        [list:
-          A.s-lam(A.dummy-loc, empty, [list: arg.id-b], A.a-blank, "",
-            A.s-obj(l, columns.map(
-              lam(c):
-                A.s-data-field(c.l, c.name, A.s-dot(A.dummy-loc, arg.id-e, c.name))
-              end)), none)])
+    | s-table-extend(l, columns, table, extensions) =>
+      row = mk-id(A.dummy-loc, "row")
+      tbl = mk-id(l, "table")
+      A.s-let-expr(A.dummy-loc, link(  
+        A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)),
+        # Column Index Bindings
+        columns.map(lam(c): 
+          A.s-let-bind(A.dummy-loc, c.id-b,
+            A.s-app(A.dummy-loc,
+              A.s-dot(A.dummy-loc, tbl.id-b, "get-value"),
+              [list: A.s-str(c.l, c.name)]));)),
+        # Table Construction
+        A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "make-table")), [list:
+          # Header
+          A.s-app(A.dummy-loc,
+            A.s-dot(A.dummy-loc, tbl.id-e, "headers") ^ A.s-dot(A.dummy-loc, _, "append"),
+            columns.append(extensions).map(lam(b):A.s-str(b.l, b.name);)),
+          # Data
+          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-e, "map"), [list:
+            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+              A.s-let-expr(A.dummy-loc,
+                columns.map(lam(c):
+                  A.s-let-bind(A.dummy-loc, c, 
+                    A.s-app(A.dummy-loc,
+                      A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "raw-array-get")),
+                        [list: row.id-e, A.s-id(A.dummy-loc, c)]));),
+                  A.s-array(columns.map(A.s-id(A.dummy-loc, _))
+                          + extensions.map(_.value).map(desugar-expr))), none)])]))
+    | s-table-select(l, table, columns) =>
+      row = mk-id(A.dummy-loc, "row")
+      tbl = mk-id(l, "table")
+      A.s-let-expr(A.dummy-loc, link(  
+        A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)),
+        # Column Index Bindings
+        columns.map(lam(c): 
+          A.s-let-bind(A.dummy-loc, c,
+            A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-b, "get-value"),
+                    [list: A.s-str(A.dummy-loc, c.base)]));)),
+        # Table Construction
+        A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "make-table")), [list:
+          # Header
+          A.s-array(A.dummy-loc, columns.map(lam(b):A.s-str(A.dummy-loc, b.name);)),
+          # Data
+          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-e, "map"), [list:
+            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "", A.s-array(
+              columns.map(lam(c):
+                A.s-app(A.dummy-loc,
+                  A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "raw-array-get")), 
+                    [list: row.id-e, A.s-id(A.dummy-loc, c)]);)), none)])]))
     | s-table-order(l,  from-clause, ordering) =>
-      table-value = desugar-expr(from-clause)
-      table = mk-id(A.dummy-loc, "table")
-      arg-l = mk-id(A.dummy-loc, "_l")
-      arg-r = mk-id(A.dummy-loc, "_r")
-      comp  = A.s-op(A.dummy-loc, A.dummy-loc, _, _, _)
-      col   = A.s-dot(A.dummy-loc, _, ordering.column.name)
-      A.s-let-expr(l, [list: A.s-let-bind(A.dummy-loc, table.id-b, table-value)],
-        A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, table.id-e, "sort-by"),
-          [list:
-            A.s-lam(A.dummy-loc, empty, [list: arg-l.id-b, arg-r.id-b], A.a-blank, "",
-              cases(A.ColumnSortOrder) ordering.direction:
-                | ascending  => desugar-expr(comp("op<", col(arg-l.id-e), col(arg-r.id-e)))
-                | descending => desugar-expr(comp("op<", col(arg-r.id-e), col(arg-l.id-e)))
-              end, none),
-            A.s-lam(A.dummy-loc, empty, [list: arg-l.id-b, arg-r.id-b], A.a-blank, "", 
-              desugar-expr(comp("op==", col(arg-l.id-e), col(arg-r.id-e))), none)]))
-    | s-table-filter(l, from-clause, pred-clause) =>
-      table-value = desugar-expr(from-clause.value)
-      A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, table-value, "filter"),
-        [list:
-          A.s-lam(A.dummy-loc, empty, [list: desugar-bind(from-clause.bind)], A.a-blank, "", desugar-expr(pred-clause), none)])
-    | else => raise("NYI (desugar): " + torepr(expr))
+      #todo
+      raise("todo")
+    | s-table-filter(l, columns, table, pred-clause) =>
+      # where columns is-a `List<s-atom>`
+      row = mk-id(A.dummy-loc, "row")
+      tbl = mk-id(l, "table")
+      A.s-let-expr(A.dummy-loc, link(  
+        A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)),
+        # Column Index Bindings
+        columns.map(lam(c): 
+          A.s-let-bind(A.dummy-loc, c,
+            A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-b, "get-value"),
+                    [list: A.s-str(A.dummy-loc, c.base)]));)),
+        # Table Construction
+        A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "make-table")), [list:
+          # Header
+          A.s-array(A.dummy-loc, columns.map(_.export-as).map(lam(b):A.s-str(b.l, b.name);)),
+          # Data
+          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-e, "filter"), [list:
+            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+              A.s-let-expr(A.dummy-loc,
+                columns.map(lam(c):
+                  A.s-let-bind(A.dummy-loc, c, 
+                    A.s-app(A.dummy-loc,
+                      A.s-id(A.dummy-loc, A.s-name(A.dummy-loc, "raw-array-get")),
+                        [list: row.id-e, A.s-id(A.dummy-loc, c)]));),
+                desugar-expr(pred-clause)), none)])]))
+          | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
   d = A.dummy-loc

@@ -717,8 +717,11 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'for-bind': function(node) {
             // (for-bind name FROM e)
-            return RUNTIME.getField(ast, 's-for-bind')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            return (node.kids.length == 2)
+              ? RUNTIME.getField(ast, 's-for-bind-given')
+                  .app(pos(node.pos), tr(node.kids[0]))
+              : RUNTIME.getField(ast, 's-for-bind')
+                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           },
           'prim-expr': function(node) {
             // (prim-expr e)
@@ -854,11 +857,18 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                     .concat(node.kids.slice(4, -1).map(tr))));
             }
           },
-          'for-expr': function(node) {
-            // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
+          'for-then': function(node) {
+            // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
             return RUNTIME.getField(ast, 's-for')
-              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -5).map(tr)),
-                   tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
+              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
+                   tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
+          },
+          'for-expr': function(node) {
+            // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body for-thens END)
+            return RUNTIME.getField(ast, 's-for')
+              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -6).map(tr)),
+                   tr(node.kids[node.kids.length - 5]), tr(node.kids[node.kids.length - 3]),
+                   makeList(node.kids[node.kids.length - 2].kids.map(tr)));
           },
           'for-bind-elt': function(node) {
             // (for-bind-elt b COMMA)
@@ -1023,25 +1033,27 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (app-ann-elt ann COMMA)
             return tr(node.kids[0]);
           },
+          //TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end
           'table-extend': function(node) {
-            return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos), 
-              tr(node.kids[1]), // from-clause
-              tr(node.kids[3]));
+            var columns = new Array();
+            for (var i = 1; i < node.kids.length - 5; i+=2)
+              columns.push(name(node.kids[i]));
+            var table = tr(node.kids[node.kids.length - 4]);
+            var extensions = tr(node.kids[node.kids.length - 2]);
+            return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos),
+              columns, table, extensions);
           },
+          //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
           'table-select': function(node) {
-            var fields = [];
-            for (var i = 3; i < node.kids.length - 1; i += 2) {
-              var k = node.kids[i];
-              fields.push(RUNTIME.getField(ast, 's-field-name').app(
-                pos(k.pos), symbol(k)));
-            }
+            var columns = new Array();
+            for (var i = 1; i < node.kids.length - 5; i+=2)
+              columns.push(name(node.kids[i]));
+            var table = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-select').app(
-              pos(node.pos), tr(node.kids[1]), makeList(fields));
+              pos(node.pos), columns, table);
           },
           'column-order': function(node) {
-            var name = RUNTIME.getField(ast, 's-field-name').app(
-                    pos(node.kids[0].pos), 
-                    RUNTIME.makeString(node.kids[0].value));
+            var name = tr(node.kids[0].value);
             var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ascending')
                       : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
                       : undefined;
@@ -1049,15 +1061,26 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               name,
               direction);
           },
+          'column-orderings': function(node) {
+            return makeList(node.kids.map(tr));
+          },
           'table-order': function(node) {
-            return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), 
-              tr(node.kids[1]),
-              tr(node.kids[4]));
+            var columns = new Array();
+            for (var i = 1; i < node.kids.length - 5; i+=2)
+              columns.push(name(node.kids[i]));
+            var table = tr(node.kids[node.kids.length - 4]);
+            var orderings = tr(node.kids[node.kids.length - 2]);
+            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
+              columns, table, orderings);
           },
           'table-filter': function(node) {
-            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos), 
-              tr(node.kids[1]), // from-clause
-              tr(node.kids[3]));
+            var columns = new Array();
+            for (var i = 1; i < node.kids.length - 5; i+=2)
+              columns.push(name(node.kids[i]));
+            var table = tr(node.kids[node.kids.length - 4]);
+            var predicate = tr(node.kids[node.kids.length - 2]);
+            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
+              columns, table, predicate);
           },
         };
         return tr(node);

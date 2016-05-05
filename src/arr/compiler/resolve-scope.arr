@@ -957,34 +957,29 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
     end,
     a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
-    s-table-select(self, l, from-clause, columns):
-      A.s-table-select(l, from-clause.visit(self), columns)
+    s-table-select(self, l, columns, table):
+      A.s-table-select(l, columns, table.visit(self))
     end,
-    s-table-extend(self, l, from-clause, columns):
-      env-and-bind = cases(A.ForBind) from-clause:
-        | s-for-bind(l2, bind, val) => 
-          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
-          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
-          visit-val = val.visit(self)
-          update-binding-expr(atom-env.atom, some(visit-val))
-          new-fb = A.s-for-bind(l2, new-bind, visit-val)
-          { env: atom-env.env, fb: new-fb };
-      A.s-table-extend(l, env-and-bind.fb, columns.map(_.visit(self.{env: env-and-bind.env})))
+    s-table-extend(self, l, columns, table, extensions):
+      env-and-binds = for fold(acc from { env: self.env, columns: [list: ] }, column from columns):
+        atom-env = make-atom-for(column.name, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
+        new-bind = A.s-bind(column.l, true, atom-env.atom, A.a-blank)
+        { env: atom-env.env, columns: link(new-bind, acc.columns) }
+      end
+      A.s-table-select(l, env-and-binds.columns, table.visit(self),
+        extensions.map(lam(e):e.{value : e.value.visit(self.{env: env-and-binds.env})};))
     end,
-    s-table-order(self, l, from-clause, ordering):
-      A.s-table-order(l, from-clause.visit(self), ordering)
+    s-table-filter(self, l, columns, table, pred):
+      env-and-binds = for fold(acc from { env: self.env, columns: [list: ] }, column from columns):
+        atom-env = make-atom-for(column.name, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
+        new-bind = A.s-bind(column.l, true, atom-env.atom, A.a-blank)
+        { env: atom-env.env, columns: link(new-bind, acc.columns) }
+      end
+      A.s-table-filter(l, env-and-binds.columns, table.visit(self), pred.visit(self.{env: env-and-binds.env}))
     end,
-    s-table-filter(self, l, from-clause, pred):
-      env-and-bind = cases(A.ForBind) from-clause:
-        | s-for-bind(l2, bind, val) => 
-          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
-          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
-          visit-val = val.visit(self)
-          update-binding-expr(atom-env.atom, some(visit-val))
-          new-fb = A.s-for-bind(l2, new-bind, visit-val)
-          { env: atom-env.env, fb: new-fb };
-      A.s-table-filter(l, env-and-bind.fb, pred.visit(self.{env: env-and-bind.env}))
-    end
+    s-table-order(self, l, columns, table, ordering):
+      raise("TODO")
+    end,
   }
   C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end
