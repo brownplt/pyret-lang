@@ -1451,9 +1451,9 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table at "),
+          ED.text("The table at"),
           ED.loc(self.loc),
-          ED.text(" has no headers.")]]
+          ED.text("has no headers.")]]
     end
   | table-empty-row(loc :: A.Loc) with:
     render-fancy-reason(self):
@@ -1466,9 +1466,9 @@ data CompileError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table row at "),
+          ED.text("The table row at"),
           ED.loc(self.loc),
-          ED.text(" is empty.")]]
+          ED.text("is empty.")]]
     end
   | table-row-wrong-size(header-loc :: A.Loc, row-loc :: A.Loc, header :: List<A.FieldName>, _row :: List<A.Expr>) with:
     render-fancy-reason(self):
@@ -1685,6 +1685,7 @@ runtime-builtins = [string-dict:
   "raw-array-length", t-top,
   "raw-array-to-list", t-top,
   "raw-array-fold", t-top,
+  "raw-array-destructure", t-top,
   "raw-array", t-record(
     [list:
       t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),

@@ -1050,11 +1050,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               direction);
           },
           'table-order': function(node) {
-            var val = RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), 
+            return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), 
               tr(node.kids[1]),
               tr(node.kids[4]));
-            console.log(val);
-            return val;
           },
           'table-filter': function(node) {
             return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos), 
