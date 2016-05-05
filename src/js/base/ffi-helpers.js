@@ -1,8 +1,8 @@
-define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton"],
-       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib) {
+define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton", "trove/tables"],
+       function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib, tableLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
 
-    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS) {
+    return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib, tableLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS, TB) {
 
       var gf = runtime.getField;
 
@@ -355,7 +355,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isEqualityResult = gf(EQ, "is-EqualityResult").app;
       var isEqual = gf(EQ, "is-Equal").app;
       var isNotEqual = gf(EQ, "is-NotEqual").app;
-      var isUnknown = gf(EQ, "is-Unknown").app
+      var isUnknown = gf(EQ, "is-Unknown").app;
+
+      var makeTable = gf(TB, "make-table").app;
 
       return {
         throwUpdateNonObj : throwUpdateNonObj,
@@ -411,6 +413,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isNotEqual: isNotEqual,
         isUnknown: isUnknown,
         isEqualityResult: isEqualityResult,
+
+        makeTable: makeTable,
 
         makeMessageException: makeMessageException,
         makeUserException: makeUserException,

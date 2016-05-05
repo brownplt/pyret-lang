@@ -1790,5 +1790,11 @@ standard-imports = extra-imports(
           "list-to-list-set",
           "list-to-tree-set"
         ],
-        [list: "Set"])
+        [list: "Set"]),
+      extra-import(builtin("tables"), "tables", [list:
+          "make-table",
+          "is-table",
+          "is-Table"
+        ],
+        [list: "Table"])
     ])
