@@ -112,8 +112,6 @@ expr: paren-expr | id-expr | prim-expr
     | multi-let-expr | letrec-expr
     | type-let-expr
     | construct-expr
-    | sql-expr
-    | for-do
     | table-select
     | table-extend
     | table-filter
@@ -194,19 +192,18 @@ cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 
-for-bind: binding FROM binop-expr
+for-bind: binding [FROM binop-expr]
 for-bind-elt: for-bind COMMA
-do-expr: DO expr [PARENNOSPACE for-bind-elt* for-bind RPAREN] return-ann COLON block
-for-do: FOR for-bind COLON do-expr* end
-for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block end
+for-then: THEN expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block
+for-thens: for-then*
+for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block for-thens end
 
-sql-expr: INSPECT for-bind [WHERE binop-expr] PROJECT expr end
-    
-column-order: NAME (ASCENDING|DESCENDING)
-table-extend: TABLE-EXTEND for-bind COLON obj-fields   end
-table-select: TABLE-SELECT     expr COLON NAME (COMMA NAME)* end
-table-order : TABLE-ORDER      expr BY COLON column-order end
-table-filter: TABLE-FILTER for-bind COLON binop-expr   end
+column-order: expr (ASCENDING|DESCENDING)
+column-orderings: column-order (COMMA column-order)*
+table-extend: TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end
+table-select: TABLE-SELECT NAME (COMMA NAME)* FROM expr end
+table-filter: TABLE-FILTER NAME (COMMA NAME)* FROM expr COLON binop-expr end
+table-order : TABLE-ORDER  NAME (COMMA NAME)* FROM expr COLON column-orderings end
 
 user-block-expr: BLOCK block end
 

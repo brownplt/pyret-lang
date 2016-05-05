@@ -940,7 +940,8 @@ data Expr:
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      thens :: Option<List<Expr>>
     ) with:
       label(self): "s-for" end,
     tosource(self):
@@ -951,44 +952,6 @@ data Expr:
           + PP.group(PP.nest(2 * INDENT,
             break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
-  | s-for-do(
-      l :: Loc,
-      from-clause :: ForBind,
-      dos :: List<Expr>
-    ) with:
-      label(self): "s-for-do" end,
-    tosource(self):
-      # TODO
-      PP.lbrace
-    end
-  | s-do(
-      l :: Loc,
-      iterator :: Expr,
-      bindings :: List<ForBind>,
-      ann :: Ann,
-      body :: Expr
-    ) with:
-      label(self): "s-do" end,
-    tosource(self):
-      header = PP.group(str-do
-          + self.iterator.tosource()
-          + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
-          self.bindings.map(lam(b): b.tosource() end))
-          + PP.group(PP.nest(2 * INDENT,
-            break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
-      PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
-  | s-sql(
-      l :: Loc,
-      from-clause :: ForBind,
-      where-clause :: Option<Expr>,
-      project-clause :: Expr
-   ) with:
-    label(self): "s-sql" end,
-    tosource(self):
-      # TODO
-      PP.lbrace
     end
   | s-check(
       l :: Loc,
@@ -1009,8 +972,9 @@ data Expr:
       end
     end
   | s-table-extend(l :: Loc,
-      from-clause :: ForBind,
-      into-clause :: List<Member>)
+      columns :: List<Name>,
+      table   :: Expr,
+      extensions :: List<Member>)
   | s-table-select(l :: Loc,
       from-clause :: Expr,
       into-clause :: List<FieldName>)
@@ -1141,6 +1105,11 @@ data ForBind:
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
+  | s-for-bind-given(l :: Loc, bind :: Bind) with:
+    label(self): "s-for-bind-given" end,
+    tosource(self):
+      PP.group(self.bind.tosource() + break-one + str-from)
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1159,7 +1128,7 @@ end
 data ColumnSort:
   | s-column-sort(
       l         :: Loc,
-      column    :: FieldName,
+      column    :: Name,
       direction :: ColumnSortOrder)
 sharing:
   visit(self, visitor):
@@ -1860,41 +1829,15 @@ default-map-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      thens :: Option<List<Expr>>
     ):
-    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self),
+      if is-some(thens):
+        thens.value.map(_.visit(self))
+      else: none;)
   end,
-  s-for-do(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      dos :: List<Expr>
-    ):
-    s-for-do(l, from-clause.visit(self), dos.map(_.visit(self)))
-  end,
-  s-do(
-      self,
-      l :: Loc,
-      iterator :: Expr,
-      bindings :: List<ForBind>,
-      ann :: Ann,
-      body :: Expr
-    ):
-    s-do(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
-  end,
-  s-sql(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      where-clause :: Option<Expr>,
-      project-clause :: Expr
-    ):
-    s-sql(
-      l,
-      from-clause.visit(self),
-      self.option(where-clause),
-      project-clause.visit(self))
-  end,
+  
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     s-check(l, name, body.visit(self), keyword-check)
   end,
@@ -1931,6 +1874,9 @@ default-map-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(l, bind.visit(self), value.visit(self))
   end,
+  s-for-given(self, l :: Loc, bind :: Bind):
+    s-for-bind(l, bind.visit(self))
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
   end,
@@ -1952,17 +1898,20 @@ default-map-visitor = {
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  s-table-extend(self, l, from-clause, columns):
-    s-table-extend(l, from-clause.visit(self), columns.map(_.visit(self)))
+  s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    s-column-sort(l, column.visit(self), direction)
   end,
-  s-table-filter(self, l, from-clause, pred):
-    s-table-filter(l, from-clause.visit(self), pred.visit(self))
+  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
+    s-table-extend(l, columns.map(_.visit(self)), table.visit(self), extensions.map(_.visit(self)))
   end,
-  s-table-select(self, l, table, columns):
-    s-table-select(l, table.visit(self), columns.map(_.visit(self)))
+  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
+    s-table-filter(l, columns.map(_.visit(self)), table.visit(self), predicate.visit(self))
   end,
-  s-table-order(self, l, table, ordering):
-    s-table-order(l, table.visit(self), ordering)
+  s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    s-table-select(l, columns.map(_.visit(self)), table.visit(self))
+  end,
+  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
+    s-table-order(l, columns.map(_.visit(self)), table.visit(self), orderings.map(_.visit(self)))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2362,41 +2311,15 @@ default-iter-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      thens :: Option<List<Expr>>
       ):
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self) and
+      if is-some(thens):
+        thens.value.map(_.visit(self))
+      else: none;
   end,
-  s-for-do(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      dos :: List<Expr>
-    ):
-    from-clause.visit(self) and from-clause.visit(self) and lists.all(_.visit(self), dos)
-  end,
-  s-do(
-      self,
-      l :: Loc,
-      iterator :: Expr,
-      bindings :: List<ForBind>,
-      ann :: Ann,
-      body :: Expr
-      ):
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
-  end,
-  s-sql(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      where-clause :: Option<Expr>,
-      project-clause :: Expr
-      ):
-    from-clause.visit(self) and project-clause.visit(self) and
-      cases(Option) where-clause:
-        | some(v) => v.visit(self)
-        | none    => true
-      end
-  end,
+
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
   end,
@@ -2428,6 +2351,9 @@ default-iter-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
+  s-for-given(self, l :: Loc, bind :: Bind):
+    bind.visit(self)
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
@@ -2449,17 +2375,20 @@ default-iter-visitor = {
       ):
     lists.all(_.visit(self), with-members)
   end,
-  s-table-extend(self, l, from-clause, columns):
-    from-clause.visit(self) and columns.all(_.visit(self))
+  s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    column.visit(self)
   end,
-  s-table-filter(self, l, from-clause, pred):
-    from-clause.visit(self) and pred.visit(self)
+  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
+    columns.all(_.visit(self)) and table.visit(self) and extensions.all(_.visit(self))
   end,
-  s-table-select(self, l, table, columns):
-    table.visit(self) and columns.all(_.visit(self))
+  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
+    columns.all(_.visit(self)) and table.visit(self) and predicate.visit(self)
   end,
-  s-table-order(self, l, table, sorts):
-    table.visit(self)
+  s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    columns.all(_.visit(self)) and table.visit(self)
+  end,
+  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
+    columns.all(_.visit(self)) and table.visit(self) and orderings.all(_.visit(self))
   end,
   a-blank(self):
     true
@@ -2872,40 +2801,13 @@ dummy-loc-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      thens :: Option<List<Expr>>
       ):
-    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
-  end,
-  s-for-do(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      dos :: List<Expr>
-    ):
-    s-for-do(dummy-loc, from-clause.visit(self), from-clause.visit(self), dos.map(_.visit(self)))
-  end,
-  s-do(
-      self,
-      l :: Loc,
-      iterator :: Expr,
-      bindings :: List<ForBind>,
-      ann :: Ann,
-      body :: Expr
-      ):
-    s-do(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
-  end,
-  s-sql(
-      self,
-      l :: Loc,
-      from-clause :: ForBind,
-      where-clause :: Option<Expr>,
-      project-clause :: Expr
-      ):
-    s-sql(
-      dummy-loc,
-      from-clause.visit(self),
-      self.option(where-clause),
-      project-clause.visit(self))
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self),
+      if is-some(thens):
+        some(thens.value.map(_.visit(self)))
+      else: none;)
   end,
   
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
@@ -2944,6 +2846,9 @@ dummy-loc-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
   end,
+  s-for-given(self, l :: Loc, bind :: Bind):
+    s-for-bind(dummy-loc, bind.visit(self))
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))
   end,
@@ -2965,17 +2870,20 @@ dummy-loc-visitor = {
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-  s-table-extend(self, l, from-clause, columns):
-    s-table-extend(dummy-loc, from-clause.visit(self), columns.map(_.visit(self)))
+  s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    s-column-sort(dummy-loc, column.visit(self), direction)
   end,
-  s-table-filter(self, l, from-clause, pred):
-    s-table-filter(dummy-loc, from-clause.visit(self), pred.visit(self))
+  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
+    s-table-extend(dummy-loc, columns.map(_.visit(self)), table.visit(self), extensions.map(_.visit(self)))
   end,
-  s-table-select(self, l, table, columns):
-    s-table-select(dummy-loc, table.visit(self), columns.map(_.visit(self)))
+  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
+    s-table-filter(dummy-loc, columns.map(_.visit(self)), table.visit(self), predicate.visit(self))
   end,
-  s-table-order(self, l, table, sorts):
-    s-table-order(dummy-loc, table.visit(self), sorts)
+  s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
+  end,
+  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
+    s-table-order(dummy-loc, columns.map(_.visit(self)), table.visit(self), orderings.map(_.visit(self)))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
