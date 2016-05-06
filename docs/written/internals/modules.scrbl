@@ -6,6 +6,8 @@
 
 @section[#:tag "s:module-rep"]{Representation}
 
+@subsection[#:tag "s:single-module"]{Single Modules}
+
 Modules are represented as JavaScript object literals.  Aside from the
 @tt{theModule} field, which contains the compiled code of the module, they
 follow a JSON-structured schema.  The format has several design goals:
@@ -92,6 +94,15 @@ JavaScript libraries implemented in RequireJS format, and it's useful to have a
 way for handwritten Pyret modules to import and use them directly.  To avoid
 using global scope or other mechanisms, the runtime uses RequireJS as a
 standard way to locate and load these modules.
+
+@margin-note{Of course, this also assumes that code is run within a sandbox so it
+cannot simply @tt{eval} its way to arbitrary behavior.  While Pyret doesn't
+currently always run within Caja when evaled, it is a long-term goal.}
+In addition, with the assumption that modules do not rely on globals, this
+makes the task of auditing modules for their use of special, non-language
+behavior easier, since such an audit can start from the @tt{nativeRequires}
+specifications across all modules.
+
 }
 
 ]
@@ -130,4 +141,75 @@ These will hold the values returned from using RequireJS on the native
 dependencies when the module is loaded.}
 
 ]
+
+@subsection[#:tag "s:complete"]{Complete Programs}
+
+Modules as described in @secref["s:single-module"] lack the necessary
+information and context to run – their dependencies must still be provided,
+most crucially, and the runtime needs to know in which order to run them.
+
+To this end, Pyret also specifies a format for complete programs, which
+contains all the information needed to run a program, given a runtime and an
+implementation of RequireJS.  Running such a complete program, which can be
+done in several ways, is discussed in [REF].  This section lays out and
+motivates its structure.  This structure is not intended to be written by hand.
+
+@verbatim{
+program := {
+  staticModules: <staticModules>
+  depMap: <depmap>,
+  toLoad: [<uri>, ...],
+}
+
+depmap := { <uri>: { <dependency> : <uri>, ... }, ... }
+
+staticModules := { <uri>: <module>, ... }
+
+dependency := string encoding of <require>
+
+module := as above
+}
+
+The dictionary of @tt{staticModules} is a dictionary mapping from uri to module
+structures as described in @secref["s:single-module"].  This includes all the
+modules and code that the program will use.  It's worth noting that the
+information in the @tt{provides} block is (potentially) redundant if the only
+goal is to run the program.  However, if compiled modules are to provide enough
+information to e.g. type-check code that is linked against them in the future,
+it's worth keeping this static information around.
+
+The @tt{depmap} indicates, for each listed @tt{require} dependency, which
+module should be used to satisfy it.  This is indicated by mapping from a
+string representation of the @tt{require} to the URI for the appropriate
+module.  The string encoding is straightforward, and creates a string that
+looks much like the original import line.  For example, a @tt{require} like:
+
+@verbatim{
+{ "import-type": "dependency", "protocol": "file", "args": ["./lib/helpers.arr"] }
+}
+
+would appear encoded as
+
+@verbatim{
+file(./lib/helpers.arr)
+}
+
+The @tt{toLoad} list indicates the order in which the modules should be loaded.
+It should always be a valid topological sort of the graph implicit in
+@tt{depmap}.  In that sense, it's not strictly necessary information, but it
+makes running a generated program much more straightforward, since its clear in
+which order to instantiate modules.  This also makes it easy to determine the
+main entrypoint for the program, which is the @emph{last} module indicated in
+the @tt{toLoad} list.  That is, the modules leading up to the last one are
+exactly its (transitive) dependencies, and run in order to create their
+exports, which will be used later in the @tt{toLoad} list to instantiate
+further modules.
+
+Concretely, the first few modules in the @tt{toLoad} list are typically
+builtins, like @tt{list} and @tt{error}, required for just about every program.
+Increasing indices in the @tt{toLoad} list tend towards user-implemented code
+until finally reaching the main module that the user requested be compiled.
+
+@subsection[#:tag "s:running-complete"]{Running Complete Programs}
+
 
