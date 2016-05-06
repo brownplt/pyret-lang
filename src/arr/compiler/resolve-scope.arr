@@ -977,8 +977,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-table-filter(l, env-and-binds.columns, table.visit(self), pred.visit(self.{env: env-and-binds.env}))
     end,
-    s-table-order(self, l, columns, table, ordering):
-      raise("TODO")
+    s-table-order(self, l, table, ordering):
+      A.s-table-order(l, table.visit(self), ordering)
     end,
   }
   C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)

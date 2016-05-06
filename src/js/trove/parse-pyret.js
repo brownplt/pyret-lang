@@ -1046,32 +1046,28 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
           'table-select': function(node) {
             var columns = new Array();
-            for (var i = 1; i < node.kids.length - 5; i+=2)
+            for (var i = 1; i < node.kids.length - 3; i+=2)
               columns.push(name(node.kids[i]));
             var table = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-select').app(
               pos(node.pos), makeList(columns), table);
           },
           'column-order': function(node) {
-            var name = tr(node.kids[0].value);
+            console.log(node);
+            var column = name(node.kids[0]);
             var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ascending')
-                      : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
-                      : undefined;
+                          : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
+                          : undefined;
+            console.log(direction);
             return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
-              name,
+              column,
               direction);
           },
-          'column-orderings': function(node) {
-            return makeList(node.kids.map(tr));
-          },
           'table-order': function(node) {
-            var columns = new Array();
-            for (var i = 1; i < node.kids.length - 5; i+=2)
-              columns.push(name(node.kids[i]));
-            var table = tr(node.kids[node.kids.length - 4]);
-            var orderings = tr(node.kids[node.kids.length - 2]);
-            return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
-              makeList(columns), table, orderings);
+            // TABLE-ORDER NAME COLON column-orderings end
+            var table = tr(node.kids[1]);
+            return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), table,
+              makeList[tr(node.kids[3])]);
           },
           'table-filter': function(node) {
             var columns = new Array();

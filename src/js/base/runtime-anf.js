@@ -3442,6 +3442,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArray(arr);
       return arr;
     };
+    
+    var raw_array_concat = function(arr, other) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-concat"], 2, $a); }
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkArray(other);
+      return arr.concat(other);
+    };
 
     var raw_array_maker = makeObject({
       make:  makeFunction(raw_array_constructor),
@@ -4537,6 +4544,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'raw_array_of': raw_array_of,
         'raw_array_get': raw_array_get,
         'raw_array_set': raw_array_set,
+        'raw_array_concat': raw_array_concat,
         'raw_array_length': raw_array_length,
         'raw_array_to_list': raw_array_to_list,
 

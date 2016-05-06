@@ -198,12 +198,11 @@ for-then: THEN expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON 
 for-thens: for-then*
 for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block for-thens end
 
-column-order: expr (ASCENDING|DESCENDING)
-column-orderings: column-order (COMMA column-order)*
+column-order: NAME (ASCENDING|DESCENDING)
 table-extend: TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end
 table-select: TABLE-SELECT NAME (COMMA NAME)* FROM expr end
 table-filter: TABLE-FILTER NAME (COMMA NAME)* FROM expr COLON binop-expr end
-table-order : TABLE-ORDER  NAME (COMMA NAME)* FROM expr COLON column-orderings end
+table-order : TABLE-ORDER  expr COLON column-order end
 
 user-block-expr: BLOCK block end
 

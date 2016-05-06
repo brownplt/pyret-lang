@@ -979,7 +979,6 @@ data Expr:
       columns :: List<Name>,
       table   :: Expr)
   | s-table-order(l :: Loc,
-      columns :: List<Name>,
       table   :: Expr,
       ordering :: List<ColumnSort>)
   | s-table-filter(l :: Loc,
@@ -1130,7 +1129,7 @@ end
 data ColumnSort:
   | s-column-sort(
       l         :: Loc,
-      expr      :: Expr,
+      column    :: Name,
       direction :: ColumnSortOrder)
 sharing:
   visit(self, visitor):
@@ -1912,8 +1911,8 @@ default-map-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
-    s-table-order(l, columns.map(_.visit(self)), table.visit(self), orderings.map(_.visit(self)))
+  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
+    s-table-order(l, table.visit(self), orderings)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2389,8 +2388,8 @@ default-iter-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
-    columns.all(_.visit(self)) and table.visit(self) and orderings.all(_.visit(self))
+  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
+    table.visit(self)
   end,
   a-blank(self):
     true
@@ -2884,8 +2883,8 @@ dummy-loc-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  s-table-order(self, l, columns :: List<Name>, table :: Expr, orderings :: List<ColumnSort>):
-    s-table-order(dummy-loc, columns.map(_.visit(self)), table.visit(self), orderings.map(_.visit(self)))
+  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
+    s-table-order(dummy-loc, table.visit(self), orderings)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,

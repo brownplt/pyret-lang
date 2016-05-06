@@ -47,10 +47,7 @@ fun make-table(headers :: RawArray, rows :: L.List<RawArray>):
       end,
 
       _output(self):
-        VS.vs-collection("table",
-          L.link(VS.vs-collection("headers", raw-array-to-list(self.headers).map(VS.vs-value)),
-            self.internal-rows.map(lam(row):
-              VS.vs-collection("row", raw-array-to-list(row).map(VS.vs-value)) end)))
+        VS.vs-value(self)
       end
     })
 end
