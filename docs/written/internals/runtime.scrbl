@@ -46,29 +46,41 @@ point, to allow for richer rendering interfaces.
 The return value of @internal-id["RuntimeLib" "create"] is a runtime
 object with many useful methods for programmatically interacting with Pyret.
 
-@subsection{Loading Pyret Modules}
+@subsection{Running Pyret Programs}
 
-Pyret modules' source can be located with RequireJS by referencing them as
-dependencies in @tt{define}.  To instantiate the modules, the Pyret runtime
-provides a special mechanism.
+@doc-internal["Runtime" "runStandalone" (list "modules: JSDict<URI, StaticModules>" "dependencies: JSDict<URI, JSDict<String, URI>>" "toLoad: JSArray<URI>" "postLoadHooks: JSDict<URI, (PyretModuleResult → Undefined)>") "PyretModuleResult" #:stack-unsafe #t]
 
-@doc-internal["Runtime" "loadModules" (list "JSNamespace" "JSArray<PyretModule>" "(PyretModuleResult ... → a)") "a" #:stack-unsafe #t]
+Uses @tt{toLoad}—the list of URIs—to evaluate modules in order.  The modules
+are found in the @tt{modules} dictionary, and the @tt{dependencies} dictionary
+describes which modules they depend on.  This structure is described in
+@secref["s:complete"].
 
-This call runs the body of the given modules in order, and passes the results
-to the provided callback.  Any return value of the callback is ignored.  In
-most cases, the value of @tt{runtime.namespace} is appropriate for the first
-argument.
+A more important feature of @internal-id["Runtime" "runStandalone"] is the
+ability to register @tt{postLoadHooks}.  This dictionary, keyed on URI,
+contains callbacks which are invoked on completion of the corresponding module,
+and passed the module's result.  The most obvious candidate for a
+@tt{postLoadHook} is the main module, or the last one in the @tt{toLoad} list;
+this is where test results can be fetched and printed and errors reported,
+based on the returned [REF PyretModuleResult].
 
-Example:
+In addition, Pyret's default standalones register several @tt{postLoadHook}s.
+For example, after the @tt{ffi} library is loaded, a number of new fields are
+added to @tt{runtime} to manipulate lists.  Other uses include:
 
-@verbatim{
-define(["js/runtime-anf", "trove/lists"], function(runtimeLib, listLib) {
-  var myRuntime = runtimeLib.makeRuntime({});
-  myRuntime.loadModules(myRuntime.namespace, [listLib], function(list) {
-    // list has fields like "link", "map", etc. from the lists module
-  });
-});
-}
+@itemlist[
+
+@item{Substituting a different checker library by setting @tt{current-checker}
+after loading the appropriate library.}
+
+@item{Logging the completion time for loading each module in the @tt{toLoad}
+list for benchmarking.}
+
+]
+
+While evaluating the modules, the runtime caches the results for each module
+that completed successfully, in the @tt{runtime.modules} dictionary.  This can
+be accessed later to quickly get the exported values of a module without
+re-running it.
 
 @subsection{Creating Values}
 

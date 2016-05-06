@@ -210,6 +210,5 @@ builtins, like @tt{list} and @tt{error}, required for just about every program.
 Increasing indices in the @tt{toLoad} list tend towards user-implemented code
 until finally reaching the main module that the user requested be compiled.
 
-@subsection[#:tag "s:running-complete"]{Running Complete Programs}
 
 
