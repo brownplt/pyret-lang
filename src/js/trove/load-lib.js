@@ -5,6 +5,8 @@
   nativeRequires: ["js/secure-loader"],
   provides: {},
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+
+
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
     var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);
 
@@ -128,48 +130,44 @@
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
       runtime.pauseStack(function(restarter) {
-        // TODO(joe): Fix this to actually render the message
-        restarter.resume("error message");
-        return;
-        return execRt.loadBuiltinModules([
-          mb("render-error-display")],
-          "load-lib",
-          function(rendererror) {
-            var gf = execRt.getField;
-            execRt.runThunk(function() {
-              if(execRt.isPyretVal(res.exn.exn) 
-                 && execRt.isObject(res.exn.exn) 
-                 && execRt.hasField(res.exn.exn, "render-reason")) {
+        // TODO(joe): This works because it's a builtin and already loaded on execRt.
+        // In what situations may this not work?
+        var rendererrorMod = execRt.modules["builtin://render-error-display"];
+        var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
+        var gf = execRt.getField;
+        execRt.runThunk(function() {
+          if(execRt.isPyretVal(res.exn.exn) 
+             && execRt.isObject(res.exn.exn) 
+             && execRt.hasField(res.exn.exn, "render-reason")) {
+            return execRt.safeCall(
+              function() { 
+                return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
+              }, function(reason) {
                 return execRt.safeCall(
                   function() { 
-                    return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
-                  }, function(reason) {
-                    return execRt.safeCall(
-                      function() { 
-                        return gf(gf(rendererror, "values"), "display-to-string").app(
-                          reason, 
-                          execRt.namespace.get("torepr"), 
-                          execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
-                      }, function(str) {
-                        return execRt.string_append(
-                          str,
-                          execRt.makeString("\nStack trace:\n" +
-                                            execRt.printPyretStack(res.exn.pyretStack)));
-                      }, "errordisplay->to-string");
-                  }, "error->display");
-              } else {
-                return String(res.exn + "\n" + res.exn.stack);
-              }
-            }, function(v) {
-              if(execRt.isSuccessResult(v)) {
-                return restarter.resume(v.result)
-              } else {
-                console.error("load error");
-                console.error("There was an exception while rendering the exception: ",  r.exn, v.exn);
- 
-              }
-            })
-          });
+                    return gf(gf(rendererror, "values"), "display-to-string").app(
+                      reason, 
+                      execRt.namespace.get("torepr"), 
+                      execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
+                  }, function(str) {
+                    return execRt.string_append(
+                      str,
+                      execRt.makeString("\nStack trace:\n" +
+                                        execRt.printPyretStack(res.exn.pyretStack)));
+                  }, "errordisplay->to-string");
+              }, "error->display");
+          } else {
+            return String(res.exn + "\n" + res.exn.stack);
+          }
+        }, function(v) {
+          if(execRt.isSuccessResult(v)) {
+            return restarter.resume(v.result)
+          } else {
+            console.error("load error");
+            console.error("There was an exception while rendering the exception: ", v.exn);
+
+          }
+        })
       });
     }
     function getModuleResultAnswer(mr) {
