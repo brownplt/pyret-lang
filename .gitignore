@@ -33,6 +33,7 @@ build/release
 deps/closure-compiler
 node_modules/
 *#
+.#*
 pyret.plt
 tests/pyret/*.arr.js
 tests/pyret/tests/*.arr.js

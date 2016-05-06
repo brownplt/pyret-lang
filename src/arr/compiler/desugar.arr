@@ -503,13 +503,17 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
       end
     | s-table(l, headers, rows) =>
-      shadow rows = for map(_row from rows):
-        fields = for map2(header from headers, elem from _row.elems):
-          A.s-data-field(elem.l, header.name, desugar-expr(elem))
-        end
-        A.s-obj(_row.l, fields)
+      shadow l = A.dummy-loc
+      fun make-list(elems):
+        A.s-prim-app(l, "raw_array_to_list", [list: A.s-array(l, elems)])
       end
-      A.s-prim-app(l, "raw_array_to_list", [list: A.s-array(l, rows)])
+      shadow headers = for map(header from headers):
+        A.s-str(header.l, header.name)
+      end
+      shadow rows = for map(row from rows):
+        A.s-array(l, row.elems)
+      end
+      A.s-prim-app(l, "makeTable", [list: A.s-array(l, headers), make-list(rows)])
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
