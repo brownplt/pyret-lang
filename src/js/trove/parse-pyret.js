@@ -717,11 +717,8 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'for-bind': function(node) {
             // (for-bind name FROM e)
-            return (node.kids.length == 2)
-              ? RUNTIME.getField(ast, 's-for-bind-given')
-                  .app(pos(node.pos), tr(node.kids[0]))
-              : RUNTIME.getField(ast, 's-for-bind')
-                  .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-for-bind')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           },
           'prim-expr': function(node) {
             // (prim-expr e)
@@ -864,11 +861,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                    tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
           },
           'for-expr': function(node) {
-            // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body for-thens END)
+            // (for-expr FOR iter LPAREN binds ... RPAREN return COLON body END)
             return RUNTIME.getField(ast, 's-for')
-              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -6).map(tr)),
-                   tr(node.kids[node.kids.length - 5]), tr(node.kids[node.kids.length - 3]),
-                   makeList(node.kids[node.kids.length - 2].kids.map(tr)));
+              .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -5).map(tr)),
+                   tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]));
           },
           'for-bind-elt': function(node) {
             // (for-bind-elt b COMMA)
@@ -1055,8 +1051,8 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           'column-order': function(node) {
             console.log(node);
             var column = name(node.kids[0]);
-            var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ascending')
-                          : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'descending')
+            var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ASCENDING')
+                          : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
                           : undefined;
             console.log(direction);
             return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 

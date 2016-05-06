@@ -19,7 +19,6 @@ is-table = TableT.test
 
 fun make-table(headers :: RawArray, rows :: L.List<RawArray>):
   TableT.brand({
-
       headers: headers,
       internal-headers: for L.fold_n(
             i from 0,
@@ -28,8 +27,7 @@ fun make-table(headers :: RawArray, rows :: L.List<RawArray>):
           dict.set(header, i)
         end,
       internal-rows: rows,
-
-      length(self): raw-array-length(self.internal-rows) end,
+      rows: rows,
 
       _equals(self, other, eq):
         headers-eq =
@@ -45,10 +43,18 @@ fun make-table(headers :: RawArray, rows :: L.List<RawArray>):
         EQ.equal-and(headers-eq,
           EQ.equal-and(rows-same-len, rows-eq))
       end,
-
-      _output(self):
-        VS.vs-value(self)
-      end
+          length(self) -> Number:
+      doc: "Takes no other arguments and returns the number of links in the list"
+      1 + self.rest.length()
+    end,
+    
+    last(self):
+      raw-array-obj-destructure(self.rows.last(), self.headers)
+    end,
+  
+    first(self):
+      raw-array-obj-destructure(self.rows.first, self.headers)
+    end
     })
 end
 

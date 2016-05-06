@@ -940,8 +940,7 @@ data Expr:
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr,
-      thens :: Option<List<Expr>>
+      body :: Expr
     ) with:
       label(self): "s-for" end,
     tosource(self):
@@ -1106,11 +1105,6 @@ data ForBind:
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
-  | s-for-bind-given(l :: Loc, bind :: Bind) with:
-    label(self): "s-for-bind-given" end,
-    tosource(self):
-      PP.group(self.bind.tosource() + break-one + str-from)
-    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1118,8 +1112,8 @@ sharing:
 end
 
 data ColumnSortOrder:
-  | ascending
-  | descending
+  | ASCENDING
+  | DESCENDING
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
@@ -1830,13 +1824,9 @@ default-map-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr,
-      thens :: Option<List<Expr>>
+      body :: Expr
     ):
-    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self),
-      if is-some(thens):
-        thens.value.map(_.visit(self))
-      else: none;)
+    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
   
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
@@ -1874,9 +1864,6 @@ default-map-visitor = {
 
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(l, bind.visit(self), value.visit(self))
-  end,
-  s-for-given(self, l :: Loc, bind :: Bind):
-    s-for-bind(l, bind.visit(self))
   end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
@@ -2312,13 +2299,9 @@ default-iter-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr,
-      thens :: Option<List<Expr>>
+      body :: Expr
       ):
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self) and
-      if is-some(thens):
-        thens.value.map(_.visit(self))
-      else: none;
+    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
 
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
@@ -2351,9 +2334,6 @@ default-iter-visitor = {
 
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
-  end,
-  s-for-given(self, l :: Loc, bind :: Bind):
-    bind.visit(self)
   end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
@@ -2802,13 +2782,9 @@ dummy-loc-visitor = {
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr,
-      thens :: Option<List<Expr>>
+      body :: Expr
       ):
-    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self),
-      if is-some(thens):
-        some(thens.value.map(_.visit(self)))
-      else: none;)
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
   end,
   
   s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
@@ -2846,9 +2822,6 @@ dummy-loc-visitor = {
 
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
-  end,
-  s-for-given(self, l :: Loc, bind :: Bind):
-    s-for-bind(dummy-loc, bind.visit(self))
   end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))

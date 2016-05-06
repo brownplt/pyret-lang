@@ -604,8 +604,8 @@ fun desugar-expr(expr :: A.Expr):
             A.s-lam(A.dummy-loc, empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
               desugar-expr(A.s-op(A.dummy-loc, A.dummy-loc,
                 cases(A.ColumnSortOrder) ordering.direction:
-                  | ascending  => "op>"
-                  | descending => "op<"
+                  | ASCENDING  => "op>"
+                  | DESCENDING => "op<"
                 end,
                 A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row1.id-e, col.id-e])),
                 A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row2.id-e, col.id-e])), none),

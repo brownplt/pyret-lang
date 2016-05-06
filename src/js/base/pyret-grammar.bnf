@@ -192,11 +192,9 @@ cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr COLON cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 
-for-bind: binding [FROM binop-expr]
+for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
-for-then: THEN expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block
-for-thens: for-then*
-for-expr: FOR expr PARENNOSPACE for-bind-elt* for-bind RPAREN return-ann COLON block for-thens end
+for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
 
 column-order: NAME (ASCENDING|DESCENDING)
 table-extend: TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end

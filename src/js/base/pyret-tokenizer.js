@@ -248,7 +248,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
-    {name: "THEN", val: new RegExp(kw("then"), STICKY_REGEXP)},
     {name: "OF", val: new RegExp(kw("of"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP), parenIsForExp: true},

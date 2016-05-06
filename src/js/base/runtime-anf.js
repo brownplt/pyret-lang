@@ -3415,6 +3415,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
       checkArrayIndex("raw-array-get", arr, ix);
       return arr[ix];
     };
+    
+    var raw_array_obj_destructure = function(arr, keys) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkArray(keys);
+      
+      var obj = {}
+      for(var i = 0; i < keys.length; i++) {
+        obj[keys[i]] = arr[i];
+      }
+      
+      return makeObject(obj);
+    };
 
     var raw_array_set = function(arr, ix, newVal) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-set"], 3, $a); }
@@ -4322,6 +4335,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
           'raw-array-of': makeFunction(raw_array_of),
           'raw-array-get': makeFunction(raw_array_get),
+          'raw-array-obj-destructure': makeFunction(raw_array_obj_destructure),
           'raw-array-set': makeFunction(raw_array_set),
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
@@ -4543,6 +4557,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         'raw_array_of': raw_array_of,
         'raw_array_get': raw_array_get,
+        'raw_array_obj_destructure': raw_array_obj_destructure,
         'raw_array_set': raw_array_set,
         'raw_array_concat': raw_array_concat,
         'raw_array_length': raw_array_length,

@@ -1681,6 +1681,7 @@ runtime-builtins = [string-dict:
   "within", t-within-any,
   "raw-array-get", t-top,
   "raw-array-set", t-top,
+  "raw-array-obj-destructure", t-top,
   "raw-array-of", t-top,
   "raw-array-length", t-top,
   "raw-array-to-list", t-top,
@@ -1789,11 +1790,5 @@ standard-imports = extra-imports(
           "list-to-list-set",
           "list-to-tree-set"
         ],
-        [list: "Set"]),
-      extra-import(builtin("tables"), "tables", [list:
-          "make-table",
-          "is-table",
-          "is-Table"
-        ],
-        [list: "Table"])
+        [list: "Set"])
     ])
