@@ -958,20 +958,20 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
     s-table-select(self, l, columns, table):
-      A.s-table-select(l, columns, table.visit(self))
+      A.s-table-select(l, columns.map(_.visit(self)), table.visit(self))
     end,
     s-table-extend(self, l, columns, table, extensions):
       env-and-binds = for fold(acc from { env: self.env, columns: [list: ] }, column from columns):
-        atom-env = make-atom-for(column.name, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
+        atom-env = make-atom-for(column, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
         new-bind = A.s-bind(column.l, true, atom-env.atom, A.a-blank)
         { env: atom-env.env, columns: link(new-bind, acc.columns) }
       end
-      A.s-table-select(l, env-and-binds.columns, table.visit(self),
+      A.s-table-extend(l, env-and-binds.columns, table.visit(self),
         extensions.map(lam(e):e.{value : e.value.visit(self.{env: env-and-binds.env})};))
     end,
     s-table-filter(self, l, columns, table, pred):
       env-and-binds = for fold(acc from { env: self.env, columns: [list: ] }, column from columns):
-        atom-env = make-atom-for(column.name, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
+        atom-env = make-atom-for(column, true, acc.env, bindings, let-bind(_, _, A.a-blank, none))
         new-bind = A.s-bind(column.l, true, atom-env.atom, A.a-blank)
         { env: atom-env.env, columns: link(new-bind, acc.columns) }
       end

@@ -976,14 +976,16 @@ data Expr:
       table   :: Expr,
       extensions :: List<Member>)
   | s-table-select(l :: Loc,
-      from-clause :: Expr,
-      into-clause :: List<FieldName>)
+      columns :: List<Name>,
+      table   :: Expr)
   | s-table-order(l :: Loc,
-      from-clause :: Expr,
-      into-clause :: ColumnSort)
+      columns :: List<Name>,
+      table   :: Expr,
+      ordering :: List<ColumnSort>)
   | s-table-filter(l :: Loc,
-      from-clause :: ForBind,
-      pred-clause :: Expr)
+      columns :: List<Name>,
+      table   :: Expr,
+      predicate :: Expr)
   | s-table(
       l :: Loc,
       headers :: List<FieldName>,
@@ -1128,7 +1130,7 @@ end
 data ColumnSort:
   | s-column-sort(
       l         :: Loc,
-      column    :: Name,
+      expr      :: Expr,
       direction :: ColumnSortOrder)
 sharing:
   visit(self, visitor):

@@ -1041,7 +1041,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             var table = tr(node.kids[node.kids.length - 4]);
             var extensions = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos),
-              columns, table, extensions);
+              makeList(columns), table, extensions);
           },
           //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
           'table-select': function(node) {
@@ -1050,7 +1050,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               columns.push(name(node.kids[i]));
             var table = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-select').app(
-              pos(node.pos), columns, table);
+              pos(node.pos), makeList(columns), table);
           },
           'column-order': function(node) {
             var name = tr(node.kids[0].value);
@@ -1071,7 +1071,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             var table = tr(node.kids[node.kids.length - 4]);
             var orderings = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
-              columns, table, orderings);
+              makeList(columns), table, orderings);
           },
           'table-filter': function(node) {
             var columns = new Array();
@@ -1080,7 +1080,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             var table = tr(node.kids[node.kids.length - 4]);
             var predicate = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
-              columns, table, predicate);
+              makeList(columns), table, predicate);
           },
         };
         return tr(node);
