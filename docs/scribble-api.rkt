@@ -15,6 +15,7 @@
          scribble/decode
          scribble/basic
          scribble/html-properties
+         (only-in scriblib/footnote note)
          (for-syntax racket/base racket/syntax)
          racket/list
          racket/bool
@@ -65,6 +66,11 @@
          append-gen-docs
          curr-module-name
          make-header-elt-for
+         tag-name
+         code-style
+         div-style
+         doc-internal
+         internal-id
          )
 
 ;;;;;;;;; Parameters and Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,7 +81,36 @@
 (define curr-var-spec (make-parameter #f))
 (define curr-method-location (make-parameter 'shared))
 (define EMPTY-XREF-TABLE (make-hash))
+(define (internal-id object id)
+  (seclink (xref object id) (tt (list object "." id))))
 
+
+(define (doc-internal base-obj name args return #:stack-unsafe [stack-unsafe #f])
+  (define tag (list 'part (tag-name base-obj name)))
+  (define toc-elt (toc-target-element code-style (tt (list base-obj "." name)) tag))
+  (define arrow (if stack-unsafe "!→" "→"))
+  (define args-part
+    (cond
+      [(not args)
+       (nested #:style (div-style "boxed")
+         (list toc-elt " :: " (tt return)))]
+      [(< 2 (length args))
+       (nested #:style (div-style "boxed")
+         (apply para #:style (dl-style "multiline-args")
+          (append
+            (list (dt toc-elt "("))
+            (map dt-indent (map tt args))
+            (list (dt (tt ")")) (dt (tt arrow " " return))))))]
+      [else
+       (nested #:style (div-style "boxed")
+        (append (list toc-elt (tt "(")) (add-between (map tt args) (tt ", ")) (list (tt ") " arrow " ") (tt return))))]))
+  (define stack-warning (if stack-unsafe (list (note (tt "!→") " means this function is not " (seclink "s:running" "stack safe"))) (list)))
+  (nested #:style (div-style "function")
+    (list
+;      (apply para #:style "boxed pyret-header"
+        (append
+          stack-warning
+          (list args-part)))))
 
 
 ;;;;;;;;;; API for generated module information ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
