@@ -538,6 +538,49 @@ define(function() {
     return approxEquals(ratx, raty, ratdelta);
   };
 
+  var roughlyEqualsRel = function(computedValue, trueValue, delta) {
+    if (isNegative(delta)) {
+      throwRuntimeError('negative relative tolerance' + delta)
+    }
+
+    if (computedValue === trueValue) {
+      return true
+    }
+
+    var deltaIsRough = isRoughnum(delta)
+    var argNumsAreRough = isRoughnum(computedValue) || isRoughnum(trueValue)
+
+    var ratCv = isRoughnum(computedValue) ? computedValue.toRational() : computedValue
+    var ratTv = isRoughnum(trueValue) ? trueValue.toRational() : trueValue
+
+    var ratDelta = isRoughnum(delta) ? delta.toRational(): delta
+
+    var err = abs(subtract(ratCv, ratTv))
+
+    if (lessThanOrEqual(ratDelta, 1)) {
+      var absDelta = multiply(ratDelta, abs(ratTv))
+      if (deltaIsRough && toRoughnum(absDelta).n === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(err).n) === Number.MIN_VALUE) {
+          throwRuntimeError('roughnum tolerance too small for meaningful comparison, ' +
+                            computedValue + ' ' + trueValue + ' ' + delta)
+        }
+      }
+
+      return lessThanOrEqual(err, absDelta)
+    } else {
+      var errRatio = divide(err, abs(ratTv))
+
+      if (deltaIsRough && delta.n === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(errRatio).n) === Number.MIN_VALUE) {
+          throwRuntimeError('roughnum tolerance too small for meaningful comparison, ' +
+                            computedValue + ' ' + trueValue + ' ' + delta)
+        }
+      }
+
+      return lessThanOrEqual(errRatio, ratDelta)
+    }
+  }
+
   // greaterThanOrEqual: pyretnum pyretnum -> boolean
   var greaterThanOrEqual = makeNumericBinop(
     function(x, y) {
@@ -3828,6 +3871,7 @@ define(function() {
   Numbers['equalsAnyZero'] = equalsAnyZero;
   Numbers['eqv'] = eqv; // why is this being exported?
   Numbers['roughlyEquals'] = roughlyEquals;
+  Numbers['roughlyEqualsRel'] = roughlyEqualsRel;
   Numbers['greaterThanOrEqual'] = greaterThanOrEqual;
   Numbers['lessThanOrEqual'] = lessThanOrEqual;
   Numbers['greaterThan'] = greaterThan;

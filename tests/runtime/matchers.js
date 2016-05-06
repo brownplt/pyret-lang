@@ -85,12 +85,15 @@ define(["js/js-numbers"], function (jsnums) {
             },
             toThrowRuntimeExn : function(rt, renderErrors, s) {
                 try {
-                  this.actual();
+                  this.actual(); 
                   return false;
                 } catch(e) {
-                  var renderedExn = rt.getField(e.exn, "render-reason").app();
-                  var displayExn = rt.getField(renderErrors, "display-to-string");
-                  var renderedString = displayExn.app(renderedExn, rt.namespace.get("torepr"), rt.ffi.makeList([]));
+                  var renderedString;
+                  rt.runThunk(function(){
+                    var renderedExn = rt.getField(e.exn, "render-reason").app();
+                    var displayExn = rt.getField(renderErrors, "display-to-string");
+                    renderedString = displayExn.app(renderedExn, rt.namespace.get("torepr"), rt.ffi.makeList([]));
+                  },function(){});
                   if (renderedString.indexOf(s) >= 0) return true;
                   this.message = function() {
                     return ["Expected " + JSON.stringify(s) + " but got " + renderedString/* + "; the exn itself was: " + JSON.stringify(e)*/];

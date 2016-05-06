@@ -86,9 +86,9 @@ check:
     [s: 1, 2].intersect([s: 4]) is [s: ]
     [s: 1, 2].difference([s: 2, 3]) is [s: 1]
     [s: 1, 2].difference([s: 4]) is [s: 1, 2]
-    [s: 1, 2].symmetric_difference([s: 1, 2]) is [s: ]
-    c([s: 1, 2].symmetric_difference([s: 2, 3])) is c([s: 1, 3])
-    c([s: 1, 2].symmetric_difference([s: 3, 4])) is c([s: 1, 2, 3, 4])
+    [s: 1, 2].symmetric-difference([s: 1, 2]) is [s: ]
+    c([s: 1, 2].symmetric-difference([s: 2, 3])) is c([s: 1, 3])
+    c([s: 1, 2].symmetric-difference([s: 3, 4])) is c([s: 1, 2, 3, 4])
     ([s: 1, 2.1, 3] <> [s: 1, 2.2, 3]) is true
     c([s: 1, 2, 4]) is c([s: 2, 1, 4])
 
@@ -115,9 +115,9 @@ check "Different constructors should work well together":
     [s-a: 1, 2].intersect([s-b: 4]) is [s-a: ]
     [s-a: 1, 2].difference([s-b: 2, 3]) is [s-a: 1]
     [s-a: 1, 2].difference([s-b: 4]) is [s-a: 1, 2]
-    [s-a: 1, 2].symmetric_difference([s-b: 1, 2]) is [s-a: ]
-    c([s-a: 1, 2].symmetric_difference([s-b: 2, 3])) is c([s-a: 1, 3])
-    c([s-a: 1, 2].symmetric_difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
+    [s-a: 1, 2].symmetric-difference([s-b: 1, 2]) is [s-a: ]
+    c([s-a: 1, 2].symmetric-difference([s-b: 2, 3])) is c([s-a: 1, 3])
+    c([s-a: 1, 2].symmetric-difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
     ([s-a: 1, 2.1, 3] <> [s-b: 1, 2.2, 3]) is true
     c([s-a: 1, 2, 4]) is c([s-b: 2, 1, 4])
     [s-a: 1, 2, 4].size() is 3

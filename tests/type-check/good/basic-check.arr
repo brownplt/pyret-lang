@@ -1,6 +1,6 @@
 import lists as L
 
-list = L.list
+my-list = L.list
 
 check:
   ("will" + "i" + "am") is "william"

@@ -1,9 +1,7 @@
 #lang pyret/library
 
 provide {
-  array: {
-    make: make
-  },
+  array: array,
   build-array: build-array,
   array-from-list: array-from-list,
   is-array: is-array,
@@ -90,3 +88,13 @@ end
 fun array-to-list-now<a>(arr :: Array<a>) -> List<a>:
   arr.to-list-now()
 end
+
+array = {
+  make: make,
+  make0: lam(): make([raw-array: ]) end,
+  make1: lam(a): make([raw-array: a]) end,
+  make2: lam(a, b): make([raw-array: a, b]) end,
+  make3: lam(a, b, c): make([raw-array: a, b, c]) end,
+  make4: lam(a, b, c, d): make([raw-array: a, b, c, d]) end,
+  make5: lam(a, b, c, d, e): make([raw-array: a, b, c, d, e]) end
+}

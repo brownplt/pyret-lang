@@ -5,6 +5,7 @@ provide-types *
 import file as F
 import ast as A
 import parse-pyret as PP
+import string-dict as SD
 import "compiler/js-of-pyret.arr" as P
 import "compiler/compile-structs.arr" as C
 import "compiler/well-formed.arr" as W
@@ -65,7 +66,11 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
       named-ast := nothing
       when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
       var type-checked =
-        if options.type-check: T.type-check(desugared, env)
+        if options.type-check:
+          cases(C.CompileResult) T.type-check(desugared, env, [SD.mutable-string-dict:]):
+            | ok(c) => C.ok(c.ast)
+            | err(probs) => C.err(probs)
+          end
         else: C.ok(desugared);
       desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end

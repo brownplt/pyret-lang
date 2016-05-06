@@ -37,7 +37,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "cases(Either) run-task(lam(): raise('ahoy') end):\n" +
 "    | left(v) => 'fail'\n" +
 "    | right(exn) => exn-unwrap(exn)\n" +
-"end";
+"end.value";
         same(prog, rt.makeString('ahoy'));
 
         P.wait(done);
@@ -50,7 +50,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
 "fun f(n):\n" +
 "  cases(Either) run-task(lam(): if n < 1: 0 else: raise(f(n - 1));;):\n" +
 "      | left(v) => v\n" +
-"      | right(exn) => n + exn-unwrap(exn)\n" +
+"      | right(exn) => n + exn-unwrap(exn).value\n" +
 "  end\n" +
 "end\n" +
 "f(5)";
@@ -63,7 +63,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
     xdescribe("lookup-number", function() {
       it("should signal an error for looking up fields on numbers", function(done) {
         err("5.x", function(e) {
-          return rt.unwrap(e.exn).indexOf("looked up field x on 5, which does not have any fields") !== -1;
+          return rt.unwrap(e.exn).indexOf("expects the left hand side to evaluate to an object") !== -1;
         });
         P.wait(done);
       });
@@ -72,13 +72,13 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
     describe("contracts", function() {
       var isFail = function(err) { return err.exn && rt.ffi.isFail(err.exn); }
       it("should fail if the contract is not bound", function(done) {
-        P.checkCompileErrorMsg("x :: NotAType = 5", "used as a type but not defined as one");
-        P.checkCompileErrorMsg("x :: (Number -> Fail) = 5", "used as a type but not defined as one");
-        P.checkCompileErrorMsg("x :: (Number -> { x:: Fail }) = 5", "used as a type but not defined as one");
+        P.checkCompileErrorMsg("x :: NotAType = 5", "used to indicate a type");
+        P.checkCompileErrorMsg("x :: (Number -> Fail) = 5", "used to indicate a type");
+        P.checkCompileErrorMsg("x :: (Number -> { x:: Fail }) = 5", "used to indicate a type");
         P.checkCompileErrorMsg("x :: Number % (is-even) = 5", "is-even");
-        P.checkCompileErrorMsg("x :: lisst.List = 10", "used as a type but not defined as one");
+        P.checkCompileErrorMsg("x :: lisst.List = 10", "used to indicate a type");
 
-        P.checkCompileErrorMsg("y = 5\nx :: y = 5", "used as a type but not defined as one");
+        P.checkCompileErrorMsg("y = 5\nx :: y = 5", "used to indicate a type");
         P.wait(done);
       });
 

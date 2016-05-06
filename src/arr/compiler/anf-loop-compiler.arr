@@ -14,6 +14,7 @@ import srcloc as SL
 import sets as S
 
 string-dict = D.string-dict
+mutable-string-dict = D.mutable-string-dict
 
 type Loc = SL.Srcloc
 type CList = CL.ConcatList
@@ -253,7 +254,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
-    | a-any => c-exp(rt-field("Any"), cl-empty)
+    | a-any(l) => c-exp(rt-field("Any"), cl-empty)
   end
 end
 
@@ -276,61 +277,137 @@ fun arity-check(loc-expr, arity :: Number):
           j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
 end
 
-no-vars = D.make-string-dict()
+no-vars = D.make-mutable-string-dict
 
 local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
   j-parens(self, exp): exp.visit(self) end,
   j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right): left.visit(self).merge(right.visit(self)) end,
-  j-fun(self, args, body): no-vars end,
-  j-new(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
-  j-app(self, func, args): args.foldl(lam(base, arg): base.merge(arg.visit(self)) end, func.visit(self)) end,
-  j-method(self, obj, meth, args): no-vars end,
-  j-ternary(self, test, consq, alt): test.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
+  j-binop(self, left, op, right): 
+    ans = left.visit(self)
+    ans.merge-now(right.visit(self)) 
+    ans
+    end,
+  j-fun(self, args, body): no-vars() end,
+  j-new(self, func, args): 
+    base = func.visit(self)
+    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
+    base
+    end,
+  j-app(self, func, args): 
+    base = func.visit(self)
+    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
+    base
+    end,
+  j-method(self, obj, meth, args): no-vars() end,
+  j-ternary(self, test, consq, alt): 
+    ans = test.visit(self)
+    ans.merge-now(consq.visit(self))
+    ans.merge-now(alt.visit(self)) 
+    ans
+    end,
   j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs): obj.visit(self).merge(field.visit(self)).merge(rhs.visit(self)) end,
-  j-dot-assign(self, obj, name, rhs): obj.visit(self).merge(rhs.visit(self)) end,
+  j-bracket-assign(self, obj, field, rhs):
+    ans = obj.visit(self)
+    ans.merge-now(field.visit(self))
+    ans.merge-now(rhs.visit(self))
+    ans
+    end,
+  j-dot-assign(self, obj, name, rhs):
+    ans = obj.visit(self)
+    ans.merge-now(rhs.visit(self))
+    ans
+    end,
   j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field): obj.visit(self).merge(field.visit(self)) end,
-  j-list(self, multi-line, elts):
-    elts.foldl(lam(base, arg): base.merge(arg.visit(self)) end, no-vars)
-  end,
-  j-obj(self, fields): fields.foldl(lam(base, f): base.merge(f.visit(self)) end, no-vars) end,
-  j-id(self, id): no-vars end,
-  j-str(self, s): no-vars end,
-  j-num(self, n): no-vars end,
-  j-true(self): no-vars end,
-  j-false(self): no-vars end,
-  j-null(self): no-vars end,
-  j-undefined(self): no-vars end,
-  j-label(self, label): no-vars end,
-  j-case(self, exp, body): exp.visit(self).merge(body.visit(self)) end,
+  j-bracket(self, obj, field): 
+    ans = obj.visit(self)
+    ans.merge-now(field.visit(self)) 
+    ans
+    end,
+  j-list(self, multi-line, elts): 
+    base = no-vars() 
+    elts.each(lam(arg): base.merge-now(arg.visit(self)) end) 
+    base
+    end,
+  j-obj(self, fields):
+    base = no-vars()
+    fields.each(lam(e): base.merge-now(e.visit(self)) end)
+    base
+    end,
+  j-id(self, id): no-vars() end,
+  j-str(self, s): no-vars() end,
+  j-num(self, n): no-vars() end,
+  j-true(self): no-vars() end,
+  j-false(self): no-vars() end,
+  j-null(self): no-vars() end,
+  j-undefined(self): no-vars() end,
+  j-label(self, label): no-vars() end,
+  j-case(self, exp, body): 
+    ans = exp.visit(self)
+    ans.merge-now(body.visit(self))
+    ans
+    end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts): stmts.foldl(lam(base, s): base.merge(s.visit(self)) end, no-vars) end,
+  j-block(self, stmts):
+    base = no-vars()
+    stmts.each(lam(e):
+      base.merge-now(e.visit(self)) 
+      end)
+    base
+    end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
-    if A.is-s-atom(name) and (name.base == "$underscore"): rhs.visit(self)
-    else: rhs.visit(self).set(name.key(), name)
+    if A.is-s-atom(name) and (name.base == "$underscore"):
+      rhs.visit(self)
+    else:
+      ans = rhs.visit(self)
+      ans.set-now(name.key(), name)
+      ans
     end
   end,
-  j-if1(self, cond, consq): cond.visit(self).merge(consq.visit(self)) end,
-  j-if(self, cond, consq, alt): cond.visit(self).merge(consq.visit(self)).merge(alt.visit(self)) end,
+  j-if1(self, cond, consq): 
+    ans = cond.visit(self)
+    ans.merge-now(consq.visit(self)) 
+    ans
+    end,
+  j-if(self, cond, consq, alt): 
+    ans = cond.visit(self)
+    ans.merge-now(consq.visit(self))
+    ans.merge-now(alt.visit(self)) 
+    ans
+    end,
   j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch): body.visit(self).merge(catch.visit(self)) end,
+  j-try-catch(self, body, exn, catch):
+    ans = body.visit(self)
+    ans.merge-now(catch.visit(self))
+    ans
+    end,
   j-throw(self, exp): exp.visit(self) end,
   j-expr(self, exp): exp.visit(self) end,
-  j-break(self): no-vars end,
-  j-continue(self): no-vars end,
+  j-break(self): no-vars() end,
+  j-continue(self): no-vars() end,
   j-switch(self, exp, branches):
-    branches.foldl(lam(base, b): base.merge(b.visit(self)) end, exp.visit(self))
-  end,
-  j-while(self, cond, body): cond.visit(self).merge(body.visit(self)) end,
+    base = exp.visit(self)
+    branches.each(lam(b): base.merge-now(b.visit(self)) end)
+    base
+    end,
+  j-while(self, cond, body):
+    ans = cond.visit(self)
+    ans.merge-now(body.visit(self))
+    ans
+    end,
   j-for(self, create-var, init, cond, update, body):
-    init.visit(self).merge(cond.visit(self)).merge(update.visit(self)).merge(body.visit(self))
+    ans = init.visit(self)
+    ans.merge-now(cond.visit(self))
+    ans.merge-now(update.visit(self))
+    ans.merge-now(body.visit(self))
+    ans
   end
 }
 
+fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+  s.freeze().unfreeze()
+end
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean) -> J.JBlock:
@@ -365,13 +442,15 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
   main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
   shadow main-body-cases = main-body-cases-and-dead-vars.body
-  all-vars = for CL.foldl(base from no-vars, case-expr from main-body-cases):
-      base.merge(case-expr.visit(local-bound-vars-visitor))
-    end
-  all-needed-vars = for fold(acc from all-vars, d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
-    acc.remove(d)
+  all-vars = D.make-mutable-string-dict()
+  for CL.each(case-expr from main-body-cases):
+    all-vars.merge-now(case-expr.visit(local-bound-vars-visitor))
   end
-  vars = all-needed-vars.keys-list().map(all-needed-vars.get-value(_))
+  all-needed-vars = copy-mutable-dict(all-vars)
+  for each(d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
+    all-needed-vars.remove-now(d)
+  end
+  vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -510,7 +589,7 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    if A.is-a-blank(b.ann):
       acc
     else:
       compiled-ann = compile-ann(b.ann, visitor)
@@ -531,7 +610,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
 end
 
 fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
-  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+  if A.is-a-blank(b.ann):
     c-block(
       j-block(
         compiled-e.other-stmts +
@@ -691,10 +770,10 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
       ]),
     new-cases)
 end
-fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
+fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases-loc):
   compiled-body = branch.body.visit(compiler)
   if compiled-body.new-cases.length() < 5:
-    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body)
+    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc)
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
     branch-args =
@@ -711,7 +790,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     end
     compiled-branch-fun =
       compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-    preamble = cases-preamble(compiler, compiled-val, branch)
+    preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
       [clist:
@@ -727,7 +806,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       cl-empty)
   end
 end
-fun cases-preamble(compiler, compiled-val, branch):
+fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
@@ -737,22 +816,23 @@ fun cases-preamble(compiler, compiled-val, branch):
             j-if1(j-binop(branch-given-arity, j-neq, obj-expected-arity),
               j-block([clist:
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity]))]))]),
+                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
         j-block([clist:
-            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-true]))]))
+            j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
+      obj-expected-arity = j-dot(compiled-val, "$arity")
       checker =
-        j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
+        j-if1(j-binop(obj-expected-arity, j-neq, j-num(-1)),
           j-block([clist:
-              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-false]))]))
+              j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                  [clist: compiler.get-loc(pat-loc), j-num(0), obj-expected-arity, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
   end
 end
-fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body):
-  preamble = cases-preamble(compiler, compiled-val, branch)
+fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc):
+  preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
   if N.is-a-cases-branch(branch):
     entry-label = compiler.make-label()
     ann-cases = compile-anns(compiler, compiler.cur-step, branch.args.map(get-bind), entry-label)
@@ -790,7 +870,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
-  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
+  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _, cases-loc))
   compiled-else = _else.visit(compiler-after-cases)
   branch-labels = branches.map(lam(_): compiler.make-label() end)
   else-label = compiler.make-label()
@@ -823,7 +903,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
     new-cases)
 end
 
-fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
+fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
@@ -836,7 +916,14 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-update-label)),
-        j-expr(j-assign(ans, rt-method("checkRefAnns", [clist: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
+        j-expr(j-assign(ans, rt-method("checkRefAnns", 
+          [clist: 
+            compiled-obj,
+            j-list(false, field-names), 
+            j-list(false, compiled-field-vals), 
+            j-list(false, field-locs),
+            compiler.get-loc(loc),
+            compiler.get-loc(obj.l)]))),
         j-break]),
     new-cases)
 
@@ -899,7 +986,7 @@ compiler-visitor = {
         c-block(
           j-block(
             [clist:
-              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname())])),
+              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname()), self.get-loc(l2)])),
               j-var(js-id-of(name), rt-method("makeBranderAnn", [clist: j-id(brander-id), j-str(name.toname())]))
             ] +
             visited-body.block.stmts),
@@ -917,7 +1004,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, some(b), obj, fields, some(body))
+        compile-split-update(self, l2, some(b), obj, fields, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -949,7 +1036,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, none, typ, val, branches, _else, some(e2))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, none, obj, fields, some(e2))
+        compile-split-update(self, l2, none, obj, fields, some(e2))
       | else =>
         e1-visit = e1.visit(self)
         e2-visit = e2.visit(self)
@@ -980,7 +1067,7 @@ compiler-visitor = {
       | a-cases(l, typ, val, branches, _else) =>
         compile-split-cases(self, l, none, typ, val, branches, _else, none)
       | a-update(l, obj, fields) =>
-        compile-split-update(self, none, obj, fields, none)
+        compile-split-update(self, l, none, obj, fields, none)
       | else =>
         visit-e = e.visit(self)
         c-block(
@@ -1033,7 +1120,7 @@ compiler-visitor = {
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts)
+    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1152,7 +1239,7 @@ compiler-visitor = {
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
       
       nonblank-anns = for filter(m from members):
-        not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
+        not(A.is-a-blank(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
         compiled = compile-ann(m.bind.ann, self)
@@ -1195,11 +1282,10 @@ compiler-visitor = {
     fun compile-variant(v :: N.AVariant):
       vname = v.name
       variant-base-id = js-id-of(compiler-name(vname + "-base"))
-      variant-brand = brand-name(vname)
+      variant-brand = rt-method("namedBrander", [clist: j-str(vname), self.get-loc(v.l)])
+      variant-brand-id = js-id-of(compiler-name(vname + "-brander"))
       variant-brand-obj-id = js-id-of(compiler-name(vname + "-brands"))
-      variant-brands = j-obj([clist: 
-          j-field(variant-brand, j-true)
-        ])
+      variant-brands = j-obj(cl-empty)
       visit-with-fields = v.with-members.map(_.visit(self))
 
       refl-base-fields =
@@ -1260,18 +1346,23 @@ compiler-visitor = {
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
-        [clist: 
-          j-var(refl-fields-id, refl-fields),
-          j-var(refl-ref-fields-id, refl-ref-fields),
-          j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
-          j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
-          j-var(variant-brand-obj-id, variant-brands),
-          j-expr(j-bracket-assign(
-              j-id(variant-brand-obj-id),
-              j-dot(external-brand, "_brand"),
-              j-true))
-        ])
-      predicate = make-brand-predicate(v.l, j-str(variant-brand), A.make-checker-name(vname))
+          [clist: 
+            j-var(refl-fields-id, refl-fields),
+            j-var(refl-ref-fields-id, refl-ref-fields),
+            j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
+            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
+            j-var(variant-brand-id, variant-brand),
+            j-var(variant-brand-obj-id, variant-brands),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(external-brand, "_brand"),
+                j-true)),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(j-id(variant-brand-id), "_brand"),
+                j-true))
+          ])
+      predicate = j-field(A.make-checker-name(vname), get-field(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -1302,7 +1393,7 @@ compiler-visitor = {
       acc + [clist: piece.predicate, piece.constructor]
     end
 
-    data-predicate = make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+    data-predicate = j-field(name, get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj([clist: data-predicate] + obj-fields)])
 
@@ -1362,25 +1453,30 @@ end
 fun import-key(i): AU.import-to-dep-anf(i).key() end
 
 fun compile-program(self, l, imports-in, prog, freevars, env):
+  shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
   imports = imports-in.sort-by(
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
     )
-  shadow freevars =
-    for fold(fv from freevars, i from imports):
-      fv.remove(i.vals-name.key()).remove(i.types-name.key())
-    end
-  import-keys = for fold(vt from {vs: [string-dict:], ts: [string-dict:]}, i from imports):
-    new-vals = for fold(vs from vt.vs, v from i.values):
-      vs.set(v.key(), v)
-    end
-    new-types = for fold(ts from vt.ts, t from i.types):
-      ts.set(t.key(), t)
-    end
-    { vs: new-vals, ts: new-types }
+
+  for each(i from imports):
+    freevars.remove-now(i.vals-name.key())
+    freevars.remove-now(i.types-name.key())
   end
-  free-ids = freevars.keys-list().map(freevars.get-value(_))
+
+  import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
+
+  for each(i from imports):
+    for each(v from i.values):
+      import-keys.vs.set-now(v.key(), v)
+    end
+    for each(t from i.types):
+      import-keys.ts.set-now(t.key(), t)
+    end
+  end
+
+  free-ids = freevars.keys-list-now().map(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     bind-name = cases(A.Name) n:
@@ -1392,9 +1488,9 @@ fun compile-program(self, l, imports-in, prog, freevars, env):
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
     bind-name = cases(A.Name) n:
       | s-atom(_, _) =>
-        if import-keys.vs.has-key(n.key()):
+        if import-keys.vs.has-key-now(n.key()):
           n.toname()
-        else if import-keys.ts.has-key(n.key()):
+        else if import-keys.ts.has-key-now(n.key()):
           type-name(n.toname())
         else:
           raise("Unaware of imported name: " + n.key())
@@ -1525,7 +1621,7 @@ end
 fun non-splitting-compiler(env, options):
   compiler-visitor.{
     options: options,
-    a-program(self, l, imports, body):
+    a-program(self, l, _, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
       compile-program(self, l, imports, simplified, freevars, env)

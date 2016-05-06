@@ -1,16 +1,93 @@
-define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleton"], function(util, Namespace, ffi, valueskeleton) {
+define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"], function(util, t, Namespace, valueskeleton) {
+  var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
+  var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
   return util.definePyretModule(
     "string-dict",
     [],
     {
       values:
-        ["make-string-dict", "string-dict", "string-dict-of",
-         "make-mutable-string-dict", "mutable-string-dict"],
-      types:
-        ["MutableStringDict", "StringDict"]
-     },
-     function(runtime, namespace /* no pyret dependencies */) {
-    return runtime.loadJSModules(namespace, [ffi], function(F) {
+      {
+        "make-string-dict": t.forall(["a"], sdOfA),
+        "string-dict":
+          t.record({
+            "make":
+              // NOTE(joe): any for RawArray instantiation until we have tuples
+              t.forall(["a"],
+                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA)),
+            "make0": t.forall(["a"], t.arrow([], sdOfA)),
+            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], sdOfA)),
+            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
+            "make5": 
+              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
+                                      sdOfA))
+          }),
+        "string-dict-of":
+          t.forall(["a"],
+            t.arrow(
+              [
+                t.tyapp(t.libName("lists", "List"), [t.builtinName("String")]),
+                t.tyvar("a")
+              ],
+              sdOfA)),
+        "make-mutable-string-dict": t.forall(["a"], t.arrow([], msdOfA)),
+        "mutable-string-dict":
+          t.record({
+            "make":
+              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA)),
+            "make0": t.forall(["a"], t.arrow([], msdOfA)),
+            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], msdOfA)),
+            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
+            "make5": 
+              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
+                                      msdOfA))
+          })
+      },
+      aliases: {},
+      datatypes: {
+        StringDict: t.dataType(
+          "StringDict",
+          ["a"],
+          [],
+          {
+            "get": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
+            "get-value": t.arrow([t.string], t.tyvar("a")),
+            "set": t.arrow([t.string, t.tyvar("a")], sdOfA),
+            "merge": t.arrow([sdOfA], sdOfA),
+            "remove": t.arrow([t.string], sdOfA),
+            "keys": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
+            "keys-list": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
+            "count": t.arrow([], t.number),
+            "has-key": t.arrow([t.string], t.boolean),
+            "unfreeze": t.arrow([], msdOfA),
+            // TODO(joe): _output and _equals
+          }
+        ),
+        MutableStringDict: t.dataType(
+          "MutableStringDict",
+          ["a"],
+          [],
+          {
+            "get-now": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
+            "get-value-now": t.arrow([t.string], t.tyvar("a")),
+            "set-now": t.arrow([t.string, t.tyvar("a")], t.nothing),
+            "merge-now": t.arrow([msdOfA], t.nothing),
+            "remove-now": t.arrow([t.string], t.nothing),
+            "keys-now": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
+            "keys-list-now": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
+            "count-now": t.arrow([], t.number),
+            "has-key-now": t.arrow([t.string], t.boolean),
+            "freeze": t.arrow([], sdOfA),
+            "seal": t.arrow([], msdOfA),
+            // TODO(joe): _output and _equals
+          }
+        )
+      }
+    },
+    function(runtime, namespace /* no pyret dependencies */) {
     return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
 
       var O = runtime.makeObject;
@@ -20,8 +97,8 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
 
       var VS = get(VSlib, "values");
 
-      var brandMutable = runtime.namedBrander("mutable-string-dict");
-      var brandImmutable = runtime.namedBrander("string-dict");
+      var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+      var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
 
       var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
       var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
@@ -216,7 +293,10 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
           var dict = Object.create(null);
           for (var mkey in underlyingDict) {
-            dict[mkey] = underlyingDict[mkey];
+            var val = underlyingDict[mkey];
+            if(val !== undefined) {
+              dict[mkey] = underlyingDict[mkey];  
+            }
           }
           return makeMutableStringDict(dict);
         });
@@ -275,6 +355,19 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           runtime.checkString(key);
           runtime.checkPyretVal(val);
           underlyingDict[internalKey(key)] = val;
+          return runtime.nothing;
+        });
+
+        var mergeMSD = runtime.makeMethod1(function(self, other) {
+          if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a); }
+          checkMSD(other);
+          var otherKeys = runtime.getField(other, "keys-list-now").app();
+          var otherKeysArr = runtime.ffi.toArray(otherKeys);
+          for(var i = 0; i < otherKeysArr.length; i++) {
+            var key = otherKeysArr[i];
+            var val = runtime.getField(other, "get-value-now").app(key);
+            runtime.getField(self, "set-now").app(key, val);
+          }
           return runtime.nothing;
         });
 
@@ -422,6 +515,7 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           'get-now': getMSD,
           'get-value-now': getValueMSD,
           'set-now': setMSD,
+          'merge-now': mergeMSD,
           'remove-now': removeMSD,
           'keys-now': keysMSD,
           'keys-list-now': keysListMSD,
@@ -434,6 +528,18 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         });
 
         return applyBrand(brandMutable, obj);
+      }
+
+      function internal_isMSD(obj) {
+        return hasBrand(brandMutable, obj);
+      }
+
+      var jsCheckMSD =
+          runtime.makeCheckType(internal_isMSD, "MutableStringDict")
+
+      function isMutableStringDict(obj) {
+        arity(1, arguments, "is-mutable-string-dict")
+        return runtime.makeBoolean(internal_isMSD(obj))
       }
 
       function createMutableStringDict() {
@@ -457,6 +563,18 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           dict[internalKey(key)] = val;
         }
         return makeMutableStringDict(dict);
+      }
+
+      function internal_isISD(obj) {
+        return hasBrand(brandImmutable, obj);
+      }
+
+      var jsCheckISD =
+          runtime.makeCheckType(internal_isISD, "StringDict")
+
+      function isImmutableStringDict(obj) {
+        arity(1, arguments, "is-immutable-string-dict")
+        return runtime.makeBoolean(internal_isISD(obj))
       }
 
       function createImmutableStringDict() {
@@ -501,6 +619,77 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
         runtime.ffi.throwMessageException("Not yet implemented");
       });
 
+      function createMutableStringDict0() {
+        arity(0, arguments, "mutable-string-dict0");
+        var dict = Object.create(null);
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict1(arg) {
+        arity(1, arguments, "mutable-string-dict1");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+      function createMutableStringDict2(a, b) {
+        arity(2, arguments, "mutable-string-dict2");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        dict[internalKey(a)] = b;
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict3(a, b, c) {
+        arity(3, arguments, "mutable-string-dict3");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+      function createMutableStringDict4(a, b, c, d) {
+        arity(4, arguments, "mutable-string-dict4");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        runtime.checkString(c);
+        dict[internalKey(a)] = b;
+        dict[internalKey(c)] = d;
+        return makeMutableStringDict(dict);
+      }
+      function createMutableStringDict5(a, b, c, d, e) {
+        arity(5, arguments, "mutable-string-dict5");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+      }
+
+      function createImmutableStringDict0() {
+        arity(0, arguments, "string-dict0");
+        var dict = Object.create(null);
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict1(arg) {
+        arity(1, arguments, "string-dict1");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+      function createImmutableStringDict2(a, b) {
+        arity(2, arguments, "string-dict2");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        dict[internalKey(a)] = b;
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict3(a, b, c) {
+        arity(3, arguments, "string-dict3");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+      function createImmutableStringDict4(a, b, c, d) {
+        arity(4, arguments, "string-dict4");
+        var dict = Object.create(null);
+        runtime.checkString(a);
+        runtime.checkString(c);
+        if (a === c) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + a)
+        }
+        dict[internalKey(a)] = b;
+        dict[internalKey(c)] = d;
+        return makeImmutableStringDict(dict);
+      }
+      function createImmutableStringDict5(a, b, c, d, e) {
+        arity(5, arguments, "string-dict5");
+        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+      }
+
       return O({
         "provide-plus-types": O({
           types: {
@@ -510,19 +699,36 @@ define(["js/runtime-util", "js/namespace", "js/ffi-helpers", "trove/valueskeleto
           values: O({
             "make-mutable-string-dict": F(createMutableStringDict),
             "mutable-string-dict": O({
-              make: F(createMutableStringDictFromArray)
+              make: F(createMutableStringDictFromArray),
+              make0: F(createMutableStringDict0),
+              make1: F(createMutableStringDict1),
+              make2: F(createMutableStringDict2),
+              make3: F(createMutableStringDict3),
+              make4: F(createMutableStringDict4),
+              make5: F(createMutableStringDict5)
             }),
+            "is-mutable-string-dict": F(isMutableStringDict),
             "make-string-dict": F(createImmutableStringDict),
             "string-dict": O({
-              make: F(createImmutableStringDictFromArray)
+              make: F(createImmutableStringDictFromArray),
+              make0: F(createImmutableStringDict0),
+              make1: F(createImmutableStringDict1),
+              make2: F(createImmutableStringDict2),
+              make3: F(createImmutableStringDict3),
+              make4: F(createImmutableStringDict4),
+              make5: F(createImmutableStringDict5)
             }),
-            "string-dict-of": F(createConstImmutableStringDict)
-          })
+            "string-dict-of": F(createConstImmutableStringDict),
+            "is-string-dict": F(isImmutableStringDict)
+          }),
+          internal: {
+            checkISD: jsCheckISD,
+            checkMSD: jsCheckMSD
+          }
         }),
         "answer": runtime.nothing
       });
 
     });
     });
-  });
 });

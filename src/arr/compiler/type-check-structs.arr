@@ -3,477 +3,237 @@ provide-types *
 
 import ast as A
 import string-dict as SD
+import equality as EQ
 import valueskeleton as VS
 import "compiler/type-structs.arr" as TS
 import "compiler/type-defaults.arr" as TD
 import "compiler/compile-structs.arr" as C
+import "compiler/list-aux.arr" as LA
 
-type Name                 = A.Name
+fun bind(f, a): a.bind(f) end
+fun typing-bind(f, a): a.typing-bind(f) end
+fun fold-bind(f, a): a.fold-bind(f) end
 
-dict-to-string            = TS.dict-to-string
-mut-dict-to-string        = TS.mut-dict-to-string
+type Type = TS.Type
+type ModuleType = TS.ModuleType
+type Pair = TS.Pair
 
-type Type                 = TS.Type
-t-name                    = TS.t-name
-t-top                     = TS.t-top
+pair = TS.pair
 
-type TypeMember           = TS.TypeMember
-type TypeVariable         = TS.TypeVariable
-type TypeVariant          = TS.TypeVariant
-type DataType             = TS.DataType
-type ModuleType           = TS.ModuleType
-
-t-module                  = TS.t-module
-
-type Bindings              = SD.StringDict<TS.Type>
+type Bindings = SD.StringDict<Type>
 empty-bindings :: Bindings = SD.make-string-dict()
 
-data TCInfo:
-  | tc-info(typs       :: SD.MutableStringDict<TS.Type>,
-            aliases    :: SD.MutableStringDict<TS.Type>,
-            data-exprs :: SD.MutableStringDict<TS.DataType>,
-            branders   :: SD.MutableStringDict<TS.Type>,
-            modules    :: SD.MutableStringDict<TS.ModuleType>,
-            mod-names  :: SD.MutableStringDict<String>,
-            binds      :: Bindings,
-            ref modul  :: TS.ModuleType,
-            errors     :: { insert :: (C.CompileError -> List<C.CompileError>),
-                            get    :: (-> List<C.CompileError>)})
+# local context used during type-checking
+data Context:
+  | typing-context(types :: SD.MutableStringDict<Type>,
+                   aliases :: SD.MutableStringDict<Type>,
+                   data-types :: SD.MutableStringDict<Type>,
+                   modules :: SD.MutableStringDict<ModuleType>,
+                   module-names :: SD.MutableStringDict<String>,
+                   binds :: Bindings,
+                   existentials :: SD.StringDict<Pair<Type, Type>>, # existential, assigned-type
+                   info :: TCInfo)
 sharing:
   _output(self):
-    VS.vs-constr("tc-info",
-      [list:
-        VS.value(mut-dict-to-string(self.typs)),
-        VS.value(mut-dict-to-string(self.aliases)),
-        VS.value(mut-dict-to-string(self.data-exprs)),
-        VS.value(mut-dict-to-string(self.branders)),
-        VS.value(mut-dict-to-string(self.modules)),
-        VS.value(self.binds),
-        VS.value(self.errors.get())])
+    VS.vs-seq([list: VS.vs-str("{ BINDS: "), VS.vs-value(self.binds), VS.vs-str(" EXISTS: "), VS.vs-value(self.existentials), VS.vs-str(" }")])
+  end,
+  get-data-type(self, typ :: Type) -> Option<Type>:
+    shadow typ = resolve-alias(typ, self)
+    cases(Type) typ:
+      | t-name(module-name, name, _) =>
+        cases(Option<String>) module-name:
+          | some(mod) =>
+            cases(Option<ModuleType>) self.modules.get-now(mod):
+              | some(t-mod) =>
+                cases(Option<Type>) t-mod.types.get(name.toname()):
+                  | some(shadow typ) => some(typ)
+                  | none =>
+                    raise("No type " + torepr(typ) + " available on '" + torepr(t-mod) + "'")
+                end
+              | none =>
+                if mod == "builtin":
+                  self.data-types.get-now(name.key())
+                else:
+                  raise("No module available with the name '" + mod + "'")
+                end
+            end
+          | none =>
+            id-key = name.key()
+            self.data-types.get-now(id-key)
+        end
+      | t-app(base-typ, args, l) =>
+        base-data-typ = self.get-data-type(base-typ)
+        base-data-typ.and-then(_.introduce(args))
+      | else => none
+    end
+  end,
+  apply(self, typ :: Type) -> Type:
+    keys = self.existentials.keys()
+    keys.fold(lam(current-type, key):
+      existential-pair = self.existentials.get-value(key)
+      existential = existential-pair.left
+      assigned-type = existential-pair.right
+      current-type.substitute(assigned-type, existential)
+    end, typ)
+  end,
+  assign-existential(self, existential :: Type, assigned-type :: Type) -> Context:
+    if self.existentials.has-key(existential.key()):
+      self
+    else:
+      existential-keys = self.existentials.keys()
+      new-existentials = existential-keys.fold(lam(existentials, key):
+        existential-pair = existentials.get-value(key)
+        existential-value = existential-pair.right
+        existentials.set(key, pair(existential-pair.left, existential-value.substitute(assigned-type, existential)))
+      end, self.existentials)
+      updated-existentials = new-existentials.set(existential.key(), pair(existential, assigned-type))
+      binds-keys = self.binds.keys()
+      new-binds = binds-keys.fold(lam(binds, key):
+        bound-value = binds.get-value(key)
+        binds.set(key, bound-value.substitute(assigned-type, existential))
+      end, self.binds)
+      typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, updated-existentials, self.info)
+    end
+  end,
+  add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
+    typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.existentials, self.info)
+  end,
+  add-dict-to-bindings(self, dict :: SD.StringDict<Type>):
+    new-binds = dict.keys().fold(lam(bindings, key):
+      bindings.set(key, dict.get-value(key))
+    end, self.binds)
+    typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, self.existentials, self.info)
+  end,
+  set-info(self, info :: TCInfo) -> Context:
+    typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.existentials, info)
   end
 end
 
-fun empty-tc-info(mod-name :: String) -> TCInfo:
-  curr-module = t-module(mod-name, t-top, SD.make-string-dict(), SD.make-string-dict())
-  errors = block:
-    var err-list = empty
-    {
-      insert: lam(err :: C.CompileError):
-        err-list := link(err, err-list)
-      end,
-      get: lam():
-        err-list
-      end
-    }
-  end
-  tc-info(TD.make-default-typs(), SD.make-mutable-string-dict(), TD.make-default-data-exprs(), SD.make-mutable-string-dict(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, curr-module, errors)
+# "exported" context after type checking
+data TCInfo:
+  | tc-info(types :: SD.StringDict<Type>,
+            aliases :: SD.StringDict<Type>,
+            data-types :: SD.StringDict<Type>)
 end
 
-fun add-binding-string(id :: String, bound :: Type, info :: TCInfo) -> TCInfo:
-  new-binds = info.binds.set(id, bound)
-  tc-info(info.typs, info.aliases, info.data-exprs, info.branders, info.modules, info.mod-names, new-binds, info!modul, info.errors)
-end
-
-fun add-binding(id :: Name, bound :: Type, info :: TCInfo) -> TCInfo:
-  add-binding-string(id.key(), bound, info)
-end
-
-fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
-  add-binding(tv.id, tv.upper-bound, info)
-end
-
-fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
-  cases(Type) typ:
-    | t-name(module-name, name) =>
-      cases(Option<String>) module-name:
-        | some(mod) =>
-          cases(Option<ModuleType>) info.modules.get-now(mod):
-            | some(t-mod) =>
-              t-mod.types.get(name.tosourcestring())
-            | none =>
-              raise("No module available with the name `" + mod + "'")
-          end
-        | none =>
-          key = typ.key()
-          info.data-exprs.get-now(key)
-      end
-    | t-app(base-typ, args) =>
-      cases(Option<DataType>) get-data-type(base-typ, info):
-        | some(new-base-typ) =>
-          data-type = new-base-typ.introduce(args)
-          cases(Option<DataType>) data-type:
-            | some(dt) => data-type
-            | none => raise("Internal type-checking error: This shouldn't happen, since the length of type arguments should have already been compared against the length of parameters")
-          end
-        | none => none
-      end
-    | else =>
-      none
-  end
-end
-
-fun bind(f, a): a.bind(f);
-fun map-bind(f, a): a.map-bind(f);
-fun check-bind(f, a): a.check-bind(f);
-fun synth-bind(f, a): a.synth-bind(f);
-fun fold-bind(f, a): a.fold-bind(f);
-
-data SynthesisResult:
-  | synthesis-result(ast :: A.Expr, loc :: A.Loc, typ :: Type) with:
-    bind(self, f) -> SynthesisResult:
-      f(self.ast, self.loc, self.typ)
+data TypingResult:
+  | typing-result(ast :: A.Expr, typ :: Type, out-context :: Context) with:
+    bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
+      f(self.ast, self.typ, self.out-context)
     end,
-    map-expr(self, f) -> SynthesisResult:
-      synthesis-result(f(self.ast), self.loc, self.typ)
+    fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
+      f(self.ast, self.typ, self.out-context)
     end,
-    map-typ(self, f) -> SynthesisResult:
-      synthesis-result(self.ast, self.loc, f(self.typ))
+    map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
+      typing-result(f(self.ast), self.typ, self.out-context)
     end,
-    synth-bind(self, f) -> SynthesisResult:
-      f(self.ast, self.loc, self.typ)
-    end,
-    check-bind(self, f) -> CheckingResult:
-      f(self.ast, self.loc, self.typ)
-    end,
-    fold-bind(self, f) -> FoldResult:
-      f(self.ast, self.loc, self.typ)
+    map-type(self, f :: (Type -> Type)) -> TypingResult:
+      typing-result(self.ast, f(self.typ), self.out-context)
     end
-  | synthesis-binding-result(let-bind, typ :: Type) with:
-    bind(self, f) -> SynthesisResult:
-      f(self.let-bind, self.typ)
-    end,
-    map-expr(self, f) -> SynthesisResult:
-      raise("Cannot map expr on synthesis-binding-result!")
-    end,
-    map-typ(self, f) -> SynthesisResult:
-      synthesis-binding-result(self.let-bind, f(self.typ))
-    end,
-    check-bind(self, f) -> CheckingResult:
-      f(self.let-bind, self.typ)
-    end
-  | synthesis-err(errors :: List<C.CompileError>) with:
-    bind(self, f) -> SynthesisResult:
+  | typing-error(errors :: List<C.CompileError>) with:
+    bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
       self
     end,
-    map-expr(self, f) -> SynthesisResult:
-      self
-    end,
-    map-typ(self, f) -> SynthesisResult:
-      self
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      self
-    end,
-    check-bind(self, f) -> CheckingResult:
-      checking-err(self.errors)
-    end,
-    fold-bind(self, f) -> FoldResult:
-      fold-errors(self.errors)
-    end
-end
-
-fun map-synthesis<B>(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<List>:
-  cases(List<A>) lst:
-    | link(first, rest) =>
-      cases(SynthesisResult) f(first):
-        | synthesis-result(ast, loc, typ) =>
-          map-synthesis(f, rest).bind(lam(asts): fold-result(link(ast, asts));)
-        | synthesis-binding-result(binding, typ) =>
-          map-synthesis(f, rest).bind(lam(asts): fold-result(link(binding, asts));)
-        | synthesis-err(errors) =>
-          fold-errors(errors)
-      end
-    | empty =>
-      fold-result(empty)
-  end
-end
-
-
-data CheckingResult:
-  | checking-result(ast :: A.Expr) with:
-    bind(self, f) -> CheckingResult:
-      f(self.ast)
-    end,
-    map(self, f) -> CheckingResult:
-      checking-result(f(self.ast))
-    end,
-    check-bind(self, f) -> CheckingResult:
-      f(self.ast)
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      f(self.ast)
-    end,
-    fold-bind(self, f) -> FoldResult:
-      f(self.ast)
-    end,
-    map-bind(self, f) -> CheckingMapResult:
-      f(self.ast)
-    end
-  | checking-err(errors :: List<C.CompileError>) with:
-    bind(self, f) -> CheckingResult:
-      self
-    end,
-    check-bind(self, f) -> CheckingResult:
-      self
-    end,
-    map(self, f) -> CheckingResult:
-      self
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      synthesis-err(self.errors)
-    end,
-    fold-bind(self, f) -> FoldResult:
+    fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
       fold-errors(self.errors)
     end,
-    map-bind(self, f) -> CheckingMapResult:
-      checking-map-errors(self.errors)
+    map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
+      self
+    end,
+    map-type(self, f :: (Type -> Type)) -> TypingResult:
+      self
     end
 end
 
 data FoldResult<V>:
-  | fold-result(v :: V) with:
-    _output(self):
-      VS.vs-constr("fold-result", [list: VS.vs-value(self.v)])
+  | fold-result(v :: V, context :: Context) with:
+    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
+      f(self.v, self.context)
     end,
-    bind(self, f) -> FoldResult<V>:
-      f(self.v)
-    end,
-    map(self, f) -> FoldResult:
-      fold-result(f(self.v))
-    end,
-    check-bind(self, f) -> CheckingResult:
-      f(self.v)
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      f(self.v)
+    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
+      f(self.v, self.context)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    _output(self):
-      VS.vs-constr("fold-errors", [list: VS.vs-value(self.errors)])
+    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
+      fold-errors(self.errors)
     end,
-    bind(self, f) -> FoldResult<V>:
-      self
-    end,
-    map(self, f) -> FoldResult:
-      self
-    end,
-    check-bind(self, f) -> CheckingResult:
-      checking-err(self.errors)
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      synthesis-err(self.errors)
+    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
+      typing-error(self.errors)
     end
 end
 
-fun foldl2-result(not-equal :: C.CompileError):
-  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
-    cases(List<B>) lst-1:
-      | link(first-1, rest-1) =>
-        cases(List<D>) lst-2:
-          | link(first-2, rest-2) =>
-            for bind(v from base):
-              new-base = f(v, first-1, first-2)
-              helper(f, new-base, rest-1, rest-2)
-            end
-          | empty =>
-            fold-errors([list: not-equal])
-        end
-      | empty =>
-        cases(List<D>) lst-2:
-          | link(_, _) =>
-            fold-errors([list: not-equal])
-          | empty =>
-            base
-        end
-    end
-  end
-  helper
+data Typed:
+  | typed(ast :: A.Program, info :: TCInfo)
 end
 
-fun foldl3-result(not-equal :: C.CompileError):
-  fun helper<E,B,F,D>(f :: (E, B, F, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<F>, lst-3 :: List<D>) -> FoldResult<E>:
-    cases(List<B>) lst-1:
-      | link(first-1, rest-1) =>
-        cases(List<F>) lst-2:
-          | link(first-2, rest-2) =>
-            cases(List<D>) lst-3:
-              | link(first-3, rest-3) =>
-                for bind(v from base):
-                  new-base = f(v, first-1, first-2, first-3)
-                  helper(f, new-base, rest-1, rest-2, rest-3)
-                end
-              | empty =>
-                fold-errors([list: not-equal])
-            end
-          | empty =>
-            fold-errors([list: not-equal])
-        end
-      | empty =>
-        cases(List<F>) lst-2:
-          | link(_, _) =>
-            fold-errors([list: not-equal])
-          | empty =>
-            cases(List<D>) lst-3:
-              | link(_, _) =>
-                fold-errors([list: not-equal])
-              | empty =>
-                base
-            end
-        end
-    end
-  end
-  helper
+fun empty-tc-info() -> TCInfo:
+  tc-info(SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict())
 end
 
-fun foldr2-result(not-equal :: C.CompileError):
-  fun helper<E,B,D>(f :: (E, B, D -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<E>:
-    cases(List<B>) lst-1:
-      | link(first-1, rest-1) =>
-        cases(List<D>) lst-2:
-          | link(first-2, rest-2) =>
-            for bind(result from helper(f, base, rest-1, rest-2)):
-              f(result, first-1, first-2)
-            end
-          | empty =>
-            fold-errors([list: not-equal])
-        end
-      | empty =>
-        cases(List<D>) lst-2:
-          | link(_, _) =>
-            fold-errors([list: not-equal])
-          | empty =>
-            base
-        end
-    end
-  end
-  helper
+fun empty-context() -> Context:
+  typing-context(TD.make-default-types(), TD.make-default-aliases(), TD.make-default-data-exprs(), TD.make-default-modules(), SD.make-mutable-string-dict(), empty-bindings, SD.make-string-dict(), empty-tc-info())
 end
 
-
-fun map2-result(not-equal :: C.CompileError):
-  fun helper<E,B,D>(f :: (B, D -> FoldResult<E>), lst-1 :: List<B>, lst-2 :: List<D>) -> FoldResult<List<E>>:
-    fun process-and-prepend(lst :: List<E>, b :: B, d :: D) -> FoldResult<List<E>>:
-      for bind(result from f(b, d)):
-        fold-result(link(result, lst))
+fun resolve-alias(t :: Type, context :: Context) -> Type:
+  cases(Type) t:
+    | t-name(a-mod, a-id, l) =>
+      cases(Option<String>) a-mod:
+        | none =>
+          cases(Option<Type>) context.aliases.get-now(a-id.key()):
+            | none => t
+            | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+          end
+        | some(mod) =>
+          if mod == "builtin":
+            cases(Option<Type>) context.aliases.get-now(a-id.key()):
+              | none => t
+              | some(aliased) => aliased.set-loc(l)
+            end
+          else:
+            # TODO(MATT): make sure that a-id.key() is correct here
+            cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.key()):
+              | none => t
+              | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+            end
+          end
       end
-    end
-    foldr2-result(not-equal)(process-and-prepend, fold-result(empty), lst-1, lst-2)
+    | else => t
   end
-  helper
 end
 
-fun foldl-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
-  cases(List<B>) lst-1:
+fun map-fold-result<X, Y>(f :: (X, Context -> FoldResult<Y>), lst :: List<X>, context :: Context) -> FoldResult<List<Y>>:
+  cases(List<X>) lst:
+    | empty => fold-result(empty, context)
     | link(first, rest) =>
-      for bind(v from base):
-        result = f(v, first)
-        foldr-result(f, result, rest)
-      end
-    | empty =>
-      base
+      f(first, context).bind(lam(result, rest-context):
+        map-fold-result(f, rest, rest-context).bind(lam(rest-results, out-context):
+          fold-result(link(result, rest-results), out-context)
+        end)
+      end)
   end
 end
 
-fun foldr-result<E,B,D>(f :: (E, B -> FoldResult<E>), base :: FoldResult<E>, lst-1 :: List<B>) -> FoldResult<E>:
-  cases(List<B>) lst-1:
+fun foldr-fold-result<X, Y>(f :: (X, Context, Y -> FoldResult<Y>), lst :: List<X>, context :: Context, base :: Y) -> FoldResult<Y>:
+  cases(List<X>) lst:
+    | empty => fold-result(base, context)
     | link(first, rest) =>
-      for bind(v from foldr-result(f, base, rest)):
-        f(v, first)
-      end
-    | empty =>
-      base
+      foldr-fold-result(f, rest, context, base).bind(lam(rest-result, rest-context):
+        f(first, rest-context, rest-result)
+      end)
   end
 end
 
-
-
-
-data CheckingMapResult:
-  | checking-map(lst :: List<A.Expr>) with:
-    bind(self, f) -> CheckingMapResult:
-      f(self.lst)
-    end,
-    check-bind(self, f) -> CheckingResult:
-      f(self.lst)
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      f(self.lst)
-    end,
-    prepend(self, ast :: A.Expr) -> CheckingMapResult:
-      checking-map(link(ast, self.lst))
-    end
-  | checking-map-errors(errors :: List<C.CompileError>) with:
-    bind(self, f) -> CheckingMapResult:
-      self
-    end,
-    check-bind(self, f) -> CheckingResult:
-      checking-err(self.errors)
-    end,
-    synth-bind(self, f) -> SynthesisResult:
-      synthesis-err(self.errors)
-    end,
-    prepend(self, ast :: A.Expr) -> CheckingMapResult:
-      self
-    end
-end
-
-
-fun map2-checking(not-equal :: C.CompileError):
-  fun helper<B,D>(f :: (B, D -> CheckingResult), lst-1 :: List<B>, lst-2 :: List<D>) -> CheckingMapResult:
-    cases(List<B>) lst-1:
-      | link(first-1, rest-1) =>
-        cases(List<D>) lst-2:
-          | link(first-2, rest-2) =>
-            cases(CheckingResult) f(first-1, first-2):
-              | checking-result(ast) =>
-                helper(f, rest-1, rest-2)
-                  .bind(lam(asts): checking-map(link(ast, asts));)
-              | checking-err(errors) =>
-                checking-map-errors(errors)
-            end
-          | empty =>
-            checking-map-errors([list: not-equal])
-        end
-      | empty =>
-        cases(List<D>) lst-2:
-          | link(_, _) =>
-            checking-map-errors([list: not-equal])
-          | empty =>
-            checking-map(empty)
-        end
-    end
-  end
-  helper
-end
-
-fun map-checking<B>(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapResult:
-  cases(List<B>) lst:
+# TODO(MATT): determine if it's okay that this is a foldl
+fun fold-typing<X>(f :: (X, Context -> TypingResult), lst :: List<X>, context :: Context) -> FoldResult<List<A.Expr>>:
+  cases(List<X>) lst:
+    | empty => fold-result(empty, context)
     | link(first, rest) =>
-      cases(CheckingResult) f(first):
-        | checking-result(ast) =>
-          map-checking(f, rest)
-            .bind(lam(asts): checking-map(link(ast, asts));)
-        | checking-err(errors) =>
-          checking-map-errors(errors)
+      cases(TypingResult) f(first, context):
+        | typing-error(errors) => fold-errors(errors)
+        | typing-result(ast, typ, out-context) =>
+          fold-typing(f, rest, out-context).bind(lam(exprs, rest-context):
+            fold-result(link(ast, exprs), rest-context)
+          end)
       end
-    | empty =>
-      checking-map(empty)
-  end
-end
-
-
-
-
-fun map-result<B,D>(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<List<D>>:
-  cases(List<B>) lst:
-    | link(first, rest) =>
-      cases(FoldResult<D>) f(first):
-        | fold-result(d) =>
-          map-result(f, rest).bind(lam(ds): fold-result(link(d, ds));)
-        | fold-errors(errors) =>
-          fold-errors(errors)
-      end
-    | empty =>
-      fold-result(empty)
   end
 end

@@ -22,6 +22,8 @@ define(["js/runtime-util"], function(util) {
     var currentFocusedNode = false;
 
     var doNothing = function() {};
+    // Just in case external users need this and doNothing might change.
+    Jsworld.doNothing = doNothing;
 
     // forEachK: CPS( array CPS(array -> void) (error -> void) -> void )
     // Iterates through an array and applies f to each element using CPS
@@ -805,7 +807,6 @@ define(["js/runtime-util"], function(util) {
         };
     }
     Jsworld.on_mouse = on_mouse;
-
 
 
 

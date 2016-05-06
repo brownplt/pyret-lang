@@ -58,6 +58,22 @@ R(["js/runtime-anf", "fs"], function(RT, fs) {
     });
     console.log(")");
   }
+  function processNewStyleModule(module) {
+    console.log("(module " + JSON.stringify(importName));
+    console.log("  (path \"" + process.argv[2] + "\")");
+    for (var name in module.provides.values) {
+      var field = module.provides.values[name];
+      if(field.tag === 'arrow') {
+        console.log("  (fun-spec (name \"" + name + "\") (arity " + field.args.length + "))");
+      } else {
+        console.log("  (unknown-item (name \"" + name + "\"))");
+      }
+    }
+/*    for (var name in module.provides.datatypes) {
+      console.log("  (unknown-item (name \"" + name + "\"))");
+    } */
+    console.log(")");
+  }
   function processRawModule(module) {
     console.log("(raw-module " + JSON.stringify(modName));
     for (var name in module) {
@@ -80,6 +96,8 @@ R(["js/runtime-anf", "fs"], function(RT, fs) {
           processRawModule(module);
         }
       });
+    } else if('provides' in moduleLib) {
+      processNewStyleModule(moduleLib);
     } else {
       processRawModule(moduleLib);
     }

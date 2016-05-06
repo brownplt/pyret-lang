@@ -30,12 +30,6 @@ end
 fun no-branches-exn(l, typ):
   A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
 end
-fun bool-exn(l, typ, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
-end
-fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
-end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -43,7 +37,7 @@ end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
-    | a-any => a
+    | a-any(_) => a
     | a-name(_, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
@@ -105,7 +99,7 @@ end
 
 fun desugar-if(l, branches, _else :: A.Expr):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    check-bool(branch.l, desugar-expr(branch.test), lam(test-id):
+    check-bool(branch.test.l, desugar-expr(branch.test), lam(test-id):
         A.s-if-else(l,
           [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
           acc)
@@ -355,7 +349,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body) =>
-      check-bool(l, desugar-expr(test), lam(test-id-e):
+      check-bool(test.l, desugar-expr(test), lam(test-id-e):
           A.s-if-else(l,
             [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
             A.s-block(l, [list: gid(l, "nothing")]))
@@ -385,7 +379,7 @@ fun desugar-expr(expr :: A.Expr):
       values = bindings.map(_.value).map(desugar-expr)
       the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-op(l, op, left, right) =>
+    | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
           ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
@@ -426,9 +420,9 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper): or-oper;)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
                         helper(operands.rest))
@@ -441,9 +435,9 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper): and-oper;)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
                         A.s-bool(l, false))
@@ -474,8 +468,15 @@ fun desugar-expr(expr :: A.Expr):
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
-          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
-            [list: A.s-array(l, elts.map(desugar-expr))])
+          len = elts.length()
+          desugared-elts = elts.map(desugar-expr)
+          if len <= 5:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make" + tostring(len))),
+              desugared-elts)
+          else:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
+              [list: A.s-array(l, desugared-elts)])
+          end
         | s-construct-lazy =>
           A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
@@ -513,11 +514,19 @@ where:
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
-    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
-        [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])])
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make3"),
+        [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
-  prog3 = p("for map(elt from l): elt + 1 end")
-  ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
+  prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
+  ds(prog3)
+    is A.s-block(d,
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+        [list:  A.s-array(d,
+            [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
+              one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
+
+  prog4 = p("for map(elt from l): elt + 1 end")
+  ds(prog4) is p("map(lam(elt): _plus(elt, 1) end, l)")
 
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")

@@ -1,10 +1,9 @@
-define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-error-display"], function(e, matchers, ffiLib, rendererrorLib) {
+define(["js/eval-lib", "../runtime/matchers", "trove/render-error-display"], function(e, matchers, rendererrorLib) {
   var count = 0;
   function makeEvalCheckers(jasmine, runtime) {
     matchers.addPyretMatchers(jasmine);
     function gf(o, s) { return runtime.getField(o, s); }
     var tests = [];
-    var ffi = ffiLib(runtime, runtime.namespace);
     var rendererror = undefined;
 
     function pushTest(test) {
@@ -29,24 +28,26 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-er
     function checkEvalsTo(str, answer) {
       pushTest(function(after) {
         e.runEvalPyret(runtime, str, {}, function(result) {
-          expect(result).toBeSuccess(runtime);
-          if(runtime.isSuccessResult(result)) {
-            var actual = gf(result.result, "answer");
-            expect(actual).toBeSameAs(runtime, answer);
-          }
-          after();
+          runtime.runThunk(function(){
+            expect(result).toBeSuccess(runtime);
+            if(runtime.isSuccessResult(result)) {
+              var actual = gf(result.result, "answer");
+              expect(actual).toBeSameAs(runtime, answer);
+            }
+          },function(){after();});
         });
       });
     }
     function checkEvalTests(str, pred) {
       pushTest(function(after) {
         e.runEvalPyret(runtime, str, {}, function(result) {
-          expect(result).toBeSuccess(runtime);
-          if(runtime.isSuccessResult(result)) {
-            var checks = gf(result.result, "checks");
-            expect(checks).toPassPredicate(pred);
-          }
-          after();
+          runtime.runThunk(function(){
+            expect(result).toBeSuccess(runtime);
+            if(runtime.isSuccessResult(result)) {
+              var checks = gf(result.result, "checks");
+              expect(checks).toPassPredicate(pred);
+            }
+          },function(){after();});
         });
       });
     }
@@ -65,16 +66,17 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-er
     function checkError(str, exnPred) {
       pushTest(function(after) {
         e.runEvalPyret(runtime, str, {}, function(result) {
-          expect(result).toBeFailure(runtime);
-          if (runtime.isFailureResult(result)) {
-            var exn = result.exn;
-            try {
-              expect(exn).toPassPredicate(exnPred);
-            } catch(e) {
-              console.error("Error while running predicate on program for errors: ", s, e);
+          runtime.runThunk(function(){
+            expect(result).toBeFailure(runtime);
+            if (runtime.isFailureResult(result)) {
+              var exn = result.exn;
+              try {
+                expect(exn).toPassPredicate(exnPred);
+              } catch(e) {
+                console.error("Error while running predicate on program for errors: ", s, e);
+              }
             }
-          }
-          after();
+          },function(){after();});
         });
       });
     }
@@ -132,15 +134,16 @@ define(["js/eval-lib", "../runtime/matchers", "js/ffi-helpers", "trove/render-er
     function checkCompileError(str, exnPred) {
       pushTest(function(after) {
         e.runCompileSrcPyret(runtime, str, {}, function(result) {
-          expect(result).toBeFailure(runtime);
-          var problems = result.exn;
-          // Compiling returns a string or an array of 
-          // Pyret objects detailing problems
-          expect(problems).toBeInstanceOf(Array);
-          if (problems instanceof Array) {
-            expect(problems).toPassPredicate(exnPred);
-          }
-          after();
+          runtime.runThunk(function(){
+            expect(result).toBeFailure(runtime);
+            var problems = result.exn;
+            // Compiling returns a string or an array of 
+            // Pyret objects detailing problems
+            expect(problems).toBeInstanceOf(Array);
+            if (problems instanceof Array) {
+              expect(problems).toPassPredicate(exnPred);
+            }
+          },function(){after();});
         });
       });
     }

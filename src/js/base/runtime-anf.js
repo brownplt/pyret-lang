@@ -28,7 +28,7 @@ Creates a Pyret runtime
 @return {Object} that contains all the necessary components of a runtime
 */
 function makeRuntime(theOutsideWorld) {
-
+  var CONSOLE = theOutsideWorld.console || console;
 /**
     Extends an object with the new fields in fields
     If all the fields are new, the brands are kept,
@@ -234,6 +234,7 @@ function isBase(obj) { return obj instanceof PBase; }
     "nothing": function(val) { return "nothing"; },
     "function": function(val) { return "<function>"; },
     "method": function(val) { return "<method>"; },
+    "cyclic": function(val) { return val; },
     "opaque": function(val) {
       if (thisRuntime.imageLib.isImage(val.val)) {
         return "<image (" + String(val.val.getWidth()) + "x" + String(val.val.getHeight()) + ")>";
@@ -759,7 +760,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
     var makeMethodN = makeMethodFromFun;
 
-
     function callIfPossible0(L, fun, obj) {
       if (isMethod(fun)) {
         return fun.full_meth(obj);
@@ -841,7 +841,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwNonFunApp(L, fun);
       }
     }
-
 
     var GRAPHABLE = 0;
     var UNGRAPHABLE = 1;
@@ -1161,15 +1160,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var thisBrandStr = "$brand" + name + String(++brandCounter);
       return thisBrandStr;
     }
-    var namedBrander = function(name) {
+    var namedBrander = function(name, srcloc) {
       var thisBrandStr = mkBrandName(name);
+      var testSrcloc = srcloc || ["brander-test: " + thisBrandStr];
+      var brandSrcloc = srcloc || ["brander-brand: " + thisBrandStr]
       var brander = makeObject({
           'test': makeFunction(function(obj) {
-              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander-test"], 1, $a); }
+              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a); }
               return makeBoolean(hasBrand(obj, thisBrandStr));
             }),
           'brand': makeFunction(function(obj) {
-              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander-brand"], 1, $a); }
+              if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a); }
               return obj.brand(thisBrandStr);
             })
         });
@@ -1183,7 +1184,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
     function() {
       if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander"], 0, $a); }
-      return namedBrander("brander");
+      return namedBrander("brander", undefined);
     }
     );
 
@@ -1297,7 +1298,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               // Baffling bugs will result if next is passed directly
               var arrayHasBeenSeen = findSeenArray(top.arrays, next);
               if(typeof arrayHasBeenSeen === "string") {
-                finishVal(arrayHasBeenSeen);
+                finishVal(reprMethods["cyclic"](arrayHasBeenSeen));
               }
               else {
                 reprMethods["array"](next, pushTodo);
@@ -1307,10 +1308,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
               var refHasBeenSeen = findSeenRef(top.refs, next);
               var implicit = implicitRefs(top) && top.extra.implicitRefs[top.todo.length - 1];
               if(typeof refHasBeenSeen === "string") {
-                finishVal(refHasBeenSeen);
+                finishVal(reprMethods["cyclic"](refHasBeenSeen));
               }
               else if(!isRefSet(next)) {
-                finishVal("<uninitialized-ref>");
+                finishVal(reprMethods["cyclic"]("<uninitialized-ref>"));
               }
               else {
                 reprMethods["ref"](next, implicit, pushTodo);
@@ -1319,7 +1320,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else if(isObject(next)) {
               var objHasBeenSeen = findSeenObject(top.objects, next);
               if(typeof objHasBeenSeen === "string") {
-                finishVal(objHasBeenSeen);
+                finishVal(reprMethods["cyclic"](objHasBeenSeen));
               }
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
@@ -1334,8 +1335,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
             }
             else {
-              console.log("UNKNOWN VALUE!");
-              console.log(next);
+              CONSOLE.log("UNKNOWN VALUE: ", next);
+              finishVal(reprMethods["string"]("<Unknown value: details logged to console>"));
             }
           }
           else {
@@ -1641,7 +1642,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       */
       function(val) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a); }
-        throw new PyretFailException(val);
+        if(thisRuntime.isObject(val) &&
+          (thisRuntime.hasField(val, "render-reason")
+            || thisRuntime.hasField(val, "render-fancy-reason"))){
+          throw new PyretFailException(val);
+        } else {
+          throw new PyretFailException(thisRuntime.ffi.makeUserException(val));
+        }
       };
     /** type {!PFunction} */
     // function raiseUserException(err) {
@@ -1729,8 +1736,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (tol) {
               if (rel) {
-                var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(curLeft, 2), jsnums.divide(curRight, 2)), tol));
-                if (jsnums.roughlyEquals(curLeft, curRight, absTol)) {
+                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol)) {
                   continue;
                 } else {
                   toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
@@ -1948,9 +1954,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRelNow3(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a); }
         return equal3(l, r, false, relTol, true);
@@ -1972,9 +1975,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     function equalWithinRel3(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a); }
         return equal3(l, r, true, relTol);
@@ -2050,9 +2050,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinRelNowPy = makeFunction(function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a); }
         return makeBoolean(equalWithinRelNow(relTol).app(l, r));
@@ -2076,9 +2073,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var equalWithinRelPy = makeFunction(function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a); }
         return makeBoolean(equalWithinRel(relTol).app(l, r));
@@ -2285,11 +2279,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-checks"], 2, $a); }
         return nothing;
       }),
-      "check-is": makeFunction(function(code, left, right, loc) {
+      "check-is": makeFunction(function(left, right, loc) {
         if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 4, $a); }
         return nothing;
       }),
-      "check-satisfies": makeFunction(function(code, left, pred, loc) {
+      "check-satisfies": makeFunction(function(left, pred, loc) {
         if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 4, $a); }
         return nothing;
       }),
@@ -2326,7 +2320,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       else if(typeof v === "boolean") { return makeBoolean(v); }
       else if(isOpaque(v)) { return v; }
       else if(isObject(v)) { return v; }
-      else { ffi.throwInternalError("Cannot wrap", v); }
+      else { ffi.throwInternalError("Cannot wrap", [v]); }
     }
 
     function mkPred(jsPred) {
@@ -2442,8 +2436,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return checkI(0);
     }
-    function checkRefAnns(obj, fields, vals, locs) {
-      if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
+
+    function checkRefAnns(obj, fields, vals, locs, exprloc, objloc) {
+      if (!isObject(obj)) { ffi.throwUpdateNonObj(makeSrcloc(exprloc), obj, makeSrcloc(objloc));}
       var anns = new Array(fields.length);
       var refs = new Array(fields.length);
       var field = null;
@@ -2454,17 +2449,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
           ref = obj.dict[field];
           if(isRef(ref)) {
             if(isRefFrozen(ref)) {
-              ffi.throwMessageException("Update of frozen ref " + field);
+              ffi.throwUpdateFrozenRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
             }
             anns[i] = getRefAnns(ref);
             refs[i] = ref;
           }
           else {
-            ffi.throwMessageException("Update of non-ref field " + field);
+            ffi.throwUpdateNonRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
           }
         }
         else {
-          ffi.throwMessageException("Update of non-existent field " + field);
+          ffi.throwUpdateNonExistentField(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
         }
       }
       function afterCheck() {
@@ -2833,7 +2828,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var activeThreads = {};
 
   function run(program, namespace, options, onDone) {
-    // console.log("In run2");
+    // CONSOLE.log("In run2");
     if(RUN_ACTIVE) {
       onDone(makeFailureResult(ffi.makeMessageException("Internal: run called while already running")));
       return;
@@ -2945,7 +2940,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // This function should not return anything meaningful, as state
     // and fallthrough are carefully managed.
     function iter() {
-      // console.log("In run2::iter, GAS is ", thisRuntime.GAS);
+      // CONSOLE.log("In run2::iter, GAS is ", thisRuntime.GAS);
       // If the thread is dead, return has already been processed
       if (threadIsDead) {
         return;
@@ -2972,40 +2967,40 @@ function isMethod(obj) { return obj instanceof PMethod; }
           while(theOneTrueStackHeight > 0) {
             if(!sync && frameCount++ > 100) {
               TOS++;
-              // console.log("Setting timeout to resume iter");
+              // CONSOLE.log("Setting timeout to resume iter");
               util.suspend(iter);
               return;
             }
             var next = theOneTrueStack[--theOneTrueStackHeight];
-            // console.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
+            // CONSOLE.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
             theOneTrueStack[theOneTrueStackHeight] = undefined;
-            // console.log("theOneTrueStack = ", theOneTrueStack);
-            // console.log("Setting ans to " + JSON.stringify(val, null, "  "));
+            // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
+            // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
             next.ans = val;
-            // console.log("GAS = ", thisRuntime.GAS);
+            // CONSOLE.log("GAS = ", thisRuntime.GAS);
 
             if (next.fun instanceof Function) {
               val = next.fun(next);
             }
             else if (!(next instanceof ActivationRecord)) {
-              console.log("Our next stack frame doesn't look right!");
-              console.log(JSON.stringify(next));
-              console.log(theOneTrueStack);
+              CONSOLE.log("Our next stack frame doesn't look right!");
+              CONSOLE.log(JSON.stringify(next));
+              CONSOLE.log(theOneTrueStack);
               throw false;
             }
-            // console.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
+            // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
           }
         } catch(e) {
           if(thisRuntime.isCont(e)) {
-            // console.log("BOUNCING");
+            // CONSOLE.log("BOUNCING");
             BOUNCES++;
             thisRuntime.GAS = initialGas;
             for(var i = e.stack.length - 1; i >= 0; i--) {
-//              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
+//              CONSOLE.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
               theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
             }
-            // console.log("The new stack height is ", theOneTrueStackHeight);
-            // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
+            // CONSOLE.log("The new stack height is ", theOneTrueStackHeight);
+            // CONSOLE.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
             //   if (f && f.from) { return f.from.toString(); }
             //   else { return f; }
             // }));
@@ -3058,14 +3053,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     if (!SHOW_TRACE) return;
     TRACE_DEPTH++;
     TOTAL_VARS += vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "--> ",
                 name, vars, TOTAL_VARS);
   }
   function traceExit(name, vars) {
     if (!SHOW_TRACE) return;
     TOTAL_VARS -= vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "<-- ",
                 name, vars, TOTAL_VARS);
     TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
@@ -3073,7 +3068,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
   function traceErrExit(name, vars) {
     if (!SHOW_TRACE) return;
     TOTAL_VARS -= vars;
-    console.log("%s %s, Num vars: %d, Total vars: %d",
+    CONSOLE.log("%s %s, Num vars: %d, Total vars: %d",
                 Array(TRACE_DEPTH).join(" ") + "<XX ",
                 name, vars, TOTAL_VARS);
     TRACE_DEPTH = TRACE_DEPTH > 0 ? TRACE_DEPTH - 1 : 0;
@@ -3129,7 +3124,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function pauseStack(resumer) {
-//      console.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
+//      CONSOLE.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
@@ -3222,7 +3217,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return ffi.makeRight(makeOpaque(makePyretFailException(ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
           }
         } else {
-          console.error("Bad execThunk result: ", res);
+          CONSOLE.error("Bad execThunk result: ", res);
           return;
         }
       }
@@ -3267,7 +3262,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @type {function(...[?]): undefined}
     */
     var log = function() {
-      if(DEBUGLOG) { console.log.apply(console, arguments); }
+      if(DEBUGLOG) { CONSOLE.log.apply(CONSOLE, arguments); }
     }
 
     var plus = function(l, r) {
@@ -3294,7 +3289,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_minus").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "-", "_minus");
+        ffi.throwNumericBinopError(l, r, "-", "Minus", "_minus");
       }
     };
 
@@ -3307,7 +3302,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_times").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "*", "_times");
+        ffi.throwNumericBinopError(l, r, "*", "Times", "_times");
       }
     };
 
@@ -3323,7 +3318,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_divide").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "/", "_divide");
+        ffi.throwNumericBinopError(l, r, "/", "Divide", "_divide");
       }
     };
 
@@ -3392,13 +3387,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwInvalidArrayIndex(methodName, arr, ix, reason);
       };
       if(ix >= arr.length) {
-        throwErr("index too large; array length was " + arr.length);
+        throwErr("is too large; the array length is " + arr.length);
       }
       if(ix < 0) {
-        throwErr("negative index");
+        throwErr("is a negative number.");
       }
       if(!(num_is_integer(ix))) {
-        throwErr("non-integer index");
+        throwErr("is not an integer.");
       }
     }
 
@@ -3447,6 +3442,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArray(arr);
       return arr;
     };
+
+    var raw_array_maker = makeObject({
+      make:  makeFunction(raw_array_constructor),
+      make0: makeFunction(function() { return []; }),
+      make1: makeFunction(function(a) { return [a]; }),
+      make2: makeFunction(function(a, b) { return [a, b]; }),
+      make3: makeFunction(function(a, b, c) { return [a, b, c]; }),
+      make4: makeFunction(function(a, b, c, d) { return [a, b, c, d]; }),
+      make5: makeFunction(function(a, b, c, d, e) { return [a, b, c, d, e]; }),
+    });
 
     var raw_array_fold = function(f, init, arr, start) {
       if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a); }
@@ -3737,15 +3742,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_within_rel = function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
       thisRuntime.checkNumber(relTol);
-      if (jsnums.lessThan(relTol, 0) || jsnums.greaterThan(relTol, 1)) {
-        throw makeMessageException('relative tolerance ' + relTol + ' outside [0,1]');
-      }
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a); }
         thisRuntime.checkNumber(l);
         thisRuntime.checkNumber(r);
-        var absTol = jsnums.abs(jsnums.multiply(jsnums.add(jsnums.divide(l, 2), jsnums.divide(r, 2)), relTol));
-        return makeBoolean(jsnums.roughlyEquals(l, r, absTol));
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol));
       });
     }
 
@@ -3959,7 +3960,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       function loadWorklist(startMod) {
         function addMod(curMod, curPath, curName) {
           if (curPath.filter(function(b) { return b.name === curMod.name; }).length > 0) {
-            console.error("Module cycle: ", curMod, curPath);
+            CONSOLE.error("Module cycle: ", curMod, curPath);
             throw new Error("Module cycle in loadBuiltinModules");
           }
           if (typeof curMod === "function") {
@@ -3973,7 +3974,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
-            return { dname: d.name, modinfo: require("trove/" + d.name) };
+            if(d.protocol === "legacy-path") {
+              return { dname: d.args[0], modinfo: require(d.args[0]) };
+            }
+            else {
+              return { dname: d.name, modinfo: require("trove/" + d.name) };
+            }
           });
           var tocomp = {mod: curMod, path: curPath};
           return depMods.reduce(function(acc, elt) {
@@ -3984,6 +3990,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       var wl = loadWorklist({name: startName, dependencies: modules });
       var finalModMap = {};
+      function getName(d) {
+        if(d.protocol === "legacy-path") {
+          return d.args[0];
+        }
+        else {
+          return d.name;
+        }
+      }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
         if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
@@ -3991,14 +4005,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         else {
           var rawDeps = m.mod.dependencies.map(function(d) {
-            return finalModMap[d.name];
+            return finalModMap[getName(d)];
           });
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
         finalModMap[m.mod.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
-        return finalModMap[m.name];
+        return finalModMap[getName(m)];
       });
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
@@ -4013,7 +4027,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
               if(module.dependencies === undefined) {
                 // NOTE(joe): Catches already-initialized modules.  Needs to
                 // be tracked down.  Putting the log back in detects them.
-//                console.error("Undefined dependencies remain: ", module);
+//                CONSOLE.error("Undefined dependencies remain: ", module);
                 return module;
               }
               return loadBuiltinModules(module.dependencies, module.name,
@@ -4023,7 +4037,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 });
           }
           else {
-            console.log("Unkown module type: ", module);
+            CONSOLE.log("Unkown module type: ", module);
           }
         },
         withModule, "loadModule(" + modstring.substring(0, 70) + ")");
@@ -4052,7 +4066,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
           if (typeof m === 'undefined') {
-            console.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
+            CONSOLE.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
           }
           if (hasField(m, "provide-plus-types")) {
             return getField(m, "provide-plus-types");
@@ -4152,7 +4166,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           checksPlusBody += constructorBody;
         }
-        
 
         var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
           "if(arguments.length !== " + allArgs.length + ") {\n" +
@@ -4160,22 +4173,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
           "}\n" +
           checksPlusBody + "\n" +
         "}";
-        //console.log(constrFun);
+        //CONSOLE.log(constrFun);
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
         return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
       }
 
-      //console.log(String(outerFun));
+      //CONSOLE.log(String(outerFun));
 
       var funToReturn = makeFunction(function() {
         var theFun = makeConstructor();
         funToReturn.app = theFun;
-        //console.log("Calling constructor ", quote(reflName), arguments);
-        //console.trace();
+        //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
+        //CONSOLE.trace();
         var res = theFun.apply(null, arguments)
-        //console.log("got ", res);
+        //CONSOLE.log("got ", res);
         return res;
       });
       return funToReturn;
@@ -4306,9 +4319,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
-          'raw-array': makeObject({
-              make: makeFunction(raw_array_constructor)
-          }),
+          'raw-array': raw_array_maker,
 
           'not': makeFunction(bool_not),
 
@@ -4505,6 +4516,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_expt': num_expt,
         'num_tostring': num_tostring,
         'num_to_string': num_tostring,
+        'num_tostring_digits': num_tostring_digits,
 
         'string_contains': string_contains,
         'string_append': string_append,
@@ -4582,7 +4594,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'nothing': nothing,
 
         'makeSrcloc': makeSrcloc,
-        '_link': function(f, r) { return getField(list, "link").app(f, r); },
+        //'_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
@@ -4599,7 +4611,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'getParam' : getParam,
         'setParam' : setParam,
         'hasParam' : hasParam,
-        'stdout' : theOutsideWorld.stdout
+        'stdout' : theOutsideWorld.stdout,
+        'console' : CONSOLE
     };
 
     makePrimAnn("Number", isNumber);
@@ -4646,12 +4659,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
     thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-    thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
-    thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
 
     var ns = thisRuntime.namespace;
-    var nsWithList = ns.set("_link", getField(list, "link"))
-                       .set("_empty", getField(list, "empty"));
+    var nsWithList = ns;//.set("_link", getField(list, "link"))
+                       //.set("_empty", getField(list, "empty"));
     thisRuntime.namespace = nsWithList;
 
     var checkList = makeCheckType(ffi.isList, "List");

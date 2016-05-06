@@ -23,17 +23,14 @@ fun make-dep(raw-dep):
   end
 end
 
+fun convert-provides(uri, provides):
+  CM.provides-from-raw-provides(uri, provides)
+end
+
 fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   for fold(d from mtd, s from strs):
     d.set(s, val)
   end
-end
-
-
-fun needs-includes(modname):
-  [list:
-    "checker"
-    ].member(modname)
 end
 
 fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
@@ -50,13 +47,6 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
-    get-provides(_):
-      vprovides = raw.get-raw-value-provides()
-      tprovides = raw.get-raw-type-provides()
-      CM.provides(
-        const-dict(raw-array-to-list(vprovides), CM.v-just-there),
-        const-dict(raw-array-to-list(tprovides), CM.t-just-there))
-    end,
     get-globals(_):
       raise("Should never get compile-env for builtin module " + builtin-name)
     end,
@@ -68,7 +58,15 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
     name(_): builtin-name end,
 
     set-compiled(_, _): nothing end,
-    get-compiled(_, _): some(CL.pre-loaded(CM.minimal-builtins, raw.get-raw-compiled())) end,
+    get-compiled(self):
+      provs = convert-provides(self.uri(), {
+        uri: self.uri(),
+        values: raw-array-to-list(raw.get-raw-value-provides()),
+        aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+        datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+      })
+      some(CL.pre-loaded(provs, CM.minimal-builtins, raw.get-raw-compiled()))
+    end,
 
     _equals(self, other, req-eq):
       req-eq(self.uri(), other.uri())

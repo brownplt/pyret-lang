@@ -190,12 +190,48 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(methodname);
         raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
       }
-      function throwNumericBinopError(left, right, opname, methodname) {
+      
+      function throwNumericBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
         runtime.checkPyretVal(right);
         runtime.checkString(opname);
+        runtime.checkString(opdesc);
         runtime.checkString(methodname);
-        raise(err("numeric-binop-error")(left, right, opname, methodname));
+        raise(err("numeric-binop-error")(left, right, opname, opdesc, methodname));
+      }
+      
+      function throwUpdateNonObj(loc, objval, objloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        raise(err("update-non-obj")(loc, objval, objloc));
+      }
+      
+      function throwUpdateFrozenRef(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-frozen-ref")(loc, objval, objloc, fieldname, fieldloc));
+      }
+      
+      function throwUpdateNonRef(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-non-ref")(loc, objval, objloc, fieldname, fieldloc));
+      }
+      
+      function throwUpdateNonExistentField(loc, objval, objloc, fieldname, fieldloc) {
+        runtime.checkPyretVal(objval);
+        checkSrcloc(loc);
+        checkSrcloc(objloc);
+        runtime.checkString(fieldname);
+        checkSrcloc(fieldloc);
+        raise(err("update-non-existent-field")(loc, objval, objloc, fieldname, fieldloc));
       }
 
       function throwUninitializedId(loc, name) {
@@ -221,39 +257,18 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityError(loc, arity, argsPyret);
       }
 
-      function throwCasesArityError(branchLoc, arity, fields) {
+      function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
         checkSrcloc(branchLoc);
+        checkSrcloc(casesLoc);
         runtime.checkNumber(arity);
         runtime.checkNumber(fields);
-        raise(err("cases-arity-mismatch")(branchLoc, arity, fields));
+        raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc));
       }
 
-      function throwCasesArityErrorC(branchLoc, arity, fields) {
+      function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc) {
         var loc = runtime.makeSrcloc(branchLoc);
-        throwCasesArityError(loc, arity, fields);
-      }
-
-      function throwCasesSingletonError(branchLoc, shouldBeSingleton) {
-        checkSrcloc(branchLoc);
-        runtime.checkBoolean(shouldBeSingleton);
-        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton));
-      }
-
-      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton) {
-        var loc = runtime.makeSrcloc(branchLoc);
-        throwCasesSingletonError(loc, shouldBeSingleton);
-      }
-
-      function throwNonBooleanCondition(locArray, type, val) {
-        runtime.checkString(type);
-        runtime.checkPyretVal(val);
-        raise(err("non-boolean-condition")(runtime.makeSrcloc(locArray), type, val));
-      }
-      function throwNonBooleanOp(locArray, position, type, val) {
-        runtime.checkString(position);
-        runtime.checkString(type);
-        runtime.checkPyretVal(val);
-        raise(err("non-boolean-op")(runtime.makeSrcloc(locArray), position, type, val));
+        var cloc = runtime.makeSrcloc(casesLoc);
+        throwCasesArityError(loc, arity, fields, cloc);
       }
       function throwNoBranchesMatched(locArray, type) {
         runtime.checkString(type);
@@ -343,6 +358,10 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isUnknown = gf(EQ, "is-Unknown").app
 
       return {
+        throwUpdateNonObj : throwUpdateNonObj,
+        throwUpdateFrozenRef : throwUpdateFrozenRef,
+        throwUpdateNonRef : throwUpdateNonRef,
+        throwUpdateNonExistentField : throwUpdateNonExistentField,
         throwNumStringBinopError: throwNumStringBinopError,
         throwNumericBinopError: throwNumericBinopError,
         throwInternalError: throwInternalError,
@@ -360,10 +379,6 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityErrorC: throwArityErrorC,
         throwCasesArityError: throwCasesArityError,
         throwCasesArityErrorC: throwCasesArityErrorC,
-        throwCasesSingletonError: throwCasesSingletonError,
-        throwCasesSingletonErrorC: throwCasesSingletonErrorC,
-        throwNonBooleanCondition: throwNonBooleanCondition,
-        throwNonBooleanOp: throwNonBooleanOp,
         throwNoBranchesMatched: throwNoBranchesMatched,
         throwNoCasesMatched: throwNoCasesMatched,
         throwNonFunApp: throwNonFunApp,
@@ -414,12 +429,16 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
 
         makeList: makeList,
         makeTreeSet: makeTreeSet,
+
+        isOption: runtime.getField(O, "is-Option"),
+        isNone: function(v) { return runtime.getField(O, "is-none").app(v); },
+        isSome: function(v) { return runtime.getField(O, "is-some").app(v); },
         makeNone: function() { return runtime.getField(O, "none"); },
         makeSome: function(v) { return runtime.getField(O, "some").app(v); },
 
         isEither: runtime.getField(E, "is-Either"),
-        isLeft: function(l) { return runtime.getField(E, "is-left").app(v); },
-        isRight: function(l) { return runtime.getField(E, "is-right").app(v); },
+        isLeft: function(v) { return runtime.getField(E, "is-left").app(v); },
+        isRight: function(v) { return runtime.getField(E, "is-right").app(v); },
         makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
         makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
