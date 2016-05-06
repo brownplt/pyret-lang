@@ -86,11 +86,14 @@ much sense.
 15b. Make tests run again
 15c. Refactor locators to get rid of common implementations of shared methods
 15d. Building tests as standalone requires recompiling lots of the compiler.
-Should we support read-only access to multiple compiled/ directories in order
-to make that work better?  We could have the module cache just read from, but
-not write to, things like phaseA/compiled/, to avoid regenerating AST and
-whatnot every time.  This gets into tricky staleness/recompile questions.
-16. Some kind of eval probably needed for some of 15b
+     Should we support read-only access to multiple compiled/ directories in
+     order to make that work better?  We could have the module cache just read
+     from, but not write to, things like phaseA/compiled/, to avoid
+     regenerating ast.arr and whatnot every time.  This gets into tricky
+     staleness/recompile questions.
+[/] 16. Some kind of eval probably needed for some of 15b
+  - Refactoring to find a good place for the shared load hooks
+  - Rendering checks and error messages by loading the right runtime's modules
 17. How do we REPL?
 18. Right place for printing errors/returning compile results in pyret.arr
     - move from cli-module-loader or otherwise centralize
@@ -111,6 +114,26 @@ defined-values/defined-types?
   }
 
 21. Create a pyret.arr option for dumping a dependency list to enable parallel builds
+22. It's pretty annoying to have to specify the source of libraries (which get
+    recompiled, see #15d) when starting from a standalone.  Need a solution for
+    system libraries, perhaps "baked in" to the binary, or done as an
+    environment variable.  Could also quote the source of built-in libraries
+    and have a locator that searches inside the standalone for the source
+    copies to recompile/reinstantiate.
+
+    Basically, if I ship someone the Pyret binary, what should happen to the
+    --builtin-js-dir and --builtin-arr-dir when they want to build their own
+    standalone?  Do they need their own compiled copies of lists, outside the
+    standalone, to build their own standalone?  Or can the standalone itself
+    hold the copies of the library?  Or should the libraries always be
+    dynamically linked, and use requirejs in a clever way to reference the
+    right place on the filesystem?
+23. Various errors:
+  - Where/how is an error in runStandalone reported?
+  - Should the answer for main be returned as a failure in postLoadHooks, or do
+    you find out through the failure cont?
+  - How do you know during which module execution the run failed?
+
 
 
   or maybe have functions in shorthands

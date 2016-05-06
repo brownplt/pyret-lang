@@ -349,6 +349,7 @@ function isBase(obj) { return obj instanceof PBase; }
 function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) {
       if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwInternalError === undefined) {
+        // console.trace();
         throw ("FFI or thisRuntime.ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
       } else {
         thisRuntime.ffi.throwInternalError("Field lookup on undefined ", thisRuntime.ffi.makeList([field]));

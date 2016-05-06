@@ -4,7 +4,7 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
     var compileExpr = function(src) {
       return function(env) {
         var define = env.define;
-        Function("define", src)(define);
+        return Function("define", src)(define);
       }
     };
     ourCajaVM = { compileExpr: compileExpr };
@@ -49,7 +49,7 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
 
   function safeEval(string, env) {
     var f = ourCajaVM.compileExpr(string);
-    f(env);
+    return f(env);
   }
 
   function loadClosure(runtime, mod, dependencies) {

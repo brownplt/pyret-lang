@@ -208,8 +208,12 @@ fun build-program(path, options):
   base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
+  storage = get-cli-module-storage(options.compiled-cache)
+  starter-modules = storage.load-modules(wl)
+
   total-modules = wl.length()
-  var num-compiled = 0
+  cached-modules = starter-modules.count-now()
+  var num-compiled = cached-modules
   shadow options = options.{
     compile-module: true,
     on-compile: lam(locator, loadable):
@@ -222,55 +226,7 @@ fun build-program(path, options):
     end
   }
 
-  storage = get-cli-module-storage(options.compiled-cache)
-  starter-modules = storage.load-modules(wl)
-  compiled = CL.compile-program-with(wl, starter-modules, options)
-  #storage.save-modules(compiled.loadables)
-
-  natives = for fold(natives from empty, w from wl):
-    w.locator.get-native-modules().map(_.path) + natives
-  end
-
-  static-modules = j-obj(for C.map_list(w from wl):
-    loadable = compiled.modules.get-value-now(w.locator.uri())
-    cases(CL.Loadable) loadable:
-      | module-as-string(_, _, rp) =>
-        cases(CS.CompileResult) rp:
-          | ok(code) =>
-            j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
-          | err(problems) =>
-            for lists.each(e from problems):
-              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-            end
-            raise("There were compilation errors")
-        end
-      | pre-loaded(provides, _, _) =>
-        raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
-    end
-  end)
-
-  depmap = j-obj(for C.map_list(w from wl):
-    deps = w.dependency-map
-    j-field(w.locator.uri(),
-      j-obj(for C.map_list(k from deps.keys-now().to-list()):
-        j-field(k, j-str(deps.get-value-now(k).uri()))
-      end))
-  end)
-
-  to-load = j-list(false, for C.map_list(w from wl):
-    j-str(w.locator.uri())
-  end)
-
-  program-as-js = j-obj([clist:
-      j-field("staticModules", static-modules),
-      j-field("depMap", depmap),
-      j-field("toLoad", to-load)
-    ])
-
-  {
-    js-ast: program-as-js,
-    natives: natives
-  }
+  CL.compile-standalone(wl, starter-modules, options)
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options):

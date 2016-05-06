@@ -6,13 +6,16 @@ import parse-pyret as P
 import ast as A
 import load-lib as L
 import namespace-lib as N
+import render-error-display as RED
 import runtime-lib as R
 import sets as S
 import string-dict as SD
 import file("compile.arr") as CM
 import file("compile-structs.arr") as CS
+import file("concat-lists.arr") as C
 import file("gensym.arr") as G
 import file("js-of-pyret.arr") as JSP
+import file("js-ast.arr") as J
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
 import file("desugar.arr") as D
@@ -20,6 +23,54 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
+
+j-fun = J.j-fun
+j-var = J.j-var
+j-id = J.j-id
+j-method = J.j-method
+j-block = J.j-block
+j-true = J.j-true
+j-false = J.j-false
+j-num = J.j-num
+j-str = J.j-str
+j-return = J.j-return
+j-assign = J.j-assign
+j-if = J.j-if
+j-if1 = J.j-if1
+j-new = J.j-new
+j-app = J.j-app
+j-list = J.j-list
+j-obj = J.j-obj
+j-dot = J.j-dot
+j-bracket = J.j-bracket
+j-field = J.j-field
+j-dot-assign = J.j-dot-assign
+j-bracket-assign = J.j-bracket-assign
+j-try-catch = J.j-try-catch
+j-throw = J.j-throw
+j-expr = J.j-expr
+j-binop = J.j-binop
+j-and = J.j-and
+j-lt = J.j-lt
+j-eq = J.j-eq
+j-neq = J.j-neq
+j-geq = J.j-geq
+j-unop = J.j-unop
+j-decr = J.j-decr
+j-incr = J.j-incr
+j-not = J.j-not
+j-instanceof = J.j-instanceof
+j-ternary = J.j-ternary
+j-null = J.j-null
+j-parens = J.j-parens
+j-switch = J.j-switch
+j-case = J.j-case
+j-default = J.j-default
+j-label = J.j-label
+j-break = J.j-break
+j-while = J.j-while
+j-for = J.j-for
+
 
 left = E.left
 right = E.right
@@ -403,7 +454,77 @@ fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> Py
   end
 end
 
-fun compile-and-run-locator(locator, finder, context, runtime, options):
+fun _compile-and-run-locator(locator, finder, context, runtime, options):
   wl = compile-worklist(finder, locator, context)
   compile-and-run-worklist(wl, runtime, options)
 end
+
+fun compile-and-run-locator(locator, finder, context, runtime, starter-modules, options):
+  wl = compile-worklist(finder, locator, context)
+  compiled = compile-program-with(wl, starter-modules, options)
+  compiled-mods = compiled.loadables
+  errors = compiled-mods.filter(is-error-compilation)
+  cases(List) errors:
+    | empty =>
+      program = make-standalone(wl, compiled, options)
+      right(L.run-program(runtime, program.js-ast.to-ugly-source()))
+    | link(_, _) =>
+      left(errors.map(_.result-printer))
+  end
+end
+
+fun compile-standalone(wl, starter-modules, options):
+  compiled = compile-program-with(wl, starter-modules, options)
+  make-standalone(wl, compiled, options)
+end
+
+# NOTE(joe): I strongly suspect options will be used in the future
+fun make-standalone(wl, compiled, options):
+  natives = for fold(natives from empty, w from wl):
+    w.locator.get-native-modules().map(_.path) + natives
+  end
+
+  static-modules = j-obj(for C.map_list(w from wl):
+    loadable = compiled.modules.get-value-now(w.locator.uri())
+    cases(Loadable) loadable:
+      | module-as-string(_, _, rp) =>
+        cases(CS.CompileResult) rp:
+          | ok(code) =>
+            j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
+          | err(problems) =>
+            for lists.each(e from problems):
+              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
+            end
+            raise("There were compilation errors")
+        end
+      | pre-loaded(provides, _, _) =>
+        raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
+    end
+  end)
+
+  depmap = j-obj(for C.map_list(w from wl):
+    deps = w.dependency-map
+    j-field(w.locator.uri(),
+      j-obj(for C.map_list(k from deps.keys-now().to-list()):
+        j-field(k, j-str(deps.get-value-now(k).uri()))
+      end))
+  end)
+
+  to-load = j-list(false, for C.map_list(w from wl):
+    j-str(w.locator.uri())
+  end)
+
+  program-as-js = j-obj([C.clist:
+      j-field("staticModules", static-modules),
+      j-field("depMap", depmap),
+      j-field("toLoad", to-load)
+    ])
+
+  {
+    js-ast: program-as-js,
+    natives: natives
+  }
+end
+
+
+
