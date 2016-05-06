@@ -119,73 +119,13 @@ define(["js/js-numbers"],
              (jsnums.lessThanOrEqual(c, b) && jsnums.lessThanOrEqual(b, a));
     }
 
-    function calcPointOnEdge(pin, pout, xMin, xMax, yMin, yMax) {
-      // This function is used to calculate the point on edge
-      // of a window [xMin, xMax] x [yMin, yMax] between pin and pout
-      // pin, pout: {x: ..., y: ...}
-
-      // y = m * x + c // [3]
-      // y2 = m * x2 + c
-      // y - y2 = m * (x - x2)
-      // m = (y - y2) / (x - x2) [1]
-      // c = y - m * x [2]
-      // x = (y - c) / m // [4]
-
-      if(jsnums.eqv(pin.x, pout.x)) {
-        // special mode
-        if (jsnums.lessThan(pout.y, yMin)) {
-          return {x: pin.x, y: yMin};
-        } else {
-          return {x: pin.x, y: yMax};
-        }
-      }
-
-      var m = jsnums.divide(
-                jsnums.subtract(pin.y, pout.y),
-                jsnums.subtract(pin.x, pout.x)); // [1]
-      var c = jsnums.subtract(pin.y, jsnums.multiply(m, pin.x)); // [2]
-
-      function f(x) { return jsnums.add(jsnums.multiply(m, x), c); } // [3]
-      function g(y) { return jsnums.divide(jsnums.subtract(y, c), m); } // [4]
-
-      var yCurrent = f(xMin); // if (xMin, yCurrent) is the answer
-      if (between(xMin, pin.x, pout.x) &&
-          between(yCurrent, yMin, yMax) &&
-          between(yCurrent, pin.y, pout.y)) {
-        return {x: xMin, y: yCurrent};
-      }
-
-      yCurrent = f(xMax); // if (xMax, yCurrent) is the answer
-      if (between(xMax, pin.x, pout.x) &&
-          between(yCurrent, yMin, yMax) &&
-          between(yCurrent, pin.y, pout.y)) {
-        return {x: xMax, y: yCurrent};
-      }
-
-      var xCurrent = g(yMin); // if (xCurrent, yMin) is the answer
-      if (between(yMin, pin.y, pout.y) &&
-          between(xCurrent, xMin, xMax) &&
-          between(xCurrent, pin.x, pout.x)) {
-        return {x: xCurrent, y: yMin};
-      }
-
-      var xCurrent = g(yMax); // if (xCurrent, yMax) is the answer
-      if (between(yMax, pin.y, pout.y) &&
-          between(xCurrent, xMin, xMax) &&
-          between(xCurrent, pin.x, pout.x)) {
-        return {x: xCurrent, y: yMax};
-      }
-      throw "algorithm to calculate a point on the edge is buggy";
-    }
-
     var libNum = {
         scaler: scaler,
         adjustInRange: adjustInRange,
         max: max,
         min: min,
         format: format,
-        between: between,
-        calcPointOnEdge: calcPointOnEdge
+        between: between
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -356,113 +296,12 @@ define(["js/js-numbers"],
         return o;
     };
 
-    function FenwickTree(n) {
-        /*
-         * Fenwick Tree for computing prefix sum
-         *
-         * @param {fixnum} n: number of elements
-         * @return {Object}
-         */
-        this.arr = fill(n + 1, 0); // use index 1 to n
-
-        this.add = function (ind, val) {
-            /*
-             * Add `val` to position `ind`
-             *
-             * @param {fixnum} ind: index
-             * @param {fixnum} val: value
-             * @return {Object} this
-             */
-            assert(1 <= ind); // add from 1 to n
-            assert(ind <= n);
-            while (ind <= n) {
-                this.arr[ind] += val;
-                ind += (ind & (-ind));
-            }
-            return this;
-        };
-
-        this.sum = function (ind) {
-            /*
-             * Produces the sum of all values from position 1 to `ind`
-             *
-             * @param {fixnum} ind: index
-             * @return {fixnum}
-             */
-            assert(0 <= ind); // query from 0 to n
-            assert(ind <= n);
-            var ret = 0;
-            while (ind >= 1) {
-                ret += this.arr[ind];
-                ind -= (ind & (-ind));
-            }
-            return ret;
-        };
-
-        this.sumInterval = function (l, r) {
-            /*
-             * Produces the sum of all values between position `l` and `r`
-             *
-             * @param {fixnum} l
-             * @param {fixnum} r
-             * @return {fixnum}
-             */
-            return this.sum(r) - this.sum(l - 1);
-        };
-    }
-
-    function LogTable(n) {
-        /*
-         * LogTable to check whether an interval is full
-         *
-         * @param {fixnum} n
-         */
-        this.fenwick = new FenwickTree(n);
-
-        this.occupy = function (v) {
-            /*
-             * Occupied a space
-             *
-             * @param {fixnum} v
-             * @return {Object} this
-             */
-            v += 1; // use based-1 index
-            if (!Number.isNaN(v) && this.fenwick.sumInterval(v, v) === 0) {
-                this.fenwick.add(v, 1);
-            }
-            return this;
-        };
-
-        this.isRangedOccupied = function (l, r) {
-            /*
-             * Answered whether the interval [l, r] is all occupied
-             *
-             * @param {fixnum} l
-             * @param {fixnum} r
-             * @return {Boolean}
-             */
-            l += 1;
-            r += 1;
-            if (Number.isNaN(l) || Number.isNaN(r)) {
-                return false;
-            } else {
-                if (l > r) {
-                    var tmp = l;
-                    l = r;
-                    r = tmp;
-                }
-                return this.fenwick.sumInterval(l, r) === (r - l + 1);
-            }
-        };
-    }
-
     var libData = {
         'lastElement': lastElement,
         'flatten': flatten,
         'fill': fill,
         'range': range,
-        'shuffle': shuffle,
-        'LogTable': LogTable
+        'shuffle': shuffle
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -519,22 +358,6 @@ define(["js/js-numbers"],
         'getContrast': getContrast,
         'convertColor': convertColor,
         'changeColor': changeColor
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // libCheck
-    ////////////////////////////////////////////////////////////////////////////
-
-    function checkListGenerator(type, _checker, runtime) {
-        // TODO: this will eventually not work
-        var checker = function(x){ return p(_checker, type, runtime)(x); }
-        return p(function(val) {
-            return runtime.ffi.makeList(runtime.ffi.toArray(val).map(checker));
-        }, "List<" + type + ">", runtime);
-    }
-
-    var libCheck = {
-        'checkListGenerator': checkListGenerator
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -614,9 +437,13 @@ define(["js/js-numbers"],
          * A part of these are adapted from
          * http://techslides.com/save-svg-as-an-image
          */
-        detached.append('button')
+        detached
+          .append('div')
+          .style({"border-right": 'dotted 1px black', position: 'absolute', top: '5px', left: '0px', height: '100%'})
+          .append('button')
             .attr('class', 'd3btn')
-            .text('Save!')
+            .text('💾')
+            .style({top: "0px", left: "0px"})
             .on('click', function () {
                 var svg = detached.select("svg")
                         .attr("version", 1.1)
@@ -635,6 +462,8 @@ define(["js/js-numbers"],
                     imgsrc = 'data:image/svg+xml;base64,' + btoa(html),
 
                     img = '<img src="' + imgsrc + '">';
+                    
+                    console.log(html);
 
                 svgData.html(img);
 
@@ -659,25 +488,25 @@ define(["js/js-numbers"],
             });
     }
 
-    function callBigBang(runtime, detached) {
+    function callBigBang(runtime, width, height, detached, retVal, extra) {
         createSave(detached);
 
         // insert space between buttons
         detached.selectAll('.d3btn').style({
-            'margin-right': '20px'
-        })
+          'margin-right': '5px'
+        });
+        
+        detached.selectAll('.overlay').style({
+          fill: "none",
+          "pointer-events": "all",
+        });
 
-        runtime.getParam("current-animation-port")(detached.node());
-
-        // TODO: below is a hack. Actually Pyret is supposed to take
-        // care of it (https://github.com/brownplt/pyret-lang/issues/483)
-        // Remove this when the bug is fixed
-        var terminate = function () {  d3.selectAll(".maind3").remove(); };
-
-        // simulate dialogclose
-        d3.selectAll(".ui-dialog-titlebar-close").on("click", terminate);
-        d3.select("body").on("keyup", function(e) {
-            if (d3.event.keyCode == 27) { terminate(); } // esc key
+        runtime.pauseStack(function(restarter) {
+          runtime.getParam("d3-port")(detached.node(), width, height, function() {
+            restarter.resume(retVal);
+          });
+          
+          extra(restarter);
         });
     }
 
@@ -704,16 +533,17 @@ define(["js/js-numbers"],
         return d3tipLib(d3, detached);
       };
     }
+  
 
     var d3common = {
-        'getMargin': getMargin,
-        'getDimension': getDimension,
-        'svgTranslate': svgTranslate,
-        'createDiv': createDiv,
-        'createCanvas': createCanvas,
-        'callBigBang': callBigBang,
-        'stylizeTip': stylizeTip,
-        'd3tipBuilder': d3tipBuilder
+        getMargin: getMargin,
+        getDimension: getDimension,
+        svgTranslate: svgTranslate,
+        createDiv: createDiv,
+        createCanvas: createCanvas,
+        callBigBang: callBigBang,
+        stylizeTip: stylizeTip,
+        d3tipBuilder: d3tipBuilder
     };
 
     return {
@@ -721,7 +551,6 @@ define(["js/js-numbers"],
         'libNum': libNum,
         'libJS': libJS,
         'libColor': libColor,
-        'libCheck': libCheck,
         'd3common': d3common,
         'assert': assert
     };

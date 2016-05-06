@@ -4516,6 +4516,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_expt': num_expt,
         'num_tostring': num_tostring,
         'num_to_string': num_tostring,
+        'num_tostring_digits': num_tostring_digits,
 
         'string_contains': string_contains,
         'string_append': string_append,
