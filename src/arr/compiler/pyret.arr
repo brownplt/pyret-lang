@@ -184,16 +184,7 @@ fun main(args):
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"),
-            {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: true,
-              compile-module: false
-            })
+          CLI.run(r.get-value("run"), CS.default-compile-options.{compile-module: true})
         else if r.has-key("compile-module-js"):
           var result = CM.compile-js(
             CM.start,

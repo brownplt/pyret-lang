@@ -418,10 +418,8 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, runtime :: R.Run
   errors = compiled-mods.filter(is-error-compilation)
   cases(List) errors:
     | empty =>
-      load-infos = for map2(tc from ws, cm from compiled-mods):
-        { to-compile: tc, compiled-mod: cm }
-      end
-      right(load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime))
+      program = make-standalone(ws, prog, options)
+      right(L.run-program(runtime, program.js-ast.to-ugly-source()))
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end

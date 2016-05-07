@@ -175,26 +175,12 @@ fun compile(path, options):
 end
 
 fun run(path, options):
-  base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path: P.resolve("./")}, base-module)
-  wl = CL.compile-worklist(module-finder, base.locator, base.context)
-  r = R.make-runtime()
-  result = CL.compile-and-run-worklist(wl, r, options)
-  cases(Either) result:
-    | right(answer) =>
-      if L.is-success-result(answer):
-        print(L.render-check-results(answer))
-      else:
-        print(L.render-error-message(answer))
-        raise("There were execution errors")
-      end
-      result
-    | left(errors) =>
-      print-error("Compilation errors:")
-      for lists.each(e from errors):
-        print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-      end
-      raise("There were compilation errors")
+  prog = build-program(path, options)
+  result = L.run-program(R.make-runtime(), prog.js-ast.to-ugly-source())
+  if L.is-success-result(result):
+    print(L.render-check-results(result))
+  else:
+    print(L.render-error-message(result))
   end
 end
 

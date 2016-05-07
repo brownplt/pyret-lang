@@ -54,6 +54,43 @@ require(["js/runtime", "program"], function(runtimeLib, program) {
     });
   }
 
+  function renderErrorMessage(execRt, res) {
+    var rendererrorMod = execRt.modules["builtin://render-error-display"];
+    var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
+    var gf = execRt.getField;
+    return execRt.runThunk(function() {
+      if(execRt.isPyretVal(res.exn.exn) 
+         && execRt.isObject(res.exn.exn) 
+         && execRt.hasField(res.exn.exn, "render-reason")) {
+        return execRt.safeCall(
+          function() { 
+            return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
+          }, function(reason) {
+            return execRt.safeCall(
+              function() { 
+                return gf(gf(rendererror, "values"), "display-to-string").app(
+                  reason, 
+                  execRt.namespace.get("torepr"), 
+                  execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
+              }, function(str) {
+                return execRt.string_append(
+                  str,
+                  execRt.makeString("\nStack trace:\n" +
+                                    execRt.printPyretStack(res.exn.pyretStack)));
+              }, "errordisplay->to-string");
+          }, "error->display");
+      } else {
+        return String(res.exn + "\n" + res.exn.stack);
+      }
+    }, function(v) {
+      if(execRt.isSuccessResult(v)) {
+        console.log(v.result);
+      } else {
+        console.error("There was an exception while rendering the exception: ", v.exn);
+      }
+    });
+  }
+
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
@@ -61,6 +98,7 @@ require(["js/runtime", "program"], function(runtimeLib, program) {
     }
     else {
       console.error("The run ended in error: ", result);
+      renderErrorMessage(runtime, result);
       console.error(result.exn.stack);
     }
   }

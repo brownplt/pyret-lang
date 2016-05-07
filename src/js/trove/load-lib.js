@@ -106,24 +106,25 @@
       return mr.val.runtime.getField(mr.val.result.result, "checks");
     }
     function renderCheckResults(mr) {
-      var res = getModuleResultResult(mr);
-      var execRt = mr.val.runtime;
-      execRt.loadBuiltinModules([util.modBuiltin("checker")], "load-lib-render", function(checker) {
+      runtime.pauseStack(function(restarter) {
+        var res = getModuleResultResult(mr);
+        var execRt = mr.val.runtime;
+        var checkerMod = execRt.modules["builtin://checker"];
+        var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-results");
         var checks = getModuleResultChecks(mr);
-        runtime.pauseStack(function(restarter) {
-          execRt.runThunk(function() { return toCall.app(checks); },
-                          function(printedCheckResult) {
-                            if(execRt.isSuccessResult(printedCheckResult)) {
-                              if(execRt.isString(printedCheckResult.result)) {
-                                restarter.resume(runtime.makeString(execRt.unwrap(printedCheckResult.result)));
-                              }
-                            }
-                            else if(execRt.isFailureResult(printedCheckResult)) {
-                              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
-                            }
-                          });
-        });
+        execRt.runThunk(function() { return toCall.app(checks); },
+          function(printedCheckResult) {
+            if(execRt.isSuccessResult(printedCheckResult)) {
+              if(execRt.isString(printedCheckResult.result)) {
+                restarter.resume(runtime.makeString(execRt.unwrap(printedCheckResult.result)));
+              }
+            }
+            else if(execRt.isFailureResult(printedCheckResult)) {
+              console.log(printedCheckResult);
+              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+            }
+          });
       });
     }
     function renderErrorMessage(mr) {
@@ -284,20 +285,25 @@
 
       runtime.pauseStack(function(restarter) {
         var mainReached = false;
+        var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
           mainReached = true;
-          restarter.resume(makeModuleResult(otherRuntime, otherRuntime.makeSuccessResult(answer), runtime.nothing));
+          mainResult = answer;
         }
         return otherRuntime.runThunk(function() {
           return otherRuntime.runStandalone(staticModules, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
-            // on in the chain of loading
+            // on in the chain of loading that stopped main from running
             restarter.resume(makeModuleResult(otherRuntime, result, runtime.nothing));
+          }
+          else {
+            restarter.resume(makeModuleResult(otherRuntime, otherRuntime.makeSuccessResult(mainResult), runtime.nothing));
           }
         });
       });
+
     }
     return runtime.makeObject({
       "provide-plus-types": runtime.makeObject({

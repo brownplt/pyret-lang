@@ -23,6 +23,7 @@ docs/generated/
 docs/skeleton/
 docs/test-harness/
 docs/written/test-harness/
+docs/written/index/
 docs/*.arr.js
 
 build/docs
@@ -57,3 +58,5 @@ tests/pyret/standalone/importer-require.js
 tests/pyret/standalone/importer.jarr
 
 *.arr.js
+
+compiled/
