@@ -189,7 +189,15 @@ fun build-program(path, options):
           and its native dependencies as a list of strings```
 
 
-  print("Gathering dependencies...")
+  var str = "Gathering dependencies..."
+  fun clear-and-print(new-str):
+    print("\r")
+    print(string-repeat(" ", string-length(str)))
+    print("\r")
+    str := new-str
+    print(str)
+  end
+  print(str)
   base-module = CS.dependency("file", [list: path])
   base = module-finder({current-load-path: P.resolve("./")}, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
@@ -204,7 +212,7 @@ fun build-program(path, options):
     compile-module: true,
     on-compile: lam(locator, loadable):
       num-compiled := num-compiled + 1
-      print("\r" + num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled")
+      clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled")
       when num-compiled == total-modules:
         print("\nCleaning up and generating standalone...\n")
       end
