@@ -371,8 +371,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             inlined = cleaned.visit(AU.inline-lams)
             when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
             cr = if is-empty(any-errors):
-              if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
-              else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, options)), ret)
+              if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
+              else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
               end
             else:
               if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)

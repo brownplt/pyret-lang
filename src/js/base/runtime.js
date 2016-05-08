@@ -2510,6 +2510,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var nameC = new PPrimAnn(name, jsPred);
           // NOTE(joe): the $type$ sadness is because we only have one dynamic
           // namespace
+      runtimeTypeBindings[name] = nameC;
       runtimeNamespaceBindings['$type$' + name] = nameC;
       runtimeNamespaceBindings[name] = nameC;
       thisRuntime[name] = nameC;
@@ -4362,6 +4363,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return namespace.merge(newns);
     }
 
+    // Filled in by makePrimAnn
+    var runtimeTypeBindings = {};
+
     var runtimeNamespaceBindings = {
           'torepr': torepr,
           'tostring': tostring,
@@ -4754,6 +4758,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makeModuleReturn' : makeModuleReturn,
 
         'addModuleToNamespace' : addModuleToNamespace,
+
+        'globalModuleObject' : makeObject({
+            "provide-plus-types": makeObject({
+              "values": makeObject(runtimeNamespaceBindings),
+              "types": runtimeTypeBindings
+            })
+          }),
 
         'modules' : Object.create(null),
         'setStdout': function(newStdout) {

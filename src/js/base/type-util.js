@@ -111,6 +111,7 @@ define([], function() {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
     var tp = function(thing) { return toPyret(runtime, thing); };
+    if(typ === "tany") { return O({ tag: "any" }); }
     switch(typ.tag) {
       case "any":
         return O({ tag: "any"});

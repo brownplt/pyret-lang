@@ -100,12 +100,19 @@ much sense.
       namespace in for all modules.  Current repl impl requires passing in a
       different one
     - Let's get variables right, please
+    - Let's handle #190 as well
+    - Need to put provide information on compiled modules so cached modules
+      give the correct information about environment (also needed for type
+      checker)
 18. Right place for printing errors/returning compile results in pyret.arr
     - move from cli-module-loader or otherwise centralize
 19. Standardize just what fields need to be on a Pyret-shaped return from a
 JS-implemented module.  Do we need just provide-plus-types?  answer?  checks?
 defined-values/defined-types?  
-20. Implement shorthand expansions for type syntax:
+20. types
+
+  - generate type information into provides in the compiler (needed in general)
+  - Implement shorthand expansions for type syntax:
   e.g.
 
   {

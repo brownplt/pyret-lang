@@ -34,15 +34,15 @@ data CompiledCodePrinter:
     end
 end
 
-fun make-compiled-pyret(program-ast, env, options) -> CompiledCodePrinter:
+fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter:
   anfed = N.anf-program(program-ast)
-  compiled = anfed.visit(AL.splitting-compiler(env, options))
+  compiled = anfed.visit(AL.splitting-compiler(env, provides, options))
   ccp(compiled)
 end
 
-fun trace-make-compiled-pyret(trace, phase, program-ast, env, options):
+fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options):
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
-  phase("Generated JS", ccp(anfed.visit(AL.splitting-compiler(env, options))), ret)
+  phase("Generated JS", ccp(anfed.visit(AL.splitting-compiler(env, provides, options))), ret)
 end
