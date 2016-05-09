@@ -979,7 +979,7 @@ data Expr:
       table   :: Expr)
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: List<ColumnSort>)
+      ordering :: ColumnSort)
   | s-table-filter(l :: Loc,
       columns :: List<Name>,
       table   :: Expr,
@@ -1898,8 +1898,8 @@ default-map-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
-    s-table-order(l, table.visit(self), orderings)
+  s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
+    s-table-order(l, table.visit(self), ordering)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2368,7 +2368,7 @@ default-iter-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
+  s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
     table.visit(self)
   end,
   a-blank(self):
@@ -2856,8 +2856,8 @@ dummy-loc-visitor = {
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  s-table-order(self, l, table :: Expr, orderings :: List<ColumnSort>):
-    s-table-order(dummy-loc, table.visit(self), orderings)
+  s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
+    s-table-order(dummy-loc, table.visit(self), ordering)
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,

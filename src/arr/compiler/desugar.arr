@@ -5,6 +5,7 @@ provide-types *
 import ast as A
 import parse-pyret as PP
 import string-dict as SD
+import srcloc as S
 import "compiler/compile-structs.arr" as C
 import "compiler/ast-util.arr" as U
 
@@ -530,6 +531,7 @@ fun desugar-expr(expr :: A.Expr):
       cls = columns.map(lam(c):
         {t: mk-id(A.dummy-loc, c.id.base), o: c}
         end)
+      
       A.s-let-expr(A.dummy-loc, link(  
         A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)), link(
         # header
@@ -581,38 +583,38 @@ fun desugar-expr(expr :: A.Expr):
                 A.s-prim-app(A.dummy-loc, "raw_array_get", 
                     [list: row.id-e, c.binding.id-e]);)), none)])]))
     | s-table-order(l, table, ordering) =>
-      row1 = mk-id(A.dummy-loc, "row")
-      row2 = mk-id(A.dummy-loc, "row")
-      tbl = mk-id(l, "table")
-      hdr = mk-id(l, "header")
-      shadow ordering = ordering.first
+      #A.s-num(A.dummy-loc, 5)
+      row1 = mk-id(S.builtin("1"), "row")
+      row2 = mk-id(S.builtin("2"), "row")
+      tbl = mk-id(S.builtin("3"), "table")
+      hdr = mk-id(S.builtin("4"), "header")
       column = ordering.column
-      col = mk-id(A.dummy-loc, column.s)
-      A.s-let-expr(A.dummy-loc, [list:  
-        A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)),
-        A.s-let-bind(A.dummy-loc, hdr.id-b, A.s-dot(A.dummy-loc, tbl.id-e, "internal-headers")),
+      col = mk-id(S.builtin("5"), column.s)
+      A.s-let-expr(S.builtin("6"), [list:  
+        A.s-let-bind(S.builtin("7"), tbl.id-b, desugar-expr(table)),
+        A.s-let-bind(S.builtin("8"), hdr.id-b, A.s-dot(S.builtin("9"), tbl.id-e, "internal-headers")),
         # Column Index Binding
-        A.s-let-bind(A.dummy-loc, col.id-b, 
-          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-e, "get-value"),
-            [list: A.s-str(A.dummy-loc, column.s)]))],
+        A.s-let-bind(S.builtin("10"), col.id-b, 
+          A.s-app(S.builtin("11"), A.s-dot(S.builtin("12"), hdr.id-e, "get-value"),
+            [list: A.s-str(S.builtin("13"), column.s)]))],
         # Table Construction
-        A.s-prim-app(A.dummy-loc, "raw_array_get", [list:
+        A.s-prim-app(S.builtin("14"), "makeTable", [list:
           # Header
-          A.s-dot(A.dummy-loc, tbl.id-e, "headers"),
+          A.s-dot(S.builtin("15"), tbl.id-e, "headers"),
           # Data
-          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, A.s-dot(A.dummy-loc, tbl.id-e, "internal-rows"), "sort-by"), [list:
-            A.s-lam(A.dummy-loc, empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
-              desugar-expr(A.s-op(A.dummy-loc, A.dummy-loc,
+          A.s-app(S.builtin("16"), A.s-dot(S.builtin("17"), A.s-dot(S.builtin(""), tbl.id-e, "internal-rows"), "sort-by"), [list:
+            A.s-lam(S.builtin("18"), empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
+              desugar-expr(A.s-op(S.builtin("19"), A.dummy-loc,
                 cases(A.ColumnSortOrder) ordering.direction:
-                  | ASCENDING  => "op>"
-                  | DESCENDING => "op<"
+                  | ASCENDING  => "op<"
+                  | DESCENDING => "op>"
                 end,
-                A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row1.id-e, col.id-e])),
-                A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row2.id-e, col.id-e])), none),
-            A.s-lam(A.dummy-loc, empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
-              desugar-expr(A.s-op(A.dummy-loc, A.dummy-loc, "op==",
-                A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row1.id-e, col.id-e]),
-                A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row2.id-e, col.id-e]))), none)])]))
+                A.s-prim-app(S.builtin("20"), "raw_array_get", [list: row1.id-e, col.id-e]),
+                A.s-prim-app(S.builtin("21"), "raw_array_get", [list: row2.id-e, col.id-e]))), none),
+            A.s-lam(S.builtin("22"), empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
+              desugar-expr(A.s-op(S.builtin("23"), S.builtin(""), "op==",
+                A.s-prim-app(S.builtin("24"), "raw_array_get", [list: row1.id-e, col.id-e]),
+                A.s-prim-app(S.builtin("25"), "raw_array_get", [list: row2.id-e, col.id-e]))), none)])]))
     | s-table-filter(l, columns, table, pred-clause) =>
       row = mk-id(A.dummy-loc, "row") 
       tbl = mk-id(l, "table") 

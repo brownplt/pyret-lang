@@ -1061,9 +1061,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'table-order': function(node) {
             // TABLE-ORDER NAME COLON column-orderings end
-            var table = tr(node.kids[1]);
-            return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos), table,
-              makeList[tr(node.kids[3])]);
+            return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos),
+              tr(node.kids[1]),
+              tr(node.kids[3]));
           },
           'table-filter': function(node) {
             var columns = new Array();
