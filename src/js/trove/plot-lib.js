@@ -1,9 +1,8 @@
-define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
-        "trove/string-dict", "trove/image-lib", "trove/image-structs",
+define(["js/runtime-util", "js/js-numbers", "trove/option", "trove/image-lib", "trove/image-structs",
         "trove/d3-lib",
         "../../../node_modules/d3/d3.min",
         "../../../node_modules/d3-tip/index"],
-        function(util, jsnums, eitherLib, optionLib, sdLib, imageLib, imageStructs,
+        function(util, jsnums, optionLib, imageLib, imageStructs,
                  clib, d3, d3tipLib) {
 
   var HISTOGRAM_N = 100;
@@ -57,7 +56,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         yAxisConf = getAxisConf(xMin, xMax);
     xAxisConf.pos = 1 - xAxisConf.pos;
 
-    var tickNum = 7;
+    var tickNum = 11;
 
     var xAxisScaler = d3.scale.linear()
         .domain([0, tickNum - 1]).range([0, width - 1]),
@@ -73,7 +72,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         .orient((xAxisConf.pos === 0) ? "top" : "bottom")
         .tickValues(allValues).tickFormat(
           function (d, i) {
-            return libNum.format(xAxisDisplayScaler(i), 10);
+            return libNum.format(xAxisDisplayScaler(i), 8);
           });
 
     canvas.append("g")
@@ -86,7 +85,7 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         .orient((yAxisConf.pos === 1) ? "right" : "left")
         .tickValues(allValues).tickFormat(
           function (d, i) {
-            return libNum.format(yAxisDisplayScaler(i), 10);
+            return libNum.format(yAxisDisplayScaler(i), 8);
           });
 
     canvas.append("g")
@@ -183,26 +182,23 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
   return function(rt, namespace) {
 
-  var gf = rt.getField;
-  var IMAGE = imageLib(rt, rt.namespace);
-  var colorConverter = libColor.convertColor(rt, IMAGE);
-
-  return rt.loadModulesNew(namespace, [optionLib, sdLib],
-    function(OPTION, SD) {
+    var gf = rt.getField;
+    var IMAGE = imageLib(rt, rt.namespace);
+    var colorConverter = libColor.convertColor(rt, IMAGE);
 
     function genericPlot(scatterPlots, linePlots, windowOptions) {
-      
+
       var xMin = gf(windowOptions, "x-min");
       var xMax = gf(windowOptions, "x-max");
       var yMin = gf(windowOptions, "y-min");
       var yMax = gf(windowOptions, "y-max");
-      
+
 			function toJSPoints(points) {
 				return rt.ffi.toArray(points).map(
 					function (e) { return {x: gf(e, "x"), y: gf(e, "y")}; }
 				);
 			}
-      
+
 			function toJSOptions(options) {
 				return {
           color:   colorConverter(gf(options, "color")),
@@ -219,131 +215,151 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         height = dimension.height;
 
       var detached = createDiv();
-      
+
       var divSvg = detached
               .append('div')
               .attr('class', 'divsvg'),
           canvas = divSvg
               .append("svg")
-              .attr("width", 601)
-              .attr("height", 476)
+              .attr("width", libs.constants.width)
+              .attr("height", libs.constants.height)
               .append("g")
               .attr('class', 'maing')
               .append('g'),
-          controller = $(detached.append('div').attr('class', 'plot-controller').node());
+          panel = detached.append('div').style({top: '65px', left: '660px'}),
+          controller = $(panel.append('div').style({top: "75px"}).node()),
+          xDisplay = panel.append('div').style({top: "0px", left: "0px", 'font-size': '12px', width: '500px'}),
+          yDisplay = panel.append('div').style({top: "20px", left: "0px", 'font-size': '12px', width: '500px'}),
+          rectangleElement = canvas
+            .append('rect')
+            .attr('class', 'selection')
+            .style({
+              "stroke"          : "gray",
+              "stroke-width"    : "1px",
+              "stroke-dasharray": "4px",
+              "stroke-opacity"  : "0.5",
+              "fill"            : "gray",
+              "opacity"         : "0.3",
+            });
 
-      canvas.attr("transform", svgTranslate(100, 30));
-      
-      controller.css({left: "580px", top: "155px"});
+      canvas.attr("transform", svgTranslate(110, 40));
 
-      controller.append($('<input/>', {
+      var xMinC = $('<input/>', {
         type: "text",
         placeholder: "x-min",
-        value: rt.num_to_string(xMin),
         style: "left: 0px; top: 70px",
-      }).attr('size', '8').addClass('xMin'));
-      controller.append($('<input/>', {
+      }).attr('size', '8');
+      var xMaxC = $('<input/>', {
         type: "text",
         placeholder: "x-max",
-        value: rt.num_to_string(xMax),
         style: "left: 180px; top: 70px",
-      }).attr('size', '8').addClass('xMax'));
-      controller.append($('<input/>', {
+      }).attr('size', '8');
+      var yMinC = $('<input/>', {
         type: "text",
         placeholder: "y-min",
-        value: rt.num_to_string(yMin),
         style: "left: 90px; top: 140px",
-      }).attr('size', '8').addClass('yMin'));
-      controller.append($('<input/>', {
+      }).attr('size', '8');
+      var yMaxC = $('<input/>', {
         type: "text",
         placeholder: "y-max",
-        value: rt.num_to_string(yMax),
         style: "left: 90px; top: 0px",
-      }).attr('size', '8').addClass('yMax'));
-      controller.append($('<input/>', {
+      }).attr('size', '8');
+      var numSamplesC = $('<input/>', {
         type: "text",
         placeholder: "num-samples",
-        value: rt.num_to_string(gf(windowOptions, "num-samples")),
         style: "left: 90px; top: 240px",
-      }).attr('size', '8').addClass('numSamples'));
-      
+      }).attr('size', '8');
+
+      controller
+        .append(xMinC)
+        .append(xMaxC)
+        .append(yMinC)
+        .append(yMaxC)
+        .append(numSamplesC);
+
+      function setDefault() {
+        xMinC.val(rt.num_to_string(xMin));
+        xMaxC.val(rt.num_to_string(xMax));
+        yMinC.val(rt.num_to_string(yMin));
+        yMaxC.val(rt.num_to_string(yMax));
+        numSamplesC.val(rt.num_to_string(gf(windowOptions, "num-samples")));
+      }
+
+      setDefault();
+
       function getNewWindow() {
-        var elem1 = $('.xMin').last();
-        var ret = rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(elem1.val()), {
+        var ret = rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(xMinC.val()), {
           none: function() {
-            elem1.addClass('error-bg');
-            elem1.removeClass('ok-bg');
+            xMinC.addClass('error-bg');
+            xMinC.removeClass('ok-bg');
             return null;
           },
           some: function(xMin_val) {
-            elem1.removeClass('error-bg');
-            elem1.addClass('ok-bg');
-            var elem2 = $('.xMax').last();
-            return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(elem2.val()), {
+            xMinC.removeClass('error-bg');
+            xMinC.addClass('ok-bg');
+            return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(xMaxC.val()), {
               none: function() {
-                elem2.addClass('error-bg');
-                elem2.removeClass('ok-bg');
+                xMaxC.addClass('error-bg');
+                xMaxC.removeClass('ok-bg');
                 return null;
               },
-              some: function(xMax_val) {  
-                elem2.removeClass('error-bg');
-                elem2.addClass('ok-bg');
-                
+              some: function(xMax_val) {
+                xMaxC.removeClass('error-bg');
+                xMaxC.addClass('ok-bg');
+
                 if(jsnums.greaterThanOrEqual(xMin_val, xMax_val)) {
-                  elem1.addClass('error-bg');
-                  elem2.addClass('error-bg');
-                  elem1.removeClass('ok-bg');
-                  elem2.removeClass('ok-bg');
+                  xMinC.addClass('error-bg');
+                  xMaxC.addClass('error-bg');
+                  xMinC.removeClass('ok-bg');
+                  xMaxC.removeClass('ok-bg');
                   return null;
                 }
-                
-                var elem3 = $('.yMin').last();
-                return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(elem3.val()), {
+
+                return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(yMinC.val()), {
                   none: function() {
-                    elem3.addClass('error-bg');
-                    elem3.removeClass('ok-bg');
+                    yMinC.addClass('error-bg');
+                    yMinC.removeClass('ok-bg');
                     return null;
                   },
                   some: function(yMin_val) {
-                    elem3.removeClass('error-bg');
-                    elem3.addClass('ok-bg');
-                    
-                    var elem4 = $('.yMax').last();
-                    return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(elem4.val()), {
+                    yMinC.removeClass('error-bg');
+                    yMinC.addClass('ok-bg');
+
+                    return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(yMaxC.val()), {
                       none: function() {
-                        elem4.addClass('error-bg');
-                        elem4.removeClass('ok-bg');
+                        yMaxC.addClass('error-bg');
+                        yMaxC.removeClass('ok-bg');
                         return null;
                       },
                       some: function(yMax_val) {
-                        elem4.removeClass('error-bg');
-                        elem4.addClass('ok-bg');
-                        
+                        yMaxC.removeClass('error-bg');
+                        yMaxC.addClass('ok-bg');
+
                         if(jsnums.greaterThanOrEqual(xMin_val, xMax_val)) {
-                          elem3.addClass('error-bg');
-                          elem4.addClass('error-bg');
-                          elem3.removeClass('ok-bg');
-                          elem4.removeClass('ok-bg');
+                          yMinC.addClass('error-bg');
+                          yMaxC.addClass('error-bg');
+                          yMinC.removeClass('ok-bg');
+                          yMaxC.removeClass('ok-bg');
                           return null;
                         }
-                        
-                        var elem5 = $('.numSamples').last();
-                        return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(elem5.val()), {
+
+                        return rt.ffi.cases(rt.ffi.isOption, "Option", rt.string_to_number(numSamplesC.val()), {
                           none: function() {
-                            elem5.addClass('error-bg');
-                            elem5.removeClass('ok-bg');
+                            numSamplesC.addClass('error-bg');
+                            numSamplesC.removeClass('ok-bg');
                             return null;
                           },
                           some: function(numSamples_val) {
-                            elem5.removeClass('error-bg');
-                            elem5.addClass('ok-bg');
-                            
-                            if (rt.isPyretFalse(rt.num_is_integer(numSamples_val))) {
-                              elem5.addClass('error-bg');
-                              elem5.removeClass('ok-bg');
+                            numSamplesC.removeClass('error-bg');
+                            numSamplesC.addClass('ok-bg');
+
+                            if (rt.isPyretFalse(rt.num_is_integer(numSamples_val)) ||
+                                jsnums.lessThanOrEqual(numSamples_val, 1)) {
+                              numSamplesC.addClass('error-bg');
+                              numSamplesC.removeClass('ok-bg');
                               return null;
                             }
-                            
+
                             return {
                               "x-min": xMin_val,
                               "x-max": xMax_val,
@@ -362,99 +378,110 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
             });
           }
         });
-        
+
         detached.selectAll('.error-bg').style({'background-color': '#FF9494'});
         detached.selectAll('.ok-bg').style({'background-color': '#FFFFFF'});
         return ret;
       }
-      
+
       controller.append($('<button/>', {
         text: '⇦',
         style: "left: 100px; top: 70px",
       }).addClass('xMinGo d3btn').click(function() {
+        if (rectangleElement.attr('style').indexOf('visible') >= 0) {
+          rectangleElement.style({visibility: 'hidden'});
+          setDefault();
+        }
         var newWindow = getNewWindow();
         if (newWindow === null) { return; }
         var xMin_val = newWindow['x-min'];
         var xMax_val = newWindow['x-max'];
         var move = jsnums.divide(jsnums.subtract(xMax_val, xMin_val), 10);
-        $('.xMin').last().val(rt.num_to_string(jsnums.subtract(xMin_val, move)));
-        $('.xMax').last().val(rt.num_to_string(jsnums.subtract(xMax_val, move)));
-        
+        xMinC.val(rt.num_to_string(jsnums.subtract(xMin_val, move)));
+        xMaxC.val(rt.num_to_string(jsnums.subtract(xMax_val, move)));
       }));
       controller.append($('<button/>', {
         text: '⇨',
         style: "left: 140px; top: 70px",
       }).addClass('xMaxGo d3btn').click(function() {
+        if (rectangleElement.attr('style').indexOf('visible') >= 0) {
+          rectangleElement.style({visibility: 'hidden'});
+          setDefault();
+        }
         var newWindow = getNewWindow();
         if (newWindow === null) { return; }
         var xMin_val = newWindow['x-min'];
         var xMax_val = newWindow['x-max'];
         var move = jsnums.divide(jsnums.subtract(xMax_val, xMin_val), 10);
-        $('.xMin').last().val(rt.num_to_string(jsnums.add(xMin_val, move)));
-        $('.xMax').last().val(rt.num_to_string(jsnums.add(xMax_val, move)));
+        xMinC.val(rt.num_to_string(jsnums.add(xMin_val, move)));
+        xMaxC.val(rt.num_to_string(jsnums.add(xMax_val, move)));
       }));
       controller.append($('<button/>', {
         text: '⇩',
         style: "left: 120px; top: 105px",
-      }).addClass('yMinGo d3btn').click(function() {        
+      }).addClass('yMinGo d3btn').click(function() {
+        if (rectangleElement.attr('style').indexOf('visible') >= 0) {
+          rectangleElement.style({visibility: 'hidden'});
+          setDefault();
+        }
         var newWindow = getNewWindow();
         if (newWindow === null) { return; }
         var yMin_val = newWindow['y-min'];
         var yMax_val = newWindow['y-max'];
         var move = jsnums.divide(jsnums.subtract(yMax_val, yMin_val), 10);
-        $('.yMin').last().val(rt.num_to_string(jsnums.subtract(yMin_val, move)));
-        $('.yMax').last().val(rt.num_to_string(jsnums.subtract(yMax_val, move)));
+        yMinC.val(rt.num_to_string(jsnums.subtract(yMin_val, move)));
+        yMaxC.val(rt.num_to_string(jsnums.subtract(yMax_val, move)));
       }));
       controller.append($('<button/>', {
         text: '⇧',
         style: "left: 120px; top: 35px",
       }).addClass('yMaxGo d3btn').click(function() {
+        if (rectangleElement.attr('style').indexOf('visible') >= 0) {
+          rectangleElement.style({visibility: 'hidden'});
+          setDefault();
+        }
         var newWindow = getNewWindow();
         if (newWindow === null) { return; }
         var yMin_val = newWindow['y-min'];
         var yMax_val = newWindow['y-max'];
         var move = jsnums.divide(jsnums.subtract(yMax_val, yMin_val), 10);
-        $('.yMin').last().val(rt.num_to_string(jsnums.add(yMin_val, move)));
-        $('.yMax').last().val(rt.num_to_string(jsnums.add(yMax_val, move)));
+        yMinC.val(rt.num_to_string(jsnums.add(yMin_val, move)));
+        yMaxC.val(rt.num_to_string(jsnums.add(yMax_val, move)));
       }));
-      
+
+      var redraw = $('<button/>', {
+        text: 'Redraw', style: 'left: 95px; top: 295px'
+      });
+
+      controller.append(redraw);
+
+      $(panel.node())
+        .css('position', 'absolute')
+        .children()
+        .css('position', 'absolute')
+        .children()
+        .css('position', 'absolute');
+
       appendAxis(xMin, xMax, yMin, yMax, width, height, canvas);
 
       var xToPixel = libNum.scaler(xMin, xMax, 0, width - 1, true),
           yToPixel = libNum.scaler(yMin, yMax, height - 1, 0, true),
           pixelToX = libNum.scaler(0, width - 1, xMin, xMax, false),
           pixelToY = libNum.scaler(height - 1, 0, yMin, yMax, false);;
-      
-      var display = detached.append('div').style({top: "470px", left: "60px"});
-      var xDisplay = display.append('div').style({top: "0px", left: "0px"});
-      var yDisplay = display.append('div').style({top: "20px", left: "0px"});
-      
-      var displayJQ = $(display.node())
-      displayJQ.css("position", 'absolute');
-      displayJQ.children().css({position: 'absolute', 'font-size': '12px', width: '500px'});
-      
+
+      // from http://jsfiddle.net/dirtyd77/4Qm6A/7/
+
       var rectData, isDown = false;
 
       function updateRect() {  ;
-          rectangleElement.attr({
-              x: rectData[1].x - rectData[0].x > 0 ? rectData[0].x :  rectData[1].x,
-              y: rectData[1].y - rectData[0].y > 0 ? rectData[0].y :  rectData[1].y,
-              width: Math.abs(rectData[1].x - rectData[0].x),
-              height: Math.abs(rectData[1].y - rectData[0].y)
-          });   
-      }
-      
-      var rectangleElement = canvas
-        .append('rect')
-        .attr('class', 'selection')
-        .style({
-          "stroke"          : "gray",
-          "stroke-width"    : "1px",
-          "stroke-dasharray": "4px",
-          "stroke-opacity"  : "0.5",
-          "fill"            : "transparent"
+        rectangleElement.attr({
+          x: rectData[1].x - rectData[0].x > 0 ? rectData[0].x :  rectData[1].x,
+          y: rectData[1].y - rectData[0].y > 0 ? rectData[0].y :  rectData[1].y,
+          width: Math.abs(rectData[1].x - rectData[0].x),
+          height: Math.abs(rectData[1].y - rectData[0].y)
         });
-      
+      }
+
       canvas
         .append('rect')
         .attr('width', width)
@@ -462,29 +489,29 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         .attr('class', 'overlay')
         .on("click", function() {
           if (!d3.event.shiftKey) { return; }
-          
+
           var coord = d3.mouse(this);
           var cx = pixelToX(coord[0]);
           var radiusX = jsnums.subtract(xMax, xMin);
           var cy = pixelToY(coord[1]);
           var radiusY = jsnums.subtract(yMax, yMin);
-          
-          $('.xMin').last().val(rt.num_to_string(jsnums.subtract(cx, radiusX)));
-          $('.xMax').last().val(rt.num_to_string(jsnums.add(cx, radiusX)));
-          $('.yMin').last().val(rt.num_to_string(jsnums.subtract(cy, radiusY)));
-          $('.yMax').last().val(rt.num_to_string(jsnums.add(cy, radiusY)));
+
+          xMinC.val(rt.num_to_string(jsnums.subtract(cx, radiusX)));
+          xMaxC.val(rt.num_to_string(jsnums.add(cx, radiusX)));
+          yMinC.val(rt.num_to_string(jsnums.subtract(cy, radiusY)));
+          yMaxC.val(rt.num_to_string(jsnums.add(cy, radiusY)));
 
         })
         .on("mousedown", function() {
           if (isDown) { return; }
           if (d3.event.shiftKey) { return; }
-          
+
           d3.event.preventDefault();
-          
+
           var m1 = d3.mouse(this);
           rectData = [ { x: m1[0], y: m1[1] }, { x: m1[0], y: m1[1] } ];
-          rectangleElement.style({visibility: 'visible'})
-          updateRect();  
+          updateRect();
+          rectangleElement.style({visibility: 'visible'});
           isDown = true;
         })
         .on("mousemove", function(){
@@ -494,19 +521,27 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
 
           xDisplay.text("x: " + rt.num_tostring_digits(vX, 5) + ' (' + rt.num_to_string(vX) + ')');
           yDisplay.text("y: " + rt.num_tostring_digits(vY, 5) + ' (' + rt.num_to_string(vY) + ')');
-          
+
           if(isDown) {
             rectData[1] = { x: coord[0], y: coord[1] };
-            updateRect();            
+            updateRect();
           }
         })
         .on("mouseup", function() {
-          $('.xMin').last().val(rt.num_to_string(pixelToX(rectData[0].x)));
-          $('.xMax').last().val(rt.num_to_string(pixelToX(rectData[1].x)));
-          $('.yMin').last().val(rt.num_to_string(pixelToY(rectData[1].y)));
-          $('.yMax').last().val(rt.num_to_string(pixelToY(rectData[0].y)));
-          
-          rectangleElement.style({visibility: 'hidden'});
+          if (rectData[0].x == rectData[1].x &&
+              rectData[0].y == rectData[1].y &&
+              rectangleElement.attr('style').indexOf('visible') >= 0) {
+            xMinC.val(rt.num_to_string(xMin));
+            xMaxC.val(rt.num_to_string(xMax));
+            yMinC.val(rt.num_to_string(yMin));
+            yMaxC.val(rt.num_to_string(yMax));
+            rectangleElement.style({visibility: 'hidden'});
+          } else {
+            xMinC.val(rt.num_to_string(pixelToX(Math.min(rectData[0].x, rectData[1].x))));
+            xMaxC.val(rt.num_to_string(pixelToX(Math.max(rectData[0].x, rectData[1].x))));
+            yMinC.val(rt.num_to_string(pixelToY(Math.max(rectData[0].y, rectData[1].y))));
+            yMaxC.val(rt.num_to_string(pixelToY(Math.min(rectData[0].y, rectData[1].y))));
+          }
           isDown = false;
         });
 
@@ -522,10 +557,11 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         var points = toJSPoints(gf(plot, "points"));
 
         var line = d3.svg.line()
-            .x(function (d) { return xToPixel(d.x); })
-            .y(function (d) { return yToPixel(d.y); });
+          .x(function (d) { return xToPixel(d.x); })
+          .y(function (d) { return yToPixel(d.y); });
 
-        canvas.append("path")
+        canvas
+          .append("path")
           .attr("d", line(points))
           .style({'stroke': options.color, 'stroke-width': 1, 'fill': 'none'});
       }
@@ -537,8 +573,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
          * Part of this function is adapted from
          * http://alignedleft.com/tutorials/d3/making-a-scatterplot
          */
-        
-        console.log(points);
 
         var tip = d3tip(detached)
             .attr('class', 'd3-tip')
@@ -552,8 +586,6 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
             });
 
         canvas.call(tip);
-        
-        console.log('asdasdsadsadsa');
 
         canvas
           .selectAll("circle")
@@ -562,22 +594,20 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
           .append("circle")
           .attr("cx", function (d) { return xToPixel(d.x); })
           .attr("cy", function (d) { return yToPixel(d.y); })
-          .attr("r", function(d) { console.log(d); return d.options.size })
-          .style('fill', function(d) { console.log(d); return d.options.color; })
-          .style('opacity', function(d) { console.log(d); return d.options.opacity; })
+          .attr("r", function(d) { return d.options.size })
+          .style('fill', function(d) { return d.options.color; })
+          .style('opacity', function(d) { return d.options.opacity; })
           .on("mouseover", function(d) {
-            console.log(d);
             if (d.options.tip) {
               tip.show.apply(this, arguments);
             }
           })
           .on("mouseout", function(d) {
-            console.log(d);
             if (d.options.tip) {
               tip.hide.apply(this, arguments);
             }
           });
-          
+
       }
 
       var scatterPoints = []
@@ -589,31 +619,22 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
         })
         scatterPoints = scatterPoints.concat(result);
       });
-      
+
       plotPoints(scatterPoints);
-      
-      rt.ffi.toArray(linePlots).forEach(function(plot) {
-        plotLine(plot);
-      });
-      
+      rt.ffi.toArray(linePlots).forEach(plotLine);
+
       stylizeTip(detached);
-    
-      callBigBang(rt, 900, 585, detached, rt.ffi.makeNone(), function(restarter) {
-        controller.append(
-          $('<button/>', {
-            text: 'Redraw', style: 'left: 95px; top: 295px'
-          }).click(function() {
-            
-            var newWindow = getNewWindow();
-            if (newWindow === null) { return; }
-            var toRet = rt.ffi.makeSome(rt.makeObject(newWindow));
-            rt.getParam("remove-d3-port")();
-            restarter.resume(toRet);
-          }));
-        controller.css('position', 'absolute');
-        controller.children().css('position', 'absolute');
+
+      callBigBang(rt, 970, 650, detached, rt.ffi.makeNone(), function(restarter) {
+        redraw.click(function() {
+          var newWindow = getNewWindow();
+          if (newWindow === null) { return; }
+          var toRet = rt.ffi.makeSome(rt.makeObject(newWindow));
+          rt.getParam("remove-d3-port")();
+          restarter.resume(toRet);
+        });
       });
-        
+
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -770,6 +791,5 @@ define(["js/runtime-util", "js/js-numbers", "trove/either", "trove/option",
       "pie-chart": rt.makeFunction(pieChart),
       "generic-plot": rt.makeFunction(genericPlot),
     });
-  });
   };
 });

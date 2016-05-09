@@ -43,6 +43,7 @@ import image-structs as I
 # P = PP.P2
 
 OFFSET = 1
+MAX-SAMPLES = 100000
 
 data Posn:
   | posn(x :: Number, y :: Number)
@@ -135,7 +136,7 @@ where:
     num-samples: 6,
     infer-bounds: false
   }
-  generate-xy(xy-plot-int(_ + 1, plot-options), win-options) 
+  generate-xy(xy-plot-int(_ + 1, plot-options), win-options)
     is scatter-plot-int([list:
       posn(0, 1),
       posn(20, 21),
@@ -203,13 +204,13 @@ fun find-point-on-edge(near :: Posn, far :: Posn, win-opt :: PlotWindowOptions) 
   x-min = num-max(num-min(near.x, far.x), win-opt.x-min)
   y-max = num-min(num-max(near.y, far.y), win-opt.y-max)
   y-min = num-max(num-min(near.y, far.y), win-opt.y-min)
-  
+
   fun equal(a :: Number, b :: Number) -> Boolean:
     (a <= b) and (a >= b)
   end
 
   # to workaround roughnum equality without providing tolerance
-  candidates = if equal(near.x, far.x): 
+  candidates = if equal(near.x, far.x):
     [list: posn(near.x, win-opt.y-min), posn(near.x, win-opt.y-max)]
   else:
     # y = m * x + c           [3]
@@ -279,19 +280,19 @@ fun generate-line(plot :: PlotInternal, win-opt :: PlotWindowOptions) -> List<Pl
                   | some(real-stop) =>
                     cases (Option) find-point-on-edge(start, stop, win-opt):
                       | none => raise("plot: impossible")
-                      | some(real-start) =>                          
+                      | some(real-start) =>
                         [list: real-stop, real-start]
                     end
                 end
               end
             end
-          end 
+          end
 
           cases (List) all-lines.filter(is-link):
             | empty => empty
             | link(f, r) =>
               lst = r.foldl(
-                lam(cur :: List<Posn>, acc :: List<List<Posn>>) -> List<List<Posn>>:                  
+                lam(cur :: List<Posn>, acc :: List<List<Posn>>) -> List<List<Posn>>:
                   cases (List) acc:
                     | empty => raise("plot: impossible")
                     | link(last-line, rest-line) =>
@@ -317,13 +318,13 @@ fun generate-line(plot :: PlotInternal, win-opt :: PlotWindowOptions) -> List<Pl
   end
 where:
   win-opt = plot-window-options.{x-min: 0, x-max: 10, y-min: 0, x-max: 10}
-  
+
   generate-line(line-plot-int([list: posn(-1, -1), posn(1, 1), posn(1, 5), posn(5, 5), posn(5, 11), posn(7, 9), posn(11, 9), posn(9, 11)], plot-options), win-opt)
     is [list: [list: posn(10, 10), posn(10, 10)], [list: posn(10, 9), posn(7, 9), posn(6, 10)], [list: posn(5, 10), posn(5, 5), posn(1, 5), posn(1, 1), posn(0, 0)]].map(line-plot-int(_, plot-options))
 end
 
-fun plot-xy(f :: (Number -> Number), window-options :: WrappedPlotWindowOptions) -> (Number -> Number):
-  plot-multi([list: xy-plot(f, default-plot-options)], window-options)
+fun plot-xy(f :: (Number -> Number)) -> (Number -> Number):
+  plot-multi([list: xy-plot(f, default-plot-options)], default-plot-window-options)
   f
 end
 
@@ -332,16 +333,21 @@ fun plot-multi(plots :: List<Plot>, options-generator :: WrappedPlotWindowOption
   when (options.x-min >= options.x-max) or (options.y-min >= options.y-max):
     raise("plot: x-min and y-min must be strictly less than x-max and y-max respectively")
   end
+  when (options.num-samples > MAX-SAMPLES) or
+       (options.num-samples <= 1) or
+       not(num-is-integer(options.num-samples)):
+    raise("plot: num-samples must be an an integer greater than 1 and do not exceed " + num-to-string(MAX-SAMPLES))
+  end
 
   original-plots = plots
   shadow plots = plots.map(
     lam(plot :: Plot) -> PlotInternal:
       cases (Plot) plot:
-        | scatter-plot(points, opt-gen) => 
+        | scatter-plot(points, opt-gen) =>
           scatter-plot-int(points, opt-gen(plot-options).{opacity: 80,  size: 4, tip: true})
-        | line-plot(points, opt-gen) => 
+        | line-plot(points, opt-gen) =>
           line-plot-int(points,    opt-gen(plot-options).{opacity: 100, size: 1, tip: false})
-        | xy-plot(f, opt-gen) => 
+        | xy-plot(f, opt-gen) =>
           xy-plot-int(f,           opt-gen(plot-options).{opacity: 100, size: 1, tip: false})
       end
     end)
