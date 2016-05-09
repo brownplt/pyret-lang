@@ -967,7 +967,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         { env: atom-env.env, columns: link(new-bind, acc.columns) }
       end
       A.s-table-extend(l, env-and-binds.columns, table.visit(self),
-        extensions.map(lam(e):e.{value : e.value.visit(self.{env: env-and-binds.env})};))
+        extensions.map(_.visit(self.{env: env-and-binds.env})))
     end,
     s-table-filter(self, l, columns, table, pred):
       env-and-binds = for fold(acc from { env: self.env, columns: [list: ] }, column from columns):

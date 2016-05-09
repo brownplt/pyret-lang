@@ -32,7 +32,7 @@ fun make-table(headers :: RawArray, rows :: L.List<RawArray>):
       _equals(self, other, eq):
         headers-eq =
           eq(raw-array-to-list(self.headers),
-            raw-array-to-list(other.headers))
+             raw-array-to-list(other.headers))
         rows-same-len = eq(self.internal-rows.length(), other.internal-rows.length())
         rows-eq = for L.fold2(
             is-eq from EQ.Equal,

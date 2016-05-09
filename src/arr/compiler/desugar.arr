@@ -531,7 +531,6 @@ fun desugar-expr(expr :: A.Expr):
       cls = columns.map(lam(c):
         {t: mk-id(A.dummy-loc, c.id.base), o: c}
         end)
-      
       A.s-let-expr(A.dummy-loc, link(  
         A.s-let-bind(A.dummy-loc, tbl.id-b, desugar-expr(table)), link(
         # header
@@ -555,8 +554,9 @@ fun desugar-expr(expr :: A.Expr):
                   A.s-let-bind(A.dummy-loc, c.o, 
                     A.s-prim-app(A.dummy-loc, "raw_array_get",
                         [list: row.id-e, c.t.id-e]));),
-                  A.s-array(A.dummy-loc, cls.map(lam(c):A.s-id(A.dummy-loc, c.o.id);)
-                          + extensions.map(_.value).map(desugar-expr))), none)])]))
+              A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
+                row.id-e,
+                A.s-array(A.dummy-loc, extensions.map(_.value).map(desugar-expr))])), none)])]))
     | s-table-select(l, columns, table) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
