@@ -125,6 +125,9 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
   end
   {
     needs-compile(self, provs): true end,
+    get-modified-time(self): 0 end,
+    get-options(self, options): options end,
+    get-native-modules(self): [list:] end,
     get-module(self): CL.pyret-ast(get-ast()) end,
     get-extra-imports(self):
       C.standard-imports
@@ -134,8 +137,7 @@ fun make-repl-definitions-locator(name, uri, get-definitions, globals):
     end,
     get-globals(self): globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    update-compile-context(self, ctxt): ctxt end,
-    uri(self): uri end,
+    uri(self): "definitions://" end,
     name(self): name end,
     set-compiled(self, env, result): nothing end,
     get-compiled(self): none end,
@@ -149,14 +151,19 @@ fun make-repl-interaction-locator(name, uri, get-interactions, repl):
     parsed = P.surface-parse(interactions, name)
     make-provide-for-repl(parsed)
   end
+  extras-now = repl.get-current-extra-imports()
   {
     needs-compile(self, provs): true end,
+    get-modified-time(self): 0 end,
+    get-options(self, options): options end,
+    get-native-modules(self): [list:] end,
     get-module(self): CL.pyret-ast(get-ast()) end,
     get-extra-imports(self):
-      C.standard-imports
+      extras-now
     end,
     get-dependencies(self):
-      CL.get-standard-dependencies(self.get-module(), self.uri())
+      mod-deps = CL.get-dependencies(self.get-module(), self.uri())
+      mod-deps + self.get-extra-imports().imports.map(_.dependency)
     end,
     get-globals(self): repl.get-current-globals() end,
     get-namespace(self, runtime): repl.get-current-namespace() end,

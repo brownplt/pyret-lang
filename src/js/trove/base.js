@@ -1,5 +1,6 @@
 ({
   requires: [
+    { "import-type": "builtin", name: "global" },
     { "import-type": "builtin", name: "option" },
     { "import-type": "builtin", name: "either" },
     { "import-type": "builtin", name: "error-display" },

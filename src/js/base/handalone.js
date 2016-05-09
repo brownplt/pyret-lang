@@ -42,10 +42,17 @@ require(["js/runtime", "program"], function(runtimeLib, program) {
   postLoadHooks[main] = function(answer) {
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
-    var toCall = runtime.getField(checker, "render-check-results");
+    var getStack = function(err) {
+      console.error("The error is: ", err);
+      var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+      var locList = runtime.ffi.makeList(locArray);
+      return locList;
+    };
+    var getStackP = runtime.makeFunction(getStack);
+    var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     runtime.safeCall(function() {
-      return toCall.app(checks);
+      return toCall.app(checks, getStackP);
     }, function(printedCheckResult) {
       if(runtime.isString(printedCheckResult)) {
         process.stdout.write(printedCheckResult);

@@ -1,13 +1,25 @@
 import load-lib as L
-import repl as R
 import runtime-lib as RT
 import string-dict as SD
 import either as E
-import "compiler/compile-structs.arr" as CS
-import "compiler/repl-support.arr" as RS
+import file("../../../src/arr/compiler/repl.arr") as R
+import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../../../src/arr/compiler/repl-support.arr") as RS
 
 type Either = E.Either
 
+fun get-run-answer(res):
+  cases(Either) res:
+    | right(ans) => ans
+    | left(err) => 
+      print-error("Expected an answer, but got compilation errors:")
+      for lists.each(e from err):
+        print-error(tostring(e))
+      end
+  end
+end
+val = lam(str): L.get-result-answer(get-run-answer(str)) end
+msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
 check:
   r = RT.make-runtime()
@@ -31,68 +43,59 @@ check:
   end
 
   result3 = next-interaction("y = 10\nx")
-  L.get-result-answer(result3.v) is some(5)
+  val(result3) is some(5)
 
   result4 = next-interaction("y")
-  L.get-result-answer(result4.v) is some(10)
+  val(result4) is some(10)
 
   result5 = next-interaction("include image")
   result5.v satisfies L.is-success-result
 
   result6 = next-interaction("is-function(rectangle)")
-  cases(Either) result6:
-    | right(v) =>
-      L.get-result-answer(result6.v) is some(true)
-    | left(err) =>
-      print(err)
-  end
+  val(result6) is some(true)
 
-  current-defs := "import string-dict from string-dict\n55"
+  current-defs := "import string-dict as SD\nstring-dict = SD.string-dict\n55"
   result7 = repl.restart-interactions(false)
-  cases(Either) result7:
-    | right(v) =>
-      L.get-result-answer(result7.v) is some(55)
-    | left(err) =>
-      print(err)
-  end
+  val(result7) is some(55)
 
   # should fail because y no longer bound
   result8 = next-interaction("y")
   result8 satisfies E.is-left
 
   result9 = next-interaction("is-function(string-dict.make)")
-  L.get-result-answer(result9.v) is some(true)
+  val(result9) is some(true)
 
-  result10 = next-interaction("import string-dict as SD")
+  result10 = next-interaction("import string-dict as SD2")
   result10 satisfies E.is-right
 
   result11 = next-interaction(```
-    sd1 :: SD.StringDict = [string-dict:]
+    sd1 :: SD.StringDict = [SD2.string-dict:]
     sd2 = [SD.string-dict:]
     sd1 == sd2
   ```)
-  L.get-result-answer(result11.v) is some(true)
+  val(result11) is some(true)
 
-#|
-  # fails because shadows string-dict from import ... from
-  result12 = next-interaction("include string-dict")
+  # fails because shadows SD above
+  result12 = next-interaction("import string-dict as SD")
   result12 satisfies E.is-left
-|#
 
-  current-defs := "include string-dict"
+  current-defs := "import string-dict as SD\nstring-dict = SD.string-dict"
   result13 = repl.restart-interactions(false)
   result13 satisfies E.is-right
 
   result14 = next-interaction("[string-dict: 'x', 10].get-value('x')")
-  L.get-result-answer(result14.v) is some(10)
+  val(result14) is some(10)
 
   result15 = next-interaction("shadow string-dict = 57")
   result15 satisfies E.is-right
 
   result16 = next-interaction("string-dict")
-  L.get-result-answer(result16.v) is some(57)
+  val(result16) is some(57)
 
-  current-defs := "include string-dict\nis-object(string-dict)"
+# TODO(joe): once type-checking in envs works
+#|
+  current-defs := "import string-dict as SD\nis-object(SD.string-dict)"
   result17 = repl.restart-interactions(true)
-  L.get-result-answer(result17.v) is some(true)
+  val(result17) is some(true)
+|#
 end

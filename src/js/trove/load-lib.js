@@ -112,6 +112,13 @@
         var checkerMod = execRt.modules["builtin://checker"];
         var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-results");
+        var getStack = function(err) {
+          console.error("The error is: ", err);
+          var locArray = err.val.exn.pyretStack.map(execRt.makeSrcloc);
+          var locList = runtime.makeList(locArray);
+          return locList;
+        };
+        var getStackP = execRt.makeFunction(getStack);
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks); },
           function(printedCheckResult) {
@@ -121,7 +128,7 @@
               }
             }
             else if(execRt.isFailureResult(printedCheckResult)) {
-              console.log(printedCheckResult);
+              console.error(printedCheckResult.exn);
               restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
             }
           });

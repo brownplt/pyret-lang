@@ -15,7 +15,8 @@
     function makeRuntime() {
       return applyBrand(brandRuntime, runtime.makeObject({
         "runtime": runtime.makeOpaque(runtimeLib.makeRuntime({
-          stdout: runtime.stdout
+          stdout: runtime.stdout,
+          stderr: runtime.stderr
         }))
       }));
     }

@@ -312,7 +312,10 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   }
 end
 
-fun results-summary(block-results :: List<CheckBlockResult>):
+# NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
+# require that magical callers provide a get-stack function that produces
+# the list of locations to render
+fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
   init = {
       message: "",
       errored: 0,
@@ -340,8 +343,12 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     end
     ended-in-error = cases(Option) br.maybe-err:
       | none => ""
-      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  "
-          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, empty) + "\n\n"
+      | some(err) =>
+        stack = get-stack(err)
+        "\n  Block ended in the following error (all tests may not have ran): \n\n  "
+          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
+          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
+          + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     with-error-notification = message + ended-in-error
@@ -374,7 +381,11 @@ fun results-summary(block-results :: List<CheckBlockResult>):
   end
 end
 
-fun render-check-results(block-results :: List<CheckBlockResult>):
-  results-summary(block-results).message
+fun render-check-results(block-results):
+  results-summary(block-results, lam(err): empty end).message
+end
+
+fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
+  results-summary(block-results, get-stack).message
 end
 

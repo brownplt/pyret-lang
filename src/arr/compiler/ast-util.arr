@@ -663,6 +663,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
       full-imports = p.imports + for map(i from imports):
+          name-to-use = if i.as-name == "_": A.s-underscore(p.l) else: A.s-name(p.l, i.as-name) end
           cases(CS.Dependency) i.dependency:
             | builtin(name) =>
               A.s-import-complete(
@@ -670,16 +671,16 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
                 i.values.map(A.s-name(p.l, _)),
                 i.types.map(A.s-name(p.l, _)),
                 A.s-const-import(p.l, name),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
+                name-to-use,
+                name-to-use)
             | dependency(protocol, args) =>
               A.s-import-complete(
                 p.l,
                 i.values.map(A.s-name(p.l, _)),
                 i.types.map(A.s-name(p.l, _)),
-                A.special-import(p.l, protocol, args),
-                A.s-name(p.l, i.as-name),
-                A.s-name(p.l, i.as-name))
+                A.s-special-import(p.l, protocol, args),
+                name-to-use,
+                name-to-use)
           end
         end
       A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)

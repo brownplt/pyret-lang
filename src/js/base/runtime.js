@@ -4774,6 +4774,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'setParam' : setParam,
         'hasParam' : hasParam,
         'stdout' : theOutsideWorld.stdout,
+        'stderr' : theOutsideWorld.stderr,
         'console' : CONSOLE
     };
 

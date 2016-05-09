@@ -1498,7 +1498,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
     # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
     # because shared compiled files didn't agree on globals
     cases(A.Name) n:
-      | s-global(s) => n.toname()
+      | s-global(s) =>
         dep = env.globals.values.get-value(n.toname())
         uri = cases(Option) env.mods.get(dep):
           | some(d) => d.from-uri
@@ -1506,7 +1506,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
             if dep == "builtin(global)":
               "builtin://global" 
             else:
-              raise("Not found in: " + torepr(env.mods))
+              raise(dep + " not found in: " + torepr(env.mods))
             end
         end
         j-var(js-id-of(n),
@@ -1528,7 +1528,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
             if dep == "builtin(global)":
               "builtin://global" 
             else:
-              raise("Not found in: " + torepr(env.mods))
+              raise(dep + " not found in: " + torepr(env.mods))
             end
         end
         j-var(js-id-of(n),
