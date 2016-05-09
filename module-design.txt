@@ -96,14 +96,14 @@ much sense.
   - Refactoring to find a good place for the shared load hooks
   - Rendering checks and error messages by loading the right runtime's modules
 17. How do we REPL?
-    - runStandalone doesn't have the ability to pass anything but the default
+    [x] - runStandalone doesn't have the ability to pass anything but the default
       namespace in for all modules.  Current repl impl requires passing in a
       different one
     - Let's get variables right, please
     - Let's handle #190 as well
-    - Need to put provide information on compiled modules so cached modules
+    [x] - Need to put provide information on compiled modules so cached modules
       give the correct information about environment (also needed for type
-      checker)
+      checker).  Basics done – just "tany" for all
 18. Right place for printing errors/returning compile results in pyret.arr
     - move from cli-module-loader or otherwise centralize
 19. Standardize just what fields need to be on a Pyret-shaped return from a
