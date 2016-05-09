@@ -4,7 +4,6 @@ import string-dict as SD
 import either as E
 import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
-import file("../../../src/arr/compiler/repl-support.arr") as RS
 
 type Either = E.Either
 
@@ -24,8 +23,8 @@ msg = lam(str): L.render-error-message(get-run-answer(str)) end
 check:
   r = RT.make-runtime()
   var current-defs = "5"
-  loc = RS.make-repl-definitions-locator("definitions", "pyret://definitions", lam(): current-defs end, CS.standard-globals)
-  dfind = RS.make-definitions-finder([SD.string-dict:])
+  loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
+  dfind = R.make-definitions-finder([SD.string-dict:])
   repl = R.make-repl(r, loc, {}, dfind)
 
   result1 = repl.restart-interactions(false)
@@ -35,10 +34,8 @@ check:
   result2 = repl.restart-interactions(false)
   L.get-result-answer(result2.v) is none
 
-  var ic = 0
   fun next-interaction(src):
-    ic := ic + 1
-    i = RS.make-repl-interaction-locator("interactions" + tostring(ic), "pyret://interactions" + tostring(ic), lam(): src end, repl)
+    i = repl.make-interaction-locator(lam(): src end)
     repl.run-interaction(i)
   end
 
@@ -91,6 +88,18 @@ check:
 
   result16 = next-interaction("string-dict")
   val(result16) is some(57)
+
+  result17 = next-interaction("import repl(\"interactions://2\") as I2")
+  result17 satisfies E.is-right
+
+  result18 = next-interaction("I2.string-dict")
+  val(result18) is some(57)
+
+  result19 = next-interaction("import repl(\"definitions://\") as Defs")
+  result19 satisfies E.is-right
+
+  result20 = next-interaction("is-object(Defs.string-dict)")
+  val(result20) is some(true)
 
 # TODO(joe): once type-checking in envs works
 #|
