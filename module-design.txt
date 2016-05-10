@@ -145,12 +145,27 @@ defined-values/defined-types?
   - Should the answer for main be returned as a failure in postLoadHooks, or do
     you find out through the failure cont?
   - How do you know during which module execution the run failed?
-24. Always compile with the "compile-module" flag true, and deprecate the other
+[x] 24. Always compile with the "compile-module" flag true, and deprecate the other
     version
+25. Add a new jsfile locator to support importing/using js files as modules
+    outside of trove/.  Needed for CPO to define its internal modules
+26. Remove everything to do with namespace!
 
 
+--
 
-  or maybe have functions in shorthands
+New rules for requirejs:
+
+- All pyret-shaped js modules need to use a require base, because they can get
+  moved around by the compiler.
+- All other requirejs modules can use relative paths, as long as they do not
+  use parent references past their root
+- The Pyret compiler must be passed a requirejs config that tells it where to
+  find all the roots (including builtin Pyret stuff, for now).
+
+----
+
+  maybe have functions in shorthands
 
 
 // runtime_anf?

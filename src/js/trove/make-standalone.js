@@ -16,8 +16,8 @@
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON) {
-      runtime.checkArity(3, arguments, ["make-standalone"]);
+    function makeStandalone(deps, body, configJSON, standaloneFile) {
+      runtime.checkArity(4, arguments, ["make-standalone"]);
       runtime.checkList(deps);
       runtime.checkString(body);
       runtime.checkString(configJSON);
@@ -27,9 +27,9 @@
       console.log(process.cwd());
       var config = JSON.parse(configJSON);
       var storeDir = config["baseUrl"];
-      var handalone = fs.readFileSync("src/js/base/handalone.js");
+      var handalone = fs.readFileSync(standaloneFile);
       var depsArr = runtime.ffi.toArray(deps);
-      depsArr.push("js/runtime");
+      depsArr.push("pyret-base/js/runtime");
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
       var depsLine = "[" + depsStrs.join(",") + "]";
 

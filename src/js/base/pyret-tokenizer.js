@@ -1,4 +1,4 @@
-define(["../../../lib/jglr/jglr"], function(E) {
+define(["jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token

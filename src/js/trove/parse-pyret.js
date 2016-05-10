@@ -5,8 +5,8 @@
     { "import-type": "builtin", name: "lists" }
   ],
   nativeRequires: [
-    "js/pyret-tokenizer",
-    "js/pyret-parser"
+    "pyret-base/js/pyret-tokenizer",
+    "pyret-base/js/pyret-parser"
   ],
   provides: {},
   theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {

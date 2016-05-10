@@ -20,6 +20,7 @@ import file("compile-structs.arr") as CS
 import file("locators/file.arr") as FL
 import file("locators/legacy-path.arr") as LP
 import file("locators/builtin.arr") as BL
+import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
 
 j-fun = J.j-fun
@@ -156,6 +157,13 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = FL.file-locator(real-path, CS.standard-globals)
         CL.located(locator, new-context)
+      else if protocol == "js-file":
+        clp = ctxt.current-load-path
+        this-path = dep.arguments.get(0)
+        real-path = P.join(clp, this-path)
+        new-context = ctxt.{current-load-path: P.dirname(real-path)}
+        locator = JSF.make-jsfile-locator(real-path)
+        CL.located(locator, new-context)
       else if protocol == "legacy-path":
         CL.located(LP.legacy-path-locator(dep.arguments.get(0)), ctxt)
       else:
@@ -231,7 +239,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options):
     config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
   end
 
-  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), JSON.j-obj(config.freeze()).serialize())
+  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
 end
 
 fun build-require-standalone(path, options):

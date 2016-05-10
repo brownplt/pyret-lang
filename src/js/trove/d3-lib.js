@@ -1,6 +1,6 @@
 ({
   requires: [],
-  nativeRequires: ["js/js-numbers"],
+  nativeRequires: ["pyret-base/js/js-numbers"],
   provides: {},
   theModule: function(RUNTIME, NAMESPACE, uri, jsnums) {
     var ALLHEIGHT = 476;

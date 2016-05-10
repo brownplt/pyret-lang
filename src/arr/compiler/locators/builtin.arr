@@ -1,8 +1,4 @@
-provide {
-  make-builtin-locator: make-builtin-locator,
-  set-builtin-js-dir: set-builtin-js-dir,
-  set-builtin-arr-dir: set-builtin-arr-dir
-} end
+provide *
 import namespace-lib as N
 import builtin-modules as B
 import string-dict as SD

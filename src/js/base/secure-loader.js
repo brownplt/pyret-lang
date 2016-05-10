@@ -1,4 +1,4 @@
-define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
+define(["require", "q", "./runtime-util"], function(rjs, Q, util) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {

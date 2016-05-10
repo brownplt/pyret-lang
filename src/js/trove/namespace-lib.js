@@ -2,7 +2,7 @@
   requires: [
     { "import-type": "builtin", "name": "load-lib" }
   ],
-  nativeRequires: ["js/namespace"],
+  nativeRequires: ["pyret-base/js/namespace"],
   provides: {},
   theModule: function(runtime, ns, uri, load, namespace) {
     var get = runtime.getField;

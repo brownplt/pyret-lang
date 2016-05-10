@@ -1,5 +1,5 @@
 require = require("requirejs");
-require(["js/runtime", "program"], function(runtimeLib, program) {
+require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;

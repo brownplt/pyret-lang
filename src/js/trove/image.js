@@ -3,7 +3,7 @@
     { "import-type": "builtin", "name": "image-lib" }
   ],
   nativeRequires: [
-    "js/js-numbers"
+    "pyret-base/js/js-numbers"
   ],
   provides: {
     values: {

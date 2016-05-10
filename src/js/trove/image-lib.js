@@ -2,7 +2,7 @@
   requires: [
     { "import-type": "builtin", "name": "image-structs" }
   ],
-  nativeRequires: ["js/js-numbers"],
+  nativeRequires: ["pyret-base/js/js-numbers"],
   provides: {},
   theModule: function(RUNTIME, NAMESPACE, uri, imageImp, jsnums) {
     var gf = RUNTIME.getField;

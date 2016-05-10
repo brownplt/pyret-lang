@@ -1,6 +1,6 @@
 ({
   requires: [],
-  nativeRequires: ["js/runtime"],
+  nativeRequires: ["pyret-base/js/runtime"],
   provides: {},
   theModule: function(runtime, ns, uri, runtimeLib) {
     var get = runtime.getField;

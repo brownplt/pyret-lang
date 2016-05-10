@@ -2,8 +2,8 @@
   requires: [],
   nativeRequires: [
     "fs",
-    "js/secure-loader",
-    "js/type-util"
+    "pyret-base/js/secure-loader",
+    "pyret-base/js/type-util"
   ],
   provides: {},
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {

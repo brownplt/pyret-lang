@@ -3,7 +3,7 @@
     [
       { "import-type": "builtin", name: "valueskeleton" }
     ],
-  nativeRequires: ["js/namespace"],
+  nativeRequires: ["pyret-base/js/namespace"],
   provides: {},
   theModule: function(runtime, namespace, uri, VSlib){
     var O = runtime.makeObject;

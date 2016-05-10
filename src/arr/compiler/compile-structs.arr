@@ -605,7 +605,9 @@ type CompileOptions = {
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
   compile-module :: Boolean,
-  compiled-cache :: String
+  compiled-cache :: String,
+  standalone-file :: String,
+  on-compile :: Function # NOTE: skipping types because the are in compile-lib
 }
 
 default-compile-options = {
@@ -617,7 +619,8 @@ default-compile-options = {
   proper-tail-calls: true,
   compile-module: false,
   compiled-cache: "compiled",
-  on-compile: lam(locator, loadable): nothing end
+  on-compile: lam(locator, loadable): nothing end,
+  standalone-file: "src/js/base/handalone.js"
 }
 
 t-pred = t-arrow([list: t-top], t-boolean)

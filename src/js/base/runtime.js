@@ -1,4 +1,4 @@
-define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util"],
+define(["./namespace", "./js-numbers", "./codePoint", "seedrandom", "./runtime-util"],
        function (Namespace, jsnums, codePoint, seedrandom, util) {
 
   if(util.isBrowser()) {

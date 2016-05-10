@@ -2,7 +2,7 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["js/secure-loader"],
+  nativeRequires: ["pyret-base/js/secure-loader"],
   provides: {},
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {
 

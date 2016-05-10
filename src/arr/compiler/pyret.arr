@@ -34,6 +34,8 @@ fun main(args):
       C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
+    "standalone-file",
+      C.next-val-default(C.String, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
     "builtin-js-dir",
       C.next-val(C.String, C.once, "Directory to find the source of builtin js modules"),
     "builtin-arr-dir",
@@ -77,6 +79,7 @@ fun main(args):
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
+      standalone-file = r.get-value("standalone-file")
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dir(r.get-value("builtin-js-dir"))
       end
@@ -91,7 +94,7 @@ fun main(args):
           program-name,
           CS.standard-builtins,
           libs,
-          {
+          CS.default-compile-options.{
             check-mode : check-mode,
             allow-shadowed : allow-shadowed,
             collect-all: false,
@@ -100,8 +103,7 @@ fun main(args):
             proper-tail-calls: tail-calls,
             compile-module: false,
             compiled-cache: compiled-dir
-          }
-          ).result
+          }).result
         cases(CS.CompileResult) result:
           | ok(_) =>
             #var comp-object = result.code
@@ -142,7 +144,8 @@ fun main(args):
               r.get-value("build-runnable"),
               r.get-value("require-config"),
               outfile,
-              {
+              CS.default-compile-options.{
+                standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
                 allow-shadowed : allow-shadowed,
@@ -153,19 +156,20 @@ fun main(args):
                 compiled-cache: compiled-dir
               })
         else if r.has-key("build-standalone"):
-          CLI.build-require-standalone(r.get-value("build-standalone"), {
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls,
-              compile-module: true,
-              compiled-cache: compiled-dir
-            })
+          CLI.build-require-standalone(r.get-value("build-standalone"), 
+              CS.default-compile-options.{
+                check-mode : check-mode,
+                type-check : type-check,
+                allow-shadowed : allow-shadowed,
+                collect-all: false,
+                ignore-unbound: false,
+                proper-tail-calls: tail-calls,
+                compile-module: true,
+                compiled-cache: compiled-dir
+              })
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
-            {
+            CS.default-compile-options.{
               check-mode : check-mode,
               type-check : type-check,
               allow-shadowed : allow-shadowed,
@@ -184,7 +188,10 @@ fun main(args):
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"), CS.default-compile-options.{compile-module: true})
+          CLI.run(r.get-value("run"), CS.default-compile-options.{
+              standalone-file: standalone-file,
+              compile-module: true
+            })
         else if r.has-key("compile-module-js"):
           var result = CM.compile-js(
             CM.start,
@@ -192,7 +199,7 @@ fun main(args):
             r.get-value("compile-module-js"),
             CS.standard-builtins,
             libs,
-            {
+            CS.default-compile-options.{
               check-mode : check-mode,
               type-check : type-check,
               allow-shadowed : allow-shadowed,

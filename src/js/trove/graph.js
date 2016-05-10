@@ -6,7 +6,7 @@
     { "import-type": "builtin", name: "d3-lib" },
   ],
   nativeRequires: [
-    "js/js-numbers",
+    "pyret-base/js/js-numbers",
     "../../node_modules/d3/d3.min",
     "../../node_modules/d3-tip/index",
   ],
