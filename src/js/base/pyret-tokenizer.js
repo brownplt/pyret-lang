@@ -239,6 +239,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
     {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
     {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
+    {name: "USING", val: new RegExp(colonKw("using"), STICKY_REGEXP)},
     {name: "TABLE-EXTEND", val: new RegExp(kw("extend"), STICKY_REGEXP)},
     {name: "TABLE-UPDATE", val: new RegExp(kw("transform"), STICKY_REGEXP)},
     {name: "TABLE-SELECT", val: new RegExp(kw("select"), STICKY_REGEXP)},
