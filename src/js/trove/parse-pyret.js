@@ -583,6 +583,15 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                      tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
             }
           },
+          'tuple-fields' : function(node) {
+             if (node.kids[node.kids.length - 1].name !== "binop-expr") {
+              // (obj-fields (list-tuple-field f1 SEMI) ... lastField SEMI)
+              return makeList(node.kids.slice(0, -1).map(tr));
+            } else {
+              // (fields (list-tuple-field f1 SEMI) ... lastField)
+              return makeList(node.kids.map(tr));
+            }
+          },
           'obj-fields': function(node) {
             if (node.kids[node.kids.length - 1].name !== "obj-field") {
               // (obj-fields (list-obj-field f1 COMMA) ... lastField COMMA)
@@ -592,8 +601,12 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               return makeList(node.kids.map(tr));
             }
           },
+         'list-tuple-field': function(node) {
+            // (list-tuple-field f semo)
+            return tr(node.kids[0]);
+          }, 
           'list-obj-field': function(node) {
-            // (list-obj-field f COMMA)
+            // (list-obj-field f comma)
             return tr(node.kids[0]);
           },
           'field': function(node) {
@@ -724,6 +737,11 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (prim-expr e)
             return tr(node.kids[0]);
           },
+          'tuple-expr': function(node) {
+            return RUNTIME.getField(ast, 's-tuple')
+                .app(pos(node.pos), tr(node.kids[1]))
+          },
+
           'obj-expr': function(node) {
             if (node.kids.length === 2) {
               // (obj-expr LBRACE RBRACE)

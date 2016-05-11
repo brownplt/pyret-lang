@@ -143,9 +143,8 @@ inst-expr: expr LANGLE inst-elt* ann RANGLE
 inst-elt: ann COMMA
 
 tuple-expr: LBRACE tuple-fields RBRACE
-tuple-fields: list-tuple-field* tuple-field [SEMI]
-list-tuple-field: tuple-field SEMI
-tuple-field: binop-expr
+tuple-fields: list-tuple-field* binop-expr [SEMI]
+list-tuple-field: binop-expr SEMI
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: list-obj-field* obj-field [COMMA]

@@ -755,6 +755,12 @@ data Expr:
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
+  | s-tuple(l :: Loc, fields :: List<Expr>%(is-link)) with:
+    label(self): "s-tuple" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+        PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
