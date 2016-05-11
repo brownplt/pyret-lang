@@ -971,9 +971,11 @@ data Expr:
       end
     end
   | s-table-extend(l :: Loc,
-      columns :: List<Name>,
-      table   :: Expr,
+      column-binds :: ColumnBinds,
       extensions :: List<Member>)
+  | s-table-update(l :: Loc,
+      column-binds :: ColumnBinds,
+      updates :: List<Member>)
   | s-table-select(l :: Loc,
       columns :: List<Name>,
       table   :: Expr)
@@ -981,9 +983,11 @@ data Expr:
       table   :: Expr,
       ordering :: ColumnSort)
   | s-table-filter(l :: Loc,
-      columns :: List<Name>,
-      table   :: Expr,
+      column-binds :: ColumnBinds,
       predicate :: Expr)
+  | s-table-extract(l :: Loc,
+      column :: Name,
+      table   :: Expr)
   | s-table(
       l :: Loc,
       headers :: List<FieldName>,
@@ -1105,6 +1109,14 @@ data ForBind:
     tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ColumnBinds:
+  | s-column-binds(l :: Loc, binds :: List<Bind>, table :: Expr)
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1865,6 +1877,9 @@ default-map-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(l, bind.visit(self), value.visit(self))
   end,
+  s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    s-column-binds(l, binds.map(_.visit(self)), table.visit(self))
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
   end,
@@ -1889,17 +1904,23 @@ default-map-visitor = {
   s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
     s-column-sort(l, column.visit(self), direction)
   end,
-  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
-    s-table-extend(l, columns.map(_.visit(self)), table.visit(self), extensions.map(_.visit(self)))
+  s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    s-table-extend(l, column-binds.visit(self), extensions.map(_.visit(self)))
   end,
-  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
-    s-table-filter(l, columns.map(_.visit(self)), table.visit(self), predicate.visit(self))
+  s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    s-table-update(l, column-binds.visit(self), updates.map(_.visit(self)))
+  end,
+  s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    s-table-filter(l, column-binds.visit(self), predicate.visit(self))
   end,
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
   s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
     s-table-order(l, table.visit(self), ordering)
+  end,
+  s-table-extract(self, l, column :: Name, table :: Expr):
+    s-table-extract(l, column.visit(self), table.visit(self))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2335,6 +2356,9 @@ default-iter-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
+  s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    binds.all(_.visit(self)) and table.visit(self)
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
@@ -2359,17 +2383,23 @@ default-iter-visitor = {
   s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
     column.visit(self)
   end,
-  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
-    columns.all(_.visit(self)) and table.visit(self) and extensions.all(_.visit(self))
+  s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    column-binds.visit(self) and extensions.all(_.visit(self))
   end,
-  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
-    columns.all(_.visit(self)) and table.visit(self) and predicate.visit(self)
+  s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    column-binds.visit(self) and updates.all(_.visit(self))
+  end,
+  s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    column-binds.visit(self) and predicate.visit(self)
   end,
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
   s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
     table.visit(self)
+  end,
+  s-table-extract(self, l, column :: Name, table :: Expr):
+    column.visit(self) and table.visit(self)
   end,
   a-blank(self):
     true
@@ -2823,6 +2853,9 @@ dummy-loc-visitor = {
   s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
   end,
+  s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    s-column-binds(dummy-loc, binds.map(_.visit(self)), table.visit(self))
+  end,
   s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))
   end,
@@ -2847,17 +2880,23 @@ dummy-loc-visitor = {
   s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
     s-column-sort(dummy-loc, column.visit(self), direction)
   end,
-  s-table-extend(self, l, columns :: List<Name>, table :: Expr, extensions :: List<Member>):
-    s-table-extend(dummy-loc, columns.map(_.visit(self)), table.visit(self), extensions.map(_.visit(self)))
+  s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    s-table-extend(dummy-loc, column-binds.visit(self), extensions.map(_.visit(self)))
   end,
-  s-table-filter(self, l, columns :: List<Name>, table :: Expr, predicate :: Expr):
-    s-table-filter(dummy-loc, columns.map(_.visit(self)), table.visit(self), predicate.visit(self))
+  s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    s-table-update(dummy-loc, column-binds.visit(self), updates.map(_.visit(self)))
+  end,
+  s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    s-table-filter(dummy-loc, column-binds.visit(self), predicate.visit(self))
   end,
   s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
   s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
     s-table-order(dummy-loc, table.visit(self), ordering)
+  end,
+  s-table-extract(self, l, column :: Name, table :: Expr):
+    s-table-extract(dummy-loc, column.visit(self), table.visit(self))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,

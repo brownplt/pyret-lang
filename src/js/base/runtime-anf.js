@@ -3510,6 +3510,80 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return foldFun();
     };
+    
+    var raw_array_map = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex]);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
+    };
+    
+    var raw_array_filter = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array();
+      function filterHelp() {
+        while(++currentIndex < length) {
+          if(isPyretTrue(f.app(arr[currentIndex]))){
+            newArray.push(arr[currentIndex]);
+          }
+        }
+        return newArray;
+      }
+      function filterFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray = $ar.ans;
+          }
+          return filterHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-filter"],
+              filterFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-filter"]);
+          }
+          throw $e;
+        }
+      }
+      return filterFun();
+    };
 
     var string_substring = function(s, min, max) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a); }
@@ -4340,6 +4414,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-length': makeFunction(raw_array_length),
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
+          'raw-array-map': makeFunction(raw_array_map),
+          'raw-array-filter': makeFunction(raw_array_filter),
           'raw-array': raw_array_maker,
 
           'not': makeFunction(bool_not),
@@ -4482,6 +4558,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'callIfPossible8' : callIfPossible8,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
+        'checkArrayIndex' : checkArrayIndex,
         'makeBrandedObject'   : makeBrandedObject,
         'makeGraphableRef' : makeGraphableRef,
         'makeRef' : makeRef,
@@ -4562,6 +4639,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'raw_array_concat': raw_array_concat,
         'raw_array_length': raw_array_length,
         'raw_array_to_list': raw_array_to_list,
+        'raw_array_map': raw_array_map,
+        'raw_array_filter': raw_array_filter,
 
         'not': bool_not,
 
@@ -4607,6 +4686,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'checkArityC': checkArityC,
+        
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
@@ -4671,6 +4751,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });
+      
     loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
       ffi = f;
       thisRuntime["ffi"] = ffi;
@@ -4681,7 +4762,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwMessageException"] = ffi.throwMessageException;
     thisRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
+    thisRuntime["toArray"] = ffi.toArray;
     thisRuntime["makeTable"] = ffi.makeTable;
+    thisRuntime["checkTable"] = makeCheckType(ffi.isTable, "Table");
+    thisRuntime["checkWrapTable"] = function(val) {
+        thisRuntime.checkTable(val);
+        return val;
+      };
+    thisRuntime["isTable"] = ffi.isTable;
 
     var ns = thisRuntime.namespace;
     var nsWithList = ns;//.set("_link", getField(list, "link"))

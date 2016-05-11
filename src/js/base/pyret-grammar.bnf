@@ -116,6 +116,8 @@ expr: paren-expr | id-expr | prim-expr
     | table-extend
     | table-filter
     | table-order
+    | table-extract
+    | table-update
     | table-expr
 
 bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
@@ -196,11 +198,13 @@ for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
 for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
 
-column-order: NAME (ASCENDING|DESCENDING)
-table-extend: TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end
-table-select: TABLE-SELECT NAME (COMMA NAME)* FROM expr end
-table-filter: TABLE-FILTER NAME (COMMA NAME)* FROM expr COLON binop-expr end
-table-order : TABLE-ORDER  expr COLON column-order end
+column-order : NAME (ASCENDING|DESCENDING)
+table-extend : TABLE-EXTEND binding (COMMA binding)* FROM expr COLON obj-fields end
+table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr end
+table-filter : TABLE-FILTER binding (COMMA binding)* FROM expr COLON binop-expr end
+table-order  : TABLE-ORDER  expr COLON column-order end
+table-extract: TABLE-EXTRACT NAME FROM expr end
+table-update : TABLE-UPDATE binding (COMMA binding)* FROM expr COLON obj-fields end
 
 user-block-expr: BLOCK block end
 

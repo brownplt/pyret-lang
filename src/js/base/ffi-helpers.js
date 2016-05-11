@@ -1,9 +1,9 @@
-define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton", "trove/tables"],
+define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/either", "trove/equality", "trove/error", "trove/srcloc", "trove/contracts", "trove/checker", "trove/error-display", "trove/valueskeleton", "trove/table"],
        function(util, listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib, tableLib) {
   return util.memoModule("ffi-helpers", function(runtime, namespace) {
 
     return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib, tableLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS, TB) {
-
+    
       var gf = runtime.getField;
 
       var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
@@ -181,6 +181,14 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(reason);
         raise(err("invalid-array-index")(methodName, array, index, reason));
       }
+      
+      function throwInvalidTableColumn(table, table_loc, column, column_loc) {
+        runtime.checkTable(table);
+        runtime.checkString(column);
+        checkSrcloc(table_loc);
+        checkSrcloc(column_loc);
+        raise(err("invalid-table-column")(table, table_loc, column, column_loc));
+      }
 
       function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
         runtime.checkPyretVal(left);
@@ -357,8 +365,6 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       var isNotEqual = gf(EQ, "is-NotEqual").app;
       var isUnknown = gf(EQ, "is-Unknown").app;
 
-      var makeTable = gf(TB, "make-table").app;
-
       return {
         throwUpdateNonObj : throwUpdateNonObj,
         throwUpdateFrozenRef : throwUpdateFrozenRef,
@@ -414,7 +420,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isUnknown: isUnknown,
         isEqualityResult: isEqualityResult,
 
-        makeTable: makeTable,
+        makeTable: gf(TB, "makeTable"),
+        isTable: gf(TB, "isTable"),
 
         makeMessageException: makeMessageException,
         makeUserException: makeUserException,
@@ -481,7 +488,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
               } else if (runtime.unwrap(isCollection.app(cur)) === true) {
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
               } else if (runtime.unwrap(isTable.app(cur)) === true) {
-                Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "rows")));
+                runtime.getField(cur, "rows").forEach(function(row){
+                  Array.prototype.push.apply(worklist, row)});
               } else if (runtime.unwrap(isConstr.app(cur)) === true) {
                 Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
               } else if (runtime.unwrap(isStr.app(cur)) === true) {
