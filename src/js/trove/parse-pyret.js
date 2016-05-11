@@ -1034,29 +1034,30 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (app-ann-elt ann COMMA)
             return tr(node.kids[0]);
           },
-          //TABLE-EXTEND NAME (COMMA NAME)* FROM expr COLON obj-fields end
+          //TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON obj-fields end
+          //           0    1      3       4                -4    -3         -2  -1 
           'table-extend': function(node) {
             var columns = new Array();
-            for (var i = 1; i < node.kids.length - 5; i+=2)
+            for (var i = 3; i < node.kids.length - 3; i+=2)
               columns.push(tr(node.kids[i]));
-            var table = tr(node.kids[node.kids.length - 4]);
+            var table = tr(node.kids[1]);
             var extensions = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos),
               RUNTIME.getField(ast, 's-column-binds').app(
-                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 5].pos),
+                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                 makeList(columns),
                 table),
               extensions);
           },
           'table-update': function(node) {
             var columns = new Array();
-            for (var i = 1; i < node.kids.length - 5; i+=2)
+            for (var i = 3; i < node.kids.length - 3; i+=2)
               columns.push(tr(node.kids[i]));
-            var table = tr(node.kids[node.kids.length - 4]);
+            var table = tr(node.kids[1]);
             var extensions = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-update').app(pos(node.pos),
               RUNTIME.getField(ast, 's-column-binds').app(
-                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 5].pos),
+                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                 makeList(columns),
                 table),
               extensions);
@@ -1089,13 +1090,13 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'table-filter': function(node) {
             var columns = new Array();
-            for (var i = 1; i < node.kids.length - 5; i+=2)
+            for (var i = 3; i < node.kids.length - 3; i+=2)
               columns.push(tr(node.kids[i]));
-            var table = tr(node.kids[node.kids.length - 4]);
+            var table = tr(node.kids[1]);
             var predicate = tr(node.kids[node.kids.length - 2]);
             return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
               RUNTIME.getField(ast, 's-column-binds').app(
-                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 5].pos),
+                combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                 makeList(columns),
                 table),
               predicate);
