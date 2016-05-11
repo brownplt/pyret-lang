@@ -656,7 +656,8 @@ fun desugar-expr(expr :: A.Expr):
       tbl = mk-id(l, "table")
       shadow columns = 
         columns.map(lam(c):
-          { idx:  mk-id(c.l, c.s), 
+          { l: c.l,
+            idx:  mk-id(c.l, c.s), 
             name: A.s-str(c.l, c.s)};)
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
@@ -731,7 +732,7 @@ fun desugar-expr(expr :: A.Expr):
       columns = 
         column-binds.binds.map(lam(c):
           {name: A.s-str(A.dummy-loc, c.id.base),
-           loc:  c.l,
+           l:  c.l,
            idx:  mk-id(A.dummy-loc, c.id.base),
            val: {id-b: c,
                  id-e: A.s-id(c.l, c.id)}};)
