@@ -582,7 +582,16 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('#\n1')).not.toBe(false);
       expect(parse('#\n{1:2}')).toBe(false);
     });
+
+    it("should parse tuples", function() {
+      expect(parse("{1; 2; 3}")).not.toBe(false);
+      expect(parse("{4 * 3; 3; 10 - 2}")).not.toBe(false);
+      expect(parse("{12; 2 + 3; 14;}")).not.toBe(false);
+      expect(parse("{{124; 124; 12}")).toBe(false);
+      expect(parse("{word; hello; there; pyret")).toBe(false);
+      expect(parse("234; hi; bad}")).toBe(false);
+    });
   });
 
-
+  
 });
