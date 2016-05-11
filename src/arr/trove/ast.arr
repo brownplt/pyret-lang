@@ -1643,6 +1643,9 @@ default-map-visitor = {
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
+  s-tuple(self, l :: Loc, fields :: List<Expr>):
+    s-tuple(l, fields.map(_.visit(self)))
+  end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
@@ -2101,6 +2104,9 @@ default-iter-visitor = {
   end,
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and lists.all(_.visit(self), fields)
+  end,
+  s-tuple(self, l :: Loc, fields :: List<Expr>):
+    lists.all(_.visit(self), fields)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
