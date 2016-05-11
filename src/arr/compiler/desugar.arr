@@ -537,9 +537,6 @@ fun desugar-expr(expr :: A.Expr):
       end
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
-      fun make-list(elems):
-        A.s-prim-app(l, "raw_array_to_list", [list: A.s-array(l, elems)])
-      end
       shadow headers = for map(header from headers):
         A.s-str(header.l, header.name)
       end
@@ -547,7 +544,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-array(l, row.elems.map(desugar-expr))
       end
       A.s-prim-app(l, "makeTable", 
-        [list: A.s-array(l, headers), 
+        [list: A.s-array(l, headers),
                A.s-array(l, rows)])
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened

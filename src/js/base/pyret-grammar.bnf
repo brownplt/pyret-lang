@@ -169,8 +169,8 @@ list-elt: binop-expr COMMA
 table-expr: TABLE table-headers table-rows end
 table-headers: [list-table-header* table-header]
 list-table-header: table-header COMMA
-table-header: NAME
-table-rows: table-row* table-row
+table-header: NAME [COLONCOLON ann]
+table-rows: [table-row* table-row]
 table-row: ROW table-items
 table-items: [list-table-item* binop-expr]
 list-table-item: binop-expr COMMA
