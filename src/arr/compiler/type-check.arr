@@ -410,7 +410,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               | t-ref(arg-type, _) =>
                 checking(value, arg-type, top-level, context)
               | else =>
-                typing-error([list: C.incorrect-type(tostring(id-type), l, tostring(t-ref(id-type, l)), l)])
+                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
             end
           end)
         | s-if-pipe(l, branches) =>
@@ -460,7 +460,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                 temp-obj-type = t-record(field-types, l)
                 cases(Option<Context>) satisfies-type(temp-obj-type, expect-type, context):
                   | none =>
-                    typing-error([list: C.incorrect-type(tostring(temp-obj-type), temp-obj-type.l, tostring(expect-type), expect-type.l)])
+                    typing-error([list: C.incorrect-type-expression(tostring(temp-obj-type), temp-obj-type.l, tostring(expect-type), expect-type.l, e)])
                   | some(shadow context) =>
                     new-obj-type = context.apply(temp-obj-type)
                     fields-and-types = map2(lam(field, field-type):
@@ -478,7 +478,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             | t-top(t-l) =>
               check-synthesis(e, expect-type, top-level, context)
             | else =>
-              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "an object type", l)])
+              typing-error([list: C.incorrect-type-expression(tostring(expect-type), expect-type.l, "an object type", l, e)])
           end
         | s-array(l, values) =>
           wrapped = cases(Type) expect-type:
@@ -489,14 +489,14 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                   checking(value, param-type, false, context)
                 end
               else:
-                fold-errors([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-type), expect-type.l)])
+                fold-errors([list: C.incorrect-type-expression(tostring(TS.t-array-name), l, tostring(expect-type), expect-type.l, e)])
               end
             | t-top(tl) =>
               for fold-typing(value from values, shadow context from context):
                 checking(value, t-top(tl), false, context)
               end
             | else =>
-              fold-errors([list: C.incorrect-type("a raw array", l, tostring(expect-type), expect-type.l)])
+              fold-errors([list: C.incorrect-type-expression("a raw array", l, tostring(expect-type), expect-type.l, e)])
           end
 
           wrapped.typing-bind(lam(new-values, shadow context):
@@ -650,7 +650,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
               typing-result(A.s-assign(l, id, new-value), arg-type.set-loc(l), context)
             end)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(id-type), l, tostring(t-ref(id-type, l)), l)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
         end
       end)
     | s-if-pipe(l, branches) =>
@@ -748,7 +748,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(arg-type, _) =>
             typing-result(e, arg-type.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(id-type), id-type.l, tostring(t-ref(id-type, l)), l)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l)), l, e)])
         end
       end)
     | s-id-letrec(l, id, safe) =>
@@ -779,7 +779,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(typ, _) =>
             typing-result(new-get-bang, typ.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(field-type), field-type.l, "a ref type", l)])
+            typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
         end
       end)
     | s-bracket(l, obj, field) =>
@@ -1535,7 +1535,7 @@ fun check-synthesis(e :: Expr, expect-type :: Type, top-level :: Boolean, contex
         typing-result(new-expr, context.apply(applied-expect-type), context)
       | none =>
         # TODO(MATT): different error for existential
-        typing-error([list: C.incorrect-type(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), applied-expect-type.l)])
+        typing-error([list: C.incorrect-type-expression(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), applied-expect-type.l, e)])
     end
   end)
 end
@@ -2137,7 +2137,7 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
                     end
                   end)
                 | none =>
-                  typing-error([list: C.incorrect-type(tostring(val-type), val-type.l, tostring(typ), typ.l)])
+                  typing-error([list: C.incorrect-type-expression(tostring(val-type), val-type.l, tostring(typ), typ.l, val)])
               end
             end)
           | none =>
