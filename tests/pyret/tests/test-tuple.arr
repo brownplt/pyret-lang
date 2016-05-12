@@ -9,7 +9,7 @@ end
 
 check "desugar to array":
    x = {1; 3; 10}
-   raw-array-get(x, 0) is 1
-   raw-array-get(x, 1) is 3
-   raw-array-get(x, 2) is 10
+   x.v1 is 1
+   x.v2 is 3
+   x.v3 is 10
 end

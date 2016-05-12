@@ -464,7 +464,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
-    | s-tuple(l, fields) => A.s-array(l, fields.map(desugar-expr))
+    | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:

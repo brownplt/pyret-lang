@@ -319,6 +319,10 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
                 A.s-id(l, name.id)))))
       end
+    | s-tuple(l, fields) =>
+      anf-name-rec(fields, "anf_tuple_fields", lam(vs):
+       k.apply(l, N.a-tuple(l, vs))
+     end)
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):
         k.apply(l, N.a-array(l, vs))

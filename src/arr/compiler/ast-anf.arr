@@ -373,6 +373,12 @@ data ALettable:
           PP.group(PP.str("ref ") + ann.tosource())
       end
     end
+  | a-tuple(l :: Loc, fields :: List<AVal>%(is-link)) with:
+    label(self): "a-tuple" end,
+    tosource(self):
+     PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+        PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
@@ -515,6 +521,7 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
+    | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -630,6 +637,9 @@ default-map-visitor = {
   end,
   a-ref(self, l :: Loc, ann :: Option<A.Ann>):
     a-ref(l, ann)
+  end,
+  a-tuple(self, l :: Loc, fields :: List<AVal>):
+    a-tuple(l, fields.map(_.visit(self)))
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
@@ -861,6 +871,10 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       cases(Option) maybe-ann:
         | none => seen-so-far
         | some(a) => freevars-ann-acc(a, seen-so-far)
+      end
+    | a-tuple(_, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-v-acc(f, acc)
       end
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
