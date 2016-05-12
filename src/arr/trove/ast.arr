@@ -1739,13 +1739,13 @@ default-map-visitor = {
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
-    s-table(l, headers, rows.map(_.visit(self)))
+    s-table(l, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
   s-table-row(self, l :: Loc, elems :: List<Expr>):
     s-table-row(l, elems.map(_.visit(self)))
   end,
   s-field-name(self, l :: Loc, name :: String, ann :: Ann):
-    s-field-name(l, name, ann)
+    s-field-name(l, name, ann.visit(self))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
@@ -2715,13 +2715,13 @@ dummy-loc-visitor = {
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-table(self, l :: Loc, headers :: List<String>, rows :: List<TableRow>):
-    s-table(dummy-loc, headers, rows.map(_.visit(self)))
+    s-table(dummy-loc, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
   s-table-row(self, l :: Loc, elems :: List<Expr>):
     s-table-row(dummy-loc, elems.map(_.visit(self)))
   end,
   s-field-name(self, l :: Loc, name :: String, ann :: Ann):
-    s-field-name(dummy-loc, name, ann)
+    s-field-name(dummy-loc, name, ann.visit(self))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
