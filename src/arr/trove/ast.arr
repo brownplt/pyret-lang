@@ -1094,9 +1094,13 @@ sharing:
 end
 
 data FieldName:
-  | s-field-name(l :: Loc, name :: String) with:
+  | s-field-name(l :: Loc, name :: String, ann :: Ann) with:
     label(self): "s-field-name" end,
-    tosource(self): PP.str(self.name) end
+    tosource(self):
+      if is-a-blank(self.ann): PP.str(self.name)
+      else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())
+      end
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1735,13 +1739,13 @@ default-map-visitor = {
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
-    s-table(l, headers, rows.map(_.visit(self)))
+    s-table(l, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
   s-table-row(self, l :: Loc, elems :: List<Expr>):
     s-table-row(l, elems.map(_.visit(self)))
   end,
-  s-field-name(self, l :: Loc, name :: String):
-    s-field-name(l, name)
+  s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+    s-field-name(l, name, ann.visit(self))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
@@ -2232,7 +2236,7 @@ default-iter-visitor = {
   s-table-row(self, l :: Loc, elems :: List<Expr>):
     lists.all(_.visit(self), elems)
   end,
-  s-field-name(self, l :: Loc, name :: String):
+  s-field-name(self, l :: Loc, name :: String, ann :: Ann):
     true
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
@@ -2711,13 +2715,13 @@ dummy-loc-visitor = {
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
   s-table(self, l :: Loc, headers :: List<String>, rows :: List<TableRow>):
-    s-table(dummy-loc, headers, rows.map(_.visit(self)))
+    s-table(dummy-loc, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
   s-table-row(self, l :: Loc, elems :: List<Expr>):
     s-table-row(dummy-loc, elems.map(_.visit(self)))
   end,
-  s-field-name(self, l :: Loc, name :: String):
-    s-field-name(dummy-loc, name)
+  s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+    s-field-name(dummy-loc, name, ann.visit(self))
   end,
   s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))

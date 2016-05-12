@@ -607,15 +607,24 @@ top-level-visitor = A.default-iter-visitor.{
       add-error(C.table-empty-header(l))
       true
     else:
+      for each(i from range(0, header.length())):
+        for each(j from range(i + 1, header.length())):
+          hi = header.get(i)
+          hj = header.get(j)
+          when hi.name == hj.name:
+            add-error(C.table-duplicate-column-name(hi, hj))
+          end
+        end
+      end
       for lists.all(_row from rows):
         actual-len = _row.elems.length()
         when actual-len == 0:
           add-error(C.table-empty-row(_row.l))
         end
         when (actual-len <> 0) and (actual-len <> expected-len):
-          header-loc = header   .get(0).l + header   .last().l
+          header-loc = header    .get(0).l + header    .last().l
           row-loc    = _row.elems.get(0).l + _row.elems.last().l
-          add-error(C.table-row-wrong-size(header-loc, row-loc, header, _row))
+          add-error(C.table-row-wrong-size(header-loc, header, _row))
         end
         for lists.all(elem from _row.elems):
           elem.visit(well-formed-visitor)

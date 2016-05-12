@@ -32,6 +32,11 @@ fun check-table<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapTable", [list: e]))
 end
 
+fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
+  id = mk-id-ann(l, "ann-check_", ann)
+  A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, expr)], id.id-e)
+end
+
 fun get-table-column(l, e, column):
   A.s-app(A.dummy-loc,
     A.s-dot(A.dummy-loc, e, "_column-index"),
@@ -537,17 +542,20 @@ fun desugar-expr(expr :: A.Expr):
       end
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
-      fun make-list(elems):
-        A.s-prim-app(l, "raw_array_to_list", [list: A.s-array(l, elems)])
-      end
-      shadow headers = for map(header from headers):
+      column-names = for map(header from headers):
         A.s-str(header.l, header.name)
       end
-      shadow rows = for map(row from rows):
-        A.s-array(l, row.elems.map(desugar-expr))
+      anns = for map(header from headers):
+        desugar-ann(header.ann)
       end
-      A.s-prim-app(l, "makeTable", 
-        [list: A.s-array(l, headers), 
+      shadow rows = for map(row from rows):
+        elems = for map_n(n from 0, elem from row.elems):
+          check-ann(elem.l, desugar-expr(elem), anns.get(n))
+        end
+        A.s-array(l, elems)
+      end
+      A.s-prim-app(l, "makeTable",
+        [list: A.s-array(l, column-names),
                A.s-array(l, rows)])
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened

@@ -210,7 +210,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("Pyret rejected your program because you have an "),
-          ED.highlight(ED.text("empty block"),[list: self.loc], 0),
+          ED.highlight(ED.text("empty block"), [list: self.loc], 0),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -1444,33 +1444,31 @@ data CompileError:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table at "),
-          draw-and-highlight(self.loc),
-          ED.text(" has no headers.")]]
+          ED.highlight(ED.text("This table"), [list: self.loc], 0),
+          ED.text(" has no column names, but tables must have at least one column.")]]
     end,
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table at"),
+          ED.text("The table at "),
           ED.loc(self.loc),
-          ED.text("has no headers.")]]
+          ED.text(" has no column names, but tables must have at least one column.")]]
     end
   | table-empty-row(loc :: A.Loc) with:
     render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table row at "),
-          draw-and-highlight(self.loc),
-          ED.text(" is empty.")]]
+          ED.highlight(ED.text("This table row"), [list: self.loc], 0),
+          ED.text(" is empty, but table rows cannot be empty.")]]
     end,
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The table row at"),
+          ED.text("The table row at "),
           ED.loc(self.loc),
-          ED.text("is empty.")]]
+          ED.text(" is empty, but table rows cannot be empty.")]]
     end
-  | table-row-wrong-size(header-loc :: A.Loc, row-loc :: A.Loc, header :: List<A.FieldName>, _row :: List<A.Expr>) with:
+  | table-row-wrong-size(header-loc :: A.Loc, header :: List<A.FieldName>, row :: A.TableRow) with:
     render-fancy-reason(self):
       fun ed-cols(n, ls, c):
         ED.highlight([ED.sequence:
@@ -1484,10 +1482,10 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The table row")],
-        ED.cmcode(self.row-loc),
+        ED.cmcode(self.row.l),
         [ED.para:
           ED.text("has "),
-          ed-cols(self._row.length(), self._row.map(_.l), 0),
+          ed-cols(self.row.elems.length(), self.row.elems.map(_.l), 0),
           ED.text(", but the table header")],
         ED.cmcode(self.header-loc),
         [ED.para:
@@ -1507,18 +1505,35 @@ data CompileError:
       end
       [ED.error:
         [ED.para:
-          ED.text("The table row at")],
-        ED.loc(self.row-loc),
-        [ED.para:
-          ED.text("has "),
-          ed-cols(self._row.length()),
-          ED.text(", but the table header")],
-        ED.loc(self.header-loc),
-        [ED.para:
+          ED.text("The table row at "),
+          ED.loc(self.row.l),
+          ED.text(" has "),
+          ed-cols(self.row.elems.length()),
+          ED.text(", but the table header "),
+          ED.loc(self.header-loc),
           ED.text(" declares "),
           ed-cols(self.header.length()),
           ED.text(".")]]
     end
+  | table-duplicate-column-name(column1 :: A.FieldName, column2 :: A.FieldName) with:
+    render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Column "),
+          ED.highlight(ED.text(self.column1.name), [list: self.column1.l], 0),
+          ED.text(" and column "),
+          ED.highlight(ED.text(self.column2.name), [list: self.column2.l], 0),
+          ED.text(" have the same name, but table columns must have different names.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table columns at "),
+          ED.loc(self.column1.l),
+          ED.text(" and at "),
+          ED.loc(self.column2.l),
+          ED.text(" have the same name, but columns in a table must have different names.")]]
+    end,
 end
 
 default-compile-options = {
