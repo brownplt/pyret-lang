@@ -178,9 +178,7 @@ sharing:
         VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
       | t-existential(id, _) => VS.vs-str(id.key())
       | t-data(name, variants, fields, _) =>
-        VS.vs-seq([list: VS.vs-str("data "),
         VS.vs-str(name)
-        ])
       | t-data-refinement(data-type, variant-name, _) =>
         VS.vs-seq([list: VS.vs-value("("),
                          VS.vs-value(data-type),

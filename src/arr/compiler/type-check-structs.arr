@@ -68,13 +68,38 @@ sharing:
     end
   end,
   apply(self, typ :: Type) -> Type:
-    keys = self.existentials.keys()
-    keys.fold(lam(current-type, key):
-      existential-pair = self.existentials.get-value(key)
-      existential = existential-pair.left
-      assigned-type = existential-pair.right
-      current-type.substitute(assigned-type, existential)
-    end, typ)
+    _apply = lam(arg): self.apply(arg) end
+    _apply-member = lam(field): TS.t-member(field.field-name, self.apply(field.typ)) end
+    _apply-variant = lam(variant):
+        cases(TS.TypeVariant) variant:
+          | t-variant(shadow name, shadow fields, shadow with-fields) =>
+            TS.t-variant(name, fields.map(_apply-member), with-fields.map(_apply-member))
+          | t-singleton-variant(shadow name, shadow with-fields) =>
+            TS.t-singleton-variant(name, with-fields.map(_apply-member))
+        end
+      end
+    cases(Type) typ:
+      | t-arrow(args, ret, l) =>
+        TS.t-arrow(args.map(_apply), self.apply(ret), l)
+      | t-app(onto, args, l) =>
+        TS.t-app(self.apply(onto), args.map(_apply), l)
+      | t-record(fields, l) =>
+        TS.t-record(fields.map(_apply-member), l)
+      | t-forall(introduces, onto, l) =>
+        TS.t-forall(introduces, self.apply(onto), l)
+      | t-ref(shadow typ, l) =>
+        TS.t-ref(self.apply(typ), l)
+      | t-existential(id, l) =>
+        cases(Option<Pair<Type, Type>>) self.existentials.get(id.key()):
+          | none => TS.t-existential(id, l)
+          | some(exists-and-assigned) => exists-and-assigned.right
+        end
+      | t-data(name, variants, fields, l) =>
+        TS.t-data(name, variants.map(_apply-variant), fields.map(_apply-member), l)
+      | t-data-refinement(data-type, variant-name, l) =>
+        TS.t-data-refinement(self.apply(data-type), variant-name, l)
+      | else => typ
+    end
   end,
   assign-existential(self, existential :: Type, assigned-type :: Type) -> Context:
     if self.existentials.has-key(existential.key()):
