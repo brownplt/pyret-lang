@@ -242,6 +242,19 @@ function isBase(obj) { return obj instanceof PBase; }
         return "<internal value>";
       }
     },
+    "tuple": function(t, pushTodo) {
+        pushTodo(undefined, undefined, undefined, Array.prototype.slice.call(t.vals), "render-tuple");
+    },
+    "render-tuple": function(top) {
+      var s = "{ ";
+      for(var i = top.done.length - 1; i >= 0; i--) {
+        if(i < top.done.length - 1) { s += "; "; }
+        s += top.done[i];
+      }
+      s += " }";
+      return s;
+  
+    },
     "object": function(val, pushTodo) {
       var keys = [];
       var vals = [];
@@ -941,6 +954,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
       ffi.throwMessageException("Attempt to get an unset ref");
     }
 
+   function PTuple(vals) {
+      this.vals = vals;
+   }
+   
+   function makeTuple(vals) {
+      return new PTuple(vals);
+   }
+   
+   function isTuple(val) {
+      return val instanceof PTuple;
+   }
+        
+
     /*********************
             Object
     **********************/
@@ -984,7 +1010,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
     function makeObject(dict) {
        return new PObject(dict, noBrands);
-    }
+    ;}
 
     function makeBrandedObject(dict, brands) {
       return new PObject(dict, brands);
@@ -1303,6 +1329,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
               else {
                 reprMethods["array"](next, pushTodo);
               }
+            }
+            else if(isTuple(next)) {
+                
+                console.log("The values in isTuple: ", next.vals);
+                reprMethods["tuple"](next, pushTodo);
             }
             else if(isRef(next)) {
               var refHasBeenSeen = findSeenRef(top.refs, next);
@@ -4417,6 +4448,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
+        'isTuple'     : isTuple,
         'isObject'    : isObject,
         'isDataValue' : isDataValue,
         'isRef'       : isRef,
@@ -4459,6 +4491,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'callIfPossible6' : callIfPossible6,
         'callIfPossible7' : callIfPossible7,
         'callIfPossible8' : callIfPossible8,
+        'makeTuple' : makeTuple,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'makeBrandedObject'   : makeBrandedObject,

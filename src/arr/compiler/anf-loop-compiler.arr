@@ -1168,10 +1168,7 @@ compiler-visitor = {
   end,
   a-tuple(self, l, values):
     visit-vals = values.map(_.visit(self)) 
-    jfields = for CL.map_list_n(n from 1, v from visit-vals): 
-        j-field("v" + num-to-string(n), get-exp(v))
-    end
-    c-exp(rt-method("makeObject", [clist: j-obj(jfields)]), cl-empty)
+    c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
   end,
   a-array(self, l, values):
     visit-vals = values.map(_.visit(self))

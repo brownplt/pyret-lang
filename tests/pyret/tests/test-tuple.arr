@@ -13,3 +13,9 @@ check "desugar to array":
    x.v2 is 3
    x.v3 is 10
 end
+
+
+check "print tuple":
+  x = {13; 1 + 4; 41; 1}
+  torepr(x) is "{ 13; 5; 41; 1 }"
+end
