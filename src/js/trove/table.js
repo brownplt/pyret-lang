@@ -90,12 +90,40 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               else return col_index;
             }),
           
-          '_equals': runtime.makeMethod2(function(self, other, recursiveEquality) {
+          '_equals': runtime.makeMethod2(function(self, other, equals) {
             runtime.ffi.checkArity(3, arguments, "_equals");
-            if (!hasBrand(brandTable, other)) {
-              return runtime.ffi.notEqual.app('', self, other);
-            } else {
+            // is the other a table
+            // same number of columns?
+            // same number of rows?
+            // columns have same names?
+            // each row has the same elements
+            if (hasBrand(brandTable, other)
+             && headers.length == get(other, "_header-raw-array").length
+             && rows.length    == get(other, "_rows-raw-array").length
+             && (function(){
+                  otherHeaders = get(other, "_header-raw-array")
+                  for(var i=0; i < headers.length; i++) {
+                    if(headers[i] != otherHeaders[i])
+                      return false;
+                  } return true;})()
+             && (function(){
+                  debugger;
+                  rowLength = headers.length;
+                  otherRows = get(other, "_rows-raw-array");
+                  var equal = true;
+                  for(var i=0; i < rows.length && equal; i++) {
+                    var selfRow = rows[i];
+                    var otherRow = otherRows[i];
+                    for(var j=0; j < rowLength && equal; j++) {
+                      equal &= runtime.safeCall(
+                        function() {return equals.app(selfRow[j], otherRow[j]);},
+                        function(r){return runtime.ffi.isEqual(r);});
+                    }
+                  }
+                  return equal;})()) {
               return runtime.ffi.equal;
+            } else {
+              return runtime.ffi.notEqual.app('', self, other);
             }
           }),
           
