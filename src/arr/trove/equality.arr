@@ -2,6 +2,7 @@
 
 provide *
 provide-types *
+import global as _
 import error as error
 
 data EqualityResult:

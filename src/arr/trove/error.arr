@@ -3,6 +3,7 @@ provide-types *
 # import arrays as A
 # import lists as L
 
+import global as _
 import error-display as ED
 
 fun draw-and-highlight(l):

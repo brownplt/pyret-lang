@@ -3,6 +3,8 @@
 provide *
 provide-types *
 
+import global as _
+
 data Option<a>:
   | none with:
     or-else(self :: Option<a>, v :: a) -> a:

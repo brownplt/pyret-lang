@@ -67,10 +67,12 @@ check:
       CM.builtin("string-dict")]
   wlist = CL.compile-worklist(dfind, floc, {})
   wlist.length() is 20
-  wlist.get(0).locator.uri() is "builtin://valueskeleton"
-  wlist.get(0).locator.name() is "valueskeleton"
-  wlist.get(1).locator.uri() is "builtin://string-dict"
-  wlist.get(1).locator.name() is "string-dict"
+  wlist.get(0).locator.uri() is "builtin://global"
+  wlist.get(0).locator.name() is "global"
+  wlist.get(1).locator.uri() is "builtin://valueskeleton"
+  wlist.get(1).locator.name() is "valueskeleton"
+  wlist.get(2).locator.uri() is "builtin://string-dict"
+  wlist.get(2).locator.name() is "string-dict"
   wlist.get(18).locator.uri() is "protocol://bar"
   wlist.get(18).locator is string-to-locator("bar")
   wlist.get(19).locator is floc

@@ -3,6 +3,8 @@
 provide *
 provide-types *
 
+import global as _
+
 data ErrorDisplay:
   | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)

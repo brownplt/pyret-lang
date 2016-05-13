@@ -16,6 +16,7 @@ provide {
 } end
 provide-types *
 
+import global as _
 import pick as pick
 import lists as lists
 import error as error

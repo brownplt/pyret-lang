@@ -3,6 +3,7 @@
 provide *
 provide-types *
 
+import global as _
 import valueskeleton as VS
 
 data Srcloc:
