@@ -132,7 +132,7 @@
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
           "\\_>\\|" 
-          (regexp-opt '("." "!" "^")) 
+          "\\(?:\\.\\(?:$\\|[^.]\\)\\|[!^]\\)"
           "\\)"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 

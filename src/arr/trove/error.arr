@@ -41,6 +41,12 @@ data RuntimeError:
         [ED.para: ED.text("Relevant arguments:")],
         vert-list-values(self.info-args)]
     end
+  | template-not-finished(loc) with:
+    render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("The program tried to evaluate an unfinished template expression at")],
+        [ED.para: draw-and-highlight(self.loc)]]
+    end
   | field-not-found(loc, obj, field :: String) with:
     render-reason(self):
       [ED.error:

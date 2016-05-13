@@ -213,20 +213,27 @@ fun check-underscore-name(fields, kind-of-thing :: String) -> Boolean:
   is-empty(underscores)
 end
 
-fun ensure-distinct-lines(loc :: Loc, stmts :: List<A.Expr>):
+fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List<A.Expr>):
   cases(List) stmts:
     | empty => nothing
     | link(first, rest) =>
       cases(Loc) loc:
-        | builtin(_) => ensure-distinct-lines(first.l, rest)
+        | builtin(_) => ensure-distinct-lines(first.l, A.is-s-template(first), rest)
         | srcloc(_, _, _, _, end-line1, _, _) =>
           cases(Loc) first.l:
-            | builtin(_) => ensure-distinct-lines(loc, rest) # No need to preserve builtin() locs
+            | builtin(_) => ensure-distinct-lines(loc, prev-is-template, rest) # No need to preserve builtin() locs
             | srcloc(_, start-line2, _, _, _, _, _) =>
-              when end-line1 == start-line2:
-                wf-error2("Found two expressions on the same line", loc, first.l)
+              when (end-line1 == start-line2):
+                if A.is-s-template(first) and prev-is-template:
+                  wf-error2("Found two adjacent template expressions on the same line: "
+                      + "either remove one or separate them", loc, first.l)
+                else if not(A.is-s-template(first)) and not(prev-is-template):
+                  wf-error2("Found two expressions on the same line", loc, first.l)
+                else:
+                  nothing
+                end
               end
-              ensure-distinct-lines(first.l, rest)
+              ensure-distinct-lines(first.l, A.is-s-template(first), rest)
           end
       end
   end
@@ -282,7 +289,7 @@ end
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)):
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts.reverse())
-  ensure-distinct-lines(A.dummy-loc, stmts)
+  ensure-distinct-lines(A.dummy-loc, false, stmts)
   lists.all(_.visit(visitor), stmts)
 end
 
@@ -694,6 +701,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-let-bind(_, l, bind, expr):
     well-formed-visitor.s-let-bind(l, bind, expr)
+  end,
+  s-template(self, l):
+    well-formed-visitor.s-template(l)
   end,
   s-let-expr(_, l, binds, body, blocky):
     well-formed-visitor.s-let-expr(l, binds, body, blocky)

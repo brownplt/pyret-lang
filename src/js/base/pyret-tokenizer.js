@@ -134,6 +134,7 @@ define(["jglr/jglr"], function(E) {
   const lparen = new RegExp("^\\(", STICKY_REGEXP);
   const rparen = new RegExp("^\\)", STICKY_REGEXP);
   const period = new RegExp("^\\.", STICKY_REGEXP);
+  const dotdotdot = new RegExp("^\\.\\.\\.", STICKY_REGEXP);
   const bang = new RegExp("^!", STICKY_REGEXP);
   const percent = new RegExp("^%", STICKY_REGEXP);
   const comma = new RegExp("^,", STICKY_REGEXP);
@@ -255,6 +256,7 @@ define(["jglr/jglr"], function(E) {
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
+    {name: "DOTDOTDOT", val: dotdotdot},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},

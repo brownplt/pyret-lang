@@ -483,6 +483,9 @@
           // (expr e)
           return tr(node.kids[0]);
         },
+        'template-expr': function(node) {
+          return RUNTIME.getField(ast, 's-template').app(pos(node.pos));
+        },
         'binop-expr-paren': function(node) {
           if (node.kids[0].name === "paren-nospace-expr") {
             // (binop-expr-paren (paren-nospace-expr _ e _))

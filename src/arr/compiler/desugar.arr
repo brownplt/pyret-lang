@@ -36,6 +36,9 @@ end
 fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
+fun template-exn(l):
+  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
+end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -312,6 +315,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
       desugar-expr(body)
+    | s-template(l) => template-exn(l)
     | s-app(l, f, args) =>
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>

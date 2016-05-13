@@ -103,6 +103,7 @@ expr: paren-expr | id-expr | prim-expr
     | lambda-expr | method-expr | app-expr
     | obj-expr
     | dot-expr
+    | template-expr
 #    | bracket-expr NOTE(joe): commented out until it has semantics
     | get-bang-expr | update-expr
     | extend-expr
@@ -112,6 +113,8 @@ expr: paren-expr | id-expr | prim-expr
     | multi-let-expr | letrec-expr
     | type-let-expr
     | construct-expr
+
+template-expr : DOTDOTDOT
 
 bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
 

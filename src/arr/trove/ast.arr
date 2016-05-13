@@ -490,6 +490,9 @@ data Expr:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
+  | s-template(l :: Loc) with:
+    label(self): "s-template" end,
+    tosource(self): PP.str("...") end
   | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr, blocky :: Boolean) with:
     label(self): "s-type-let" end,
     tosource(self):
@@ -1481,6 +1484,10 @@ default-map-visitor = {
     s-type-let-expr(l, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
+  s-template(self, l):
+    s-template(l)
+  end,
+
   s-let-expr(self, l, binds, body, blocky):
     s-let-expr(l, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
@@ -1917,6 +1924,10 @@ default-iter-visitor = {
     true
   end,
   s-provide-types-none(self, l):
+    true
+  end,
+
+  s-template(self, l):
     true
   end,
 
@@ -2393,6 +2404,10 @@ dummy-loc-visitor = {
 
   s-newtype-bind(self, l, name, namet):
     s-newtype-bind(l, name.visit(self), namet.visit(self))
+  end,
+
+  s-template(self, l):
+    s-template(dummy-loc)
   end,
 
   s-type-let-expr(self, l, binds, body, blocky):

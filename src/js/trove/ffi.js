@@ -287,6 +287,9 @@
       runtime.checkPyretVal(val);
       raise(err("no-cases-matched")(runtime.makeSrcloc(locArray), val));
     }
+    function throwUnfinishedTemplate(locArray) {
+      raise(err("template-not-finished")(runtime.makeSrcloc(locArray)));
+    }
     function throwNonFunApp(locArray, funVal) {
       runtime.checkPyretVal(funVal);
       raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
@@ -391,6 +394,7 @@
       throwNoBranchesMatched: throwNoBranchesMatched,
       throwNoCasesMatched: throwNoCasesMatched,
       throwNonFunApp: throwNonFunApp,
+      throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
 
       throwParseErrorNextToken: throwParseErrorNextToken,

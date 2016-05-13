@@ -275,6 +275,7 @@
           otherRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
           otherRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
           otherRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+          otherRuntime["throwUnfinishedTemplate"] = ffi.throwUnfinishedTemplate;
 
           var checkList = otherRuntime.makeCheckType(ffi.isList, "List");
           otherRuntime["checkList"] = checkList;
