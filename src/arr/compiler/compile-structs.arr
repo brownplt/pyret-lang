@@ -245,6 +245,26 @@ data CompileError:
         [ED.para: ED.text("Underscore used as an annotation, which is not allowed at ")],
         draw-and-highlight(self.l)]
     end
+  | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
+    render-reason(self):
+      if self.block-locs.length() > 1:
+        [ED.error:
+          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
+            ED.text("contains several blocks that each contain multiple expressions:")],
+          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with"),
+            ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
+      else:
+        [ED.error:
+          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
+            ED.text("contains a block that contains multiple expressions:")],
+          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("Either simplify this block to a single expression, or mark the outer expression with"),
+            ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
+      end
+    end
   | unbound-id(id :: A.Expr) with:
     render-reason(self):
       cases(SL.Srcloc) self.id.l:

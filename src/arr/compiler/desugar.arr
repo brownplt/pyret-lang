@@ -103,12 +103,12 @@ fun get-arith-op(str):
   end
 end
 
-fun desugar-if(l, branches, _else :: A.Expr):
+fun desugar-if(l, branches, _else :: A.Expr, blocky):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
     check-bool(branch.l, desugar-expr(branch.test), lam(test-id):
         A.s-if-else(l,
           [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
-          acc)
+          acc, blocky)
       end)
   end
 end
@@ -147,8 +147,8 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check)))
+    | s-method-field(l, name, params, args, ann, doc, body, _check, blocky) =>
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check, blocky)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -175,7 +175,7 @@ end
 fun ds-curry-nullary(rebuild-node, l, obj, m):
   if is-underscore(obj):
     curried-obj = mk-id(l, "recv_")
-    A.s-lam(l, [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none)
+    A.s-lam(l, [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, false)
   else:
     rebuild-node(l, desugar-expr(obj), m)
   end
@@ -193,7 +193,7 @@ fun ds-curry-binop(s, e1, e2, rebuild):
     | empty => rebuild(e1, e2)
     | link(f, r) =>
       curry-args = params-and-args.right
-      A.s-lam(s, [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none)
+      A.s-lam(s, [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, false)
   end
 end
 
@@ -203,11 +203,11 @@ fun ds-curry(l, f, args):
     params = params-and-args.left
     if is-underscore(f):
       f-id = mk-id(l, "f_")
-      A.s-lam(l, empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none)
+      A.s-lam(l, empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, false)
     else:
       ds-f = desugar-expr(f)
       if is-empty(params): A.s-app(l, ds-f, args)
-      else: A.s-lam(l, [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none)
+      else: A.s-lam(l, [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, false)
       end
     end
   end
@@ -218,7 +218,7 @@ fun ds-curry(l, f, args):
         params-and-args = ds-curry-args(l, args)
         params = params-and-args.left
         A.s-lam(l, [list: ], link(curried-obj.id-b, params), A.a-blank, "",
-            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none)
+            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, false)
       else:
         fallthrough()
       end
@@ -316,25 +316,25 @@ fun desugar-expr(expr :: A.Expr):
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-lam(l, params, args, ann, doc, body, _check) =>
-      A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-method(l, params, args, ann, doc, body, _check) =>
-      A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
+    | s-lam(l, params, args, ann, doc, body, _check, blocky) =>
+      A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
+    | s-method(l, params, args, ann, doc, body, _check, blocky) =>
+      A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
     | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
-    | s-type-let-expr(l, binds, body) =>
+    | s-type-let-expr(l, binds, body, blocky) =>
       fun desugar-type-bind(tb):
         cases(A.TypeLetBind) tb:
           | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
           | s-newtype-bind(l2, name, nameb) => tb
         end
       end
-      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
-    | s-let-expr(l, binds, body) =>
+      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body), blocky)
+    | s-let-expr(l, binds, body, blocky) =>
       new-binds = desugar-let-binds(binds)
-      A.s-let-expr(l, new-binds, desugar-expr(body))
-    | s-letrec(l, binds, body) =>
-      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
+      A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
+    | s-letrec(l, binds, body, blocky) =>
+      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body), blocky)
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         cases(A.Variant) v:
@@ -354,36 +354,38 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
-    | s-when(l, test, body) =>
+    | s-when(l, test, body, blocky) =>
       check-bool(l, desugar-expr(test), lam(test-id-e):
           A.s-if-else(l,
             [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-            A.s-block(l, [list: gid(l, "nothing")]))
+            A.s-block(l, [list: gid(l, "nothing")]),
+            blocky)
         end)
-    | s-if(l, branches) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]))
-    | s-if-else(l, branches, _else) =>
-      desugar-if(l, branches, _else)
-    | s-if-pipe(l, branches) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]))
-    | s-if-pipe-else(l, branches, _else) =>
-      desugar-if(l, branches, _else)
-    | s-cases(l, typ, val, branches) =>
-      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch))
+    | s-if(l, branches, blocky) =>
+      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
+    | s-if-else(l, branches, _else, blocky) =>
+      desugar-if(l, branches, _else, blocky)
+    | s-if-pipe(l, branches, blocky) =>
+      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]), blocky)
+    | s-if-pipe-else(l, branches, _else, blocky) =>
+      desugar-if(l, branches, _else, blocky)
+    | s-cases(l, typ, val, branches, blocky) =>
+      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch), blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
-    | s-cases-else(l, typ, val, branches, _else) =>
+    | s-cases-else(l, typ, val, branches, _else, blocky) =>
       A.s-cases-else(l, desugar-ann(typ), desugar-expr(val),
         branches.map(desugar-case-branch),
-        desugar-expr(_else))
+        desugar-expr(_else),
+        blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body) =>
+    | s-for(l, iter, bindings, ann, body, blocky) =>
       values = bindings.map(_.value).map(desugar-expr)
-      the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
+      the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
     | s-op(l, op, left, right) =>
       cases(Option) get-arith-op(op):
@@ -393,7 +395,7 @@ fun desugar-expr(expr :: A.Expr):
               A.s-app(l, gid(l, field), [list: e1, e2])
             end)
         | none =>
-          fun thunk(e): A.s-lam(l, [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none) end
+          fun thunk(e): A.s-lam(l, [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none, false) end
           fun opbool(fld):
             A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
           end
@@ -431,7 +433,7 @@ fun desugar-expr(expr :: A.Expr):
                   check-bool(l, desugar-expr(operands.first), lam(or-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
-                        helper(operands.rest))
+                        helper(operands.rest), false)
                     end)
               end
             end
@@ -446,7 +448,7 @@ fun desugar-expr(expr :: A.Expr):
                   check-bool(l, desugar-expr(operands.first), lam(and-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
-                        A.s-bool(l, false))
+                        A.s-bool(l, false), false)
                     end)
               end
             end
@@ -486,7 +488,7 @@ fun desugar-expr(expr :: A.Expr):
         | s-construct-lazy =>
           A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
+                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none, false)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened

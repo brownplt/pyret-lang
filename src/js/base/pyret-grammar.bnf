@@ -33,10 +33,10 @@ let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
-multi-let-expr: LET let-binding-elt* let-binding COLON block end
+multi-let-expr: LET let-binding-elt* let-binding (BLOCK|COLON) block end
 let-binding-elt: let-binding COMMA
 let-binding: let-expr | var-expr
-letrec-expr: LETREC letrec-binding* let-expr COLON block end
+letrec-expr: LETREC letrec-binding* let-expr (BLOCK|COLON) block end
 letrec-binding: let-expr COMMA
 
 type-bind: NAME EQUALS ann
@@ -44,11 +44,11 @@ newtype-bind: NEWTYPE NAME AS NAME
 
 type-let-bind: type-bind | newtype-bind
 type-let-bind-elt: type-let-bind COMMA
-type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind COLON block end
+type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind (BLOCK|COLON) block end
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
-fun-expr: FUN NAME fun-header COLON doc-string block where-clause end
+fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause end
 fun-header: ty-params args return-ann
 ty-params:
   [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
@@ -84,7 +84,7 @@ var-expr: VAR toplevel-binding EQUALS binop-expr
 rec-expr: REC toplevel-binding EQUALS binop-expr
 assign-expr: NAME COLONEQUALS binop-expr
 
-when-expr: WHEN binop-expr COLON block end
+when-expr: WHEN binop-expr (BLOCK|COLON) block end
 
 binop-expr: expr (binop expr)*
 
@@ -128,9 +128,9 @@ frac-expr: RATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
-lambda-expr: LAM fun-header COLON doc-string block where-clause end
+lambda-expr: LAM fun-header (BLOCK|COLON) doc-string block where-clause end
 
-method-expr: METHOD fun-header COLON doc-string block where-clause end
+method-expr: METHOD fun-header (BLOCK|COLON) doc-string block where-clause end
 
 binop-expr-commas: binop-expr COMMA
 
@@ -149,7 +149,7 @@ obj-fields: list-obj-field* obj-field [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
-     | key fun-header COLON doc-string block where-clause end
+     | key fun-header (BLOCK|COLON) doc-string block where-clause end
 
 fields: list-field* field [COMMA]
 list-field: field COMMA
@@ -169,20 +169,20 @@ get-bang-expr: expr BANG NAME
 extend-expr: expr DOT LBRACE fields RBRACE
 update-expr: expr BANG LBRACE fields RBRACE
 
-if-expr: IF binop-expr COLON block else-if* [ELSECOLON block] end
+if-expr: IF binop-expr (BLOCK|COLON) block else-if* [ELSECOLON block] end
 else-if: ELSEIF binop-expr COLON block
-if-pipe-expr: ASKCOLON if-pipe-branch* [BAR OTHERWISECOLON block] end
+if-pipe-expr: ASK (BLOCK|COLON) if-pipe-branch* [BAR OTHERWISECOLON block] end
 if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-binding: [REF] binding
 list-cases-arg-elt: cases-binding COMMA
 cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
-cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr COLON cases-branch* [BAR ELSE THICKARROW block] end
+cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr (BLOCK|COLON) cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 
 for-bind: binding FROM binop-expr
 for-bind-elt: for-bind COMMA
-for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
+for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann (BLOCK|COLON) block end
 
 user-block-expr: BLOCK block end
 

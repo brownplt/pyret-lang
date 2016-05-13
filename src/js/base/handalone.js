@@ -103,10 +103,14 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       //console.log("The program completed successfully");
       //console.log(result);
     }
-    else {
-      console.error("The run ended in error: ", result);
+    else if (runtime.isFailureResult(result)) {
+      console.error("The run ended in error:");
       renderErrorMessage(runtime, result);
+      process.exit(1);
+    } else {
+      console.error("The run ended in an unknown error: ", result);
       console.error(result.exn.stack);
+      process.exit(1);
     }
   }
 

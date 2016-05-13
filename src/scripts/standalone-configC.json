@@ -1,7 +1,9 @@
 {
-  "baseUrl": "build/phaseC",
+  "baseUrl": "./build/phaseC",
   "optimize": "none",
   "paths": {
+      "jglr": "../../lib/jglr",
+      "pyret-base": "./",
       "crypto": "empty:",
       "fs": "empty:",
       "path": "empty:",
