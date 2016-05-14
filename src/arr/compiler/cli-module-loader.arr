@@ -99,12 +99,12 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
   end
 end
 
-fun set-loadable(basedir, locator, loadable):
+fun set-loadable(basedir, locator, loadable) block:
   when not(FS.exists(basedir)):
     FS.create-dir(basedir)
   end
   locuri = loadable.provides.from-uri
-  cases(CS.CompileResult) loadable.result-printer:
+  cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
       save-path = P.join(basedir, uri-to-path(locuri) + ".js")
       f = F.output-file(save-path, false)
@@ -116,7 +116,7 @@ end
 
 fun get-cli-module-storage(storage-dir :: String):
   {
-    load-modules(self, to-compile):
+    load-modules(self, to-compile) block:
       maybe-modules = for map(t from to-compile):
         get-loadable(storage-dir, t)
       end
@@ -131,7 +131,7 @@ fun get-cli-module-storage(storage-dir :: String):
       modules
     end,
 
-    save-modules(self, loadables):
+    save-modules(self, loadables) block:
       for each(l from loadables): set-loadable(storage-dir, l) end 
       s = for fold(s from "{\n", l from loadables):
         locuri = l.provides.from-uri
@@ -192,13 +192,13 @@ fun run(path, options):
   end
 end
 
-fun build-program(path, options):
+fun build-program(path, options) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
 
   var str = "Gathering dependencies..."
-  fun clear-and-print(new-str):
+  fun clear-and-print(new-str) block:
     print("\r")
     print(string-repeat(" ", string-length(str)))
     print("\r")
@@ -218,7 +218,7 @@ fun build-program(path, options):
   var num-compiled = cached-modules
   shadow options = options.{
     compile-module: true,
-    on-compile: lam(locator, loadable):
+    on-compile: lam(locator, loadable) block:
       num-compiled := num-compiled + 1
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled")
       when num-compiled == total-modules:
@@ -231,7 +231,7 @@ fun build-program(path, options):
   CL.compile-standalone(wl, starter-modules, options)
 end
 
-fun build-runnable-standalone(path, require-config-path, outfile, options):
+fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   program = build-program(path, options)
   config = JSON.read-json(F.input-file(require-config-path).read-file()).dict.unfreeze()
   config.set-now("out", JSON.j-str(outfile))

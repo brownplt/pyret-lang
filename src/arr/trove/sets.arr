@@ -515,7 +515,7 @@ fun elems-to-balanced-avl(elems):
   var head = elems
   len = elems.length()
   fun helper(l):
-    if l <= 0: leaf
+    if l <= 0 block: leaf
     else if is-empty(head): leaf
     else:
       left = helper(num-floor(l / 2))

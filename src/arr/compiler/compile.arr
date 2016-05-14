@@ -30,7 +30,7 @@ sharing:
   end
 end
 
-fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
+fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase block:
   var ret = phases
   var ast-ended = U.append-nothing-if-necessary(ast)
   when options.collect-all:
@@ -40,7 +40,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
   ast-ended := nothing
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
   checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
-  cases(C.CompileResult) wf:
+  cases(C.CompileResult) wf block:
     | ok(_) =>
       var wf-ast = wf.code
       wf := nothing
@@ -74,7 +74,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
         else: C.ok(desugared);
       desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-      cases(C.CompileResult) type-checked:
+      cases(C.CompileResult) type-checked block:
         | ok(_) =>
           var tc-ast = type-checked.code
           any-errors = named-errors + U.check-unbound(env, tc-ast) + U.bad-assignments(env, tc-ast)
@@ -106,7 +106,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase:
 end
 
 fun compile-js(trace, code, name, env :: C.CompileEnvironment, libs :: C.ExtraImports, options)
-  -> CompilationPhase<C.CompileResult<P.CompiledCodePrinter, Any>>:
+  -> CompilationPhase<C.CompileResult<P.CompiledCodePrinter, Any>> block:
   var ret = trace
   ast = PP.surface-parse(code, name)
   when options.collect-all: ret := phase("Parsed", ast, ret) end

@@ -67,7 +67,7 @@ fun main(args):
     end
   end
   
-  cases(C.ParsedArguments) params-parsed:
+  cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) => 
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
@@ -87,54 +87,9 @@ fun main(args):
         B.set-builtin-arr-dir(r.get-value("builtin-arr-dir"))
       end
       if not(is-empty(rest)):
-        program-name = rest.first
-        var result = CM.compile-js(
-          CM.start,
-          F.file-to-string(program-name),
-          program-name,
-          CS.standard-builtins,
-          libs,
-          CS.default-compile-options.{
-            check-mode : check-mode,
-            allow-shadowed : allow-shadowed,
-            collect-all: false,
-            type-check: type-check,
-            ignore-unbound: false,
-            proper-tail-calls: tail-calls,
-            compile-module: false,
-            compiled-cache: compiled-dir
-          }).result
-        cases(CS.CompileResult) result:
-          | ok(_) =>
-            #var comp-object = result.code
-            #result := nothing
-            raise("No longer supported")
-            #|
-            var exec-result = X.exec(comp-object.pyret-to-js-runnable(), program-name, module-dir, check-all, rest)
-            comp-object := nothing
-            if (exec-result.success):
-              when check-mode:
-                results-str = exec-result.render-check-results()
-                print(results-str)
-                when not(string-contains(results-str, "Looks shipshape")) and
-                  not(string-contains(results-str, "The program didn't define any tests")):
-                  raise("There were test errors")
-                end
-              end
-            else:
-              print(exec-result.render-error-message())
-              raise("There were execution errors")
-            end
-            |#
-          | err(errors) =>
-            print-error("Compilation errors:")
-            for lists.each(e from errors):
-              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-            end
-            raise("There were compilation errors")
-        end
+        raise("No longer supported")
       else:
-        if r.has-key("build-runnable"):
+        if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
             r.get-value("outfile")
           else:
@@ -180,7 +135,7 @@ fun main(args):
             })
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
-            for each(f from failures):
+            for each(f from failures) block:
               for lists.each(e from f.errors):
                 print-error(tostring(e))
               end
@@ -209,7 +164,7 @@ fun main(args):
               compile-module: false # weird, but accurate for now
             }
             ).result
-          cases(CS.CompileResult) result:
+          cases(CS.CompileResult) result block:
             | ok(_) =>
               comp-object = result.code
               result := nothing

@@ -23,7 +23,7 @@ fun mockable-file-locator(file-ops):
     get-options(self, options):
       options
     end,
-    get-module(self):
+    get-module(self) block:
       when not(file-ops.file-exists(self.path)):
         raise("File " + self.path + " does not exist")
       end

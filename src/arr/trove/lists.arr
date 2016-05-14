@@ -125,7 +125,7 @@ data List<a>:
       1 + self.rest.length()
     end,
 
-    each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
+    each(self :: List<a>, f :: (a -> Nothing)) -> Nothing block:
       doc: "Takes a function and calls that function for each element in the list. Returns nothing"
       f(self.first)
       self.rest.each(f)
@@ -215,7 +215,7 @@ data List<a>:
       + "]"
     end,
 
-    sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+    sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
@@ -385,12 +385,13 @@ fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   end
 end
 
-fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>}:
+fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
   var is-false = empty
   fun help(inner-lst):
-    if is-empty(inner-lst): nothing
+    if is-empty(inner-lst) block:
+      nothing
     else:
       help(inner-lst.rest)
       if f(inner-lst.first):
@@ -431,7 +432,7 @@ fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
   end
 end
 
-fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> }:
+fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
   when n < 0:
     raise("Invalid index")
@@ -441,7 +442,7 @@ fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: L
   fun help(ind, l):
     if ind == 0: suffix := l
     else:
-      cases(List) l:
+      cases(List) l block:
         | empty => raise("Index too large")
         | link(fst, rst) =>
           help(ind - 1, rst)
@@ -549,7 +550,7 @@ end
 fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
   doc: "Calls f for each elem in lst, and returns nothing"
   fun help(l):
-    if is-empty(l):
+    if is-empty(l) block:
       nothing
     else:
       f(l.first)
@@ -562,7 +563,7 @@ end
 fun each2<a, b>(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2):
-    if is-empty(l1) or is-empty(l2):
+    if is-empty(l1) or is-empty(l2) block:
       nothing
     else:
       f(l1.first, l2.first)
@@ -575,7 +576,7 @@ end
 fun each3<a, b, c>(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3):
-    if is-empty(l1) or is-empty(l2) or is-empty(l3):
+    if is-empty(l1) or is-empty(l2) or is-empty(l3) block:
       nothing
     else:
       f(l1.first, l2.first, l3.first)
@@ -588,7 +589,7 @@ end
 fun each4<a, b, c, d>(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>):
   doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3, l4):
-    if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
+    if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) block:
       nothing
     else:
       f(l1.first, l2.first, l3.first, l4.first)
@@ -601,7 +602,7 @@ end
 fun each_n<a>(f :: (Number, a -> Nothing), num :: Number, lst:: List<a>) -> Nothing:
   doc: "Calls f(i, e) for each e in lst and with i counting up from num, and returns nothing"
   fun help(n, l):
-    if is-empty(l):
+    if is-empty(l) block:
       nothing
     else:
       f(n, l.first)
@@ -614,7 +615,7 @@ end
 fun each2_n<a, b>(f :: (Number, a, b -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f(i, e1, e2) for each e1 in lst1, e2 in lst2 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2):
-    if is-empty(l1) or is-empty(l2):
+    if is-empty(l1) or is-empty(l2) block:
       nothing
     else:
       f(n, l1.first, l2.first)
@@ -627,7 +628,7 @@ end
 fun each3_n<a, b, c>(f :: (Number, a, b, c -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3) for each e1 in lst1, e2 in lst2, e3 in lst3 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2, l3):
-    if is-empty(l1) or is-empty(l2) or is-empty(l3):
+    if is-empty(l1) or is-empty(l2) or is-empty(l3) block:
       nothing
     else:
       f(n, l1.first, l2.first, l3.first)
@@ -640,7 +641,7 @@ end
 fun each4_n<a, b, c, d>(f :: (a, b, c, d -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3, e4) for each e1 in lst1, e2 in lst2, e3 in lst3, e4 in lst4 and with i counting up from num, and returns nothing"
   fun help(n, l1, l2, l3, l4):
-    if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
+    if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) block:
       nothing
     else:
       f(n, l1.first, l2.first, l3.first, l4.first)
@@ -773,7 +774,7 @@ end
 fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
-    elts = for fold_n(i from 1, arr from raw-array-of(lst.first, lst.length()), e from lst.rest):
+    elts = for fold_n(i from 1, arr from raw-array-of(lst.first, lst.length()), e from lst.rest) block:
       ix = random(i)
       raw-array-set(arr, i, raw-array-get(arr, ix))
       raw-array-set(arr, ix, e)

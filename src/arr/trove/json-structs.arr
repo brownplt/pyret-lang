@@ -17,7 +17,7 @@ is-array = arrays.is-array
 
 data JSON:
   | j-obj(dict :: SD.StringDict<JSON>) with:
-    native(self):
+    native(self) block:
       d = self.dict
       ret = [SD.mutable-string-dict:]
       for map(s from d.keys().to-list()):
@@ -78,7 +78,7 @@ data JSON:
 end
 
 fun tojson(v :: Any) -> JSON:
-  if is-number(v):
+  if is-number(v) block:
     if num-is-fixnum(v) or num-is-roughnum(v):
       j-num(v)
     else:

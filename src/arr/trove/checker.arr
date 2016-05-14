@@ -159,7 +159,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   {
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
-        for each(c from checks):
+        for each(c from checks) block:
           results-before = current-results
           reset-results()
           result = run-task(c.run)
@@ -171,7 +171,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end
       end
     end,
-    check-is(self, code, left, right, loc):
+    check-is(self, code, left, right, loc) block:
       for left-right-check(loc, code)(lv from left, rv from right):
         check-bool(loc, code,
           lv == rv,
@@ -179,7 +179,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not(self, code, left, right, loc):
+    check-is-not(self, code, left, right, loc) block:
       for left-right-check(loc, code)(lv from left, rv from right):
         check-bool(loc, code,
           not(lv == rv),
@@ -187,7 +187,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-refinement(self, code, refinement, left, right, loc):
+    check-is-refinement(self, code, refinement, left, right, loc) block:
       for left-right-check(loc, code)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -199,7 +199,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not-refinement(self, code, refinement, left, right, loc):
+    check-is-not-refinement(self, code, refinement, left, right, loc) block:
       for left-right-check(loc, code)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -211,7 +211,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-delayed(self, code, left, pred, loc):
+    check-satisfies-delayed(self, code, left, pred, loc) block:
       for left-right-check(loc, code)(lv from left, pv from pred):
         check-bool(loc, code,
           pv(lv),
@@ -219,7 +219,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-not-delayed(self, code, left, pred, loc):
+    check-satisfies-not-delayed(self, code, left, pred, loc) block:
       for left-right-check(loc, code)(lv from left, pv from pred):
         check-bool(loc, code,
           not(pv(lv)),
@@ -227,19 +227,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies(self, code, left, pred, loc):
+    check-satisfies(self, code, left, pred, loc) block:
       check-bool(loc, code,
         pred(left),
         lam(): failure-not-satisfied(loc, code, left, pred) end)
       nothing
     end,
-    check-satisfies-not(self, code, left, pred, loc):
+    check-satisfies-not(self, code, left, pred, loc) block:
       check-bool(loc, code,
         not(pred(left)),
         lam(): failure-not-dissatisfied(loc, code, left, pred) end)
       nothing
     end,
-    check-raises(self, code, thunk, expected, comparator, on-failure, loc):
+    check-raises(self, code, thunk, expected, comparator, on-failure, loc) block:
       result = run-task(thunk)
       cases(Either) result:
         | left(v) => add-result(failure-no-exn(loc, code, some(expected)))
@@ -252,21 +252,21 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-raises-str(self, code, thunk, str, loc):
+    check-raises-str(self, code, thunk, str, loc) block:
       self.check-raises(code, thunk, str,
         lam(exn, s): string-contains(torepr(exn), s) end,
         lam(exn): failure-wrong-exn(loc, code, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-other-str(self, code, thunk, str, loc):
+    check-raises-other-str(self, code, thunk, str, loc) block:
       self.check-raises(code, thunk, str,
         lam(exn, s): not(string-contains(torepr(exn), s)) end,
         lam(exn): failure-right-exn(loc, code, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-not(self, code, thunk, loc):
+    check-raises-not(self, code, thunk, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc, code)
@@ -274,7 +274,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end)
       nothing
     end,
-    check-raises-satisfies(self, code, thunk, pred, loc):
+    check-raises-satisfies(self, code, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, code, none)
@@ -287,7 +287,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end)
       nothing
     end,
-    check-raises-violates(self, code, thunk, pred, loc):
+    check-raises-violates(self, code, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, code, none)

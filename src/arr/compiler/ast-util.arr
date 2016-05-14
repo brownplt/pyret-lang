@@ -79,10 +79,10 @@ merge-nested-blocks = A.default-map-visitor.{
   }
 
 
-fun count-apps(expr):
+fun count-apps(expr) block:
   var count = 0
   visitor = A.default-iter-visitor.{
-      s-app(self, l, f, args):
+      s-app(self, l, f, args) block:
         count := count + 1
         f.visit(self) and args.map(_.visit(self))
       end
@@ -137,10 +137,10 @@ fun bind-exp(e :: A.Expr, env) -> Option<Binding>:
 end
 
 fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
-  cases(Option<Binding>) bind-exp(e, env):
+  cases(Option<Binding>) bind-exp(e, env) block:
     | none => b-unknown
     | some(b) =>
-      when not(is-e-bind(b)):
+      when not(is-e-bind(b)) block:
         print-error("b isn't a binding for expr " + string-substring(torepr(e), 0, 100))
         print-error(b)
       end
@@ -148,14 +148,14 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
   end
 end
 
-fun binding-type-env-from-env(env):
+fun binding-type-env-from-env(env) block:
   acc = SD.make-mutable-string-dict()
   for each(name from env.globals.types.keys-list()):
     acc.set-now(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
   end
   acc.freeze()
 end
-fun binding-env-from-env(env):
+fun binding-env-from-env(env) block:
   acc = SD.make-mutable-string-dict()
   for each(name from env.globals.values.keys-list()):
     acc.set-now(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
@@ -399,7 +399,7 @@ fun default-env-iter-visitor<a, c>(
 end
 
 binding-handlers = {
-  s-header(_, imp, env, type-env):
+  s-header(_, imp, env, type-env) block:
 
     shadow env = env.unfreeze()
     shadow type-env = type-env.unfreeze()
@@ -509,11 +509,11 @@ fun link-list-visitor(initial-env):
   }
 end
 
-fun bad-assignments(initial-env, ast):
+fun bad-assignments(initial-env, ast) block:
   var errors = [list: ] # THE MUTABLE LIST OF ERRORS
   fun add-error(err): errors := err ^ link(_, errors) end
   ast.visit(binding-env-iter-visitor(initial-env).{
-    s-assign(self, loc, id, value):
+    s-assign(self, loc, id, value) block:
       cases(Option<Binding>) bind-exp(A.s-id(loc, id), self.env):
         | none => nothing
         | some(b) =>
@@ -553,7 +553,7 @@ inline-lams = A.default-map-visitor.{
   end
 }
 
-fun check-unbound(initial-env, ast):
+fun check-unbound(initial-env, ast) block:
   var errors = [list: ] # THE MUTABLE LIST OF UNBOUND IDS
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(this-id, env):
@@ -575,29 +575,29 @@ fun check-unbound(initial-env, ast):
     end
   end
   ast.visit(binding-env-iter-visitor(initial-env).{
-      s-id(self, loc, id):
+      s-id(self, loc, id) block:
         handle-id(A.s-id(loc, id), self.env)
         true
       end,
-      s-id-var(self, loc, id):
+      s-id-var(self, loc, id) block:
         handle-id(A.s-id-var(loc, id), self.env)
         true
       end,
-      s-id-letrec(self, loc, id, safe):
+      s-id-letrec(self, loc, id, safe) block:
         handle-id(A.s-id-letrec(loc, id, safe), self.env)
         true
       end,
-      s-assign(self, loc, id, value):
+      s-assign(self, loc, id, value) block:
         when is-none(bind-exp(A.s-id(loc, id), self.env)):
           add-error(CS.unbound-var(id.toname(), loc))
         end
         value.visit(self)
       end,
-      a-name(self, loc, id):
+      a-name(self, loc, id) block:
         handle-type-id(A.a-name(loc, id), self.type-env)
         true
       end,
-      a-dot(self, loc, name, field):
+      a-dot(self, loc, name, field) block:
         handle-type-id(A.a-name(loc, name), self.type-env)
         true
       end
@@ -617,7 +617,7 @@ end
 letrec-visitor = A.default-map-visitor.{
   env: SD.make-string-dict(),
   s-letrec(self, l, binds, body, blocky):
-    bind-envs = for map2(b1 from binds, i from range(0, binds.length())):
+    bind-envs = for map2(b1 from binds, i from range(0, binds.length())) block:
       rhs-is-delayed = value-delays-exec-of(b1.b.id, b1.value)
       acc = self.env.unfreeze()
       for each2(b2 from binds, j from range(0, binds.length())):
@@ -705,7 +705,7 @@ fun import-to-dep-anf(imp):
 end
 
 fun some-pred<a>(pred :: (a -> Boolean), o :: Option<a>) -> a:
-  cases(Option) o:
+  cases(Option) o block:
     | none => raise("Expected some but got none")
     | some(exp) =>
       when not(pred(exp)):
@@ -722,7 +722,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     T.t-member(f.name, ann-to-typ(f.ann), f.l)
   end
 
-  fun collect-shared-fields(vs :: List<A.Variant>):
+  fun collect-shared-fields(vs :: List<A.Variant>) block:
     init-members = SD.make-mutable-string-dict()
     for each(m from vs.first.with-members):
       init-members.set-now(m.name, member-to-t-member(m))
@@ -852,7 +852,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
   cases(A.Program) resolved.ast:
     | s-program(l, provide-complete, _, _, _) =>
-      cases(A.Provide) provide-complete:
+      cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
@@ -942,7 +942,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   c = canonicalize-names(_, uri)
   cases(A.Program) typed.ast:
     | s-program(_, provide-complete, _, _, _) =>
-      cases(A.Provide) provide-complete:
+      cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):

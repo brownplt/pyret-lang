@@ -106,7 +106,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     get-options(self, options):
       options.{ check-mode: false }
     end,
-    get-module(self):
+    get-module(self) block:
       when not(F.file-exists(path)):
         raise("File " + path + " does not exist")
       end
@@ -129,7 +129,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       CM.standard-globals
     end,
     set-compiled(self, cr, deps):
-      cases(CM.CompileResult) cr.result-printer:
+      cases(CM.CompileResult) cr.result-printer block:
         | ok(ccp) =>
           cpath = path + ".js"
           f = F.output-file(cpath, false)

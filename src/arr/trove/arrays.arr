@@ -27,7 +27,7 @@ fun make(arr :: RawArray) -> Array:
       if key == get-arr-key: arr else: raise("Cannot get arr externally") end
     end,
     get-now(_, ix :: Number): raw-array-get(arr, ix) end,
-    set-now(self, ix :: Number, val) -> Nothing:
+    set-now(self, ix :: Number, val) -> Nothing block:
       raw-array-set(arr, ix, val)
       nothing
     end,
@@ -48,10 +48,10 @@ end
 
 is-array = ArrayT.test
 
-fun build-array<a>(f :: (Number -> a), len :: Number):
+fun build-array<a>(f :: (Number -> a), len :: Number) block:
   arr = raw-array-of(nothing, len)
   fun loop(i):
-    when i < len:
+    when i < len block:
       raw-array-set(arr, i, f(i))
       loop(i + 1)
     end
@@ -60,7 +60,7 @@ fun build-array<a>(f :: (Number -> a), len :: Number):
   make(arr)
 end
 
-fun array-from-list(l):
+fun array-from-list(l) block:
   arr = raw-array-of(0, l.length())
   for lists.each_n(n from 0, elt from l):
     raw-array-set(arr, n, elt)

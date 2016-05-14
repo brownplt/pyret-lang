@@ -703,7 +703,7 @@ rec get-ann = _.ann
 
 fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   lst-a = freevars-list-acc(_, seen-so-far)
-  cases(A.Ann) ann:
+  cases(A.Ann) ann block:
     | a-blank => seen-so-far
     | a-any => seen-so-far
     | a-name(l, name) => 
@@ -729,10 +729,10 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
 end
 
 fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
-  cases(AExpr) expr:
+  cases(AExpr) expr block:
     | a-type-let(_, b, body) =>
       body-ids = freevars-e-acc(body, seen-so-far)
-      cases(ATypeBind) b:
+      cases(ATypeBind) b block:
         | a-type-bind(_, name, ann) =>
           body-ids.remove-now(name.key())
           freevars-ann-acc(ann, body-ids)
@@ -786,7 +786,7 @@ rec get-id = _.id
 
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   for fold(acc from seen-so-far, b from branches):
-    cases(ACasesBranch) b:
+    cases(ACasesBranch) b block:
       | a-cases-branch(_, _, _, args, body) =>
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
@@ -803,7 +803,7 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
   end
 end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
-  cases(ALettable) e:
+  cases(ALettable) e block:
     | a-module(_, ans, dv, dt, provs, types, checks) =>
       freevars-v-acc(ans,
         freevars-v-acc(provs,
@@ -898,7 +898,7 @@ fun freevars-l(e :: ALettable) -> FrozenNameDict<A.Name>:
 end
 
 fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
-  cases(AVal) v:
+  cases(AVal) v block:
     | a-id(_, id) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
@@ -922,7 +922,7 @@ fun freevars-v(v :: AVal) -> FrozenNameDict<A.Name>:
 end
 
 fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
-  cases(AProg) p:
+  cases(AProg) p block:
     | a-program(l, _, imports, body) =>
       body-vars = freevars-e-acc(body, empty-dict())
       for each(i from imports):

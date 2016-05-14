@@ -94,7 +94,7 @@ fun fresh-id(id :: A.Name) -> A.Name:
   base-name = if A.is-s-type-global(id): id.tosourcestring() else: id.toname() end
   no-hyphens = string-replace(base-name, "-", "$")
   n = js-names.make-atom(no-hyphens)
-  if effective-ids.has-key-now(n.tosourcestring()): #awkward name collision!
+  if effective-ids.has-key-now(n.tosourcestring()) block: #awkward name collision!
     fresh-id(id)
   else:
     effective-ids.set-now(n.tosourcestring(), true)
@@ -103,7 +103,7 @@ fun fresh-id(id :: A.Name) -> A.Name:
 end
 fun js-id-of(id :: A.Name) -> A.Name:
   s = id.key()
-  if js-ids.has-key-now(s):
+  if js-ids.has-key-now(s) block:
     js-ids.get-value-now(s)
   else:
     safe-id = fresh-id(id)
@@ -142,7 +142,7 @@ fun obj-of-loc(l):
   cases(Loc) l:
     | builtin(name) => j-list(false, [clist: j-str(name)])
     | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
-      j-list(false, [clist: 
+      j-list(false, [clist:
           j-id(const-id("M")),
           j-num(start-line),
           j-num(start-col),
@@ -283,57 +283,57 @@ local-bound-vars-visitor = {
   j-field(self, name, value): value.visit(self) end,
   j-parens(self, exp): exp.visit(self) end,
   j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right): 
+  j-binop(self, left, op, right) block:
     ans = left.visit(self)
     ans.merge-now(right.visit(self)) 
     ans
-    end,
+  end,
   j-fun(self, args, body): no-vars() end,
-  j-new(self, func, args): 
+  j-new(self, func, args) block:
     base = func.visit(self)
     args.each(lam(arg): base.merge-now(arg.visit(self)) end)
     base
-    end,
-  j-app(self, func, args): 
+  end,
+  j-app(self, func, args) block:
     base = func.visit(self)
     args.each(lam(arg): base.merge-now(arg.visit(self)) end)
     base
-    end,
+  end,
   j-method(self, obj, meth, args): no-vars() end,
-  j-ternary(self, test, consq, alt): 
+  j-ternary(self, test, consq, alt) block:
     ans = test.visit(self)
     ans.merge-now(consq.visit(self))
     ans.merge-now(alt.visit(self)) 
     ans
-    end,
+  end,
   j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs):
+  j-bracket-assign(self, obj, field, rhs) block:
     ans = obj.visit(self)
     ans.merge-now(field.visit(self))
     ans.merge-now(rhs.visit(self))
     ans
-    end,
-  j-dot-assign(self, obj, name, rhs):
+  end,
+  j-dot-assign(self, obj, name, rhs) block:
     ans = obj.visit(self)
     ans.merge-now(rhs.visit(self))
     ans
-    end,
+  end,
   j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field): 
+  j-bracket(self, obj, field) block:
     ans = obj.visit(self)
     ans.merge-now(field.visit(self)) 
     ans
-    end,
-  j-list(self, multi-line, elts): 
+  end,
+  j-list(self, multi-line, elts) block:
     base = no-vars() 
     elts.each(lam(arg): base.merge-now(arg.visit(self)) end) 
     base
-    end,
-  j-obj(self, fields):
+  end,
+  j-obj(self, fields) block:
     base = no-vars()
     fields.each(lam(e): base.merge-now(e.visit(self)) end)
     base
-    end,
+  end,
   j-id(self, id): no-vars() end,
   j-str(self, s): no-vars() end,
   j-num(self, n): no-vars() end,
@@ -342,22 +342,22 @@ local-bound-vars-visitor = {
   j-null(self): no-vars() end,
   j-undefined(self): no-vars() end,
   j-label(self, label): no-vars() end,
-  j-case(self, exp, body): 
+  j-case(self, exp, body) block:
     ans = exp.visit(self)
     ans.merge-now(body.visit(self))
     ans
-    end,
+  end,
   j-default(self, body): body.visit(self) end,
-  j-block(self, stmts):
+  j-block(self, stmts) block:
     base = no-vars()
     stmts.each(lam(e):
-      base.merge-now(e.visit(self)) 
+        base.merge-now(e.visit(self)) 
       end)
     base
-    end,
+  end,
   j-var(self, name, rhs):
     # Ignore all variables named $underscore#####
-    if A.is-s-atom(name) and (name.base == "$underscore"):
+    if A.is-s-atom(name) and (name.base == "$underscore") block:
       rhs.visit(self)
     else:
       ans = rhs.visit(self)
@@ -365,38 +365,38 @@ local-bound-vars-visitor = {
       ans
     end
   end,
-  j-if1(self, cond, consq): 
+  j-if1(self, cond, consq) block:
     ans = cond.visit(self)
     ans.merge-now(consq.visit(self)) 
     ans
-    end,
-  j-if(self, cond, consq, alt): 
+  end,
+  j-if(self, cond, consq, alt) block:
     ans = cond.visit(self)
     ans.merge-now(consq.visit(self))
     ans.merge-now(alt.visit(self)) 
     ans
-    end,
+  end,
   j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch):
+  j-try-catch(self, body, exn, catch) block:
     ans = body.visit(self)
     ans.merge-now(catch.visit(self))
     ans
-    end,
+  end,
   j-throw(self, exp): exp.visit(self) end,
   j-expr(self, exp): exp.visit(self) end,
   j-break(self): no-vars() end,
   j-continue(self): no-vars() end,
-  j-switch(self, exp, branches):
+  j-switch(self, exp, branches) block:
     base = exp.visit(self)
     branches.each(lam(b): base.merge-now(b.visit(self)) end)
     base
-    end,
-  j-while(self, cond, body):
+  end,
+  j-while(self, cond, body) block:
     ans = cond.visit(self)
     ans.merge-now(body.visit(self))
     ans
-    end,
-  j-for(self, create-var, init, cond, update, body):
+  end,
+  j-for(self, create-var, init, cond, update, body) block:
     ans = init.visit(self)
     ans.merge-now(cond.visit(self))
     ans.merge-now(update.visit(self))
@@ -410,7 +410,7 @@ fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
 end
 
 show-stack-trace = false
-fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean) -> J.JBlock:
+fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean) -> J.JBlock block:
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -558,7 +558,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         j-block(
           [clist:
             j-if1(stack-attach-guard,
-              j-block([clist: 
+              j-block([clist:
                   j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
                       j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
               ]))] +
@@ -576,7 +576,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           else if show-stack-trace:
             [clist:
               j-if1(rt-method("isPyretException", [clist: j-id(e)]),
-                j-block([clist: 
+                j-block([clist:
                     j-expr(add-stack-frame(e, j-id(apploc)))
                 ]))]
           else:
@@ -589,7 +589,7 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
       acc
     else:
       compiled-ann = compile-ann(b.ann, visitor)
@@ -686,7 +686,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(j-id(colon-field-id), link(compiled-obj, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist: 
+            j-if(check-method, j-block([clist:
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(compiled-obj, compiled-args))))
                 ]),
@@ -716,7 +716,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist: 
+            j-if(check-method, j-block([clist:
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(obj-id, compiled-args))))
                 ]),
@@ -762,7 +762,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
     + cl-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
     + get-new-cases(compiler, opt-dest, opt-body, after-if-label, ans)
   c-block(
-    j-block([clist: 
+    j-block([clist:
         j-if(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
           j-block([clist: j-expr(j-assign(compiler.cur-step, consq-label))]),
           j-block([clist: j-expr(j-assign(compiler.cur-step, alt-label))])),
@@ -1216,7 +1216,7 @@ compiler-visitor = {
       val = fresh-id(compiler-name("val"))
       j-field(
         pred-name,
-        rt-method("makeFunction", [clist: 
+        rt-method("makeFunction", [clist:
             j-fun(
               [clist: val],
               j-block(
@@ -1338,7 +1338,7 @@ compiler-visitor = {
       
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
-          [clist: 
+          [clist:
             j-var(refl-fields-id, refl-fields),
             j-var(refl-ref-fields-id, refl-ref-fields),
             j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
@@ -1432,7 +1432,7 @@ end
 fun mk-abbrevs(l):
   loc = const-id("loc")
   name = const-id("name")
-  [clist: 
+  [clist:
     j-var(const-id("G"), rt-field("getFieldLoc")),
     j-var(const-id("U"), j-fun([clist: loc, name],
         j-block([clist: j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
@@ -1468,7 +1468,7 @@ fun compile-provides(provides):
   end
 end
 
-fun compile-module(self, l, imports-in, prog, freevars, provides, env):
+fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
   imports = imports-in.sort-by(
@@ -1476,14 +1476,14 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
     )
 
-  for each(i from imports):
+  for each(i from imports) block:
     freevars.remove-now(i.vals-name.key())
     freevars.remove-now(i.types-name.key())
   end
 
   import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
 
-  for each(i from imports):
+  for each(i from imports) block:
     for each(v from i.values):
       import-keys.vs.set-now(v.key(), v)
     end
@@ -1627,13 +1627,13 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
             j-id(m.input-id)])))
       end +
       module-binds +
-      [clist: 
+      [clist:
         j-var(body-name, body-fun),
         j-return(rt-method(
-            "safeCall", [clist: 
+            "safeCall", [clist:
               j-id(body-name),
               j-fun([clist: moduleVal],
-                j-block([clist: 
+                j-block([clist:
                     j-expr(j-bracket-assign(rt-field("modules"), j-str(module-id), j-id(moduleVal))),
                     j-return(j-id(moduleVal))
                   ])),
@@ -1649,7 +1649,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env):
   LOCS = const-id("L")
   fun get-loc(shadow l :: Loc):
     as-str = l.key()
-    if loc-cache.has-key-now(as-str):
+    if loc-cache.has-key-now(as-str) block:
       loc-cache.get-value-now(as-str)
     else:
       ans = j-bracket(j-id(LOCS), j-num(loc-count))

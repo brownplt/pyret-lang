@@ -17,7 +17,7 @@ data ConcatList<a>:
     to-list-acc(self, rest): link(self.element, rest) end,
     map-to-list-acc(self, f, rest): link(f(self.element), rest) end,
     map(self, f): concat-singleton(f(self.element)) end,
-    each(self, f):
+    each(self, f) block:
       f(self.element)
       nothing
     end,
@@ -37,7 +37,7 @@ data ConcatList<a>:
       self.left.map-to-list-acc(f, self.right.map-to-list-acc(f, rest))
     end,
     map(self, f): concat-append(self.left.map(f), self.right.map(f)) end,
-    each(self, f):
+    each(self, f) block:
       self.left.each(f)
       self.right.each(f)
     end,
@@ -60,7 +60,7 @@ data ConcatList<a>:
     to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
     map-to-list-acc(self, f, rest): link(f(self.first), self.rest.map-to-list-acc(f, rest)) end,
     map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
-    each(self, f):
+    each(self, f) block:
       f(self.first)
       self.rest.each(f)
     end,
@@ -82,7 +82,7 @@ data ConcatList<a>:
     to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
     map-to-list-acc(self, f, rest): self.head.map-to-list-acc(f, link(f(self.last), rest)) end,
     map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
-    each(self, f):
+    each(self, f) block:
       self.head.each(f)
       f(self.last)
       nothing
@@ -127,13 +127,13 @@ where:
   ca(cs(ce, 1), ce).getLast() is 1
 
   var aux = ""
-  l1.map-to-list-left(lam(e):
+  l1.map-to-list-left(lam(e) block:
       aux := aux + tostring(e)
       tostring(e)
     end) is [list: "1", "2", "3", "4"]
   aux is "1234"
   aux := ""
-  l1.map-to-list(lam(e):
+  l1.map-to-list(lam(e) block:
       aux := aux + tostring(e)
       tostring(e)
     end) is [list: "1", "2", "3", "4"]

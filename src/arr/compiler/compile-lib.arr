@@ -240,8 +240,8 @@ dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-strin
 fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
-  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>):
-    cases(Option) temp-marked.get-now(locator.uri()):
+  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
+    cases(Option) temp-marked.get-now(locator.uri()) block:
       | some(mark) =>
         when mark:
           raise("Detected module cycle: " + curr-path.reverse().map(_.uri()).join-str(" => "))
@@ -251,7 +251,7 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
         temp-marked.set-now(locator.uri(), true)
         pmap = SD.make-mutable-string-dict()
         deps = locator.get-dependencies()
-        found-mods = for map(d from deps):
+        found-mods = for map(d from deps) block:
           found = dfind(context, d)
           pmap.set-now(d.key(), found.locator)
           found
@@ -278,7 +278,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
   cache = modules
   loadables = for map(w from worklist):
     uri = w.locator.uri()
-    if not(cache.has-key-now(uri)):
+    if not(cache.has-key-now(uri)) block:
       provide-map = dict-map(
           w.dependency-map,
           lam(_, v): cache.get-value-now(v.uri()).provides
@@ -302,9 +302,9 @@ fun is-builtin-module(uri :: String) -> Boolean:
   string-index-of(uri, "builtin://") == 0
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable:
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable block:
   G.reset()
-  cases(Option<Loadable>) locator.get-compiled():
+  cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) => loadable
     | none =>
     shadow options = locator.get-options(options)
@@ -330,7 +330,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       else:
         CH.desugar-no-checks
       end
-    cases(CS.CompileResult) wf:
+    cases(CS.CompileResult) wf block:
       | ok(wf-ast) =>
         checked = checker(wf-ast)
         when options.collect-all:
@@ -351,7 +351,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         type-checked =
           if options.type-check:
             type-checked = T.type-check(desugared, env, modules)
-            if CS.is-ok(type-checked):
+            if CS.is-ok(type-checked) block:
               provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
               CS.ok(type-checked.code.ast)
             else:
@@ -359,7 +359,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             end
           else: CS.ok(desugared);
         when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-        cases(CS.CompileResult) type-checked:
+        cases(CS.CompileResult) type-checked block:
           | ok(tc-ast) =>
             any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
             dp-ast = DP.desugar-post-tc(tc-ast, env)
@@ -428,7 +428,7 @@ end
 
 fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
   doc: "Assumes topo-sorted worklist in ws"
-  cases(List) ws:
+  cases(List) ws block:
     | empty =>
       raise("Didn't get anything to run in run-worklist")
     | link(load-info, r) =>
@@ -486,7 +486,7 @@ fun make-standalone(wl, compiled, options):
     loadable = compiled.modules.get-value-now(w.locator.uri())
     cases(Loadable) loadable:
       | module-as-string(_, _, rp) =>
-        cases(CS.CompileResult) rp:
+        cases(CS.CompileResult) rp block:
           | ok(code) =>
             j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
           | err(problems) =>

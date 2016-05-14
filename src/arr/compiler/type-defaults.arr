@@ -52,7 +52,7 @@ fun make-default-aliases():
   default-aliases
 end
 
-fun make-default-typs():
+fun make-default-typs() block:
   default-typs = SD.make-mutable-string-dict()
   default-typs.set-now(A.s-global("builtins").key(), t-record([list:
       t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
@@ -225,7 +225,7 @@ end
 #  default-data-exprs
 #end
 
-fun make-default-data-exprs():
+fun make-default-data-exprs() block:
   default-data-exprs = SD.make-mutable-string-dict()
   default-data-exprs.set-now(A.s-type-global("RawArray").key(),
     t-data([list: t-var(s-atom("A", 10))], empty, empty))
@@ -813,7 +813,7 @@ module-const-s-exp-structs = t-module("pyret-builtin://s-exp-structs",
   SD.make-string-dict()
 )
 
-fun make-default-modules():
+fun make-default-modules() block:
   default-modules = SD.make-mutable-string-dict()
   default-modules.set-now("pyret-builtin://equality", module-const-equality)
   default-modules.set-now("pyret-builtin://lists", module-const-lists)

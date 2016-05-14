@@ -93,7 +93,7 @@ fun get-checks(stmts):
           | none => lst
         end
      | s-check(l, name, body, keyword-check) =>
-        check-name = cases(Option) name:
+        check-name = cases(Option) name block:
           | none =>
             standalone-counter := standalone-counter + 1
             "check-block-" + tostring(standalone-counter)

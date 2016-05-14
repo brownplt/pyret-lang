@@ -33,14 +33,14 @@ fun file-exists(path :: String):
   F.exists(path)
 end
 
-fun file-times(path :: String):
+fun file-times(path :: String) block:
   f = input-file(path)
   ts = F.file-times(f.inner-file)
   f.close-file()
   ts
 end
 
-fun file-to-string(path):
+fun file-to-string(path) block:
   f = input-file(path)
   s = f.read-file()
   f.close-file()

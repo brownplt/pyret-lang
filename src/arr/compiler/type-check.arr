@@ -196,7 +196,7 @@ fun provides-as-dict(provides):
   end
 end
 
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program> block:
   info = TCS.empty-tc-info("default")
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
@@ -225,16 +225,16 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       #end
     end
   end
-  cases(A.Program) program:
+  cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
       for each(_import from imports):
-        cases(A.Import) _import:
+        cases(A.Import) _import block:
           | s-import(_, file, name) =>
             raise("NYI")
           | s-import-complete(_, vals, types, file, vname, tname) =>
             key = import-to-string(file, compile-env)
             info.mod-names.set-now(tname.key(), key)
-            when not(info.modules.has-key-now(key)):
+            when not(info.modules.has-key-now(key)) block:
               mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
               val-provides = t-record(
                 for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v), l) end,
@@ -308,7 +308,7 @@ fun _checking(e :: A.Expr, expect-loc :: A.Loc, expect-typ :: Type, context :: C
         .bind(lam(new-answer, out-context):
           values-context = defined-values.foldr(lam(defined-value, fold-context):
             for bind(ctxt from fold-context):
-              synthesis(defined-value.value, ctxt).fold-bind(lam(ast, _, typ, new-context):
+              synthesis(defined-value.value, ctxt).fold-bind(lam(ast, _, typ, new-context) block:
                 new-context.info.typs.set-now(ast.id.key(), typ)
                 fold-result(new-context)
               end)
@@ -583,7 +583,7 @@ fun _synthesis(e :: A.Expr, context :: Context) -> SynthesisResult:
       var loc = l
       fold-synthesis(lam(stmt, ctxt):
         synthesis(stmt, ctxt).bind(
-          lam(stmt-expr, stmt-loc, stmt-typ, out-context):
+          lam(stmt-expr, stmt-loc, stmt-typ, out-context) block:
             typ := stmt-typ
             loc := stmt-loc
             synthesis-result(stmt-expr, stmt-loc, stmt-typ)
@@ -980,7 +980,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end
     | a-pred(l, ann, exp) =>
       for bind(maybe-typ from to-type(ann, context)):
-        cases(Option<Type>) maybe-typ:
+        cases(Option<Type>) maybe-typ block:
           | some(typ) =>
             expect-typ = t-arrow([list: typ], t-boolean(l), l)
             # TODO(MATT): decide if I want to keep handling the errors this way
@@ -1539,10 +1539,10 @@ end
 fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -> FoldResult<Context>:
   bindings.foldr(lam(binding, fold-ctxt):
     for bind(ctxt from fold-ctxt):
-      cases(A.TypeLetBind) binding:
+      cases(A.TypeLetBind) binding block:
         | s-type-bind(_, name, ann) =>
           for bind(maybe-typ from to-type(ann, context)):
-            cases(Option<Type>) maybe-typ:
+            cases(Option<Type>) maybe-typ block:
               | none => fold-errors(empty)
               | some(typ) =>
                 context.info.aliases.set-now(name.key(), typ)
@@ -1574,7 +1574,7 @@ fun synthesis-datatype(l :: Loc, name :: String, namet :: A.Name, params :: List
       new-variants = split-variants.left
       variant-typs = split-variants.right
 
-      for synth-bind(fields-result from map-result(to-type-member(_, context), fields)):
+      for synth-bind(fields-result from map-result(to-type-member(_, context), fields)) block:
         split-fields = split(fields-result)
 
         variant-type-fields = variant-typs.map(lam(var-typ):
@@ -1838,7 +1838,7 @@ fun handle-branch(data-type :: Type % (is-t-data), cases-loc :: A.Loc, branch ::
                   expect-loc :: A.Loc, maybe-check :: Option<Type>,
                   remove :: (String -> Any), context :: Context
 ) -> FoldResult<Pair<Pair<A.CasesBranch, Type>>, Context>:
-  fun handle-body(name :: String, body :: A.Expr, process, body-context :: Context):
+  fun handle-body(name :: String, body :: A.Expr, process, body-context :: Context) block:
     remove(name)
     cases(Option<Type>) maybe-check:
       | some(expect-typ) =>
@@ -1911,7 +1911,7 @@ end
 
 fun synthesis-instantiation(l :: Loc, expr :: A.Expr, params :: List<A.Ann>, context :: Context) -> SynthesisResult:
   synthesis(expr, context).bind(lam(new-expr, tmp-typ-loc, tmp-typ, out-context):
-    cases(Type) tmp-typ:
+    cases(Type) tmp-typ block:
       | t-forall(introduces, onto, _) =>
         for synth-bind(new-maybe-typs from map-result(to-type(_, context), params)):
           maybe-new-typs = new-maybe-typs.foldr(lam(maybe-typ, new-typs):

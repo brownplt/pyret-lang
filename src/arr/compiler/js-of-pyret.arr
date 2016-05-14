@@ -40,7 +40,7 @@ fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrin
   ccp(compiled)
 end
 
-fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options):
+fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options) block:
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
