@@ -1492,7 +1492,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           display.app(val);
         }, function(_) {
           return val;
-        });
+        }, "print");
     });
 
     var display = makeFunction(
@@ -1514,7 +1514,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }, function(repr) {
             theOutsideWorld.stdout(repr);
             return val;
-          });
+          }, "display");
         }
     });
 
@@ -1551,7 +1551,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }, function(repr) {
             theOutsideWorld.stderr(repr);
             return val;
-          });
+          }, "display-error");
         }
     });
 
@@ -1984,7 +1984,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           else if (thisRuntime.ffi.isUnknown(ans)) {
             thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
           }
-        });
+        }, "equal-within-abs-now");
       });
     };
 
@@ -2010,7 +2010,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           else if (thisRuntime.ffi.isUnknown(ans)) {
             thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
           }
-        });
+        }, "equal-within");
       });
     };
 
@@ -2036,7 +2036,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           else if (thisRuntime.ffi.isUnknown(ans)) {
             thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
           }
-        });
+        }, "equal-within-rel-now");
       });
     };
 
@@ -2059,7 +2059,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           else if (thisRuntime.ffi.isUnknown(ans)) {
             thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
           }
-        });
+        }, "equal-within-rel");
       });
     };
 
@@ -2092,7 +2092,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return safeCall(function() {
         return equal3(v1, v2, true);
-      }, eqAlwaysAns);
+      }, eqAlwaysAns, "equal-always");
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalAlwaysPy = makeFunction(function(left, right) {
@@ -2115,7 +2115,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         else if (thisRuntime.ffi.isUnknown(ans)) {
           thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
         }
-      });
+      }, "equal-now");
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)
     var equalNowPy = makeFunction(function(left, right) {
@@ -2548,7 +2548,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
                 thisRuntime.ffi.makeRefInitFail(makeSrcloc(that.anns[i].loc), getField(passed, "reason"))
               );
             }
-          });
+          }, "PAnnList.check");
         }
       }
       return checkI(0);
@@ -3195,7 +3195,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function runThunk(f, then) {
-      thisRuntime.run(f, thisRuntime.namespace, {}, then);
+      return thisRuntime.run(f, thisRuntime.namespace, {}, then);
     }
 
     function execThunk(thunk) {
@@ -4214,14 +4214,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
                   return postLoadHooks[uri](r);
                 }, function(_) {
                   return continu();
-                });
+                }, "runStandalone, postLoadHook for " + uri);
 
               }
               else {
                 return continu();
               }
-            });
-          });
+            }, "runStandalone, loading " + uri);
+          }, "runStandalone, native-dep loading " + uri);
       }
     }
 

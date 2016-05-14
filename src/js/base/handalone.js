@@ -12,6 +12,13 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     stderr: function(s) { process.stderr.write(s); } 
   });
 
+  var EXIT_SUCCESS = 0;
+  var EXIT_ERROR = 1;
+  var EXIT_ERROR_RENDERING_ERROR = 2;
+  var EXIT_ERROR_DISPLAYING_ERROR = 3;
+  var EXIT_ERROR_JS = 4;
+  var EXIT_ERROR_UNKNOWN = 5;
+
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
   var postLoadHooks = {
@@ -66,62 +73,73 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var rendererrorMod = execRt.modules["builtin://render-error-display"];
     var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
     var gf = execRt.getField;
-    return execRt.runThunk(function() {
-      if(execRt.isPyretVal(res.exn.exn) 
-         && execRt.isObject(res.exn.exn) 
-         && execRt.hasField(res.exn.exn, "render-reason")) {
-        return execRt.safeCall(
-          function() { 
+    if (execRt.isPyretException(res.exn)) {
+      var exnStack = res.exn.stack;
+      var pyretStack = res.exn.pyretStack;
+      return execRt.runThunk(
+        function() {
+          if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
             return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
-          }, function(reason) {
-            return execRt.safeCall(
-              function() { 
+          } else {
+            return execRt.ffi.edEmbed(res.exn.exn);
+          }
+        }, function(reasonResult) {
+          if (execRt.isFailureResult(reasonResult)) {
+            console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
+                          + "\nPyret encountered an error rendering that error:\n" + JSON.stringify(reasonResult)
+                          + "\nStack:\n" + JSON.stringify(exnStack)
+                          + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+            return EXIT_ERROR_RENDERING_ERROR;
+          } else {
+            return execRt.runThunk(
+              function() {
                 return gf(gf(rendererror, "values"), "display-to-string").app(
-                  reason, 
+                  reasonResult.result, 
                   execRt.namespace.get("torepr"), 
                   execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
-              }, function(str) {
-                return execRt.string_append(
-                  str,
-                  execRt.makeString("\nStack trace:\n" +
-                                    execRt.printPyretStack(res.exn.pyretStack)));
-              }, "errordisplay->to-string");
-          }, "error->display");
-      } else {
-        return String(res.exn + "\n" + res.exn.stack);
-      }
-    }, function(v) {
-      if(execRt.isSuccessResult(v)) {
-        console.log(v.result);
-      } else {
-        console.error("There was an exception while rendering the exception: ", v.exn);
-      }
-    });
+              }, function(printResult) {
+                if(execRt.isSuccessResult(printResult)) {
+                  console.error(printResult.result);
+                  console.error("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack));
+                  return EXIT_ERROR;
+                } else {
+                  console.error(
+                      "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
+                      + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
+                      + "\nStack:\n" + JSON.stringify(exnStack)
+                      + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+                  return EXIT_ERROR_DISPLAYING_ERROR;
+                }
+              });
+          }
+        });
+    } else if (res.exn && res.exn.stack) {
+      console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn, res.exn.stack);
+      return EXIT_ERROR_JS;
+    } else {
+      console.error("Unknown error result: ", res.exn);
+      return EXIT_ERROR_UNKNOWN;
+    }
   }
 
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
       //console.log(result);
+      process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
       console.error("The run ended in error:");
-      renderErrorMessage(runtime, result);
-      process.exit(1);
+      var exitCode = renderErrorMessage(runtime, result);
+      process.exit(exitCode);
     } else {
       console.error("The run ended in an unknown error: ", result);
       console.error(result.exn.stack);
-      process.exit(1);
+      process.exit(EXIT_ERROR_UNKNOWN);
     }
   }
 
   return runtime.runThunk(function() {
     return runtime.runStandalone(staticModules, depMap, toLoad, postLoadHooks);
   }, onComplete);
-
-/*
-  loadModulesNew(thisRuntime.namespace, [require("trove/image-lib")], function(i) {
-    thisRuntime["imageLib"] = getField(i, "internal");
-  });
-*/
 });
