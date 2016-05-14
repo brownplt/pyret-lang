@@ -104,6 +104,7 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
+                      -no-check-mode \
                       --require-config src/scripts/standalone-configB.json
 
 
@@ -116,6 +117,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
+                      -no-check-mode \
                       --require-config src/scripts/standalone-configC.json
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)

@@ -157,7 +157,7 @@ obj-field: key COLON binop-expr
 fields: list-field* field [COMMA]
 list-field: field COMMA
 field: key COLON binop-expr
-     | key fun-header COLON doc-string block where-clause end
+     | key fun-header (BLOCK|COLON) doc-string block where-clause end
 key: NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON [binop-expr-commas* binop-expr] RBRACK
