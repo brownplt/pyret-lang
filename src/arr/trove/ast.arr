@@ -160,6 +160,7 @@ fun MakeName(start):
     s-atom(base, count)
   end
   {
+    reset: lam(): count := start end,
     s-underscore: s-underscore,
     s-name: s-name,
     s-global: s-global,

@@ -1469,6 +1469,7 @@ fun compile-provides(provides):
 end
 
 fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
+  js-names.reset()
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
   imports = imports-in.sort-by(

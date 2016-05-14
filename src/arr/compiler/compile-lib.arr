@@ -304,6 +304,7 @@ end
 
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable block:
   G.reset()
+  A.global-names.reset()
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) => loadable
     | none =>
