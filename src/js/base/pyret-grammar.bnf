@@ -10,13 +10,14 @@ prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 
 import-stmt: INCLUDE import-source
 import-stmt: IMPORT import-source AS NAME
-import-stmt: IMPORT NAME (COMMA NAME)* FROM import-source
+import-stmt: IMPORT comma-names FROM import-source
 import-source: import-special | import-name | import-string 
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
 import-string: STRING
 provide-stmt: PROVIDE stmt END | PROVIDE STAR
 provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
+comma-names: NAME (COMMA NAME)*
 
 block: stmt*
 
@@ -45,7 +46,7 @@ contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause END
 fun-header: ty-params args return-ann
-ty-params: [(LANGLE|LT) NAME (COMMA NAME)* (RANGLE|GT)]
+ty-params: [(LANGLE|LT) comma-names (RANGLE|GT)]
 args: PARENNOSPACE [binding (COMMA binding)*] RPAREN
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
@@ -126,7 +127,8 @@ method-expr: METHOD fun-header (BLOCK|COLON) doc-string block where-clause END
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
-app-args: PARENNOSPACE [binop-expr (COMMA binop-expr)*] RPAREN
+app-args: PARENNOSPACE opt-comma-binops RPAREN
+opt-comma-binops: [binop-expr (COMMA binop-expr)*]
 # app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
@@ -143,7 +145,7 @@ field: key COLON binop-expr
      | key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
-construct-expr: LBRACK construct-modifier binop-expr COLON [binop-expr (COMMA binop-expr)*] RBRACK
+construct-expr: LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
 construct-modifier: | LAZY
 
 dot-expr: expr DOT NAME
@@ -175,10 +177,12 @@ name-ann: NAME
 record-ann: LBRACE [ann-field (COMMA ann-field)*] RBRACE
 ann-field: NAME COLONCOLON ann
 
-noparen-arrow-ann: [ann (COMMA ann)*] THINARROW ann
-arrow-ann: (PARENSPACE|PARENNOSPACE) [ann (COMMA ann)*] THINARROW ann RPAREN
+noparen-arrow-ann: [comma-anns] THINARROW ann
+arrow-ann: (PARENSPACE|PARENNOSPACE) [comma-anns] THINARROW ann RPAREN
 
-app-ann: (name-ann|dot-ann) LANGLE ann (COMMA ann)* RANGLE
+app-ann: (name-ann|dot-ann) LANGLE comma-anns RANGLE
+
+comma-anns: ann (COMMA ann)*
 
 pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 

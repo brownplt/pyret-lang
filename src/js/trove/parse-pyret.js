@@ -164,13 +164,9 @@
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
           } else {
-            // (import-stmt IMPORT NAME (COMMA NAME)* FROM mod)
-            var names = [];
-            for (var i = 1; i < node.kids.length - 2; i += 2) {
-              names.push(name(node.kids[i]));
-            }
+            // (import-stmt IMPORT comma-names FROM mod)
             return RUNTIME.getField(ast, 's-import-fields')
-              .app(pos(node.pos), makeList(names), tr(node.kids[node.kids.length - 1]));
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
           }
         },
         'import-source': function(node) {
@@ -649,12 +645,14 @@
           }
         },
         'app-args': function(node) {
-          if (node.kids.length === 2) {
-            // (app-args LPAREN RPAREN)
-            return makeList([]);
+            // (app-args LPAREN opt-comma-binops RPAREN)
+          return tr(node.kids[1]);
+        },
+        'opt-comma-binops': function(node) {
+          if (node.kids.length === 0) {
+            return empty;
           } else {
-            // (app-args LPAREN binop-expr (COMMA binop-expr)* RPAREN)
-            return makeListComma(node.kids, 1, node.kids.length - 1);
+            return makeListComma(node.kids);
           }
         },
         'cases-args': function(node) {
@@ -708,8 +706,8 @@
             // (ty-params)
             return makeList([]);
           } else {
-            // (ty-params LANGLE NAME (COMMA NAME)* RANGLE)
-            return makeListComma(node.kids, 1, node.kids.length - 1, name);
+            // (ty-params LANGLE comma-names RANGLE)
+            return tr(node.kids[1]);
           }
         },
         'for-bind': function(node) {
@@ -733,9 +731,9 @@
           }
         },
         'construct-expr': function(node) {
+          // LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
           return RUNTIME.getField(ast, 's-construct')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), 
-                 makeListComma(node.kids, 4, node.kids.length - 1));
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         },
         'construct-modifier': function(node) {
           if (node.kids.length === 0) {
@@ -915,23 +913,48 @@
             .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
         },
         'noparen-arrow-ann': function(node) {
-          // (noparen-arrow-ann args ... THINARROW result)
-          return RUNTIME.getField(ast, 'a-arrow')
-            .app(pos(node.pos), 
-                 makeListTr(node.kids, 0, node.kids.length - 2), tr(node.kids[node.kids.length - 1]),
-                 RUNTIME.pyretFalse);
+          if (node.kids.length === 2) {
+            // (noparen-arrow-ann THINARROW result)
+            return RUNTIME.getField(ast, 'a-arrow')
+              .app(pos(node.pos), 
+                   empty, tr(node.kids[1]),
+                   RUNTIME.pyretFalse);
+          } else {
+            // (noparen-arrow-ann comma-anns THINARROW result)
+            return RUNTIME.getField(ast, 'a-arrow')
+              .app(pos(node.pos), 
+                   tr(node.kids[0]), tr(node.kids[2]),
+                   RUNTIME.pyretFalse);
+          }
         },
         'arrow-ann': function(node) {
-          // (arrow-ann LPAREN ann (COMMA ann)* THINARROW result RPAREN)
-          return RUNTIME.getField(ast, 'a-arrow')
-            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 3),
-                 tr(node.kids[node.kids.length - 2]),
-                 RUNTIME.pyretTrue);
+          if (node.kids.length === 4) {
+            // (arrow-ann LPAREN THINARROW result RPAREN)
+            return RUNTIME.getField(ast, 'a-arrow')
+              .app(pos(node.pos), empty,
+                   tr(node.kids[2]),
+                   RUNTIME.pyretTrue);
+          } else {
+            // (arrow-ann LPAREN comma-anns THINARROW result RPAREN)
+            return RUNTIME.getField(ast, 'a-arrow')
+              .app(pos(node.pos), tr(node.kids[1]),
+                   tr(node.kids[3]),
+                   RUNTIME.pyretTrue);
+          }
         },
         'app-ann': function(node) {
-          // (app-ann ann LANGLE ann (COMMA ann)* RANGLE)
+          // (app-ann ann LANGLE comma-anns RANGLE)
           return RUNTIME.getField(ast, 'a-app')
-            .app(pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        },
+        'comma-anns': function(node) {
+          return makeListComma(node.kids);
+        },
+        'comma-names': function(node) {
+          return makeListComma(node.kids, 0, node.kids.length, name);
+        },
+        'comma-binops': function(node) {
+          return makeListComma(node.kids);
         },
         'pred-ann': function(node) {
           // (pred-ann ann PERCENT LPAREN exp RPAREN)
