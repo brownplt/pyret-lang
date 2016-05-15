@@ -46,6 +46,7 @@ node_modules/
 *#
 pyret.plt
 tests/pyret/*.arr.js
+tests/pyret/*.jarr
 tests/pyret/tests/*.arr.js
 tests/type-check/*/*.arr.js
 tests/pyret/regression/*.arr.js
