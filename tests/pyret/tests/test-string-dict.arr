@@ -37,7 +37,7 @@ check "basics":
 
   var long-torepr = nothing
   long-torepr := {
-    _output(self):
+    _output(self) block:
       var str = ""
       for each(i from range(0, 10000)):
         str := tostring(i)
@@ -64,7 +64,7 @@ check "basics":
     is-not [SD.mutable-string-dict: "b", 5, "c", 5]
   sd-many-as = [SD.mutable-string-dict:]
   sd-almost-many-as = [SD.mutable-string-dict: "a", 10]
-  for each(i from range(0, 100)):
+  for each(i from range(0, 100)) block:
     sd-many-as.set-now("a" + tostring(i), i)
     when not(i == 54):
       sd-almost-many-as.set-now("a" + tostring(i), i)

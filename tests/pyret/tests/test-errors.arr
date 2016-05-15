@@ -25,14 +25,14 @@ check:
 
   e = get-err(lam(): {}.x;)
   e satisfies E.is-field-not-found
-  when E.is-field-not-found(e):
+  when E.is-field-not-found(e) block:
     e.field is "x"
     e.obj is {}
   end
 
   e1 = get-err(lam(): 5.x;)
   e1 satisfies E.is-lookup-non-object
-  when E.is-lookup-non-object(e1):
+  when E.is-lookup-non-object(e1) block:
     e1.field is "x"
     e1.non-obj is 5
     e1.loc satisfies S.is-srcloc
@@ -41,7 +41,7 @@ check:
 
   e2 = get-err(lam(): "x".x;)
   e2 satisfies E.is-lookup-non-object
-  when E.is-lookup-non-object(e2):
+  when E.is-lookup-non-object(e2) block:
     e2.field is "x"
     e2.non-obj is "x"
     e2.loc satisfies S.is-srcloc
@@ -49,7 +49,7 @@ check:
 
   e3 = get-err(lam(): true.x;)
   e3 satisfies E.is-lookup-non-object
-  when E.is-lookup-non-object(e3):
+  when E.is-lookup-non-object(e3) block:
     e3.field is "x"
     e3.non-obj is true 
     e3.loc satisfies S.is-srcloc
@@ -57,28 +57,28 @@ check:
   
   e4 = get-err(lam(): "x".{x : false};)
   e4 satisfies E.is-extend-non-object
-  when E.is-extend-non-object(e4):
+  when E.is-extend-non-object(e4) block:
     e4.non-obj is "x"
     e4.loc satisfies S.is-srcloc
   end
 
   e5 = get-err(lam(): true.{x : false};)
   e5 satisfies E.is-extend-non-object
-  when E.is-extend-non-object(e5):
+  when E.is-extend-non-object(e5) block:
     e5.non-obj is true 
     e5.loc satisfies S.is-srcloc
   end
 
   e6 = get-err(lam(): "a" + 5;)
   e6 satisfies E.is-num-string-binop-error
-  when E.is-num-string-binop-error(e6):
+  when E.is-num-string-binop-error(e6) block:
     e6.val1 is "a"
     e6.val2 is 5
   end
 
   e7 = get-err(lam(): 5 + "a";)
   e7 satisfies E.is-num-string-binop-error
-  when E.is-num-string-binop-error(e7):
+  when E.is-num-string-binop-error(e7) block:
     e7.val1 is 5
     e7.val2 is "a"
   end
@@ -95,21 +95,21 @@ check:
 
   e10 = get-err(lam(): 5() end)
   e10 satisfies E.is-non-function-app
-  when E.is-non-function-app(e10):
+  when E.is-non-function-app(e10) block:
     e10.non-fun-val is 5
     e10.loc satisfies S.is-srcloc
   end
 
   e11 = get-err(lam(): 5(6, 7 + 8) end)
   e11 satisfies E.is-non-function-app
-  when E.is-non-function-app(e11):
+  when E.is-non-function-app(e11) block:
     e11.non-fun-val is 5
     e11.loc satisfies S.is-srcloc
   end
 
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
   e12 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e12):
+  when E.is-arity-mismatch(e12) block:
     e12.expected-arity is 1
     e12.args.length() is 2
     e12.fun-loc satisfies S.is-builtin
@@ -118,7 +118,7 @@ check:
   
   e13 = get-err(lam(): P.surface-parse("missing argument") end)
   e13 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e13):
+  when E.is-arity-mismatch(e13) block:
     e13.expected-arity is 2
     e13.args.length() is 1
     e13.fun-loc satisfies S.is-builtin
@@ -127,7 +127,7 @@ check:
   
   e14 = get-err(lam(): P.surface-parse("too", "many", "arguments") end)
   e14 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e14):
+  when E.is-arity-mismatch(e14) block:
     e14.expected-arity is 2
     e14.args.length() is 3
     e14.fun-loc satisfies S.is-builtin
@@ -136,7 +136,7 @@ check:
   
   e16 = get-err(lam(): F.format("too", "many", "arguments") end)
   e16 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e16):
+  when E.is-arity-mismatch(e16) block:
     e16.expected-arity is 2
     e16.args.length() is 3
     e16.fun-loc satisfies S.is-builtin
@@ -145,7 +145,7 @@ check:
   
   e17 = get-err(lam(): W.big-bang("too", "many", "arguments") end)
   e17 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e17):
+  when E.is-arity-mismatch(e17) block:
     e17.expected-arity is 2
     e17.args.length() is 3
     e17.fun-loc satisfies S.is-builtin
@@ -154,7 +154,7 @@ check:
   
   e18 = get-err(lam(): W.is-world-config("too", "many", "arguments") end)
   e18 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e18):
+  when E.is-arity-mismatch(e18) block:
     e18.expected-arity is 1
     e18.args.length() is 3
     e18.fun-loc satisfies S.is-builtin
@@ -163,7 +163,7 @@ check:
   
   e19 = get-err(lam(): W.is-key-equal("too", "many", "arguments") end)
   e19 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e19):
+  when E.is-arity-mismatch(e19) block:
     e19.expected-arity is 2
     e19.args.length() is 3
     e19.fun-loc satisfies S.is-builtin
@@ -172,14 +172,14 @@ check:
   
   e20 = get-err(lam(): D.to-dict("too", "many", "arguments") end)
   e20 satisfies E.is-field-not-found
-  when E.is-field-not-found(e20):
+  when E.is-field-not-found(e20) block:
     e20.field is "to-dict"
     e20.obj is D
   end
   
   e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e21):
+  when E.is-arity-mismatch(e21) block:
     e21.expected-arity is 0
     e21.args.length() is 3
     e21.fun-loc satisfies S.is-builtin
@@ -188,7 +188,7 @@ check:
   
   e22 = get-err(lam(): D.make-mutable-string-dict("too", "many", "arguments") end)
   e22 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e22):
+  when E.is-arity-mismatch(e22) block:
     e22.expected-arity is 0
     e22.args.length() is 3
     e22.fun-loc satisfies S.is-builtin
@@ -197,7 +197,7 @@ check:
   
   e23 = get-err(lam(): FL.open-input-file("too", "many", "arguments") end)
   e23 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e23):
+  when E.is-arity-mismatch(e23) block:
     e23.expected-arity is 1
     e23.args.length() is 3
     e23.fun-loc satisfies S.is-builtin
@@ -206,7 +206,7 @@ check:
   
   e24 = get-err(lam(): FL.open-output-file("too", "many", "arguments") end)
   e24 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e24):
+  when E.is-arity-mismatch(e24) block:
     e24.expected-arity is 2
     e24.args.length() is 3
     e24.fun-loc satisfies S.is-builtin
@@ -215,7 +215,7 @@ check:
   
   e25 = get-err(lam(): FL.read-file("too", "many", "arguments") end)
   e25 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e25):
+  when E.is-arity-mismatch(e25) block:
     e25.expected-arity is 1
     e25.args.length() is 3
     e25.fun-loc satisfies S.is-builtin
@@ -224,7 +224,7 @@ check:
   
   e26 = get-err(lam(): FL.display("too", "many", "arguments") end)
   e26 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e26):
+  when E.is-arity-mismatch(e26) block:
     e26.expected-arity is 2
     e26.args.length() is 3
     e26.fun-loc satisfies S.is-builtin
@@ -233,7 +233,7 @@ check:
   
   e27 = get-err(lam(): FL.close-output-file("too", "many", "arguments") end)
   e27 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e27):
+  when E.is-arity-mismatch(e27) block:
     e27.expected-arity is 1
     e27.args.length() is 3
     e27.fun-loc satisfies S.is-builtin
@@ -242,7 +242,7 @@ check:
 
   e28 = get-err(lam(): FL.close-input-file("too", "many", "arguments") end)
   e28 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e28):
+  when E.is-arity-mismatch(e28) block:
     e28.expected-arity is 1
     e28.args.length() is 3
     e28.fun-loc satisfies S.is-builtin
@@ -251,7 +251,7 @@ check:
 
   data-pred-arity = get-err(lam(): is-Data(1, 2) end)
   data-pred-arity satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(data-pred-arity):
+  when E.is-arity-mismatch(data-pred-arity) block:
     data-pred-arity.expected-arity is 1
     data-pred-arity.args.length() is 2
     data-pred-arity.fun-loc satisfies S.is-srcloc
@@ -259,7 +259,7 @@ check:
   
   data-var1-arity = get-err(lam(): is-var1(1, 2) end)
   data-var1-arity satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(data-var1-arity):
+  when E.is-arity-mismatch(data-var1-arity) block:
     data-var1-arity.expected-arity is 1
     data-var1-arity.args.length() is 2
     data-var1-arity.fun-loc satisfies S.is-srcloc
@@ -267,7 +267,7 @@ check:
 
   data-var2-arity = get-err(lam(): is-var2(1, 2) end)
   data-var2-arity satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(data-var2-arity):
+  when E.is-arity-mismatch(data-var2-arity) block:
     data-var2-arity.expected-arity is 1
     data-var2-arity.args.length() is 2
     data-var2-arity.fun-loc satisfies S.is-srcloc
@@ -281,7 +281,7 @@ check:
       end
     end)
   data-cases-var1-arity1 satisfies E.is-cases-singleton-mismatch
-  when E.is-cases-singleton-mismatch(data-cases-var1-arity1):
+  when E.is-cases-singleton-mismatch(data-cases-var1-arity1) block:
     data-cases-var1-arity1.should-be-singleton is true
     data-cases-var1-arity1.branch-loc satisfies S.is-srcloc
   end
@@ -294,7 +294,7 @@ check:
       end
     end)
   data-cases-var2-arity1 satisfies E.is-cases-singleton-mismatch
-  when E.is-cases-singleton-mismatch(data-cases-var2-arity1):
+  when E.is-cases-singleton-mismatch(data-cases-var2-arity1) block:
     data-cases-var2-arity1.should-be-singleton is false
     data-cases-var2-arity1.branch-loc satisfies S.is-srcloc
   end
@@ -307,7 +307,7 @@ check:
       end
     end)
   data-cases-var2-arity2 satisfies E.is-cases-arity-mismatch
-  when E.is-cases-singleton-mismatch(data-cases-var2-arity2):
+  when E.is-cases-singleton-mismatch(data-cases-var2-arity2) block:
     data-cases-var2-arity2.num-args is 2
     data-cases-var2-arity2.actual-fields.length() is 1
     data-cases-var2-arity2.branch-loc satisfies S.is-srcloc
@@ -321,7 +321,7 @@ check:
       end
     end)
   data-cases-var2-arity3 satisfies E.is-cases-arity-mismatch
-  when E.is-cases-singleton-mismatch(data-cases-var2-arity3):
+  when E.is-cases-singleton-mismatch(data-cases-var2-arity3) block:
     data-cases-var2-arity3.num-args is 0
     data-cases-var2-arity3.actual-fields.length() is 1
     data-cases-var2-arity3.branch-loc satisfies S.is-srcloc
@@ -334,7 +334,7 @@ check:
       end
     end)
   cases-miss satisfies E.is-no-cases-matched
-  when E.is-cases-singleton-mismatch(cases-miss):
+  when E.is-cases-singleton-mismatch(cases-miss) block:
     cases-miss.val is var2(5)
     cases-miss.loc satisfies S.is-srcloc
   end

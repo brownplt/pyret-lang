@@ -67,7 +67,7 @@ check:
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s):
+  fun test-constructor(s) block:
 # SKIP(wating for predicates/annotations)
 #    Set(s([list: 1, 2])) is true
 #    Set(s([list: ])) is true
@@ -92,7 +92,7 @@ check:
     ([s: 1, 2.1, 3] <> [s: 1, 2.2, 3]) is true
     c([s: 1, 2, 4]) is c([s: 2, 1, 4])
 
-    for each(n from range(1,21)):
+    for each(n from range(1,21)) block:
       check-random-adds(n * 5, s) is true
       check-random-removes(n * 5, s) is true
     end
@@ -108,7 +108,7 @@ check "Different constructors should work well together":
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s-a, s-b):
+  fun test-constructor(s-a, s-b) block:
     [s-a: 1, 2].union([s-b: 2, 3]) is [s-a: 1, 2, 3]
     [s-a: 1, 2].union([s-b: 4]) is [s-a: 1, 2, 4]
     [s-a: 1, 2].intersect([s-b: 2, 3]) is [s-a: 2]

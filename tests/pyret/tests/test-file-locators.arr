@@ -19,7 +19,7 @@ end
 counter =
   block:
     var count = 0
-    lam():
+    lam() block:
       c = count
       count := count + 1
       c
@@ -38,11 +38,11 @@ fun file-object(time): {
         ctime: self.ctime
       }
     end,
-    read-file(self):
+    read-file(self) block:
       self.atime!{v : counter()}
       self.contents!v
     end,
-    display(self, str):
+    display(self, str) block:
       self.mtime!{v : counter()}
       self.contents!{v : str}
     end,
@@ -53,7 +53,7 @@ fun make-file-ops(): {
     file-map: SD.make-mutable-string-dict(),
     input-file(self, path): self.file-map.get-value-now(path) end,
     output-file(self, path):
-      cases (Option) self.file-map.get-now(path):
+      cases (Option) self.file-map.get-now(path) block:
         | none =>
           fp = file-object(counter())
           self.file-map.set-now(path, fp)

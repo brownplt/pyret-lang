@@ -172,7 +172,7 @@ fun run-to-result(filename):
 end
 
 fun get-run-answer(str):
-  cases(Either) run-to-result(str):
+  cases(Either) run-to-result(str) block:
     | right(ans) => ans
     | left(err) => 
       print-error("Expected an answer, but got compilation errors:")

@@ -26,7 +26,8 @@ check:
       if n == 1: true
       else: even(n - 1)
       end
-    end:
+    end
+    block:
     even(100) is true
     odd(5) is true
     odd(6) is false

@@ -6,7 +6,7 @@ provide {
 
 x = 10
 var y = 0
-fun f():
+fun f() block:
   y := y + 1
   y
 end

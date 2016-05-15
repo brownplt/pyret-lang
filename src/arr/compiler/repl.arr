@@ -214,7 +214,7 @@ fun make-repl<a>(
     end
   end
 
-  fun update-env(result, loc, cr):
+  fun update-env(result, loc, cr) block:
     dep = CS.dependency("repl", [list: loc.uri()])
 
     globs-and-imports = filter-env-by-imports(cr.compile-env, loc, dep.key(), globals)
@@ -239,7 +239,7 @@ fun make-repl<a>(
 
   end
 
-  fun restart-interactions(type-check :: Boolean):
+  fun restart-interactions(type-check :: Boolean) block:
     current-interaction := 0
     current-type-check := type-check
     modules := SD.make-mutable-string-dict()
@@ -261,7 +261,7 @@ fun make-repl<a>(
     result
   end
 
-  fun run-interaction(repl-locator :: CL.Locator):
+  fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
     compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
     modules.set-now(repl-locator.uri(), compiled.loadables.last())
@@ -277,7 +277,7 @@ fun make-repl<a>(
     result
   end
 
-  fun make-interaction-locator(get-interactions):
+  fun make-interaction-locator(get-interactions) block:
     current-interaction := current-interaction + 1
     this-interaction = current-interaction
     uri = "interactions://" + num-to-string(this-interaction)

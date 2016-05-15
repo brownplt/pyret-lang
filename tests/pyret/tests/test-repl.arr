@@ -8,7 +8,7 @@ import file("../../../src/arr/compiler/compile-structs.arr") as CS
 type Either = E.Either
 
 fun get-run-answer(res):
-  cases(Either) res:
+  cases(Either) res block:
     | right(ans) => ans
     | left(err) => 
       print-error("Expected an answer, but got compilation errors:")
