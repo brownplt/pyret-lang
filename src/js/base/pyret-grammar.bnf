@@ -134,7 +134,6 @@ inst-expr: expr LANGLE ann (COMMA ann)* RANGLE
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: obj-field (COMMA obj-field)* [COMMA]
-list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
      | key fun-header (BLOCK|COLON) doc-string block where-clause END
