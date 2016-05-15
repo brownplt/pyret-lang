@@ -4698,6 +4698,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     thisRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
     thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
     thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+    thisRuntime["makeArrayN"] = function(n) { return new Array(n); }
 
     var checkList = makeCheckType(ffi.isList, "List");
     thisRuntime["checkList"] = checkList;

@@ -4613,6 +4613,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'callIfPossible8' : callIfPossible8,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
+        'makeArrayN' : function(n) { return new Array(n); },
         'makeBrandedObject'   : makeBrandedObject,
         'makeGraphableRef' : makeGraphableRef,
         'makeRef' : makeRef,

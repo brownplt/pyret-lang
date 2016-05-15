@@ -287,7 +287,7 @@ end
 data JExpr:
   | j-parens(exp :: JExpr) with:
     label(self): "j-parens" end,
-    print-ugly-source(self, printer) block: 
+    print-ugly-source(self, printer) block:
       printer("(")
       self.exp.print-ugly-source(printer)
       printer(")")
@@ -581,12 +581,12 @@ where:
     j-block([clist: j-app(j-n-id("a"), [clist: j-n-id("b")])])).tosource().pretty(80)
     is [list: "function(a, b) { a(b) }"]
 
-  j-fun([clist: j-n-id("RUNTIME").id, j-n-id("NAMESPACE").id], j-block([clist: 
+  j-fun([clist: j-n-id("RUNTIME").id, j-n-id("NAMESPACE").id], j-block([clist:
       j-var(j-n-id("print").id, j-method(j-n-id("NAMESPACE"), "get", [clist: j-str("print")])),
       j-var(j-n-id("brand").id, j-method(j-n-id("NAMESPACE"), "get", [clist: j-str("brand")]))
     ])).tosource().pretty(80)
     is
-    [list: 
+    [list:
       "function(RUNTIME, NAMESPACE) {",
       "  var print = NAMESPACE.get(\"print\");",
       "  var brand = NAMESPACE.get(\"brand\");",
