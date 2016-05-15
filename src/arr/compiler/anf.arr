@@ -181,7 +181,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | link(f, r) =>
           cases(A.LetBind) f:
             | s-var-bind(l2, b, val) =>
-              if A.is-a-blank(b.ann):
+              if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
                 anf-name(val, "var", lam(new-val):
                       N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(new-val.l, new-val),
                         anf(A.s-let-expr(l, r, body), k))
@@ -300,7 +300,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf(A.s-let-expr(l, bindings, A.s-id(l, name.id)), k)
 
     | s-lam(l, params, args, ret, doc, body, _) =>
-      if A.is-a-blank(ret):
+      if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
         name = mk-id(l, "ann_check_temp")
@@ -310,7 +310,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 A.s-id(l, name.id)))))
       end
     | s-method(l, params, args, ret, doc, body, _) =>
-      if A.is-a-blank(ret):
+      if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
         name = mk-id(l, "ann_check_temp")
