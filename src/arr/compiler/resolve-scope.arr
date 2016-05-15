@@ -18,7 +18,7 @@ names = A.global-names
 
 type NameResolution = C.NameResolution
 
-fun mk-bind(l, id) -> A.Expr: A.s-bind(l, false, id, A.a-blank);
+fun mk-bind(l, id) -> A.Expr: A.s-bind(l, false, id, A.a-blank) end
 
 fun mk-id(loc, base) -> { id :: A.Expr, id-b :: A.Expr, id-e :: A.Expr }:
   t = A.s-name(loc, base)
@@ -185,8 +185,8 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               A.s-lam(l, params, args, ann, doc, body, _check, blocky)
             ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
-          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank);
-          fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank);
+          fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(l, id), A.a-blank) end
+          fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank) end
           fun variant-binds(data-blob-id, v):
             vname = v.name
             checker-name = A.make-checker-name(vname)
@@ -208,7 +208,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
         | s-contract(l, name, ann) =>
           desugar-scope-block(rest-stmts, binding-group)
         | s-check(l, name, body, keyword) =>
-          fun b(loc): A.s-bind(loc, false, A.s-underscore(l), A.a-blank);
+          fun b(loc): A.s-bind(loc, false, A.s-underscore(l), A.a-blank) end
           add-letrec-binds(binding-group, [list: A.s-letrec-bind(l, b(l), A.s-check(l, name, body, keyword))], rest-stmts)
         | else =>
           cases(List) rest-stmts:
@@ -225,10 +225,10 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
   end
 where:
   dsb = desugar-scope-block(_, let-binds(empty))
-  p = lam(str): PP.surface-parse(str, "test").block;
+  p = lam(str): PP.surface-parse(str, "test").block end
   d = A.dummy-loc
-  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
-  id = lam(s): A.s-id(d, A.s-name(d, s));
+  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end
+  id = lam(s): A.s-id(d, A.s-name(d, s)) end
   bk = lam(e): A.s-block(d, [list: e]) end
   bs = lam(str):
     dsb(p(str).stmts).visit(A.dummy-loc-visitor)
@@ -262,8 +262,8 @@ where:
           ],
           A.s-app(d, id("f"), [list: ]), false)
 
-  p-s = lam(e): A.s-app(d, id("print"), [list: e]);
-  pretty = lam(e): e.tosource().pretty(80).join-str("\n");
+  p-s = lam(e): A.s-app(d, id("print"), [list: e]) end
+  pretty = lam(e): e.tosource().pretty(80).join-str("\n") end
 
   prog2 = bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)")
   prog2 is A.s-block(d,
@@ -306,8 +306,8 @@ where:
   #the-let = prog5.stmts
   #the-let satisfies A.is-s-let-expr
   #the-let.binds.length() is 6 # ListB, emptyB, linkB, List, is-empty, is-link
-  #the-let.binds.take(3).map(_.value) satisfies lists.all(lam(e): A.is-s-app(e) and (e._fun.id == "brander");, _)
-  #the-let.binds.drop(3).map(_.value) satisfies lists.all(lam(e): A.is-s-dot(e) and (e.field == "test");, _)
+  #the-let.binds.take(3).map(_.value) satisfies lists.all(lam(e): A.is-s-app(e) and (e._fun.id == "brander") end, _)
+  #the-let.binds.drop(3).map(_.value) satisfies lists.all(lam(e): A.is-s-dot(e) and (e.field == "test") end, _)
   #the-letrec = the-let.body
   #the-letrec satisfies A.is-s-letrec
   #the-letrec.binds.length() is 4 # emptyDict, linkDict, empty, link
@@ -379,8 +379,8 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
   
 where:
   d = A.dummy-loc
-  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank);
-  id = lam(s): A.s-id(d, A.s-name(d, s));
+  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end
+  id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end

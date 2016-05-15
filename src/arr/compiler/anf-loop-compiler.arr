@@ -174,8 +174,8 @@ fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [clist: loc])
 end
 
-fun rt-field(name): j-dot(RUNTIME, name);
-fun rt-method(name, args): j-method(RUNTIME, name, args);
+fun rt-field(name): j-dot(RUNTIME, name) end
+fun rt-method(name, args): j-method(RUNTIME, name, args) end
 
 fun app(l, f, args):
   j-method(f, "app", args)
@@ -1471,7 +1471,7 @@ end
 fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
-  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]);
+  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
   imports = imports-in.sort-by(
       lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
       lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
@@ -1596,7 +1596,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     end)
   # this needs to be freshened to support multiple repl interactions with the "same" source
   module-id = fresh-id(compiler-name(l.source)).tosourcestring()
-  module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name));
+  module-ref = lam(name): j-bracket(rt-field("modules"), j-str(name)) end
   input-ids = CL.map_list(lam(i):
       if A.is-s-atom(i) and (i.base == "$import"): js-names.make-atom("$$import")
       else: js-id-of(compiler-name(i.toname()))

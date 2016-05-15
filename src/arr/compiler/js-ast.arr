@@ -490,7 +490,7 @@ data JExpr:
         elts.first.print-ugly-source(printer)
         for each(f from elts.rest) block:
           printer(",")
-          when self.multi-line: printer("\n");
+          when self.multi-line: printer("\n") end
           f.print-ugly-source(printer)
         end
       end

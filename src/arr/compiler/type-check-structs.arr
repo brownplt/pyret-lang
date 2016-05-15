@@ -215,11 +215,11 @@ fun add-type-variable(tv :: TS.TypeVariable, info :: TCInfo) -> TCInfo:
   add-binding(tv.id, tv.upper-bound, info)
 end
 
-fun bind(f, a): a.bind(f);
-fun map-bind(f, a): a.map-bind(f);
-fun check-bind(f, a): a.check-bind(f);
-fun synth-bind(f, a): a.synth-bind(f);
-fun fold-bind(f, a): a.fold-bind(f);
+fun bind(f, a): a.bind(f) end
+fun map-bind(f, a): a.map-bind(f) end
+fun check-bind(f, a): a.check-bind(f) end
+fun synth-bind(f, a): a.synth-bind(f) end
+fun fold-bind(f, a): a.fold-bind(f) end
 
 # TODO(MATT): fix bind
 data SynthesisResult:

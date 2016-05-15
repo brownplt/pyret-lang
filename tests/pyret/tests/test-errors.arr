@@ -23,14 +23,14 @@ check:
     end
   end
 
-  e = get-err(lam(): {}.x;)
+  e = get-err(lam(): {}.x end)
   e satisfies E.is-field-not-found
   when E.is-field-not-found(e) block:
     e.field is "x"
     e.obj is {}
   end
 
-  e1 = get-err(lam(): 5.x;)
+  e1 = get-err(lam(): 5.x end)
   e1 satisfies E.is-lookup-non-object
   when E.is-lookup-non-object(e1) block:
     e1.field is "x"
@@ -39,7 +39,7 @@ check:
   end
 
 
-  e2 = get-err(lam(): "x".x;)
+  e2 = get-err(lam(): "x".x end)
   e2 satisfies E.is-lookup-non-object
   when E.is-lookup-non-object(e2) block:
     e2.field is "x"
@@ -47,7 +47,7 @@ check:
     e2.loc satisfies S.is-srcloc
   end
 
-  e3 = get-err(lam(): true.x;)
+  e3 = get-err(lam(): true.x end)
   e3 satisfies E.is-lookup-non-object
   when E.is-lookup-non-object(e3) block:
     e3.field is "x"
@@ -55,28 +55,28 @@ check:
     e3.loc satisfies S.is-srcloc
   end
   
-  e4 = get-err(lam(): "x".{x : false};)
+  e4 = get-err(lam(): "x".{x : false} end)
   e4 satisfies E.is-extend-non-object
   when E.is-extend-non-object(e4) block:
     e4.non-obj is "x"
     e4.loc satisfies S.is-srcloc
   end
 
-  e5 = get-err(lam(): true.{x : false};)
+  e5 = get-err(lam(): true.{x : false} end)
   e5 satisfies E.is-extend-non-object
   when E.is-extend-non-object(e5) block:
     e5.non-obj is true 
     e5.loc satisfies S.is-srcloc
   end
 
-  e6 = get-err(lam(): "a" + 5;)
+  e6 = get-err(lam(): "a" + 5 end)
   e6 satisfies E.is-num-string-binop-error
   when E.is-num-string-binop-error(e6) block:
     e6.val1 is "a"
     e6.val2 is 5
   end
 
-  e7 = get-err(lam(): 5 + "a";)
+  e7 = get-err(lam(): 5 + "a" end)
   e7 satisfies E.is-num-string-binop-error
   when E.is-num-string-binop-error(e7) block:
     e7.val1 is 5

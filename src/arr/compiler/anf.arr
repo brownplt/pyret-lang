@@ -39,7 +39,7 @@ fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, k-cont(lam(x): N.a-lettable(x.l, x) end))
 end
 
-fun bind(l, id): N.a-bind(l, id, A.a-blank);
+fun bind(l, id): N.a-bind(l, id, A.a-blank) end
 
 fun anf-bind(b):
   cases(A.Bind) b:
@@ -82,7 +82,7 @@ fun anf-name-rec(
     | empty => k([list: ])
     | link(f, r) =>
       anf-name(f, name-hint, lam(v):
-          anf-name-rec(r, name-hint, lam(vs): k([list: v] + vs);)
+          anf-name-rec(r, name-hint, lam(vs): k([list: v] + vs) end)
         end)
   end
 end
@@ -254,7 +254,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         cases(List) vs:
           | empty => ks([list: ])
           | link(f, r) =>
-            anf-variant(f, lam(v): anf-variants(r, lam(rest-vs): ks([list: v] + rest-vs););)
+            anf-variant(f, lam(v): anf-variants(r, lam(rest-vs): ks([list: v] + rest-vs) end) end)
         end
       end
       exprs = shared.map(get-value)

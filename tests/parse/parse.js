@@ -415,14 +415,14 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("(true) > (false)")).not.toBe(false);
     });
 
-    it("should not mind ; at EOF", function() {
-      expect(parse("lam<T>(x :: T) -> T: x;")).not.toBe(false);
+    it("should not mind end at EOF", function() {
+      expect(parse("lam<T>(x :: T) -> T: x end")).not.toBe(false);
     });
 
-    it("should not mind ; at EOL, and then another statement", function() {
-      var a = "  fun x<T>(x :: T) -> T: x;";
-      expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
-      expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
+    it("should not mind end at EOL, and then another statement", function() {
+      var a = "  fun x<T>(x :: T) -> T: x end";
+      expect(parse("block:\n" + a + "\n" + a + " end")).not.toBe(false);
+      expect(parse("block:\n" + a + " \n" + a + " end")).not.toBe(false);
     });
 
     it("should require whitespace after :: and =>", function() {
@@ -466,9 +466,9 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     });
 
     it("should treat (...) as grouping after ;", function() {
-      expect(parse("block: lam(x): x;(x);")).not.toBe(false);
-      expect(parse("block: lam(x): x ; (x);")).not.toBe(false);
-      expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
+      expect(parse("block: lam(x): x end(x)end")).not.toBe(false);
+      expect(parse("block: lam(x): x end (x)end")).not.toBe(false);
+      expect(parse("block: lam(x): x end\n(x)end")).not.toBe(false);
     });
 
     it("should parse get-bang", function() {
@@ -527,19 +527,19 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('o =~ o2')).not.toBe(false);
       expect(parse('o == o2')).not.toBe(false);
 
-      expect(parse('check: o is== o2;')).not.toBe(false);
-      expect(parse('check: o is == o2;')).toBe(false);
-      expect(parse('check: o is=~ o2;')).not.toBe(false);
-      expect(parse('check: o is =~ o2;')).toBe(false);
-      expect(parse('check: o is<=> o2;')).not.toBe(false);
-      expect(parse('check: o is <=> o2;')).toBe(false);
+      expect(parse('check: o is== o2 end')).not.toBe(false);
+      expect(parse('check: o is == o2 end')).toBe(false);
+      expect(parse('check: o is=~ o2 end')).not.toBe(false);
+      expect(parse('check: o is =~ o2 end')).toBe(false);
+      expect(parse('check: o is<=> o2 end')).not.toBe(false);
+      expect(parse('check: o is <=> o2 end')).toBe(false);
       
-      expect(parse('check: o is-not== o2;')).not.toBe(false);
-      expect(parse('check: o is-not == o2;')).toBe(false);
-      expect(parse('check: o is-not=~ o2;')).not.toBe(false);
-      expect(parse('check: o is-not =~ o2;')).toBe(false);
-      expect(parse('check: o is-not<=> o2;')).not.toBe(false);
-      expect(parse('check: o is-not <=> o2;')).toBe(false);
+      expect(parse('check: o is-not== o2 end')).not.toBe(false);
+      expect(parse('check: o is-not == o2 end')).toBe(false);
+      expect(parse('check: o is-not=~ o2 end')).not.toBe(false);
+      expect(parse('check: o is-not =~ o2 end')).toBe(false);
+      expect(parse('check: o is-not<=> o2 end')).not.toBe(false);
+      expect(parse('check: o is-not <=> o2 end')).toBe(false);
     });
 
     it("should parse examples", function() {

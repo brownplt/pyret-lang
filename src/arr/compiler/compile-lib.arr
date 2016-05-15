@@ -308,86 +308,87 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) => loadable
     | none =>
-    shadow options = locator.get-options(options)
-    env = CS.compile-env(locator.get-globals(), provide-map)
-    libs = locator.get-extra-imports()
-    mod = locator.get-module()
-    ast = cases(PyretCode) mod:
-      | pyret-string(module-string) =>
-        P.surface-parse(module-string, locator.uri())
-      | pyret-ast(module-ast) =>
-        module-ast
-    end
-    var ret = CM.start
-    phase = CM.phase
-    ast-ended = AU.append-nothing-if-necessary(ast)
-    when options.collect-all:
-      when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
-    end
-    wf = W.check-well-formed(ast-ended.or-else(ast))
-    when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
-    checker = if options.check-mode and not(is-builtin-module(locator.uri())):
+      shadow options = locator.get-options(options)
+      env = CS.compile-env(locator.get-globals(), provide-map)
+      libs = locator.get-extra-imports()
+      mod = locator.get-module()
+      ast = cases(PyretCode) mod:
+        | pyret-string(module-string) =>
+          P.surface-parse(module-string, locator.uri())
+        | pyret-ast(module-ast) =>
+          module-ast
+      end
+      var ret = CM.start
+      phase = CM.phase
+      ast-ended = AU.append-nothing-if-necessary(ast)
+      when options.collect-all:
+        when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
+      end
+      wf = W.check-well-formed(ast-ended.or-else(ast))
+      when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
+      checker = if options.check-mode and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
         CH.desugar-no-checks
       end
-    cases(CS.CompileResult) wf block:
-      | ok(wf-ast) =>
-        checked = checker(wf-ast)
-        when options.collect-all:
-          ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
-            checked, ret)
-        end
-        imported = AU.wrap-extra-imports(checked, libs)
-        when options.collect-all: ret := phase("Added imports", imported, ret) end
-        scoped = RS.desugar-scope(imported, env)
-        when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
-        named-result = RS.resolve-names(scoped, env)
-        when options.collect-all: ret := phase("Resolved names", named-result, ret) end
-        named-ast = named-result.ast
-        named-errors = named-result.errors
-        var provides = AU.get-named-provides(named-result, locator.uri(), env)
-        desugared = D.desugar(named-ast)
-        when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
-        type-checked =
-          if options.type-check:
-            type-checked = T.type-check(desugared, env, modules)
-            if CS.is-ok(type-checked) block:
-              provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
-              CS.ok(type-checked.code.ast)
-            else:
-              type-checked
-            end
-          else: CS.ok(desugared);
-        when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
-        cases(CS.CompileResult) type-checked block:
-          | ok(tc-ast) =>
-            any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
-            dp-ast = DP.desugar-post-tc(tc-ast, env)
-            cleaned = dp-ast.visit(AU.merge-nested-blocks)
-                            .visit(AU.flatten-single-blocks)
-                            .visit(AU.link-list-visitor(env))
-                            .visit(AU.letrec-visitor)
-            when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-            inlined = cleaned.visit(AU.inline-lams)
-            when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
-            cr = if is-empty(any-errors):
-              if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
-              else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
+      cases(CS.CompileResult) wf block:
+        | ok(wf-ast) =>
+          checked = checker(wf-ast)
+          when options.collect-all:
+            ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
+              checked, ret)
+          end
+          imported = AU.wrap-extra-imports(checked, libs)
+          when options.collect-all: ret := phase("Added imports", imported, ret) end
+          scoped = RS.desugar-scope(imported, env)
+          when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
+          named-result = RS.resolve-names(scoped, env)
+          when options.collect-all: ret := phase("Resolved names", named-result, ret) end
+          named-ast = named-result.ast
+          named-errors = named-result.errors
+          var provides = AU.get-named-provides(named-result, locator.uri(), env)
+          desugared = D.desugar(named-ast)
+          when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
+          type-checked =
+            if options.type-check:
+              type-checked = T.type-check(desugared, env, modules)
+              if CS.is-ok(type-checked) block:
+                provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
+                CS.ok(type-checked.code.ast)
+              else:
+                type-checked
               end
-            else:
-              if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
-              else: phase("Result", CS.err(any-errors), ret)
-              end
+            else: CS.ok(desugared)
             end
-            mod-result = module-as-string(provides, env, cr.result)
-            mod-result
-          | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
-        end
-      | err(_) => module-as-string(dummy-provides(locator.uri()), env, wf) #phase("Result", wf, ret)
-    end
-    end
+          when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
+          cases(CS.CompileResult) type-checked block:
+            | ok(tc-ast) =>
+              any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
+              dp-ast = DP.desugar-post-tc(tc-ast, env)
+              cleaned = dp-ast.visit(AU.merge-nested-blocks)
+                .visit(AU.flatten-single-blocks)
+                .visit(AU.link-list-visitor(env))
+                .visit(AU.letrec-visitor)
+              when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
+              inlined = cleaned.visit(AU.inline-lams)
+              when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
+              cr = if is-empty(any-errors):
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
+                else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
+                end
+              else:
+                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                else: phase("Result", CS.err(any-errors), ret)
+                end
+              end
+              mod-result = module-as-string(provides, env, cr.result)
+              mod-result
+            | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
+          end
+        | err(_) => module-as-string(dummy-provides(locator.uri()), env, wf) #phase("Result", wf, ret)
+      end
   end
+end
 
 type PyretAnswer = Any
 type PyretMod = Any

@@ -1,7 +1,7 @@
 #lang pyret
 
 
-fun negate(f): lam(x): not(f(x));;
+fun negate(f): lam(x): not(f(x)) end end
 
 check:
   a1 = [array: 1, 2, 3]
@@ -10,7 +10,7 @@ check:
   a1.get-now(1 / 2) raises "integer"
 
   non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, method(self): 10 end]
-  for each(n from non-nums): a1.get-now(n) raises "Number";
+  for each(n from non-nums): a1.get-now(n) raises "Number" end
 end
 
 check:
@@ -139,7 +139,7 @@ check:
   raw-array-set(a1, 0, "update")
   a1 satisfies _ <> a2
   raw-array-get(a1, 0) is "update"
-  for each(i from range(1, 4)): raw-array-get(a1, i) is "init";
+  for each(i from range(1, 4)): raw-array-get(a1, i) is "init" end
 
 end
 

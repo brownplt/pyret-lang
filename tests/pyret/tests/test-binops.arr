@@ -14,14 +14,14 @@ check:
   "a" + "b" is "ab"
   4 + 5 is 9
   
-  e1 = get-err(lam(): {} + "a";)
+  e1 = get-err(lam(): {} + "a" end)
   e1 satisfies E.is-num-string-binop-error
   e1.val1 is {}
   e1.val2 is "a"
 
   o = {
       arr: [list: 1,2,3],
-      _plus(self, other): for lists.map2(a1 from self.arr, a2 from other.arr): a1 + a2;;
+      _plus(self, other): for lists.map2(a1 from self.arr, a2 from other.arr): a1 + a2 end end
     }
   o2 = { arr: [list: 3,4,5] }
   o + o2 is [list: 4,6,8]

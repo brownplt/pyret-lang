@@ -39,7 +39,7 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase bl
   var wf = W.check-well-formed(ast-ended.or-else(ast))
   ast-ended := nothing
   when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
-  checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks;
+  checker = if options.check-mode: CH.desugar-check else: CH.desugar-no-checks end
   cases(C.CompileResult) wf block:
     | ok(_) =>
       var wf-ast = wf.code
@@ -71,7 +71,8 @@ fun compile-js-ast(phases, ast, name, env, libs, options) -> CompilationPhase bl
             | ok(c) => C.ok(c.ast)
             | err(probs) => C.err(probs)
           end
-        else: C.ok(desugared);
+        else: C.ok(desugared)
+        end
       desugared := nothing
       when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
       cases(C.CompileResult) type-checked block:

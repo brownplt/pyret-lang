@@ -136,11 +136,11 @@ fun get-data-type(typ :: Type, info :: TCInfo) -> Option<DataType>:
   end
 end
 
-fun bind(f, a): a.bind(f);
-fun map-bind(f, a): a.map-bind(f);
-fun check-bind(f, a): a.check-bind(f);
-fun synth-bind(f, a): a.synth-bind(f);
-fun fold-bind(f, a): a.fold-bind(f);
+fun bind(f, a): a.bind(f) end
+fun map-bind(f, a): a.map-bind(f) end
+fun check-bind(f, a): a.check-bind(f) end
+fun synth-bind(f, a): a.synth-bind(f) end
+fun fold-bind(f, a): a.fold-bind(f) end
 
 data SynthesisResult:
   | synthesis-result(ast :: A.Expr, loc :: A.Loc, typ :: Type) with:
@@ -201,9 +201,9 @@ fun map-synthesis<B>(f :: (B -> SynthesisResult), lst :: List<B>) -> FoldResult<
     | link(first, rest) =>
       cases(SynthesisResult) f(first):
         | synthesis-result(ast, loc, typ) =>
-          map-synthesis(f, rest).bind(lam(asts): fold-result(link(ast, asts));)
+          map-synthesis(f, rest).bind(lam(asts): fold-result(link(ast, asts)) end)
         | synthesis-binding-result(binding, typ) =>
-          map-synthesis(f, rest).bind(lam(asts): fold-result(link(binding, asts));)
+          map-synthesis(f, rest).bind(lam(asts): fold-result(link(binding, asts)) end)
         | synthesis-err(errors) =>
           fold-errors(errors)
       end
@@ -451,7 +451,7 @@ fun map2-checking(not-equal :: C.CompileError):
             cases(CheckingResult) f(first-1, first-2):
               | checking-result(ast) =>
                 helper(f, rest-1, rest-2)
-                  .bind(lam(asts): checking-map(link(ast, asts));)
+                  .bind(lam(asts): checking-map(link(ast, asts)) end)
               | checking-err(errors) =>
                 checking-map-errors(errors)
             end
@@ -476,7 +476,7 @@ fun map-checking<B>(f :: (B -> CheckingResult), lst :: List<B>) -> CheckingMapRe
       cases(CheckingResult) f(first):
         | checking-result(ast) =>
           map-checking(f, rest)
-            .bind(lam(asts): checking-map(link(ast, asts));)
+            .bind(lam(asts): checking-map(link(ast, asts)) end)
         | checking-err(errors) =>
           checking-map-errors(errors)
       end
@@ -493,7 +493,7 @@ fun map-result<B,D>(f :: (B -> FoldResult<D>), lst :: List<B>) -> FoldResult<Lis
     | link(first, rest) =>
       cases(FoldResult<D>) f(first):
         | fold-result(d) =>
-          map-result(f, rest).bind(lam(ds): fold-result(link(d, ds));)
+          map-result(f, rest).bind(lam(ds): fold-result(link(d, ds)) end)
         | fold-errors(errors) =>
           fold-errors(errors)
       end

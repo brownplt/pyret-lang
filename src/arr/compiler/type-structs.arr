@@ -81,7 +81,7 @@ end
 fun std-compare(a, b) -> Comparison:
   if a < b: less-than
   else if a > b: greater-than
-  else: equal;
+  else: equal end
 end
 
 fun list-compare<T>(a :: List<T>, b :: List<T>) -> Comparison:
@@ -450,7 +450,7 @@ sharing:
           | t-var(b-id, _) =>
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
-            else: equal;
+            else: equal end
           | t-arrow(_, _, _)       => less-than
           | t-app(_, _, _)         => less-than
           | t-record(_, _)         => less-than
@@ -566,7 +566,7 @@ sharing:
           | t-existential(b-id, _) =>
             if a-id < b-id: less-than
             else if a-id > b-id: greater-than
-            else: equal;
+            else: equal end
           | t-arrow(_, _, _)       => less-than
           | t-app(_, _, _)         => less-than
           | t-record(_, _)         => less-than

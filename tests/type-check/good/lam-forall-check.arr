@@ -3,4 +3,4 @@ fun apply-num(f :: (Number -> Number), n :: Number) -> Number:
   f(n)
 end
 
-five :: Number = apply-num(lam<A>(a :: A): a;, 5)
+five :: Number = apply-num(lam<A>(a :: A): a end, 5)

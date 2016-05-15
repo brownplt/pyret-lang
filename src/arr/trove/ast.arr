@@ -1311,7 +1311,7 @@ sharing:
   end
 end
 
-fun make-checker-name(name): "is-" + name;
+fun make-checker-name(name): "is-" + name end
 
 fun flatten(list-of-lists :: List):
   for fold(biglist from [list: ], piece from list-of-lists):

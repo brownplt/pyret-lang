@@ -20,8 +20,8 @@ end
 
 mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 
-fun g(id): A.s-global(id);
-fun gid(l, id): A.s-id(l, g(id));
+fun g(id): A.s-global(id) end
+fun gid(l, id): A.s-id(l, g(id)) end
 
 fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
@@ -91,7 +91,7 @@ fun mk-id-ann(loc, base, ann):
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
-fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank);
+fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
 
 fun get-arith-op(str):
   if str == "op+": some("_plus")
@@ -230,7 +230,7 @@ fun ds-curry(l, f, args):
 where:
   d = A.dummy-loc
   n = A.s-global
-  id = lam(s): A.s-id(d, A.s-global(s));
+  id = lam(s): A.s-id(d, A.s-global(s)) end
   under = A.s-id(d, A.s-underscore(d))
   ds-ed = ds-curry(
       d,
@@ -432,7 +432,7 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper;)
+                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper end)
                 | link(_, _) =>
                   check-bool(l, desugar-expr(operands.first), lam(or-oper):
                       A.s-if-else(l,
@@ -447,7 +447,7 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper;)
+                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper end)
                 | link(_, _) =>
                   check-bool(l, desugar-expr(operands.first), lam(and-oper):
                       A.s-if-else(l,
@@ -511,9 +511,9 @@ where:
     s-global(self, s): A.s-name(d, s) end,
     s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor);
+  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
-  id = lam(s): A.s-id(d, A.s-name(d, s));
+  id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end

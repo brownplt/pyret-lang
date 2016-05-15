@@ -1,9 +1,9 @@
-tru  = lam<A>(t :: A): lam<B>(f :: B): t;;
-fals = lam<A>(t :: A): lam<B>(f :: B): f;;
-test = lam<A>(cond :: (A -> (A -> A))): lam(consq :: A): lam(altern :: A): cond(consq)(altern);;;
+tru  = lam<A>(t :: A): lam<B>(f :: B): t end end
+fals = lam<A>(t :: A): lam<B>(f :: B): f end end
+test = lam<A>(cond :: (A -> (A -> A))): lam(consq :: A): lam(altern :: A): cond(consq)(altern) end end end
 
-# tru-same   = lam <A>(t :: A) tru<A>(t)<A>;
-# false-same = lam <A>(t :: A) tru<A>(t)<A>;
+# tru-same   = lam <A>(t :: A) tru<A>(t)<A> end
+# false-same = lam <A>(t :: A) tru<A>(t)<A> end
 
 tru-number = tru<String>
 a = tru(5)
