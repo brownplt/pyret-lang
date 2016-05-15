@@ -1,5 +1,5 @@
 const R = require("requirejs");
-var build = process.env["PHASE"] || "build/phase1";
+var build = process.env["PHASE"] || "build/phaseA";
 R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret-parser", "fs"], function(T, G, fs) {
   _ = require("jasmine-node");
   function parse(str) {
@@ -324,6 +324,57 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     it("should notice parse errors", function() {
       expect(parse("bad end")).toBe(false);
       expect(parse("provide-types { List :: List } end")).toBe(false);
+    });
+
+    it("should parse all comma-separated things", function() {
+      expect(parse('import foo from quuz')).not.toBe(false);
+      expect(parse('import foo, bar, baz from quuz')).not.toBe(false);
+      expect(parse('import foo("bar") as floo')).not.toBe(false);
+      expect(parse('import foo("bar", "baz", "quuz") as floo')).not.toBe(false);
+      expect(parse('let x = 5: true end')).not.toBe(false);
+      expect(parse('let x = 5, y = 4,z=2: true end')).not.toBe(false);
+      expect(parse('letrec x = 5: true end')).not.toBe(false);
+      expect(parse('letrec x = 5, y = 4,z=2: true end')).not.toBe(false);
+      expect(parse('type-let foo=Any: true end')).not.toBe(false);
+      expect(parse('type-let Foo=Any, Bar = Foo<Number>: true end')).not.toBe(false);
+      expect(parse('fun foo<A>(): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A, B, C>(): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A>(a): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A, B, C>(a, b, c): 5 end')).not.toBe(false);
+      expect(parse('data Foo: var1() end')).not.toBe(false);
+      expect(parse('data Foo: var1(a) end')).not.toBe(false);
+      expect(parse('data Foo: var1(a, b, c) end')).not.toBe(false);
+      expect(parse('foo()')).not.toBe(false);
+      expect(parse('foo(1)')).not.toBe(false);
+      expect(parse('foo(1, 2, 3)')).not.toBe(false);
+      expect(parse('foo<>')).toBe(false);
+      expect(parse('foo<A>')).not.toBe(false);
+      expect(parse('foo<A, B, C>')).not.toBe(false);
+      expect(parse('{}')).not.toBe(false);
+      expect(parse('{foo: 5}')).not.toBe(false);
+      expect(parse('{foo: 5, bar: 6, baz: 7}')).not.toBe(false);
+      expect(parse('{foo: 5, bar: 6, baz: 7,}')).not.toBe(false);
+      expect(parse('a.{}')).toBe(false);
+      expect(parse('a.{foo: 5}')).not.toBe(false);
+      expect(parse('a.{foo: 5, bar: 6, baz: 7}')).not.toBe(false);
+      expect(parse('a.{foo: 5, bar: 6, baz: 7,}')).not.toBe(false);
+      expect(parse('[foo: ]')).not.toBe(false);
+      expect(parse('[foo: 5]')).not.toBe(false);
+      expect(parse('[foo: 5, 6, 7]')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo() => true end')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo(a) => true end')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo(a, ref b, c) => true end')).not.toBe(false);
+      expect(parse('for map(): 5 end')).not.toBe(false);
+      expect(parse('for map(a from b): 5 end')).not.toBe(false);
+      expect(parse('for map(a from b, c from d, e from f): 5 end')).not.toBe(false);
+      expect(parse('x :: {} = 5')).not.toBe(false);
+      expect(parse('x :: {foo:: A} = 5')).not.toBe(false);
+      expect(parse('x :: {foo:: A, bar :: B, baz:: C} = 5')).not.toBe(false);
+      expect(parse('x :: -> A')).not.toBe(false);
+      expect(parse('x :: A -> A')).not.toBe(false);
+      expect(parse('x :: A, A -> A')).not.toBe(false);
+      expect(parse('x :: A<( -> A)>')).not.toBe(false);
+      expect(parse('x :: A<( -> A), B>')).not.toBe(false);
     });
 
     it("should parse angle brackets without whitespace only as type instantiations", function() {

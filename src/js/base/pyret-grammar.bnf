@@ -33,28 +33,22 @@ let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann]
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
-multi-let-expr: LET let-binding-elt* let-binding (BLOCK|COLON) block end
-let-binding-elt: let-binding COMMA
+multi-let-expr: LET let-binding (COMMA let-binding)* (BLOCK|COLON) block end
 let-binding: let-expr | var-expr
-letrec-expr: LETREC letrec-binding* let-expr (BLOCK|COLON) block end
-letrec-binding: let-expr COMMA
+letrec-expr: LETREC let-expr (COMMA let-expr)* (BLOCK|COLON) block end
 
 type-bind: NAME EQUALS ann
 newtype-bind: NEWTYPE NAME AS NAME
 
 type-let-bind: type-bind | newtype-bind
-type-let-bind-elt: type-let-bind COMMA
-type-let-expr: TYPE-LET type-let-bind-elt* type-let-bind (BLOCK|COLON) block end
+type-let-expr: TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block end
 
 contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause end
 fun-header: ty-params args return-ann
-ty-params:
-  [(LANGLE|LT) list-ty-param* NAME (RANGLE|GT)]
-list-ty-param: NAME COMMA
-args: PARENNOSPACE [list-arg-elt* binding] RPAREN
-list-arg-elt: binding COMMA
+ty-params: [(LANGLE|LT) NAME (COMMA NAME)* (RANGLE|GT)]
+args: PARENNOSPACE [binding (COMMA binding)*] RPAREN
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
@@ -67,18 +61,13 @@ check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RP
 
 
 data-expr: DATA NAME ty-params COLON [first-data-variant] data-variant* data-sharing where-clause end
-# data-mixins: [DERIVING mixins]
 variant-constructor: NAME variant-members
 first-data-variant: variant-constructor data-with | NAME data-with
 data-variant: BAR variant-constructor data-with | BAR NAME data-with
-variant-members: PARENNOSPACE [list-variant-member* variant-member] RPAREN
-list-variant-member: variant-member COMMA
+variant-members: PARENNOSPACE [variant-member (COMMA variant-member)*] RPAREN
 variant-member: [REF] binding
 data-with: [WITH fields]
 data-sharing: [SHARING fields]
-
-# mixins: list-mixin* binop-expr
-# list-mixin: binop-expr COMMA
 
 var-expr: VAR toplevel-binding EQUALS binop-expr
 rec-expr: REC toplevel-binding EQUALS binop-expr
@@ -135,34 +124,29 @@ lambda-expr: LAM fun-header (BLOCK|COLON) doc-string block where-clause end
 
 method-expr: METHOD fun-header (BLOCK|COLON) doc-string block where-clause end
 
-binop-expr-commas: binop-expr COMMA
-
 app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
-app-args: PARENNOSPACE [binop-expr-commas* binop-expr] RPAREN
+app-args: PARENNOSPACE [binop-expr (COMMA binop-expr)*] RPAREN
 # app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
-inst-expr: expr LANGLE inst-elt* ann RANGLE
-inst-elt: ann COMMA
+inst-expr: expr LANGLE ann (COMMA ann)* RANGLE
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
-obj-fields: list-obj-field* obj-field [COMMA]
+obj-fields: obj-field (COMMA obj-field)* [COMMA]
 list-obj-field: obj-field COMMA
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
      | key fun-header (BLOCK|COLON) doc-string block where-clause end
 
-fields: list-field* field [COMMA]
-list-field: field COMMA
+fields: field (COMMA field)* [COMMA]
 field: key COLON binop-expr
      | key fun-header (BLOCK|COLON) doc-string block where-clause end
 key: NAME
 
-construct-expr: LBRACK construct-modifier binop-expr COLON [binop-expr-commas* binop-expr] RBRACK
+construct-expr: LBRACK construct-modifier binop-expr COLON [binop-expr (COMMA binop-expr)*] RBRACK
 construct-modifier: | LAZY
-# list-elt: binop-expr COMMA
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK
@@ -178,30 +162,25 @@ if-pipe-expr: ASK (BLOCK|COLON) if-pipe-branch* [BAR OTHERWISECOLON block] end
 if-pipe-branch: BAR binop-expr THENCOLON block
 
 cases-binding: [REF] binding
-list-cases-arg-elt: cases-binding COMMA
-cases-args: PARENNOSPACE [list-cases-arg-elt* cases-binding] RPAREN
+cases-args: PARENNOSPACE [cases-binding (COMMA cases-binding)*] RPAREN
 cases-expr: CASES (PARENSPACE|PARENNOSPACE) ann RPAREN binop-expr (BLOCK|COLON) cases-branch* [BAR ELSE THICKARROW block] end
 cases-branch: BAR NAME [cases-args] THICKARROW block
 
 for-bind: binding FROM binop-expr
-for-bind-elt: for-bind COMMA
-for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann (BLOCK|COLON) block end
+for-expr: FOR expr PARENNOSPACE [for-bind (COMMA for-bind)*] RPAREN return-ann (BLOCK|COLON) block end
 
 user-block-expr: BLOCK block end
 
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann
 
 name-ann: NAME
-record-ann: LBRACE [list-ann-field* ann-field] RBRACE
-list-ann-field: ann-field COMMA
+record-ann: LBRACE [ann-field (COMMA ann-field)*] RBRACE
 ann-field: NAME COLONCOLON ann
 
-noparen-arrow-ann: [arrow-ann-elt* ann] THINARROW ann
-arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-elt* ann] THINARROW ann RPAREN
-arrow-ann-elt: ann COMMA
+noparen-arrow-ann: [ann (COMMA ann)*] THINARROW ann
+arrow-ann: (PARENSPACE|PARENNOSPACE) [ann (COMMA ann)*] THINARROW ann RPAREN
 
-app-ann: (name-ann|dot-ann) LANGLE app-ann-elt* ann RANGLE
-app-ann-elt: ann COMMA
+app-ann: (name-ann|dot-ann) LANGLE ann (COMMA ann)* RANGLE
 
 pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 

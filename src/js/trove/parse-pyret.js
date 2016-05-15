@@ -67,6 +67,15 @@
           ret = link.app(f(arr[i]), ret);
         return ret;
       }
+      function makeListComma(arr, start, end, f) {
+        var ret = empty;
+        start = start || 0;
+        end = end || arr.length;
+        f = f || tr;
+        for (var i = end - 1; i >= start; i -= 2)
+          ret = link.app(f(arr[i]), ret);
+        return ret;
+      }
       function makeList(arr, start, end, onto) {
         var ret = onto || empty;
         start = start || 0;
@@ -169,15 +178,9 @@
         },
         // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
         'import-special': function(node) {
-          var args = [];
-          for (var i = 2; i < node.kids.length - 1; i += 2) {
-            args.push(string(node.kids[i]));
-          }
-          var pyArgs = makeList(args);
-          var thePos = pos(node.pos);
-          var kind = symbol(node.kids[0]);
-          var makeImp = RUNTIME.getField(ast, 's-special-import');
-          return makeImp.app(thePos, kind, pyArgs);
+          return RUNTIME.getField(ast, 's-special-import')
+             .app(pos(node.pos), symbol(node.kids[0]),
+                  makeListComma(node.kids, 2, node.kids.length - 1, string))
         },
         'import-name': function(node) {
           // (import-name NAME)
@@ -288,41 +291,39 @@
         'type-let-bind': function(node) {
           return tr(node.kids[0]);
         },
-        'type-let-bind-elt': function(node) {
-          return tr(node.kids[0]);
+        'type-let-binds': function(node) {
+          // (type-let-binds COMMA type-let-bind)
+          return tr(node.kids[1]);
         },
         'type-let-expr': function(node) {
+          // (type-let-expr TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block end
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-type-let-expr')
             .app(pos(node.pos),
-                 makeListTr(node.kids, 1, node.kids.length - 3),
+                 makeListComma(node.kids, 1, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
         'multi-let-expr': function(node) {
-          // (multi-let-expr LET let-binding-elt* let-binding COLON block END)
+          // (multi-let-expr LET let-binding (COMMA let-binding)* COLON block END)
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr or var-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-let-expr')
             .app(pos(node.pos), 
-                 makeListTr(node.kids, 1, node.kids.length - 3, empty, translators["let-binding"]),
+                 makeListComma(node.kids, 1, node.kids.length - 3, translators["let-binding"]),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
         'letrec-expr': function(node) {
-          // (letrec-expr LETREC letrec-binding* let-expr COLON block END)
+          // (letrec-expr LETREC let-expr (COMMA let-expr)* (BLOCK|COLON0 block END)
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-letrec')
             .app(pos(node.pos), 
-                 makeListTr(node.kids, 1, node.kids.length - 3, empty, translators["letrec-binding"]), 
+                 makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]), 
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
         'let-binding': function(node) {
-          if (node.name === "let-binding-elt") {
-            // (let-binding-elt let-binding COMMA)
-            node = node.kids[0];
-          }
           if (node.name === "let-binding") {
             // (let-binding let-expr) or (let-binding var-expr)
             node = node.kids[0]
@@ -338,9 +339,6 @@
           }
         },
         'letrec-binding': function(node) {
-          if (node.name === "letrec-binding") {
-            node = node.kids[0];
-          }
           // (let-expr binding EQUALS binop-expr)
           return RUNTIME.getField(ast, 's-letrec-bind')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
@@ -555,13 +553,9 @@
             // (args LPAREN RPAREN)
             return makeList([]);
           } else {
-            // (args LPAREN (list-arg-elt arg COMMA) ... lastarg RPAREN)
-            return makeListTr(node.kids, 1, node.kids.length - 1);
+            // (args LPAREN binding (COMMA binding)* RPAREN)
+            return makeListComma(node.kids, 1, node.kids.length - 1);
           }
-        },
-        'list-arg-elt': function(node) {
-          // (list-arg-elt arg COMMA)
-          return tr(node.kids[0]);
         },
         'variant-member': function(node) {
           if (node.kids.length === 1) {
@@ -578,13 +572,9 @@
             // (variant-members LPAREN RPAREN)
             return makeList([]);
           } else {
-            // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
-            return makeListTr(node.kids, 1, node.kids.length - 1);
+            // (variant-members LPAREN mem (COMMA mem)* RPAREN)
+            return makeListComma(node.kids, 1, node.kids.length - 1);
           }          
-        },
-        'list-variant-member': function(node) {
-          // (list-variant-member mem COMMA)
-          return tr(node.kids[0]);
         },
         'key': function(node) {
           if (node.kids[0].name === "NAME") {
@@ -619,16 +609,12 @@
         },
         'obj-fields': function(node) {
           if (node.kids[node.kids.length - 1].name !== "obj-field") {
-            // (obj-fields (list-obj-field f1 COMMA) ... lastField COMMA)
-            return makeListTr(node.kids, 0, node.kids.length - 1);
+            // (obj-fields objField (COMMA obj-field)* lastField COMMA)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
           } else {
-            // (fields (list-obj-field f1 COMMA) ... lastField)
-            return makeListTr(node.kids);
+            // (obj-fields obj-field (COMMA obj-field)*)
+            return makeListComma(node.kids);
           }
-        },
-        'list-obj-field': function(node) {
-          // (list-obj-field f COMMA)
-          return tr(node.kids[0]);
         },
         'field': function(node) {
           if (node.kids.length === 3) {
@@ -646,16 +632,12 @@
         },
         'fields': function(node) {
           if (node.kids[node.kids.length - 1].name !== "field") {
-            // (fields (list-field f1 COMMA) ... lastField COMMA)
-            return makeListTr(node.kids, 0, node.kids.length - 1);
+            // (fields field (COMMA f1)* COMMA)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
           } else {
-            // (fields (list-field f1 COMMA) ... lastField)
-            return makeListTr(node.kids);
+            // (fields field (COMMA f1)*)
+            return makeListComma(node.kids);
           }
-        },
-        'list-field': function(node) {
-          // (list-field f COMMA)
-          return tr(node.kids[0]);
         },
         'data-mixins': function(node) {
           if (node.kids.length === 0) {
@@ -666,39 +648,23 @@
             return tr(node.kids[1]);
           }
         },
-        'mixins': function(node) {
-          // (mixins (list-mixin m COMMA) ... lastmixin)
-          return makeListTr(node.kids);
-        },
-        'list-mixin': function(node) {
-          // (list-mixin m COMMA)
-          return tr(node.kids[0]);
-        },
         'app-args': function(node) {
           if (node.kids.length === 2) {
             // (app-args LPAREN RPAREN)
             return makeList([]);
           } else {
-            // (app-args LPAREN (binop-expr-commas e COMMA) ... elast RPAREN)
-            return makeListTr(node.kids, 1, node.kids.length - 1);
+            // (app-args LPAREN binop-expr (COMMA binop-expr)* RPAREN)
+            return makeListComma(node.kids, 1, node.kids.length - 1);
           }
-        },
-        'binop-expr-commas': function(node) {
-          // (app-arg-elt e COMMA)
-          return tr(node.kids[0]);
         },
         'cases-args': function(node) {
           if (node.kids.length === 2) {
             // (cases-args LPAREN RPAREN)
             return makeList([]);
           } else {
-            // (cases-args LPAREN (binop-expr-commas arg COMMA) ... lastarg RPAREN)
-            return makeListTr(node.kids, 1, node.kids.length - 1);
+            // (cases-args LPAREN cases-binding (COMMA arg)* RPAREN)
+            return makeListComma(node.kids, 1, node.kids.length - 1);
           }
-        },
-        'list-cases-arg-elt': function(node) {
-          // (list-cases-arg-elt arg COMMA)
-          return tr(node.kids[0]);
         },
         'cases-binding': function(node) {
           if(node.kids.length === 2) {
@@ -742,14 +708,9 @@
             // (ty-params)
             return makeList([]);
           } else {
-            // (ty-params LANGLE (list-ty-param p COMMA) ... last RANGLE)
-            return makeListTr(node.kids, 1, node.kids.length - 2, 
-                              makeList([name(node.kids[node.kids.length - 2])]));
+            // (ty-params LANGLE NAME (COMMA NAME)* RANGLE)
+            return makeListComma(node.kids, 1, node.kids.length - 1, name);
           }
-        },
-        'list-ty-param': function(node) {
-          // (list-ty-param NAME COMMA)
-          return name(node.kids[0]);
         },
         'for-bind': function(node) {
           // (for-bind name FROM e)
@@ -774,7 +735,7 @@
         'construct-expr': function(node) {
           return RUNTIME.getField(ast, 's-construct')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), 
-                 makeListTr(node.kids, 4, node.kids.length - 1));
+                 makeListComma(node.kids, 4, node.kids.length - 1));
         },
         'construct-modifier': function(node) {
           if (node.kids.length === 0) {
@@ -859,15 +820,11 @@
           }
         },
         'for-expr': function(node) {
-          // (for-expr FOR iter LPAREN binds ... RPAREN return (BLOCK|COLON) body END)
+          // (for-expr FOR iter LPAREN for-bind (COMMA for-bind)* RPAREN return (BLOCK|COLON) body END)
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-for')
-            .app(pos(node.pos), tr(node.kids[1]), makeListTr(node.kids, 3, node.kids.length - 5),
+            .app(pos(node.pos), tr(node.kids[1]), makeListComma(node.kids, 3, node.kids.length - 5),
                  tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]), isBlock);
-        },
-        'for-bind-elt': function(node) {
-          // (for-bind-elt b COMMA)
-          return tr(node.kids[0]);
         },
         'user-block-expr': function(node) {
           // (user-block-expr BLOCK body END)
@@ -911,13 +868,9 @@
             .app(pos(node.pos), tr(node.kids[1]));
         },
         'inst-expr': function(node) {
-          // (inst-expr e LANGLE (inst-elt a COMMA) ... alast RANGLE)
+          // (inst-expr e LANGLE ann (COMMA ann)* RANGLE)
           return RUNTIME.getField(ast, 's-instantiate')
-            .app(pos(node.pos), tr(node.kids[0]), makeListTr(node.kids, 2, node.kids.length - 1));
-        },
-        'inst-elt': function(node) {
-          // (inst-elt a COMMA)
-          return tr(node.kids[0]);
+            .app(pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
         },
         'bool-expr': function(node) {
           if (node.kids[0].name === "TRUE") {
@@ -957,9 +910,9 @@
           }
         },
         'record-ann': function(node) {
-          // (record-ann LBRACE fields ... RBRACE)
+          // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
           return RUNTIME.getField(ast, 'a-record')
-            .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length - 1));
+            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
         },
         'noparen-arrow-ann': function(node) {
           // (noparen-arrow-ann args ... THINARROW result)
@@ -969,16 +922,16 @@
                  RUNTIME.pyretFalse);
         },
         'arrow-ann': function(node) {
-          // (arrow-ann LPAREN args ... THINARROW result RPAREN)
+          // (arrow-ann LPAREN ann (COMMA ann)* THINARROW result RPAREN)
           return RUNTIME.getField(ast, 'a-arrow')
-            .app(pos(node.pos), makeListTr(node.kids, 1, node.kids.length - 3),
+            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 2]),
                  RUNTIME.pyretTrue);
         },
         'app-ann': function(node) {
-          // (app-ann ann LANGLE args ... RANGLE)
+          // (app-ann ann LANGLE ann (COMMA ann)* RANGLE)
           return RUNTIME.getField(ast, 'a-app')
-            .app(pos(node.pos), tr(node.kids[0]), makeListTr(node.kids, 2, node.kids.length -1));
+            .app(pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
         },
         'pred-ann': function(node) {
           // (pred-ann ann PERCENT LPAREN exp RPAREN)
@@ -992,18 +945,6 @@
         },
         'ann': function(node) {
           // (ann a)
-          return tr(node.kids[0]);
-        },
-        'list-ann-field': function(node) {
-          // (list-ann-field f COMMA)
-          return tr(node.kids[0]);
-        },
-        'arrow-ann-elt': function(node) {
-          // (arrow-ann-elt ann COMMA)
-          return tr(node.kids[0]);
-        },
-        'app-ann-elt': function(node) {
-          // (app-ann-elt ann COMMA)
           return tr(node.kids[0]);
         }
       };

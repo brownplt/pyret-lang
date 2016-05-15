@@ -212,7 +212,7 @@ repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
 	cd tests/repl/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
 
 .PHONY : parse-test
-parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
+parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
