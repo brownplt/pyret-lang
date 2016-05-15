@@ -338,5 +338,11 @@ check:
     cases-miss.val is var2(5)
     cases-miss.loc satisfies S.is-srcloc
   end
+
+  template-err = get-err(lam(): (lam(): ... end)() end)
+  template-err satisfies E.is-template-not-finished
+  when E.is-template-not-finished(template-err) block:
+    template-err.loc satisfies S.is-srcloc
+  end
 end
 
