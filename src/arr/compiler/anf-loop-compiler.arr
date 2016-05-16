@@ -1084,7 +1084,7 @@ compiler-visitor = {
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
-    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), [clist:])
+    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), set-loc)
   end,
   
   a-ref(self, l, maybe-ann):
@@ -1095,7 +1095,7 @@ compiler-visitor = {
   end,
   a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
-    c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), [clist:])
+    c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), cl-empty)
   end,
   a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1105,7 +1105,7 @@ compiler-visitor = {
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
     c-exp(rt-method("extendObj", [clist: self.get-loc(l), visit-obj.exp, j-obj(CL.map_list(o-get-field, visit-fields))]),
-      [clist:])
+      cl-empty)
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
