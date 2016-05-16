@@ -87,7 +87,7 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) 
-	node $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
+	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
@@ -99,7 +99,7 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
 phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
-	node $(PHASEA)/pyret.jarr --outfile build/phaseB/pyret.jarr \
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseB/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
@@ -112,7 +112,7 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
 phaseC: $(PHASEC)/pyret.jarr
 
 $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
-	node $(PHASEB)/pyret.jarr --outfile build/phaseC/pyret.jarr \
+	$(NODE) $(PHASEB)/pyret.jarr --outfile build/phaseC/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \

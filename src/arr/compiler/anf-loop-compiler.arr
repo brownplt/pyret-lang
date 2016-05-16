@@ -1091,8 +1091,7 @@ compiler-visitor = {
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
-    other-stmts = visit-args.foldr(lam(va, acc): va.other-stmts + acc end, set-loc)
-    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), other-stmts)
+    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), set-loc)
   end,
   
   a-ref(self, l, maybe-ann):
@@ -1103,8 +1102,7 @@ compiler-visitor = {
   end,
   a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
-    other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, cl-empty)
-    c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), other-stmts)
+    c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), cl-empty)
   end,
   a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1113,9 +1111,8 @@ compiler-visitor = {
   a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
-    other-stmts = visit-fields.foldr(lam(vf, acc): vf.other-stmts + acc end, visit-obj.other-stmts)
     c-exp(rt-method("extendObj", [clist: self.get-loc(l), visit-obj.exp, j-obj(CL.map_list(o-get-field, visit-fields))]),
-      other-stmts)
+      cl-empty)
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1211,7 +1208,6 @@ compiler-visitor = {
 
     visit-shared-fields = CL.map_list(_.visit(self), shared)
     shared-fields = visit-shared-fields.map(o-get-field)
-    shared-stmts = visit-shared-fields.foldr(lam(acc, vf): vf.other-stmts + acc end, cl-empty)
     external-brand = j-id(js-id-of(namet))
 
     fun make-brand-predicate(loc :: Loc, b :: J.JExpr, pred-name :: String):
@@ -1391,7 +1387,7 @@ compiler-visitor = {
 
     data-object = rt-method("makeObject", [clist: j-obj([clist: data-predicate] + obj-fields)])
 
-    c-exp(data-object, shared-stmts + header-stmts)
+    c-exp(data-object, header-stmts)
   end
 }
 
@@ -1680,15 +1676,13 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     # NOTE(joe): intentionally empty until we can generate the right
     # type information
     provides-obj = compile-provides(provides)
-    j-parens(j-obj([clist:
-        j-field("requires", j-list(true, module-locators-as-js)),
-        j-field("provides", provides-obj),
-        j-field("nativeRequires", j-list(true, [clist:])),
-        j-field(
-            "theModule",
+    [D.string-dict:
+        "requires", j-list(true, module-locators-as-js),
+        "provides", provides-obj,
+        "nativeRequires", j-list(true, [clist:]),
+        "theModule",
             j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
-              module-body))
-      ]))
+              module-body)]
   end
 
   step = fresh-id(compiler-name("step"))

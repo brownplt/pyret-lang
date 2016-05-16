@@ -4161,12 +4161,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
 
-    function runStandalone(staticMods, depMap, toLoad, postLoadHooks) {
+    // EFFECT: adds modules to realm
+    function runStandalone(staticMods, realm, depMap, toLoad, postLoadHooks) {
       // Assume that toLoad is in dependency order, so all of their requires are
       // already instantiated
       if(toLoad.length == 0) {
         return {
-          "complete": "runStandalone completed successfully" 
+          "complete": "runStandalone completed successfully" ,
         };
       }
       else {
@@ -4183,10 +4184,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           if(duri === undefined) {
             throw new Error("Module not found in depmap: " + depToString(d) + " while loading " + uri);
           }
-          if(thisRuntime.modules[duri] === undefined) {
+          if(realm[duri] === undefined) {
             throw new Error("Module not loaded yet: " + depToString(d) + " while loading " + uri);
           }
-          return getExported(thisRuntime.modules[duri]);
+          return getExported(realm[duri]);
         });
 
         return thisRuntime.safeCall(function() {
@@ -4204,17 +4205,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
             });
           }
         }, function(natives) {
+            function continu() {
+              return thisRuntime.safeTail(function() {
+                return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+              });
+            }
+            if(realm[uri]) {
+              return continu();
+            }
             return thisRuntime.safeCall(function() {
               return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }, 
             function(r) {
 //              CONSOLE.log("Result from module: ", r);
-              thisRuntime.modules[uri] = r;
-              function continu() {
-                return thisRuntime.safeTail(function() {
-                  return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
-                });
-              }
+              realm[uri] = r;
               if(uri in postLoadHooks) {
                 return thisRuntime.safeCall(function() {
                   return postLoadHooks[uri](r);

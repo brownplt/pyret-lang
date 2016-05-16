@@ -95,6 +95,8 @@ data Loadable:
   | pre-loaded(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
 
+type ModuleResult = Any
+
 type Provides = CS.Provides
 
 type Locator = {
@@ -415,13 +417,13 @@ fun compile-and-run-worklist-with(ws :: List<ToCompile>, runtime :: R.Runtime, i
   end
 end
 
-fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, runtime :: R.Runtime, options):
+fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):
   compiled-mods = prog.loadables
   errors = compiled-mods.filter(is-error-compilation)
   cases(List) errors:
     | empty =>
       program = make-standalone(ws, prog, options)
-      right(L.run-program(runtime, program.js-ast.to-ugly-source()))
+      right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
@@ -459,7 +461,7 @@ fun _compile-and-run-locator(locator, finder, context, runtime, options):
   compile-and-run-worklist(wl, runtime, options)
 end
 
-fun compile-and-run-locator(locator, finder, context, runtime, starter-modules, options):
+fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-modules, options):
   wl = compile-worklist(finder, locator, context)
   compiled = compile-program-with(wl, starter-modules, options)
   compiled-mods = compiled.loadables
@@ -467,7 +469,7 @@ fun compile-and-run-locator(locator, finder, context, runtime, starter-modules, 
   cases(List) errors:
     | empty =>
       program = make-standalone(wl, compiled, options)
-      right(L.run-program(runtime, program.js-ast.to-ugly-source()))
+      right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
