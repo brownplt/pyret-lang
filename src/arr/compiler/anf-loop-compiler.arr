@@ -1673,15 +1673,13 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     # NOTE(joe): intentionally empty until we can generate the right
     # type information
     provides-obj = compile-provides(provides)
-    j-parens(j-obj([clist:
-        j-field("requires", j-list(true, module-locators-as-js)),
-        j-field("provides", provides-obj),
-        j-field("nativeRequires", j-list(true, [clist:])),
-        j-field(
-            "theModule",
+    [D.string-dict:
+        "requires", j-list(true, module-locators-as-js),
+        "provides", provides-obj,
+        "nativeRequires", j-list(true, [clist:]),
+        "theModule",
             j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
-              module-body))
-      ]))
+              module-body)]
   end
 
   step = fresh-id(compiler-name("step"))

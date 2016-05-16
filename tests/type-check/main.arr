@@ -5,19 +5,21 @@ import either as E
 import filelib as FL
 import namespace-lib as N
 import runtime-lib as R
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
-import "compiler/type-defaults.arr" as TD
-import "compiler/locators/builtin.arr" as BL
-import "compiler/cli-module-loader.arr" as CLI
+import file("../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../src/arr/compiler/compile-structs.arr") as CS
+import file("../../src/arr/compiler/type-defaults.arr") as TD
+import file("../../src/arr/compiler/locators/builtin.arr") as BL
+import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 
 fun string-to-locator(name, str :: String):
   {
     needs-compile(self, provs): true end,
+    get-modified-time(self): 0 end,
+    get-options(self, options): options end,
     get-module(self): CL.pyret-string(str) end,
     get-extra-imports(self): CS.minimal-imports end,
+    get-native-modules(self): [list:] end,
     get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): CS.standard-globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     uri(self): "tc-test://" + name end,
@@ -51,7 +53,7 @@ end
 
 fun compile-program(path):
   base-module = CS.dependency("file", [list: path])
-  base = CLI.module-finder({current-load-path:[list: "./"]}, base-module)
+  base = CLI.module-finder({current-load-path:"./"}, base-module)
   wl = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   r = R.make-runtime()
   CL.compile-and-run-worklist(wl, r, CS.default-compile-options.{type-check: true})

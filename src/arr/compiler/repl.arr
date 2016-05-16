@@ -8,7 +8,6 @@ import namespace-lib as N
 import parse-pyret as P
 import string-dict as SD
 import runtime-lib as R
-import file("./locators/builtin.arr") as B
 import file("./ast-util.arr") as U
 import file("./resolve-scope.arr") as RN
 import file("./compile-structs.arr") as CS
@@ -150,10 +149,10 @@ fun make-repl-definitions-locator(get-definitions, globals):
   }
 end
 
-fun make-definitions-finder(import-types :: SD.StringDict):
+fun make-definitions-finder(import-types :: SD.StringDict, make-builtin):
   fun definitions-finder(context, dep):
     l = cases(CS.Dependency) dep:
-      | builtin(name) => B.make-builtin-locator(name)
+      | builtin(name) => make-builtin(name)
       | dependency(protocol, arguments) =>
         cases(Option) import-types.get(protocol):
           | none => raise("Cannot find module: " + torepr(dep))
@@ -192,14 +191,15 @@ end
 
 fun make-repl<a>(
     runtime :: R.Runtime,
+    _modules :: SD.MutableStringDict<CL.Loadable>,
     defs-locator :: CL.Locator,
     compile-context :: a,
     finder :: (a, CS.Dependency -> CL.Located<a>)):
 
   var globals = defs-locator.get-globals()
-  var modules = SD.make-mutable-string-dict()
   var current-type-check = false
   var extra-imports = CS.standard-imports
+  var modules = _modules
   var locator-cache = SD.make-mutable-string-dict()
   var current-interaction = 0
 
@@ -238,12 +238,11 @@ fun make-repl<a>(
     locator-cache.set-now(loc.uri(), loc)
 
   end
-
   fun restart-interactions(type-check :: Boolean) block:
     current-interaction := 0
     current-type-check := type-check
-    modules := SD.make-mutable-string-dict()
     locator-cache := SD.make-mutable-string-dict()
+    modules := SD.make-mutable-string-dict()
     extra-imports := CS.standard-imports
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
@@ -299,7 +298,7 @@ fun make-repl<a>(
         mod-deps = CL.get-dependencies(self.get-module(), self.uri())
         mod-deps + self.get-extra-imports().imports.map(_.dependency)
       end,
-      get-globals(self): globals end,
+      get-globals(self): globals-now end,
       get-namespace(self, this-runtime): N.make-base-namespace(this-runtime) end,
       update-compile-context(self, ctxt): ctxt end,
       uri(self): uri end,

@@ -4198,17 +4198,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
             });
           }
         }, function(natives) {
+            function continu() {
+              return thisRuntime.safeTail(function() {
+                return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
+              });
+            }
+            /*
+            if(thisRuntime.modules[uri]) {
+              return continu();
+            }
+            */
             return thisRuntime.safeCall(function() {
               return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }, 
             function(r) {
 //              CONSOLE.log("Result from module: ", r);
               thisRuntime.modules[uri] = r;
-              function continu() {
-                return thisRuntime.safeTail(function() {
-                  return runStandalone(staticMods, depMap, toLoad.slice(1), postLoadHooks);
-                });
-              }
               if(uri in postLoadHooks) {
                 return thisRuntime.safeCall(function() {
                   return postLoadHooks[uri](r);

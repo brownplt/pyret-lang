@@ -84,18 +84,19 @@ end
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri))
-  if not(F.file-exists(saved-path + ".js")) or
-     (F.file-times(saved-path + ".js").mtime < l.locator.get-modified-time()):
+  if not(F.file-exists(saved-path + "-static.js")) or
+     (F.file-times(saved-path + "-static.js").mtime < l.locator.get-modified-time()):
     none
   else:
-    raw = B.builtin-raw-locator(saved-path)
+    raw-static = B.builtin-raw-locator(saved-path + "-static")
+    raw-module = B.builtin-raw-locator(saved-path + "-module")
     provs = CS.provides-from-raw-provides(locuri, {
       uri: locuri,
-      values: raw-array-to-list(raw.get-raw-value-provides()),
-      aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-      datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+      values: raw-array-to-list(raw-static.get-raw-value-provides()),
+      aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
+      datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
     })
-    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-string(raw-module.get-raw-compiled()))))
   end
 end
 
@@ -106,10 +107,22 @@ fun set-loadable(basedir, locator, loadable) block:
   locuri = loadable.provides.from-uri
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
-      save-path = P.join(basedir, uri-to-path(locuri) + ".js")
-      f = F.output-file(save-path, false)
-      f.display(ccp.pyret-to-js-runnable())
-      f.close-file()
+      cases(JSP.CompiledCodePrinter) ccp block:
+        | ccp-dict(dict) =>
+          save-static-path = P.join(basedir, uri-to-path(locuri) + "-static.js")
+          save-module-path = P.join(basedir, uri-to-path(locuri) + "-module.js")
+          fs = F.output-file(save-static-path, false)
+          fm = F.output-file(save-module-path, false)
+          fs.display(ccp.pyret-to-js-static())
+          fm.display(ccp.pyret-to-js-runnable())
+          fs.close-file()
+          fm.close-file()
+        | else =>
+          save-path = P.join(basedir, uri-to-path(locuri) + ".js")
+          f = F.output-file(save-path, false)
+          f.display(ccp.pyret-to-js-runnable())
+          f.close-file()
+      end
     | err(_) => nothing
   end
 end

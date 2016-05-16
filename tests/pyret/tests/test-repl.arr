@@ -2,6 +2,7 @@ import load-lib as L
 import runtime-lib as RT
 import string-dict as SD
 import either as E
+import file("../../../src/arr/compiler/locators/builtin.arr") as B
 import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 
@@ -24,8 +25,8 @@ check:
   r = RT.make-runtime()
   var current-defs = "5"
   loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
-  dfind = R.make-definitions-finder([SD.string-dict:])
-  repl = R.make-repl(r, loc, {}, dfind)
+  dfind = R.make-definitions-finder([SD.string-dict:], B.make-builtin-locator)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], loc, {}, dfind)
 
   result1 = repl.restart-interactions(false)
   L.get-result-answer(result1.v) is some(5)

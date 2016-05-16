@@ -15,28 +15,35 @@
         console.error("Got undefined name in builtin locator");
         console.trace();
       }
+      
+      var noModuleContent = {};
+      var moduleContent = noModuleContent;
 
       function getData(moduleString) {
-        var ans = 42;
-        var setAns = function(answer) {
-          ans = answer;
+        if(moduleContent === noModuleContent) {
+          var setAns = function(answer) {
+            moduleContent = answer;
+          }
+          try {
+            loader.safeEval("define(" + moduleString + ")", {define: setAns});
+            return moduleContent;
+          }
+          catch(e) {
+            console.error("Could not get contents: ", fs.realpathSync(path + ".js"));
+            console.error("Content was: ", content);
+            throw e;
+          }
         }
-        loader.safeEval("define(" + moduleString + ")", {define: setAns});
-        return ans;
+        else {
+          return moduleContent;
+        }
       }
 
       var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
-      try {
-        var m = getData(content);
-      }
-      catch(e) {
-        console.error("Could not get contents: ", fs.realpathSync(path + ".js"));
-        console.error("Content was: ", content);
-        throw e;
-      }
       return RUNTIME.makeObject({
           "get-raw-dependencies":
             F(function() {
+              var m = getData(content);
               if(m.requires) {
                 return m.requires.map(function(m) {
                   // NOTE(joe): This allows us to use builtin imports
@@ -53,6 +60,7 @@
             }),
           "get-raw-native-modules":
             F(function() {
+              var m = getData(content);
               if(Array.isArray(m.nativeRequires)) {
                 return m.nativeRequires.map(RUNTIME.makeString);
               } else {
@@ -61,6 +69,7 @@
             }),
           "get-raw-datatype-provides":
             F(function() {
+              var m = getData(content);
               if(m.provides && m.provides.datatypes) {
                 if(Array.isArray(m.provides.datatypes)) {
                   return m.provides.datatypes;
@@ -78,6 +87,7 @@
             }),
           "get-raw-alias-provides":
             F(function() {
+              var m = getData(content);
               if(m.provides) {
                 if(Array.isArray(m.provides.types)) {
                   return m.provides.types;
@@ -95,6 +105,7 @@
             }),
           "get-raw-value-provides":
             F(function() {
+              var m = getData(content);
               if(m.provides) {
                 if(Array.isArray(m.provides.values)) {
                   return m.provides.values;

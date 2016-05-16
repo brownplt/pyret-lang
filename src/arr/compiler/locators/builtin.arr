@@ -4,6 +4,7 @@ import builtin-modules as B
 import string-dict as SD
 import file as F
 import pathlib as P
+import parse-pyret as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../type-structs.arr") as T
@@ -99,6 +100,7 @@ end
 
 fun make-builtin-arr-locator(basedir, builtin-name):
   path = P.join(basedir, builtin-name + ".arr")
+  var ast = nothing
   {
     get-modified-time(self):
       F.file-times(path).mtime
@@ -107,13 +109,16 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       options.{ check-mode: false }
     end,
     get-module(self) block:
-      when not(F.file-exists(path)):
-        raise("File " + path + " does not exist")
+      when ast == nothing block:
+        when not(F.file-exists(path)):
+          raise("File " + path + " does not exist")
+        end
+        f = F.input-file(path)
+        str = f.read-file()
+        f.close-file()
+        ast := CL.pyret-ast(PP.surface-parse(str, self.uri()))
       end
-      f = F.input-file(path)
-      str = CL.pyret-string(f.read-file())
-      f.close-file()
-      str
+      ast
     end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     get-dependencies(self):

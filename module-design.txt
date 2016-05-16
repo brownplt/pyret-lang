@@ -1,4 +1,4 @@
-- Is namespace a necessary argument?  Maybe because of eval-lib it will show
+dynamic-modules, - Is namespace a necessary argument?  Maybe because of eval-lib it will show
   up.  Maybe testing repl?  Seems like maybe only used by Pyret, but worth
   keeping for now.
 
@@ -147,9 +147,17 @@ defined-values/defined-types?
   - How do you know during which module execution the run failed?
 [x] 24. Always compile with the "compile-module" flag true, and deprecate the other
     version
-25. Add a new jsfile locator to support importing/using js files as modules
+[x] 25. Add a new jsfile locator to support importing/using js files as modules
     outside of trove/.  Needed for CPO to define its internal modules
 26. Remove everything to do with namespace!
+[x] 27. For CPO, need a different builtin locator that looks up builtins from
+    the provided program dict.
+28. Add a dynamicModules argument to runStandalone, and use that rather than
+    runtime.modules as the cache/storage place for instantiated modules, and
+    delegate management and evicting compiled modules to the surrounding
+    context (e.g. the REPL can manage this).
+29. Make the REPL/CPO main store compiled modules in a useful way, perhaps in
+    memory while an interaction is running, and in localStorage in between runs
 
 
 --

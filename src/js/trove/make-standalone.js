@@ -45,7 +45,10 @@
       runtime.pauseStack(function(restarter) {
         requirejs.optimize(config, function(result) {
           var programWithDeps = fs.readFileSync(config.out, 'utf8');
-          var fullProgram = "requirejs = require(\"requirejs\");\ndefine = requirejs.define;\n"
+          // Browser/node check based on window below
+          var fullProgram = "if(typeof window === 'undefined') {\n";
+          fullProgram += "requirejs = require(\"requirejs\");\n";
+          fullProgram += "define = requirejs.define;\n}\n";
           fullProgram += programWithDeps;
           fullProgram += "define(\"program\", " + depsLine + ", function() {\nreturn " +
             body +
