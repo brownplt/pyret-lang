@@ -26,7 +26,7 @@ check:
   var current-defs = "5"
   loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
   dfind = R.make-definitions-finder([SD.string-dict:], B.make-builtin-locator)
-  repl = R.make-repl(r, [SD.mutable-string-dict:], loc, {}, dfind)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, {}, dfind)
 
   result1 = repl.restart-interactions(false)
   L.get-result-answer(result1.v) is some(5)

@@ -140,6 +140,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
   }
 
   return runtime.runThunk(function() {
-    return runtime.runStandalone(staticModules, depMap, toLoad, postLoadHooks);
+    runtime.modules = {};
+    return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });

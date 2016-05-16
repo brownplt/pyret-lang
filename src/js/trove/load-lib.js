@@ -9,11 +9,26 @@
 
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
     var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);
+    var brandRealm = runtime.namedBrander("realm", ["load-lib: realm brander"]);
 
     var annModule = runtime.makeBranderAnn(brandModule, "Module");
     var annModuleResult = runtime.makeBranderAnn(brandModuleResult, "ModuleResult");
+    var annRealm = runtime.makeBranderAnn(brandRealm, "Realm");
+
     function applyBrand(brand, val) {
       return runtime.getField(brand, "brand").app(val);
+    }
+
+    function makeRealm(dynamicModules) {
+      return applyBrand(brandRealm, runtime.makeObject({
+        "realm": runtime.makeOpaque(dynamicModules)
+      }));
+    }
+
+    function emptyRealm() {
+      return applyBrand(brandRealm, runtime.makeObject({
+        "realm": runtime.makeOpaque({})
+      }));
     }
 
     function makeModule(runtimeForModule, moduleFun, namespace) {
@@ -25,10 +40,11 @@
       return m;
     }
 
-    function makeModuleResult(runtimeForModule, result, compileResult) {
+    function makeModuleResult(runtimeForModule, result, realm, compileResult) {
       return runtime.makeOpaque({
         runtime: runtimeForModule,
         result: result,
+        realm: realm,
         compileResult: compileResult
       });
     }
@@ -59,6 +75,9 @@
       else {
         return runtime.ffi.makeNone();
       }
+    }
+    function getRealm(mr) {
+      return mr.val.realm;
     }
     function getResultCompileResult(mr) {
       return mr.val.compileResult;
@@ -254,8 +273,9 @@
     }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
-    function runProgram(otherRuntimeObj, programString) {
+    function runProgram(otherRuntimeObj, realmObj, programString) {
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
+      var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
       var staticModules = program.staticModules;
       var depMap = program.depMap;
@@ -299,15 +319,16 @@
           mainResult = answer;
         }
         return otherRuntime.runThunk(function() {
-          return otherRuntime.runStandalone(staticModules, depMap, toLoad, postLoadHooks);
+          otherRuntime.modules = realm;
+          return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
-            restarter.resume(makeModuleResult(otherRuntime, result, runtime.nothing));
+            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
           else {
-            restarter.resume(makeModuleResult(otherRuntime, otherRuntime.makeSuccessResult(mainResult), runtime.nothing));
+            restarter.resume(makeModuleResult(otherRuntime, otherRuntime.makeSuccessResult(mainResult), makeRealm(realm), runtime.nothing));
           }
         });
       });
@@ -321,15 +342,19 @@
           "is-success-result": runtime.makeFunction(isSuccessResult),
           "is-failure-result": runtime.makeFunction(isFailureResult),
           "get-result-answer": runtime.makeFunction(getAnswerForPyret),
+          "get-result-realm": runtime.makeFunction(getRealm),
           "get-result-compile-result": runtime.makeFunction(getResultCompileResult),
           "render-check-results": runtime.makeFunction(renderCheckResults),
-          "render-error-message": runtime.makeFunction(renderErrorMessage)
+          "render-error-message": runtime.makeFunction(renderErrorMessage),
+          "empty-realm": runtime.makeFunction(emptyRealm)
         }),
         types: {
           Module: annModule,
-          ModuleResult: annModuleResult
+          ModuleResult: annModuleResult,
+          Realm: annRealm
         },
         internal: {
+          makeRealm: makeRealm,
           getModuleResultAnswer: getModuleResultAnswer,
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,

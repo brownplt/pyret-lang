@@ -191,7 +191,8 @@ end
 
 fun make-repl<a>(
     runtime :: R.Runtime,
-    _modules :: SD.MutableStringDict<CL.Loadable>,
+    modules :: SD.MutableStringDict<CL.Loadable>,
+    realm :: L.Realm,
     defs-locator :: CL.Locator,
     compile-context :: a,
     finder :: (a, CS.Dependency -> CL.Located<a>)):
@@ -199,7 +200,8 @@ fun make-repl<a>(
   var globals = defs-locator.get-globals()
   var current-type-check = false
   var extra-imports = CS.standard-imports
-  var modules = _modules
+  var current-modules = modules
+  var current-realm = realm
   var locator-cache = SD.make-mutable-string-dict()
   var current-interaction = 0
 
@@ -236,19 +238,21 @@ fun make-repl<a>(
     globals := CS.globals(new-vals, new-types)
 
     locator-cache.set-now(loc.uri(), loc)
+    current-realm := L.get-result-realm(result)
 
   end
   fun restart-interactions(type-check :: Boolean) block:
     current-interaction := 0
     current-type-check := type-check
+    current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
-    modules := SD.make-mutable-string-dict()
+    current-modules := SD.make-mutable-string-dict()
     extra-imports := CS.standard-imports
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
-    compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
-    modules.set-now(defs-locator.uri(), compiled.loadables.last())
-    result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: current-type-check})
+    compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    current-modules.set-now(defs-locator.uri(), compiled.loadables.last())
+    result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check})
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):
@@ -262,9 +266,9 @@ fun make-repl<a>(
 
   fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
-    compiled = CL.compile-program-with(worklist, modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
-    modules.set-now(repl-locator.uri(), compiled.loadables.last())
-    result = CL.run-program(worklist, compiled, runtime, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    current-modules.set-now(repl-locator.uri(), compiled.loadables.last())
+    result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):

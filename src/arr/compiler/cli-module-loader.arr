@@ -197,7 +197,7 @@ end
 
 fun run(path, options):
   prog = build-program(path, options)
-  result = L.run-program(R.make-runtime(), prog.js-ast.to-ugly-source())
+  result = L.run-program(R.make-runtime(), L.empty-realm(), prog.js-ast.to-ugly-source())
   if L.is-success-result(result):
     print(L.render-check-results(result))
   else:
