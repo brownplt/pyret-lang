@@ -190,7 +190,7 @@ fun arrow-constraints(blame-loc :: A.Loc, a-forall :: List<TypeVariable>,
         .map(_.meet(current, info))
     end
   end
-  handle-args = foldl2-result(C.incorrect-number-of-args(blame-loc))
+  handle-args = foldl2-result(C.incorrect-number-of-args(blame-loc, blame-loc))
   for handle-args(curr from t-var-constraints,
                   b-arg from b-args, a-arg from a-args):
     generate-constraints(blame-loc, b-arg, a-arg, [set: ], unknowns-set, info)

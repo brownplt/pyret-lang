@@ -258,7 +258,7 @@ fun compile-ann(ann, visitor):
     | a-dot(l, m, field) =>
       rt-method("getDotAnn", [list: visitor.get-loc(l), j-str(m.toname()), j-id(js-id-of(tostring(m))), j-str(field)])
     | a-blank => rt-field("Any")
-    | a-any => rt-field("Any")
+    | a-any(l) => rt-field("Any")
   end
 end
 
@@ -273,7 +273,7 @@ fun arity-check(loc-expr, body-stmts, arity):
 end
 
 fun contract-checks(args, ret, stmts, visitor):
-  nonblanks = for filter(a from args): not(A.is-a-blank(a.ann)) and not(A.is-a-any(a.ann)) end
+  nonblanks = for filter(a from args): not(A.is-a-blank(a.ann)) end
   if is-empty(nonblanks):
     stmts
   else:
@@ -324,7 +324,7 @@ compiler-visitor = {
   end,
   a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    if A.is-a-blank(b.ann):
       j-block(
         [list: j-var(js-id-of(tostring(b.id)), e.visit(self))] +
         compiled-body.stmts)

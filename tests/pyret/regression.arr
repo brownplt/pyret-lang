@@ -11,4 +11,4 @@ import "./regression/seq-of-lettable.arr" as _
 import "./regression/cases-expr-parse.arr" as _
 import "./regression/method-scope.arr" as _
 import "./regression/check-scope.arr" as _
-
+import "./regression/anf-of-vars.arr" as _

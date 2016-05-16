@@ -30,8 +30,8 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, g :: CS
               ts.set(k, mod.aliases.get-value(k))
             end
             CS.globals(
-              new-vals.set(vals-name.toname(), TS.t-top),
-              new-types.set(type-name.toname(), TS.t-top))
+              new-vals.set(vals-name.toname(), TS.t-top(A.dummy-loc)),
+              new-types.set(type-name.toname(), TS.t-top(A.dummy-loc)))
         end
       end
   end

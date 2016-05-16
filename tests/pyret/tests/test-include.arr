@@ -205,8 +205,8 @@ check:
   msg("includes-and-violates") satisfies string-contains(_, "Number")
 #  msg("includes-and-violates") satisfies string-contains(_, "error message")
   val("type-and-val") is some(12)
-  cmsg("overlapping-import") satisfies string-contains(_, "defined")
-  cmsg("global-shadow-import") satisfies string-contains(_, "defined")
+  cmsg("overlapping-import") satisfies string-contains(_, "shadows")
+  cmsg("global-shadow-import") satisfies string-contains(_, "shadows")
 #  cmsg("global-type-shadow-import") satisfies string-contains(_, "defined")
 
   # TODO(joe): Fix these by writing out the types of exports

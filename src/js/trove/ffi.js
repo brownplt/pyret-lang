@@ -214,14 +214,49 @@
       runtime.checkString(methodname);
       raise(err("num-string-binop-error")(left, right, opname, opdesc, methodname));
     }
-    function throwNumericBinopError(left, right, opname, methodname) {
+    function throwNumericBinopError(left, right, opname, opdesc, methodname) {
       runtime.checkPyretVal(left);
       runtime.checkPyretVal(right);
       runtime.checkString(opname);
+      runtime.checkString(opdesc);
       runtime.checkString(methodname);
-      raise(err("numeric-binop-error")(left, right, opname, methodname));
+      raise(err("numeric-binop-error")(left, right, opname, opdesc, methodname));
     }
 
+    function throwUpdateNonObj(loc, objval, objloc) {
+      runtime.checkPyretVal(objval);
+      checkSrcloc(loc);
+      checkSrcloc(objloc);
+      raise(err("update-non-obj")(loc, objval, objloc));
+    }
+    
+    function throwUpdateFrozenRef(loc, objval, objloc, fieldname, fieldloc) {
+      runtime.checkPyretVal(objval);
+      checkSrcloc(loc);
+      checkSrcloc(objloc);
+      runtime.checkString(fieldname);
+      checkSrcloc(fieldloc);
+      raise(err("update-frozen-ref")(loc, objval, objloc, fieldname, fieldloc));
+    }
+    
+    function throwUpdateNonRef(loc, objval, objloc, fieldname, fieldloc) {
+      runtime.checkPyretVal(objval);
+      checkSrcloc(loc);
+      checkSrcloc(objloc);
+      runtime.checkString(fieldname);
+      checkSrcloc(fieldloc);
+      raise(err("update-non-ref")(loc, objval, objloc, fieldname, fieldloc));
+    }
+    
+    function throwUpdateNonExistentField(loc, objval, objloc, fieldname, fieldloc) {
+      runtime.checkPyretVal(objval);
+      checkSrcloc(loc);
+      checkSrcloc(objloc);
+      runtime.checkString(fieldname);
+      checkSrcloc(fieldloc);
+      raise(err("update-non-existent-field")(loc, objval, objloc, fieldname, fieldloc));
+    }
+  
     function throwUninitializedId(loc, name) {
       checkSrcloc(loc);
       runtime.checkString(name);
@@ -245,27 +280,31 @@
       throwArityError(loc, arity, argsPyret);
     }
 
-    function throwCasesArityError(branchLoc, arity, fields) {
+    function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
       checkSrcloc(branchLoc);
       runtime.checkNumber(arity);
       runtime.checkNumber(fields);
-      raise(err("cases-arity-mismatch")(branchLoc, arity, fields));
+      checkSrcloc(casesLoc)
+      raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc));
     }
 
-    function throwCasesArityErrorC(branchLoc, arity, fields) {
+    function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
-      throwCasesArityError(loc, arity, fields);
+      var cloc = runtime.makeSrcloc(casesLoc);
+      throwCasesArityError(loc, arity, fields, cloc);
     }
 
-    function throwCasesSingletonError(branchLoc, shouldBeSingleton) {
+    function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
       checkSrcloc(branchLoc);
       runtime.checkBoolean(shouldBeSingleton);
-      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton));
+      checkSrcloc(casesLoc)
+      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
     }
 
-    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton) {
+    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
-      throwCasesSingletonError(loc, shouldBeSingleton);
+      var cloc = runtime.makeSrcloc(casesLoc);
+      throwCasesSingletonError(loc, shouldBeSingleton, cloc);
     }
 
     function throwNonBooleanCondition(locArray, type, val) {
@@ -370,6 +409,10 @@
     var isUnknown = gf(EQ, "is-Unknown").app
 
     return runtime.makeJSModuleReturn({
+      throwUpdateNonObj : throwUpdateNonObj,
+      throwUpdateFrozenRef : throwUpdateFrozenRef,
+      throwUpdateNonRef : throwUpdateNonRef,
+      throwUpdateNonExistentField : throwUpdateNonExistentField,
       throwNumStringBinopError: throwNumStringBinopError,
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,

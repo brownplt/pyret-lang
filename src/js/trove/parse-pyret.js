@@ -427,10 +427,17 @@
             return tr(node.kids[0]);
           } else {
             var mkOp = RUNTIME.getField(ast, 's-op').app;
-            var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos), 
-                            tr(node.kids[1]), tr(node.kids[0]), tr(node.kids[2]));
+            var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
+                            pos(node.kids[1].pos),
+                            tr(node.kids[1]), 
+                            tr(node.kids[0]),
+                            tr(node.kids[2]));
             for(var i = 4; i < node.kids.length; i += 2) {
-              expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos), tr(node.kids[i - 1]), expr, tr(node.kids[i]));
+              expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos), 
+                          pos(node.kids[i - 1].pos),
+                          tr(node.kids[i - 1]), 
+                          expr, 
+                          tr(node.kids[i]));
             }
             return expr;
           }
@@ -457,7 +464,7 @@
           // (check-op str)
           var opname = String(node.kids[0].value).trim();
           if (opLookup[opname]) {
-            return opLookup[opname];
+            return opLookup[opname](pos(node.pos));
           }
           else {
             throw "Unknown operator: " + opname;
@@ -467,7 +474,7 @@
           // (check-op-postfix str)
           var opname = String(node.kids[0].value).trim();
           if (opLookup[opname]) {
-            return opLookup[opname];
+            return opLookup[opname](pos(node.pos));
           }
           else {
             throw "Unknown operator: " + opname;
@@ -901,7 +908,7 @@
         },
         'name-ann': function(node) {
           if (node.kids[0].value === "Any") {
-            return RUNTIME.getField(ast, 'a-any');
+            return RUNTIME.getField(ast, 'a-any').app(pos(node.pos));
           } else {
             return RUNTIME.getField(ast, 'a-name')
               .app(pos(node.pos), name(node.kids[0]));
@@ -992,21 +999,21 @@
       "and": RUNTIME.makeString("opand"),
       "or":  RUNTIME.makeString("opor"),
 
-      "is":            RUNTIME.getField(ast, "s-op-is"),
-      "is==":          RUNTIME.getField(ast, "s-op-is-op").app("op=="),
-      "is=~":          RUNTIME.getField(ast, "s-op-is-op").app("op=~"),
-      "is<=>":         RUNTIME.getField(ast, "s-op-is-op").app("op<=>"),
-      "is-not":        RUNTIME.getField(ast, "s-op-is-not"),
-      "is-not==":      RUNTIME.getField(ast, "s-op-is-not-op").app("op=="),
-      "is-not=~":      RUNTIME.getField(ast, "s-op-is-not-op").app("op=~"),
-      "is-not<=>":     RUNTIME.getField(ast, "s-op-is-not-op").app("op<=>"),
-      "satisfies":     RUNTIME.getField(ast, "s-op-satisfies"),
-      "violates":          RUNTIME.getField(ast, "s-op-satisfies-not"),
-      "raises":            RUNTIME.getField(ast, "s-op-raises"),
-      "raises-other-than": RUNTIME.getField(ast, "s-op-raises-other"),
-      "does-not-raise":    RUNTIME.getField(ast, "s-op-raises-not"),
-      "raises-satisfies":  RUNTIME.getField(ast, "s-op-raises-satisfies"),
-      "raises-violates":   RUNTIME.getField(ast, "s-op-raises-violates"),
+      "is":                function(l){return RUNTIME.getField(ast, "s-op-is").app(l);},
+      "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op==");},
+      "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
+      "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
+      "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not").app(l);},
+      "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op==");},
+      "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op=~");},
+      "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op<=>");},
+      "satisfies":         function(l){return RUNTIME.getField(ast, "s-op-satisfies").app(l);},
+      "violates":          function(l){return RUNTIME.getField(ast, "s-op-satisfies-not").app(l);},
+      "raises":            function(l){return RUNTIME.getField(ast, "s-op-raises").app(l);},
+      "raises-other-than": function(l){return RUNTIME.getField(ast, "s-op-raises-other").app(l);},
+      "does-not-raise":    function(l){return RUNTIME.getField(ast, "s-op-raises-not").app(l);},
+      "raises-satisfies":  function(l){return RUNTIME.getField(ast, "s-op-raises-satisfies").app(l);},
+      "raises-violates":   function(l){return RUNTIME.getField(ast, "s-op-raises-violates").app(l);},
     }
 
     function parseDataRaw(data, fileName) {

@@ -93,7 +93,7 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:
-      wf-error("where: blocks only allowed on named function declarations and data, not on " + tostring(typ), loc)
+      add-error(C.unwelcome-where(tostring(typ), loc))
     end
   else:
     nothing
@@ -129,12 +129,12 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
       cases(A.CasesBranch) f:
         | s-cases-branch(l, pat-loc, name, args, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
-            | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
+            | some(found) => add-error(C.duplicate-branch(name, found.pat-loc, pat-loc))
             | none => nothing
           end
         | s-singleton-cases-branch(l, pat-loc, name, body) =>
           cases(Option) lists.find(lam(b): b.name == name end, rest):
-            | some(found) => wf-error2("Duplicate case for " + name, found.l, pat-loc)
+            | some(found) => add-error(C.duplicate-branch(name, found.pat-loc, pat-loc))
             | none => nothing
           end
       end
@@ -154,14 +154,14 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
               elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
+                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
                 | none => nothing
               end
             | else =>
               elt = lists.find(lam(b): b.id == id end, rest)
               cases(Option) elt:
                 | some(found) =>
-                  wf-error2("Found duplicate id " + id.tosourcestring() + " in list of bindings", l, found.l)
+                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
                 | none => nothing
               end
           end
@@ -207,7 +207,7 @@ end
 fun check-underscore-name(fields, kind-of-thing :: String) -> Boolean block:
   underscores = fields.filter(lam(f): f.name == "_" end)
   when not(is-empty(underscores)):
-    wf-error("Cannot use underscore as a " + kind-of-thing, underscores.first.l)
+    add-error(C.underscore-as(underscores.first.l, kind-of-thing))
   end
   is-empty(underscores)
 end
@@ -227,7 +227,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
                   wf-error2("Found two adjacent template expressions on the same line: "
                       + "either remove one or separate them", loc, first.l)
                 else if not(A.is-s-template(first)) and not(prev-is-template):
-                  wf-error2("Found two expressions on the same line", loc, first.l)
+                  add-error(C.same-line(loc, first.l))
                 else:
                   nothing
                 end
@@ -243,7 +243,7 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>):
     | empty => nothing
     | link(f, rest) =>
       cases(Option) lists.find(lam(b): b.name == f.name end, rest):
-        | some(found) => wf-error2("Found duplicate id " + f.name + " in list of bindings", f.l, found.l)
+        | some(found) => add-error(C.duplicate-variant(f.name, found.l, f.l))
         | none => ensure-unique-variant-ids(rest)
       end
   end
@@ -252,11 +252,11 @@ end
 
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
-    | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
-    | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
-    | s-fun(l, _, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
-    | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
+    | s-let(l, _, _, _) => add-error(C.block-ending(l, "let-binding"))
+    | s-var(l, _, _) => add-error(C.block-ending(l, "var-binding"))
+    | s-rec(l, _, _) => add-error(C.block-ending(l, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _) => add-error(C.block-ending(l, "data definition"))
     | else => nothing
   end
 end
@@ -268,17 +268,14 @@ fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
 end
 
 fun opname(op): string-substring(op, 2, string-length(op)) end
-fun reachable-ops(self, l, op, ast):
+fun reachable-ops(self, l, op-l, op, ast):
   cases(A.Expr) ast block:
-    | s-op(l2, op2, left2, right2) =>
+    | s-op(l2, op-l2, op2, left2, right2) =>
       if (op == op2) block:
-        reachable-ops(self, l, op, left2)
-        reachable-ops(self, l, op, right2)
+        reachable-ops(self, l, op-l, op, left2)
+        reachable-ops(self, l, op-l, op, right2)
       else:
-        wf-error2("Cannot mix binary operators of different types: `"
-            + opname(op) + "` and `" + opname(op2)
-            + "`.  Use parentheses to disambiguate.",
-          l, l2)
+        add-error(C.mixed-binops(opname(op), op-l,  opname(op2), op-l2))
       end
       true
     | else => ast.visit(self)
@@ -295,7 +292,7 @@ end
 fun wf-examples-body(visitor, body):
   for lists.all(b from body.stmts):
     if not(A.is-s-check-test(b)) block:
-      wf-error("Found something other than an example.  Example blocks must contain only test statements.", b.l)
+      add-error(C.non-example(b))
       false
     else:
       true
@@ -308,11 +305,14 @@ fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
 end
 
+var last-visited-loc = nothing
+
 well-formed-visitor = A.default-iter-visitor.{
   s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
-  s-special-import(self, l, kind, args):
+  s-special-import(self, l, kind, args) block:
+    last-visited-loc := l
     if kind == "my-gdrive":
       if args.length() <> 1 block:
         wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
@@ -345,66 +345,79 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check) block:
-    wf-error("Cannot define a data expression except at the top level of a file", l)
-    false
+    last-visited-loc := l
+    add-error(C.non-toplevel("data declaration", l))
+    true
   end,
   s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
-    wf-error("Cannot define a data expression except at the top level of a file", l)
-    false
+    last-visited-loc := l
+    add-error(C.non-toplevel("data declaration", l))
+    true
   end,
   s-type(self, l, name, ann) block:
-    wf-error("Cannot define a type alias except at the top level of a file", l)
-    false
+    last-visited-loc := l
+    add-error(C.non-toplevel("type alias", l))
+    true
   end,
   s-newtype(self, l, name, namet) block:
-    wf-error("Cannot define a newtype except at the top level of a file", l)
-    false
+    last-visited-loc := l
+    add-error(C.non-toplevel("newtype", l))
+    true
   end,
   s-let-expr(self, l, binds, body, blocky) block:
+    last-visited-loc := l
     when not(blocky): 
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
   s-letrec(self, l, binds, body, blocky) block:
+    last-visited-loc := l
     when not(blocky): 
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
   s-type-let-expr(self, l, binds, body, blocky) block:
-    wf-error("Cannot define newtypes or type aliases except at the top level of a file", l)
-    false
+    last-visited-loc := l
+    add-error(C.non-toplevel("type alias", l))
+    true
   end,
-  s-op(self, l, op, left, right):
-    reachable-ops(self, l, op, left) and reachable-ops(self, l, op, right)
+  s-op(self, l, op-l, op, left, right) block:
+    last-visited-loc := l
+    reachable-ops(self, l, op-l, op, left) and reachable-ops(self, l, op-l, op, right)
   end,
   s-cases-branch(self, l, pat-loc, name, args, body) block:
+    last-visited-loc := l
     when (name == "_"):
-      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
+      add-error(C.underscore-as-pattern(pat-loc))
     end
     ensure-unique-ids(args.map(_.bind))
     lists.all(_.visit(self), args) and body.visit(self)
   end,
   s-singleton-cases-branch(self, l, pat-loc, name, body) block:
+    last-visited-loc := l
     when (name == "_"):
-      wf-error("Found a cases branch using _ rather than a constructor name; use 'else' instead", pat-loc)
+      add-error(C.underscore-as-pattern(pat-loc))
     end
     body.visit(self)
   end,
   s-var(self, l, bind, val) block:
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
   s-rec(self, l, bind, val) block:
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-rec(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
   s-var-bind(self, l, bind, val) block:
+    last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
@@ -412,7 +425,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-block(self, l, stmts):
     if is-empty(stmts) block:
-      wf-error("Empty block", l)
+      add-error(C.wf-empty-block(last-visited-loc))
       true
     else:
       wf-last-stmt(stmts.last())
@@ -421,6 +434,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-bind(self, l, shadows, name, ann) block:
+    last-visited-loc := l
     when (reserved-names.has-key(name.tosourcestring())):
       reserved-name(l, name.tosourcestring())
     end
@@ -430,18 +444,19 @@ well-formed-visitor = A.default-iter-visitor.{
     name.visit(self) and ann.visit(self)
   end,
   s-check-test(self, l, op, refinement, left, right) block:
+    last-visited-loc := l
     when not(in-check-block):
       op-name = op.tosource().pretty(80).join-str("\n")
       wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
     end
     when is-some(refinement):
       cases(A.CheckOp) op:
-        | s-op-is            => nothing
-        | s-op-is-not        => nothing
-        | s-op-satisfies     =>
+        | s-op-is(_)            => nothing
+        | s-op-is-not(_)        => nothing
+        | s-op-satisfies(_)     =>
           wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
               + "Consider changing the predicate instead.", l)
-        | s-op-satisfies-not =>
+        | s-op-satisfies-not(_) =>
           wf-error("Cannot use refinement syntax `%(...)` with `violates`. "
               + "Consider changing the predicate instead.", l)
         | else               =>
@@ -452,11 +467,12 @@ well-formed-visitor = A.default-iter-visitor.{
     left.visit(self) and self.option(right)
   end,
   s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
+      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -469,20 +485,23 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-data-field(self, l, name, value) block:
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     value.visit(self)
   end,
   s-mutable-field(self, l, name, ann, value) block:
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ann.visit(self) and value.visit(self)
   end,
   s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
+    last-visited-loc := l
     when args.length() == 0:
-      wf-error("Cannot have a method with zero arguments", l)
+      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -495,6 +514,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
+    last-visited-loc := l
     ensure-unique-ids(args)
     cases(Option) _check:
       | none => nothing
@@ -507,6 +527,7 @@ well-formed-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-fun(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
@@ -518,11 +539,13 @@ well-formed-visitor = A.default-iter-visitor.{
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
   s-obj(self, l, fields) block:
+    last-visited-loc := l
     ensure-unique-fields(fields.reverse())
-    check-underscore-name(fields, "field name")
+    check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
-  s-check(self, l, name, body, keyword-check):
+  s-check(self, l, name, body, keyword-check) block:
+    last-visited-loc := l
     if not(keyword-check) block:
       wrap-visit-check(self, some(body))
       wf-examples-body(self, body)
@@ -531,14 +554,16 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   s-when(self, l, test, block, blocky) block:
+    last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: block])
     end
     test.visit(self) and block.visit(self)
   end,
   s-if(self, l, branches, blocky) block:
+    last-visited-loc := l
     when branches.length() == 1:
-      wf-error("Cannot have an `if` with a single branch", l)
+      add-error(C.single-branch-if(A.s-if(l, branches)))
     end
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
@@ -546,24 +571,28 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), branches)
   end,
   s-if-else(self, l, branches, _else, blocky) block:
+    last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   s-if-pipe(self, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean) block:
+    last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
     lists.all(_.visit(self), branches)
   end,
   s-if-pipe-else(self, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean) block:
+    last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
   s-cases(self, l, typ, val, branches, blocky) block:
+    last-visited-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
@@ -571,6 +600,7 @@ well-formed-visitor = A.default-iter-visitor.{
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
   s-cases-else(self, l, typ, val, branches, _else, blocky) block:
+    last-visited-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
@@ -584,12 +614,14 @@ well-formed-visitor = A.default-iter-visitor.{
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
   s-frac(self, l, num, den) block:
+    last-visited-loc := l
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
     true
   end,
   s-id(self, l, id) block:
+    last-visited-loc := l
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
     end
@@ -631,9 +663,9 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-ids(ids)
     underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
     when not(is-empty(underscores)):
-      wf-error("Cannot use underscore as a field name in data variant ", underscores.first.l)
+      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
-    check-underscore-name(with-members, "field name")
+    check-underscore-name(with-members, "a field name")
     is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
@@ -643,9 +675,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-data(self, l, name, params, mixins, variants, shares, _check) block:
     ensure-unique-variant-ids(variants)
-    check-underscore-name(variants, "data variant name")
-    check-underscore-name(shares, "shared field name")
-    check-underscore-name([list: {l: l, name: name}], "datatype name")
+    check-underscore-name(variants, "a data variant name")
+    check-underscore-name(shares, "a shared field name")
+    check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
     params-v = lists.all(_.visit(well-formed-visitor), params)
@@ -659,7 +691,7 @@ top-level-visitor = A.default-iter-visitor.{
     ensure-unique-variant-ids(variants)
     underscores = variants.filter(lam(v): v.name == "_" end)
     when not(is-empty(underscores)):
-      wf-error("Cannot use underscore as a data variant name ", underscores.first.l)
+      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
@@ -779,8 +811,8 @@ top-level-visitor = A.default-iter-visitor.{
   s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr, blocky :: Boolean):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else, blocky)
   end,
-  s-op(_, l :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
-    well-formed-visitor.s-op(l, op, left, right)
+  s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
+    well-formed-visitor.s-op(l, op-loc, op, left, right)
   end,
   s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
     well-formed-visitor.s-check-test(l, op, refinement, left, right)
