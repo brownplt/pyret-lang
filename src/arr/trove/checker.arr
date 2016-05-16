@@ -281,7 +281,7 @@ data TestResult:
                 # this branch shouldn't happen
                 | none    => [list: 
                                 ED.text("predicate"), 
-                                ED.code(ED.text(get-op-fun-name(test-ast.op.op)))]
+                                ED.cmcode(self.loc)]
               end
           end + [list: ED.text(" to raise an exception:")]),
         ED.embed(self.actual-exn)]
