@@ -81,6 +81,19 @@ fun uri-to-path(uri):
   crypto.sha256(uri)
 end
 
+fun get-file-locator(basedir, real-path):
+  loc = FL.file-locator(real-path, CS.standard-globals)
+  saved-path = P.join(basedir, uri-to-path(loc.uri()))
+  if not(F.file-exists(saved-path + "-static.js")) or
+     (F.file-times(saved-path + "-static.js").mtime < F.file-times(real-path).mtime):
+    loc
+  else:
+    JSF.make-jsfile-locator(saved-path + "-static").{
+      uri(_): loc.uri() end
+    }
+  end 
+end
+
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri))
@@ -157,7 +170,8 @@ fun get-cli-module-storage(storage-dir :: String):
 end
 
 type CLIContext = {
-  current-load-path :: String
+  current-load-path :: String,
+  cache-base-dir :: String
 }
 
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
@@ -168,8 +182,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         this-path = dep.arguments.get(0)
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        locator = FL.file-locator(real-path, CS.standard-globals)
-        CL.located(locator, new-context)
+        CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
       else if protocol == "js-file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
@@ -189,7 +202,10 @@ end
 
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path: P.resolve("./")}, base-module)
+  base = module-finder({
+    current-load-path: P.resolve("./"),
+    cache-base-dir: options.compiled-cache
+  }, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
   compiled
@@ -220,7 +236,10 @@ fun build-program(path, options) block:
   end
   print(str)
   base-module = CS.dependency("file", [list: path])
-  base = module-finder({current-load-path: P.resolve("./")}, base-module)
+  base = module-finder({
+    current-load-path: P.resolve("./"),
+    cache-base-dir: options.compiled-cache
+  }, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
   storage = get-cli-module-storage(options.compiled-cache)
