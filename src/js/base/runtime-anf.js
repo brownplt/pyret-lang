@@ -1151,6 +1151,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var checkNumNonPositive = makeCheckType(jsnums.isNonPositive, "NumNonPositive");
     var checkNumNonNegative = makeCheckType(jsnums.isNonNegative, "NumNonNegative");
     // var checkArray = makeCheckType(isArray, "Array");
+    // changes here
+    var checkTuple = makeCheckType(isTuple, "Tuple");
     var checkArray = makeCheckType(isArray, "RawArray");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
@@ -1331,7 +1333,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
             }
             else if(isTuple(next)) {
-                
                 console.log("The values in isTuple: ", next.vals);
                 reprMethods["tuple"](next, pushTodo);
             }
@@ -1821,7 +1822,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     path: newPath
                   });
                 }
-              } else if (isArray(curLeft) && isArray(curRight)) {
+              }
+              //changes here
+              else if(isTuple(curLeft) && isTuple(curRight)) {
+                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+                } else {
+                  for (var i = 0; i < curLeft.length; i++) {
+                    toCompare.stack.push({
+                      left: curLeft[i],
+                      right: curRight[i],
+                      path: "raw-array-get{ " + current.path + "; " + i + " }"
+                    });
+                  }
+                }
+              }
+              else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
                   toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
@@ -2194,6 +2210,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         else if (isOpaque(left) && isOpaque(right) && left.equals(left.val, right.val)) {
           continue;
+        }
+        //changes here
+        else if (isTuple(left) && isTuple(right)) {
+          if (left.length !== right.length) { return false; }
+          for (var i = 0; i < left.length; i++) {
+            toCompare.push({
+              left: left[i],
+              right: right[i]
+            });
+          }
         }
         else if (isArray(left) && isArray(right)) {
           if (left.length !== right.length) { return false; }
@@ -4663,6 +4689,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     makePrimAnn("Method", isMethod);
     makePrimAnn("Nothing", isNothing);
     makePrimAnn("Object", isObject);
+    //changes here
+    makePrimAnn("Tuple", isTuple);
     makePrimAnn("Any", function() { return true; });
 
     thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);

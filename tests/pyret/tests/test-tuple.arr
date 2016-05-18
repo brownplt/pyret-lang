@@ -19,3 +19,9 @@ check "print tuple":
   x = {13; 1 + 4; 41; 1}
   torepr(x) is "{ 13; 5; 41; 1 }"
 end
+
+check "tuple equals":
+ x = {1; 3; 5; 2}
+ y = {1; 3; 5; 2}
+ x is y
+end
