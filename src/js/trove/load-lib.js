@@ -281,6 +281,13 @@
       var depMap = program.depMap;
       var toLoad = program.toLoad;
 
+      if(realm["builtin://checker"]) {
+        var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
+        // NOTE(joe): This is the place to add checkAll
+        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
+        otherRuntime.setParam("current-checker", currentChecker);
+      }
+
       var main = toLoad[toLoad.length - 1];
 
       var postLoadHooks = {
@@ -303,7 +310,7 @@
           otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
         },
         "builtin://checker": function(checker) {
-          checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
+          var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
           var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
           otherRuntime.setParam("current-checker", currentChecker);
