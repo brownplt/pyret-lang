@@ -18,7 +18,7 @@ dynamic-modules, - Is namespace a necessary argument?  Maybe because of eval-lib
   - do any currying massaging necessary to emulate defineModule for pure JS
     + not doing it, just changing the shape of module funs
 
-4.5.
+[x] 4.5.
   - find nativeRequires using requirejs
   - Add nativeRequires visibility on locators to kick off pure JS imports
     + Make sure to check existing locators to add get-native-modules!
@@ -140,6 +140,10 @@ defined-values/defined-types?
     hold the copies of the library?  Or should the libraries always be
     dynamically linked, and use requirejs in a clever way to reference the
     right place on the filesystem?
+
+    [x] CPO does this with cpo-builtin-modules and realms.
+        This can be adopted for the standalone
+
 23. Various errors:
   - Where/how is an error in runStandalone reported?
   - Should the answer for main be returned as a failure in postLoadHooks, or do
@@ -150,15 +154,18 @@ defined-values/defined-types?
 [x] 25. Add a new jsfile locator to support importing/using js files as modules
     outside of trove/.  Needed for CPO to define its internal modules
 26. Remove everything to do with namespace!
+    - Change it to realm, maybe?
 [x] 27. For CPO, need a different builtin locator that looks up builtins from
     the provided program dict.
-28. Add a dynamicModules argument to runStandalone, and use that rather than
+[x] 28. Add a dynamicModules argument to runStandalone, and use that rather than
     runtime.modules as the cache/storage place for instantiated modules, and
     delegate management and evicting compiled modules to the surrounding
     context (e.g. the REPL can manage this).
-29. Make the REPL/CPO main store compiled modules in a useful way, perhaps in
+    - Added as "realms"
+[x] 29. Make the REPL/CPO main store compiled modules in a useful way, perhaps in
     memory while an interaction is running, and in localStorage in between runs
 
+    cpo-builtin-modules/realms does this
 
 --
 
