@@ -25,3 +25,8 @@ check "tuple equals":
  y = {1; 3; 5; 2}
  x is y
 end
+
+check "parse and print tuple-get":
+   x = P.surface-parse("tup{2}", "testing")
+   x.tosource().pretty(80) is [list: "tup{2}"]
+end

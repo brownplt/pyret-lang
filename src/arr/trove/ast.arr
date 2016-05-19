@@ -761,7 +761,11 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | s-obj(l :: Loc, fields :: List<Member>) with:
+   | s-tuple-get(l :: Loc, name :: String, index :: Number) with:
+    label(self): "s-tuple-get" end,
+    tosource(self): self.name + PP.lbrace + PP.str(self.index) + PP.rbrace
+    end 
+   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -1646,6 +1650,9 @@ default-map-visitor = {
   s-tuple(self, l :: Loc, fields :: List<Expr>):
     s-tuple(l, fields.map(_.visit(self)))
   end,
+  s-tuple-get(self, l :: Loc, name :: String, index :: Number):
+    s-tuple-get(l, name, index)
+  end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
@@ -2107,6 +2114,9 @@ default-iter-visitor = {
   end,
   s-tuple(self, l :: Loc, fields :: List<Expr>):
     lists.all(_.visit(self), fields)
+  end,
+  s-tuple-get(self, l :: Loc, name :: String, index :: Number):
+    true
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
