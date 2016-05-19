@@ -27,6 +27,6 @@ check "tuple equals":
 end
 
 check "parse and print tuple-get":
-   x = P.surface-parse("tup{2}", "testing")
-   x.tosource().pretty(80) is [list: "tup{2}"]
+   x = P.surface-parse("tup.{2}", "test")
+   x.tosource().pretty(80) is [list: "tup.{2}"]
 end

@@ -146,7 +146,7 @@ tuple-expr: LBRACE tuple-fields RBRACE
 tuple-fields: list-tuple-field* binop-expr [SEMI]
 list-tuple-field: binop-expr SEMI
 
-tuple-get: NAME LBRACE NUMBER RBRACE
+tuple-get: num-expr DOT LBRACE num-expr RBRACE
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: list-obj-field* obj-field [COMMA]

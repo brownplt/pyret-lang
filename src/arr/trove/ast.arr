@@ -763,7 +763,7 @@ data Expr:
     end
    | s-tuple-get(l :: Loc, name :: String, index :: Number) with:
     label(self): "s-tuple-get" end,
-    tosource(self): self.name + PP.lbrace + PP.str(self.index) + PP.rbrace
+    tosource(self): self.name + PP.str(".") + PP.lbrace + PP.str(self.index) + PP.rbrace
     end 
    | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
