@@ -212,7 +212,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
   globts = compile-env.globals.types
   for each(g from globvs.keys-list()):
     key-id = A.s-global(g).key()
-    when not(context.types.has-key(key-id)):
+    when not(context.types.has-key-now(key-id)):
       context.types.set-now(key-id, globvs.get-value(g))
     end
   end
