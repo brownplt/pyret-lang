@@ -9,9 +9,13 @@ end
 
 check "basic tuple access":
    x = {1; 3; 10}
+   y = x.{2}
    x.{0} is 1
    x.{1} is 3
    x.{2} is 10
+   x.{3} raises "too large"
+   y.{0} raises "Not a tuple"
+   x.{-1} raises "too small"
 end
 
 

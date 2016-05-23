@@ -1172,7 +1172,7 @@ compiler-visitor = {
   end,
   a-tuple-get(self, l, name, index):
    visit-name = name.visit(self)
-    c-exp(j-bracket(j-dot(visit-name.exp, "vals"), j-num(index)), cl-empty)
+    c-exp(rt-method("getTuple", [clist: visit-name.exp, j-num(index), self.get-loc(l)]), cl-empty)
   end,
   a-array(self, l, values):
     visit-vals = values.map(_.visit(self))

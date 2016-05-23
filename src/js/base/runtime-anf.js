@@ -965,6 +965,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
    function isTuple(val) {
       return val instanceof PTuple;
    }
+
+   function getTuple(name, index, l) {
+     if (!isTuple(name)) {
+        ffi.throwMessageException("Not a tuple");
+     }
+     if (index < 0) {
+        ffi.throwMessageException("Index too small");
+     }
+     if (index >= name.vals.length) {
+        ffi.throwMessageException("Index too large");
+     }
+     return name.vals[index]
+   }
         
 
     /*********************
@@ -4459,6 +4472,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'getFields'        : getFields,
         'getColonField'    : getColonField,
         'getColonFieldLoc' : getColonFieldLoc,
+        'getTuple'         : getTuple,
         'extendObj'        : extendObj,
 
         'hasBrand' : hasBrand,
