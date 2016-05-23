@@ -744,7 +744,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           //changes here
           'tuple-get': function(node) {
             return RUNTIME.getField(ast, 's-tuple-get')
-                .app(pos(node.pos), symbol(node.kids[0]), symbol(node.kids[3]))
+                .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]))
           },
           'obj-expr': function(node) {
             if (node.kids.length === 2) {
