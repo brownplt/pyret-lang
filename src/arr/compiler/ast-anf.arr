@@ -379,6 +379,10 @@ data ALettable:
      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
+  | a-tuple-get(l :: Loc, name :: String, index :: String) with:
+   label(self): "s-tuple-get" end,
+    tosource(self): PP.str(self.name) + PP.str(".") + PP.lbrace + PP.str(self.index) + PP.rbrace
+    end 
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
@@ -522,6 +526,7 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
+    | a-tuple-get(_, name, index) => a-tuple-get(dummy-loc, name, index)
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -640,6 +645,9 @@ default-map-visitor = {
   end,
   a-tuple(self, l :: Loc, fields :: List<AVal>):
     a-tuple(l, fields.map(_.visit(self)))
+  end,
+  a-tuple-get(self, l :: Loc, name :: String, index :: String):
+   pass,
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
@@ -875,6 +883,9 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-tuple(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f, acc)
+      end
+    | a-tuple-get(_, name, index) =>
+      pass
       end
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
