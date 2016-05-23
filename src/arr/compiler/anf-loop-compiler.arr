@@ -1118,7 +1118,7 @@ compiler-visitor = {
     c-exp(rt-method("extendObj", [clist: self.get-loc(l), visit-obj.exp, j-obj(CL.map_list(o-get-field, visit-fields))]),
       other-stmts)
   end,
-  a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
+   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
     c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
@@ -1169,6 +1169,10 @@ compiler-visitor = {
   a-tuple(self, l, values):
     visit-vals = values.map(_.visit(self)) 
     c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
+  end,
+  a-tuple-get(self, l, name, index):
+   visit-name = name.visit(self)
+    c-exp(j-bracket(j-dot(visit-name.exp, "vals"), j-num(index)), cl-empty)
   end,
   a-array(self, l, values):
     visit-vals = values.map(_.visit(self))

@@ -7,11 +7,11 @@ check "parse and print":
 end
 
 
-check "desugar to array":
+check "basic tuple access":
    x = {1; 3; 10}
-   x.v1 is 1
-   x.v2 is 3
-   x.v3 is 10
+   x.{0} is 1
+   x.{1} is 3
+   x.{2} is 10
 end
 
 
