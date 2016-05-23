@@ -967,9 +967,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
    }
 
    function getTuple(name, index, l) {
-     if (!isTuple(name)) {
-        ffi.throwMessageException("Not a tuple");
-     }
+     thisRuntime.checkTuple(name);
      if (index < 0) {
         ffi.throwMessageException("Index too small");
      }
@@ -4657,6 +4655,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'checkArityC': checkArityC,
+        'checkTuple' : checkTuple,
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,

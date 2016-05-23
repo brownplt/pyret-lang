@@ -14,7 +14,7 @@ check "basic tuple access":
    x.{1} is 3
    x.{2} is 10
    x.{3} raises "too large"
-   y.{0} raises "Not a tuple"
+   y.{0} raises "Tuple"
    x.{-1} raises "too small"
 end
 
