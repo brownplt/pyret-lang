@@ -761,9 +761,9 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-   | s-tuple-get(l :: Loc, name :: String, index :: Number) with:
+   | s-tuple-get(l :: Loc, name :: String, index :: String) with:
     label(self): "s-tuple-get" end,
-    tosource(self): self.name + PP.str(".") + PP.lbrace + PP.str(self.index) + PP.rbrace
+    tosource(self): PP.str(self.name) + PP.str(".") + PP.lbrace + PP.str(self.index) + PP.rbrace
     end 
    | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
