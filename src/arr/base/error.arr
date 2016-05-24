@@ -198,6 +198,21 @@ data RuntimeError:
         [ED.para: ED.text("The object was:")],
         ED.embed(self.obj)]
     end
+  | lookup-non-tuple(loc, non-tup, index :: Number) with:
+     render-fancy-reason(self, loc-to-ast, loc-to-stc):
+      self.render-reason()
+     end,
+     render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple lookup expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the left hand side to evaluate to an tuple.")],
+        [ED.para:
+          ED.text("The left hand side"),
+          ED.text(" evaluated to a non-tuple value:")],
+         ED.embed(self.non-tup)]
+    end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast = loc-to-ast(self.loc).block.stmts.first

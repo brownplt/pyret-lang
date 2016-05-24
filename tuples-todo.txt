@@ -1,6 +1,8 @@
 [x] Make negative index be well-formed error
 [ ] Change name variable to be tup
 [ ] Make errors fancy
+        [ ] Too big index
+        [ ] Not a tuple
 [ ] What happens if we have really big numbers? (Wf-error)
 [ ] Finish Equality
 [ ] Write performance tests

@@ -966,12 +966,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return val instanceof PTuple;
    }
 
-   function getTuple(name, index, l) {
-     thisRuntime.checkTuple(name);
-     if (index >= name.vals.length) {
+   function getTuple(tup, index, l) {
+     if(!isTuple(tup)) {
+        ffi.throwLookupNonTuple(makeSrcloc(l), tup, index);
+     }
+     if (index >= tup.vals.length) {
         ffi.throwMessageException("Index too large");
      }
-     return name.vals[index]
+     return tup.vals[index]
    }
         
 
@@ -1103,7 +1105,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         ffi.throwTypeMismatch(val, typeName);
       }
       return true;
