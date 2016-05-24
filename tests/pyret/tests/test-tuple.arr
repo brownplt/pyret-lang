@@ -15,7 +15,7 @@ check "basic tuple access":
    x.{2} is 10
    x.{3} raises "too large"
    y.{0} raises "Tuple"
-   x.{-1} raises "too small"
+   x.{-1} raises "Index"
 end
 
 
