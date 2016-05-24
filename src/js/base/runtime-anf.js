@@ -968,9 +968,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
    function getTuple(name, index, l) {
      thisRuntime.checkTuple(name);
-     if (index < 0) {
-        ffi.throwMessageException("Index too small");
-     }
      if (index >= name.vals.length) {
         ffi.throwMessageException("Index too large");
      }

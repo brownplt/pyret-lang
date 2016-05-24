@@ -735,6 +735,9 @@ top-level-visitor = A.default-iter-visitor.{
   s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-update(l, supe, fields)
   end,
+  s-tuple-get(_, l :: Loc, tup, index):
+    well-formed-visitor.s-tuple-get(l, tup, index)
+  end,
   s-obj(_, l :: Loc, fields :: List<A.Member>):
     well-formed-visitor.s-obj(l, fields)
   end,
