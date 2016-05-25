@@ -604,6 +604,13 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("(5 + 6).{2}")).not.toBe(false);
       expect(parse("f().{2}")).not.toBe(false);
     });
+
+    it("should parse tuple binding", function() {
+     expect(parse("{x;y} = {1;2}")).not.toBe(false);
+     expect(parse("{x;y;z = } {1;2}")).toBe(false);
+     expect(parse("{1 + 3; hello} = t")).toBe(false);
+     expect(parse("{v;v;b;u} = t")).not.toBe(false);
+    });
   });
 
   

@@ -583,6 +583,15 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                      tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]));
             }
           },
+        'tuple-name-list' : function(node) {
+             if (node.kids[node.kids.length - 1].name !== "binding") {
+              // (obj-fields (list-tuple-field f1 SEMI) ... lastField SEMI)
+              return makeList(node.kids.slice(0, -1).map(tr));
+            } else {
+              // (fields (list-tuple-field f1 SEMI) ... lastField)
+              return makeList(node.kids.map(tr));
+            }
+          },
           'tuple-fields' : function(node) {
              if (node.kids[node.kids.length - 1].name !== "binop-expr") {
               // (obj-fields (list-tuple-field f1 SEMI) ... lastField SEMI)
@@ -601,6 +610,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               return makeList(node.kids.map(tr));
             }
           },
+          'tuple-name': function(node) {
+            // (list-tuple-field f semo)
+            return tr(node.kids[0]);
+          }, 
          'list-tuple-field': function(node) {
             // (list-tuple-field f semo)
             return tr(node.kids[0]);
@@ -740,6 +753,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           'tuple-expr': function(node) {
             return RUNTIME.getField(ast, 's-tuple')
                 .app(pos(node.pos), tr(node.kids[1]))
+          },
+         'tuple-bind-expr': function(node) {
+            return RUNTIME.getField(ast, 's-tuple-let')
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
           },
           //changes here
           'tuple-get': function(node) {

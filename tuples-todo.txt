@@ -1,5 +1,5 @@
 [x] Make negative index be well-formed error
-[ ] Change name variable to be tup
+[ ] *Change name variable to be tup
 [x] Make errors fancy
         [x] Too big index
         [x] Not a tuple
@@ -9,7 +9,11 @@
             Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
 [ ] *Finish Equality
 [ ] Write performance tests
-[ ] DOM - printing of tuples
+[x] DOM - printing of tuples
 [ ] Heroku setup - finish
 [ ] Gdrive setup?
-[ ] SSH forwarding/tunneling 
+[ ] SSH forwarding/tunneling
+[ ] Binding
+      [ ] *tosource
+      [ ] *Add to resolve-scope
+[ ] *Setup workflow

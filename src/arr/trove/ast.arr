@@ -765,6 +765,8 @@ data Expr:
     label(self): "s-tuple-get" end,
     tosource(self): self.name.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
+   | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
+   label(self): "s-tuple-let" end
    | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
