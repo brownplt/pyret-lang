@@ -6,3 +6,7 @@
 [ ] What happens if we have really big numbers? (Wf-error)
 [ ] Finish Equality
 [ ] Write performance tests
+[ ] DOM - printing of tuples
+[ ] Heroku setup - finish
+[ ] Gdrive setup?
+[ ] SSH forwarding/tunneling 

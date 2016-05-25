@@ -971,7 +971,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwLookupNonTuple(makeSrcloc(l), tup, index);
      }
      if (index >= tup.vals.length) {
-        ffi.throwMessageException("Index too large");
+        ffi.throwLookupLargeIndex(makeSrcloc(l), tup, index);
+        //ffi.throwMessageException("hello", l);
      }
      return tup.vals[index]
    }
@@ -1118,6 +1119,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return true;
       }
       else if (isObject(val) ||
+               isTuple(val) ||
                isFunction(val) ||
                isMethod(val) ||
                isRef(val) ||

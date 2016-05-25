@@ -199,7 +199,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-non-tuple(loc, non-tup, index :: Number) with:
-     render-fancy-reason(self, loc-to-ast, loc-to-stc):
+     render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
      end,
      render-reason(self):
@@ -212,6 +212,22 @@ data RuntimeError:
           ED.text("The left hand side"),
           ED.text(" evaluated to a non-tuple value:")],
          ED.embed(self.non-tup)]
+    end
+  | lookup-large-index(loc, tup, index :: Number) with:
+     render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.render-reason()
+     end,
+     render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple lookup expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the index to be smaller than the length of the tuple.")],
+        [ED.para:
+          ED.text("The given invalid index was "),
+          ED.embed(self.index),
+          ED.text(" accessed on the tuple")],
+         ED.embed(self.tup)]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
