@@ -113,6 +113,7 @@ inherits(PObject, PBase);
 inherits(PFunction, PBase);
 inherits(PMethod, PBase);
 inherits(POpaque, PBase);
+inherits(PTuple, PBase);
 
 /**
     Tests whether a JS Object has a property
@@ -1344,7 +1345,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
             }
             else if(isTuple(next)) {
-                console.log("The values in isTuple: ", next.vals);
                 reprMethods["tuple"](next, pushTodo);
             }
             else if(isRef(next)) {

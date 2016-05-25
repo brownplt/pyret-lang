@@ -13,8 +13,8 @@ check "basic tuple access":
    x.{0} is 1
    x.{1} is 3
    x.{2} is 10
-   x.{3} raises "too large"
-   y.{0} raises "Tuple"
+   x.{3} raises "lookup-too-large"
+   y.{0} raises "lookup-non-tuple"
 end
 
 
