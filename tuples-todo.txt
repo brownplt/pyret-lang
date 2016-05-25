@@ -1,10 +1,13 @@
 [x] Make negative index be well-formed error
 [ ] Change name variable to be tup
-[ ] Make errors fancy
-        [ ] Too big index
-        [ ] Not a tuple
-[ ] What happens if we have really big numbers? (Wf-error)
-[ ] Finish Equality
+[x] Make errors fancy
+        [x] Too big index
+        [x] Not a tuple
+        [ ] Do "fancy-reason" as well
+[ ] *What happens if we have really big numbers? (Wf-error)
+        [ ] Ask on Slack – what's the best place to cut off?
+            Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
+[ ] *Finish Equality
 [ ] Write performance tests
 [ ] DOM - printing of tuples
 [ ] Heroku setup - finish
