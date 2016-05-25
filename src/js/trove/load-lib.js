@@ -281,14 +281,14 @@
       var depMap = program.depMap;
       var toLoad = program.toLoad;
 
+      var main = toLoad[toLoad.length - 1];
+
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
         var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
         otherRuntime.setParam("current-checker", currentChecker);
       }
-
-      var main = toLoad[toLoad.length - 1];
 
       var postLoadHooks = {
         "builtin://srcloc": function(srcloc) {

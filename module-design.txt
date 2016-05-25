@@ -86,6 +86,7 @@ much sense.
 [/] 15b. Make tests run again
     - Aside from some eval tests, these work
 15c. Refactor locators to get rid of common implementations of shared methods
+    - Also get rid of unused methods – get-provides, set-compiled, needs-compile
 15d. Building tests as standalone requires recompiling lots of the compiler.
      Should we support read-only access to multiple compiled/ directories in
      order to make that work better?  We could have the module cache just read
@@ -108,10 +109,20 @@ much sense.
     - move from cli-module-loader or otherwise centralize
 19. Standardize just what fields need to be on a Pyret-shaped return from a
 JS-implemented module.  Do we need just provide-plus-types?  answer?  checks?
-defined-values/defined-types?  
+defined-values/defined-types?
 20. types
 
   - generate type information into provides in the compiler (needed in general)
+
+  - Make it so get-compiled tells us whether we have serialized information or
+    not, instead of the module cache.  That way, those serialized provides can
+    be resolved, and then the cache on compile-program is just internal to the
+    algorithm.  Once resolved, they will be in the cache and not need to be
+    reconstructed again.  This means compile-module will "do work" on pure JS
+    modules, because they will have unresolved types stored.
+
+    It may be useful to store _some_ unresolved types.
+
   - Implement shorthand expansions for type syntax:
   e.g.
 
@@ -166,6 +177,20 @@ defined-values/defined-types?
     memory while an interaction is running, and in localStorage in between runs
 
     cpo-builtin-modules/realms does this
+
+[ ] 30. Delete legacy-path and `pre-loaded` module type
+
+[ ] 31. Just use get-compiled to streamline caching of modules, and don't pass
+    in the initial cache?  That is, locator constructors like file could
+    take an Option<Loadable>
+
+[ ] 32. We never use the compile-env field in loadables, or the pre-loaded
+    variant of Loadable
+
+[ ] 33. What is going on with the error in numbers with tME not a function?  Hard to
+    reproduce.
+
+[ ] 34. Checker instantiation.
 
 --
 
@@ -271,10 +296,10 @@ var TROVE_ARRAY = {
       { protocol: "requireURl", name: "https://raw.github.com/d3-project/d3.js" }
     ],
     theModule: function(runtime, namespace, selfUri, somePyretDep, d3) {
-      
+
     }
   };
-  
+
 
 - Need to address built-in libraries like filesystem, etc.
 
@@ -317,7 +342,7 @@ define(["trove/either",
     theModule: function($E30, $equality31) {
       return function(r, ns) {
         return r.loadModulesNew([$E30, $equality31], function($E30, $equality31) {
-          
+
           compiled body
 
         }
@@ -348,7 +373,7 @@ define(["compiler/ast-anf.arr"],function(ANF$3) {
     theModule: function(ANF$3) {
       return function(r, ns) {
         return r.loadModulesNew([$E30, $equality31], function($E30, $equality31) {
-          
+
           compiled body
 
         }

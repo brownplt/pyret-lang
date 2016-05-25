@@ -128,9 +128,6 @@ type Locator = {
   # Pre-compile, specification of available globals
   get-globals :: ( -> CS.Globals),
 
-  # Post-compile, on-run (maybe dynamic and new namespaces)
-  get-namespace :: (R.Runtime -> N.Namespace),
-
   uri :: (-> URI),
   name :: (-> String),
 
@@ -283,9 +280,12 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
     if not(cache.has-key-now(uri)) block:
       provide-map = dict-map(
           w.dependency-map,
-          lam(_, v): cache.get-value-now(v.uri()).provides
-        end)
+          lam(_, v): cache.get-value-now(v.uri()).provides end
+      )
       loadable = compile-module(w.locator, provide-map, cache, options)
+      # I feel like here we want to generate two copies of the loadable:
+      # - One local for calling on-compile with and serializing
+      # - One canonicalized for the local cache
       cache.set-now(uri, loadable)
       options.on-compile(w.locator, loadable)
       loadable
@@ -307,11 +307,15 @@ end
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable block:
   G.reset()
   A.global-names.reset()
+  env = CS.compile-env(locator.get-globals(), provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
-    | some(loadable) => loadable
+    | some(loadable) =>
+      cases(Loadable) loadable:
+        | module-as-string(pvds, ce-unused, m) =>
+          module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m)
+      end
     | none =>
       shadow options = locator.get-options(options)
-      env = CS.compile-env(locator.get-globals(), provide-map)
       libs = locator.get-extra-imports()
       mod = locator.get-module()
       ast = cases(PyretCode) mod:
@@ -527,6 +531,3 @@ fun make-standalone(wl, compiled, options):
     natives: natives
   }
 end
-
-
-

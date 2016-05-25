@@ -8,14 +8,8 @@
   provides: {},
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
-    function getBuiltinLocator(path) {
-      // NOTE(joe): This is a bit of requireJS hackery that assumes a
-      // certain layout for builtin modules
-      if (path === undefined) {
-        console.error("Got undefined name in builtin locator");
-        console.trace();
-      }
-      
+
+    function builtinLocatorFromString(content) {
       var noModuleContent = {};
       var moduleContent = noModuleContent;
 
@@ -39,7 +33,6 @@
         }
       }
 
-      var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
       return RUNTIME.makeObject({
           "get-raw-dependencies":
             F(function() {
@@ -123,30 +116,26 @@
             }),
           "get-raw-compiled":
             F(function() {
-//                if(m.oldDependencies) {
-//                   m.theModule = m.theModule.apply(null, m.oldDependencies); 
-//                   return RUNTIME.makeObject(function() { return m.theModule });
-//                }
-//                else
               return content;
-              /*
-              if(m.theModule) {
-                // NOTE(joe): this will b removed once polyglot is done
-                return RUNTIME.makeOpaque(m.theModule);
-              }
-              else {
-                return RUNTIME.makeOpaque(function() { return m; });
-              }
-              */
             })
         });
+    }
+
+    function getBuiltinLocator(path) {
+      if (path === undefined) {
+        console.error("Got undefined name in builtin locator");
+        console.trace();
+      }
+      var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
+      return builtinLocatorFromString(content);
     }
     var O = RUNTIME.makeObject;
     return O({
       "provide-plus-types": O({
         types: { },
         values: O({
-          "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator)
+          "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator),
+          "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString)
         })
       }),
       "answer": RUNTIME.nothing

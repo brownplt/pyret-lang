@@ -15,6 +15,10 @@ type Name                 = A.Name
 
 type Loc                  = SL.Srcloc
 
+local                     = TS.local
+module-uri               = TS.module-uri
+# NOTE(joe): not including TS.dependency, because it ought not be needed
+
 type Type                 = TS.Type
 t-name                    = TS.t-name
 t-var                     = TS.t-var
@@ -905,7 +909,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
     | a-name(l, id) =>
       cases(Option<Type>) context.info.aliases.get-now(id.key()):
         | some(typ) => fold-result(some(typ.set-loc(l)))
-        | none => fold-result(some(t-name(none, id, l)))
+        | none => fold-result(some(t-name(local, id, l)))
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l)))
@@ -998,7 +1002,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         | some(mod) =>
           t-mod = context.info.modules.get-value-now(mod)
           if t-mod.types.has-key(field):
-            fold-result(some(t-name(some(mod), A.s-global(field), l)))
+            fold-result(some(t-name(module-uri(mod), A.s-global(field), l)))
           else if t-mod.aliases.has-key(field):
             fold-result(some(t-mod.aliases.get-value(field)))
           else:
@@ -1234,9 +1238,9 @@ fun _instantiate-right(subtyp :: Type, supertyp :: Type, context :: Context) -> 
   cases(Type) supertyp:
     | t-existential(b-id, b-l) =>
       cases(Type) subtyp:
-        | t-name(a-mod, a-id, _) =>
+        | t-name(_, _, _) =>
           context.assign-existential(supertyp, subtyp)
-        | t-var(a-id, _) =>
+        | t-var(_, _) =>
           context.assign-existential(supertyp, subtyp)
         | t-arrow(a-args, a-ret, a-l) =>
           args-and-existentials = a-args.map(lam(arg): pair(arg, new-existential(arg.l)) end)
@@ -1288,9 +1292,9 @@ fun _instantiate-left(subtyp :: Type, supertyp :: Type, context :: Context) -> F
   cases(Type) subtyp:
     | t-existential(a-id, a-l) =>
       cases(Type) supertyp:
-        | t-name(b-mod, b-id, _) =>
+        | t-name(_, _, _) =>
           context.assign-existential(subtyp, supertyp)
-        | t-var(b-id, _) =>
+        | t-var(_, _) =>
           context.assign-existential(subtyp, supertyp)
         | t-arrow(b-args, b-ret, b-l) =>
           args-and-existentials = b-args.map(lam(arg): pair(arg, new-existential(arg.l)) end)
@@ -1550,7 +1554,7 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -
             end
           end
         | s-newtype-bind(l, name, namet) =>
-          typ = t-name(none, namet, l)
+          typ = t-name(local, namet, l)
           namet-key = namet.key()
           ctxt.info.branders.set-now(namet-key, typ)
           ctxt.info.aliases.set-now(name.key(), typ)

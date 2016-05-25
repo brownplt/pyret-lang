@@ -91,7 +91,7 @@ fun get-file-locator(basedir, real-path):
     JSF.make-jsfile-locator(saved-path + "-static").{
       uri(_): loc.uri() end
     }
-  end 
+  end
 end
 
 fun get-loadable(basedir, l) -> Option<Loadable>:

@@ -72,7 +72,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     get-globals(_):
-      raise("Should never get compile-env for builtin module " + builtin-name)
+      CM.standard-globals
     end,
     get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)
@@ -198,4 +198,3 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
       raise("Could not find module " + builtin-name + " in either of " + builtin-js-dir + " or " + builtin-arr-dir)
   end
 end
-

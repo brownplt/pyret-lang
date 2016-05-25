@@ -34,11 +34,6 @@ string-dict = SD.string-dict
 
 type Loc = SL.Srcloc
 
-data PyretDialect:
-  | Pyret
-  | Bootstrap
-end
-
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
     with:
@@ -637,7 +632,7 @@ default-compile-options = {
   collect-all: false,
   ignore-unbound: false,
   proper-tail-calls: true,
-  compile-module: false,
+  compile-module: true,
   compiled-cache: "compiled",
   on-compile: lam(locator, loadable): nothing end,
   standalone-file: "src/js/base/handalone.js"

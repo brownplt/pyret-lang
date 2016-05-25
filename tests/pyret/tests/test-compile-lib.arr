@@ -1,10 +1,12 @@
 import string-dict as SD
 import load-lib as L
-import namespace-lib as N
 import runtime-lib as R
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CM
-import "compiler/locators/builtin.arr" as BL
+import ast as A
+import file("../../../src/arr/compiler/type-structs.arr") as T
+import file("../../../src/arr/compiler/ast-util.arr") as AU
+import file("../../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../../src/arr/compiler/compile-structs.arr") as CM
+import file("../../../src/arr/compiler/locators/builtin.arr") as BL
 
 fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
@@ -20,7 +22,7 @@ check "Worklist generation (simple)":
     import file("bar") as B
 
     fun f(x): B.g(x) end
-    f(42) 
+    f(42)
     ```)
   modules.set-now("bar",
     ```
@@ -34,10 +36,12 @@ check "Worklist generation (simple)":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -55,8 +59,8 @@ check "Worklist generation (simple)":
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
-  ans.v satisfies L.is-success-result
+  #ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  #ans.v satisfies L.is-success-result
 end
 
 check "Worklist generation (DAG)":
@@ -95,16 +99,18 @@ check "Worklist generation (DAG)":
   fun string-to-locator(name :: String):
     {
       needs-compile(self, provs): not(cresults.has-key-now(name)) end,
-      get-module(self):
+      get-module(self) block:
         count = if retrievals.has-key-now(name): retrievals.get-value-now(name) else: 0 end
         retrievals.set-now(name, count + 1)
         CL.pyret-string(modules.get-value-now(name))
       end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
@@ -162,10 +168,12 @@ check "Worklist generation (Cycle)":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -191,7 +199,7 @@ check "Multiple includes":
     ```
     provide *
     provide-types *
-    
+
     data D:
       | d(x)
     end
@@ -223,10 +231,12 @@ check "Multiple includes":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.standard-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
       get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+      get-native-modules(self): empty end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -247,8 +257,39 @@ check "Multiple includes":
 
   start-loc = string-to-locator("C")
   wlist = CL.compile-worklist(dfind, start-loc, {})
-  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  ans = CL.compile-and-run-locator(start-loc, dfind, {}, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
 
   ans.v satisfies L.is-success-result
   L.get-result-answer(ans.v) is some("[list: true, true, true]")
+end
+
+mt = [SD.string-dict:]
+string-dict = SD.string-dict
+check:
+  ps = CM.provides("test-provides1",
+    [string-dict:
+      "x", T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc)
+    ],
+    mt,
+    mt)
+
+  ce = CM.compile-env(CM.globals(mt, mt),
+    [string-dict:
+      "builtin(global)", CM.provides("builtin://global", mt, mt,
+        [SD.string-dict:
+          "Number", T.t-data(empty, empty, empty, A.dummy-loc)])])
+
+  canon = AU.canonicalize-provides(ps, ce)
+
+  canon is CM.provides("test-provides1",
+    [string-dict:
+      "x", T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc)
+    ],
+    mt,
+    mt)
+
+  local = AU.localize-provides(canon, ce)
+
+  local is ps
+
 end

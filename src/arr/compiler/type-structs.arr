@@ -271,8 +271,27 @@ fun interleave(lst, item):
   end
 end
 
+
+data NameOrigin:
+  | local
+  | module-uri(uri :: String)
+  | dependency(dep :: String) # Dependency in key form
+end
+
+fun name-comp(no):
+  cases(NameOrigin) no:
+    | local => ""
+    | module-uri(uri) => uri
+    | dependency(d) => d
+  end
+end
+
+fun dep-error(no):
+  raise("Should not get dependency in typechecker: " + torepr(no))
+end
+
 data Type:
-  | t-name(module-name :: Option<String>, id :: Name, l :: A.Loc)
+  | t-name(module-name :: NameOrigin, id :: Name, l :: A.Loc)
   | t-var(id :: Name, l :: A.Loc)
   | t-arrow(args :: List<Type>, ret :: Type, l :: A.Loc)
   | t-app(onto :: Type % (is-t-name), args :: List<Type> % (is-link), l :: A.Loc)
@@ -297,7 +316,7 @@ data Type:
 sharing:
   _output(self):
     cases(Type) self:
-      | t-name(module-name, id, _) => VS.vs-value(id.toname())
+      | t-name(module-name, id, _) => VS.vs-value(id.toname() + "@" + torepr(module-name))
       | t-var(id, _) => VS.vs-str(id.toname())
       | t-arrow(args, ret, _) =>
         VS.vs-seq([list: VS.vs-str("(")]
@@ -328,9 +347,10 @@ sharing:
   key(self) -> String:
     cases(Type) self:
       | t-name(module-name, id, _) =>
-        cases(Option<String>) module-name:
-          | none    => id.key()
-          | some(m) => m + "." + id.key()
+        cases(NameOrigin) module-name:
+          | local => id.key()
+          | module-uri(m) => m + "." + id.key()
+          | dependency(_) => dep-error(module-name)
         end
       | t-var(id, _) => id.key()
       | t-arrow(args, ret, _) =>
@@ -429,7 +449,7 @@ sharing:
           | t-bot(_)               => greater-than
           | t-name(b-module-name, b-id, _) =>
             fold-comparisons([list:
-              std-compare(a-module-name.or-else(""), b-module-name.or-else("")),
+              std-compare(name-comp(a-module-name), name-comp(b-module-name)),
               std-compare(a-id, b-id)
             ])
           | t-var(_, _)            => less-than
@@ -584,9 +604,9 @@ sharing:
   end
 end
 
-builtin-uri = some("builtin")
+builtin-uri = module-uri("builtin")
 
-t-array-name = t-name(none, A.s-type-global("RawArray"), A.dummy-loc)
+t-array-name = t-name(local, A.s-type-global("RawArray"), A.dummy-loc)
 
 t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
 t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end
@@ -594,4 +614,4 @@ t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l) end
 t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l) end
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-global("Loc"), l) end
 t-array   = lam(v, l): t-app(t-array-name, [list: v], l) end
-t-option  = lam(v, l): t-app(t-name(some("pyret-builtin://option"), A.s-global("Option"), l), [list: v], l) end
+t-option  = lam(v, l): t-app(t-name(module-uri("pyret-builtin://option"), A.s-global("Option"), l), [list: v], l) end
