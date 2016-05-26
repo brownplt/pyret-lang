@@ -1836,14 +1836,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
               }
               //changes here
               else if(isTuple(curLeft) && isTuple(curRight)) {
-                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
+                 if (curLeft.vals.length !== curRight.vals.length) {
                   toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
-                } else {
-                  for (var i = 0; i < curLeft.length; i++) {
+                 } else {
+                  for (var i = 0; i < curLeft.vals.length; i++) {
                     toCompare.stack.push({
-                      left: curLeft[i],
-                      right: curRight[i],
-                      path: "raw-array-get{ " + current.path + "; " + i + " }"
+                      left: curLeft.vals[i],
+                      right: curRight.vals[i],
+                      path: "is-tuple{ " + current.path + "; " + i + " }"
                     });
                   }
                 }
@@ -2200,7 +2200,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       // is returned directly when it is encountered
       while(toCompare.length > 0) {
         current = toCompare.pop();
-        left = current.left;
+        left = current.left.vars;
         right = current.right;
         if (left === right) { continue; }
         if (isNumber(left) && isNumber(right) && jsnums.equals(left, right)) {
@@ -2224,11 +2224,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         //changes here
         else if (isTuple(left) && isTuple(right)) {
-          if (left.length !== right.length) { return false; }
-          for (var i = 0; i < left.length; i++) {
+          if (left.vars.length !== right.vars.length) { return false; }
+          for (var i = 0; i < left.vars.length; i++) {
             toCompare.push({
-              left: left[i],
-              right: right[i]
+              left: left.vars[i],
+              right: right.vars[i]
             });
           }
         }

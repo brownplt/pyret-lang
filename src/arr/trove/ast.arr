@@ -766,7 +766,10 @@ data Expr:
     tosource(self): self.name.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
    | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
-   label(self): "s-tuple-let" end
+   label(self): "s-tuple-let" end,
+   tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
+                   + str-spaceequal + self.tup.tosource()
+    end
    | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
