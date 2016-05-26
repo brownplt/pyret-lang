@@ -379,9 +379,9 @@ data ALettable:
      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | a-tuple-get(l :: Loc, name :: AVal, index :: Number) with:
+  | a-tuple-get(l :: Loc, tup :: AVal, index :: Number) with:
    label(self): "s-tuple-get" end,
-    tosource(self): self.name.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
+    tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
@@ -526,7 +526,7 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-array(_, vs) => a-array(dummy-loc, vs.map(strip-loc-val))
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
-    | a-tuple-get(_, name, index) => a-tuple-get(dummy-loc, strip-loc-val(name), index)
+    | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -646,8 +646,8 @@ default-map-visitor = {
   a-tuple(self, l :: Loc, fields :: List<AVal>):
     a-tuple(l, fields.map(_.visit(self)))
   end,
-  a-tuple-get(self, l :: Loc, name :: AVal, index :: Number):
-    a-tuple-get(l, name.visit(self), index)
+  a-tuple-get(self, l :: Loc, tup :: AVal, index :: Number):
+    a-tuple-get(l, tup.visit(self), index)
   end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
@@ -884,8 +884,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f, acc)
       end
-    | a-tuple-get(_, name, index) =>
-       freevars-v-acc(name, seen-so-far)
+    | a-tuple-get(_, tup, index) =>
+       freevars-v-acc(tup, seen-so-far)
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)

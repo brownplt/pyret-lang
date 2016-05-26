@@ -761,9 +761,9 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-   | s-tuple-get(l :: Loc, name :: Expr, index :: Number) with:
+   | s-tuple-get(l :: Loc, tup :: Expr, index :: Number) with:
     label(self): "s-tuple-get" end,
-    tosource(self): self.name.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
+    tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
    | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
    label(self): "s-tuple-let" end,
@@ -1655,8 +1655,8 @@ default-map-visitor = {
   s-tuple(self, l :: Loc, fields :: List<Expr>):
     s-tuple(l, fields.map(_.visit(self)))
   end,
-  s-tuple-get(self, l :: Loc, name :: Expr, index :: Number):
-    s-tuple-get(l, name.visit(self), index)
+  s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+    s-tuple-get(l, tup.visit(self), index)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
@@ -2120,8 +2120,8 @@ default-iter-visitor = {
   s-tuple(self, l :: Loc, fields :: List<Expr>):
     lists.all(_.visit(self), fields)
   end,
-  s-tuple-get(self, l :: Loc, name :: Expr, index :: Number):
-    name.visit(self)
+  s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+    tup.visit(self)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)

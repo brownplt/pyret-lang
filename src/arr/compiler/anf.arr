@@ -323,8 +323,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name-rec(fields, "anf_tuple_fields", lam(vs):
        k.apply(l, N.a-tuple(l, vs))
      end)
-    | s-tuple-get(l, name, index) => 
-       anf-name(name, "anf_tuple_get", lam(v): k.apply(l, N.a-tuple-get(l, v, index)) end)
+    | s-tuple-get(l, tup, index) => 
+       anf-name(tup, "anf_tuple_get", lam(v): k.apply(l, N.a-tuple-get(l, v, index)) end)
     | s-array(l, values) =>
       anf-name-rec(values, "anf_array_val", lam(vs):
         k.apply(l, N.a-array(l, vs))
