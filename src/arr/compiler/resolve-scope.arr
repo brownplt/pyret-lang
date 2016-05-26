@@ -177,6 +177,12 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
         | s-rec(l, bind, expr) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
+        #| | s-tuple-let(l, thenames, tup) =>
+           A.s-bind(l, false, A.s-name(l, "x"), A.s-tuple-get(l, tup, 1))
+          add-let-bind(binding-group, A.s-bind(l, thenames, A.s-tuple-get(l, tup, 1)), rest-stmts)
+           fun create(l, tup, i): A.s-tuple-let(l, tup, i)
+          thelets = thenames.map(lam(val): A.s-tuple-let(l, tup, 
+          add-let-bind(binding-group, A.s-tuple-get(l, bind, tup), rest-stmts) |#
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,

@@ -7,15 +7,15 @@ check "parse and print":
 end
 
 
-#| check "basic tuple access":
+check "basic tuple access":
    x = {1; 3; 10}
    y = x.{2}
    x.{0} is 1
    x.{1} is 3
    x.{2} is 10
-   x.{3} raises "lookup-too-large"
-   y.{0} raises "lookup-non-tuple"
-end |#
+#|   x.{3} raises "lookup-too-large"
+   y.{0} raises "lookup-non-tuple" |#
+end 
 
 
 check "print tuple":
@@ -42,4 +42,10 @@ end
 check "pase and print tuple-let":
    x = P.surface-parse("{x;y} = {1;2}", "test")
    x.tosource().pretty(80) is [list: "{x; y} ={ 1; 2 }"]
-end 
+end
+
+#| check "tuple binding":
+  {x;y} = {1; 2}
+  x is 1
+  y is 2
+end |#

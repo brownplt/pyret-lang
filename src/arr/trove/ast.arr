@@ -1658,6 +1658,9 @@ default-map-visitor = {
   s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
     s-tuple-get(l, tup.visit(self), index)
   end,
+  s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
+  end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
@@ -2121,6 +2124,10 @@ default-iter-visitor = {
     lists.all(_.visit(self), fields)
   end,
   s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+    tup.visit(self)
+  end,
+  s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    lists.all(_.visit(self), names)
     tup.visit(self)
   end,
   s-obj(self, l :: Loc, fields :: List<Member>):
