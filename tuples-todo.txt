@@ -8,6 +8,7 @@
         [ ] Ask on Slack – what's the best place to cut off?
             Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
 [x] *Finish Equality
+       path correct?
 [ ] Write performance tests
 [x] DOM - printing of tuples
 [ ] Heroku setup - finish

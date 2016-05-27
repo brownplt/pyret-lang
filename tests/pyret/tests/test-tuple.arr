@@ -47,9 +47,14 @@ end
 
 check "tuple binding":
   {a;b;c;d;e} = {10; 214; 124; 62; 12}
+  w = {124;624;15}
+  {x;y;z} = w
   a is 10
   b is 214
   c is 124
   d is 62 
   e is 12
+  x is 124
+  y is 624
+  z is 15
 end 
