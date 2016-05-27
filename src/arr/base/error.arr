@@ -199,8 +199,31 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-non-tuple(loc, non-tup, index :: Number) with:
-     render-fancy-reason(self, loc-to-ast, loc-to-src):
-      self.render-reason()
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    ast-dot = loc-to-ast(self.loc).block.stmts.first
+    tup-loc = ast-dot.tup.l
+    fld-loc = ast-dot.field-loc()
+ #| statement above breaks it   tup-txt = loc-to-src(tup-loc)
+    tup-col = 0
+    fld-col = 1 |#
+    [ED.error:
+      [ED.para:
+       ED.text("error ")]]
+    #|  [ED.para:
+        ED.text("The field lookup expression ")],
+       ED.cmcode(self.loc),
+      [ED.para:
+        ED.text(" expects the "),
+        ED.highlight(ED.text("left hand side"), [ED.locs: self.loc], tup-col),
+        ED.text(" to evaluate to an object.")],
+      [ED.para:
+        ED.text("The "),
+        ED.highlight(ED.text("left hand side"), [ED.locs: self.loc], tup-col),
+        ED.text(" evaluated to a non-object value:")],
+       ED.embed(self.non-tup)] 
+
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.render-reason() |#
      end,
      render-reason(self):
       [ED.error:
