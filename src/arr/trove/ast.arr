@@ -767,7 +767,7 @@ data Expr:
     end 
    | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
    label(self): "s-tuple-let" end,
-   tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
+   tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.reverse().map(_.tosource()))) + PP.rbrace 
                    + str-spaceequal + self.tup.tosource()
     end
    | s-obj(l :: Loc, fields :: List<Member>) with:

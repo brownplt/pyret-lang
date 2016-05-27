@@ -3,7 +3,7 @@
 [x] Make errors fancy
         [x] Too big index
         [x] Not a tuple
-        [ ] Do "fancy-reason" as well
+        [x] *Do "fancy-reason" as well
 [ ] *What happens if we have really big numbers? (Wf-error)
         [ ] Ask on Slack – what's the best place to cut off?
             Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?

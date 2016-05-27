@@ -13,8 +13,8 @@ check "basic tuple access":
    x.{0} is 1
    x.{1} is 3
    x.{2} is 10
-   x.{10000} raises "Index too large"
-#|   x.{3} raises "lookup-too-large"
+#|   x.{10000} raises "Index too large"
+   x.{3} raises "lookup-too-large"
    y.{0} raises "lookup-non-tuple" |#
 end 
 
@@ -45,8 +45,11 @@ check "pase and print tuple-let":
    x.tosource().pretty(80) is [list: "{x; y} ={ 1; 2 }"]
 end
 
-#| check "tuple binding":
-  {x;y} = {1; 2}
-  x is 1
-  y is 2
-end |#
+check "tuple binding":
+  {a;b;c;d;e} = {10; 214; 124; 62; 12}
+  a is 10
+  b is 214
+  c is 124
+  d is 62 
+  e is 12
+end 

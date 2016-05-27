@@ -589,7 +589,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               return makeList(node.kids.slice(0, -1).map(tr));
             } else {
               // (fields (list-tuple-field f1 SEMI) ... lastField)
-              return makeList(node.kids.map(tr));
+              return makeList(node.kids.map(tr).reverse());
             }
           },
           'tuple-fields' : function(node) {
