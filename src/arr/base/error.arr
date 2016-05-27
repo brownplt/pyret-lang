@@ -202,28 +202,22 @@ data RuntimeError:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
     ast-dot = loc-to-ast(self.loc).block.stmts.first
     tup-loc = ast-dot.tup.l
-    fld-loc = ast-dot.field-loc()
- #| statement above breaks it   tup-txt = loc-to-src(tup-loc)
+    tup-txt = loc-to-src(tup-loc)
     tup-col = 0
-    fld-col = 1 |#
+    fld-col = 1 
     [ED.error:
       [ED.para:
-       ED.text("error ")]]
-    #|  [ED.para:
         ED.text("The field lookup expression ")],
        ED.cmcode(self.loc),
       [ED.para:
         ED.text(" expects the "),
-        ED.highlight(ED.text("left hand side"), [ED.locs: self.loc], tup-col),
-        ED.text(" to evaluate to an object.")],
+        ED.highlight(ED.text("left hand side"), [ED.locs: tup-loc], tup-col),
+        ED.text(" to evaluate to a tuple.")],
       [ED.para:
         ED.text("The "),
-        ED.highlight(ED.text("left hand side"), [ED.locs: self.loc], tup-col),
-        ED.text(" evaluated to a non-object value:")],
+        ED.highlight(ED.text("left hand side"), [ED.locs: tup-loc], tup-col),
+        ED.text(" evaluated to a non-tuple value:")],
        ED.embed(self.non-tup)] 
-
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
-      self.render-reason() |#
      end,
      render-reason(self):
       [ED.error:
@@ -237,8 +231,22 @@ data RuntimeError:
          ED.embed(self.non-tup)]
     end
   | lookup-large-index(loc, tup, index :: Number) with:
-     render-fancy-reason(self, loc-to-ast, loc-to-src):
-      self.render-reason()
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    ast-dot = loc-to-ast(self.loc).block.stmts.first
+    tup-loc = ast-dot.tup.l
+    tup-txt = loc-to-src(tup-loc)
+    tup-col = 0
+    fld-col = 1 
+    [ED.error:
+      [ED.para:
+        ED.text("The tuple lookup expression ")],
+       ED.cmcode(self.loc) ,
+      [ED.para:
+        ED.text(" expects the index to be smaller than the legnth of the "),
+        ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
+      [ED.para:
+        ED.text("The given invalid index was"),
+        ED.embed(self.index)]]
      end,
      render-reason(self):
       [ED.error:
@@ -247,7 +255,7 @@ data RuntimeError:
           ED.loc(self.loc),
           ED.text(" expects the index to be smaller than the length of the tuple.")],
         [ED.para:
-          ED.text("The given invalid index was "),
+          ED.text("The given invalid index was"),
           ED.embed(self.index),
           ED.text(" accessed on the tuple")],
          ED.embed(self.tup)]
