@@ -18,7 +18,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       }
       
       function isTable(val) {
-          return hasBrand(brandTable,  val);
+        return hasBrand(brandTable,  val);
       }
 
       function makeTable(headers, rows) {
@@ -26,7 +26,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       
         var headerIndex = {};
         
-        for(var i=0; i<headers.length; i++) {
+        for (var i = 0; i < headers.length; i++) {
           headerIndex["column:" + headers[i]] = i;
         }
       
@@ -42,7 +42,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         
         function getRowAsRecord(row_index) {
           /* TODO: Raise error if no row at index */
-          var obj = {}
+          var obj = {};
           var row = rows[row_index];
           for(var i = 0; i < headers.length; i++) {
             obj[headers[i]] = row[i];
@@ -69,7 +69,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'get-column': runtime.makeMethod1(function(_, col_name) {
               runtime.ffi.checkArity(2, arguments, "get-column");
               if(!hasColumn(col_name)) {
-                /* Throw error */
+                runtime.ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
               }
               return runtime.makeList(getColumn(col_name));
             }),
@@ -79,7 +79,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               var col_index = headerIndex['column:'+col_name];
               if(col_index === undefined)
                 runtime.ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
-              else return col_index;
+              return col_index;
             }),
             
           '_no-column': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
@@ -87,7 +87,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               var col_index = headerIndex['column:'+col_name];
               if(col_index != undefined)
                 runtime.ffi.throwMessageException("The table already has a column named `"+col_name+"`.");
-              else return col_index;
+              return col_index;
             }),
           
           '_equals': runtime.makeMethod2(function(self, other, equals) {
