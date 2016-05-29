@@ -437,7 +437,7 @@ data RuntimeError:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
-      ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
+      ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
