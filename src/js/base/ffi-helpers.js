@@ -257,6 +257,19 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityError(loc, arity, argsPyret);
       }
 
+      function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
+        checkSrcloc(branchLoc);
+        runtime.checkBoolean(shouldBeSingleton);
+        checkSrcloc(casesLoc);
+        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
+      }
+
+      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
+        var loc = runtime.makeSrcloc(branchLoc);
+        var cloc = runtime.makeSrcloc(casesLoc);
+        throwCasesSingletonError(loc, shouldBeSingleton, cloc);
+      }
+
       function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
         checkSrcloc(branchLoc);
         checkSrcloc(casesLoc);
@@ -270,6 +283,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         var cloc = runtime.makeSrcloc(casesLoc);
         throwCasesArityError(loc, arity, fields, cloc);
       }
+
       function throwNoBranchesMatched(locArray, type) {
         runtime.checkString(type);
         raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
@@ -379,6 +393,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityErrorC: throwArityErrorC,
         throwCasesArityError: throwCasesArityError,
         throwCasesArityErrorC: throwCasesArityErrorC,
+        throwCasesSingletonError: throwCasesSingletonError,
+        throwCasesSingletonErrorC: throwCasesSingletonErrorC,
         throwNoBranchesMatched: throwNoBranchesMatched,
         throwNoCasesMatched: throwNoCasesMatched,
         throwNonFunApp: throwNonFunApp,

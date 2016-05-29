@@ -435,7 +435,28 @@ data RuntimeError:
     end
   | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
-      self.render-reason() # TODO!!
+      ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
+      src-branch = loc-to-src(self.branch-loc)
+      ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
+      if self.should-be-singleton:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch")],
+           ED.cmcode(self.branch-loc),
+          [ED.para:
+            ED.text("has an "),
+            ED.highlight(ED.text("argument list"), ast-branch.args.map(_.l), 0),
+            ED.text(" but the variant is a singleton.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch")],
+           ED.cmcode(self.branch-loc),
+          [ED.para:
+            ED.text("doesn't have an argument list in its "),
+            ED.highlight(ED.text("pattern"), [ED.locs: ast-branch.pat-loc], 0),
+            ED.text(", but the variant is not a singleton.")]]
+      end
     end,
     render-reason(self):
       if self.should-be-singleton:

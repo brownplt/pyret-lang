@@ -830,14 +830,14 @@ fun cases-preamble(compiler, compiled-val, branch, cases-loc):
                       [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
         j-block([clist:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-true]))]))
+                [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block([clist:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-false]))]))
+                  [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
   end
 end
