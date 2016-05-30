@@ -225,12 +225,6 @@ function isBase(obj) { return obj instanceof PBase; }
       }
       return s;
     } else if (ffi.isVSTable(val)) {
-      function reformat(str) {
-        if (str.length > 40) {
-          return str.substr(0, 35) + "[...]";
-        }
-        return str;
-      }
       var headers = thisRuntime.getField(val, "headers");
       headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
       var rows = [[]];
@@ -241,7 +235,11 @@ function isBase(obj) { return obj instanceof PBase; }
           curRow = [];
           rows.push(curRow);
         }
-        curRow.push(reformat(v));
+        if (v.length > 40) {
+          curRow.push(v.substr(0, 35) + "[...]");
+        } else {
+          curRow.push(v);
+        }
       }
       return new AsciiTable().fromJSON({
         heading: headers,
