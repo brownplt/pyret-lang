@@ -5,8 +5,8 @@ This is the runtime for the ANF'd version of pyret
 /** @typedef {!Object} */
 var Bignum;
 
-define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util", "../../../node_modules/ascii-table/ascii-table.min.js"],
-       function (Namespace, jsnums, codePoint, seedrandom, util, AsciiTable) {
+define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util"],
+       function (Namespace, jsnums, codePoint, seedrandom, util) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -14,6 +14,8 @@ define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runti
   else {
     var require = requirejs.nodeRequire("requirejs");
   }
+
+  var AsciiTable;
 
   function copyArgs(args) {
     return Array.prototype.slice.call(args);
@@ -225,6 +227,9 @@ function isBase(obj) { return obj instanceof PBase; }
       }
       return s;
     } else if (ffi.isVSTable(val)) {
+      if (!AsciiTable){
+        AsciiTable = require("ascii-table");
+      }
       var headers = thisRuntime.getField(val, "headers");
       headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
       var rows = [[]];
