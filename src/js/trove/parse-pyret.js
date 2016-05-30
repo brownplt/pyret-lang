@@ -782,6 +782,42 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (binop-expr COMMA)
             return tr(node.kids[0]);
           },
+          'table-extend-fields': function(node) {
+            if (node.kids[node.kids.length - 1].name !== "table-extend-field") {
+              return makeList(node.kids.slice(0, -1).map(tr));
+            } else {
+              // [list-table-extend-field* table-extend-field COMMA]
+              return makeList(node.kids.map(tr));
+            }
+          },
+          'list-table-extend-field': function(node) {
+            // (table-extend-field COMMA)
+            return tr(node.kids[0]);
+          },
+          'table-extend-field': function(node) {
+            if (node.kids.length === 3) {
+              // (key COLON binop-expr)
+              return RUNTIME.getField(ast, 's-table-extend-field')
+                .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+                     RUNTIME.getField(ast, 'a-blank'));
+            } else if ((node.kids.length === 5)
+                       && (node.kids[1].name === "COLONCOLON")){
+              // (key COLONCOLON ann COLON binop-expr)
+              return RUNTIME.getField(ast, 's-table-extend-field')
+                .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+                     tr(node.kids[2]));
+            } else if (node.kids.length === 5) {
+              // (key COLON expr OF binding)
+              return RUNTIME.getField(ast, 's-table-extend-reducer')
+                .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+                     symbol(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
+            } else if (node.kids.length === 7) {
+              // (key COLONCOLON ann COLON expr OF binding)
+              return RUNTIME.getField(ast, 's-table-extend-reducer')
+                .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+                     symbol(node.kids[6]), tr(node.kids[2]));
+            }
+          },
           'construct-modifier': function(node) {
             if (node.kids.length === 0) {
               return RUNTIME.getField(ast, 's-construct-normal');

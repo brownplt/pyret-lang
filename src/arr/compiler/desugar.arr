@@ -567,8 +567,11 @@ fun desugar-expr(expr :: A.Expr):
     | s-check-test(l, op, refinement, left, right) =>
       A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
     | s-table-extend(l, column-binds, extensions) =>
+      # NOTE(philip): I am fairly certain that this will need to be moved
+      #               to post-type-check desugaring, since the variables used
+      #               by reducers is not well-typed
       row = mk-id(A.dummy-loc, "row")
-      tbl = mk-id(l, "table")
+      tbl = mk-id(A.dummy-loc, "table")
             
       columns = 
         column-binds.binds.map(lam(c):
@@ -577,7 +580,105 @@ fun desugar-expr(expr :: A.Expr):
            idx:  mk-id(A.dummy-loc, c.id.base),
            val: {id-b: c,
                  id-e: A.s-id(c.l, c.id)}};)
-                 
+
+      split-exts = partition(A.is-s-table-extend-reducer, extensions)
+      simple-exts = split-exts.is-false
+      reducer-exts = split-exts.is-true
+
+      fun mk-reducer-ann(loc, ret-type):
+        one = A.a-field(loc, "one", A.a-arrow(loc, [list: A.a-any(loc)], ret-type, true))
+        reduce = A.a-field(loc, "reduce",
+          A.a-arrow(loc, [list: ret-type, A.a-any(loc)], ret-type, true))
+        A.a-record(loc, [list: one, reduce])
+      end
+
+      reducer-vars =
+        for fold(acc from pair([SD.string-dict:],[SD.string-dict:]),
+            extension from reducer-exts):
+
+          reducer-id = mk-id-ann(A.dummy-loc,
+            "reducer" + extension.name,
+            mk-reducer-ann(extension.l, extension.ann))
+
+          acc-id = mk-id(A.dummy-loc, "acc" + extension.name)
+
+          pair(acc.left.set(extension.name, reducer-id),
+            acc.right.set(extension.name, acc-id))
+        end
+      reducers = reducer-vars.left
+      accs = reducer-vars.right
+
+      initialized-reducers =
+        cases(List) reducer-exts:
+          | empty => none
+          | link(_,_) =>
+            some((for fold(reducers-acc from empty, ext from reducer-exts):
+                  cases(A.TableExtendField) ext:
+                    | s-table-extend-field(_, _, _, _) => raise("Impossible")
+                    | s-table-extend-reducer(shadow l, name, reducer-expr, _, _) =>
+                      reducer = reducers.get-value(name)
+                      acc = accs.get-value(name)
+                      nothing-expr = A.s-id(l, A.s-global("nothing"))
+                      link(A.s-let-bind(l, reducer.id-b, reducer-expr),
+                        link(A.s-var-bind(l, acc.id-b, nothing-expr),
+                          reducers-acc))
+                  end
+                end).reverse())
+        end
+
+      with-initialized-reducers =
+        cases(Option) initialized-reducers:
+          | none => lam(body): body end
+          | some(binds) => lam(body): A.s-let-expr(A.dummy-loc, binds, body) end
+        end
+
+      fun process-extension(is-first):
+        lam(extension):
+          cases(A.TableExtendField) extension:
+            | s-table-extend-field(_, _, _, _) => desugar-expr(extension.value)
+            | s-table-extend-reducer(shadow l, name, _, col, _) =>
+              reducer = reducers.get-value(name)
+              acc = accs.get-value(name)
+              # Dereferenced accumulator
+              acc-id-e = A.s-id-var(acc.id-e.l, acc.id-e.id)
+              col-id = find(lam(x): x.name.s == col end, columns)
+              # Lift from Option monad
+              when is-none(col-id):
+                raise("Impossible")
+              end
+              shadow col-id = col-id.value.val
+              if is-first:
+                A.s-block(A.dummy-loc,
+                  [list:
+                    A.s-assign(l, acc.id,
+                      A.s-app(l, A.s-dot(l, reducer.id-e, "one"), [list: col-id.id-e])),
+                    acc-id-e])
+              else:
+                A.s-block(A.dummy-loc,
+                  [list:
+                    A.s-assign(l, acc.id,
+                      A.s-app(l, A.s-dot(l, reducer.id-e, "reduce"),
+                        [list: acc-id-e, col-id.id-e])),
+                    acc-id-e])
+              end
+          end
+        end
+      end
+
+      fun data-pop-mapfun(first):
+        A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+          A.s-let-expr(A.dummy-loc,
+            columns.map(lam(column):
+                A.s-let-bind(A.dummy-loc, column.val.id-b, 
+                  A.s-prim-app(A.dummy-loc, "raw_array_get",
+                    [list: row.id-e, column.idx.id-e]));),
+              A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
+                  row.id-e,
+                  A.s-array(A.dummy-loc,
+                    extensions.map(process-extension(first)))])),
+          none)
+      end
+
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t;)),
@@ -595,17 +696,11 @@ fun desugar-expr(expr :: A.Expr):
               A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
               A.s-array(A.dummy-loc,  extensions.map(lam(e):A.s-str(e.l, e.name);))]),
             # Data
-            A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
-              A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
-                A.s-let-expr(A.dummy-loc,
-                  columns.map(lam(column):
-                    A.s-let-bind(A.dummy-loc, column.val.id-b, 
-                      A.s-prim-app(A.dummy-loc, "raw_array_get",
-                          [list: row.id-e, column.idx.id-e]));),
-                    A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
-                      row.id-e,
-                      A.s-array(A.dummy-loc, extensions.map(_.value).map(desugar-expr))])), none),
-              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])])]))
+              with-initialized-reducers(
+                A.s-prim-app(A.dummy-loc, "raw_array_map1", [list:
+                    data-pop-mapfun(true),
+                    data-pop-mapfun(false),
+                    A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))])]))
     | s-table-update(l, column-binds, updates) =>
       row = mk-id(A.dummy-loc, "row")
       new-row = mk-id(A.dummy-loc, "new-row-row")

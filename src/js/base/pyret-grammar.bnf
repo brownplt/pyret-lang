@@ -199,12 +199,18 @@ for-bind-elt: for-bind COMMA
 for-expr: FOR expr PARENNOSPACE [for-bind-elt* for-bind] RPAREN return-ann COLON block end
 
 column-order : NAME (ASCENDING|DESCENDING)
-table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON obj-fields end
 table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr end
 table-filter : TABLE-FILTER expr [USING binding (COMMA binding)*] COLON binop-expr end
 table-order  : TABLE-ORDER  expr COLON column-order end
 table-extract: TABLE-EXTRACT NAME FROM expr end
 table-update : TABLE-UPDATE expr [USING binding (COMMA binding)*] COLON obj-fields end
+table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON table-extend-fields end
+table-extend-fields: list-table-extend-field* table-extend-field [COMMA]
+list-table-extend-field: table-extend-field COMMA
+table-extend-field: key [COLONCOLON ann] COLON binop-expr
+# Commenting this out until we know whether or not it makes sense
+#     | REF key [COLONCOLON ann] COLON binop-expr
+     | key [COLONCOLON ann] COLON expr OF NAME
 
 user-block-expr: BLOCK block end
 

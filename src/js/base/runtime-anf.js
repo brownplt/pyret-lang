@@ -5,8 +5,8 @@ This is the runtime for the ANF'd version of pyret
 /** @typedef {!Object} */
 var Bignum;
 
-define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util"],
-       function (Namespace, jsnums, codePoint, seedrandom, util) {
+define(["js/namespace", "js/js-numbers", "js/codePoint", "seedrandom", "js/runtime-util", "../../../node_modules/ascii-table/ascii-table.min.js"],
+       function (Namespace, jsnums, codePoint, seedrandom, util, AsciiTable) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -224,6 +224,29 @@ function isBase(obj) { return obj instanceof PBase; }
         s += renderValueSkeleton(items[i], values);
       }
       return s;
+    } else if (ffi.isVSTable(val)) {
+      function reformat(str) {
+        if (str.length > 40) {
+          return str.substr(0, 35) + "[...]";
+        }
+        return str;
+      }
+      var headers = thisRuntime.getField(val, "headers");
+      headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
+      var rows = [[]];
+      var curRow = rows[0];
+      for (var i = values.length - 1; i >= 0; --i) {
+        var v = values[i];
+        if (curRow.length >= headers.length) {
+          curRow = [];
+          rows.push(curRow);
+        }
+        curRow.push(reformat(v));
+      }
+      return new AsciiTable().fromJSON({
+        heading: headers,
+        rows: rows
+      }).toString();
     }
   }
 
@@ -3512,7 +3535,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     };
     
     var raw_array_map = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
       thisRuntime.checkFunction(f);
       thisRuntime.checkArray(arr);
       var currentIndex = -1;
@@ -3540,6 +3563,49 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           if (thisRuntime.isPyretException($e)) {
             $e.pyretStack.push(["raw-array-map"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
+    };
+
+  /**
+   * Similar to `raw_array_map`, but applies a specific function to
+   * the first item in the array
+   */
+  var raw_array_map1 = function(f1, f, arr) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map1"], 3, $a); }
+      thisRuntime.checkFunction(f1);
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        if (length === 0) { return newArray; }
+        newArray[++currentIndex] = f1.app(arr[currentIndex]);
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex]);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map1"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map1"]);
           }
           throw $e;
         }
@@ -4640,6 +4706,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'raw_array_length': raw_array_length,
         'raw_array_to_list': raw_array_to_list,
         'raw_array_map': raw_array_map,
+        'raw_array_map1': raw_array_map1,
         'raw_array_filter': raw_array_filter,
 
         'not': bool_not,

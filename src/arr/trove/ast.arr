@@ -49,6 +49,7 @@ str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
 str-if = PP.str("if ")
+str-of = PP.str("of ")
 str-askcolon = PP.str("ask:")
 str-import = PP.str("import")
 str-include = PP.str("include")
@@ -88,6 +89,13 @@ str-raises-violates = PP.str("raises-violates")
 str-percent = PP.str("%")
 str-tablecolon = PP.str("table:")
 str-rowcolon = PP.str("row:")
+str-extend = PP.str("extend")
+str-transform = PP.str("transform")
+str-using = PP.str("using")
+str-select = PP.str("select")
+str-sieve = PP.str("sieve")
+str-order = PP.str("order")
+str-extract = PP.str("extract")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -972,22 +980,82 @@ data Expr:
     end
   | s-table-extend(l :: Loc,
       column-binds :: ColumnBinds,
-      extensions :: List<Member>)
+      extensions :: List<TableExtendField>) with:
+    label(self): "s-table-extend" end,
+    tosource(self):
+      maybe-using =
+        cases(List) self.column-binds.binds:
+          | empty => empty
+          | link(_, _) => link(str-using,
+              [list: PP.flow-map(PP.commabreak, _.tosource(),
+                  self.column-binds.binds) + str-colon])
+        end
+      tbl-src =
+        cases(List) maybe-using:
+          | empty => self.column-binds.table.tosource() + str-colon
+          | link(_,_) => self.column-binds.table.tosource()
+        end
+      header = PP.flow([list: str-extend, tbl-src] + maybe-using)
+      PP.surround(INDENT, 1,
+        header,
+        PP.flow-map(PP.hardline, _.tosource(), self.extensions),
+        str-end)
+    end
+    # s-table-update not yet implemented
   | s-table-update(l :: Loc,
       column-binds :: ColumnBinds,
       updates :: List<Member>)
   | s-table-select(l :: Loc,
       columns :: List<Name>,
-      table   :: Expr)
+      table   :: Expr) with:
+    label(self): "s-table-select" end,
+    tosource(self):
+      PP.flow([list: str-select,
+          PP.flow-map(PP.commabreak, _.tosource(), self.columns),
+          str-from,
+          self.table.tosource(),
+          str-end])
+    end
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: ColumnSort)
+      ordering :: ColumnSort) with:
+    label(self): "s-table-order" end,
+    tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-order, self.table.tosource() + str-colon]),
+        self.ordering.tosource(),
+        str-end)
+    end
   | s-table-filter(l :: Loc,
       column-binds :: ColumnBinds,
-      predicate :: Expr)
+      predicate :: Expr) with:
+    label(self): "s-table-filter" end,
+    tosource(self):
+      maybe-using =
+        cases(List) self.column-binds.binds:
+          | empty => empty
+          | link(_, _) => link(str-using,
+              [list: PP.flow-map(PP.commabreak, _.tosource(),
+                  self.column-binds.binds) + str-colon])
+        end
+      tbl-src =
+        cases(List) maybe-using:
+          | empty => self.column-binds.table.tosource() + str-colon
+          | link(_,_) => self.column-binds.table.tosource()
+        end
+      header = PP.flow([list: str-sieve, tbl-src] + maybe-using)
+      PP.surround(INDENT, 1, header,
+        self.predicate.tosource(),
+        str-end)
+    end
   | s-table-extract(l :: Loc,
       column :: Name,
-      table   :: Expr)
+      table   :: Expr) with:
+    label(self): "s-table-extract" end,
+    tosource(self):
+      PP.flow([list: str-extract, self.column.tosource(),
+          str-from, self.table.tosource(), str-end])
+    end
   | s-table(
       l :: Loc,
       headers :: List<FieldName>,
@@ -1128,8 +1196,14 @@ sharing:
 end
 
 data ColumnSortOrder:
-  | ASCENDING
-  | DESCENDING
+  | ASCENDING with:
+    tosource(self):
+      PP.str("ascending")
+    end
+  | DESCENDING with:
+    tosource(self):
+      PP.str("descending")
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
@@ -1140,7 +1214,43 @@ data ColumnSort:
   | s-column-sort(
       l         :: Loc,
       column    :: Name,
-      direction :: ColumnSortOrder)
+      direction :: ColumnSortOrder) with:
+    label(self): "s-column-sort" end,
+    tosource(self):
+      PP.flow([list: self.column.tosource(), self.direction.tosource()])
+    end
+sharing:
+  visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data TableExtendField:
+  | s-table-extend-field(l :: Loc, name :: String, value :: Expr, ann :: Ann) with:
+    label(self): "s-table-extend-field" end,
+    tosource(self):
+      name-part = PP.str(self.name)
+      maybe-ann =
+        if is-a-blank(self.ann):
+          PP.mt-doc
+        else:
+          str-coloncolon + self.ann.tosource()
+        end
+      PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.value.tosource())
+    end
+  | s-table-extend-reducer(l :: Loc, name :: String, reducer :: Expr, col :: String, ann :: Ann) with:
+    label(self): "s-table-extend-reducer" end,
+    tosource(self):
+      name-part = PP.str(self.name)
+      maybe-ann =
+        if is-a-blank(self.ann):
+          PP.mt-doc
+        else:
+          str-coloncolon + self.ann.tosource()
+        end
+      col-part = PP.str(self.col)
+      PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.reducer.tosource() + PP.str(" ") + str-of + col-part)
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
@@ -1926,6 +2036,13 @@ default-map-visitor = {
   s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(l, column.visit(self), table.visit(self))
   end,
+  s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    s-table-extend-field(l, name, value.visit(self), ann.visit(self))
+  end,
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
+    s-table-extend-reducer(l, name, reducer.visit(self),
+      col, ann.visit(self))
+  end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
@@ -2404,6 +2521,12 @@ default-iter-visitor = {
   end,
   s-table-extract(self, l, column :: Name, table :: Expr):
     column.visit(self) and table.visit(self)
+  end,
+  s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    value.visit(self) and ann.visit(self)
+  end,
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
+    reducer.visit(self) and ann.visit(self)
   end,
   a-blank(self):
     true
@@ -2901,6 +3024,13 @@ dummy-loc-visitor = {
   end,
   s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(dummy-loc, column.visit(self), table.visit(self))
+  end,
+  s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    s-table-extend-field(dummy-loc, name.visit(self), value.visit(self), ann.visit(self))
+  end,
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
+    s-table-extend-reducer(dummy-loc, name.visit(self), reducer.visit(self),
+      col, ann.visit(self))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
