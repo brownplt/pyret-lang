@@ -5,16 +5,36 @@
         [x] Not a tuple
         [x] *Do "fancy-reason" as well
 [ ] *What happens if we have really big numbers? (Wf-error)
-        [ ] Ask on Slack – what's the best place to cut off?
+        [x] Ask on Slack – what's the best place to cut off?
             Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
+        [ ] Pick a number
 [x] *Finish Equality
-       path correct?
-[ ] Write performance tests
+       path correct? yes
+       [ ] Add test(s) for nested tuple
+       [ ] Add test(s) for cyclic tuple
+           (see http://www.pyret.org/docs/latest/equality.html)
+[ ] Binding
+      [x] *tosource
+      [ ] *Add to resolve-scope
+        [x] *Toplevel bindings of tuple destruction
+            - Bad error, needed it in ok-last, but didn't get any indication
+              of that
+        [x] *Introduce intermediate binding for tuple value
+            - Done with make-atom
+        [x] *Reversing/ordering/processing of tuple binds
+      [ ] Errors
+
+[x] *Setup workflow
+[ ] Investigate highlighting of tuple index in errors (@jack)
+
 [x] DOM - printing of tuples
 [ ] Heroku setup - finish
 [ ] Gdrive setup?
 [ ] SSH forwarding/tunneling
-[ ] Binding
-      [x] *tosource
-      [ ] *Add to resolve-scope
-[x] *Setup workflow
+
+[ ] Write performance tests
+    Questions:
+    - Is forcing tuples to be size >= 2 a big win?
+    - What about doing all checks _before_ gets for a binding?
+
+
