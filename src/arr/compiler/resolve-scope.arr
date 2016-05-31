@@ -142,13 +142,17 @@ fun add-letrec-binds(bg :: BindingGroup, lrbs :: List<A.LetrecBind>, stmts :: Li
   end
 end
 
-fun add-let-bind(bg :: BindingGroup, lb :: A.LetBind, stmts :: List<A.Expr>) -> A.Expr:
-  cases(BindingGroup) bg:
+fun add-let-binds(bg :: BindingGroup, lbs :: List<A.LetBind>, stmts :: List<A.Expr>) -> A.Expr:
+ cases(BindingGroup) bg:
     | let-binds(binds) =>
-      desugar-scope-block(stmts, let-binds(link(lb, binds)))
+      desugar-scope-block(stmts, let-binds(lbs + binds))
     | else =>
-      bind-wrap(bg, desugar-scope-block(stmts, let-binds(link(lb, empty))))
+      bind-wrap(bg, desugar-scope-block(stmts, let-binds(lbs)))
   end
+end
+
+fun add-let-bind(bg :: BindingGroup, lb :: A.LetBind, stmts :: List<A.Expr>) -> A.Expr:
+ add-let-binds(bg, [list: lb], stmts)
 end
 
 fun add-type-let-bind(bg :: BindingGroup, tlb :: A.TypeLetBind, stmts :: List<A.Expr>) -> A.Expr:
@@ -179,14 +183,23 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
         | s-tuple-let(l, binds, tup) =>
          # note: reversed binds
-          cases(List) binds:
+          namet = names.make-atom("tup")
+          tup-name = A.s-let-bind(l, A.s-bind(l, false, namet, A.a-blank), tup)
+          get-binds =
+            for map_n(n from 0, element from binds):
+              A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n))
+            end
+
+           add-let-binds(binding-group, link(tup-name, get-binds).reverse(), rest-stmts) 
+         #| cases(List) binds:
           | empty => desugar-scope-block(rest-stmts, binding-group)
           | link(first, rest) =>
           new-rst-stmts = link(A.s-tuple-let(l, rest, tup), rest-stmts)
           new-let-exp =  A.s-tuple-get(l, tup, (binds.length() - 1))
           new-block-list = [list: add-let-bind(binding-group, A.s-let-bind(l, first, new-let-exp), new-rst-stmts)]
-          A.s-block(l, new-block-list)
-          end
+          A.s-block(l, new-block-list) 
+          end |#
+        
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
