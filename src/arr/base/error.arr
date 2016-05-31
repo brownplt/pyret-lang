@@ -245,8 +245,8 @@ data RuntimeError:
         ED.text(" expects the index to be smaller than the legnth of the "),
         ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
       [ED.para:
-        ED.text("The given invalid index was"),
-        ED.embed(self.index)]]
+        ED.text("The given invalid index was")],
+        ED.embed(self.index)]
      end,
      render-reason(self):
       [ED.error:
