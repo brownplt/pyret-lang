@@ -231,20 +231,20 @@ function isBase(obj) { return obj instanceof PBase; }
         AsciiTable = require("ascii-table");
       }
       var headers = thisRuntime.getField(val, "headers");
+      var rowSkel = thisRuntime.getField(val, "rows");
       headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
-      var rows = [[]];
-      var curRow = rows[0];
-      for (var i = values.length - 1; i >= 0; --i) {
-        var v = values[i];
-        if (curRow.length >= headers.length) {
-          curRow = [];
-          rows.push(curRow);
+      var rows = [];
+      for (var i = 0; i < rowSkel.length; i++) {
+        var curRow = [];
+        for (var j = 0; j < headers.length; j++) {
+          var v = renderValueSkeleton(rowSkel[i][j], values);
+          if (v.length > 40) {
+            curRow.push(v.substr(0, 35) + "[...]");
+          } else {
+            curRow.push(v);
+          }
         }
-        if (v.length > 40) {
-          curRow.push(v.substr(0, 35) + "[...]");
-        } else {
-          curRow.push(v);
-        }
+        rows.push(curRow);
       }
       return new AsciiTable().fromJSON({
         heading: headers,
