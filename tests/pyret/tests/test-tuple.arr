@@ -35,6 +35,36 @@ check "tuple equals":
  a is-not z
 end
 
+check "nested tuple equals":
+ x = {124;152;12}
+ y = {151; x; 523}
+ z = {412; 262; 652; y; 251; x}
+ z.{5} is x
+ z.{5} is {124;152;12}
+ a = x
+ b = {151; a; 523}
+ b is y
+ c = {412; 262; 652; b; 251; a}
+ z is c
+end
+
+check "cyclic tuple equals":
+ a1 = [array: 125, 513, 51]
+ a2 = [array: a1, 51]
+ a1.set-now(0, a2)
+ x = {124; a1; 125}
+ a3 = a1
+ y = {124; a3; 125}
+ x is y
+ x is== y
+ x is-not<=> y
+ b1 = [array: 125, 513, 51]
+ b2 = [array: b1, 51]
+ b1.set-now(0, b2)
+ w = {124; b1; 125}
+ x is w
+end
+
 check "parse and print tuple-get":
    x = P.surface-parse("tup.{2}", "test")
    x.tosource().pretty(80) is [list: "tup.{2}"]
@@ -57,4 +87,6 @@ check "tuple binding":
   x is 124
   y is 624
   z is 15
-end 
+end
+
+
