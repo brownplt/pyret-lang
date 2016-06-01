@@ -932,11 +932,12 @@ end
 
 compiler-visitor = {
   a-module(self, l, answer, dvs, dts, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
+    {fields; others} = for fold(acc from {cl-empty; cl-empty}, ann from types):
+      {fields; others} = acc
       compiled = compile-ann(ann.ann, self)
       {
-        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
-        others: acc.others + compiled.other-stmts
+        cl-snoc(fields, j-field(ann.name, compiled.exp));
+        others + compiled.other-stmts
       }
     end
 
@@ -963,10 +964,10 @@ compiler-visitor = {
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
                         j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields))
+                        j-field("types", j-obj(fields))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
-      types-obj-fields.others
+      others
         + compiled-provides.other-stmts + compiled-answer.other-stmts + compiled-checks.other-stmts)
   end,
   a-type-let(self, l, bind, body):
