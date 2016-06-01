@@ -158,7 +158,7 @@ fun get-cli-module-storage(storage-dir :: String):
     end,
 
     save-modules(self, loadables) block:
-      for each(l from loadables): set-loadable(storage-dir, l) end 
+      for each(l from loadables): set-loadable(storage-dir, l) end
       s = for fold(s from "{\n", l from loadables):
         locuri = l.provides.from-uri
         s + "\"" + l.provides.from-uri + "\":\"" + uri-to-path(locuri) + "\"\n"
@@ -291,4 +291,3 @@ fun build-require-standalone(path, options):
 
   print(prog.to-ugly-source())
 end
-

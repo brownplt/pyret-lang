@@ -18,13 +18,7 @@ mtd = [SD.string-dict:]
 # access to compile-lib and sets and so on, it would be very difficult to
 # bootstrap things.  So make-dep and make-provides handle this transition
 
-fun make-dep(raw-dep):
- if raw-dep.import-type == "builtin":
-    CM.builtin(raw-dep.name)
-  else:
-    CM.dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
-  end
-end
+make-dep = CM.make-dep
 
 fun convert-provides(uri, provides):
   CM.provides-from-raw-provides(uri, provides)
@@ -57,13 +51,13 @@ fun make-builtin-js-locator(basedir, builtin-name):
     get-options(self, options):
       options.{ check-mode: false }
     end,
-    get-module(_): 
+    get-module(_):
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
     get-extra-imports(self):
       CM.standard-imports
     end,
-    get-dependencies(_): 
+    get-dependencies(_):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,

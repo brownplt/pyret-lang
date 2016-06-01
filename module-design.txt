@@ -205,6 +205,32 @@ New rules for requirejs:
 
 ----
 
+type :=
+  | "Number" | "String" | "Boolean" | "Nothing" | "Any"
+  | ["Array", <type>]
+  | ["RawArray", <type>]
+  | ["List", <type>]
+  | ["Option", <type>]
+  | ["forall", [STRING, STRING, ...], <type>]
+  | ["local", NAME]
+  | ["from-dep", NAME, NAME] # first NAME is from some dep's AS
+  | ["arrow", [<type>, ...], <type>]
+  | ["record", { NAME: <type>, ... }]
+  | ["data", STRING, [STRING, ...], [<variant> ...], { NAME: <type>, ... }]
+  | ["tid", STRING]
+
+variant :=
+  | [NAME]
+  | [NAME [<member> ...]]
+
+member :=
+  | [NAME, <type>]
+  | ["ref", NAME, <type>]
+
+
+----
+
+
   maybe have functions in shorthands
 
 

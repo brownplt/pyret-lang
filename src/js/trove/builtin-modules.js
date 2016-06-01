@@ -64,16 +64,24 @@
             F(function() {
               var m = getData(content);
               if(m.provides && m.provides.datatypes) {
+                /*
                 if(Array.isArray(m.provides.datatypes)) {
                   return m.provides.datatypes;
                 }
-                else if(typeof m.provides.datatypes === "object") {
-                  return Object.keys(m.provides.datatypes).map(function(k) {
+                */
+                var dts = m.provides.datatypes;
+                if(typeof dts === "object") {
+                  return Object.keys(dts).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(dts[k], shorthands);
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, m.provides.datatypes[k])
+                      typ: t.toPyret(RUNTIME, expanded)
                     });
                   });
+                }
+                else {
+                  throw new Error("Bad datatype specification: " + String(m.provides.datatypes))
                 }
               }
               return [];
@@ -86,10 +94,14 @@
                   return m.provides.types;
                 }
                 else if(typeof m.provides.aliases === "object") {
-                  return Object.keys(m.provides.aliases).map(function(k) {
+                  var aliases = m.provides.aliases;
+                  return Object.keys(aliases).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(aliases[k], shorthands);
+
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, m.provides.aliases[k])
+                      typ: t.toPyret(RUNTIME, expanded)
                     });
                   });
                 }
@@ -104,10 +116,15 @@
                   return m.provides.values;
                 }
                 else if(typeof m.provides.values === "object") {
-                  return Object.keys(m.provides.values).map(function(k) {
+                  var vals = m.provides.values;
+
+                  return Object.keys(vals).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(vals[k], shorthands);
+
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, m.provides.values[k])
+                      typ: t.toPyret(RUNTIME, expanded)
                     });
                   });
                 }

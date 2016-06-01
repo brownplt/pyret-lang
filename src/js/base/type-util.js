@@ -135,7 +135,7 @@ define([], function() {
       case "singleton-variant":
         return O({
           tag: "singleton-variant",
-          name: typ.name          
+          name: typ.name
         });
       case "variant-member":
         return O({
@@ -228,6 +228,163 @@ define([], function() {
       aliases: runtime.ffi.makeList(aliases),
       datatypes: runtime.ffi.makeList(datatypes)
     });
+  }
+
+  function expandType(typ, shorthands) {
+    var fromGlobal = { "import-type": "builtin", name: "global" };
+    var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
+    var singles = {
+      "Array": { "import-type": "builtin", name: "arrays" },
+      "RawArray": fromGlobal,
+      "List": { "import-type": "builtin", name: "lists" },
+      "Option": { "import-type": "builtin", name: "option" }
+    };
+    function p(name) {
+      return {
+        tag: "name",
+        origin: fromGlobal,
+        name: name
+      };
+    }
+    function singleApp(name, arg) {
+      return {
+        tag: "tyapp",
+        onto: {
+          tag: "name",
+          origin: singles[name],
+          name: name
+        },
+        args: [ expandType(arg, shorthands) ]
+      };
+    }
+    /*
+    { "import-type": "dependency",
+      "protocol": "js-file",
+      "args": ["./image-lib"] }
+    */
+    var iA = Array.isArray;
+    var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
+
+    function expandRecord(r, shorthands) {
+      var o = {};
+      Object.keys(r).forEach(function(k) {
+        o[k] = expandType(r[k], shorthands);
+      });
+      return o;
+    }
+
+    function expandMember(m, shorthands) {
+      if(!iA(m)) {
+        throw new Error("Serialized members should be arrays, got: " + String(m));
+      }
+      if(m.length === 2) {
+        return {
+          tag: "member",
+          kind: "normal",
+          name: typ[0],
+          typ: expandType(typ[1], shorthands)
+        };
+      }
+      else if(m.length === 3) {
+        return {
+          tag: "member",
+          kind: "ref",
+          name: typ[1],
+          typ: expandType(typ[2], shorthands)
+        };
+      }
+      else {
+        throw new Error("Bad serialized member: " + String(m));
+      }
+    }
+
+    function expandVariant(v, shorthands) {
+      if(!iA(v)) {
+        throw new Error("Serialized variant types should be arrays, got: " + String(v));
+      }
+      else {
+        if(v.length === 1) {
+          return singletonVariant(v[0]);
+        }
+        else if(v.length === 2) {
+          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); });
+        }
+        else {
+          throw new Error("Bad serialized variant: " + String(v));
+        }
+      }
+    }
+
+    if(typeof typ === "String") {
+      if(prims.indexOf(typ) !== -1) {
+        return p(typ);
+      }
+      else if(typ in shorthands) {
+        return shorthands[typ];
+      }
+      else {
+        throw new Error("Unknown prim type or shorthand: " + typ);
+      }
+    }
+    else if(Array.isArray(typ)) {
+      var head = typ[0];
+      if (singles.indexOf(head) !== -1) {
+        if(typ.length !== 2) {
+          throw new Error("Bad tail for type constructor " + head + ": " + String(typ));
+        }
+        return singleApp(head, typ[1]);
+      }
+      else {
+        if(head === "arrow" && typ.length === 3 && Array.isArray(typ[1])) {
+          return {
+            tag: "arrow",
+            args: typ[1].map(function(t) { return expandType(t, shorthands); },
+            ret: expandType(typ[2], shorthands);
+          };
+        }
+        else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
+          return {
+            tag: "data",
+            name: typ[1],
+            params: typ[2],
+            variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
+            methods: expandRecord(typ[4], shorthands)
+          };
+        }
+        else if(head === "tid" && typ.length === 2) {
+          return {
+            tag: "tyvar",
+            name: typ[1]
+          };
+        }
+        else if(head === "forall" && typ.length === 3) {
+          return {
+            tag: "forall",
+            args: typ[1],
+            onto: expandType(typ[2], shorthands)
+          };
+        }
+        else if(head === "local") {
+          return {
+            tag: "name",
+            origin: "$ELF",
+            name: typ[1]
+          };
+        }
+        else if(head === "record") {
+          return {
+            tag: "record",
+            fields: expandRecord(typ[1], shorthands)
+          };
+        }
+      }
+    }
+    else if(typeof typ === "object") {
+      return typ;
+    }
+    else {
+      throw new Error("Unknown description for serialized type: " + String(typ));
+    }
   }
 
   return {

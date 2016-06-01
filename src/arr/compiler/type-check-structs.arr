@@ -77,8 +77,8 @@ with:
     shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
       | t-name(module-name, name, _) =>
-        cases(Option<String>) module-name:
-          | some(mod) =>
+        cases(TS.NameOrigin) module-name:
+          | module-uri(mod) =>
             cases(Option<ModuleType>) self.info.modules.get-now(mod):
               | some(t-mod) =>
                 cases(Option<Type>) t-mod.types.get(name.toname()):
@@ -93,7 +93,7 @@ with:
                   raise("No module available with the name `" + mod + "'")
                 end
             end
-          | none =>
+          | local =>
             id-key = name.key()
             maybe-local = find(lam(item):
               is-data-type-var(item) and (item.variable == id-key)
@@ -102,6 +102,7 @@ with:
               | some(_) => maybe-local
               | none => self.info.data-exprs.get-now(id-key)
             end
+          | dependency(_) => TS.dep-error(typ)
         end
       | t-app(base-typ, args, _) =>
         base-data-typ = self.get-data-type(base-typ)
@@ -420,13 +421,14 @@ end
 fun resolve-alias(t :: Type, context :: Context) -> Type:
   cases(Type) t:
     | t-name(a-mod, a-id, l) =>
-      cases(Option) a-mod:
-        | none =>
+      cases(TS.NameOrigin) a-mod:
+        | dependency(d) => TS.dep-error(a-mod)
+        | local =>
           cases(Option) context.info.aliases.get-now(a-id.key()):
             | none => t
             | some(aliased) => resolve-alias(aliased, context).set-loc(l)
           end
-        | some(mod) =>
+        | module-uri(mod) =>
           if mod == "builtin":
             cases(Option) context.info.aliases.get-now(a-id.key()):
               | none => t

@@ -1332,6 +1332,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             }
             else {
               CONSOLE.log("UNKNOWN VALUE: ", next);
+              console.trace();
               finishVal(reprMethods["string"]("<Unknown value: details logged to console>"));
             }
           }
@@ -1641,7 +1642,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       */
       function(val) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a); }
-        throw new PyretFailException(val);
+        if(typeof val === "string") {
+          thisRuntime.ffi.throwMessageException(val);
+        }
+        else {
+          throw new PyretFailException(val);
+        }
       };
     /** type {!PFunction} */
     // function raiseUserException(err) {
@@ -4209,7 +4215,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             }
             return thisRuntime.safeCall(function() {
               return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-            }, 
+            },
             function(r) {
 //              CONSOLE.log("Result from module: ", r);
               realm[uri] = r;
@@ -4808,7 +4814,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
     // instantiating the contracts library for full-on checks
     var ffi = {
       contractOk: true,
-      isOk: function() { return true; }
+      isOk: function() { return true; },
+      throwMessageException: function(thing) {
+        console.error("Thing is here");
+      }
+
     };
     thisRuntime["ffi"] = ffi;
 

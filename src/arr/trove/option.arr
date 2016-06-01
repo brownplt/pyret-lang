@@ -15,7 +15,7 @@ data Option<a>:
       doc: "Return none"
       self
     end
-  | some(value) with:
+  | some(value :: a) with:
     or-else(self :: Option<a>, v :: a) -> a:
       doc: "Return self.value, rather than the default"
       self.value

@@ -89,6 +89,15 @@ data Provides:
     )
 end
 
+fun make-dep(raw-dep):
+ if raw-dep.import-type == "builtin":
+    CM.builtin(raw-dep.name)
+  else:
+    CM.dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
+  end
+end
+
+
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
   tfr = type-from-raw(uri, _, tyvar-env)
   t = typ.tag
@@ -97,8 +106,11 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
     | t == "record" then:
       t-record(for map(f from typ.fields): t-member(f.name, tfr(f.value)) end)
     | t == "name" then:
-      modname = if typ.module == "LOCAL": uri else: typ.module end
-      t-name(some(modname), A.s-type-global(typ.name))
+      if typ.origin == "$ELF":
+        t-name(T.local, A.s-type-global(typ.name))
+      else:
+        t-name(CM.make-dep(typ.origin), A.s-type-global(typ.name))
+      end
     | t == "tyvar" then:
       cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
@@ -156,6 +168,8 @@ fun datatype-from-raw(uri, datatyp):
     t-data(params, variants, members)
   end
 end
+
+
 
 fun provides-from-raw-provides(uri, raw):
   values = raw.values
@@ -301,7 +315,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.ann.id.toname())),
+              ED.text("The name"), ED.code(ED.text(self.ann.id.to-compiled())),
               ED.text("is used as a type but not defined as one, at")],
             draw-and-highlight(self.ann.l)]
       end
@@ -796,23 +810,22 @@ runtime-provides = provides("builtin://global",
     "exn-unwrap", T.t-top
   ],
   [string-dict:
-    "Number", t-top,
-    "Exactnum", t-top,
-    "Roughnum", t-top,
-    "NumInteger", t-top,
-    "NumRational", t-top,
-    "NumPositive", t-top,
-    "NumNegative", t-top,
-    "NumNonPositive", t-top,
-    "NumNonNegative", t-top,
-    "String", t-str,
-    "Function", t-top,
-    "Boolean", t-top,
-    "Object", t-top,
-    "Method", t-top,
-    "Nothing", t-top,
-    "RawArray", t-top
-  ],
+     "Number", t-top,
+     "Exactnum", t-top,
+     "Roughnum", t-top,
+     "NumInteger", t-top,
+     "NumRational", t-top,
+     "NumPositive", t-top,
+     "NumNegative", t-top,
+     "NumNonPositive", t-top,
+     "NumNonNegative", t-top,
+     "String", t-str,
+     "Function", t-top,
+     "Boolean", t-top,
+     "Object", t-top,
+     "Method", t-top,
+     "Nothing", t-top,
+     "RawArray", t-top  ],
   [string-dict:])
 
 runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):

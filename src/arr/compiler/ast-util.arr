@@ -935,12 +935,12 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
     | t-top(l) => T.t-top(l)
     | t-bot(l) => T.t-bot(l)
     | t-record(fields, l) =>
-      T.t-record(canonicalize-members(fields, uri), l)
+      T.t-record(canonicalize-members(fields, uri, transform-name), l)
     | t-forall(introduces, onto, l) => T.t-forall(map(c, introduces), c(onto), l)
     | t-ref(t, l) => T.t-ref(c(t), l)
     | t-existential(id, l) => typ
     | t-data(params, variants, fields, l) =>
-      T.t-data(map(c, params), map(canonicalize-variant(_, uri), variants), canonicalize-members(fields, uri), l)
+      T.t-data(map(c, params), map(canonicalize-variant(_, uri, transform-name), variants), canonicalize-members(fields, uri, transform-name), l)
   end
 end
 
@@ -1059,7 +1059,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
       end
       data-typs = SD.make-mutable-string-dict()
       for each(d from datas):
-        data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-exprs.get-value-now(d.d.key()), uri))
+        data-typs.set-now(d.d.toname(), canonicalize-names(typed.info.data-exprs.get-value-now(d.d.key()), uri, transformer))
       end
       CS.provides(
           uri,
