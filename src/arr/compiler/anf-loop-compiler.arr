@@ -1251,11 +1251,12 @@ compiler-visitor = {
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann))
       end
-      compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
+      {anns; others} = for fold(acc from {cl-empty; cl-empty}, m from nonblank-anns):
+        {anns; others} = acc
         compiled = compile-ann(m.bind.ann, self)
         {
-          anns: cl-snoc(acc.anns, compiled.exp),
-          others: acc.others + compiled.other-stmts
+          cl-snoc(anns, compiled.exp);
+          others + compiled.other-stmts
         }
       end
       compiled-locs = for CL.map_list(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
@@ -1273,7 +1274,7 @@ compiler-visitor = {
             self.get-loc(l2),
             # NOTE(joe): Thunked at the JS level because compiled-anns might contain
             # references to rec ids that should be resolved later
-            j-fun(cl-empty, j-block([clist: j-return(j-list(false, compiled-anns.anns))])),
+            j-fun(cl-empty, j-block([clist: j-return(j-list(false, anns))])),
             j-list(false, compiled-vals),
             j-list(false, compiled-locs),
             j-list(false, CL.map_list(lam(m): j-bool(N.is-a-mutable(m.member-type)) end, members)),
