@@ -33,6 +33,7 @@
             - desired-length
 
             (A single error required a boostrap to introduce is-tuple)
+        [ ] Highlight the bindings in the error message? 
 
 [ ] *Refactor existing code to use tuples
     [ ] *in compiler
