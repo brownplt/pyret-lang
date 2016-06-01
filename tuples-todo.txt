@@ -1,31 +1,64 @@
 [x] Make negative index be well-formed error
-[x] *Change name variable to be tup
+[x] Change name variable to be tup
 [x] Make errors fancy
         [x] Too big index
         [x] Not a tuple
-        [x] *Do "fancy-reason" as well
-[ ] *What happens if we have really big numbers? (Wf-error)
+        [x] Do "fancy-reason" as well
+[ ] What happens if we have really big numbers? (Wf-error)
         [x] Ask on Slack – what's the best place to cut off?
             Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
         [ ] Pick a number
-[x] *Finish Equality
+[x] Finish Equality
        path correct? yes
-       [ ] Add test(s) for nested tuple
-       [ ] Add test(s) for cyclic tuple
+       [x] Add test(s) for nested tuple
+       [x] Add test(s) for cyclic tuple
            (see http://www.pyret.org/docs/latest/equality.html)
 [ ] Binding
-      [x] *tosource
-      [ ] *Add to resolve-scope
-        [x] *Toplevel bindings of tuple destruction
+      [x] tosource
+      [x] Add to resolve-scope
+        [x] Toplevel bindings of tuple destruction
             - Bad error, needed it in ok-last, but didn't get any indication
               of that
-        [x] *Introduce intermediate binding for tuple value
+        [x] Introduce intermediate binding for tuple value
             - Done with make-atom
-        [x] *Reversing/ordering/processing of tuple binds
+        [x] Reversing/ordering/processing of tuple binds
       [ ] Errors
+        [x] Add a new runtime function for checking binding mismatches
+        [x] Add a new let-binding in resolve-scope that calls the rt function
+            with the right information
+        [ ] *Do the single-error version, but have all four of:
+            - source location
+            - tuple
+            - length
+            - desired-length
+
+            (A single error required a boostrap to introduce is-tuple)
+
+[ ] *Refactor existing code to use tuples
+    [ ] *in compiler
+      [ ] *anf-loop-compiler
+      [ ] *resolve-scope
+    [ ] CS173 interp-state assignment
+    [ ] CS75 assignment?
+    [ ] find other places?
+
+[ ] Add helpers for tuples:
+    [ ] is-tuple
+    [ ] test is-tuple
+    [ ] tuple-length?
+    [ ] test tuple-length?
+
+
+[ ] Find out how to change and save Vim font, or get an editor that you like
+    better
+[ ] Remove "hello" in output printing
 
 [x] *Setup workflow
 [ ] Investigate highlighting of tuple index in errors (@jack)
+
+[ ] Type checking
+  [ ] Add a new type
+  [ ] Add synth/check
 
 [x] DOM - printing of tuples
 [ ] Heroku setup - finish
@@ -36,5 +69,4 @@
     Questions:
     - Is forcing tuples to be size >= 2 a big win?
     - What about doing all checks _before_ gets for a binding?
-
 
