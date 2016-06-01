@@ -234,9 +234,8 @@ data RuntimeError:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
     ast-dot = loc-to-ast(self.loc).block.stmts.first
     tup-loc = ast-dot.tup.l
-    tup-txt = loc-to-src(tup-loc)
+    tup-txt = loc-to-src(tup-loc) 
     tup-col = 0
-    fld-col = 1 
     [ED.error:
       [ED.para:
         ED.text("The tuple lookup expression ")],
@@ -246,7 +245,7 @@ data RuntimeError:
         ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
       [ED.para:
         ED.text("The given invalid index was")],
-        ED.embed(self.index)]
+       ED.embed(self.index)]
      end,
      render-reason(self):
       [ED.error:
@@ -259,6 +258,37 @@ data RuntimeError:
           ED.embed(self.index),
           ED.text(" accessed on the tuple")],
          ED.embed(self.tup)]
+    end
+  | bad-tuple-bind(loc, tup) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    ast-dot = loc-to-ast(self.loc).block.stmts.first
+    tup-loc = ast-dot.tup.l
+    #names-loc = ast-dot.names.l
+    tup-txt = loc-to-src(tup-loc)
+    tup-col = 0
+    #|if not(is-tuple(self.tup)):
+       [ED.error:
+        [ED.para:
+          ED.text("The tuple binding expression ")],
+         ED.cmcode(self.loc) ,
+        [ED.para:
+          ED.text(" expects the length of the "),
+          ED.highlight(ED.text("binding"), [ED.locs: tup-loc], tup-col).
+          ED.text(" to be equivalent to the length of the "),
+          ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)]]
+     else:
+        [ED.error:
+          [ED.para:
+            ED.text("no")]]
+     end |#
+    [ED.error: 
+      [ED.para:
+        ED.text("bad tuple binding")]]
+    end,
+    render-reason(self):
+     [ED.error:
+          [ED.para:
+            ED.text("never gets here")]]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):

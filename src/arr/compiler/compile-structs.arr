@@ -1523,6 +1523,7 @@ runtime-builtins = [string-dict:
   "is-object", t-pred,
   "is-function", t-pred,
   "is-raw-array", t-pred,
+  "is-tuple", t-pred,
   "gensym", t-top,
   "random", t-top,
   "run-task", t-top,

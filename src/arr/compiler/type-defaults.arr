@@ -142,6 +142,7 @@ fun make-default-types():
   default-typs.set-now(A.s-global("is-object").key(), t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("is-function").key(), t-arrow([list: t-top], t-boolean))
   default-typs.set-now(A.s-global("is-raw-array").key(), t-arrow([list: t-top], t-boolean))
+  default-typs.set-now(A.s-global("is-tuple").key(), t-arrow([list: t-top], t-boolean))
 
   # Number functions
   default-typs.set-now(A.s-global("num-max").key(), t-number-binop)

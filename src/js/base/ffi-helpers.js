@@ -138,6 +138,11 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkNumber(index);
         raise(err("lookup-non-tuple")(loc, nonTuple, runtime.makeNumber(index)));
       }
+      function throwBadTupleBind(loc, tup) {
+        checkSrcloc(loc);
+        //runtime.checkPyretVal(tup);
+        raise(err("bad-tuple-bind")(loc, tup));
+      }
       function throwLookupLargeIndex(loc, tup, index) {
         checkSrcloc(loc);
         runtime.checkPyretVal(tup);
@@ -380,6 +385,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
         throwLookupNonTuple: throwLookupNonTuple,
+        throwBadTupleBind: throwBadTupleBind,
         throwLookupLargeIndex: throwLookupLargeIndex,
         throwExtendNonObject: throwExtendNonObject,
         throwTypeMismatch: throwTypeMismatch,

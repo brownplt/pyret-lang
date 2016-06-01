@@ -973,9 +973,18 @@ function isMethod(obj) { return obj instanceof PMethod; }
      }
      if (index >= tup.vals.length) {
         ffi.throwLookupLargeIndex(makeSrcloc(l), tup, index);
-        //ffi.throwMessageException("hello", l);
      }
      return tup.vals[index]
+   }
+
+   function checkTupleBind(tup, length, l) {
+    if (!isTuple(tup)) {
+       ffi.throwBadTupleBind(makeSrcloc(l), tup);
+    }
+    if (tup.vals.length !== length) {
+       ffi.throwBadTupleBind(makeSrcloc(l), tup);
+    }
+    return true;
    }
         
 
@@ -4301,6 +4310,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
+          'is-tuple' : mkPred(isTuple),
 
           'run-task': makeFunction(execThunk),
 
@@ -4471,6 +4481,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'getColonField'    : getColonField,
         'getColonFieldLoc' : getColonFieldLoc,
         'getTuple'         : getTuple,
+        'checkTupleBind'   : checkTupleBind,
         'extendObj'        : extendObj,
 
         'hasBrand' : hasBrand,

@@ -56,13 +56,15 @@ check "cyclic tuple equals":
  a3 = a1
  y = {124; a3; 125}
  x is y
- x is== y
+ x is=~ y
  x is-not<=> y
  b1 = [array: 125, 513, 51]
  b2 = [array: b1, 51]
  b1.set-now(0, b2)
  w = {124; b1; 125}
- x is w
+ x is-not w
+ x is=~ w
+ x is-not<=> w
 end
 
 check "parse and print tuple-get":
