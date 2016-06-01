@@ -91,9 +91,9 @@ end
 
 fun make-dep(raw-dep):
  if raw-dep.import-type == "builtin":
-    CM.builtin(raw-dep.name)
+    builtin(raw-dep.name)
   else:
-    CM.dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
+    dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
   end
 end
 
@@ -109,7 +109,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
       if typ.origin == "$ELF":
         t-name(T.local, A.s-type-global(typ.name))
       else:
-        t-name(CM.make-dep(typ.origin), A.s-type-global(typ.name))
+        t-name(make-dep(typ.origin), A.s-type-global(typ.name))
       end
     | t == "tyvar" then:
       cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):

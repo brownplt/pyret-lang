@@ -307,7 +307,7 @@ define([], function() {
           return singletonVariant(v[0]);
         }
         else if(v.length === 2) {
-          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); });
+          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }));
         }
         else {
           throw new Error("Bad serialized variant: " + String(v));
@@ -315,8 +315,11 @@ define([], function() {
       }
     }
 
-    if(typeof typ === "String") {
-      if(prims.indexOf(typ) !== -1) {
+    if(typeof typ === "string") {
+      if(typ === "tany") {
+        return typ;
+      }
+      else if(prims.indexOf(typ) !== -1) {
         return p(typ);
       }
       else if(typ in shorthands) {
@@ -338,8 +341,8 @@ define([], function() {
         if(head === "arrow" && typ.length === 3 && Array.isArray(typ[1])) {
           return {
             tag: "arrow",
-            args: typ[1].map(function(t) { return expandType(t, shorthands); },
-            ret: expandType(typ[2], shorthands);
+            args: typ[1].map(function(t) { return expandType(t, shorthands); }),
+            ret: expandType(typ[2], shorthands)
           };
         }
         else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
@@ -403,7 +406,8 @@ define([], function() {
     record: record,
     dataType: dataType,
     toPyret: toPyret,
-    providesToPyret: providesToPyret
+    providesToPyret: providesToPyret,
+    expandType: expandType
   };
 
 });
