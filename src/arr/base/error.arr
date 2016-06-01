@@ -241,7 +241,7 @@ data RuntimeError:
         ED.text("The tuple lookup expression ")],
        ED.cmcode(self.loc) ,
       [ED.para:
-        ED.text(" expects the index to be smaller than the legnth of the "),
+        ED.text(" expects the index to be smaller than the length of the "),
         ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
       [ED.para:
         ED.text("The given invalid index was")],
@@ -259,36 +259,61 @@ data RuntimeError:
           ED.text(" accessed on the tuple")],
          ED.embed(self.tup)]
     end
-  | bad-tuple-bind(loc, tup) with:
+  | bad-tuple-bind(loc, tup, length, desiredLength) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
     ast-dot = loc-to-ast(self.loc).block.stmts.first
     tup-loc = ast-dot.tup.l
-    #names-loc = ast-dot.names.l
-    tup-txt = loc-to-src(tup-loc)
+    tup-txt = loc-to-src(tup-loc) 
     tup-col = 0
-    #|if not(is-tuple(self.tup)):
-       [ED.error:
-        [ED.para:
+    if (self.length == self.desiredLength):
+        [ED.error:
+         [ED.para:
           ED.text("The tuple binding expression ")],
          ED.cmcode(self.loc) ,
-        [ED.para:
-          ED.text(" expects the length of the "),
-          ED.highlight(ED.text("binding"), [ED.locs: tup-loc], tup-col).
-          ED.text(" to be equivalent to the length of the "),
+         [ED.para:
+          ED.text(" expects the right side of the binding to be a "),
           ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)]]
-     else:
+    else:
         [ED.error:
-          [ED.para:
-            ED.text("no")]]
-     end |#
-    [ED.error: 
-      [ED.para:
-        ED.text("bad tuple binding")]]
+         [ED.para:
+          ED.text("The tuple binding expression ")],
+         ED.cmcode(self.loc) ,
+         [ED.para:
+          ED.text(" expects the number of bindings"),
+          ED.text(" to be equivalent to the length of the "),
+          ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
+         [ED.para:
+          ED.text("The length of the given tuple was "),
+          ED.embed(self.length),
+          ED.text(" but the number of bindings was "),
+          ED.embed(self.desiredLength)]]
+    end 
     end,
     render-reason(self):
+    if (self.length == self.desiredLength):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple binding expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the right hand side to evaluate to an tuple.")],
+        [ED.para:
+          ED.text("The right hand side"),
+          ED.text(" evaluated to a non-tuple value:")],
+         ED.embed(self.tup)]
+    else:
      [ED.error:
-          [ED.para:
-            ED.text("never gets here")]]
+        [ED.para:
+          ED.text("The tuple binding expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the number of bindings to be equivalent to the length of the tuple")],
+        [ED.para:
+          ED.text("The given length of the tuple was "),
+          ED.embed(self.length),
+          ED.text(" but the number of bindings given was "),
+          ED.embed(self.desiredLength),
+          ED.text(" accessed on the tuple")],
+         ED.embed(self.tup)]
+    end
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
