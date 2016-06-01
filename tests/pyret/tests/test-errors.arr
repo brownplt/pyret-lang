@@ -280,8 +280,9 @@ check:
         | var2(_) => false
       end
     end)
-  data-cases-var1-arity1 satisfies E.is-cases-arity-mismatch
-  when E.is-cases-arity-mismatch(data-cases-var1-arity1):
+  data-cases-var1-arity1 satisfies E.is-cases-singleton-mismatch
+  when E.is-cases-singleton-mismatch(data-cases-var1-arity1):
+    data-cases-var1-arity1.should-be-singleton is true
     data-cases-var1-arity1.branch-loc satisfies S.is-srcloc
   end
 
@@ -292,8 +293,9 @@ check:
         | var2 => false
       end
     end)
-  data-cases-var2-arity1 satisfies E.is-cases-arity-mismatch
-  when E.is-cases-arity-mismatch(data-cases-var2-arity1):
+  data-cases-var2-arity1 satisfies E.is-cases-singleton-mismatch
+  when E.is-cases-singleton-mismatch(data-cases-var2-arity1):
+    data-cases-var2-arity1.should-be-singleton is false
     data-cases-var2-arity1.branch-loc satisfies S.is-srcloc
   end
 

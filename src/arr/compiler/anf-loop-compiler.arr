@@ -589,7 +589,7 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann):
+    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
       acc
     else:
       compiled-ann = compile-ann(b.ann, visitor)
@@ -610,7 +610,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
 end
 
 fun compile-annotated-let(visitor, b :: N.ABind, compiled-e :: DAG.CaseResults%(is-c-exp), compiled-body :: DAG.CaseResults%(is-c-block)) -> DAG.CaseResults%(is-c-block):
-  if A.is-a-blank(b.ann):
+  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(
         compiled-e.other-stmts +
@@ -818,16 +818,15 @@ fun cases-preamble(compiler, compiled-val, branch, cases-loc):
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
                       [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
         j-block([clist:
-            j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))
+            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
-      obj-expected-arity = j-dot(compiled-val, "$arity")
       checker =
-        j-if1(j-binop(obj-expected-arity, j-neq, j-num(-1)),
+        j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block([clist:
-              j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-num(0), obj-expected-arity, compiler.get-loc(cases-loc)]))]))
+              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                  [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
   end
 end
@@ -1239,7 +1238,7 @@ compiler-visitor = {
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
       
       nonblank-anns = for filter(m from members):
-        not(A.is-a-blank(m.bind.ann))
+        not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
         compiled = compile-ann(m.bind.ann, self)

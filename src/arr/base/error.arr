@@ -457,6 +457,44 @@ data RuntimeError:
             if self.actual-arity == 1: ED.text("field") else: ED.text("fields") end]
         end]
     end
+  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
+      src-branch = loc-to-src(self.branch-loc)
+      ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line;).value
+      if self.should-be-singleton:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch")],
+           ED.cmcode(self.branch-loc),
+          [ED.para:
+            ED.text("has an "),
+            ED.highlight(ED.text("argument list"), ast-branch.args.map(_.l), 0),
+            ED.text(" but the variant is a singleton.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch")],
+           ED.cmcode(self.branch-loc),
+          [ED.para:
+            ED.text("doesn't have an argument list in its "),
+            ED.highlight(ED.text("pattern"), [ED.locs: ast-branch.pat-loc], 0),
+            ED.text(", but the variant is not a singleton.")]]
+      end
+    end,
+    render-reason(self):
+      if self.should-be-singleton:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch at "), draw-and-highlight(self.branch-loc),
+            ED.text(" has an argument list, but the variant is a singleton.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The cases branch at "), draw-and-highlight(self.branch-loc),
+            ED.text(" doesn't have an argument list, but the variant is not a singleton.")]]
+      end
+    end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
       fun-app-arity = self.fun-app-args.length()
@@ -487,14 +525,10 @@ data RuntimeError:
                 if self.fun-def-loc.is-builtin():
                   ED.ed-args(self.fun-def-arity)
                 else:
-                  cases(Any) loc-to-ast(self.fun-def-loc).block.stmts.first:
-                    | s-fun(_,_,_,args,_,_,_,_) =>
-                      ED.highlight(ED.ed-args(self.fun-def-arity), args.map(_.l),3)
-                    | else => 
-                      ED.ed-args(self.fun-def-arity)
-                  end
+                  ED.ed-args(self.fun-def-arity)
                 end,
-                ED.text(".")],
+                ED.text(":")],
+                ED.cmcode(self.fun-def-loc),
               [ED.para:
                 ED.text("The "),
                 ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc],0),
