@@ -209,25 +209,26 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
     | a-app(l, base, _) => compile-ann(base, visitor)
-    | a-record(l, fields) =>
-      comp-fields =
-        for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
-            field from fields):
+    | a-record(l, record-fields) =>
+      {names; locs; fields; others} =
+        for fold(acc from {cl-empty; cl-empty; cl-empty; cl-empty},
+            field from record-fields):
+          {names; locs; fields; others} = acc
           compiled = compile-ann(field.ann, visitor)
           {
-            names: cl-snoc(acc.names, j-str(field.name)),
-            locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
-            fields: cl-snoc(acc.fields, j-field(field.name, compiled.exp)),
-            others: acc.others + compiled.other-stmts
+            cl-snoc(names, j-str(field.name));
+            cl-snoc(locs, visitor.get-loc(field.l));
+            cl-snoc(fields, j-field(field.name, compiled.exp));
+            others + compiled.other-stmts
           }
         end
       c-exp(
         rt-method("makeRecordAnn", [clist:
-            j-list(false, comp-fields.names),
-            j-list(false, comp-fields.locs),
-            j-obj(comp-fields.fields)
+            j-list(false, names),
+            j-list(false, locs),
+            j-obj(fields)
           ]),
-        comp-fields.others
+        others
         )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
