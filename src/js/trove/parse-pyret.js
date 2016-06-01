@@ -53,7 +53,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
         function symbol(tok) {
           return RUNTIME.makeString(tok.value);
         }
-        function string(tok) { 
+        function string(tok) {
           if (tok.value.substring(0, 3) === "```")
             return RUNTIME.makeString(tok.value.slice(3, -3).trim());
           else
@@ -219,7 +219,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'type-expr': function(node) {
             return RUNTIME.getField(ast, 's-type')
-              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+              .app(pos(node.pos),
+                   name(node.kids[1]),
+                   tr(node.kids[2]),
+                   tr(node.kids[4]));
           },
           'newtype-expr': function(node) {
             return RUNTIME.getField(ast, 's-newtype')
@@ -252,7 +255,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'type-bind': function(node) {
             return RUNTIME.getField(ast, 's-type-bind')
-              .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos),
+                  name(node.kids[0]),
+                  tr(node.kids[1]),
+                  tr(node.kids[3]));
           },
           'type-let-bind': function(node) {
             return tr(node.kids[0]);
@@ -271,7 +277,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // Note that we override the normal name dispatch here, because we don't want
             // to create the default let-expr or var-expr constructions
             return RUNTIME.getField(ast, 's-let-expr')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    makeList(node.kids.slice(1, -3).map(translators["let-binding"])),
                    tr(node.kids[node.kids.length - 2]));
           },
@@ -280,8 +286,8 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // Note that we override the normal name dispatch here, because we don't want
             // to create the default let-expr constructions
             return RUNTIME.getField(ast, 's-letrec')
-              .app(pos(node.pos), 
-                   makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])), 
+              .app(pos(node.pos),
+                   makeList(node.kids.slice(1, -3).map(translators["letrec-binding"])),
                    tr(node.kids[node.kids.length - 2]));
           },
           'let-binding': function(node) {
@@ -340,7 +346,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             // (data-expr DATA NAME params mixins COLON variant ... sharing-part check END)
             return RUNTIME.getField(ast, 's-data')
               .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]),
-                   makeList(node.kids.slice(5, -3).map(tr)), 
+                   makeList(node.kids.slice(5, -3).map(tr)),
                    tr(node.kids[node.kids.length - 3]),
                    tr(node.kids[node.kids.length - 2]));
           },
@@ -358,12 +364,12 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             if (node.kids.length === 3) {
               // (check-expr CHECKCOLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]), 
+                .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]),
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
             } else {
               // (check-expr CHECK STRING COLON body END)
               return RUNTIME.getField(ast, 's-check')
-                .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+                .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]),
                      RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
             }
           },
@@ -398,14 +404,14 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               var mkOp = RUNTIME.getField(ast, 's-op').app;
               var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
                               pos(node.kids[1].pos),
-                              tr(node.kids[1]), 
+                              tr(node.kids[1]),
                               tr(node.kids[0]),
                               tr(node.kids[2]));
               for(var i = 4; i < node.kids.length; i += 2) {
-                expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos), 
+                expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos),
                             pos(node.kids[i - 1].pos),
-                            tr(node.kids[i - 1]), 
-                            expr, 
+                            tr(node.kids[i - 1]),
+                            expr,
                             tr(node.kids[i]));
               }
               return expr;
@@ -486,7 +492,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             if (node.kids.length === 1) {
               // (binding name)
               return RUNTIME.getField(ast, 's-bind')
-                .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
+                .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]),
                      RUNTIME.getField(ast, 'a-blank'));
             } else if (node.kids.length === 3) {
               // (binding name COLONCOLON ann)
@@ -495,7 +501,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             } else if (node.kids.length === 2) {
               // (binding SHADOW name)
               return RUNTIME.getField(ast, 's-bind')
-                .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
+                .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]),
                      RUNTIME.getField(ast, 'a-blank'));
             } else {
               // (binding SHADOW name COLONCOLON ann)
@@ -547,7 +553,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             } else {
               // (variant-members LPAREN (list-variant-member mem COMMA) ... lastmem RPAREN)
               return makeList(node.kids.slice(1, -1).map(tr));
-            }          
+            }
           },
           'list-variant-member': function(node) {
             // (list-variant-member mem COMMA)
@@ -1013,7 +1019,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           //console.log("Result:");
           var countParses = grammar.countAllParses(parsed);
           if (countParses == 0) {
-            var nextTok = toks.curTok; 
+            var nextTok = toks.curTok;
             console.error("There were " + countParses + " potential parses.\n" +
                           "Parse failed, next token is " + nextTok.toString(true) +
                           " at " + nextTok.pos.toString(true));
@@ -1047,7 +1053,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           throw e;
         }
       }
-      
+
       function parsePyret(data, fileName) {
         RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
         RUNTIME.checkString(data);

@@ -391,7 +391,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-user-block should have already been desugared")
         | s-fun(l, name, params, args, ann, doc, body, _check) =>
           raise("s-fun should have already been desugared")
-        | s-type(l, name, ann) =>
+        | s-type(l, name, params, ann) =>
           raise("checking for s-type not implemented")
         | s-newtype(l, name, namet) =>
           raise("checking for s-newtype not implemented")
@@ -413,7 +413,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               | t-ref(arg-type, _) =>
                 checking(value, arg-type, top-level, context)
               | else =>
-                typing-error([list: C.incorrect-type(tostring(id-type), l, tostring(t-ref(id-type, l)), l)])
+                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
             end
           end)
         | s-if-pipe(l, branches) =>
@@ -463,7 +463,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                 temp-obj-type = t-record(field-types, l)
                 cases(Option<Context>) satisfies-type(temp-obj-type, expect-type, context):
                   | none =>
-                    typing-error([list: C.incorrect-type(tostring(temp-obj-type), temp-obj-type.l, tostring(expect-type), expect-type.l)])
+                    typing-error([list: C.incorrect-type-expression(tostring(temp-obj-type), temp-obj-type.l, tostring(expect-type), expect-type.l, e)])
                   | some(shadow context) =>
                     new-obj-type = context.apply(temp-obj-type)
                     fields-and-types = map2(lam(field, field-type):
@@ -481,7 +481,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             | t-top(t-l) =>
               check-synthesis(e, expect-type, top-level, context)
             | else =>
-              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "an object type", l)])
+              typing-error([list: C.incorrect-type-expression(tostring(expect-type), expect-type.l, "an object type", l, e)])
           end
         | s-array(l, values) =>
           wrapped = cases(Type) expect-type:
@@ -492,14 +492,14 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                   checking(value, param-type, false, context)
                 end
               else:
-                fold-errors([list: C.incorrect-type(tostring(TS.t-array-name), l, tostring(expect-type), expect-type.l)])
+                fold-errors([list: C.incorrect-type-expression(tostring(TS.t-array-name), l, tostring(expect-type), expect-type.l, e)])
               end
             | t-top(tl) =>
               for fold-typing(value from values, shadow context from context):
                 checking(value, t-top(tl), false, context)
               end
             | else =>
-              fold-errors([list: C.incorrect-type("a raw array", l, tostring(expect-type), expect-type.l)])
+              fold-errors([list: C.incorrect-type-expression("a raw array", l, tostring(expect-type), expect-type.l, e)])
           end
 
           wrapped.typing-bind(lam(new-values, shadow context):
@@ -629,7 +629,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-user-block should have already been desugared")
     | s-fun(l, name, params, args, ann, doc, body, _check) =>
       raise("s-fun should have already been desugared")
-    | s-type(l, name, ann) =>
+    | s-type(l, name, params, ann) =>
       raise("synthesis for s-type not implemented")
     | s-newtype(l, name, namet) =>
       raise("synthesis for s-newtype not implemented")
@@ -653,7 +653,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
               typing-result(A.s-assign(l, id, new-value), arg-type.set-loc(l), context)
             end)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(id-type), l, tostring(t-ref(id-type, l)), l)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
         end
       end)
     | s-if-pipe(l, branches) =>
@@ -751,7 +751,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(arg-type, _) =>
             typing-result(e, arg-type.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(id-type), id-type.l, tostring(t-ref(id-type, l)), l)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l)), l, e)])
         end
       end)
     | s-id-letrec(l, id, safe) =>
@@ -782,7 +782,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(typ, _) =>
             typing-result(new-get-bang, typ.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type(tostring(field-type), field-type.l, "a ref type", l)])
+            typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
         end
       end)
     | s-bracket(l, obj, field) =>
@@ -861,6 +861,8 @@ fun _synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args ::
       result.typing-bind(lam(new-exprs, shadow context):
         typing-result(recreate(new-exprs), existential-ret, context)
       end)
+    | t-app(onto, type-args, _) =>
+      synthesis-spine(onto.introduce(type-args), recreate, args, app-loc, context)
     | else =>
       typing-error([list: C.apply-non-function(recreate(args), fun-type)])
   end.bind(lam(ast, typ, shadow context):
@@ -884,7 +886,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         | some(t) =>
           result-type = resolve-alias(t, context).set-loc(l)
           fold-result(some(result-type), context)
-        | none => fold-errors([list: C.unbound-type-id(in-ann)])
+        | none =>
+          fold-errors([list: C.unbound-type-id(in-ann)])
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l)), context)
@@ -994,6 +997,9 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
       shadow subtype = resolve-alias(subtype, context)
       shadow supertype = resolve-alias(supertype, context)
       cases(Type) supertype:
+        | t-app(b-onto, b-args, _) =>
+          new-supertype = context.get-data-type(b-onto).or-else(b-onto)
+          satisfies-assuming(subtype, new-supertype.introduce(b-args), context, assumptions)
         | t-existential(b-id, _) =>
           cases(Type) subtype:
             | t-existential(a-id, _) =>
@@ -1072,10 +1078,11 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
             | t-app(a-onto, a-args, _) =>
               cases(Type) supertype:
                 | t-top(_) => some(context)
+                | t-forall(_, _, _) =>
+                  satisfies-assuming(a-onto.introduce(a-args), supertype, context, assumptions)
                 | else =>
-                  for option-bind(data-type from context.get-data-type(a-onto)):
-                    satisfies-assuming(data-type.introduce(a-args), supertype, context, assumptions)
-                  end
+                  new-subtype = context.get-data-type(a-onto).or-else(a-onto)
+                  satisfies-assuming(new-subtype.introduce(a-args), supertype, context, assumptions)
               end
             | t-top(_) =>
               if TS.is-t-top(supertype):
@@ -1127,8 +1134,13 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                     none
                   end
                 | t-app(b-onto, b-args, _) =>
-                  for option-bind(data-type from context.get-data-type(b-onto)):
-                    satisfies-assuming(subtype, data-type.introduce(b-args), context, assumptions)
+                  cases(Type) b-onto:
+                    | t-forall(_, _, _) =>
+                      satisfies-assuming(subtype, b-onto.introduce(b-args), context, assumptions)
+                    | else =>
+                      for option-bind(data-type from context.get-data-type(b-onto)):
+                        satisfies-assuming(subtype, data-type.introduce(b-args), context, assumptions)
+                      end
                   end
                 | t-record(b-fields, _) =>
                   satisfies-fields(a-fields, b-fields, context, assumptions)
@@ -1442,13 +1454,20 @@ end
 fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -> FoldResult<Nothing>:
   map-fold-result(lam(binding, shadow context):
     cases(A.TypeLetBind) binding:
-      | s-type-bind(_, name, ann) =>
+      | s-type-bind(l, name, params, ann) =>
         to-type(ann, context).bind(lam(maybe-typ, _):
           cases(Option<Type>) maybe-typ:
             | none => # TODO(MATT): is this correct?
               fold-errors([list: C.unbound-type-id(ann)])
             | some(typ) =>
-              context.aliases.set-now(name.key(), typ)
+              alias-type =
+                if is-empty(params):
+                  typ
+                else:
+                  forall = for map(param from params): t-var(param, l) end
+                  t-forall(forall, typ, l)
+                end
+              context.aliases.set-now(name.key(), alias-type)
               fold-result(nothing, context)
           end
         end)
@@ -1519,7 +1538,7 @@ fun check-synthesis(e :: Expr, expect-type :: Type, top-level :: Boolean, contex
         typing-result(new-expr, context.apply(applied-expect-type), context)
       | none =>
         # TODO(MATT): different error for existential
-        typing-error([list: C.incorrect-type(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), applied-expect-type.l)])
+        typing-error([list: C.incorrect-type-expression(tostring(applied-new-type), applied-new-type.l, tostring(applied-expect-type), applied-expect-type.l, e)])
     end
   end)
 end
@@ -2121,7 +2140,7 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
                     end
                   end)
                 | none =>
-                  typing-error([list: C.incorrect-type(tostring(val-type), val-type.l, tostring(typ), typ.l)])
+                  typing-error([list: C.incorrect-type-expression(tostring(val-type), val-type.l, tostring(typ), typ.l, val)])
               end
             end)
           | none =>
@@ -2267,6 +2286,8 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
         .map-type(t-forall(introduces, _, l))
     | t-existential(id, _) =>
       check-synthesis(recreate(args, ret-ann, body), expect-type, false, context)
+    | t-app(onto, type-args, _) =>
+      check-fun(fun-loc, body, params, args, ret-ann, onto.introduce(type-args), recreate, context)
     | else =>
       typing-error([list: C.incorrect-type("a function", fun-loc, tostring(expect-type), expect-type.l)])
   end

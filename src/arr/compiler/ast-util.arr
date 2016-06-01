@@ -420,12 +420,15 @@ binding-handlers = {
   s-param-bind(_, l, param, type-env):
     type-env.set(param.key(), e-bind(l, false, b-typ))
   end,
-  s-type-let-bind(_, tlb, env, type-env):
+  s-type-let-bind(self, tlb, env, type-env):
     cases(A.TypeLetBind) tlb:
-      | s-type-bind(l, name, ann) =>
+      | s-type-bind(l, name, params, ann) =>
+        new-type-env = for lists.fold(acc from type-env, param from params):
+          self.s-param-bind(l, param, acc)
+        end
         {
           val-env: env,
-          type-env: type-env.set(name.key(), e-bind(l, false, b-typ))
+          type-env: new-type-env.set(name.key(), e-bind(l, false, b-typ))
         }
       | s-newtype-bind(l, tname, bname) =>
         {
