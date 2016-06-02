@@ -537,18 +537,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
   fun resolve-letrec-binds(visitor, binds):
-    bind-env-and-atoms = for fold(acc from { env: visitor.env, atoms: [list: ] }, b from binds):
+    {env; atoms} = for fold(acc from { visitor.env; [list: ] }, b from binds):
+    {env; atoms} = acc
       # TODO(joe): I think that b.b.ann.visit below could be wrong if
       # a letrec'd ID is used in a refinement within the same letrec,
       # so state may be necessary here
-      atom-env = make-atom-for(b.b.id, b.b.shadows, acc.env, bindings, letrec-bind(_, _, b.b.ann.visit(visitor), none))
-      { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      atom-env = make-atom-for(b.b.id, b.b.shadows, env, bindings, letrec-bind(_, _, b.b.ann.visit(visitor), none))
+      { atom-env.env; link(atom-env.atom, atoms) }
     end
-    new-visitor = visitor.{env: bind-env-and-atoms.env}
-    visit-binds = for map2(b from binds, a from bind-env-and-atoms.atoms.reverse()):
+    new-visitor = visitor.{env: env}
+    visit-binds = for map2(b from binds, a from atoms.reverse()):
       cases(A.LetrecBind) b:
         | s-letrec-bind(l2, bind, expr) =>
-          new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: bind-env-and-atoms.env}))
+          new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: env}))
           visit-expr = expr.visit(new-visitor)
           update-binding-expr(a, some(visit-expr))
           A.s-letrec-bind(l2, new-bind, visit-expr)
