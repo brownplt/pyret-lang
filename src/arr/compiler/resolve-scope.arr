@@ -725,25 +725,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-program(l, one-true-provide, _provide-types, imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
+      {e; te; bs} = for fold(acc from { self.env; self.type-env;  [list: ] }, b from binds):
+        {e; te; bs} = acc
         cases(A.TypeLetBind) b:
           | s-type-bind(l2, name, ann) =>
-            atom-env = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: acc.e, type-env: acc.te}))
+            atom-env = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
+            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: e, type-env: te}))
             update-type-binding-ann(atom-env.atom, some(new-bind.ann))
-            { e: acc.e, te: atom-env.env, bs: link(new-bind, acc.bs) }
+            { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
-            atom-env-t = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
+            atom-env-t = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
             # TODO(joe): type for name in newtype-bind?  Brander-binding?
-            atom-env = make-atom-for(tname, false, acc.e, bindings, let-bind(_, _, A.a-blank, none))
+            atom-env = make-atom-for(tname, false, e, bindings, let-bind(_, _, A.a-blank, none))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
             update-binding-expr(atom-env.atom, none)
             update-type-binding-ann(atom-env-t.atom, none)
-            { e: atom-env.env, te: atom-env-t.env, bs: link(new-bind, acc.bs) }
+            { atom-env.env; atom-env-t.env; link(new-bind, bs) }
         end
       end
-      visit-body = body.visit(self.{env: bound-env.e, type-env: bound-env.te})
-      A.s-type-let-expr(l, bound-env.bs.reverse(), visit-body)
+      visit-body = body.visit(self.{env: e, type-env: te})
+      A.s-type-let-expr(l, bs.reverse(), visit-body)
     end,
     s-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
