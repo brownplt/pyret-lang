@@ -747,32 +747,33 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-type-let-expr(l, bs.reverse(), visit-body)
     end,
     s-let-expr(self, l, binds, body):
-      bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
+      {e; bs} = for fold(acc from {self.env; [list: ] }, b from binds):
+      {e; bs} = acc
         cases(A.LetBind) b:
           | s-let-bind(l2, bind, expr) =>
-            visited-ann = bind.ann.visit(self.{env: acc.e})
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.e, bindings, let-bind(_, _, visited-ann, none))
-            visit-expr = expr.visit(self.{env: acc.e})
+            visited-ann = bind.ann.visit(self.{env: e})
+            atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, let-bind(_, _, visited-ann, none))
+            visit-expr = expr.visit(self.{env: e})
             update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
-              e: atom-env.env,
-              bs: link(new-bind, acc.bs)
+              atom-env.env;
+              link(new-bind, bs)
             }
           | s-var-bind(l2, bind, expr) =>
-            visited-ann = bind.ann.visit(self.{env: acc.e})
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.e, bindings, var-bind(_, _, visited-ann, none))
-            visit-expr = expr.visit(self.{env: acc.e})
+            visited-ann = bind.ann.visit(self.{env: e})
+            atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, var-bind(_, _, visited-ann, none))
+            visit-expr = expr.visit(self.{env: e})
             update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
-              e: atom-env.env,
-              bs: link(new-bind, acc.bs)
+              atom-env.env;
+              link(new-bind, bs)
             }
         end
       end
-      visit-binds = bound-env.bs.reverse()
-      visit-body = body.visit(self.{env: bound-env.e})
+      visit-binds = bs.reverse()
+      visit-body = body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body)
     end,
     s-letrec(self, l, binds, body):
