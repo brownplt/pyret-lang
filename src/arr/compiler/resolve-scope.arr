@@ -626,45 +626,48 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
     end,
     s-program(self, l, _provide, _provide-types, imports, body):
-      imports-and-env = for fold(
-          acc from { e: self.env, te: self.type-env, imps: [list: ] },
+      {e; te; imps} = for fold(
+          acc from { self.env; self.type-env; [list: ] },
           i from imports
         ):
+        {e; te; imps} = acc
         cases(A.Import) i:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any(l2), none))
+                make-anon-import-for(name-vals.l, "$import", e, bindings, let-bind(l, _, A.a-any(l2), none))
               else:
-                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any(l2), none))
+                make-atom-for(name-vals, false, e, bindings, let-bind(_, _, A.a-any(l2), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
-                make-anon-import-for(name-types.l, "$import", acc.te, type-bindings, let-type-bind(l, _, none))
+                make-anon-import-for(name-types.l, "$import", te, type-bindings, let-type-bind(l, _, none))
               else:
-                make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind(_, _, none))
+                make-atom-for(name-types, false, te, type-bindings, let-type-bind(_, _, none))
               end
-            with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
-              v-atom-env = make-atom-for(v, false, nv-v.e, bindings, module-bind(_, _, file, none))
-              { e: v-atom-env.env, vn: link(v-atom-env.atom, nv-v.vn) }
+            {with-vals-e; with-vals-vn} = for fold(nv-v from { atom-env.env; empty}, v from vnames):
+              {nv-v-e; nv-v-vn} = nv-v
+              v-atom-env = make-atom-for(v, false, nv-v-e, bindings, module-bind(_, _, file, none))
+              { v-atom-env.env; link(v-atom-env.atom, nv-v-vn) }
             end
-            with-types = for fold(nv-t from {et: atom-env-t.env, tn: empty}, t from tnames):
-              t-atom-env = make-atom-for(t, false, nv-t.et, bindings, module-type-bind(_, _, file, none))
-              { et: t-atom-env.env, tn: link(t-atom-env.atom, nv-t.tn) }
+            {with-types-et; with-types-tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
+              {nv-t-et; nv-t-tn} = nv-t
+              t-atom-env = make-atom-for(t, false, nv-t-et, bindings, module-type-bind(_, _, file, none))
+              { t-atom-env.env; link(t-atom-env.atom, nv-t-tn) }
             end
             new-header = A.s-import-complete(l2,
-              with-vals.vn,
-              with-types.tn,
+              with-vals-vn,
+              with-types-tn,
               file,
               atom-env.atom,
               atom-env-t.atom)
             update-binding-expr(atom-env.atom, some(new-header))
             update-type-binding-ann(atom-env-t.atom, some(new-header))
-            { e: with-vals.e, te: with-types.et, imps: link(new-header, acc.imps) }
+            { with-vals-e; with-types-et; link(new-header, imps) }
           | else => raise("Should only have s-import-complete when checking scope")
         end
       end
-      visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
+      visit-body = body.visit(self.{env: e, type-env: te})
       var vals = nothing
       var typs = nothing
       visit-body.visit(A.default-iter-visitor.{
@@ -719,7 +722,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         data-defs
       )
       
-      A.s-program(l, one-true-provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
+      A.s-program(l, one-true-provide, _provide-types, imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body):
       bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
