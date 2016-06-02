@@ -230,6 +230,25 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
           ]),
         others
         )
+    | a-tuple(l, tuple-fields) =>
+    {locs; fields; others} = 
+      for fold(acc from {cl-empty; cl-empty; cl-empty},
+         field from tuple-fields):
+       {locs; fields; others} = acc
+       compiled = compile-ann(field, visitor)
+       {
+          cl-snoc(locs, visitor.get-loc(field.l));
+          cl-snoc(fields, compiled.exp);
+          others + compiled.other-stmts
+       }
+       end
+     c-exp(
+       rt-method("makeTupleAnn", [clist:
+           j-list(false, locs),
+           j-list(false, fields)
+        ]),
+       others
+      )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()

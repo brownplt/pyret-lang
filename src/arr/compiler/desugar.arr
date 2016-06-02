@@ -49,6 +49,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
       A.a-record(l, fields.map(desugar-afield))
+    | a-tuple(l, fields) =>
+      A.a-tuple(l, fields.map(desugar-ann))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end

@@ -792,6 +792,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         raise("Cannot provide a raw method")
       | a-record(l, fields) =>
         T.t-record(map(field-to-typ, fields), l)
+      | a-tuple(l, fields) =>
+        T.t-top(l)
       | a-app(l, ann, args) =>
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l)
       | a-pred(l, ann, exp) =>

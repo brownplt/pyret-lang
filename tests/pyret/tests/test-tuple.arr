@@ -91,4 +91,13 @@ check "tuple binding":
   z is 15
 end
 
+check "parse and print type checker":
+   x = P.surface-parse("fun f(tup:: {Number; String; Number}): tup.{0} end", "test")
+   x.tosource().pretty(80) is [list: "fun f(tup :: { Number; String; Number }): tup.{0} end"]
+end
 
+
+check "annotations for tuple":
+  fun f(tup:: {Number; String; Number}): tup.{1} end
+  f({4; "hi"; 235}) is "hi"
+end

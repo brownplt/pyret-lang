@@ -611,6 +611,14 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
      expect(parse("{1 + 3; hello} = t")).toBe(false);
      expect(parse("{v;v;b;u} = t")).not.toBe(false);
     });
+
+    it("should parse tuple annotations", function(){
+     expect(parse("fun f(tup:: {Number; String; Number}): tup.{0} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; String; Number): tup.{0} end")).toBe(false);
+     expect(parse("fun f(tup:: {hello; there}): hello end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number}): tup.{1} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; {String; Number; {hello; there}}; {hi; what}}): tup.{1} end")).not.toBe(false);
+    });
   });
 
   

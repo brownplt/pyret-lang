@@ -945,6 +945,9 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             return RUNTIME.getField(ast, 'a-field')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
           },
+          'tuple-field': function(node) {
+            return tr(node.kids[0])
+          },
           'name-ann': function(node) {
             if (node.kids[0].value === "Any") {
               return RUNTIME.getField(ast, 'a-any')
@@ -959,6 +962,12 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             return RUNTIME.getField(ast, 'a-record')
               .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
           },
+          'tuple-ann': function(node) {
+            // (record-ann LBRACE fields ... RBRACE)
+            return RUNTIME.getField(ast, 'a-tuple')
+              .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
+          },
+
           'noparen-arrow-ann': function(node) {
             // (noparen-arrow-ann args ... THINARROW result)
             return RUNTIME.getField(ast, 'a-arrow')
@@ -992,6 +1001,10 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
           },
           'list-ann-field': function(node) {
             // (list-ann-field f COMMA)
+            return tr(node.kids[0]);
+          },
+          'ann-list-tuple-field': function(node) {
+            // (ann-list-tuple-field f SEMI)
             return tr(node.kids[0]);
           },
           'arrow-ann-elt': function(node) {

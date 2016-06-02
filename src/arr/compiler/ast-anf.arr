@@ -734,6 +734,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))
     | a-record(l, fields) => lst-a(fields.map(get-ann))
+    | a-tuple(l, fields) => lst-a(fields)
     | a-app(l, a, args) => lst-a(link(a, args))
     | a-method-app(l, a, _, args) => lst-a(link(a, args))
     | a-pred(l, a, pred) =>

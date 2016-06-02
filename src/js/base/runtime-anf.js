@@ -2682,6 +2682,52 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
+   function PTupleAnn(locs, anns) {
+      this.locs = locs;
+      this.anns = anns;
+      var hasRefinement = false;
+      for (var i = 0; i < anns.length; i++) {
+        hasRefinement = hasRefinement || anns[i].refinement;
+      }
+      this.refinement = hasRefinement;
+    }
+    
+   function makeTupleAnn(fields, locs, anns) {
+      return new PTupleAnn(fields, locs, anns);
+    }
+    PTupleAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      if(!isTuple(val)) {
+        return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, "Tuple")
+          );
+      }
+      
+      if(that.anns.length != val.length) {
+       //return ffi.throwBadTupleBind(makeSrcloc(compilerLoc), val, that.anns.length, val.length);
+       return ffi.throwMessageException("lengths not equal");
+      }
+
+      function deepCheckFields(remainingAnns) {
+        var thisAnn;
+        return safeCall(function() {
+          var thisChecker = remainingAnns.pop();
+          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val);
+        }, function(result) {
+          if(ffi.isOk(result)) {
+            if(remainingAnns.length === 0) { return ffi.contractOk; }
+            else { return deepCheckFields(remainingFields); }
+          }
+          else if(ffi.isFail(result)) {
+            return that.createRecordFailureError(compilerLoc, val, thisAnn, result);
+          }
+        },
+        "deepCheckFields");
+      }
+      if(that.anns.length === 0) { return ffi.contractOk; }
+      else { return deepCheckFields(that.anns.slice()); }
+    }
     function PRecordAnn(fields, locs, anns) {
       this.fields = fields;
       this.locs = locs;
@@ -4464,6 +4510,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makePrimitiveAnn': makePrimitiveAnn,
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
+        'makeTupleAnn': makeTupleAnn,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,

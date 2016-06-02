@@ -1292,6 +1292,12 @@ data Ann:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
+  | a-tuple(l :: Loc, fields :: List<AField>) with:
+    label(self): "a-tuple" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end,
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a-app" end,
     tosource(self):
@@ -1838,6 +1844,9 @@ default-map-visitor = {
   a-record(self, l, fields):
     a-record(l, fields.map(_.visit(self)))
   end,
+  a-tuple(self, l, fields):
+    a-tuple(l, fields.map(_.visit(self)))
+  end,
   a-app(self, l, ann, args):
     a-app(l, ann.visit(self), args.map(_.visit(self)))
   end,
@@ -2301,6 +2310,9 @@ default-iter-visitor = {
   a-record(self, l, fields):
     lists.all(_.visit(self), fields)
   end,
+  a-tuple(self, l, fields):
+    lists.all(_.visit(self), fields)
+  end,
   a-app(self, l, ann, args):
     ann.visit(self) and lists.all(_.visit(self), args)
   end,
@@ -2756,6 +2768,9 @@ dummy-loc-visitor = {
   end,
   a-record(self, l, fields):
     a-record(dummy-loc, fields.map(_.visit(self)))
+  end,
+  a-tuple(self, l, fields):
+    a-tuple(dummy-loc, fields.map(_.visit(self)))
   end,
   a-app(self, l, ann, args):
     a-app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
