@@ -817,12 +817,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     # s-singleton-cases-branch introduces no new bindings
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
-      new-types = for fold(acc from { env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
+       {env; atoms} = acc
+        atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: new-types.env}
-      result = A.s-data-expr(l, name, namet, new-types.atoms.reverse(),
+      with-params = self.{type-env: env}
+      result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
       datatypes.set-now(namet.key(), result)
