@@ -982,7 +982,12 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
       | module-uri(uri) =>
         cases(Option<String>) find-mod(compile-env, uri):
         | some(_) => T.t-name(T.module-uri(uri), name, loc)
-        | none => raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
+        | none =>
+          if string-index-of(uri, "builtin://") == 0:
+            T.t-name(T.module-uri(uri), name, loc)
+          else:
+            raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
+          end
         end
       | dependency(d) =>
         provides-for-d = compile-env.mods.get(d)
@@ -1016,7 +1021,11 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
           cases(Option<String>) find-mod(compile-env, uri):
           | some(d) => T.t-name(T.dependency(d), name, loc)
           | none =>
-            raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
+            if string-index-of(uri, "builtin://") == 0:
+              T.t-name(T.module-uri(uri), name, loc)
+            else:
+              raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
+            end
           end
         end
       | dependency(d) =>

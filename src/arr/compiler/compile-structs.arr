@@ -8,6 +8,7 @@ import error-display as ED
 import string-dict as SD
 import file("type-structs.arr") as T
 
+
 t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)
 t-boolean = T.t-boolean(A.dummy-loc)
@@ -27,6 +28,8 @@ t-variant = T.t-variant(_, _, _, A.dummy-loc)
 t-singleton-variant = T.t-variant(_, _, A.dummy-loc)
 t-app = T.t-app(_, _, A.dummy-loc)
 t-name = T.t-name(_, _, A.dummy-loc)
+
+
 
 type URI = String
 type StringDict = SD.StringDict
