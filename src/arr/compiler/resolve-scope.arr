@@ -782,18 +782,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-letrec(l, binds-and-visitor.new-binds, visit-body)
     end,
     s-for(self, l, iter, binds, ann, body):
-      env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):
+      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
+      {env; fbs} = acc
         cases(A.ForBind) fb:
           | s-for-bind(l2, bind, val) => 
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind(_, _, bind.ann, none))
-            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
+            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
+            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
             visit-val = val.visit(self)
             update-binding-expr(atom-env.atom, some(visit-val))
             new-fb = A.s-for-bind(l2, new-bind, visit-val)
-            { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
+            { atom-env.env; link(new-fb, fbs) }
         end
       end
-      A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}))
+      A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}))
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
       env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args.map(_.bind)):
