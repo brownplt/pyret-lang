@@ -797,20 +797,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}))
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args.map(_.bind)):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind(_, _, a.ann.visit(self), none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {env; atoms} = for fold(acc from { self.env; [list: ] }, a from args.map(_.bind)):
+        {env; atoms} = acc
+        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(self), none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+      new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.CasesBind) a:
           | s-cases-bind(l2, typ, binding) =>
             cases(A.Bind) binding:
               | s-bind(l3, shadows, id, ann) =>
-                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env-and-atoms.env})))
+                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env})))
             end
         end
       end
-      new-body = body.visit(self.{env: env-and-atoms.env})
+      new-body = body.visit(self.{env: env})
       A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
