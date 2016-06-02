@@ -2,6 +2,7 @@
 
 provide *
 provide-types *
+import global as _
 import srcloc as SL
 import error-display as ED
 import render-error-display as RED
@@ -42,7 +43,7 @@ data TestResult:
   | success(loc :: Loc, code :: String)
   | failure-not-equal(loc :: Loc, code :: String, refinement, left, right) with:
     render-reason(self):
-      [ED.error: 
+      [ED.error:
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not equal")
             | some(_) => ED.text("Values not equal (using custom equality):")
@@ -128,7 +129,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun add-block-result(cbr :: CheckBlockResult):
     block-results := [list: cbr] + block-results
   end
-  var current-results = [list: ] 
+  var current-results = [list: ]
   fun add-result(t :: TestResult):
     current-results := [list: t] + current-results
   end
@@ -388,4 +389,3 @@ end
 fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
   results-summary(block-results, get-stack).message
 end
-

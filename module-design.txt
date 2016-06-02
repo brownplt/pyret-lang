@@ -192,6 +192,11 @@ defined-values/defined-types?
 
 [ ] 34. Checker instantiation.
 
+[ ] 35. Get rid of tany
+
+[ ] 36. Make nice handalone/load-lib code for rendering in the presence of errors
+        - renderErrorMessage->renderErrorMessageAndExit
+
 --
 
 New rules for requirejs:

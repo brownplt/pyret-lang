@@ -216,17 +216,21 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     # NOTE(joe): this when is for compat with type-defaults
     when not(info.aliases.has-key-now(A.s-type-global(g).key())):
       uri = globts.get-value(g)
-      provs = compile-env.mods.get-value(uri)
-      t = cases(Option<Type>) provs.aliases.get(g):
-        | none =>
-          cases(Option<Type>) provs.data-definitions.get(g):
-            | none => raise("Key " + g + " not found in " + torepr(provs))
-            | some(v) => v
+      cases(Option<C.Provides>) compile-env.mods.get(uri):
+        | some(provs) =>
+          t = cases(Option<Type>) provs.aliases.get(g):
+            | none =>
+              cases(Option<Type>) provs.data-definitions.get(g):
+                | none => raise("Key " + g + " not found in " + torepr(provs))
+                | some(v) => v
+              end
+            | some(v) =>
+              v
           end
-        | some(v) =>
-          v
+          info.aliases.set-now(A.s-global(g).key(), t)
+        | none =>
+          raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
       end
-      info.aliases.set-now(A.s-global(g).key(), t)
     end
   end
   for each(k from modules.keys-list-now()):

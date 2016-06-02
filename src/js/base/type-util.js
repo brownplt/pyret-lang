@@ -152,7 +152,7 @@ define([], function() {
       case "name":
         return O({
           tag: "name",
-          module: typ.module,
+          origin: O(typ.origin),
           name: typ.name
         });
       case "forall":
@@ -231,13 +231,13 @@ define([], function() {
   }
 
   function expandType(typ, shorthands) {
-    var fromGlobal = { "import-type": "builtin", name: "global" };
+    var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
     var singles = {
-      "Array": { "import-type": "builtin", name: "arrays" },
+      "Array": { "import-type": "uri", uri: "builtin://arrays" },
       "RawArray": fromGlobal,
-      "List": { "import-type": "builtin", name: "lists" },
-      "Option": { "import-type": "builtin", name: "option" }
+      "List": { "import-type": "uri", uri: "builtin://lists" },
+      "Option": { "import-type": "uri", uri: "builtin://option" }
     };
     function p(name) {
       return {
@@ -265,13 +265,6 @@ define([], function() {
     var iA = Array.isArray;
     var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
 
-    function expandRecord(r, shorthands) {
-      var o = {};
-      Object.keys(r).forEach(function(k) {
-        o[k] = expandType(r[k], shorthands);
-      });
-      return o;
-    }
 
     function expandMember(m, shorthands) {
       if(!iA(m)) {
@@ -279,18 +272,18 @@ define([], function() {
       }
       if(m.length === 2) {
         return {
-          tag: "member",
+          tag: "variant-member",
           kind: "normal",
-          name: typ[0],
-          typ: expandType(typ[1], shorthands)
+          name: m[0],
+          typ: expandType(m[1], shorthands)
         };
       }
       else if(m.length === 3) {
         return {
-          tag: "member",
+          tag: "variant-member",
           kind: "ref",
-          name: typ[1],
-          typ: expandType(typ[2], shorthands)
+          name: m[1],
+          typ: expandType(m[2], shorthands)
         };
       }
       else {
@@ -331,7 +324,7 @@ define([], function() {
     }
     else if(Array.isArray(typ)) {
       var head = typ[0];
-      if (singles.indexOf(head) !== -1) {
+      if (head in singles) {
         if(typ.length !== 2) {
           throw new Error("Bad tail for type constructor " + head + ": " + String(typ));
         }
@@ -370,7 +363,7 @@ define([], function() {
         else if(head === "local") {
           return {
             tag: "name",
-            origin: "$ELF",
+            origin: {"import-type": "$ELF"},
             name: typ[1]
           };
         }
@@ -380,15 +373,34 @@ define([], function() {
             fields: expandRecord(typ[1], shorthands)
           };
         }
+        else if(head === "tyapp") {
+          return {
+            tag: "tyapp",
+            onto: expandType(typ[1], shorthands),
+            args: typ[2].map(function(t) { return expandType(t, shorthands); })
+          };
+        }
+        else {
+          throw new Error("Unknown shape or head tag for serialized type: " + String(typ));
+        }
       }
     }
-    else if(typeof typ === "object") {
+    else if(iO(typ)) {
       return typ;
     }
     else {
       throw new Error("Unknown description for serialized type: " + String(typ));
     }
   }
+
+  function expandRecord(r, shorthands) {
+    var o = {};
+    Object.keys(r).forEach(function(k) {
+      o[k] = expandType(r[k], shorthands);
+    });
+    return o;
+  }
+
 
   return {
     any: any,
@@ -407,7 +419,8 @@ define([], function() {
     dataType: dataType,
     toPyret: toPyret,
     providesToPyret: providesToPyret,
-    expandType: expandType
+    expandType: expandType,
+    expandRecord: expandRecord
   };
 
 });

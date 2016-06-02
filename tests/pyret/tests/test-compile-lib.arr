@@ -1,7 +1,9 @@
 import string-dict as SD
+import srcloc as SL
 import load-lib as L
 import runtime-lib as R
 import ast as A
+import builtin-modules as BM
 import file("../../../src/arr/compiler/type-structs.arr") as T
 import file("../../../src/arr/compiler/ast-util.arr") as AU
 import file("../../../src/arr/compiler/compile-lib.arr") as CL
@@ -265,6 +267,170 @@ end
 
 mt = [SD.string-dict:]
 string-dict = SD.string-dict
+
+check "raw-provide-syntax":
+  mod = ```
+  ({
+    requires: [ ],
+    provides: {
+      shorthands: {
+        "num-pred": ["arrow", ["Number", "Number"], "Boolean"],
+        "I": ["local", "Ither"]
+      },
+      values: {
+        "string-to-num": ["arrow", ["String"], ["Option", "Number"]],
+        "num-greater": "num-pred"
+      },
+      datatypes: {
+        "Ither": ["data", "Ither", ["a", "b"],
+          [["left", [["value", ["tid", "a"]]]],
+           ["right", [["value", ["tid", "b"]]]]],
+          {
+            "join-left": ["arrow", [["tid", "a"]], ["tyapp", "I", [["tid", "a"], ["tid", "b"]]]]
+          }
+        ]
+      }
+    },
+    nativeRequires: [ ],
+    theModule: function() {}
+  })
+  ```
+  raw = BM.builtin-raw-locator-from-str(mod)
+
+  bnr = lam(modname, name):
+    {
+      tag: "name",
+      origin: {
+        import-type: "uri",
+        uri: "builtin://" + modname,
+      },
+      name: name
+    }
+  end
+  gr = lam(name):
+    bnr("global", name)
+  end
+
+  raw.get-raw-value-provides() is=~
+    [raw-array:
+      {
+        name: "string-to-num",
+        typ: {
+          tag: "arrow",
+          args: [list: gr("String")],
+          ret: {
+            tag: "tyapp",
+            onto: bnr("option", "Option"),
+            args: [list: gr("Number")]
+          }
+        }
+      },
+      {
+        name: "num-greater",
+        typ: {
+          tag: "arrow",
+          args: [list: gr("Number"), gr("Number")],
+          ret: gr("Boolean")
+        }
+      }]
+
+  ta = {
+    tag: "tyvar",
+    name: "a"
+  }
+  tb = {
+    tag: "tyvar",
+    name: "b"
+  }
+
+  raw.get-raw-datatype-provides() is=~
+    [raw-array:
+      {
+        name: "Ither",
+        typ: {
+          tag: "data",
+          name: "Ither",
+          params: [list: "a", "b"],
+          variants: [list:
+            {
+              tag: "variant",
+              name: "left",
+              vmembers: [list: {
+                tag: "variant-member",
+                name: "value",
+                kind: "normal",
+                typ: ta
+              }]
+            },
+            {
+              tag: "variant",
+              name: "right",
+              vmembers: [list: {
+                tag: "variant-member",
+                name: "value",
+                kind: "normal",
+                typ: tb
+              }]
+            }
+          ],
+          methods: [list: {
+            name: "join-left",
+            value: {
+              tag: "arrow",
+              args: [list: ta],
+              ret: {
+                tag: "tyapp",
+                onto: {
+                  tag: "name",
+                  origin: { import-type: "$ELF" },
+                  name: "Ither"
+                },
+                args: [list: ta, tb]
+              }
+            }
+          }]
+        }
+      }
+    ]
+
+  provs = CM.provides-from-raw-provides("test-raw-provides", {
+    uri: "test-raw-provides",
+    values: raw-array-to-list(raw.get-raw-value-provides()),
+    aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+    datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+  })
+
+  l = SL.builtin("test-raw-provides")
+
+  bn = lam(modname, name):
+    T.t-name(T.module-uri("builtin://" + modname), A.s-type-global(name), l)
+  end
+  g = lam(name):
+    bn("global", name)
+  end
+
+  provs.values is
+    [string-dict:
+      "string-to-num",
+      T.t-arrow(
+        [list: g("String")],
+        T.t-app(
+          bn("option", "Option"),
+          [list: g("Number")],
+          l),
+        l),
+      "num-greater",
+      T.t-arrow(
+        [list: g("Number"), g("Number")],
+        g("Boolean"),
+        l)
+    ]
+
+  #NOTE(joe): tough to test the case for Ither datatype because of generativity
+  # in foralls
+
+end
+
 check:
   ps = CM.provides("test-provides1",
     [string-dict:

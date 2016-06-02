@@ -26,13 +26,13 @@ fun make-jsfile-locator(path):
     get-options(self, options):
       options.{ check-mode: false }
     end,
-    get-module(_): 
+    get-module(_):
       raise("Should never fetch source for builtin module " + path)
     end,
     get-extra-imports(self):
       CM.standard-imports
     end,
-    get-dependencies(_): 
+    get-dependencies(_):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
@@ -41,7 +41,7 @@ fun make-jsfile-locator(path):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     get-globals(_):
-      raise("Should never get globals for jsfile module " + path)
+      CM.standard-globals
     end,
     get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)
@@ -66,4 +66,3 @@ fun make-jsfile-locator(path):
     end
   }
 end
-

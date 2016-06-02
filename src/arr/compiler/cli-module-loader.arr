@@ -81,17 +81,26 @@ fun uri-to-path(uri):
   crypto.sha256(uri)
 end
 
-fun get-file-locator(basedir, real-path):
-  loc = FL.file-locator(real-path, CS.standard-globals)
+fun get-cached-if-available(basedir, loc):
   saved-path = P.join(basedir, uri-to-path(loc.uri()))
   if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < F.file-times(real-path).mtime):
+     (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()):
     loc
   else:
     JSF.make-jsfile-locator(saved-path + "-static").{
       uri(_): loc.uri() end
     }
   end
+end
+
+fun get-file-locator(basedir, real-path):
+  loc = FL.file-locator(real-path, CS.standard-globals)
+  get-cached-if-available(basedir, loc)
+end
+
+fun get-builtin-locator(basedir, modname):
+  loc = BL.make-builtin-locator(modname)
+  get-cached-if-available(basedir, loc)
 end
 
 fun get-loadable(basedir, l) -> Option<Loadable>:
@@ -196,7 +205,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         raise("Unknown import type: " + protocol)
       end
     | builtin(modname) =>
-      CL.located(BL.make-builtin-locator(modname), ctxt)
+      CL.located(get-builtin-locator(ctxt.cache-base-dir, modname), ctxt)
   end
 end
 
@@ -252,7 +261,7 @@ fun build-program(path, options) block:
     compile-module: true,
     on-compile: lam(locator, loadable) block:
       num-compiled := num-compiled + 1
-      clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled")
+      clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled " + "(" + locator.name() + ")")
       when num-compiled == total-modules:
         print("\nCleaning up and generating standalone...\n")
       end

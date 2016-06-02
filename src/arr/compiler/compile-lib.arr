@@ -307,14 +307,17 @@ end
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable block:
   G.reset()
   A.global-names.reset()
+  #print("Compiling module: " + locator.uri() + "\n")
   env = CS.compile-env(locator.get-globals(), provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
+      #print("Module is already compiled\n")
       cases(Loadable) loadable:
         | module-as-string(pvds, ce-unused, m) =>
           module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m)
       end
     | none =>
+      #print("Module is being freshly compiled\n")
       shadow options = locator.get-options(options)
       libs = locator.get-extra-imports()
       mod = locator.get-module()
@@ -424,10 +427,14 @@ end
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):
   compiled-mods = prog.loadables
   errors = compiled-mods.filter(is-error-compilation)
-  cases(List) errors:
+  cases(List) errors block:
     | empty =>
+      #print("Make standalone program\n")
       program = make-standalone(ws, prog, options)
-      right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      #print("Run program\n")
+      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      #print("Done\n")
+      ans
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
@@ -465,15 +472,24 @@ fun _compile-and-run-locator(locator, finder, context, runtime, options):
   compile-and-run-worklist(wl, runtime, options)
 end
 
-fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-modules, options):
+fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-modules, options) block:
+  #print("Make worklist\n")
   wl = compile-worklist(finder, locator, context)
+  #print("Compile program\n")
+
   compiled = compile-program-with(wl, starter-modules, options)
   compiled-mods = compiled.loadables
   errors = compiled-mods.filter(is-error-compilation)
-  cases(List) errors:
+  cases(List) errors block:
     | empty =>
+      #print("Make standalone program\n")
+
       program = make-standalone(wl, compiled, options)
-      right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      #print("Run program\n")
+
+      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      #print("Done\n")
+      ans
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
@@ -485,11 +501,12 @@ fun compile-standalone(wl, starter-modules, options):
 end
 
 # NOTE(joe): I strongly suspect options will be used in the future
-fun make-standalone(wl, compiled, options):
+fun make-standalone(wl, compiled, options) block:
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
 
+  var failure = false
   static-modules = j-obj(for C.map_list(w from wl):
     loadable = compiled.modules.get-value-now(w.locator.uri())
     cases(Loadable) loadable:
@@ -501,12 +518,16 @@ fun make-standalone(wl, compiled, options):
             for lists.each(e from problems):
               print-error(RED.display-to-string(e.render-reason(), torepr, empty))
             end
-            raise("There were compilation errors")
+            failure := true
+            j-field(w.locator.uri(), J.j-raw-code("\"error\""))
         end
       | pre-loaded(provides, _, _) =>
         raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
     end
   end)
+  when failure:
+    raise("There were compilation errors")
+  end
 
   depmap = j-obj(for C.map_list(w from wl):
     deps = w.dependency-map

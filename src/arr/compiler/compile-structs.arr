@@ -89,7 +89,7 @@ data Provides:
     )
 end
 
-fun make-dep(raw-dep):
+fun make-dep(raw-dep) -> Dependency:
  if raw-dep.import-type == "builtin":
     builtin(raw-dep.name)
   else:
@@ -97,24 +97,30 @@ fun make-dep(raw-dep):
   end
 end
 
+rag = raw-array-get
 
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
   tfr = type-from-raw(uri, _, tyvar-env)
+  # TODO(joe): Make this do something intelligent when location information
+  # is available
+  l = SL.builtin(uri)
   t = typ.tag
   ask:
-    | t == "any" then: t-top
+    | t == "any" then: T.t-top(l)
     | t == "record" then:
-      t-record(for map(f from typ.fields): t-member(f.name, tfr(f.value)) end)
+      t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end, l)
     | t == "name" then:
-      if typ.origin == "$ELF":
-        t-name(T.local, A.s-type-global(typ.name))
+      if typ.origin.import-type == "$ELF":
+        T.t-name(T.local, A.s-type-global(typ.name), l)
+      else if typ.origin.import-type == "uri":
+        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l)
       else:
-        t-name(make-dep(typ.origin), A.s-type-global(typ.name))
+        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l)
       end
     | t == "tyvar" then:
       cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
-        | some(tv) => t-var(tv)
+        | some(tv) => T.t-var(tv, l)
       end
     | t == "forall" then:
       new-env = for fold(new-env from tyvar-env, a from typ.args):
@@ -122,33 +128,36 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
         new-env.set(a, tvn)
       end
       params = for map(k from new-env.keys-list()):
-        t-var(new-env.get-value(k))
+        T.t-var(new-env.get-value(k), l)
       end
-      t-forall(params, type-from-raw(uri, typ.onto, new-env))
+      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l)
     | t == "tyapp" then:
-      t-app(tfr(typ.onto), map(tfr, typ.args))
+      T.t-app(tfr(typ.onto), map(tfr, typ.args), l)
     | t == "arrow" then:
-      t-arrow(map(tfr, typ.args), tfr(typ.ret))
-    | otherwise: raise("Unkonwn raw tag for type: " + t)
+      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l)
+    | otherwise: raise("Unknown raw tag for type: " + t)
   end
 end
 
 fun tvariant-from-raw(uri, tvariant, env):
+  l = SL.builtin(uri)
   t = tvariant.tag
   ask:
     | t == "variant" then:
       members = for map(tm from tvariant.vmembers):
         # TODO(joe): Exporting ref fields?
-        t-member(tm.name, type-from-raw(uri, tm.typ, env))
+        T.t-member(tm.name, type-from-raw(uri, tm.typ, env), l)
       end
-      t-variant(tvariant.name, members, empty)
+      T.t-variant(tvariant.name, members, empty, l)
     | t == "singleton-variant" then:
-      t-singleton-variant(tvariant.name, empty)
+      T.t-singleton-variant(tvariant.name, empty, l)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
 
 fun datatype-from-raw(uri, datatyp):
+  l = SL.builtin(uri)
+
   if datatyp.tag == "any":
     # TODO(joe): this will be replaced when datatypes have a settled format
     t-top
@@ -158,14 +167,14 @@ fun datatype-from-raw(uri, datatyp):
       pdict.set(a, tvn)
     end
     params = for map(k from pdict.keys-list()):
-      t-var(pdict.get-value(k))
+      T.t-var(pdict.get-value(k), l)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
     members = for map(tm from datatyp.methods):
       # TODO(joe): Exporting ref fields?
-      t-member(tm.name, type-from-raw(uri, tm.value, pdict))
+      T.t-member(tm.name, type-from-raw(uri, tm.value, pdict), l)
     end
-    t-data(params, variants, members)
+    T.t-data(params, variants, members, l)
   end
 end
 
@@ -315,7 +324,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The name"), ED.code(ED.text(self.ann.id.to-compiled())),
+              ED.text("The name"), ED.code(ED.text(self.ann.tosource().pretty(1000))),
               ED.text("is used as a type but not defined as one, at")],
             draw-and-highlight(self.ann.l)]
       end

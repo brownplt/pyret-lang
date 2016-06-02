@@ -23,7 +23,6 @@
             return moduleContent;
           }
           catch(e) {
-            console.error("Could not get contents: ", fs.realpathSync(path + ".js"));
             console.error("Content was: ", content);
             throw e;
           }
@@ -73,7 +72,7 @@
                 if(typeof dts === "object") {
                   return Object.keys(dts).map(function(k) {
                     var shorthands = m.provides.shorthands || {};
-                    var expanded = t.expandType(dts[k], shorthands);
+                    var expanded = t.expandType(dts[k], t.expandRecord(shorthands, {}));
                     return RUNTIME.makeObject({
                       name: k,
                       typ: t.toPyret(RUNTIME, expanded)
@@ -97,7 +96,7 @@
                   var aliases = m.provides.aliases;
                   return Object.keys(aliases).map(function(k) {
                     var shorthands = m.provides.shorthands || {};
-                    var expanded = t.expandType(aliases[k], shorthands);
+                    var expanded = t.expandType(aliases[k], t.expandRecord(shorthands, {}));
 
                     return RUNTIME.makeObject({
                       name: k,
@@ -120,7 +119,7 @@
 
                   return Object.keys(vals).map(function(k) {
                     var shorthands = m.provides.shorthands || {};
-                    var expanded = t.expandType(vals[k], shorthands);
+                    var expanded = t.expandType(vals[k], t.expandRecord(shorthands, {}));
 
                     return RUNTIME.makeObject({
                       name: k,
