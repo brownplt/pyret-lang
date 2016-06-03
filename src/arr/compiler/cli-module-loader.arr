@@ -81,10 +81,12 @@ fun uri-to-path(uri):
   crypto.sha256(uri)
 end
 
-fun get-cached-if-available(basedir, loc):
+fun get-cached-if-available(basedir, loc) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri()))
+  #print("Looking for builtin module at: " + saved-path + "\n")
   if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()):
+     (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()) block:
+    #print("It wasn't there\n")
     loc
   else:
     JSF.make-jsfile-locator(saved-path + "-static").{
