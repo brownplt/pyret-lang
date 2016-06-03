@@ -606,7 +606,7 @@ end
 
 builtin-uri = module-uri("builtin://global")
 
-t-array-name = t-name(local, A.s-type-global("RawArray"), A.dummy-loc)
+t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"), A.dummy-loc)
 
 t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
 t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end

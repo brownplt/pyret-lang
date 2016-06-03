@@ -227,7 +227,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             | some(v) =>
               v
           end
-          info.aliases.set-now(A.s-global(g).key(), t)
+          info.aliases.set-now(A.s-type-global(g).key(), t)
         | none =>
           raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
       end
