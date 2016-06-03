@@ -2413,7 +2413,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn);
+      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2692,8 +2692,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
       this.refinement = hasRefinement;
     }
     
-   function makeTupleAnn(fields, locs, anns) {
-      return new PTupleAnn(fields, locs, anns);
+   function makeTupleAnn(locs, anns) {
+      return new PTupleAnn(locs, anns);
     }
     PTupleAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
@@ -2703,9 +2703,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             ffi.makeTypeMismatch(val, "Tuple")
           );
       }
-      
-      if(that.anns.length != val.length) {
-       //return ffi.throwBadTupleBind(makeSrcloc(compilerLoc), val, that.anns.length, val.length);
+      if(that.anns.length != val.vals.length) {
        return ffi.throwMessageException("lengths not equal");
       }
 
@@ -2713,14 +2711,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var thisAnn;
         return safeCall(function() {
           var thisChecker = remainingAnns.pop();
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val);
+          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
         }, function(result) {
           if(ffi.isOk(result)) {
             if(remainingAnns.length === 0) { return ffi.contractOk; }
-            else { return deepCheckFields(remainingFields); }
+            else { return deepCheckFields(remainingAnns); }
           }
           else if(ffi.isFail(result)) {
-            return that.createRecordFailureError(compilerLoc, val, thisAnn, result);
+            //return that.createRecordFailureError(compilerLoc, val, thisAnn, result);
+            return ffi.throwMessageException("types are wrong");
           }
         },
         "deepCheckFields");
