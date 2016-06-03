@@ -18,6 +18,22 @@
       "num-equal": ["arrow", ["Number", "Number"], "Boolean"]
     },
     aliases: {
+      "Number": ["local", "Number"],
+      "Exactnum": ["local", "Exactnum"],
+      "Roughnum": ["local", "Roughnum"],
+      "NumInteger": ["local", "NumInteger"],
+      "NumRational": ["local", "NumRational"],
+      "NumPositive": ["local", "NumPositive"],
+      "NumNegative": ["local", "NumNegative"],
+      "NumNonPositive": ["local", "NumNonPositive"],
+      "NumNonNegative": ["local", "NumNonNegative"],
+      "String": ["local", "String"],
+      "Function": ["local", "Function"],
+      "Boolean": ["local", "Boolean"],
+      "Object": ["local", "Object"],
+      "Method": ["local", "Method"],
+      "Nothing": ["local", "Nothing"],
+      "RawArray": ["local", "RawArray"]
     },
     datatypes: {
       "Number": ["data", "Number", [], [], {}],
@@ -35,7 +51,7 @@
       "Object": ["data", "Object", [], [], {}],
       "Method": ["data", "Method", [], [], {}],
       "Nothing": ["data", "Nothing", [], [], {}],
-      "RawArray": ["data", "RawArray", [], [], {}]
+      "RawArray": ["data", "RawArray", ["a"], [], {}]
     }
   },
   nativeRequires: [ ],
