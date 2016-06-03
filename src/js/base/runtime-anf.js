@@ -1642,7 +1642,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       */
       function(val) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a); }
-        throw new PyretFailException(val);
+        if(thisRuntime.isObject(val) &&
+          (thisRuntime.hasField(val, "render-reason")
+            || thisRuntime.hasField(val, "render-fancy-reason"))){
+          throw new PyretFailException(val);
+        } else {
+          throw new PyretFailException(thisRuntime.ffi.makeUserException(val));
+        }
       };
     /** type {!PFunction} */
     // function raiseUserException(err) {
@@ -2273,12 +2279,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-checks"], 2, $a); }
         return nothing;
       }),
-      "check-is": makeFunction(function(code, left, right, loc) {
-        if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 4, $a); }
+      "check-is": makeFunction(function(left, right, loc) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a); }
         return nothing;
       }),
-      "check-satisfies": makeFunction(function(code, left, pred, loc) {
-        if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 4, $a); }
+      "check-satisfies": makeFunction(function(left, pred, loc) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a); }
         return nothing;
       }),
       "results": makeFunction(function() {
@@ -2430,8 +2436,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return checkI(0);
     }
-    function checkRefAnns(obj, fields, vals, locs) {
-      if (!isObject(obj)) { ffi.throwMessageException("Update non-object"); }
+
+    function checkRefAnns(obj, fields, vals, locs, exprloc, objloc) {
+      if (!isObject(obj)) { ffi.throwUpdateNonObj(makeSrcloc(exprloc), obj, makeSrcloc(objloc));}
       var anns = new Array(fields.length);
       var refs = new Array(fields.length);
       var field = null;
@@ -2442,17 +2449,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
           ref = obj.dict[field];
           if(isRef(ref)) {
             if(isRefFrozen(ref)) {
-              ffi.throwMessageException("Update of frozen ref " + field);
+              ffi.throwUpdateFrozenRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
             }
             anns[i] = getRefAnns(ref);
             refs[i] = ref;
           }
           else {
-            ffi.throwMessageException("Update of non-ref field " + field);
+            ffi.throwUpdateNonRef(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
           }
         }
         else {
-          ffi.throwMessageException("Update of non-existent field " + field);
+          ffi.throwUpdateNonExistentField(makeSrcloc(exprloc), obj, makeSrcloc(objloc), field, makeSrcloc(locs[i]));
         }
       }
       function afterCheck() {
@@ -3282,7 +3289,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_minus").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "-", "_minus");
+        ffi.throwNumericBinopError(l, r, "-", "Minus", "_minus");
       }
     };
 
@@ -3295,7 +3302,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_times").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "*", "_times");
+        ffi.throwNumericBinopError(l, r, "*", "Times", "_times");
       }
     };
 
@@ -3311,7 +3318,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             return thisRuntime.getField(l, "_divide").app(r);
           });
       } else {
-        ffi.throwNumericBinopError(l, r, "/", "_divide");
+        ffi.throwNumericBinopError(l, r, "/", "Divide", "_divide");
       }
     };
 
@@ -3380,13 +3387,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
         ffi.throwInvalidArrayIndex(methodName, arr, ix, reason);
       };
       if(ix >= arr.length) {
-        throwErr("index too large; array length was " + arr.length);
+        throwErr("is too large; the array length is " + arr.length);
       }
       if(ix < 0) {
-        throwErr("negative index");
+        throwErr("is a negative number.");
       }
       if(!(num_is_integer(ix))) {
-        throwErr("non-integer index");
+        throwErr("is not an integer.");
       }
     }
 

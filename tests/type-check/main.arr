@@ -117,9 +117,10 @@ check "These should all be bad programs":
 end
 |#
 
+#|
 check "All builtins should have a type":
-  covered = TD.make-default-typs()
-  for each(builtin from CS.standard-globals.values.keys-list()) block:
+  covered = TD.make-default-types()
+  for each(builtin from CS.standard-globals.values.keys-list()):
     builtin-typ = covered.get-now(A.s-global(builtin).key())
     builtin-typ satisfies is-some
     when is-none(builtin-typ):
@@ -127,3 +128,4 @@ check "All builtins should have a type":
     end
   end
 end
+|#

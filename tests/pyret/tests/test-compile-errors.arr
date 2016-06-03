@@ -28,25 +28,25 @@ check:
   end
 
   check "duplicate data fields":
-    c("data Node: node(a, a, a) end") satisfies CS.is-wf-err-split
-    c("data Node: node(a, b, a) end") satisfies CS.is-wf-err-split
-    c("data Node: node(a :: Number, a :: String) end") satisfies CS.is-wf-err-split
-    c("data Node: node(z, a, a, c) end") satisfies CS.is-wf-err-split
+    c("data Node: node(a, a, a) end") satisfies CS.is-duplicate-id
+    c("data Node: node(a, b, a) end") satisfies CS.is-duplicate-id
+    c("data Node: node(a :: Number, a :: String) end") satisfies CS.is-duplicate-id
+    c("data Node: node(z, a, a, c) end") satisfies CS.is-duplicate-id
   end
 
   check "underscore data fields":
-    c("data Node: node(_) end") satisfies CS.is-wf-err
-    c("data Node: node(_, _) end") satisfies CS.is-wf-err
-    c("data Node: node(a, _) end") satisfies CS.is-wf-err
-    c("data Node: node(_, a) end") satisfies CS.is-wf-err
+    c("data Node: node(_) end") satisfies CS.is-underscore-as
+    c("data Node: node(_, _) end") satisfies CS.is-underscore-as
+    c("data Node: node(a, _) end") satisfies CS.is-underscore-as
+    c("data Node: node(_, a) end") satisfies CS.is-underscore-as
   end
 
   check "underscore object fields":
-    c("{_: 5}") satisfies CS.is-wf-err
-    c("data D: n() with: _(self): 5 end end") satisfies CS.is-wf-err
-    c("data D: n() sharing: _(self): 5 end end") satisfies CS.is-wf-err
-    c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-wf-err
-    c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-wf-err
+    c("{_: 5}") satisfies CS.is-underscore-as
+    c("data D: n() with: _(self): 5 end end") satisfies CS.is-underscore-as
+    c("data D: n() sharing: _(self): 5 end end") satisfies CS.is-underscore-as
+    c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-underscore-as
+    c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-underscore-as
   end
 
   check "unbound type ids":

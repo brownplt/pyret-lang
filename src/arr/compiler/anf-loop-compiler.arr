@@ -257,7 +257,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
-    | a-any => c-exp(rt-field("Any"), cl-empty)
+    | a-any(l) => c-exp(rt-field("Any"), cl-empty)
   end
 end
 
@@ -781,10 +781,10 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
       ]),
     new-cases)
 end
-fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
+fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases-loc):
   compiled-body = branch.body.visit(compiler)
   if compiled-body.new-cases.length() < 5:
-    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body)
+    compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc)
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
     branch-args =
@@ -801,7 +801,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
     end
     compiled-branch-fun =
       compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
-    preamble = cases-preamble(compiler, compiled-val, branch)
+    preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
       [clist:
@@ -817,7 +817,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch):
       cl-empty)
   end
 end
-fun cases-preamble(compiler, compiled-val, branch):
+fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
@@ -827,22 +827,22 @@ fun cases-preamble(compiler, compiled-val, branch):
             j-if1(j-binop(branch-given-arity, j-neq, obj-expected-arity),
               j-block([clist:
                   j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity]))]))]),
+                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
         j-block([clist:
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-true]))]))
+                [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block([clist:
               j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-false]))]))
+                  [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))]))
       [clist: checker]
   end
 end
-fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body):
-  preamble = cases-preamble(compiler, compiled-val, branch)
+fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc):
+  preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
   if N.is-a-cases-branch(branch):
     entry-label = compiler.make-label()
     ann-cases = compile-anns(compiler, compiler.cur-step, branch.args.map(get-bind), entry-label)
@@ -880,7 +880,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
   compiled-val = val.visit(compiler).exp
   after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   compiler-after-cases = compiler.{cur-target: after-cases-label}
-  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _))
+  compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _, cases-loc))
   compiled-else = _else.visit(compiler-after-cases)
   branch-labels = branches.map(lam(_): compiler.make-label() end)
   else-label = compiler.make-label()
@@ -913,7 +913,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
     new-cases)
 end
 
-fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
+fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
@@ -926,7 +926,14 @@ fun compile-split-update(compiler, opt-dest, obj :: N.AVal, fields :: List<N.AFi
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-update-label)),
-        j-expr(j-assign(ans, rt-method("checkRefAnns", [clist: compiled-obj, j-list(false, field-names), j-list(false, compiled-field-vals), j-list(false, field-locs)]))),
+        j-expr(j-assign(ans, rt-method("checkRefAnns", 
+          [clist: 
+            compiled-obj,
+            j-list(false, field-names), 
+            j-list(false, compiled-field-vals), 
+            j-list(false, field-locs),
+            compiler.get-loc(loc),
+            compiler.get-loc(obj.l)]))),
         j-break]),
     new-cases)
 
@@ -943,7 +950,7 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
     | a-cases(l2, typ, val, branches, _else) =>
       compile-split-cases(compiler, l2, b, typ, val, branches, _else, opt-body)
     | a-update(l2, obj, fields) =>
-      compile-split-update(compiler, b, obj, fields, opt-body)
+      compile-split-update(compiler, l2, b, obj, fields, opt-body)
     | else => else-case()
   end
 end
@@ -1109,7 +1116,7 @@ compiler-visitor = {
   end,
   a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts)
+    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
   a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)

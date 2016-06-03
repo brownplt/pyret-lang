@@ -110,64 +110,64 @@ check:
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
   e12 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e12) block:
-    e12.expected-arity is 1
-    e12.args.length() is 2
-    e12.fun-loc satisfies S.is-builtin
-    e12.fun-loc.module-name is "num-tostring"
+    e12.fun-def-arity is 1
+    e12.fun-app-args.length() is 2
+    e12.fun-def-loc satisfies S.is-builtin
+    e12.fun-def-loc.module-name is "num-tostring"
   end
   
   e13 = get-err(lam(): P.surface-parse("missing argument") end)
   e13 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e13) block:
-    e13.expected-arity is 2
-    e13.args.length() is 1
-    e13.fun-loc satisfies S.is-builtin
-    e13.fun-loc.module-name is "surface-parse"
+    e13.fun-def-arity is 2
+    e13.fun-app-args.length() is 1
+    e13.fun-def-loc satisfies S.is-builtin
+    e13.fun-def-loc.module-name is "surface-parse"
   end
   
   e14 = get-err(lam(): P.surface-parse("too", "many", "arguments") end)
   e14 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e14) block:
-    e14.expected-arity is 2
-    e14.args.length() is 3
-    e14.fun-loc satisfies S.is-builtin
-    e14.fun-loc.module-name is "surface-parse"
+    e14.fun-def-arity is 2
+    e14.fun-app-args.length() is 3
+    e14.fun-def-loc satisfies S.is-builtin
+    e14.fun-def-loc.module-name is "surface-parse"
   end
   
   e16 = get-err(lam(): F.format("too", "many", "arguments") end)
   e16 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e16) block:
-    e16.expected-arity is 2
-    e16.args.length() is 3
-    e16.fun-loc satisfies S.is-builtin
-    e16.fun-loc.module-name is "format"
+    e16.fun-def-arity is 2
+    e16.fun-app-args.length() is 3
+    e16.fun-def-loc satisfies S.is-builtin
+    e16.fun-def-loc.module-name is "format"
   end
   
   e17 = get-err(lam(): W.big-bang("too", "many", "arguments") end)
   e17 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e17) block:
-    e17.expected-arity is 2
-    e17.args.length() is 3
-    e17.fun-loc satisfies S.is-builtin
-    e17.fun-loc.module-name is "big-bang"
+    e17.fun-def-arity is 2
+    e17.fun-app-args.length() is 3
+    e17.fun-def-loc satisfies S.is-builtin
+    e17.fun-def-loc.module-name is "big-bang"
   end
   
   e18 = get-err(lam(): W.is-world-config("too", "many", "arguments") end)
   e18 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e18) block:
-    e18.expected-arity is 1
-    e18.args.length() is 3
-    e18.fun-loc satisfies S.is-builtin
-    e18.fun-loc.module-name is "is-world-config"
+    e18.fun-def-arity is 1
+    e18.fun-app-args.length() is 3
+    e18.fun-def-loc satisfies S.is-builtin
+    e18.fun-def-loc.module-name is "is-world-config"
   end
   
   e19 = get-err(lam(): W.is-key-equal("too", "many", "arguments") end)
   e19 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e19) block:
-    e19.expected-arity is 2
-    e19.args.length() is 3
-    e19.fun-loc satisfies S.is-builtin
-    e19.fun-loc.module-name is "is-key-equal"
+    e19.fun-def-arity is 2
+    e19.fun-app-args.length() is 3
+    e19.fun-def-loc satisfies S.is-builtin
+    e19.fun-def-loc.module-name is "is-key-equal"
   end
   
   e20 = get-err(lam(): D.to-dict("too", "many", "arguments") end)
@@ -180,97 +180,97 @@ check:
   e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e21) block:
-    e21.expected-arity is 0
-    e21.args.length() is 3
-    e21.fun-loc satisfies S.is-builtin
-    e21.fun-loc.module-name is "make-string-dict"
+    e21.fun-def-arity is 0
+    e21.fun-app-args.length() is 3
+    e21.fun-def-loc satisfies S.is-builtin
+    e21.fun-def-loc.module-name is "make-string-dict"
   end
   
   e22 = get-err(lam(): D.make-mutable-string-dict("too", "many", "arguments") end)
   e22 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e22) block:
-    e22.expected-arity is 0
-    e22.args.length() is 3
-    e22.fun-loc satisfies S.is-builtin
-    e22.fun-loc.module-name is "make-mutable-string-dict"
+    e22.fun-def-arity is 0
+    e22.fun-app-args.length() is 3
+    e22.fun-def-loc satisfies S.is-builtin
+    e22.fun-def-loc.module-name is "make-mutable-string-dict"
   end
   
   e23 = get-err(lam(): FL.open-input-file("too", "many", "arguments") end)
   e23 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e23) block:
-    e23.expected-arity is 1
-    e23.args.length() is 3
-    e23.fun-loc satisfies S.is-builtin
-    e23.fun-loc.module-name is "open-input-file"
+    e23.fun-def-arity is 1
+    e23.fun-app-args.length() is 3
+    e23.fun-def-loc satisfies S.is-builtin
+    e23.fun-def-loc.module-name is "open-input-file"
   end
   
   e24 = get-err(lam(): FL.open-output-file("too", "many", "arguments") end)
   e24 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e24) block:
-    e24.expected-arity is 2
-    e24.args.length() is 3
-    e24.fun-loc satisfies S.is-builtin
-    e24.fun-loc.module-name is "open-output-file"
+    e24.fun-def-arity is 2
+    e24.fun-app-args.length() is 3
+    e24.fun-def-loc satisfies S.is-builtin
+    e24.fun-def-loc.module-name is "open-output-file"
   end
   
   e25 = get-err(lam(): FL.read-file("too", "many", "arguments") end)
   e25 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e25) block:
-    e25.expected-arity is 1
-    e25.args.length() is 3
-    e25.fun-loc satisfies S.is-builtin
-    e25.fun-loc.module-name is "read-file"
+    e25.fun-def-arity is 1
+    e25.fun-app-args.length() is 3
+    e25.fun-def-loc satisfies S.is-builtin
+    e25.fun-def-loc.module-name is "read-file"
   end
   
   e26 = get-err(lam(): FL.display("too", "many", "arguments") end)
   e26 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e26) block:
-    e26.expected-arity is 2
-    e26.args.length() is 3
-    e26.fun-loc satisfies S.is-builtin
-    e26.fun-loc.module-name is "display"
+    e26.fun-def-arity is 2
+    e26.fun-app-args.length() is 3
+    e26.fun-def-loc satisfies S.is-builtin
+    e26.fun-def-loc.module-name is "display"
   end
   
   e27 = get-err(lam(): FL.close-output-file("too", "many", "arguments") end)
   e27 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e27) block:
-    e27.expected-arity is 1
-    e27.args.length() is 3
-    e27.fun-loc satisfies S.is-builtin
-    e27.fun-loc.module-name is "close-output-file"
+    e27.fun-def-arity is 1
+    e27.fun-app-args.length() is 3
+    e27.fun-def-loc satisfies S.is-builtin
+    e27.fun-def-loc.module-name is "close-output-file"
   end
 
   e28 = get-err(lam(): FL.close-input-file("too", "many", "arguments") end)
   e28 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e28) block:
-    e28.expected-arity is 1
-    e28.args.length() is 3
-    e28.fun-loc satisfies S.is-builtin
-    e28.fun-loc.module-name is "close-input-file"
+    e28.fun-def-arity is 1
+    e28.fun-app-args.length() is 3
+    e28.fun-def-loc satisfies S.is-builtin
+    e28.fun-def-loc.module-name is "close-input-file"
   end
 
   data-pred-arity = get-err(lam(): is-Data(1, 2) end)
   data-pred-arity satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(data-pred-arity) block:
-    data-pred-arity.expected-arity is 1
-    data-pred-arity.args.length() is 2
-    data-pred-arity.fun-loc satisfies S.is-srcloc
+    data-pred-arity.fun-def-arity is 1
+    data-pred-arity.fun-app-args.length() is 2
+    data-pred-arity.fun-def-loc satisfies S.is-srcloc
   end
   
   data-var1-arity = get-err(lam(): is-var1(1, 2) end)
   data-var1-arity satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(data-var1-arity) block:
-    data-var1-arity.expected-arity is 1
-    data-var1-arity.args.length() is 2
-    data-var1-arity.fun-loc satisfies S.is-srcloc
+    data-var1-arity.fun-def-arity is 1
+    data-var1-arity.fun-app-args.length() is 2
+    data-var1-arity.fun-def-loc satisfies S.is-srcloc
   end
 
   data-var2-arity = get-err(lam(): is-var2(1, 2) end)
   data-var2-arity satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(data-var2-arity) block:
-    data-var2-arity.expected-arity is 1
-    data-var2-arity.args.length() is 2
-    data-var2-arity.fun-loc satisfies S.is-srcloc
+    data-var2-arity.fun-def-arity is 1
+    data-var2-arity.fun-app-args.length() is 2
+    data-var2-arity.fun-def-loc satisfies S.is-srcloc
   end
 
   data-cases-var1-arity1 = get-err(

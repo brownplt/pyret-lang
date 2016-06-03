@@ -14,9 +14,15 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     if(rt.isSuccessResult(result)) {
       process.exit(0);
     } else if (rt.isFailureResult(result)) {
-      var exnStack = result.exn.stack;
-      var pyretStack = result.exn.pyretStack;
-      if (rt.isPyretException(result.exn)) {
+      var exnStack = result.exn.stack; result.exn.stack = undefined;
+      var pyretStack = result.exn.pyretStack; result.exn.pyretStack = undefined;
+      if (rt.isObject(result.exn.exn)
+        && rt.hasField(result.exn.exn, "value") 
+        && rt.getField(result.exn.exn, "value") === "There were test errors") {
+        console.error(rt.getField(result.exn.exn, "value"));
+        process.exit(1);
+      }
+      else if (rt.isPyretException(result.exn)) {
         rt.run(function(_, _) {
           if(rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
             return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);

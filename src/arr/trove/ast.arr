@@ -137,7 +137,7 @@ data Name:
   | s-atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,
-    tosource(self): PP.str(self.to-compiled()) end,
+    tosource(self): PP.str(self.toname()) end,
     tosourcestring(self): self.to-compiled() end,
     toname(self): self.base end,
     key(self): "atom#" + self.base + "#" + tostring(self.serial) end
@@ -665,6 +665,18 @@ data Expr:
     end
   | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean) with:
     label(self): "s-cases" end,
+    branches-loc(self):
+      first-loc = self.branches.first.l
+      last-loc = self.branches.last().l
+      S.srcloc(
+        self.l.source,
+        first-loc.start-line,
+        first-loc.start-column,
+        first-loc.start-char,
+        last-loc.end-line,
+        last-loc.end-column,
+        last-loc.end-char)
+    end,
     tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + blocky-colon(self.blocky)
@@ -681,7 +693,7 @@ data Expr:
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
-  | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+  | s-op(l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
     label(self): "s-op" end,
     tosource(self):
@@ -771,7 +783,17 @@ data Expr:
       PP.group(self.supe.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
-    end
+    end,
+    field-loc(self):
+      S.srcloc(
+      self.l.source,
+      self.supe.l.end-line,
+      self.supe.l.end-column + 1,
+      self.supe.l.end-char + 1,
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+    end,
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     label(self): "s-update" end,
     tosource(self):
@@ -804,6 +826,29 @@ data Expr:
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     label(self): "s-app" end,
+    args-loc(self):
+      if is-empty(self.args):
+        S.srcloc(
+          self.l.source,
+          self._fun.l.end-line,
+          self._fun.l.end-column,
+          self._fun.l.end-char,
+          self.l.end-line,
+          self.l.end-column,
+          self.l.end-char)
+      else:
+        first = self.args.first.l
+        last = self.args.last().l
+        S.srcloc(
+          self.l.source,
+          first.start-line,
+          first.start-column,
+          first.start-char,
+          last.end-line,
+          last.end-column,
+          last.end-char)
+      end
+    end,
     tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
@@ -848,7 +893,18 @@ data Expr:
     tosource(self): PP.str(torepr(self.s)) end
   | s-dot(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-dot" end,
-    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
+    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end,
+    field-loc(self):
+      S.srcloc(
+      self.obj.l.source,
+      self.l.end-line,
+      self.l.end-column - string-length(self.field),
+      self.l.end-char - string-length(self.field),
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+
+    end
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
     label(self): "s-get-bang" end,
     tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
@@ -1190,7 +1246,7 @@ sharing:
 end
 
 fun ann-loc(ann):
-  if is-a-blank(ann) or is-a-any(ann): dummy-loc
+  if is-a-blank(ann): dummy-loc
   else: ann.l
   end
 end
@@ -1205,37 +1261,37 @@ fun get-op-fun-name(opname):
 end
 
 data CheckOp:
-  | s-op-is with:
+  | s-op-is(l :: Loc) with:
     label(self): "s-op-is" end,
     tosource(self): str-is end
-  | s-op-is-op(op :: String) with:
+  | s-op-is-op(l :: Loc, op :: String) with:
     label(self): "s-op-is-op" end,
     tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-is-not with:
+  | s-op-is-not(l :: Loc) with:
     label(self): "s-op-is-not" end,
     tosource(self): str-is-not end
-  | s-op-is-not-op(op :: String) with:
+  | s-op-is-not-op(l :: Loc, op :: String) with:
     label(self): "s-op-is-not-op" end,
     tosource(self): str-is-not + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-satisfies with:
+  | s-op-satisfies(l :: Loc) with:
     label(self): "s-op-satisfies" end,
     tosource(self): str-satisfies end
-  | s-op-satisfies-not with:
+  | s-op-satisfies-not(l :: Loc) with:
     label(self): "s-op-satisfies-not" end,
     tosource(self): str-satisfies-not end
-  | s-op-raises with:
+  | s-op-raises(l :: Loc) with:
     label(self): "s-op-raises" end,
     tosource(self): str-raises end
-  | s-op-raises-other with:
+  | s-op-raises-other(l :: Loc) with:
     label(self): "s-op-raises-other" end,
     tosource(self): str-raises-other end
-  | s-op-raises-not with:
+  | s-op-raises-not(l :: Loc) with:
     label(self): "s-op-raises-not" end,
     tosource(self): str-raises-not end
-  | s-op-raises-satisfies with:
+  | s-op-raises-satisfies(l :: Loc) with:
     label(self): "s-op-raises-satisfies" end,
     tosource(self): str-raises-satisfies end
-  | s-op-raises-violates with:
+  | s-op-raises-violates(l :: Loc) with:
     label(self): "s-op-raises-violates" end,
     tosource(self): str-raises-violates end
 sharing:
@@ -1248,7 +1304,7 @@ data Ann:
   | a-blank with:
     label(self): "a-blank" end,
     tosource(self): str-any end,
-  | a-any with:
+  | a-any(l :: Loc) with:
     label(self): "a-any" end,
     tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
@@ -1597,8 +1653,8 @@ default-map-visitor = {
     s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(l, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(l, op-l, op, left.visit(self), right.visit(self))
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
@@ -1809,7 +1865,7 @@ default-map-visitor = {
   end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(l, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
@@ -1873,7 +1929,7 @@ default-iter-visitor = {
 
   s-program(self, l, _provide, provided-types, imports, body):
     _provide.visit(self)
-    and lists.all(_.visit(self), provided-types)
+    and provided-types.visit(self)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
@@ -2064,7 +2120,7 @@ default-iter-visitor = {
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
 
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
 
@@ -2264,7 +2320,7 @@ default-iter-visitor = {
   a-blank(self):
     true
   end,
-  a-any(self):
+  a-any(self, l):
     true
   end,
   a-name(self, l, id):
@@ -2523,8 +2579,8 @@ dummy-loc-visitor = {
     s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(dummy-loc, op, left.visit(self), right.visit(self))
+  s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
   s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
@@ -2735,7 +2791,7 @@ dummy-loc-visitor = {
   end,
 
   a-blank(self): a-blank end,
-  a-any(self): a-any end,
+  a-any(self, l): a-any(l) end,
   a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
   a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   a-arrow(self, l, args, ret, use-parens):
