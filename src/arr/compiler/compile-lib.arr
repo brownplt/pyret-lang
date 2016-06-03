@@ -287,8 +287,12 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
       # - One local for calling on-compile with and serializing
       # - One canonicalized for the local cache
       cache.set-now(uri, loadable)
-      options.on-compile(w.locator, loadable)
-      loadable
+      local-loadable = cases(Loadable) loadable:
+        | module-as-string(provides, env, result) =>
+          module-as-string(AU.localize-provides(provides, env), env, result)
+      end
+      options.on-compile(w.locator, local-loadable)
+      local-loadable
     else:
       cache.get-value-now(uri)
     end
@@ -390,7 +394,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
-              mod-result = module-as-string(provides, env, cr.result)
+              mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, cr.result)
               mod-result
             | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
           end

@@ -89,8 +89,9 @@ fun get-cached-if-available(basedir, loc) block:
     #print("It wasn't there\n")
     loc
   else:
+    uri = loc.uri()
     JSF.make-jsfile-locator(saved-path + "-static").{
-      uri(_): loc.uri() end
+      uri(_): uri end
     }
   end
 end

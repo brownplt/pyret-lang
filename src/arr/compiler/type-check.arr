@@ -234,10 +234,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     end
   end
   for each(k from modules.keys-list-now()) block:
-    print("Checking presence of " + k + " in type-defaults\n")
     when not(info.modules.has-key-now(k)) block:
-      print(k + " was not found in type-defaults, adding its types\n")
-
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
       val-provides = t-record(
@@ -910,7 +907,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
     | a-any =>
       fold-result(some(t-top(A.dummy-loc)))
     | a-name(l, id) =>
-      cases(Option<Type>) context.info.aliases.get-now(id.key()):
+      cases(Option<Type>) context.info.aliases.get-now(id.key()) block:
         | some(typ) => fold-result(some(typ.set-loc(l)))
         | none => fold-result(some(t-name(local, id, l)))
       end
@@ -1756,7 +1753,7 @@ fun synthesis-cases-has-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-
 end
 
 fun synthesis-cases-no-else(l :: A.Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: Pair<List<A.CasesBranch>,List<Type>>, context :: Context) -> SynthesisResult:
-  new-cases = A.s-cases(l, ann, new-val, split-result.left)
+  new-cases = A.s-cases(l, ann, new-val, split-result.left, false)
   for synth-bind(branches-typ from meet-branch-typs(split-result.right, context)):
     synthesis-result(new-cases, l, branches-typ.set-loc(l), context)
   end

@@ -985,7 +985,12 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
         | none =>
           if string-index-of(uri, "builtin://") == 0:
             T.t-name(T.module-uri(uri), name, loc)
+          else if uri == provides.from-uri:
+            T.t-name(T.module-uri(uri), name, loc)
           else:
+          # TODO(joe): This should become an error once things are localized again
+
+            #T.t-name(T.module-uri(uri), name, loc)
             raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
           end
         end
@@ -1024,6 +1029,9 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
             if string-index-of(uri, "builtin://") == 0:
               T.t-name(T.module-uri(uri), name, loc)
             else:
+              # TODO(joe): This should become an error once things are localized again
+              #T.t-name(T.module-uri(uri), name, loc)
+
               raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
             end
           end
