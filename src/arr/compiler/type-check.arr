@@ -233,8 +233,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       end
     end
   end
-  for each(k from modules.keys-list-now()):
-    when not(info.modules.has-key-now(k)):
+  for each(k from modules.keys-list-now()) block:
+    print("Checking presence of " + k + " in type-defaults\n")
+    when not(info.modules.has-key-now(k)) block:
+      print(k + " was not found in type-defaults, adding its types\n")
+
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
       val-provides = t-record(
@@ -247,62 +250,35 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           mod.data-definitions,
           mod.aliases)
       info.modules.set-now(key, module-type)
-      #for each(d from mod.data-definitions.keys-list()):
-      #  info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
-      #end
+      for each(d from mod.data-definitions.keys-list()):
+        info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
+      end
     end
   end
   cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
       for each(_import from imports):
         cases(A.Import) _import block:
-          | s-import(_, file, name) =>
-            raise("NYI")
           | s-import-complete(_, vals, types, file, vname, tname) =>
             key = import-to-string(file, compile-env)
             info.mod-names.set-now(tname.key(), key)
-            when not(info.modules.has-key-now(key)) block:
-              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
-              val-provides = t-record(
-                for map(v from mod.values.keys-list()): TS.t-member(v, mod.values.get-value(v), l) end,
-              l)
-              module-type = TS.t-module(
-                  key,
-                  val-provides,
-                  mod.data-definitions,
-                  mod.aliases)
-
-              info.modules.set-now(key, module-type)
-              for each(d from mod.data-definitions.keys-list()):
-                info.data-exprs.set-now(d, mod.data-definitions.get-value(d))
-              end
-            end
             thismod = info.modules.get-value-now(key)
+            thismod-provides = provides-as-dict(thismod.provides)
             info.typs.set-now(vname.key(), thismod.provides)
             info.aliases.set-now(tname.key(), TS.t-top(l))
             for each(a from types):
               cases(Option) thismod.aliases.get(a.toname()):
-                | none => raise("Key " + a.toname() + " not found on " + torepr(thismod))
+                | none => raise("Alias key " + a.toname() + " not found on " + torepr(thismod))
                 | some(v) =>
                   info.aliases.set-now(a.key(), v)
               end
             end
-            # TODO(joe): This is kinda gross, skipping the name binding based on
-            # built-in vs non-built-in module for now, until builtins can accurately
-            # report their types programmatically
-            #when not(A.is-s-const-import(file)):
-              mod = compile-env.mods.get-value(AU.import-to-dep(file).key())
-              for each(v from vals):
-                cases(Option) mod.values.get(v.toname()):
-                  | none =>
-                    cases(Option) provides-as-dict(thismod.provides).get(v.toname()):
-                      | none => nothing # still skipping complete misses for now
-                      | some(typ) => info.typs.set-now(v.key(), typ)
-                    end
-                  | some(typ) => info.typs.set-now(v.key(), typ)
-                end
+            for each(v from vals):
+              cases(Option) thismod-provides.get(v.toname()):
+                | none => raise("Value key " + v.toname() + " not found on " + torepr(thismod-provides))
+                | some(typ) => info.typs.set-now(v.key(), typ)
               end
-            #end
+            end
           | else => raise("typechecker received incomplete import")
         end
       end

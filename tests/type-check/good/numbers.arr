@@ -51,6 +51,5 @@ b(num-within-abs(0.4)(5, 6))
 b(within(0.5)("a", true))
 b(within-rel(0.5)(5, true))
 b(within-abs(0.5)("a", {}))
-b(within-rel-now(0.5)("a", lam(): 5 end))
+b(within-rel-now(0.5)("a", {}))
 b(within-abs-now(0.5)(false, true))
-

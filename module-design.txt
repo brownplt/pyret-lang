@@ -197,6 +197,18 @@ defined-values/defined-types?
 [ ] 36. Make nice handalone/load-lib code for rendering in the presence of errors
         - renderErrorMessage->renderErrorMessageAndExit
 
+[ ] 37. Type checking Q's to repro:
+
+      numbers.arr, line 54ish
+
+      This failed: b(within-rel-now(0.5)("a", lam(): 5 end))
+      This passed: b(within-rel-now(0.5)("a", {}))
+
+      Problem with the Any alias, or something else?
+
+
+
+
 --
 
 New rules for requirejs:

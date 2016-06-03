@@ -310,7 +310,7 @@ define([], function() {
 
     if(typeof typ === "string") {
       if(typ === "tany") {
-        return typ;
+        return "tany";
       }
       else if(prims.indexOf(typ) !== -1) {
         return p(typ);
