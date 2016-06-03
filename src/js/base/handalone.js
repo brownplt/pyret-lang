@@ -69,56 +69,58 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     });
   }
 
-  function renderErrorMessage(execRt, res) {
+  function renderErrorMessageAndExit(execRt, res) {
     var rendererrorMod = execRt.modules["builtin://render-error-display"];
     var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
     var gf = execRt.getField;
     if (execRt.isPyretException(res.exn)) {
       var exnStack = res.exn.stack;
       var pyretStack = res.exn.pyretStack;
-      return execRt.runThunk(
+      execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
             return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
           } else {
             return execRt.ffi.edEmbed(res.exn.exn);
           }
-        }, function(reasonResult) {
+        }, 
+        function(reasonResult) {
           if (execRt.isFailureResult(reasonResult)) {
             console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                           + "\nPyret encountered an error rendering that error:\n" + JSON.stringify(reasonResult)
                           + "\nStack:\n" + JSON.stringify(exnStack)
                           + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
-            return EXIT_ERROR_RENDERING_ERROR;
+            process.exit(EXIT_ERROR_RENDERING_ERROR);
           } else {
-            return execRt.runThunk(
+            execRt.runThunk(
               function() {
                 return gf(gf(rendererror, "values"), "display-to-string").app(
                   reasonResult.result, 
                   execRt.namespace.get("torepr"), 
                   execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
-              }, function(printResult) {
+              }, 
+              function(printResult) {
                 if(execRt.isSuccessResult(printResult)) {
                   console.error(printResult.result);
                   console.error("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack));
-                  return EXIT_ERROR;
+                  process.exit(EXIT_ERROR);
                 } else {
                   console.error(
                       "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                       + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
                       + "\nStack:\n" + JSON.stringify(exnStack)
                       + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
-                  return EXIT_ERROR_DISPLAYING_ERROR;
+                  process.exit(EXIT_ERROR_DISPLAYING_ERROR);
                 }
-              });
+              }, "errordisplay->to-string");
           }
-        });
+        }, "error->display");
     } else if (res.exn && res.exn.stack) {
       console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn, res.exn.stack);
-      return EXIT_ERROR_JS;
+      process.exit(EXIT_ERROR_JS);
     } else {
       console.error("Unknown error result: ", res.exn);
-      return EXIT_ERROR_UNKNOWN;
+      process.exit(EXIT_ERROR_UNKNOWN);
     }
   }
 
@@ -130,8 +132,11 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     }
     else if (runtime.isFailureResult(result)) {
       console.error("The run ended in error:");
-      var exitCode = renderErrorMessage(runtime, result);
-      process.exit(exitCode);
+      try {
+        renderErrorMessageAndExit(runtime, result);
+      } catch(e) {
+        console.error("EXCEPTION!", e);
+      }
     } else {
       console.error("The run ended in an unknown error: ", result);
       console.error(result.exn.stack);
