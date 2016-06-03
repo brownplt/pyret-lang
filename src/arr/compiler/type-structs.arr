@@ -604,7 +604,7 @@ sharing:
   end
 end
 
-builtin-uri = module-uri("builtin")
+builtin-uri = module-uri("builtin://global")
 
 t-array-name = t-name(local, A.s-type-global("RawArray"), A.dummy-loc)
 

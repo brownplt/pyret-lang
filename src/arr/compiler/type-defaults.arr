@@ -134,7 +134,7 @@ fun make-default-typs() block:
   # Number functions
   default-typs.set-now(A.s-global("num-max").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-min").key(), t-number-binop)
-  default-typs.set-now(A.s-global("num-equal").key(), t-number-binop)
+#  default-typs.set-now(A.s-global("num-equal").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-within").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
   default-typs.set-now(A.s-global("num-within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
   default-typs.set-now(A.s-global("num-within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
@@ -159,14 +159,14 @@ fun make-default-typs() block:
   default-typs.set-now(A.s-global("num-to-rational").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-to-roughnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-to-fixnum").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-roughnum").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-positive").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-negative").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-non-positive").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-non-negative").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-fixnum").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-roughnum").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-positive").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-negative").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-non-positive").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-non-negative").key(), t-arrow([list: t-number], t-number))
+#  default-typs.set-now(A.s-global("num-is-fixnum").key(), t-arrow([list: t-number], t-number))
   default-typs.set-now(A.s-global("num-expt").key(), t-number-binop)
   default-typs.set-now(A.s-global("num-tostring").key(), t-arrow([list: t-number], t-string))
   default-typs.set-now(A.s-global("num-to-string").key(), t-arrow([list: t-number], t-string))
@@ -193,7 +193,7 @@ fun make-default-typs() block:
   default-typs.set-now(A.s-global("string-append").key(), t-arrow([list: t-string, t-string], t-string))
   default-typs.set-now(A.s-global("string-equal").key(), t-arrow([list: t-string, t-string], t-boolean))
   default-typs.set-now(A.s-global("string-contains").key(), t-arrow([list: t-string, t-string], t-boolean))
-  default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-number))
+#  default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-number))
   default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
   default-typs.set-now(A.s-global("string-length").key(), t-arrow([list: t-string], t-number))
   default-typs.set-now(A.s-global("string-replace").key(), t-arrow([list: t-string, t-string, t-string], t-string))
@@ -231,6 +231,7 @@ end
 
 fun make-default-data-exprs() block:
   default-data-exprs = SD.make-mutable-string-dict()
+  #|
   default-data-exprs.set-now(A.s-type-global("RawArray").key(),
     t-data([list: t-var(s-atom("A", 10))], empty, empty))
   default-data-exprs.set-now(A.s-type-global("Number").key(),
@@ -241,6 +242,7 @@ fun make-default-data-exprs() block:
     t-data(empty, empty, empty))
   default-data-exprs.set-now(A.s-type-global("Nothing").key(),
     t-data(empty, empty, empty))
+  |#
   default-data-exprs
 end
 
