@@ -88,28 +88,3 @@ check:
   # ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   # ans2.v satisfies L.is-success-result
 end
-
-
-
-
-check:
-  l = B.builtin-locator-from-string(```
-    {
-      requires: [],
-      provides: {
-        values: { x: "Number" }
-      },
-      nativeModules: [],
-      theModule: function() {}
-    }
-  ```)
-
-  p = CS.provides-from-raw-provides("test-provides", l.raw-provides())
-
-  p is CS.provides("test-provides",
-    [string-dict:
-      "x", T.t-name(T.dep(CS.dependency("builtin" [list: "global"])), A.s-global("Number"), A.dummy-loc)
-    ],
-    [string-dict:],
-    [string-dict:])
-end

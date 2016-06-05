@@ -154,7 +154,7 @@ fun tvariant-from-raw(uri, tvariant, env):
         # TODO(joe): Exporting ref fields?
         T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
       end
-      T.t-variant(tvariant.name, members, empty, l)
+      T.t-variant(tvariant.name, members, empty)
     | t == "singleton-variant" then:
       T.t-singleton-variant(tvariant.name, empty, l)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
