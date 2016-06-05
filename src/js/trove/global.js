@@ -111,22 +111,6 @@
 
     },
     aliases: {
-      "Number": ["local", "Number"],
-      "Exactnum": ["local", "Exactnum"],
-      "Roughnum": ["local", "Roughnum"],
-      "NumInteger": ["local", "NumInteger"],
-      "NumRational": ["local", "NumRational"],
-      "NumPositive": ["local", "NumPositive"],
-      "NumNegative": ["local", "NumNegative"],
-      "NumNonPositive": ["local", "NumNonPositive"],
-      "NumNonNegative": ["local", "NumNonNegative"],
-      "String": ["local", "String"],
-      "Function": ["local", "Function"],
-      "Boolean": ["local", "Boolean"],
-      "Object": ["local", "Object"],
-      "Method": ["local", "Method"],
-      "Nothing": ["local", "Nothing"],
-      "RawArray": ["local", "RawArray"],
       "Any": "tany"
     },
     datatypes: {
@@ -141,7 +125,7 @@
       "NumNonNegative": ["data", "NumNonNegative", [], [], {}],
       "String": ["data", "String", [], [], {}],
       "Function": ["data", "Function", [], [], {}],
-      "Boolean": ["data", "Boolean", [], [], {}],
+      "DBoolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],
       "Method": ["data", "Method", [], [], {}],
       "Nothing": ["data", "Nothing", [], [], {}],
