@@ -257,11 +257,6 @@ define([], function() {
         args: [ expandType(arg, shorthands) ]
       };
     }
-    /*
-    { "import-type": "dependency",
-      "protocol": "js-file",
-      "args": ["./image-lib"] }
-    */
     var iA = Array.isArray;
     var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
 

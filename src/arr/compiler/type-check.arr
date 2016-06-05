@@ -271,7 +271,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 end
 
 fun checking(e, expect-typ, top-level, context):
-  result = _checking(e, expect-typ, top-level, context)
+  result = _checking(e, resolve-alias(expect-typ, context), top-level, context)
   #print("")
   #print("checking:")
   #each(print, e.tosource().pretty(72))
