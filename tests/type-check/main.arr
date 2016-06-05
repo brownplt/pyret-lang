@@ -40,9 +40,10 @@ fun dfind(ctxt, dep):
   CL.located(l, nothing)
 end
 
-compile-str = lam(filename, str):
-  l = string-to-locator(filename, str)
-  wlist = CL.compile-worklist(dfind, l, {})
+compile-str = lam(filename):
+  base-module = CS.dependency("file", [list: filename])
+  base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
+  wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List) errors:
@@ -50,28 +51,6 @@ compile-str = lam(filename, str):
       E.right(result.loadables)
     | link(_, _) =>
       E.left(errors.map(_.result-printer))
-  end
-end
-
-var realm = L.empty-realm()
-r = R.make-runtime()
-
-fun compile-program(path):
-  base-module = CS.dependency("file", [list: path])
-  base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
-  result = CL.compile-and-run-locator(
-    base.locator,
-    CLI.module-finder,
-    base.context,
-    realm,
-    r,
-    [SD.mutable-string-dict:],
-    CS.default-compile-options.{type-check: true})
-  cases(E.Either) result block:
-    | left(err) => result
-    | right(answer) =>
-      realm := L.get-result-realm(answer)
-      result
   end
 end
 
@@ -86,7 +65,7 @@ check "These should all be good programs":
     when is-arr-file(prog) block:
       #print("Running test for: " + prog + "\n")
       filename = base + prog
-      result = compile-program(filename)
+      result = compile-str(filename)
       result satisfies E.is-right
       when E.is-left(result):
         "Should be okay: " is filename
@@ -95,14 +74,13 @@ check "These should all be good programs":
   end
 end
 
-#|
 check "These should all be bad programs":
   base = "./tests/type-check/bad/"
   bad-progs = FL.list-files(base)
   for each(prog from bad-progs):
     when is-arr-file(prog) block:
       filename  = base + prog
-      result = compile-program(filename)
+      result = compile-str(filename)
       result satisfies E.is-left
       cases(E.Either) result:
         | right(_) =>
@@ -115,7 +93,6 @@ check "These should all be bad programs":
     end
   end
 end
-|#
 
 #|
 check "All builtins should have a type":
