@@ -49,7 +49,8 @@ fun mockable-file-locator(file-ops):
         CS.standard-imports
       end,
       get-globals(self): self.globals end,
-      set-compiled(self, cr, deps):
+      set-compiled(self, cr, deps) block:
+        ast := nothing
         nothing
       end,
       needs-compile(self, provides):

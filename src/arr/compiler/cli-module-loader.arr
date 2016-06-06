@@ -90,8 +90,12 @@ fun get-cached-if-available(basedir, loc) block:
     loc
   else:
     uri = loc.uri()
+    raw-module = B.builtin-raw-locator(saved-path + "-module")
     JSF.make-jsfile-locator(saved-path + "-static").{
-      uri(_): uri end
+      uri(_): uri end,
+      get-compiled(_):
+        raw-module.get-compiled()
+      end
     }
   end
 end
@@ -269,6 +273,7 @@ fun build-program(path, options) block:
   shadow options = options.{
     compile-module: true,
     on-compile: lam(locator, loadable) block:
+      locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       num-compiled := num-compiled + 1
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled " + "(" + locator.name() + ")")
       when num-compiled == total-modules:

@@ -75,7 +75,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
     uri(_): "builtin://" + builtin-name end,
     name(_): builtin-name end,
 
-    set-compiled(_, _): nothing end,
+    set-compiled(_, _, _): nothing end,
     get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
@@ -127,15 +127,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     get-globals(self):
       CM.standard-globals
     end,
-    set-compiled(self, cr, deps):
-      cases(CM.CompileResult) cr.result-printer block:
-        | ok(ccp) =>
-          cpath = path + ".js"
-          f = F.output-file(cpath, false)
-          f.display(ccp.pyret-to-js-runnable())
-          f.close-file()
-        | err(_) => nothing
-      end
+    set-compiled(self, cr, deps) block:
+      ast := nothing
+      nothing
     end,
     needs-compile(self, provides):
       # does not handle provides from dependencies currently
