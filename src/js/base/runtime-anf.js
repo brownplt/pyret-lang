@@ -2711,6 +2711,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var thisAnn;
         return safeCall(function() {
           var thisChecker = remainingAnns.pop();
+          thisAnn = thisChecker;
           return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
         }, function(result) {
           if(ffi.isOk(result)) {
@@ -2718,8 +2719,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else { return deepCheckFields(remainingAnns); }
           }
           else if(ffi.isFail(result)) {
-            //return that.createRecordFailureError(compilerLoc, val, thisAnn, result);
-            return ffi.throwMessageException("types are wrong");
+            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            //return ffi.throwMessageException("types are wrong");
           }
         },
         "deepCheckFields");
@@ -2727,6 +2728,23 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if(that.anns.length === 0) { return ffi.contractOk; }
       else { return deepCheckFields(that.anns.slice()); }
     }
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
+      var that = this;
+      var loc;
+      for(var i = 0; i < that.anns.length; i++) {
+        if(that.anns[i] === ann) { loc = that.locs[i]; }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeTupleAnnsFail(val, ffi.makeList([
+            ffi.makeAnnFailure(
+              makeSrcloc(loc),
+              ann,
+              getField(result, "reason")
+            )
+          ]))
+      );
+    };
     function PRecordAnn(fields, locs, anns) {
       this.fields = fields;
       this.locs = locs;

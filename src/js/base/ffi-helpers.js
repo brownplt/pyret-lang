@@ -330,10 +330,19 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return contract("record-fields-fail")(value, failures);
       }
 
+      function makeTupleAnnsFail(value, failures) {
+        return contract("tuple-anns-fail")(value, failures);
+      }
+
       function makeFieldFailure(loc, field, reason) {
         checkSrcloc(loc);
         runtime.checkString(field);
         return contract("field-failure")(loc, field, reason);
+      }
+
+      function makeAnnFailure(loc, ann, reason) {
+        checkSrcloc(loc);
+        return contract("ann-failure")(loc, ann, reason);
       }
 
       function makeMissingField(loc, field) {
@@ -414,6 +423,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         makeFieldFailure: makeFieldFailure,
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
+        makeTupleAnnsFail: makeTupleAnnsFail,
+        makeAnnFailure: makeAnnFailure,
         makeRefInitFail: makeRefInitFail,
         makePredicateFailure: makePredicateFailure,
         makeDotAnnNotPresent: makeDotAnnNotPresent,

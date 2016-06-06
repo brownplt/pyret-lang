@@ -37,6 +37,14 @@ data FieldFailure:
           ED.text(", field "), ED.code(ED.text(self.field)), ED.text(" failed because")],
         self.reason.render-reason(loc, from-fail-arg)]
     end
+  | ann-failure(loc, ann, reason) with:
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para-nospace: ED.text("The annotation at "), draw-and-highlight(self.loc),
+         ED.text(" failed because")],
+        self.reason.render-reason(loc, from-fail-arg)]
+    end
+
   | missing-field(loc, field) with:
     render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -196,6 +204,58 @@ data FailureReason:
         ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
       ]
     end
+  | tuple-anns-fail(val, anns-failures :: L.List<FieldFailure>) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      var n = 0
+      reasons =
+        self.anns-failures.map(lam(failure):
+          cases(FieldFailure) failure:
+            | missing-field(fl, ff) =>
+              n := n + 1
+              [ED.error:
+                [ED.para:
+                  ED.text("The value was excepted to have an ann named "),
+                  ED.code(ED.text(ff)),
+                  ED.text(" because of the tuple annotation ")],
+                ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]
+            |ann-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
+          end;) ^ ED.bulleted-sequence
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the "),
+              ED.text("tuple annotation"),
+              ED.text(" was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 0)),
+            [ED.para:
+              ED.text("because:")],
+            reasons]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the "),
+            ED.text("tuple annotation"),
+            ED.text(" was not satisfied by the value")],
+           ED.embed(self.val),
+          [ED.para:
+            ED.text("because:")],
+          reasons])
+    end,
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple annotation at "),
+          ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
+          ED.text("failed on this value:")],
+        ED.embed(self.val),
+        [ED.para: ED.text("Because:")],
+        ED.bulleted-sequence(self.anns-failures.map(_.render-reason(loc, false)))
+      ]
+    end
   | dot-ann-not-present(name, field) with:
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       [ED.error:
@@ -211,7 +271,7 @@ data FailureReason:
             ED.text(self.field)]),
         [ED.para:
           ED.text("expects that the type named "),
-          ED.code(ED.text(self.field)),
+         ED.code(ED.text(self.field)),
           ED.text(" exists in the object named "),
           ED.code(ED.text(self.name)),
           ED.text(", but "),
