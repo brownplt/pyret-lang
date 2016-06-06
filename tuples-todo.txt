@@ -59,8 +59,10 @@
 
 [ ] Annotation checking
   [x] Ann-mismatch for a single element
-  [ ] Length-mismatch for the whole tuple
-  [ ] Add tests to test-contracts
+  [ ] *Length-mismatch for the whole tuple
+  [ ] *Add tests to tests/pyret/tests/test-contracts.arr
+
+[ ] Presentation
 
 [ ] Type checking
   [ ] Add a new type
