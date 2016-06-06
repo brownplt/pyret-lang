@@ -125,7 +125,7 @@
       "NumNonNegative": ["data", "NumNonNegative", [], [], {}],
       "String": ["data", "String", [], [], {}],
       "Function": ["data", "Function", [], [], {}],
-      "DBoolean": ["data", "Boolean", [], [], {}],
+      "Boolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],
       "Method": ["data", "Method", [], [], {}],
       "Nothing": ["data", "Nothing", [], [], {}],
