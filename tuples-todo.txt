@@ -57,9 +57,39 @@
 [x] *Setup workflow
 [ ] Investigate highlighting of tuple index in errors (@jack)
 
+[ ] Annotation checking
+  [x] Ann-mismatch for a single element
+  [ ] Length-mismatch for the whole tuple
+  [ ] Add tests to test-contracts
+
 [ ] Type checking
   [ ] Add a new type
   [ ] Add synth/check
+  [ ] Add tests to tests/type-check/[good|bad]/
+  Tests:
+
+        # Bad (now)
+        x = {1; 2}
+        y :: Number = x
+
+
+        # Bad (not yet)
+        x :: {Boolean; Boolean} = {3; 4}
+
+
+        # Bad (now)
+        x :: Number = {3; 4}
+
+
+
+        # Good (not yet)
+        fun f(t :: { Boolean; Number}):
+          t
+        end
+
+        f({true; 3})
+
+
 
 [x] DOM - printing of tuples
 [ ] Heroku setup - finish
