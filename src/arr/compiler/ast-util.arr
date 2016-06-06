@@ -923,6 +923,7 @@ fun canonicalize-names(typ :: T.Type, uri :: URI) -> T.Type:
       end
     | t-var(id, l) => typ
     | t-arrow(args, ret, l) => T.t-arrow(map(c, args), c(ret), l)
+    | t-tuple(elts, l) => T.t-tuple(map(c, elts), l)
     | t-app(onto, args, l) => T.t-app(c(onto), map(c, args), l)
     | t-top(l) => T.t-top(l)
     | t-bot(l) => T.t-bot(l)

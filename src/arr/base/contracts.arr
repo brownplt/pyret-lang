@@ -214,7 +214,7 @@ data FailureReason:
               n := n + 1
               [ED.error:
                 [ED.para:
-                  ED.text("The value was excepted to have an ann named "),
+                  ED.text("The value was excepted to have the annotation "),
                   ED.code(ED.text(ff)),
                   ED.text(" because of the tuple annotation ")],
                 ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]

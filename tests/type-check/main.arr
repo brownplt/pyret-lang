@@ -66,6 +66,7 @@ check "These should all be good programs":
   good-progs = FL.list-files(base)
   for each(prog from good-progs):
     when is-arr-file(prog):
+      print("current program is: " + prog)
       filename = base + prog
       result = compile-program(filename)
       result satisfies E.is-right

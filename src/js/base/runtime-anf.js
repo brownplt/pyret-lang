@@ -2704,7 +2704,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
           );
       }
       if(that.anns.length != val.vals.length) {
-       return ffi.throwMessageException("lengths not equal");
+       //return ffi.throwMessageException("lengths not equal");
+       return ffi.makeMissingField(makeSrcloc(compilerLoc), val);
       }
 
       function deepCheckFields(remainingAnns) {
