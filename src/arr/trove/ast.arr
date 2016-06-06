@@ -507,7 +507,7 @@ data Expr:
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-let, str-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
-          + blocky-colon(self.block)
+          + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr, blocky :: Boolean) with:
@@ -515,7 +515,7 @@ data Expr:
     tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-letrec, str-letrec + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
-          + blocky-colon(self.block)
+          + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:

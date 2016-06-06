@@ -195,6 +195,12 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
+      else if protocol == "file-no-cache":
+        clp = ctxt.current-load-path
+        this-path = dep.arguments.get(0)
+        real-path = P.join(clp, this-path)
+        new-context = ctxt.{current-load-path: P.dirname(real-path)}
+        CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
       else if protocol == "js-file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)

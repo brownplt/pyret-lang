@@ -90,7 +90,7 @@ data PyretCode:
 end
 
 data Loadable:
-  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
+  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer)
   # Doesn't need compilation, just contains a JS closure
   | pre-loaded(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
@@ -394,7 +394,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
-              mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, cr.result)
+              r = if options.collect-all: cr else: cr.result end
+              mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, r)
               mod-result
             | err(_) => module-as-string(dummy-provides(locator.uri()), env, type-checked) #phase("Result", type-checked, ret)
           end
