@@ -350,6 +350,11 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(field);
         return contract("missing-field")(loc, field);
       }
+      
+      function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+        checkSrcloc(loc);
+        return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
+      }
 
       function makeTypeMismatch(val, name) {
         runtime.checkString(name);
@@ -424,6 +429,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
         makeTupleAnnsFail: makeTupleAnnsFail,
+        makeTupleLengthMismatch: makeTupleLengthMismatch,
         makeAnnFailure: makeAnnFailure,
         makeRefInitFail: makeRefInitFail,
         makePredicateFailure: makePredicateFailure,

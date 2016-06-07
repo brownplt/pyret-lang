@@ -197,7 +197,7 @@ data FailureReason:
       [ED.error:
         [ED.para:
           ED.text("The record annotation at "),
-          ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
+          ED.loc-display(loc, "error-highlight", ED.code(ED.text("this annotation"))),
           ED.text("failed on this value:")],
         ED.embed(self.val),
         [ED.para: ED.text("Because:")],
@@ -248,7 +248,7 @@ data FailureReason:
     render-reason(self, loc, from-fail-arg):
       [ED.error:
         [ED.para:
-          ED.text("The tuple annotation at "),
+          ED.text("The tuple annotation "),
           ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
           ED.text("failed on this value:")],
         ED.embed(self.val),
@@ -256,6 +256,32 @@ data FailureReason:
         ED.bulleted-sequence(self.anns-failures.map(_.render-reason(loc, false)))
       ]
     end
+  | tup-length-mismatch(loc, val, annLength, tupleLength) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+    [ED.error:
+      [ED.para:
+        ED.text("The tuple annotation "),
+         ED.loc-display(self.loc, "error-highlight", ED.text(loc-to-src(self.loc))),
+       # ED.highlight(ED.text(" annotation "), [ED.locs: self.loc], 0),
+         ED.text(" expected the given tuple to be of length "),
+         ED.embed(self.annLength)],
+       [ED.para:
+         ED.text("The given tuple had the incorrect length of "),
+         ED.embed(self.tupleLength)]
+     ]
+     end,
+     render-reason(self, loc, fail-from-arg):
+    [ED.error:
+      [ED.para:
+        ED.text("The tuple annotation at "),
+         ED.embed(self.loc),
+         ED.text(" expected the given tuple to be of length "),
+         ED.embed(self.annLength)],
+       [ED.para:
+         ED.text("The given tuple had the incorrect length of "),
+         ED.embed(self.tupleLength)]
+     ] 
+     end
   | dot-ann-not-present(name, field) with:
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       [ED.error:

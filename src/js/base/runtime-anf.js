@@ -2705,7 +2705,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       if(that.anns.length != val.vals.length) {
        //return ffi.throwMessageException("lengths not equal");
-       return ffi.makeMissingField(makeSrcloc(compilerLoc), val);
+       return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
 
       function deepCheckFields(remainingAnns) {
@@ -2729,6 +2729,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
       if(that.anns.length === 0) { return ffi.contractOk; }
       else { return deepCheckFields(that.anns.slice()); }
     }
+    PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
+      return ffi.contractFail(compilerLoc, ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+    };
     PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
       var that = this;
       var loc;
@@ -2746,6 +2749,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
           ]))
       );
     };
+
+   /* PTupleAnn.prototype.createTupleLengthMismatch = function(loc, val, annLength, tupLength) {
+        ffi.contractFail(loc, ffi.makeTupleLengthMismatch(loc, val, annLength, tupleLength);
+    }; */
+
+    
     function PRecordAnn(fields, locs, anns) {
       this.fields = fields;
       this.locs = locs;

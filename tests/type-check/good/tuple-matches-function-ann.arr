@@ -1,4 +1,4 @@
-fun f(t :: {Boolean; String}):
+fun f(t :: {Boolean; Number}):
    t
 end
 
