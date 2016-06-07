@@ -1238,7 +1238,7 @@ data TableExtendField:
         end
       PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.value.tosource())
     end
-  | s-table-extend-reducer(l :: Loc, name :: String, reducer :: Expr, col :: String, ann :: Ann) with:
+  | s-table-extend-reducer(l :: Loc, name :: String, reducer :: Expr, col :: Name, ann :: Ann) with:
     label(self): "s-table-extend-reducer" end,
     tosource(self):
       name-part = PP.str(self.name)
@@ -2039,9 +2039,9 @@ default-map-visitor = {
   s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
     s-table-extend-field(l, name, value.visit(self), ann.visit(self))
   end,
-  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
     s-table-extend-reducer(l, name, reducer.visit(self),
-      col, ann.visit(self))
+      col.visit(self), ann.visit(self))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,
@@ -2525,8 +2525,8 @@ default-iter-visitor = {
   s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
     value.visit(self) and ann.visit(self)
   end,
-  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
-    reducer.visit(self) and ann.visit(self)
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
+    reducer.visit(self) and col.visit(self) and ann.visit(self)
   end,
   a-blank(self):
     true
@@ -3028,9 +3028,9 @@ dummy-loc-visitor = {
   s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
     s-table-extend-field(dummy-loc, name.visit(self), value.visit(self), ann.visit(self))
   end,
-  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: String, ann :: Ann):
+  s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
     s-table-extend-reducer(dummy-loc, name.visit(self), reducer.visit(self),
-      col, ann.visit(self))
+      col.visit(self), ann.visit(self))
   end,
   a-blank(self): a-blank end,
   a-any(self, l): a-any(l) end,

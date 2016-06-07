@@ -641,12 +641,17 @@ fun desugar-expr(expr :: A.Expr):
               acc = accs.get-value(name)
               # Dereferenced accumulator
               acc-id-e = A.s-id-var(acc.id-e.l, acc.id-e.id)
-              col-id = find(lam(x): x.name.s == col end, columns)
+              col-id = find(lam(x): x.name.s == col.s end, columns)
               # Lift from Option monad
-              when is-none(col-id):
-                raise("Impossible")
+              shadow col-id = cases(Option) col-id:
+                | none => # Dummy values; will end up unbound
+                  # (TODO: Figure out how to make only one 'unbound' error show up
+                  # since the desugaring produces the unbound column twice)
+                  {id: col,
+                    id-b: A.s-bind(l, false, col, A.a-blank),
+                    id-e: A.s-id(l, col)}
+                | some(v) => v.val
               end
-              shadow col-id = col-id.value.val
               if is-first:
                 A.s-block(A.dummy-loc,
                   [list:

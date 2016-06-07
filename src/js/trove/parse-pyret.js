@@ -810,12 +810,12 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               // (key COLON expr OF binding)
               return RUNTIME.getField(ast, 's-table-extend-reducer')
                 .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
-                     symbol(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
+                     name(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
             } else if (node.kids.length === 7) {
               // (key COLONCOLON ann COLON expr OF binding)
               return RUNTIME.getField(ast, 's-table-extend-reducer')
                 .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
-                     symbol(node.kids[6]), tr(node.kids[2]));
+                     name(node.kids[6]), tr(node.kids[2]));
             }
           },
           'construct-modifier': function(node) {

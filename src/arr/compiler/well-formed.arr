@@ -59,7 +59,8 @@ reserved-names = [SD.string-dict:
   "match", true,
   "case", true,
   "with", true,
-  "__proto__", true
+  "__proto__", true,
+  "table", true
 ]
 
 
