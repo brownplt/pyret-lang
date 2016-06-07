@@ -2,6 +2,13 @@
 define(["js/runtime-util"], function(util) {
 
   return util.memoModule("world-lib", function(runtime, namespace) {
+    var _worldIndex = 0;
+
+    var getNewWorldIndex = function() {
+        _worldIndex++;
+        return _worldIndex;
+    }
+
     var rawJsworld = {};
 
     // Stuff here is copy-and-pasted from Chris King's JSWorld.
@@ -59,24 +66,63 @@ define(["js/runtime-util"], function(util) {
     function InitialWorld() {}
 
     var world = new InitialWorld();
-    var worldListeners = [];
-    var eventDetachers = [];
+    var worldListenersStack = [];
+    var eventDetachersStack = [];
+    var worldIndexStack = [];
     var runningBigBangs = [];
 
-    var changingWorld = false;
+    var worldIndex = null;
+    var worldListeners = null;
+    var eventDetachers = null;
+    var changingWorld = [];
 
 
 
     function clear_running_state() {
-        var i;
+        worldIndexStack = [];
+        worldIndex = null;
         world = new InitialWorld();
-        worldListeners = [];
+        worldListenersStack = [];
+        worldListeners = null;
 
-        for (i = 0; i < eventDetachers.length; i++) {
-                eventDetachers[i]();
+        eventDetachersStack.forEach(function(eventDetachers) {
+            eventDetachers.forEach(function(eventDetacher) {
+                eventDetacher();
+            });
+        });
+        eventDetachersStack = [];
+        eventDetachers = null;
+        changingWorld = [];
+    }
+
+    function resume_running_state() {
+        worldIndexStack.pop();
+        if (worldIndexStack.length > 0) {
+            worldIndex = worldIndexStack[worldIndexStack.length - 1];
+        } else {
+            worldIndex = null;
         }
-        eventDetachers = [];
-        changingWorld = false;
+        if(runningBigBangs.length > 0) {
+            world = runningBigBangs[runningBigBangs.length - 1].world;
+        } else {
+            world = new InitialWorld();
+        }
+        worldListenersStack.pop();
+        if (worldListenersStack.length > 0) {
+            worldListeners = worldListenersStack[worldListenersStack.length - 1];
+        } else {
+            worldListeners = null;
+        }
+
+        eventDetachersStack.pop().forEach(function(eventDetacher){
+            eventDetacher();
+        });
+        if (eventDetachersStack.length > 0) {
+            eventDetachers = eventDetachersStack[eventDetachersStack.length - 1];
+        } else {
+            eventDetachers = null;
+        }
+        changingWorld.pop();
     }
 
 
@@ -85,7 +131,7 @@ define(["js/runtime-util"], function(util) {
     Jsworld.shutdown = function(options) {
         while(runningBigBangs.length > 0) {
             var currentRecord = runningBigBangs.pop();
-            if (currentRecord) { currentRecord.pause(); }
+            currentRecord.pause();
             if (options.cleanShutdown) {
                 currentRecord.success(world);
             }
@@ -96,6 +142,23 @@ define(["js/runtime-util"], function(util) {
         clear_running_state();
     };
 
+    // Close all world computations.
+    Jsworld.shutdownSingle = function(options) {
+        if(runningBigBangs.length > 0) {
+            var currentRecord = runningBigBangs.pop();
+            currentRecord.pause();
+            if (options.cleanShutdown) {
+                currentRecord.success(world);
+            }
+            if (options.errorShutdown) {
+                currentRecord.fail(options.errorShutdown);
+            }
+        }
+        resume_running_state();
+        if(runningBigBangs.length > 0) {
+            runningBigBangs[runningBigBangs.length - 1].start();
+        }
+    };
 
 
     function add_world_listener(listener) {
@@ -128,7 +191,7 @@ define(["js/runtime-util"], function(util) {
         // Check to see if we're in the middle of changing
         // the world already.  If so, put on the queue
         // and exit quickly.
-        if (changingWorld) {
+        if (changingWorld[changingWorld.length - 1]) {
             setTimeout(
                 function() {
                     change_world(updater, k);
@@ -138,7 +201,7 @@ define(["js/runtime-util"], function(util) {
         }
 
 
-        changingWorld = true;
+        changingWorld[changingWorld.length - 1] = true;
         var originalWorld = world;
 
         var changeWorldHelp;
@@ -148,12 +211,12 @@ define(["js/runtime-util"], function(util) {
                          listener(world, originalWorld, k2);
                      },
                      function(e) {
-                         changingWorld = false;
+                         changingWorld[changingWorld.length - 1] = false;
                          world = originalWorld;
-                         throw e; 
+                         throw e;
                      },
                      function() {
-                         changingWorld = false;
+                         changingWorld[changingWorld.length - 1] = false;
                          k();
                      });
         };
@@ -164,7 +227,7 @@ define(["js/runtime-util"], function(util) {
                 changeWorldHelp();
             });
         } catch(e) {
-            changingWorld = false;
+            changingWorld[changingWorld.length - 1] = false;
             world = originalWorld;
             return Jsworld.shutdown({errorShutdown: e});
         }
@@ -604,8 +667,13 @@ define(["js/runtime-util"], function(util) {
         this.fail = fail;
     }
 
-    BigBangRecord.prototype.restart = function() {
-        bigBang(this.top, this.world, this.handlerCreators, this.attribs);
+    BigBangRecord.prototype.start = function() {
+      var i;
+      for(i = 0 ; i < this.handlers.length; i++) {
+          if (! (this.handlers[i] instanceof StopWhenHandler)) {
+              this.handlers[i].onRegister(this.top);
+          }
+      }
     };
 
     BigBangRecord.prototype.pause = function() {
@@ -628,19 +696,27 @@ define(["js/runtime-util"], function(util) {
     // init_world: any
     // handlerCreators: (Arrayof (-> handler))
     // k: any -> void
-    bigBang = function(top, init_world, handlerCreators, attribs, succ, fail) {
+    bigBang = function(top, init_world, handlerCreators, attribs, succ, fail, extras) {
+        var thisWorldIndex = getNewWorldIndex();
+        worldIndexStack.push(thisWorldIndex);
+        worldIndex = thisWorldIndex;
         var i;
         // clear_running_state();
 
         // Construct a fresh set of the handlers.
-        var handlers = map(handlerCreators, function(x) { return x();} );
+        var handlers = map(handlerCreators, function(x) { return x(thisWorldIndex);} );
         if (runningBigBangs.length > 0) {
             runningBigBangs[runningBigBangs.length - 1].pause();
         }
+        changingWorld.push(false);
+        worldListeners = [];
+        worldListenersStack.push(worldListeners);
+        eventDetachers = [];
+        eventDetachersStack.push(eventDetachers);
 
         // Create an activation record for this big-bang.
         var activationRecord =
-            new BigBangRecord(top, init_world, handlerCreators, handlers, attribs, 
+            new BigBangRecord(top, init_world, handlerCreators, handlers, attribs,
                               succ, fail);
         runningBigBangs.push(activationRecord);
         function keepRecordUpToDate(w, oldW, k2) {
@@ -657,17 +733,25 @@ define(["js/runtime-util"], function(util) {
         for(i = 0 ; i < handlers.length; i++) {
             if (handlers[i] instanceof StopWhenHandler) {
                 stopWhen = handlers[i];
-            } else {
-                handlers[i].onRegister(top);
             }
         }
+        activationRecord.start();
         var watchForTermination = function(w, oldW, k2) {
+            if (thisWorldIndex != worldIndex) { return; }
             stopWhen.test(w,
                           function(stop) {
-                              if (stop) {
-                                  Jsworld.shutdown({cleanShutdown: true});
+                              if (!stop) {
+                                  k2();
+                              } else {
+                                  if (extras.closeWhenStop) {
+                                      if (extras.closeBigBangWindow) {
+                                          extras.closeBigBangWindow();
+                                      }
+                                      Jsworld.shutdownSingle({cleanShutdown: true});
+                                  } else {
+                                      activationRecord.pause();
+                                  }
                               }
-                              else { k2(); }
                           });
         };
         add_world_listener(watchForTermination);
@@ -685,11 +769,12 @@ define(["js/runtime-util"], function(util) {
 
     // on_tick: number CPS(world -> world) -> handler
     var on_tick = function(delay, tick) {
-        return function() {
+        return function(thisWorldIndex) {
             var scheduleTick, ticker;
             scheduleTick = function(t) {
                 ticker.watchId = setTimeout(
                     function() {
+                        if (thisWorldIndex != worldIndex) { return; }
                         ticker.watchId = undefined;
                         var startTime = (new Date()).valueOf();
                         change_world(tick,
@@ -724,8 +809,9 @@ define(["js/runtime-util"], function(util) {
 
 
     function on_key(press) {
-        return function() {
+        return function(thisWorldIndex) {
             var wrappedPress = function(e) {
+                if (thisWorldIndex != worldIndex) { return; }
                 if(e.keyCode === 27) { return; } // Escape events are not for world; the environment handles them
                 stopPropagation(e);
                 preventDefault(e);
@@ -752,10 +838,11 @@ define(["js/runtime-util"], function(util) {
     // http://www.quirksmode.org/js/events_mouse.html
     // http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
     function on_mouse(mouse) {
-        return function() {
+        return function(thisWorldIndex) {
             var isButtonDown = false;
             var makeWrapped = function(type) {
                 return function(e) {
+                    if (thisWorldIndex != worldIndex) { return; }
                     preventDefault(e);
                     stopPropagation(e);
                     var x = e.pageX, y = e.pageY;
@@ -823,10 +910,11 @@ define(["js/runtime-util"], function(util) {
             });
         };
 
-        return function() {
+        return function(thisWorldIndex) {
             var drawer = {
                 _top: null,
                 _listener: function(w, oldW, k2) {
+                    if (thisWorldIndex != worldIndex) { return; }
                     do_redraw(w, oldW, drawer._top, wrappedRedraw, redraw_css, k2);
                 },
                 onRegister: function (top) {
@@ -863,8 +951,11 @@ define(["js/runtime-util"], function(util) {
 
 
     function on_world_change(f) {
-        var listener = function(world, oldW, k) { f(world, k); };
-        return function() {
+        return function(thisWorldIndex) {
+            var listener = function(world, oldW, k) {
+                if (thisWorldIndex != worldIndex) { return; }
+                f(world, k);
+            };
             return {
                 onRegister: function (top) {
                     add_world_listener(listener); },
@@ -1110,14 +1201,14 @@ define(["js/runtime-util"], function(util) {
 
     var text_input, checkbox_input;
 
-    // input: string CPS(world -> world) 
+    // input: string CPS(world -> world)
     function input(aType, updateF, attribs) {
         aType = aType.toLowerCase();
         var dispatchTable = { text : text_input,
                               password: text_input,
                               checkbox: checkbox_input
                               //button: button_input,
-                              //radio: radio_input 
+                              //radio: radio_input
         };
 
         if (dispatchTable[aType]) {

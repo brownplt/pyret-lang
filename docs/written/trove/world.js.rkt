@@ -11,6 +11,7 @@
   (unknown-item (name "on-tick-n"))
   (unknown-item (name "to-draw"))
   (unknown-item (name "stop-when"))
+  (unknown-item (name "close-when-stop"))
   (unknown-item (name "on-key"))
   (unknown-item (name "on-mouse"))
   (unknown-item (name "on-particle"))
@@ -49,8 +50,9 @@
     when to shut down, etc. A world specification may not contain more than
     one @secref[(tag-name "world" "to-draw")] or @secref[(tag-name "world"
     "on-tick")] handlers. This function will return the last world state
-    when the stop condition is satisfied (see @secref[(tag-name "world"
-    "stop-when")]) or when the canvas is closed.
+    when the canvas is closed, either by clicking at the close button, or
+    by satisfying the closing condition (see @secref[(tag-name "world"
+    "stop-when")] and @secref[(tag-name "world" "close-when-stop")]).
   }
   @function["to-draw"
             #:contract (a-arrow (a-arrow "a"
@@ -154,7 +156,21 @@
     @secref[(tag-name "world" "big-bang")], will be called to determine if
     the world should stop running. If the function returns @pyret["true"],
     then no other handlers will be called. The @secref[(tag-name "world" "big-bang")] 
-    function will return this last world state.
+    function will return this last world state after the canvas is closed.
+  }
+  @function["close-when-stop"
+            #:contract (a-arrow B
+                                WC)
+            #:args (list '("stopper" ""))]{
+    Consumes a boolean and returns a handler that, when passed to
+    @secref[(tag-name "world" "big-bang")], will be used to determine if
+    the canvas should be closed when the world stops running by
+    @secref[(tag-name "world" "stop-when")]. If the value is @pyret["true"]
+    and the world stops running, then the canvas will be closed and 
+    the @secref[(tag-name "world" "big-bang")] function will return the last world
+    state. Otherwise, if the value is @pyret["false"] or
+    @secref[(tag-name "world" "close-when-stop")] is missing, then users need to
+    manually click the close button to close the canvas and return the last world state.
   }
   @function["is-world-config"
             #:contract (a-arrow "Any" B)
