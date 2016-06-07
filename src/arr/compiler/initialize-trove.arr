@@ -27,7 +27,7 @@ import string-dict as _
 import world as _
 import load-lib as _
 import repl as _
-import tables as _
+import table as _
 
 # In here just so it gets included so I can run tests against it. Should
 # eventually be loaded somewhere appropriate once we're using it.
