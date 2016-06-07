@@ -288,7 +288,7 @@ local-bound-vars-visitor = {
   j-unop(self, exp, op): exp.visit(self) end,
   j-binop(self, left, op, right) block:
     ans = left.visit(self)
-    ans.merge-now(right.visit(self)) 
+    ans.merge-now(right.visit(self))
     ans
   end,
   j-fun(self, args, body): no-vars() end,
@@ -306,7 +306,7 @@ local-bound-vars-visitor = {
   j-ternary(self, test, consq, alt) block:
     ans = test.visit(self)
     ans.merge-now(consq.visit(self))
-    ans.merge-now(alt.visit(self)) 
+    ans.merge-now(alt.visit(self))
     ans
   end,
   j-assign(self, name, rhs): rhs.visit(self) end,
@@ -324,12 +324,12 @@ local-bound-vars-visitor = {
   j-dot(self, obj, name): obj.visit(self) end,
   j-bracket(self, obj, field) block:
     ans = obj.visit(self)
-    ans.merge-now(field.visit(self)) 
+    ans.merge-now(field.visit(self))
     ans
   end,
   j-list(self, multi-line, elts) block:
-    base = no-vars() 
-    elts.each(lam(arg): base.merge-now(arg.visit(self)) end) 
+    base = no-vars()
+    elts.each(lam(arg): base.merge-now(arg.visit(self)) end)
     base
   end,
   j-obj(self, fields) block:
@@ -354,7 +354,7 @@ local-bound-vars-visitor = {
   j-block(self, stmts) block:
     base = no-vars()
     stmts.each(lam(e):
-        base.merge-now(e.visit(self)) 
+        base.merge-now(e.visit(self))
       end)
     base
   end,
@@ -370,13 +370,13 @@ local-bound-vars-visitor = {
   end,
   j-if1(self, cond, consq) block:
     ans = cond.visit(self)
-    ans.merge-now(consq.visit(self)) 
+    ans.merge-now(consq.visit(self))
     ans
   end,
   j-if(self, cond, consq, alt) block:
     ans = cond.visit(self)
     ans.merge-now(consq.visit(self))
-    ans.merge-now(alt.visit(self)) 
+    ans.merge-now(alt.visit(self))
     ans
   end,
   j-return(self, exp): exp.visit(self) end,
@@ -477,7 +477,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   #       end
   #       check-no-dups(seen.add(lbl), tl)
   #   end
-  # end        
+  # end
   # check-no-dups(sets.empty-tree-set, switch-cases.to-list())
   act-record = rt-method("makeActivationRecord", [clist:
       j-id(apploc),
@@ -485,7 +485,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-id(step),
       j-list(false, if no-real-args: cl-empty else: CL.map_list(lam(a): j-id(js-id-of(a.id)) end, args) end),
       j-list(false, CL.map_list(lam(v): j-id(v) end, vars))
-    ])  
+    ])
   e = fresh-id(compiler-name("e"))
   first-arg = formal-args.first.id
   entryExit = [clist:
@@ -540,7 +540,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       rt-method("isCont", [clist: j-id(e)])
     end
 
-    
+
   j-block([clist:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
@@ -811,7 +811,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
         j-break]
-    
+
     c-block(
       j-block(preamble + actual-app),
       cl-empty)
@@ -926,11 +926,11 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-update-label)),
-        j-expr(j-assign(ans, rt-method("checkRefAnns", 
-          [clist: 
+        j-expr(j-assign(ans, rt-method("checkRefAnns",
+          [clist:
             compiled-obj,
-            j-list(false, field-names), 
-            j-list(false, compiled-field-vals), 
+            j-list(false, field-names),
+            j-list(false, compiled-field-vals),
             j-list(false, field-locs),
             compiler.get-loc(loc),
             compiler.get-loc(obj.l)]))),
@@ -1093,7 +1093,7 @@ compiler-visitor = {
     ]
     c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), set-loc)
   end,
-  
+
   a-ref(self, l, maybe-ann):
     cases(Option) maybe-ann:
       | none => c-exp(rt-method("makeGraphableRef", cl-empty), cl-empty)
@@ -1143,7 +1143,7 @@ compiler-visitor = {
     step = fresh-id(compiler-name("step"))
     temp-full = fresh-id(compiler-name("temp_full"))
     len = args.length()
-    full-var = 
+    full-var =
       j-var(temp-full,
         j-fun(CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
           compile-fun-body(l, step, temp-full, self, args, some(len), body, true)
@@ -1227,7 +1227,7 @@ compiler-visitor = {
     end
 
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields, refl-ref-fields-mask, refl-fields, constructor-id):
-      
+
       nonblank-anns = for filter(m from members):
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
@@ -1244,7 +1244,7 @@ compiler-visitor = {
       # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
       # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
       # a continuation and manages all of the stack safety of annotation checking itself.
-    
+
       # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic solution by
       # passing the check off to a runtime function that uses JavaScript's Function
       # to only do the refinement check once.
@@ -1294,7 +1294,7 @@ compiler-visitor = {
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
             refmask-id = const-id("refmask")
-            j-fun([clist: f-id, refmask-id], j-block([clist: j-return(j-app(j-id(f-id), 
+            j-fun([clist: f-id, refmask-id], j-block([clist: j-return(j-app(j-id(f-id),
                 for CL.map_list_n(n from 0, m from members):
                   field = get-dict-field(THIS, j-str(m.bind.id.toname()))
                   mask = j-bracket(j-id(refmask-id), j-num(n))
@@ -1312,12 +1312,12 @@ compiler-visitor = {
             j-list(false,
               CL.map_list(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end, members))
         end
-      
+
       refl-fields-id = js-id-of(compiler-name(vname + "_getfields"))
       refl-fields =
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
-            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id), 
+            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id),
                       CL.map_list(lam(m):
                           get-dict-field(THIS, j-str(m.bind.id.toname()))
                         end, members)))]))
@@ -1333,7 +1333,7 @@ compiler-visitor = {
       end
 
       match-field = j-field("_match", rt-method("makeMatch", [clist: refl-name, j-num(member-count(v))]))
-      
+
       stmts =
         visit-with-fields.foldr(lam(vf, acc): vf.other-stmts + acc end,
           [clist:
@@ -1424,7 +1424,7 @@ check:
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
     N.a-lettable(d, N.a-val(d, N.a-num(d, 1))),
     N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
-  
+
 end
 
 fun mk-abbrevs(l):
@@ -1503,7 +1503,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
           | some(d) => d.from-uri
           | none =>
             if dep == "builtin(global)":
-              "builtin://global" 
+              "builtin://global"
             else:
               raise(dep + " not found in: " + torepr(env.mods))
             end
@@ -1525,7 +1525,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
           | some(d) => d.from-uri
           | none =>
             if dep == "builtin(global)":
-              "builtin://global" 
+              "builtin://global"
             else:
               raise(dep + " not found in: " + torepr(env.mods))
             end
@@ -1681,8 +1681,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
         "provides", provides-obj,
         "nativeRequires", j-list(true, [clist:]),
         "theModule",
-            j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
-              module-body)]
+            J.j-raw-code(
+              j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
+                module-body).to-ugly-source())]
   end
 
   step = fresh-id(compiler-name("step"))
@@ -1698,7 +1699,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   module-body = j-block(
 #                    [clist: j-expr(j-str("use strict"))] +
                     mk-abbrevs(l) +
-                    [clist: define-locations] + 
+                    [clist: define-locations] +
                     global-binds +
                     [clist: wrap-modules(module-specs, toplevel-name, toplevel-fun)])
   wrap-new-module(module-body)
