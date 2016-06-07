@@ -38,6 +38,12 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util",
                 t.arrow([t.tyvar("a")], t.boolean),
               ],
               wcOfA)),
+        "close-when-stop":
+          t.forall(["a"],
+            t.arrow([
+                t.boolean
+              ],
+              wcOfA)),
         "on-key":
           t.forall(["a"],
             t.arrow([
@@ -79,21 +85,27 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util",
         }
 
         var bigBang = function(initW, handlers) {
+            var closeBigBangWindow = null;
             var outerToplevelNode = jQuery('<span/>').css('padding', '0px').get(0);
             // TODO(joe): This obviously can't stay
             if(!runtime.hasParam("current-animation-port")) {
               document.body.appendChild(outerToplevelNode);
             } else {
-              runtime.getParam("current-animation-port")(outerToplevelNode);
+              runtime.getParam("current-animation-port")(outerToplevelNode, function(closeWindow) {
+                  closeBigBangWindow = closeWindow;
+              });
             }
 
             var toplevelNode = jQuery('<span/>').css('padding', '0px').appendTo(outerToplevelNode).get(0);
 
             var configs = [];
             var isOutputConfigSeen = false;
+            var closeWhenStop = false;
 
             for (var i = 0 ; i < handlers.length; i++) {
-                if (isOpaqueWorldConfigOption(handlers[i])) {
+                if (isOpaqueCloseWhenStopConfig(handlers[i])) {
+                    closeWhenStop = handlers[i].val.isClose;
+                } else if (isOpaqueWorldConfigOption(handlers[i])) {
                     configs.push(handlers[i].val.toRawHandler(toplevelNode));
                 }
                 else {
@@ -109,17 +121,21 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util",
 
 
             runtime.pauseStack(function(restarter) {
-              rawJsworld.bigBang(
-                toplevelNode,
-                initW,
-                configs,
-                {},
-                function(finalWorldValue) {
-                  restarter.resume(finalWorldValue);
-                },
-                function(err) {
-                  restarter.error(err);
-                });
+                rawJsworld.bigBang(
+                    toplevelNode,
+                    initW,
+                    configs,
+                    {},
+                    function(finalWorldValue) {
+                        restarter.resume(finalWorldValue);
+                    },
+                    function(err) {
+                        restarter.error(err);
+                    },
+                    {
+                        closeWhenStop: closeWhenStop,
+                        closeBigBangWindow: closeBigBangWindow
+                    });
             });
         };
 
@@ -419,7 +435,17 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util",
 
         //////////////////////////////////////////////////////////////////////
 
+        var CloseWhenStop = function(isClose) {
+            WorldConfigOption.call(this, 'close-when-stop');
+            this.isClose = runtime.isPyretTrue(isClose);
+        };
 
+        CloseWhenStop.prototype = Object.create(WorldConfigOption.prototype);
+
+        var isCloseWhenStopConfig = function(v) { return v instanceof CloseWhenStop; };
+        var isOpaqueCloseWhenStopConfig = function(v) {
+            return runtime.isOpaque(v) && isCloseWhenStopConfig(v.val);
+        }
 
         var StopWhen = function(handler) {
             WorldConfigOption.call(this, 'stop-when');
@@ -477,6 +503,11 @@ define(["js/runtime-util", "trove/image-lib", "trove/world-lib", "js/type-util",
                 runtime.ffi.checkArity(1, arguments, "stop-when");
                 runtime.checkFunction(stopper);
                 return runtime.makeOpaque(new StopWhen(stopper));
+              }),
+              "close-when-stop": makeFunction(function(isClose) {
+                runtime.ffi.checkArity(1, arguments, "close-when-stop");
+                runtime.checkBoolean(isClose);
+                return runtime.makeOpaque(new CloseWhenStop(isClose));
               }),
               "on-key": makeFunction(function(onKey) {
                 runtime.ffi.checkArity(1, arguments, "on-key");
