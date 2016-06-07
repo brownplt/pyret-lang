@@ -487,14 +487,10 @@ data RuntimeError:
                 if self.fun-def-loc.is-builtin():
                   ED.ed-args(self.fun-def-arity)
                 else:
-                  cases(Any) loc-to-ast(self.fun-def-loc).block.stmts.first:
-                    | s-fun(_,_,_,args,_,_,_,_) =>
-                      ED.highlight(ED.ed-args(self.fun-def-arity), args.map(_.l),3)
-                    | else => 
-                      ED.ed-args(self.fun-def-arity)
-                  end
+                  ED.ed-args(self.fun-def-arity)
                 end,
-                ED.text(".")],
+                ED.text(":")],
+                ED.cmcode(self.fun-def-loc),
               [ED.para:
                 ED.text("The "),
                 ED.highlight(ED.text("applicant"), [ED.locs: fun-app-fun-loc],0),

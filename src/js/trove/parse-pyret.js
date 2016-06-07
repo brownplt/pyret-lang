@@ -570,7 +570,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
             } else if (node.kids.length === 6) {
               // (obj-field MUTABLE key COLONCOLON ann COLON value)
               return RUNTIME.getField(ast, 's-mutable-field')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[3]));
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
             } else if (node.kids.length === 3) {
               // (obj-field key COLON value)
               return RUNTIME.getField(ast, 's-data-field')
