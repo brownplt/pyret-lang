@@ -7,7 +7,6 @@ import string-dict as SD
 import file("../../src/arr/compiler/desugar.arr") as D
 import file("../../src/arr/compiler/desugar-check.arr") as DC
 import ast as A
-import file("../../src/arr/compiler/compile.arr") as CM
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-lib.arr") as CL

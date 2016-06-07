@@ -3,7 +3,6 @@
 import cmdline as C
 import file as F
 import string-dict as D
-import file("compile.arr") as CM
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("cli-module-loader.arr") as CLI
@@ -20,8 +19,6 @@ right = E.right
 
 fun main(args):
   options = [D.string-dict:
-    "compile-module-js",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to compile"),
     "build-standalone",
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build-runnable",
@@ -147,35 +144,6 @@ fun main(args):
               standalone-file: standalone-file,
               compile-module: true
             })
-        else if r.has-key("compile-module-js"):
-          var result = CM.compile-js(
-            CM.start,
-            F.file-to-string(r.get-value("compile-module-js")),
-            r.get-value("compile-module-js"),
-            CS.standard-builtins,
-            libs,
-            CS.default-compile-options.{
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls,
-              compile-module: false # weird, but accurate for now
-            }
-            ).result
-          cases(CS.CompileResult) result block:
-            | ok(_) =>
-              comp-object = result.code
-              result := nothing
-              comp-object.print-js-runnable(display)
-            | err(errors) =>
-              print-error("Compilation errors:")
-              for lists.each(e from errors):
-                print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-              end
-              raise("There were compilation errors")
-          end
         else:
           print(C.usage-info(options).join-str("\n"))
           raise("Unknown command line options")

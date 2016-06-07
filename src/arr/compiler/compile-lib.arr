@@ -10,7 +10,6 @@ import render-error-display as RED
 import runtime-lib as R
 import sets as S
 import string-dict as SD
-import file("compile.arr") as CM
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as C
 import file("gensym.arr") as G
@@ -23,6 +22,20 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
+
+data CompilationPhase:
+  | start
+  | phase(name :: String, result :: Any, prev :: CompilationPhase)
+sharing:
+  tolist(self):
+    fun help(the-phase, acc):
+      if is-start(the-phase): acc
+      else: help(the-phase.prev, {name : the-phase.name, result : the-phase.result} ^ link(_, acc))
+      end
+    end
+    help(self, empty)
+  end
+end
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -331,9 +344,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         | pyret-ast(module-ast) =>
           module-ast
       end
-      var ret = CM.start
-      phase = CM.phase
       ast-ended = AU.append-nothing-if-necessary(ast)
+      var ret = start
       when options.collect-all:
         when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
       end
