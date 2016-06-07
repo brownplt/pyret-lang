@@ -251,7 +251,9 @@ fun make-repl<a>(
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
-    current-modules.set-now(defs-locator.uri(), compiled.loadables.last())
+    for each(k from compiled.modules.keys-list-now()):
+      current-modules.set-now(k, compiled.modules.get-value-now(k))
+    end
     result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check})
     cases(Either) result:
       | right(answer) =>
@@ -267,7 +269,9 @@ fun make-repl<a>(
   fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
-    current-modules.set-now(repl-locator.uri(), compiled.loadables.last())
+    for each(k from compiled.modules.keys-list-now()):
+      current-modules.set-now(k, compiled.modules.get-value-now(k))
+    end
     result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
     cases(Either) result:
       | right(answer) =>
@@ -320,4 +324,3 @@ fun make-repl<a>(
     runtime: runtime
   }
 end
-

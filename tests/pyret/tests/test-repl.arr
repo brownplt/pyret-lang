@@ -11,7 +11,7 @@ type Either = E.Either
 fun get-run-answer(res):
   cases(Either) res block:
     | right(ans) => ans
-    | left(err) => 
+    | left(err) =>
       print-error("Expected an answer, but got compilation errors:")
       for lists.each(e from err):
         print-error(tostring(e))
@@ -102,10 +102,14 @@ check:
   result20 = next-interaction("is-object(Defs.string-dict)")
   val(result20) is some(true)
 
-# TODO(joe): once type-checking in envs works
-#|
-  current-defs := "import string-dict as SD\nis-object(SD.string-dict)"
-  result17 = repl.restart-interactions(true)
-  val(result17) is some(true)
-|#
+  current-defs := "x :: Number = 5\nx"
+  result21 = repl.restart-interactions(true)
+  val(result21) is some(5)
+
+  result22 = next-interaction("fun f() -> String: x end")
+  result22 satisfies E.is-left
+
+  result23 = next-interaction("fun g() -> Number: x end\nf()")
+  val(result23) is some(5)
+
 end
