@@ -109,7 +109,7 @@ check:
   result22 = next-interaction("fun f() -> String: x end")
   result22 satisfies E.is-left
 
-  result23 = next-interaction("fun g() -> Number: x end\nf()")
+  result23 = next-interaction("fun g() -> Number: x end\ng()")
   val(result23) is some(5)
 
 end
