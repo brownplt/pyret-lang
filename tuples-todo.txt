@@ -1,7 +1,8 @@
 [ ] Type checking
-  [ ] Add a new type
-  [ ] Add synth/check
+  [x] Add a new type
+  [x] Add synth/check
   [x] Add tests to tests/type-check/[good|bad]/
+  [ ] Add new pretty error
 
 [ ] What happens if we have really big numbers? (Wf-error)
         [x] Ask on Slack – what's the best place to cut off?

@@ -484,9 +484,28 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end
         | s-tuple(l, elts) =>
           cases(Type) expect-type:
-            | t-tuple(t-elts, t-l) => typing-result(A.s-tuple(l, elts), expect-type, context)
-            | else => typing-error([list: C.incorrect-type(tostring("not a tuple"), l, tostring(expect-type), expect-type.l)]) 
-          end
+            | t-tuple(t-elts, t-l) =>
+              result = fold2-strict(lam(acc, elt, elt-type):
+                   acc.bind(lam(exprs, shadow context):
+                      checking(elt, elt-type, false, context)
+                     .fold-bind(lam(new-elt, _, shadow context):
+                      fold-result(link(new-elt, exprs), context)
+                      end)
+                   end)
+               end, fold-result(empty, context), elts.reverse(), t-elts.reverse())
+
+              cases(Option<FoldResult<List<Expr>>>) result:
+                | none =>
+                   #todo: add better error
+                   typing-error([list: C.incorrect-number-of-args(elts, expect-type)])
+                | some(folded) =>
+                   folded.typing-bind(lam(exprs, shadow context):
+                   typing-result(A.s-tuple(l, elts), expect-type, context)  
+                  end)
+              end
+            | else => 
+              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "a tuple type", l)])
+            end
         | s-array(l, values) =>
           wrapped = cases(Type) expect-type:
             | t-app(rarray, args, tl) =>
@@ -714,7 +733,36 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         end)
       end)
     | s-tuple(l, elts) =>
-      typing-result(A.s-tuple(l, elts), t-tuple([list: t-number(l), t-string(l)], l), context)
+     result = map-fold-result(lam(elt, shadow context):
+        synthesis(elt, false, context)
+            .fold-bind(lam(_, elt-type, shadow context):
+              fold-result(elt-type, context)
+            end) 
+      end, elts, context)
+      result.typing-bind(lam(typs :: List<Type>, shadow context):
+        typing-result(A.s-tuple(l, elts), t-tuple(typs, l), context)
+        end)
+
+     #|
+      result = fold2-strict(lam(acc, arg, arg-type):
+        acc.bind(lam(exprs, shadow context):
+          checking(arg, arg-type, false, context)
+            .fold-bind(lam(new-arg, _, shadow context):
+              fold-result(link(new-arg, exprs), context)
+            end)
+        end)
+      end, fold-result(empty, context), args, arg-types)
+
+      cases(Option<FoldResult<List<Expr>>>) result:
+        | none =>
+          typing-error([list: C.incorrect-number-of-args(recreate(args), fun-type)])
+        | some(folded) =>
+          folded.typing-bind(lam(exprs, shadow context):
+            typing-result(recreate(exprs), ret-type, context)
+          end)
+      end 
+
+      typing-result(A.s-tuple(l, elts), t-tuple([list: t-number(l), t-string(l)], l), context) |#
      | s-array(l, values) =>
       fun process(value :: A.Expr, ctxt :: Context) -> FoldResult<Pair<A.Expr, Type>>:
         synthesis(value, false, ctxt).fold-bind(lam(expr, typ, shadow context):
@@ -1113,7 +1161,6 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
                 | else => none
               end
             | t-tuple(a-elts, _) =>
-            #TODO: ordering of comparisons
               cases(Type) supertype:
                 | t-top(_) => some(context)
                 | t-tuple(b-elts, _) =>
