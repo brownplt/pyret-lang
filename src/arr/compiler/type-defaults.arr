@@ -43,6 +43,8 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
+eq-EqualityResult = t-name(some("pyret-builtin://equality"), A.s-type-global("EqualityResult"))
+
 # TODO(MATT): does this break things?
 tva = t-var(A.global-names.make-atom("A"))
 tvb = t-var(A.global-names.make-atom("B"))
@@ -104,11 +106,11 @@ fun make-default-types() block:
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)
   default-typs.set-now(A.s-global("ref-freeze").key(), t-top)
-  default-typs.set-now(A.s-global("equal-always3").key(), t-top)
-  default-typs.set-now(A.s-global("equal-now3").key(), t-top)
-  default-typs.set-now(A.s-global("identical3").key(), t-top)
+  default-typs.set-now(A.s-global("equal-always3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
+  default-typs.set-now(A.s-global("equal-now3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
+  default-typs.set-now(A.s-global("identical3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
   default-typs.set-now(A.s-global("exn-unwrap").key(), t-top)
-  default-typs.set-now(A.s-global("test-print").key(), t-top)
+  default-typs.set-now(A.s-global("test-print").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
   default-typs.set-now(A.s-global("print-error").key(), t-top)
   default-typs.set-now(A.s-global("display-error").key(), t-top)
   default-typs.set-now(A.s-global("brander").key(), t-top)
@@ -119,7 +121,7 @@ fun make-default-types() block:
   default-typs.set-now(A.s-global("string-index-of").key(), t-top)
   default-typs.set-now(A.s-global("string-to-code-points").key(), t-top)
   default-typs.set-now(A.s-global("string-from-code-points").key(), t-top)
-#  default-typs.set-now(A.s-global("nothing").key(), t-name(local, A.s-type-global("Nothing")))
+  default-typs.set-now(A.s-global("nothing").key(), t-name(local, A.s-type-global("Nothing")))
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
 #  default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
@@ -262,8 +264,6 @@ end
 
 t-torepr   = t-arrow([list: ], t-string)
 t-tostring = t-arrow([list: ], t-string)
-
-eq-EqualityResult = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
 
 # Functions for adding hard-coded modules
 module-const-equality = t-module("builtin://equality",
