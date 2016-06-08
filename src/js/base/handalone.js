@@ -117,6 +117,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
         }, "error->display");
     } else if (res.exn && res.exn.stack) {
       console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn);
+      console.error("Stack trace:\n", res.exn.stack);
       process.exit(EXIT_ERROR_JS);
     } else {
       console.error("Unknown error result: ", res.exn);
