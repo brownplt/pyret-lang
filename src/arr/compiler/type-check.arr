@@ -1117,11 +1117,11 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
               cases(Type) supertype:
                 | t-top(_) => some(context)
                 | t-tuple(b-elts, _) =>
-                  result = fold2-strict(lam(maybe-context, b-elt, a-elt):
+                  result = fold2-strict(lam(maybe-context, a-elt, b-elt):
                     for option-bind(shadow context from maybe-context):
-                      satisfies-assuming(context.apply(b-elt), context.apply(a-elt), context, assumptions)
+                      satisfies-assuming(context.apply(a-elt), context.apply(b-elt), context, assumptions)
                     end
-                  end, some(context), b-elts, a-elts)
+                  end, some(context), a-elts, b-elts)
                   for option-bind(outer from result):
                      outer
                   end

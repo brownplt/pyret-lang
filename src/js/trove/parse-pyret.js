@@ -963,7 +963,7 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
           },
           'tuple-ann': function(node) {
-           if (node.kids[node.kids.length - 1].name !== "tuple-field") {
+           if (node.kids[node.kids.length - 2].name !== "tuple-field") {
               return RUNTIME.getField(ast, 'a-tuple')
               .app(pos(node.pos), makeList(node.kids.slice(1, -2).map(tr)));
             } else {

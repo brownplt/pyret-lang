@@ -1,19 +1,75 @@
+[ ] Type checking
+  [ ] Add a new type
+  [ ] Add synth/check
+  [x] Add tests to tests/type-check/[good|bad]/
+
+[ ] What happens if we have really big numbers? (Wf-error)
+        [x] Ask on Slack – what's the best place to cut off?
+            Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
+        [ ] Pick a number
+
+[ ] Binding errors:
+        [ ] Highlight the bindings in the error message? 
+            - problem is no location for the bindings themselves
+
+[ ] *Refactor existing code to use tuples
+    [x] *in compiler
+      [x] *anf-loop-compiler
+      [x] *resolve-scope
+    [ ] CS173 interp-state assignment
+    [ ] CS75 assignment?
+    [ ] find other places?
+
+[ ] Add helpers for tuples:
+    [x] is-tuple
+    [ ] *test is-tuple (in test-tuple file)
+    [ ] tuple-length?
+    [ ] test tuple-length?
+
+[ ] Teach highlighter what a semi-colon means
+
+[ ] Find out how to change and save Vim font, or get an editor that you like
+    better
+[ ] Remove "hello" in output printing
+
+[ ] Investigate highlighting of tuple index in errors (@jack)
+
+[ ] Presentation
+
+[ ] Heroku setup - finish
+[ ] Gdrive setup?
+[ ] SSH forwarding/tunneling
+
+[ ] Write performance tests
+    Questions:
+    - Is forcing tuples to be size >= 2 a big win?
+    - What about doing all checks _before_ gets for a binding?
+
+______________________________________________________
+TODONE:
+
+
 [x] Make negative index be well-formed error
 [x] Change name variable to be tup
 [x] Make errors fancy
         [x] Too big index
         [x] Not a tuple
         [x] Do "fancy-reason" as well
-[ ] What happens if we have really big numbers? (Wf-error)
-        [x] Ask on Slack – what's the best place to cut off?
-            Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
-        [ ] Pick a number
+
 [x] Finish Equality
        path correct? yes
        [x] Add test(s) for nested tuple
        [x] Add test(s) for cyclic tuple
            (see http://www.pyret.org/docs/latest/equality.html)
-[ ] Binding
+
+[x] *Setup workflow
+
+[x] Annotation checking
+  [x] Ann-mismatch for a single element
+  [x] *Length-mismatch for the whole tuple
+  [x] *Add tests to tests/pyret/tests/test-contracts.arr
+
+[x] Binding
       [x] tosource
       [x] Add to resolve-scope
         [x] Toplevel bindings of tuple destruction
@@ -26,80 +82,12 @@
         [x] Add a new runtime function for checking binding mismatches
         [x] Add a new let-binding in resolve-scope that calls the rt function
             with the right information
-        [ ] *Do the single-error version, but have all four of:
+        [x] *Do the single-error version, but have all four of:
             - source location
             - tuple
             - length
             - desired-length
 
             (A single error required a boostrap to introduce is-tuple)
-        [ ] Highlight the bindings in the error message? 
-
-[ ] *Refactor existing code to use tuples
-    [ ] *in compiler
-      [ ] *anf-loop-compiler
-      [ ] *resolve-scope
-    [ ] CS173 interp-state assignment
-    [ ] CS75 assignment?
-    [ ] find other places?
-
-[ ] Add helpers for tuples:
-    [ ] is-tuple
-    [ ] test is-tuple
-    [ ] tuple-length?
-    [ ] test tuple-length?
-
-
-[ ] Find out how to change and save Vim font, or get an editor that you like
-    better
-[ ] Remove "hello" in output printing
-
-[x] *Setup workflow
-[ ] Investigate highlighting of tuple index in errors (@jack)
-
-[ ] Annotation checking
-  [x] Ann-mismatch for a single element
-  [ ] *Length-mismatch for the whole tuple
-  [ ] *Add tests to tests/pyret/tests/test-contracts.arr
-
-[ ] Presentation
-
-[ ] Type checking
-  [ ] Add a new type
-  [ ] Add synth/check
-  [ ] Add tests to tests/type-check/[good|bad]/
-  Tests:
-
-        # Bad (now)
-        x = {1; 2}
-        y :: Number = x
-
-
-        # Bad (not yet)
-        x :: {Boolean; Boolean} = {3; 4}
-
-
-        # Bad (now)
-        x :: Number = {3; 4}
-
-
-
-        # Good (not yet)
-        fun f(t :: { Boolean; Number}):
-          t
-        end
-
-        f({true; 3})
-
-
 
 [x] DOM - printing of tuples
-[ ] Heroku setup - finish
-[ ] Gdrive setup?
-[ ] SSH forwarding/tunneling
-
-[ ] Write performance tests
-    Questions:
-    - Is forcing tuples to be size >= 2 a big win?
-    - What about doing all checks _before_ gets for a binding?
-
