@@ -201,7 +201,7 @@ record-ann: LBRACE [list-ann-field* ann-field] RBRACE
 list-ann-field: ann-field COMMA
 ann-field: NAME COLONCOLON ann
 
-tuple-ann: LBRACE ann-list-tuple-field* tuple-field RBRACE
+tuple-ann: LBRACE ann-list-tuple-field* tuple-field [SEMI] RBRACE
 ann-list-tuple-field: tuple-field SEMI
 tuple-field: ann 
 

@@ -963,10 +963,14 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
           },
           'tuple-ann': function(node) {
-            // (record-ann LBRACE fields ... RBRACE)
+           if (node.kids[node.kids.length - 1].name !== "tuple-field") {
+              return RUNTIME.getField(ast, 'a-tuple')
+              .app(pos(node.pos), makeList(node.kids.slice(1, -2).map(tr)));
+            } else {
             return RUNTIME.getField(ast, 'a-tuple')
               .app(pos(node.pos), makeList(node.kids.slice(1, -1).map(tr)));
-          },
+            }
+         },
 
           'noparen-arrow-ann': function(node) {
             // (noparen-arrow-ann args ... THINARROW result)

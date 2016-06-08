@@ -353,6 +353,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
       
       function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
         checkSrcloc(loc);
+        runtime.checkNumber(annLength);
+        runtime.checkNumber(tupLength);
         return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
       }
 

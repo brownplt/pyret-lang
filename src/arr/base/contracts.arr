@@ -261,13 +261,15 @@ data FailureReason:
     [ED.error:
       [ED.para:
         ED.text("The tuple annotation "),
-         ED.loc-display(self.loc, "error-highlight", ED.text(loc-to-src(self.loc))),
-       # ED.highlight(ED.text(" annotation "), [ED.locs: self.loc], 0),
+         ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], 0),
          ED.text(" expected the given tuple to be of length "),
          ED.embed(self.annLength)],
        [ED.para:
          ED.text("The given tuple had the incorrect length of "),
-         ED.embed(self.tupleLength)]
+         ED.embed(self.tupleLength)],
+       [ED.para:
+         ED.text("The tuple was "),
+         ED.embed(self.val)]
      ]
      end,
      render-reason(self, loc, fail-from-arg):

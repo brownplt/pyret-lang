@@ -351,7 +351,7 @@ check "Number contracts":
 end
 
 check "tuple contracts":
-  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}").success is true
+  run-str("x :: {Number; String; {Number; Number; {String;}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}").success is true
   run-str("x :: {String; String} = {\"sewhwr\"; 4124}") satisfies is-contract-error
   run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{5351}}; \"fqwfq\"}") satisfies is-contract-error
   run-str("x :: {Number; Number; {Number; String}} = {412; 5412; {412; \"fgwdef\"; 5135}}") satisfies is-contract-error
