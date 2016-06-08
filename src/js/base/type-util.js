@@ -233,30 +233,41 @@ define([], function() {
   function expandType(typ, shorthands) {
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
-    var singles = {
-      "Array": { "import-type": "uri", uri: "builtin://arrays" },
-      "RawArray": fromGlobal,
-      "List": { "import-type": "uri", uri: "builtin://lists" },
-      "Option": { "import-type": "uri", uri: "builtin://option" }
-    };
-    function p(name) {
-      return {
-        tag: "name",
-        origin: fromGlobal,
-        name: name
-      };
+    function mkName(origin, name) {
+      return { tag: "name", origin: origin, name: name };
     }
-    function singleApp(name, arg) {
+    function p(name) { return mkName(fromGlobal, name); }
+    function mkApp1(tycon, arg) {
       return {
         tag: "tyapp",
-        onto: {
-          tag: "name",
-          origin: singles[name],
-          name: name
-        },
+        onto: expandType(tycon, shorthands),
         args: [ expandType(arg, shorthands) ]
       };
     }
+    var constrs = {
+      "Array": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
+      },
+      "RawArray": function(name, arg) { return mkApp1(mkName(fromGlobal, name), arg); },
+      "List": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg); 
+      },
+      "Option": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://option" }, name), arg); 
+      },
+      "Maker": function(_, arg, ret) {
+        var maker = {
+          "make":  ["arrow", [["RawArray", arg]], ret],
+          "make0": ["arrow", [], ret],
+          "make1": ["arrow", [arg], ret],
+          "make2": ["arrow", [arg, arg], ret],
+          "make3": ["arrow", [arg, arg, arg], ret],
+          "make4": ["arrow", [arg, arg, arg, arg], ret],
+          "make5": ["arrow", [arg, arg, arg, arg, arg], ret]
+        };
+        return expandType(["record", maker], shorthands);
+      }
+    };
     var iA = Array.isArray;
     var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
 
@@ -319,11 +330,12 @@ define([], function() {
     }
     else if(Array.isArray(typ)) {
       var head = typ[0];
-      if (head in singles) {
-        if(typ.length !== 2) {
+      if (head in constrs) {
+        var constr = constrs[head];
+        if(typ.length !== constr.length) {
           throw new Error("Bad tail for type constructor " + head + ": " + String(typ));
         }
-        return singleApp(head, typ[1]);
+        return constr.apply(null, typ);
       }
       else {
         if(head === "arrow" && typ.length === 3 && Array.isArray(typ[1])) {
