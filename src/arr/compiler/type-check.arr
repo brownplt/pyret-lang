@@ -10,7 +10,7 @@ import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
 import file("list-aux.arr") as LA
-
+import error as ERR
 
 type Loc = A.Loc
 type Expr = A.Expr
@@ -230,7 +230,10 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           | s-import-complete(_, vals, types, file, vname, tname) =>
             key = import-to-string(file, compile-env)
             context.module-names.set-now(tname.key(), key)
-            thismod = context.modules.get-value-now(key)
+            thismod = cases(Option) context.modules.get-now(key):
+              | some(m) => m
+              | none => raise(ERR.internal-error("Couldn't find " + key + " (needed for " + tname.key() + ") in context.modules:", [list: context.modules.keys-list-now()]))
+            end
             thismod-provides = provides-as-dict(thismod.provides)
             context.types.set-now(vname.key(), thismod.provides)
             context.aliases.set-now(tname.key(), TS.t-top(l))
