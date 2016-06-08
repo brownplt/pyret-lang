@@ -180,8 +180,8 @@ data ABind:
   | a-bind(l :: Loc, id :: A.Name, ann :: A.Ann) with:
     label(self): "a-bind" end,
     tosource(self):
-      if A.is-a-blank(self.ann): self.id.tosource()
-      else: PP.infix(INDENT, 1, str-coloncolon, self.id.tosource(), self.ann.tosource())
+      if A.is-a-blank(self.ann): self.id.to-compiled-source()
+      else: PP.infix(INDENT, 1, str-coloncolon, self.id.to-compiled-source(), self.ann.tosource())
       end
     end
 sharing:
@@ -351,7 +351,7 @@ data ALettable:
   | a-assign(l :: Loc, id :: A.Name, value :: AVal) with:
     label(self): "a-assign" end,
     tosource(self):
-      PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
+      PP.group(PP.nest(INDENT, self.id.to-compiled-source() + str-spacecolonequal + break-one + self.value.tosource()))
     end
   | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
     label(self): "a-app" end,
@@ -460,7 +460,7 @@ data AVal:
     tosource(self): PP.str("UNDEFINED") end
   | a-id(l :: Loc, id :: A.Name) with:
     label(self): "a-id" end,
-    tosource(self): PP.str(tostring(self.id)) end
+    tosource(self): self.id.to-compiled-source() end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

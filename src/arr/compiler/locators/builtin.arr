@@ -83,7 +83,8 @@ fun make-builtin-js-locator(basedir, builtin-name):
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+      some(CL.module-as-string(provs, CM.minimal-builtins,
+          CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
     end,
 
     _equals(self, other, req-eq):
@@ -107,10 +108,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         when not(F.file-exists(path)):
           raise("File " + path + " does not exist")
         end
-        f = F.input-file(path)
-        str = f.read-file()
-        f.close-file()
-        ast := CL.pyret-ast(PP.surface-parse(str, self.uri()))
+        ast := CL.pyret-ast(PP.surface-parse(F.file-to-string(path), self.uri()))
       end
       ast
     end,
@@ -162,7 +160,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
           })
-          some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+          some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-file(cpath))))
         else:
           none
         end

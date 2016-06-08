@@ -70,10 +70,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
   }
 
   function renderErrorMessageAndExit(execRt, res) {
-    var rendererrorMod = execRt.modules["builtin://render-error-display"];
-    var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
-    var gf = execRt.getField;
     if (execRt.isPyretException(res.exn)) {
+      var rendererrorMod = execRt.modules["builtin://render-error-display"];
+      var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
+      var gf = execRt.getField;
       var exnStack = res.exn.stack;
       var pyretStack = res.exn.pyretStack;
       execRt.runThunk(
@@ -116,7 +116,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
           }
         }, "error->display");
     } else if (res.exn && res.exn.stack) {
-      console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn, res.exn.stack);
+      console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn);
       process.exit(EXIT_ERROR_JS);
     } else {
       console.error("Unknown error result: ", res.exn);

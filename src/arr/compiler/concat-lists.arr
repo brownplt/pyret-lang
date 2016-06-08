@@ -179,6 +179,14 @@ fun map_list_n<a, b>(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> Conc
   end
 end
 
+shadow each_n = lam <a>(f :: (Number, a -> Nothing), n :: Number, lst :: ConcatList<a>) -> Nothing:
+  var shadow n = n
+  for each(item from lst) block:
+    f(n, item)
+    n := n + 1
+  end
+end
+
 fun map_list<a, b>(f :: (a -> b), lst :: List<a>) -> ConcatList<b>:
   if is-empty(lst):
     concat-empty

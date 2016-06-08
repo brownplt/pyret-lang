@@ -111,8 +111,8 @@ data Name:
     key(self): "underscore#" end
 
   | s-name(l :: Loc, s :: String) with:
-    to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
-    to-compiled(self): raise("Cannot compile local name " + self.s) end,
+    to-compiled-source(self): PP.str(self.to-compiled()) end,
+    to-compiled(self): self.s end,
     tosource(self): PP.str(self.s) end,
     tosourcestring(self): self.s end,
     toname(self): self.s end,
@@ -133,7 +133,7 @@ data Name:
     tosourcestring(self): "$type$" + self.s end,
     toname(self): self.s end,
     key(self): "tglobal#" + self.s end
-
+    
   | s-atom(base :: String, serial :: Number) with:
     to-compiled-source(self): PP.str(self.to-compiled()) end,
     to-compiled(self): self.base + tostring(self.serial) end,

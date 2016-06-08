@@ -3,7 +3,7 @@
   provides: {
     shorthands: {
       "AnyPred":  ["arrow", ["Any"], "Boolean"],
-      "AnyPred2":  ["arrow", ["Any", "Any"], "Boolean"],
+      "AnyPred2": ["arrow", ["Any", "Any"], "Boolean"],
       "NumPred":  ["arrow", ["Number"], "Boolean"],
       "NumPred2": ["arrow", ["Number", "Number"], "Boolean"],
       "NumBinop": ["arrow", ["Number", "Number"], "Number"],

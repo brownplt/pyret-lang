@@ -282,131 +282,113 @@ end
 
 no-vars = D.make-mutable-string-dict
 
-local-bound-vars-visitor = {
-  j-field(self, name, value): value.visit(self) end,
-  j-parens(self, exp): exp.visit(self) end,
-  j-unop(self, exp, op): exp.visit(self) end,
-  j-binop(self, left, op, right) block:
-    ans = left.visit(self)
-    ans.merge-now(right.visit(self))
-    ans
-  end,
-  j-fun(self, args, body): no-vars() end,
-  j-new(self, func, args) block:
-    base = func.visit(self)
-    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
-    base
-  end,
-  j-app(self, func, args) block:
-    base = func.visit(self)
-    args.each(lam(arg): base.merge-now(arg.visit(self)) end)
-    base
-  end,
-  j-method(self, obj, meth, args): no-vars() end,
-  j-ternary(self, test, consq, alt) block:
-    ans = test.visit(self)
-    ans.merge-now(consq.visit(self))
-    ans.merge-now(alt.visit(self))
-    ans
-  end,
-  j-assign(self, name, rhs): rhs.visit(self) end,
-  j-bracket-assign(self, obj, field, rhs) block:
-    ans = obj.visit(self)
-    ans.merge-now(field.visit(self))
-    ans.merge-now(rhs.visit(self))
-    ans
-  end,
-  j-dot-assign(self, obj, name, rhs) block:
-    ans = obj.visit(self)
-    ans.merge-now(rhs.visit(self))
-    ans
-  end,
-  j-dot(self, obj, name): obj.visit(self) end,
-  j-bracket(self, obj, field) block:
-    ans = obj.visit(self)
-    ans.merge-now(field.visit(self))
-    ans
-  end,
-  j-list(self, multi-line, elts) block:
-    base = no-vars()
-    elts.each(lam(arg): base.merge-now(arg.visit(self)) end)
-    base
-  end,
-  j-obj(self, fields) block:
-    base = no-vars()
-    fields.each(lam(e): base.merge-now(e.visit(self)) end)
-    base
-  end,
-  j-id(self, id): no-vars() end,
-  j-str(self, s): no-vars() end,
-  j-num(self, n): no-vars() end,
-  j-true(self): no-vars() end,
-  j-false(self): no-vars() end,
-  j-null(self): no-vars() end,
-  j-undefined(self): no-vars() end,
-  j-label(self, label): no-vars() end,
-  j-case(self, exp, body) block:
-    ans = exp.visit(self)
-    ans.merge-now(body.visit(self))
-    ans
-  end,
-  j-default(self, body): body.visit(self) end,
-  j-block(self, stmts) block:
-    base = no-vars()
-    stmts.each(lam(e):
-        base.merge-now(e.visit(self))
-      end)
-    base
-  end,
-  j-var(self, name, rhs):
-    # Ignore all variables named $underscore#####
-    if A.is-s-atom(name) and (name.base == "$underscore") block:
-      rhs.visit(self)
-    else:
-      ans = rhs.visit(self)
-      ans.set-now(name.key(), name)
-      ans
+fun local-bound-vars(kase :: J.JCase, vars) block:
+  fun e(expr):
+    cases(J.JExpr) expr block:
+      | j-parens(exp) => e(exp)
+      | j-raw-code(_) => nothing
+      | j-unop(exp, _) => e(exp)
+      | j-binop(left, _, right) =>
+        e(left)
+        e(right)
+      | j-fun(_, _) =>
+        # the body of a function contributes no *locally* bound vars
+        nothing
+      | j-new(func, args) =>
+        e(func)
+        args.each(e)
+      | j-app(func, args) =>
+        e(func)
+        args.each(e)
+      | j-method(_, _, _) =>
+        # the body of a method contributes no *locally* bound vars
+        nothing
+      | j-ternary(test, consq, alt) =>
+        e(test)
+        e(consq)
+        e(alt)
+      | j-assign(_, rhs) => e(rhs)
+      | j-bracket-assign(obj, field, rhs) =>
+        e(obj)
+        e(field)
+        e(rhs)
+      | j-dot-assign(obj, _, rhs) =>
+        e(obj)
+        e(rhs)
+      | j-dot(obj, _) => e(obj)
+      | j-bracket(obj, field)  =>
+        e(obj)
+        e(field)
+      | j-list(_, elts) =>
+        elts.each(e)
+      | j-obj(fields) =>
+        fields.each(f)
+      | j-id(_) => nothing
+      | j-str(_) => nothing
+      | j-num(_) => nothing
+      | j-true => nothing
+      | j-false => nothing
+      | j-null => nothing
+      | j-undefined => nothing
+      | j-label(_) => nothing
     end
-  end,
-  j-if1(self, cond, consq) block:
-    ans = cond.visit(self)
-    ans.merge-now(consq.visit(self))
-    ans
-  end,
-  j-if(self, cond, consq, alt) block:
-    ans = cond.visit(self)
-    ans.merge-now(consq.visit(self))
-    ans.merge-now(alt.visit(self))
-    ans
-  end,
-  j-return(self, exp): exp.visit(self) end,
-  j-try-catch(self, body, exn, catch) block:
-    ans = body.visit(self)
-    ans.merge-now(catch.visit(self))
-    ans
-  end,
-  j-throw(self, exp): exp.visit(self) end,
-  j-expr(self, exp): exp.visit(self) end,
-  j-break(self): no-vars() end,
-  j-continue(self): no-vars() end,
-  j-switch(self, exp, branches) block:
-    base = exp.visit(self)
-    branches.each(lam(b): base.merge-now(b.visit(self)) end)
-    base
-  end,
-  j-while(self, cond, body) block:
-    ans = cond.visit(self)
-    ans.merge-now(body.visit(self))
-    ans
-  end,
-  j-for(self, create-var, init, cond, update, body) block:
-    ans = init.visit(self)
-    ans.merge-now(cond.visit(self))
-    ans.merge-now(update.visit(self))
-    ans.merge-now(body.visit(self))
-    ans
   end
-}
+  fun c(shadow kase):
+    cases(J.JCase) kase block:
+      | j-case(exp, body) =>
+        e(exp)
+        b(body)
+      | j-default(body) => b(body)
+    end
+  end
+  fun f(field):
+    e(field.value)
+  end
+  fun s(stmt):
+    cases(J.JStmt) stmt block:
+      | j-var(name, rhs) =>
+        # Ignore all variables named $underscore#####
+        if A.is-s-atom(name) and (name.base == "$underscore") block:
+          e(rhs)
+        else:
+          e(rhs)
+          vars.set-now(name.key(), name)
+        end
+      | j-if1(cond, consq) =>
+        e(cond)
+        b(consq)
+      | j-if(cond, consq, alt) =>
+        e(cond)
+        b(consq)
+        b(alt)
+      | j-return(exp) => e(exp)
+      | j-try-catch(body, exn, catch) =>
+        b(body)
+        # ignoring the exn name, because it's not a Pyret variable
+        b(catch)
+      | j-throw(exp) => e(exp)
+      | j-expr(exp) => e(exp)
+      | j-break => nothing
+      | j-continue => nothing
+      | j-switch(exp, branches) =>
+        e(exp)
+        branches.each(c)
+      | j-while(cond, body) =>
+        e(cond)
+        b(body)
+      | j-for(_, init, cond, update, body) =>
+        e(init)
+        e(cond)
+        e(update)
+        b(body)
+    end
+  end
+  fun b(blk):
+    blk.stmts.each(s)
+  end
+  c(kase)
+  vars
+end
 
 fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
   s.freeze().unfreeze()
@@ -447,7 +429,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   shadow main-body-cases = main-body-cases-and-dead-vars.body
   all-vars = D.make-mutable-string-dict()
   for CL.each(case-expr from main-body-cases):
-    all-vars.merge-now(case-expr.visit(local-bound-vars-visitor))
+    local-bound-vars(case-expr, all-vars)
   end
   all-needed-vars = copy-mutable-dict(all-vars)
   for each(d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
@@ -1676,14 +1658,12 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     # NOTE(joe): intentionally empty until we can generate the right
     # type information
     provides-obj = compile-provides(provides)
+    the-module = j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
     [D.string-dict:
-        "requires", j-list(true, module-locators-as-js),
-        "provides", provides-obj,
-        "nativeRequires", j-list(true, [clist:]),
-        "theModule",
-            J.j-raw-code(
-              j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids,
-                module-body).to-ugly-source())]
+      "requires", j-list(true, module-locators-as-js),
+      "provides", provides-obj,
+      "nativeRequires", j-list(true, [clist:]),
+      "theModule", if self.options.collect-all: the-module else: J.j-raw-code(the-module.to-ugly-source()) end]
   end
 
   step = fresh-id(compiler-name("step"))

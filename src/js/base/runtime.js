@@ -350,7 +350,7 @@ function getFieldLocInternal(val, field, loc, isBang) {
     if(val === undefined) {
       if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwInternalError === undefined) {
         // console.trace();
-        throw ("FFI or thisRuntime.ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
+        throw Error("FFI or thisRuntime.ffi.throwInternalError is not yet defined, and lookup of field " + field + " on undefined failed at location " + JSON.stringify(loc));
       } else {
         thisRuntime.ffi.throwInternalError("Field lookup on undefined ", thisRuntime.ffi.makeList([field]));
       }
@@ -359,7 +359,7 @@ function getFieldLocInternal(val, field, loc, isBang) {
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
       if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
-        throw ("FFI or thisRuntime.ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
+        throw Error("FFI or thisRuntime.ffi.throwFieldNotFound is not yet defined, and lookup of field " + field + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(loc));
       } else {
         throw thisRuntime.ffi.throwFieldNotFound(makeSrcloc(loc), val, field);
       }

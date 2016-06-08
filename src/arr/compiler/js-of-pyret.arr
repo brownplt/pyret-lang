@@ -6,6 +6,7 @@ import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
 import ast as A
 import string-dict as SD
+import file as F
 import file("anf.arr") as N
 import file("anf-loop-compiler.arr") as AL
 import file("desugar-check.arr") as CH
@@ -23,6 +24,9 @@ data CompiledCodePrinter:
     end,
     pyret-to-js-static(self) -> String:
       self.to-j-expr(self.dict.remove("theModule")).to-ugly-source()
+    end,
+    print-js-static(self, printer):
+      self.to-j-expr(self.dict.remove("theModule")).print-ugly-source(printer)
     end,
     pyret-to-js-pretty(self, width) -> String:
       self.to-j-expr(self.dict).tosource().pretty(width).join-str("\n")
@@ -51,7 +55,17 @@ data CompiledCodePrinter:
       self.compiled
     end,
     print-js-runnable(self, printer):
-      printer.append(self.compiled)
+      printer(self.compiled)
+    end
+  | ccp-file(path :: String) with:
+    pyret-to-js-pretty(self, width) -> String:
+      raise("Cannot generate pretty JS from code string")
+    end,
+    pyret-to-js-runnable(self) -> String block:
+      F.file-to-string(self.path)
+    end,
+    print-js-runnable(self, printer):
+      printer(self.pyret-to-js-runnable())
     end
 end
 

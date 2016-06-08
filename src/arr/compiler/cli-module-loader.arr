@@ -90,11 +90,19 @@ fun get-cached-if-available(basedir, loc) block:
     loc
   else:
     uri = loc.uri()
-    raw-module = B.builtin-raw-locator(saved-path + "-module")
-    JSF.make-jsfile-locator(saved-path + "-static").{
+    js-loc = JSF.make-jsfile-locator(saved-path + "-static")
+    js-loc.{
       uri(_): uri end,
       get-compiled(_):
-        raw-module.get-compiled()
+        cases(Option<Loadable>) js-loc.get-compiled():
+          | none => none
+          | some(loadable) =>
+            cases(Loadable) loadable:
+              | module-as-string(prov, ce, _) =>
+                some(CL.module-as-string(prov, ce, CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
+              | else => loadable
+            end
+        end
       end
     }
   end
@@ -118,18 +126,18 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
     none
   else:
     raw-static = B.builtin-raw-locator(saved-path + "-static")
-    raw-module = B.builtin-raw-locator(saved-path + "-module")
     provs = CS.provides-from-raw-provides(locuri, {
       uri: locuri,
       values: raw-array-to-list(raw-static.get-raw-value-provides()),
       aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
       datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
     })
-    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-string(raw-module.get-raw-compiled()))))
+    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
   end
 end
 
-fun set-loadable(basedir, locator, loadable) block:
+fun set-loadable(basedir, locator, loadable) -> String block:
+  doc: "Returns the module path of the cached file"
   when not(FS.exists(basedir)):
     FS.create-dir(basedir)
   end
@@ -142,17 +150,22 @@ fun set-loadable(basedir, locator, loadable) block:
           save-module-path = P.join(basedir, uri-to-path(locuri) + "-module.js")
           fs = F.output-file(save-static-path, false)
           fm = F.output-file(save-module-path, false)
-          fs.display(ccp.pyret-to-js-static())
-          fm.display(ccp.pyret-to-js-runnable())
+          ccp.print-js-static(fs.display)
+          ccp.print-js-runnable(fm.display)
+          fs.flush()
           fs.close-file()
+          fm.flush()
           fm.close-file()
+          save-module-path
         | else =>
           save-path = P.join(basedir, uri-to-path(locuri) + ".js")
           f = F.output-file(save-path, false)
-          f.display(ccp.pyret-to-js-runnable())
+          ccp.print-js-runnable(f.display)
+          f.flush()
           f.close-file()
+          save-path
       end
-    | err(_) => nothing
+    | err(_) => ""
   end
 end
 
@@ -198,13 +211,21 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         this-path = dep.arguments.get(0)
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
+        if F.file-exists(real-path):
+          CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
+        else:
+          raise("Cannot find import " + torepr(dep))
+        end
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
+        if F.file-exists(real-path):
+          CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
+        else:
+          raise("Cannot find import " + torepr(dep))
+        end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
@@ -262,8 +283,10 @@ fun build-program(path, options) block:
     current-load-path: P.resolve("./"),
     cache-base-dir: options.compiled-cache
   }, base-module)
+  clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
+  clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache)
   starter-modules = storage.load-modules(wl)
 
@@ -272,14 +295,30 @@ fun build-program(path, options) block:
   var num-compiled = cached-modules
   shadow options = options.{
     compile-module: true,
-    on-compile: lam(locator, loadable) block:
-      locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
+    before-compile(_, locator) block:
       num-compiled := num-compiled + 1
-      clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules) + " modules compiled " + "(" + locator.name() + ")")
+      clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
+          + ": " + locator.name())
+    end,
+    on-compile(_, locator, loadable) block:
+      locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
+      clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
+          + " modules compiled " + "(" + locator.name() + ")")
       when num-compiled == total-modules:
         print("\nCleaning up and generating standalone...\n")
       end
-      set-loadable(options.compiled-cache, locator, loadable)
+      module-path = set-loadable(options.compiled-cache, locator, loadable)
+      if (num-compiled == total-modules) and options.collect-all:
+        # Don't squash the final JS-AST if we're collecting all of them, so
+        # it can be pretty-printed after all
+        loadable
+      else:
+        cases(CL.Loadable) loadable:
+          | module-as-string(prov, env, rp) =>
+            CL.module-as-string(prov, env, JSP.ccp-file(module-path))
+          | else => loadable
+        end
+      end
     end
   }
 
@@ -288,13 +327,13 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   program = build-program(path, options)
-  config = JSON.read-json(F.input-file(require-config-path).read-file()).dict.unfreeze()
+  config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
   config.set-now("out", JSON.j-str(outfile))
   when not(config.has-key-now("baseUrl")):
     config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
   end
 
-  MS.make-standalone(program.natives, program.js-ast.to-ugly-source(), JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+  MS.make-standalone(program.natives, program.js-ast, JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
 end
 
 fun build-require-standalone(path, options):

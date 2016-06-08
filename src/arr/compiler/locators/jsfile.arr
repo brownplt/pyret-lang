@@ -58,7 +58,7 @@ fun make-jsfile-locator(path):
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-string(raw.get-raw-compiled()))))
+      some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
     end,
 
     _equals(self, other, req-eq):
