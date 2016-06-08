@@ -305,7 +305,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
         | module-as-string(provides, env, result) =>
           module-as-string(AU.localize-provides(provides, env), env, result)
       end
-      # allow on-compile to return a new locator
+      # allow on-compile to return a new loadable
       options.on-compile(w.locator, local-loadable)
     else:
       cache.get-value-now(uri)
