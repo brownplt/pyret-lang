@@ -91,6 +91,9 @@ fun get-cached-if-available(basedir, loc) block:
   else:
     uri = loc.uri()
     js-loc = JSF.make-jsfile-locator(saved-path + "-static")
+    # NOTE: both the jsfile-locator and the nested provides value both contain uris
+    # which must match.  So we override uri() here, and deconstruct the provides value
+    # to replace its URI too, otherwise it'll show up as a jsfile:// uri, which is wrong
     js-loc.{
       uri(_): uri end,
       get-compiled(_):
@@ -99,7 +102,11 @@ fun get-cached-if-available(basedir, loc) block:
           | some(loadable) =>
             cases(Loadable) loadable:
               | module-as-string(prov, ce, _) =>
-                some(CL.module-as-string(prov, ce, CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
+                cases(CS.Provides) prov:
+                  | provides(_, values, aliases, data-defns) =>
+                    some(CL.module-as-string(CS.provides(uri, values, aliases, data-defns), ce,
+                        CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
+                end
               | else => loadable
             end
         end
