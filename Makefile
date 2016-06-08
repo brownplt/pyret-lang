@@ -232,14 +232,14 @@ parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
-	node build/phaseA/pyret.jarr \
-    --outfile tests/pyret/main2.jarr \
-    --build-runnable tests/pyret/main2.arr \
-    --builtin-js-dir src/js/trove/ \
-    --builtin-arr-dir src/arr/trove/ \
-    --compiled-dir tests/pyret/compiled/ \
-    --require-config src/scripts/standalone-configA.json \
-    -check-all # NOTE(joe): check-all doesn't yet do anything
+	$(NODE) $(PHASEA)/pyret.jarr \
+		--outfile tests/pyret/main2.jarr \
+		--build-runnable tests/pyret/main2.arr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--compiled-dir tests/pyret/compiled/ \
+		--require-config src/scripts/standalone-configA.json \
+		-check-all # NOTE(joe): check-all doesn't yet do anything
 
 TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
 .PHONY : pyret-test
@@ -267,10 +267,18 @@ regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
 
 
 .PHONY : type-check-test
-type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/type-check \
-    -check-all tests/type-check/main.arr
+type-check-test: phaseA tests/type-check/main.jarr
+	$(NODE) tests/type-check/main.jarr
+
+tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
+	$(NODE) $(PHASEA)/pyret.jarr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config src/scripts/standalone-configA.json \
+		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
+
+TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
+
 
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)

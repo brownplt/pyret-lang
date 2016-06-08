@@ -12,6 +12,14 @@
       "StrPred2": ["arrow", ["String", "String"], "Boolean"],
       "StrBinop": ["arrow", ["String", "String"], "String"],
       "StrUnop":  ["arrow", ["String"], "String"],
+      "tva":      ["tid", "a"],
+      "tvb":      ["tid", "b"],
+      "tvc":      ["tid", "c"],
+      "tvd":      ["tid", "d"],
+      "tve":      ["tid", "e"],
+      "Equality": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://equality" },
+                    name: "EqualityResult" }
     },
     values: {
       "nothing": "Nothing",
@@ -27,6 +35,22 @@
       "is-function": "AnyPred",
       "is-raw-array": "AnyPred",
 
+      // Array functions
+      "raw-array":         ["forall", ["a"], ["Maker", "tva", ["RawArray", "tva"]]],
+      "raw-array-get":     ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number"], "tva"]],
+      "raw-array-set":     ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number", "tva"], 
+                                              ["RawArray", "tva"]]],
+      "raw-array-of":      ["forall", ["a"], ["arrow", ["tva", "Number"], ["RawArray", "tva"]]],
+      "raw-array-length":  ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
+      "raw-array-to-list": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
+      "raw-array-fold":    ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 
+                                                             "tvb", ["RawArray", "tva"], "Number"], "tvb"]],
+
+      // Equality functions
+
+      "equal-always3": ["arrow", ["Any", "Any"], "Equality"],
+      "equal-now3":    ["arrow", ["Any", "Any"], "Equality"],
+      "identical3":    ["arrow", ["Any", "Any"], "Equality"],
       "equal-always": "AnyPred2",
       "equal-now": "AnyPred2",
       "identical": "AnyPred2",
@@ -103,11 +127,19 @@
       "string-append": "StrBinop",
       "string-equal": "StrPred2",
       "string-contains": "StrPred2",
+      "string-isnumber": "StrPred",
+      "string-to-number": ["arrow", ["String"], ["Option", "Number"]],
       "string-length": ["arrow", ["String"], "Number"],
       "string-replace": ["arrow", ["String", "String", "String"], "String"],
       "string-char-at": ["arrow", ["String", "Number"], "String"],
       "string-to-code-point": ["arrow", ["String"], "Number"],
       "string-from-code-point": ["arrow", ["Number"], "String"],
+      "string-to-code-points": ["arrow", ["String"], ["List", "Number"]],
+      "string-from-code-points": ["arrow", [["List", "Number"]], "String"],
+      "string-split": ["arrow", ["String", "String"], ["List", "String"]],
+      "string-split-all": ["arrow", ["String", "String"], ["List", "String"]],
+      "string-explode": ["arrow", ["String"], ["List", "String"]],
+      "string-index-of": ["arrow", ["String", "String"], "Number"],
 
     },
     aliases: {
