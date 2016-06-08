@@ -35,9 +35,13 @@ compile-str = lam(filename, options):
   base-module = CS.dependency("file-no-cache", [list: filename])
   base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
-  result = CL.compile-program(wlist, options.{collect-all: true})
+  result = CL.compile-program(wlist, options.{
+      collect-all: true,
+      before-compile(_, _): nothing end,
+      on-compile(_, _, loadable): loadable end
+    })
   errors = result.loadables.filter(CL.is-error-compilation)
-  cases(List) errors:
+  cases(List<CS.CompileResult>) errors:
     | empty =>
       E.right(result.loadables)
     | link(_, _) =>
@@ -71,8 +75,10 @@ cases (C.ParsedArguments) parsed-options block:
         compiled = compile-str(file, options)
         print("")
 
-        comp = cases(E.Either) compiled:
-          | left(v) => print("Compilation failed")
+        comp = cases(E.Either) compiled block:
+          | left(v) =>
+            print("Compilation failed")
+            v.last().result-printer.tolist()
           | right(v) => v.last().result-printer.tolist()
         end
 
