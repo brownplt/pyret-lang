@@ -6,11 +6,12 @@
     function(RUNTIME, NAMESPACE, uri, fs) {
       function InputFile(name) {
         this.name = name;
+        this.fd = fs.openSync(name, "r")
       }
 
       function OutputFile(name, append) {
         this.name = name;
-        this.append = append;
+        this.fd = fs.openSync(name, (append ? "a" : "w"));
       }
 
       return RUNTIME.makeObject({
@@ -36,7 +37,11 @@
                   RUNTIME.checkOpaque(file);
                   var v = file.val;
                   if(v instanceof InputFile) {
-                    return RUNTIME.makeString(fs.readFileSync(v.name, {encoding: 'utf8'}));
+                    if (v.fd) {
+                      return RUNTIME.makeString(fs.readFileSync(v.fd, {encoding: 'utf8'}));
+                    } else {
+                      throw Error("Attempting to read an already-closed file");
+                    }
                   }
                   else {
                     throw Error("Expected file in read-file, but got something else");
@@ -49,13 +54,34 @@
                   var v = file.val;
                   var s = RUNTIME.unwrap(val);
                   if(v instanceof OutputFile) {
-                    fs.writeFileSync(v.name, s, {encoding: 'utf8'});
-                    return NAMESPACE.get('nothing');
+                    if (v.fd) {
+                      fs.writeSync(v.fd, s, {encoding: 'utf8'});
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      console.error("Failed to display to " + v.name);
+                      throw Error("Attempting to write to an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in display, but got something else");
+                  }
+                }),
+              "flush-output-file": RUNTIME.makeFunction(function(file) {
+                  RUNTIME.ffi.checkArity(1, arguments, "flush-output-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof OutputFile) {
+                    if (v.fd) {
+                      fs.fsyncSync(v.fd);
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to flush an already-closed file");
+                    }
                   }
                   else {
                     throw Error("Expected file in read-file, but got something else");
                   }
-                }),
+                }),                  
               "file-times": RUNTIME.makeFunction(function(file) {
                   RUNTIME.ffi.checkArity(1, arguments, "file-times");
                   RUNTIME.checkOpaque(file);
@@ -77,7 +103,12 @@
                   RUNTIME.ffi.checkArity(1, arguments, "real-path");
                   RUNTIME.checkString(path);
                   var s = RUNTIME.unwrap(path);
-                  var newpath = fs.realpathSync(s);
+                  var newpath;
+                  try {
+                    newpath = fs.realpathSync(s);
+                  } catch(e) {
+                    newpath = s; // should this be an error instead?
+                  }
                   return RUNTIME.makeString(newpath);
                 }),
               "exists": RUNTIME.makeFunction(function(path) {
@@ -89,9 +120,37 @@
                 }),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-output-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof OutputFile) {
+                    if (v.fd) {
+                      fs.closeSync(v.fd);
+                      v.fd = false;
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to close an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in close-output-file, but got something else");
+                  }                  
                 }),
               "close-input-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-input-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof InputFile) {
+                    if (v.fd) {
+                      fs.closeSync(v.fd);
+                      v.fd = false;
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to close an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in close-input-file, but got something else");
+                  }                  
                 }),
               "create-dir": RUNTIME.makeFunction(function(directory) {
                 RUNTIME.ffi.checkArity(1, arguments, "create-dir");

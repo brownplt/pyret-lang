@@ -15,7 +15,6 @@ import filelib as F
 
 data File:
   | in-fd(inner-file :: Any) with:
-    read-line(self): F.read-line(self.inner-file) end,
     read-file(self): F.read-file(self.inner-file) end,
     close-file(self): F.close-input-file(self.inner-file) end,
     full-path(self): F.real-path(self.inner-file) end
@@ -51,4 +50,3 @@ end
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
-
