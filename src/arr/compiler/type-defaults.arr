@@ -43,7 +43,7 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
-eq-EqualityResult = t-name(some("pyret-builtin://equality"), A.s-type-global("EqualityResult"))
+eq-EqualityResult = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
 
 # TODO(MATT): does this break things?
 tva = t-var(A.global-names.make-atom("A"))
