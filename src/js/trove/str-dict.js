@@ -968,6 +968,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeList(elts);
         });
 
+        var eachMSD = runtime.makeMethod1(function(self, func) {
+          var keys = Object.keys(underlyingDict);
+          var vsValue = get(VS, "vs-value");
+          for (var i = 0; i < keys.length; i++) {
+            func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
+          }
+          return runtime.nothing;
+        });
+
         var keysListMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
           var keys = Object.keys(underlyingDict);
@@ -1086,6 +1095,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
           'items': itemsMSD,
+          'each' : eachMSD,
           _equals: equalsMSD,
           _output: outputMSD,
           freeze: freezeMSD,

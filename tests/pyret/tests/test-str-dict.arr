@@ -268,4 +268,10 @@ check "items":
    sum + tup.{1}
  end
  sum is 156
+ 
+ fun f(x):
+   x
+ end 
+
+ s1.each(f) is nothing
 end
