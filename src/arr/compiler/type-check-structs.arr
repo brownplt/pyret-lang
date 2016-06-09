@@ -186,16 +186,25 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
             | some(aliased) => resolve-alias(aliased, context).set-loc(l)
           end
         | module-uri(mod) =>
-          if mod == "builtin":
+          if mod == "builtin" block:
             cases(Option<Type>) context.aliases.get-now(a-id.key()):
               | none => t
               | some(aliased) => aliased.set-loc(l)
             end
           else:
-            # TODO(MATT): make sure that a-id.key() is correct here
-            cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.key()):
-              | none => t
-              | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+            modtyp = context.modules.get-value-now(mod)
+            when string-contains(mod, "export") block:
+              print("The types are: " + torepr(modtyp.types) + "\n")
+              print("The aliases are: " + torepr(modtyp.aliases) + "\n")
+            end
+            cases(Option<Type>) context.modules.get-value-now(mod).types.get(a-id.toname()):
+              | some(typ) => TS.t-name(TS.module-uri(mod), A.s-type-global(a-id.toname()), l)
+              | none =>
+                # TODO(MATT): make sure that a-id.key() is correct here
+                cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.toname()):
+                  | none => t
+                  | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+                end
             end
           end
       end
