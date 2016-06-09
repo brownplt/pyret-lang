@@ -1206,38 +1206,107 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
 
       function createImmutableStringDict1(arg) {
         arity(1, arguments, "string-dict1");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+        var map = emptyMap();
+        runtime.checkTuple(arg);
+        runtime.checkString(arg.vals[0]);
+        //Note (Sarah): mapping to full tuples eventually
+        map = map.set(arg.vals[0], arg.vals[1]);
+        return makeImmutableStringDict(map);
       }
 
       function createImmutableStringDict2(a, b) {
         arity(2, arguments, "string-dict2");
         var map = emptyMap();
-        runtime.checkString(a);
-        map = map.set(a, b);
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        if (aval == bval) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+        }
+        map = map.set(aval, a.vals[1]);
+        map = map.set(bval, b.vals[1]);
         return makeImmutableStringDict(map);
       }
 
       function createImmutableStringDict3(a, b, c) {
         arity(3, arguments, "string-dict3");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+        var map = emptyMap();
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        if (aval == bval || aval == cval || bval == cval) {
+          //TODO: figure out which key is duplciated
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+        }
+        map = map.set(aval, a.vals[1]);
+        map = map.set(bval, b.vals[1]);
+        map = map.set(cval, c.vals[1]);
+        return makeImmutableStringDict(map);
       }
 
       function createImmutableStringDict4(a, b, c, d) {
         arity(4, arguments, "string-dict4");
         var map = emptyMap();
-        runtime.checkString(a);
-        runtime.checkString(c);
-        if (a === c) {
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + a)
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        runtime.checkTuple(d);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        dval = d.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        runtime.checkString(dval);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval) {
+          //TODO: figure out which key is duplciated
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
         }
-        map = map.set(a, b);
-        map = map.set(c, d);
+        map = map.set(aval, a.vals[1]);
+        map = map.set(bval, b.vals[1]);
+        map = map.set(cval, c.vals[1]);
+        map = map.set(dval, d.vals[1]);
         return makeImmutableStringDict(map);
       }
 
       function createImmutableStringDict5(a, b, c, d, e) {
         arity(5, arguments, "string-dict5");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+        var map = emptyMap();
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        runtime.checkTuple(d);
+        runtime.checkTuple(e);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        dval = d.vals[0];
+        eval = e.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        runtime.checkString(dval);
+        runtime.checkString(eval);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
+          //TODO: figure out which key is duplciated
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+        }
+        map = map.set(aval, a.vals[1]);
+        map = map.set(bval, b.vals[1]);
+        map = map.set(cval, c.vals[1]);
+        map = map.set(dval, d.vals[1]);
+        map = map.set(eval, e.vals[1]);
+        return makeImmutableStringDict(map);
       }
 
       return O({
