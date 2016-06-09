@@ -1051,7 +1051,13 @@ end
 
 # TODO(MATT): this does not actually get the provided module values
 fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
-  transformer = lam(t): t end
+  transformer = lam(t):
+    cases(T.Type) t:
+      | t-name(origin, name, l) =>
+        T.t-name(origin, A.s-type-global(name.toname()), l)
+      | else => t
+    end
+  end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
     | s-program(_, provide-complete, _, _, _) =>
@@ -1067,13 +1073,18 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
            cases(Option) typed.info.data-types.get(a.in-name.key()):
               | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
               | none =>
-              # NOTE(joe): This was commented _in_ on new-horizons.
+                # NOTE(joe): This was commented _in_ on new-horizons.
                 #cases(Option) typed.info.branders.get-now(a.in-name.key()):
                 #  | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
                 #  | else =>
                 #    typ = typed.info.aliases.get-value-now(a.in-name.key())
                 #    alias-typs.set-now(a.out-name.toname(), c(typ))
                 #end
+
+                # NOTE(joe): We look up `typ` by key, and then
+                # canonicalize-names converts all the names to be s-global-type
+                # which removes all gensym information from what's provided
+                # as types.
                 typ = typed.info.aliases.get-value(a.in-name.key())
                 alias-typs.set-now(a.out-name.toname(), c(typ))
             end

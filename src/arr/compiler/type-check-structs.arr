@@ -194,7 +194,7 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
           else:
             modtyp = context.modules.get-value-now(mod)
             cases(Option<Type>) context.modules.get-value-now(mod).types.get(a-id.toname()):
-              | some(typ) => TS.t-name(TS.module-uri(mod), A.s-type-global(a-id.toname()), l)
+              | some(typ) => t
               | none =>
                 # TODO(MATT): make sure that a-id.key() is correct here
                 cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.toname()):
