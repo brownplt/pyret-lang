@@ -270,7 +270,7 @@ check "items":
  sum is 156
  
  fun f(x):
-   x
+   x is {"a"; 2}
  end 
 
  s1.each(f) is nothing
