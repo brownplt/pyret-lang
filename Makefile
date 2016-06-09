@@ -213,7 +213,7 @@ old-test-all: test docs-test benchmark-test
 test-all: test docs-test
 
 .PHONY : test
-test: pyret-test
+test: pyret-test type-check-test
 
 .PHONY : runtime-test
 runtime-test : $(PYRET_TEST_PREREQ)
