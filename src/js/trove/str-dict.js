@@ -777,8 +777,17 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           }));
         });
 
+       var itemsISD = runtime.makeMethod0(function(_) {
+          var elts = [];
+          var keys = underlyingMap.keys();
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])]));
+          }
+          return runtime.ffi.makeList(elts);
+        });
+
         var keysListISD = runtime.makeMethod0(function(_) {
-          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a); }
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a);}
           var keys = underlyingMap.keys();
           return runtime.ffi.makeList(keys.map(function(key) {
             return runtime.makeString(key);
@@ -796,14 +805,16 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           var elts = [];
           var keys = underlyingMap.keys();
           var vsValue = get(VS, "vs-value");
+          var vsStr = get(VS, "vs-str");
           for (var i = 0; i < keys.length; i++) {
-            elts.push(vsValue.app(keys[i]));
-            elts.push(vsValue.app(underlyingMap.get(keys[i])));
+            elts.push(vsValue.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])])));
           }
           return get(VS, "vs-collection").app(
             runtime.makeString("string-dict"),
             runtime.ffi.makeList(elts));
         });
+
+        
 
         var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['equals'], 3, $a); }
@@ -864,6 +875,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           "keys-list": keysListISD,
           count: countISD,
           'has-key': hasKeyISD,
+          'items': itemsISD,  
           _equals: equalsISD,
           _output: outputISD,
           unfreeze: unfreezeISD
@@ -947,6 +959,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           }));
         });
 
+        var itemsMSD = runtime.makeMethod0(function(self) {
+          var elts = [];
+          var keys = Object.keys(underlyingDict);
+          for (var i = 0; i < keys.length; i++) {
+            elts.push(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
+          }
+          return runtime.ffi.makeList(elts);
+        });
+
         var keysListMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
           var keys = Object.keys(underlyingDict);
@@ -996,8 +1017,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           var keys = Object.keys(underlyingDict);
           var vsValue = get(VS, "vs-value");
           for (var i = 0; i < keys.length; i++) {
-            elts.push(vsValue.app(keys[i]));
-            elts.push(vsValue.app(underlyingDict[keys[i]]));
+            elts.push(vsValue.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]])));
           }
           return get(VS, "vs-collection").app(
             runtime.makeString("mutable-string-dict"),
@@ -1065,6 +1085,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'keys-list-now': keysListMSD,
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
+          'items': itemsMSD,
           _equals: equalsMSD,
           _output: outputMSD,
           freeze: freezeMSD,
@@ -1097,12 +1118,9 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkArray(array);
         var dict = Object.create(null);
         var len = array.length;
-        if(len % 2 !== 0) {
-          runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
-        }
-        for(var i = 0; i < len; i += 2) {
-          var key = array[i];
-          var val = array[i + 1];
+        for(var i = 0; i < len; i += 1) {
+          var key = array[i].vals[0];
+          var val = array[i].vals[1];
           runtime.checkString(key);
           dict[key] = val;
         }
@@ -1133,12 +1151,9 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         var key_missing = {};
         var map = emptyMap();
         var len = array.length;
-        if(len % 2 !== 0) {
-          runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
-        }
-        for(var i = 0; i < len; i += 2) {
-          var key = array[i];
-          var val = array[i + 1];
+        for(var i = 0; i < len; i += 1) {
+          var key = array[i].vals[0];
+          var val = array[i].vals[1];
           runtime.checkString(key);
           if (map.get(key, key_missing) !== key_missing) {
             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + key);
@@ -1167,35 +1182,104 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       
       function createMutableStringDict1(arg) {
         arity(1, arguments, "mutable-string-dict1");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+        var dict = Object.create(null);
+        runtime.checkTuple(arg);
+        runtime.checkString(arg.vals[0]);
+        dict[arg.vals[0]] = arg.vals[1];
+        return makeMutableStringDict(dict);
       }
 
       function createMutableStringDict2(a, b) {
         arity(2, arguments, "mutable-string-dict2");
         var dict = Object.create(null);
-        runtime.checkString(a);
-        dict[a] = b;
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        if (aval == bval) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+        }
+        dict[aval] = a.vals[1];
+        dict[bval] = b.vals[1];
         return makeMutableStringDict(dict);
       }
 
       function createMutableStringDict3(a, b, c) {
         arity(3, arguments, "mutable-string-dict3");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+        var dict = Object.create(null);
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        if (aval == bval || aval == cval || bval == cval) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+        }
+        dict[aval] = a.vals[1];
+        dict[bval] = b.vals[1];
+        dict[cval] = c.vals[1];
+        return makeMutableStringDict(dict); 
       }
 
       function createMutableStringDict4(a, b, c, d) {
         arity(4, arguments, "mutable-string-dict4");
         var dict = Object.create(null);
-        runtime.checkString(a);
-        runtime.checkString(c);
-        dict[a] = b;
-        dict[c] = d;
-        return makeMutableStringDict(dict);
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        runtime.checkTuple(d);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        dval = d.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        runtime.checkString(dval);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+        }
+        dict[aval] = a.vals[1];
+        dict[bval] = b.vals[1];
+        dict[cval] = c.vals[1];
+        dict[dval] = d.vals[1];
+        return makeMutableStringDict(dict); 
       }
 
       function createMutableStringDict5(a, b, c, d, e) {
         arity(5, arguments, "mutable-string-dict5");
-        runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+        var dict = Object.create(null);
+        runtime.checkTuple(a);
+        runtime.checkTuple(b);
+        runtime.checkTuple(c);
+        runtime.checkTuple(d);
+        runtime.checkTuple(e);
+        aval = a.vals[0];
+        bval = b.vals[0];
+        cval = c.vals[0];
+        dval = d.vals[0];
+        eval = e.vals[0];
+        runtime.checkString(aval);
+        runtime.checkString(bval);
+        runtime.checkString(cval);
+        runtime.checkString(dval);
+        runtime.checkString(eval);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
+          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+        }
+        dict[aval] = a.vals[1];
+        dict[bval] = b.vals[1];
+        dict[cval] = c.vals[1];
+        dict[dval] = d.vals[1];
+        dict[eval] = e.vals[1];
+        return makeMutableStringDict(dict); 
+
       }
 
       function createImmutableStringDict0() {

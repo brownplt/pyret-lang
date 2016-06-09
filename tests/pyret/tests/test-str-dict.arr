@@ -2,11 +2,11 @@ import str-dict as SD
 import valueskeleton as VS
 
 sd1 = SD.make-mutable-string-dict()
-sd2 = [SD.mutable-string-dict: "a", 15, "b", 10]
+sd2 = [SD.mutable-string-dict: {"a"; 15}, {"b"; 10}]
 
-sd3 = [SD.mutable-string-dict: "a", 15, "b", 10]
-sd4 = [SD.mutable-string-dict: "a", 15, "b", 20]
-sd5 = [SD.mutable-string-dict: "a", 15, "b", 10, "c", 15]
+sd3 = [SD.mutable-string-dict: {"a"; 15}, {"b"; 10}]
+sd4 = [SD.mutable-string-dict: {"a"; 15}, {"b"; 20}]
+sd5 = [SD.mutable-string-dict: {"a"; 15}, {"b"; 10}, {"c"; 15}]
 
 isd2 = [SD.string-dict:{"a"; 15}, {"b"; 10}]
 
@@ -30,8 +30,8 @@ check "basics":
   sd2.get-value-now("b") is 10
 
   fun check-sdstr(s):
-    (s == "[mutable-string-dict: \"a\", 15, \"b\", 10]") or
-      (s == "[mutable-string-dict: \"b\", 10, \"a\", 15]")
+    (s == "[mutable-string-dict: { \"a\"; 15 }, { \"b\"; 10 }]") or
+      (s == "[mutable-string-dict: { \"b\"; 10 }, { \"a\"; 15 }]")
   end
   torepr(sd2) satisfies check-sdstr
 
@@ -46,7 +46,7 @@ check "basics":
     end
   }
 
-  torepr([SD.mutable-string-dict: "a", long-torepr]) is "[mutable-string-dict: \"a\", \"9999\"]"
+  torepr([SD.mutable-string-dict: {"a"; long-torepr}]) is "[mutable-string-dict: { \"a\"; \"9999\" }]"
 
   sd2.keys-now() is [tree-set: "a", "b"]
   sd2.keys-now() is [tree-set: "b", "a"]
@@ -59,11 +59,11 @@ check "basics":
   sd2 is-not sd5
   sd2 is-not 2
 
-  [SD.mutable-string-dict: "a", 5] is-not [SD.mutable-string-dict: "b", 5]
-  [SD.mutable-string-dict: "a", 5, "b", 5]
-    is-not [SD.mutable-string-dict: "b", 5, "c", 5]
+  [SD.mutable-string-dict: {"a"; 5}] is-not [SD.mutable-string-dict: {"b"; 5}]
+  [SD.mutable-string-dict: {"a"; 5}, {"b"; 5}]
+    is-not [SD.mutable-string-dict: {"b"; 5}, {"c"; 5}]
   sd-many-as = [SD.mutable-string-dict:]
-  sd-almost-many-as = [SD.mutable-string-dict: "a", 10]
+  sd-almost-many-as = [SD.mutable-string-dict: {"a"; 10}]
   for each(i from range(0, 100)):
     sd-many-as.set-now("a" + tostring(i), i)
     when not(i == 54):
@@ -122,7 +122,7 @@ check "Immutable string dicts":
   isd7.get-value("a") raises "Key a not found"
   isd6.get-value("a") is 7
 
-  sd7 = [SD.mutable-string-dict: "a", false]
+  sd7 = [SD.mutable-string-dict: {"a"; false}]
   sd7.has-key-now("a") is true
   sd7.has-key-now("b") is false
 
@@ -158,9 +158,9 @@ check "remove and unfreeze":
 end
 
 check "cyclic":
-  s1 = [SD.mutable-string-dict: "a", nothing]
+  s1 = [SD.mutable-string-dict: {"a"; nothing}]
   s1.set-now("a", s1)
-  torepr(s1) is "[mutable-string-dict: \"a\", <cyclic-object-1>]"
+  torepr(s1) is "[mutable-string-dict: { \"a\"; <cyclic-object-1> }]"
 end
 
 fun one-of(ans, elts):
@@ -210,18 +210,18 @@ check "predicates":
 end 
 
 check "merge-now":
-  s1 = [SD.mutable-string-dict: "a", 5, "c", 4]
-  s2 = [SD.mutable-string-dict: "a", 10, "b", 6]
+  s1 = [SD.mutable-string-dict: {"a"; 5}, {"c"; 4}]
+  s2 = [SD.mutable-string-dict: {"a"; 10}, {"b"; 6}]
 
   isd9 = s1.freeze()
   isd10 = s2.freeze()
 
   s1.merge-now(s2) is nothing
-  s1 is=~ [SD.mutable-string-dict: "a", 10, "b", 6, "c", 4]
+  s1 is=~ [SD.mutable-string-dict: {"a"; 10}, {"b"; 6}, {"c"; 4}]
 
   orig-s1 = isd9.unfreeze()
   s2.merge-now(orig-s1) is nothing
-  s2 is=~ [SD.mutable-string-dict: "a", 5, "b", 6, "c", 4]
+  s2 is=~ [SD.mutable-string-dict: {"a"; 5}, {"b"; 6}, {"c"; 4}]
 
   isd9.keys-list()  is%(one-of) [list: [list: "a", "c"], [list: "c", "a"]]
   isd10.keys-list() is%(one-of) [list: [list: "a", "b"], [list: "b", "a"]]
@@ -229,13 +229,43 @@ check "merge-now":
   orig-s2 = isd10.unfreeze()
   new-s1 = orig-s1
   new-s1.merge-now(orig-s2) is nothing
-  new-s1 is=~ [SD.mutable-string-dict: "a", 10, "b", 6, "c", 4]
+  new-s1 is=~ [SD.mutable-string-dict: {"a"; 10}, {"b"; 6}, {"c"; 4}]
 
-  s4 = [SD.mutable-string-dict: "a", 5]
+  s4 = [SD.mutable-string-dict: {"a"; 5}]
   s5 = [SD.mutable-string-dict:]
   s4.merge-now(s5) is nothing
-  s4 is=~ [SD.mutable-string-dict: "a", 5]
+  s4 is=~ [SD.mutable-string-dict: {"a"; 5}]
   s5.merge-now(s4) is nothing
-  s5 is=~ [SD.mutable-string-dict: "a", 5]
+  s5 is=~ [SD.mutable-string-dict: {"a"; 5}]
 end
 
+check "longer dict":
+  s1 = [SD.string-dict: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1}]
+  s2 = [SD.string-dict: {"h"; 10}, {"i"; 641}]
+  s3 = s1.merge(s2)
+  s3 is [SD.string-dict: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1}, {"h"; 10}, {"i"; 641}]
+  SD.is-string-dict(s1) is true
+  s1.get-value("a") is 15
+  s1.get-value("b") is 10
+  s1.get-value("c") is 15
+  s1.get-value("d") is 41
+  s1.get-value("e") is 32
+  s1.get-value("f") is 42
+  s1.get-value("g") is 1
+end
+
+check "items":
+ s1 = [SD.mutable-string-dict: {"a"; 2}, {"g"; 4}]
+ s1items = s1.items()
+ s1items.get(0) is {"a"; 2}
+ s1items.get(1) is {"g"; 4}
+ s2 = [SD.string-dict: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1}]
+ s2items = s2.items()
+ s2items.get(0) is {"a"; 15}
+ s2items.get(4) is {"e"; 32}
+ s2items.get(6) is {"g"; 1}
+ sum = for fold(sum from 0, tup from s2.items()):
+   sum + tup.{1}
+ end
+ sum is 156
+end
