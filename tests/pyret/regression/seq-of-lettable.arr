@@ -3,7 +3,7 @@ check "https://github.com/brownplt/pyret-lang/issues/362":
     lam(k):
       k((lam(shadow k):
             k(1)
-          end)(lam(l-v):
+          end)(lam(l-v) block:
             (lam(shadow k):
                 k(2)
               end)
@@ -15,7 +15,7 @@ check "https://github.com/brownplt/pyret-lang/issues/362":
 
   f(lam(x): x end) satisfies is-function
 
-  g = lam():
+  g = lam() block:
     lam(x): x end
     lam(x): x + 1 end
   end

@@ -87,10 +87,10 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 .PHONY : phaseA-deps
-phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) 
+phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) 
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
@@ -231,6 +231,24 @@ repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
+TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
+TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
+REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
+
+tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES)
+	$(NODE) build/phaseA/pyret.jarr \
+	  --outfile tests/pyret/all.jarr \
+	  --builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config src/scripts/standalone-configA.json \
+		--compiled-dir tests/pyret/compiled/ \
+		--build-runnable tests/all.arr \
+		-check-all
+
+.PHONY : all-pyret-test
+all-pyret-test: tests/pyret/all.jarr
+	$(NODE) tests/pyret/all.jarr
+
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(NODE) $(PHASEA)/pyret.jarr \
 		--outfile tests/pyret/main2.jarr \
@@ -241,7 +259,7 @@ tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 		--require-config src/scripts/standalone-configA.json \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
 
-TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
+
 .PHONY : pyret-test
 pyret-test: phaseA tests/pyret/main2.jarr
 	$(NODE) tests/pyret/main2.jarr
@@ -277,7 +295,6 @@ tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
 		--require-config src/scripts/standalone-configA.json \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
 
-TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
 
 
 .PHONY : compiler-test
