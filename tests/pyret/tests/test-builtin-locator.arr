@@ -6,6 +6,9 @@ import string-dict as SD
 import namespace-lib as N
 import runtime-lib as R
 
+print("Running builtin-locator tests: " + tostring(time-now()) + "\n")
+
+
 check:
   sd = B.make-builtin-locator("string-dict")
   sd.get-dependencies() is [list: CM.builtin("valueskeleton")]

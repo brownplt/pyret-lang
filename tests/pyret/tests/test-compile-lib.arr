@@ -7,8 +7,11 @@ import builtin-modules as BM
 import file("../../../src/arr/compiler/type-structs.arr") as T
 import file("../../../src/arr/compiler/ast-util.arr") as AU
 import file("../../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../../src/arr/compiler/compile-structs.arr") as CM
 import file("../../../src/arr/compiler/locators/builtin.arr") as BL
+
+print("Running compile-lib tests: " + tostring(time-now()) + "\n")
 
 fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
@@ -250,7 +253,7 @@ check "Multiple includes":
   fun dfind(ctxt, dep):
     l = cases(CM.Dependency) dep:
       | builtin(modname) =>
-        BL.make-builtin-locator(modname)
+        CLI.module-finder(dep)
       | else =>
         string-to-locator(dep.arguments.get(0))
     end
@@ -259,7 +262,7 @@ check "Multiple includes":
 
   start-loc = string-to-locator("C")
   wlist = CL.compile-worklist(dfind, start-loc, {})
-  ans = CL.compile-and-run-locator(start-loc, dfind, {}, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
+  ans = CL.compile-and-run-locator(start-loc, dfind, CLI.default-start-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
 
   ans.v satisfies L.is-success-result
   L.get-result-answer(ans.v) is some("[list: true, true, true]")
@@ -457,5 +460,6 @@ check:
   local = AU.localize-provides(canon, ce)
 
   local is ps
+  print("Done running compile-lib tests: " + tostring(time-now()) + "\n")
 
 end

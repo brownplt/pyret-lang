@@ -8,6 +8,8 @@ import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
 
+print("Running repl-tests: " + tostring(time-now()) + "\n")
+
 type Either = E.Either
 
 fun get-run-answer(res):
