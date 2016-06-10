@@ -807,12 +807,12 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
                 .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
                      tr(node.kids[2]));
             } else if (node.kids.length === 5) {
-              // (key COLON expr OF binding)
+              // (key COLON expr OF NAME)
               return RUNTIME.getField(ast, 's-table-extend-reducer')
                 .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
                      name(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
             } else if (node.kids.length === 7) {
-              // (key COLONCOLON ann COLON expr OF binding)
+              // (key COLONCOLON ann COLON expr OF NAME)
               return RUNTIME.getField(ast, 's-table-extend-reducer')
                 .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
                      name(node.kids[6]), tr(node.kids[2]));

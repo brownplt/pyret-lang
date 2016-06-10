@@ -1533,7 +1533,36 @@ data CompileError:
           ED.text(" and at "),
           ED.loc(self.column2.l),
           ED.text(" have the same name, but columns in a table must have different names.")]]
+    end
+  | table-reducer-bad-column(extension :: A.TableExtendField, col-defs :: A.Loc) with:
+    render-fancy-reason(self):
+      bad-column = self.extension.col
+      bad-column-name = bad-column.tosource().pretty(80)
+      reducer = self.extension.reducer
+      reducer-name = reducer.tosource().pretty(80)
+      [ED.error:
+        [ED.para:
+          ED.text("The column "),
+          ED.highlight(ED.text(bad-column-name), [list: bad-column.l], 0),
+          ED.text(" is used with the reducer "),
+          ED.highlight(ED.text(reducer-name), [list: reducer.l], 1),
+          ED.text(", but it is not one of the "),
+          ED.highlight(ED.text("used columns"), [list: self.col-defs], 2),
+          ED.text(".")]]
     end,
+    render-reason(self):
+      bad-column = self.extension.col
+      reducer = self.extension.reducer
+      [ED.error:
+        [ED.para:
+          ED.text("The column at "),
+          ED.loc(bad-column.l),
+          ED.text(" is used with the reducer at "),
+          ED.loc(reducer.l),
+          ED.text(", but it is not one of the used columns listed at "),
+          ED.loc(self.col-defs),
+          ED.text(".")]]
+    end
 end
 
 default-compile-options = {

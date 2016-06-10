@@ -256,7 +256,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "function",
           "break",
           "return",
-          "do",
           "yield",
           "throw",
           "continue",
@@ -346,6 +345,7 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("table: h1, h2 row: 1 end", "row");
         P.checkCompileErrorMsg("table: h1 row: 1, 2 end", "row");
         P.checkCompileErrorMsg("table: a, b, c, d, b, e end", "column");
+        P.checkCompileErrorMsg("extend t using A: C: running-sum of B end", "used with reducer");
         P.wait(done);
       });
     });

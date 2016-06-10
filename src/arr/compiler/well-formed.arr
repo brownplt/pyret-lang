@@ -10,6 +10,8 @@ import srcloc as SL
 import "compiler/compile-structs.arr" as C
 import format as F
 import string-dict as SD
+import sets as S
+import lists as L
 
 type Loc = SL.Srcloc
 
@@ -531,7 +533,20 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   s-provide(self, l, expr):
     true
-  end
+  end,
+  s-table-extend(self, l, column-binds, extensions):
+    bound-names = S.list-to-tree-set(map(lam(b :: A.Bind): b.id.toname() end, column-binds.binds))
+    for L.all(extension from extensions):
+      cases(A.TableExtendField) extension:
+        | s-table-extend-field(_, _, val, ann) => val.visit(self) and ann.visit(self)
+        | s-table-extend-reducer(_, _, reducer, col, ann) =>
+          when (not(bound-names.member(col.toname()))):
+            add-error(C.table-reducer-bad-column(extension, column-binds.l))
+          end
+          reducer.visit(self) and ann.visit(self)
+      end
+    end
+  end,
 }
 
 top-level-visitor = A.default-iter-visitor.{
@@ -814,6 +829,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
+  end,
+  s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
+    well-formed-visitor.s-table-extend(l, column-binds, extensions)
   end,
   a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
