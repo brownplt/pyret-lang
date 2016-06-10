@@ -2,9 +2,11 @@ import load-lib as L
 import runtime-lib as RT
 import string-dict as SD
 import either as E
+import pathlib as P
 import file("../../../src/arr/compiler/locators/builtin.arr") as B
 import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
 
 type Either = E.Either
 
@@ -25,8 +27,10 @@ check:
   r = RT.make-runtime()
   var current-defs = "5"
   loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
-  dfind = R.make-definitions-finder([SD.string-dict:], B.make-builtin-locator)
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, {}, dfind)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, {
+    current-load-path: P.resolve("./"),
+    cache-base-dir: "./compiled"
+  }, CLI.module-finder)
 
   result1 = repl.restart-interactions(false)
   L.get-result-answer(result1.v) is some(5)
