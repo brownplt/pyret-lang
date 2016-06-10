@@ -65,7 +65,7 @@ somewhat slow to load, but whatever is in build/phase0/pyret.jarr is currently
 the canonical new-world implementation of Pyret.
 
 2.  Phase A is set up to be populated with built versions of all the files for
-the compiler, built by the phase 0 compiler.  Phase 1 is what most of the
+the compiler, built by the phase 0 compiler.  Phase A is what most of the
 testing scripts run against, since it is the easiest to create, and after it is
 built it is your development snapshot of the compiler you're working on.
 However, just building phase1 is not enough to fully re-boostrap the compiler,
