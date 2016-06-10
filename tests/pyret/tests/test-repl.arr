@@ -29,10 +29,7 @@ check:
   r = RT.make-runtime()
   var current-defs = "5"
   loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, {
-    current-load-path: P.resolve("./"),
-    cache-base-dir: "./compiled"
-  }, CLI.module-finder)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, CLI.default-test-context, CLI.module-finder)
 
   result1 = repl.restart-interactions(false)
   L.get-result-answer(result1.v) is some(5)

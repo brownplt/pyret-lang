@@ -261,7 +261,7 @@ check "Multiple includes":
 
   start-loc = string-to-locator("C")
   wlist = CL.compile-worklist(dfind, start-loc, CLI.default-start-context)
-  ans = CL.compile-and-run-locator(start-loc, dfind, CLI.default-start-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
+  ans = CL.compile-and-run-locator(start-loc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
 
   ans.v satisfies L.is-success-result
   L.get-result-answer(ans.v) is some("[list: true, true, true]")

@@ -171,7 +171,7 @@ end
 
 fun run-to-result(filename):
   floc = string-to-locator(filename)
-  res = CL.compile-and-run-locator(floc, dfind, CLI.default-start-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options.{compile-module: true})
+  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options.{compile-module: true})
   res
 end
 

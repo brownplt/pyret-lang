@@ -50,7 +50,7 @@ fun make-jsfile-locator(path):
     uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,
     name(_): path end,
 
-    set-compiled(_, _): nothing end,
+    set-compiled(_, _, _): nothing end,
     get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),

@@ -255,6 +255,11 @@ default-start-context = {
   cache-base-dir: P.resolve("./compiled")
 }
 
+default-test-context = {
+  current-load-path: P.resolve("./"),
+  cache-base-dir: P.resolve("./tests/pyret/compiled")
+}
+
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
   base = module-finder({

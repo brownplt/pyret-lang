@@ -42,7 +42,7 @@ end
 
 compile-str = lam(filename):
   base-module = CS.dependency("file", [list: filename])
-  base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
+  base = CLI.module-finder(CLI.default-test-context, base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
   errors = result.loadables.filter(CL.is-error-compilation)
