@@ -10,4 +10,5 @@
 @include-section["builtin/numbers.scrbl"]
 @include-section["builtin/strings.scrbl"]
 @include-section["builtin/booleans.scrbl"]
+@include-section["builtin/tables.scrbl"]
 @include-section["builtin/raw-arrays.scrbl"]

@@ -110,7 +110,7 @@
 
 Creates a string representation of the value that resembles an expression that
 could be used to construct it.  This is what the REPL and test-results printer
-use to display values. 
+use to display values.
 
 @examples{
 check:
@@ -160,6 +160,10 @@ The type of @seclink["booleans"].
 
 The type of @seclink["strings"].
 
+@type-spec["Table" (list)]
+
+The type of @seclink["tables"].
+
 @type-spec["RawArray" (list)]
 
 The type of @seclink["raw-arrays"].
@@ -195,13 +199,13 @@ Returns @tt{true} for @tt{true} and @tt{false}, and @tt{false} for all other val
 
 @function["is-string" #:contract (a-arrow "Any" (a-id "Boolean" (xref "<global>" "Boolean")))]
 
-  @para{Returns true for strings, false for non-strings.  Strings can be written @tt{@literal{"}text@literal{"}} or @tt{@literal{'}text@literal{'}}, 
-  and may not span multiple lines.  Allowed escapes are @tt{\n} (newline), 
-  @tt{\r} (carriage return), @tt{\t} (tab), @tt{\[0-8]{1,3}} for octal escapes, 
-  @tt{\x[0-9a-fA-F]{1,2}} for single-byte hexadecimal escapes, or @tt{\u[0-9a-fA-F]{1,4}} 
-  for double-byte Unicode escapes.  Additionally, @tt{@literal{\"}} escapes a double-quote within a 
+  @para{Returns true for strings, false for non-strings.  Strings can be written @tt{@literal{"}text@literal{"}} or @tt{@literal{'}text@literal{'}},
+  and may not span multiple lines.  Allowed escapes are @tt{\n} (newline),
+  @tt{\r} (carriage return), @tt{\t} (tab), @tt{\[0-8]{1,3}} for octal escapes,
+  @tt{\x[0-9a-fA-F]{1,2}} for single-byte hexadecimal escapes, or @tt{\u[0-9a-fA-F]{1,4}}
+  for double-byte Unicode escapes.  Additionally, @tt{@literal{\"}} escapes a double-quote within a
   double-quoted string, and @tt{@literal{\'}} escapes a single quote within a single-quoted string.}
-  
+
   @para{Multi-line string literals may be written @tt{@literal{```} text @literal{```}}.  The same escape sequences
   are valid as for single-line strings.  Leading and trailing whitespace of the string are
   trimmed.}
@@ -230,5 +234,5 @@ Returns true for functions, false for non-functions
 
 
 
-   
+
 }

@@ -3835,6 +3835,43 @@ define(function() {
     };
   })();
   //////////////////////////////////////////////////////////////////////
+  // toStringDigits: jsnum jsnum -> string
+  // Converts the number to a string, providing digits precision in the
+  // output.  If digits is positive, provides that many digits to the right
+  // of the decimal point (including adding zeroes beyond the actual precision of
+  // the number).  If digits is negative, rounds that many positions to the
+  // left of the decimal, replacing them with zeroes.
+  //
+  // Note that num-to-string-digits is only for formatting, and its
+  // output's apparent precision may be unrelated to the actual precision of the
+  // input number, which may have been an approximation, or unrepresentable in
+  // decimal.
+  function toStringDigits(n, digits) {
+    if (!isInteger(digits)) {
+      throwRuntimeError('num-to-string-digits: digits should be an integer');
+    }
+    var tenDigits = expt(10, digits);
+    var d = toFixnum(digits);
+    n = divide(round(multiply(n, tenDigits)), tenDigits);
+    if (isInteger(n)) {
+      var ans = n.toString();
+      if (d >= 1) {
+        ans += '.';
+        for (var i = 0; i < d; i++) {
+          ans += '0';
+        }
+      }
+      return ans;
+    }
+    // n is not an integer implies that d >= 1
+    var decimal = toRepeatingDecimal(n.numerator(), n.denominator());
+    var ans = decimal[1].toString();
+    while (ans.length < d) {
+      ans += decimal[2];
+    }
+    return decimal[0] + '.' + ans.substring(0, d);
+  }
+  //////////////////////////////////////////////////////////////////////
 
   // External interface of js-numbers:
 
@@ -3903,6 +3940,7 @@ define(function() {
   Numbers['lcm'] = lcm;
 
   Numbers['toRepeatingDecimal'] = toRepeatingDecimal;
+  Numbers['toStringDigits'] = toStringDigits;
 
   // The following exposes the class representations for easier
   // integration with other projects.
