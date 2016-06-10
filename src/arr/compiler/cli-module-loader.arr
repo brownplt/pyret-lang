@@ -257,7 +257,7 @@ default-start-context = {
 
 default-test-context = {
   current-load-path: P.resolve("./"),
-  cache-base-dir: P.resolve("./tests/pyret/compiled")
+  cache-base-dir: P.resolve("./tests/compiled")
 }
 
 fun compile(path, options):

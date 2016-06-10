@@ -132,7 +132,7 @@ build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.a
                       --build-runnable src/scripts/show-compilation.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
-                      --compiled-dir compiled/ \
+                      --compiled-dir build/show-comp/compiled/ \
                       -no-check-mode \
                       --require-config src/scripts/standalone-configA.json
 
@@ -241,7 +241,7 @@ tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES)
 	  --builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config src/scripts/standalone-configA.json \
-		--compiled-dir tests/pyret/compiled/ \
+		--compiled-dir tests/compiled/ \
 		--build-runnable tests/all.arr \
 		-check-all
 
@@ -255,7 +255,7 @@ tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 		--build-runnable tests/pyret/main2.arr \
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
-		--compiled-dir tests/pyret/compiled/ \
+		--compiled-dir tests/compiled/ \
 		--require-config src/scripts/standalone-configA.json \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
 
@@ -293,6 +293,7 @@ tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config src/scripts/standalone-configA.json \
+		--compiled-dir tests/compiled/ \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
 
 
@@ -322,6 +323,10 @@ clean:
 	$(call RMDIR,$(PHASEB))
 	$(call RMDIR,$(PHASEC))
 	$(call RMDIR,$(RELEASE_DIR))
+
+.PHONY : test-clean
+test-clean:
+	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
