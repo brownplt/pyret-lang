@@ -251,17 +251,16 @@ check "Multiple includes":
   end
 
   fun dfind(ctxt, dep):
-    l = cases(CM.Dependency) dep:
+    cases(CM.Dependency) dep:
       | builtin(modname) =>
-        CLI.module-finder(dep)
+        CLI.module-finder(ctxt, dep)
       | else =>
-        string-to-locator(dep.arguments.get(0))
+        CL.located(string-to-locator(dep.arguments.get(0)), ctxt)
     end
-    CL.located(l, CM.standard-globals)
   end
 
   start-loc = string-to-locator("C")
-  wlist = CL.compile-worklist(dfind, start-loc, {})
+  wlist = CL.compile-worklist(dfind, start-loc, CLI.default-start-context)
   ans = CL.compile-and-run-locator(start-loc, dfind, CLI.default-start-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
 
   ans.v satisfies L.is-success-result

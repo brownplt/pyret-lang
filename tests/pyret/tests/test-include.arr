@@ -161,12 +161,12 @@ fun string-to-locator(name :: String):
 end
 
 fun dfind(ctxt, dep):
-  l = cases(CM.Dependency) dep:
-    | dependency(_, _) => string-to-locator(dep.arguments.get(0))
+  cases(CM.Dependency) dep:
     | builtin(modname) =>
-      CLI.module-finder(dep)
+      CLI.module-finder(ctxt, dep)
+    | else =>
+      CL.located(string-to-locator(dep.arguments.get(0)), ctxt)
   end
-  CL.located(l, ctxt)
 end
 
 fun run-to-result(filename):
