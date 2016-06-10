@@ -181,7 +181,7 @@ sharing:
         VS.vs-seq([list: VS.vs-value(onto), VS.vs-str("<")]
           + interleave(args.map(VS.vs-value), VS.vs-str(", "))
           + [list: VS.vs-str(">")])
-      | t-top(_) => VS.vs-str("Any")
+      | t-top(_) => VS.vs-str("Top")
       | t-bot(_) => VS.vs-str("Bot")
       | t-record(fields, _) =>
         VS.vs-seq([list: VS.vs-str("{")]
