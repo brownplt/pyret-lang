@@ -250,6 +250,11 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   end
 end
 
+default-start-context = {
+  current-load-path: P.resolve("./"),
+  cache-base-dir: P.resolve("./compiled")
+}
+
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
   base = module-finder({

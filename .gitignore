@@ -6,6 +6,7 @@
 *.bak
 .DS_Store
 *.log
+*.jarr
 
 # benchmark
 tools/benchmark/TODO

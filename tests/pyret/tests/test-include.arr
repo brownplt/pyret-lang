@@ -5,10 +5,14 @@ import runtime-lib as R
 import either as E
 import render-error-display as ED
 import file("../../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../../src/arr/compiler/compile-structs.arr") as CM
 import file("../../../src/arr/compiler/locators/builtin.arr") as BL
 
 type Either = E.Either
+
+print("Running include tests: " + tostring(time-now()) + "\n")
+
 
 modules = [SD.mutable-string-dict:
   "foo",
@@ -26,12 +30,12 @@ modules = [SD.mutable-string-dict:
   y = 10
   fun g(x): x end
   ```,
-  
+
   "provides-a-type",
   ```
   provide-types *
 
-  type N = Number 
+  type N = Number
   ```,
 
   "includes-a-type",
@@ -160,21 +164,21 @@ fun dfind(ctxt, dep):
   l = cases(CM.Dependency) dep:
     | dependency(_, _) => string-to-locator(dep.arguments.get(0))
     | builtin(modname) =>
-      BL.make-builtin-locator(modname)
+      CLI.module-finder(dep)
   end
   CL.located(l, ctxt)
 end
 
 fun run-to-result(filename):
   floc = string-to-locator(filename)
-  res = CL.compile-and-run-locator(floc, dfind, {}, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options.{compile-module: true})
+  res = CL.compile-and-run-locator(floc, dfind, CLI.default-start-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options.{compile-module: true})
   res
 end
 
 fun get-run-answer(str):
   cases(Either) run-to-result(str) block:
     | right(ans) => ans
-    | left(err) => 
+    | left(err) =>
       print-error("Expected an answer, but got compilation errors:")
       for lists.each(e from err):
         print-error(tostring(e))
@@ -212,4 +216,6 @@ check:
   # TODO(joe): Fix these by writing out the types of exports
   #val("include-world") is some(true)
   #val("gather-includes-include") is some(true)
+  print("Done running include tests: " + tostring(time-now()) + "\n")
+
 end
