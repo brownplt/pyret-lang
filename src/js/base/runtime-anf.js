@@ -3441,17 +3441,17 @@ function isMethod(obj) { return obj instanceof PMethod; }
       checkArrayIndex("raw-array-get", arr, ix);
       return arr[ix];
     };
-    
+
     var raw_array_obj_destructure = function(arr, keys) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a); }
       thisRuntime.checkArray(arr);
       thisRuntime.checkArray(keys);
-      
+
       var obj = {}
       for(var i = 0; i < keys.length; i++) {
         obj[keys[i]] = arr[i];
       }
-      
+
       return makeObject(obj);
     };
 
@@ -3481,7 +3481,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       thisRuntime.checkArray(arr);
       return arr;
     };
-    
+
     var raw_array_concat = function(arr, other) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-concat"], 2, $a); }
       thisRuntime.checkArray(arr);
@@ -3536,7 +3536,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return foldFun();
     };
-    
+
     var raw_array_map = function(f, arr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -3615,7 +3615,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
       return mapFun();
     };
-    
+
     var raw_array_filter = function(f, arr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -3746,7 +3746,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       for(var i = 0; i < jsnums.toFixnum(n); i++) {
         resultStr += s;
       }
-      return makeString(resultStr);
+      return thisRuntime.makeString(resultStr);
     }
     var string_split_all = function(s, splitstr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split-all"], 2, $a); }
@@ -4088,25 +4088,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_tostring = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a); }
       thisRuntime.checkNumber(n);
-      return makeString(String(n));
+      return thisRuntime.makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring-digits"], 2, $a); }
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
-      var d = jsnums.toFixnum(digits);
-      var tenDigits = jsnums.expt(10, digits);
-      if (n != n) { return thisRuntime.makeString("NaN"); }
-      else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
-      else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
-      else if (jsnums.isReal(n)) {
-        n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
-        var s = jsnums.toFixnum(n).toString().split(".");
-        s[1] = (s[1] || "").substring(0, d);
-        for (var i = s[1].length; i < d; i++)
-          s[1] += "0";
-        return thisRuntime.makeString(s[0] + "." + s[1]);
-      }
+      return thisRuntime.makeString(jsnums.toStringDigits(n, digits));
     }
     function random(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a); }
@@ -4683,6 +4671,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_expt': num_expt,
         'num_tostring': num_tostring,
         'num_to_string': num_tostring,
+        'num_tostring_digits': num_tostring_digits,
 
         'string_contains': string_contains,
         'string_append': string_append,
@@ -4756,7 +4745,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'checkArityC': checkArityC,
-        
+
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
@@ -4821,7 +4810,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         list = getField(listsLib, "values");
         srcloc = getField(srclocLib, "values");
       });
-      
+
     loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
       ffi = f;
       thisRuntime["ffi"] = ffi;
