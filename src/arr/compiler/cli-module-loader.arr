@@ -83,33 +83,61 @@ end
 
 fun get-cached-if-available(basedir, loc) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri()))
-  #print("Looking for builtin module at: " + saved-path + "\n")
+  #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
   if not(F.file-exists(saved-path + "-static.js")) or
      (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()) block:
     #print("It wasn't there\n")
     loc
   else:
     uri = loc.uri()
-    js-loc = JSF.make-jsfile-locator(saved-path + "-static")
-    # NOTE: both the jsfile-locator and the nested provides value both contain uris
-    # which must match.  So we override uri() here, and deconstruct the provides value
-    # to replace its URI too, otherwise it'll show up as a jsfile:// uri, which is wrong
-    js-loc.{
+    static-path = saved-path + "-static"
+    raw = B.builtin-raw-locator(static-path)
+    {
+      needs-compile(_, _): false end,
+      get-modified-time(self):
+        F.file-times(static-path + ".js").mtime
+      end,
+      get-options(self, options):
+        options.{ check-mode: false }
+      end,
+      get-module(_):
+        raise("Should never fetch source for builtin module " + static-path)
+      end,
+      get-extra-imports(self):
+        CS.standard-imports
+      end,
+      get-dependencies(_):
+        deps = raw.get-raw-dependencies()
+        raw-array-to-list(deps).map(CS.make-dep)
+      end,
+      get-native-modules(_):
+        natives = raw.get-raw-native-modules()
+        raw-array-to-list(natives).map(CS.requirejs)
+      end,
+      get-globals(_):
+        CS.standard-globals
+      end,
+      get-namespace(_, some-runtime):
+        N.make-base-namespace(some-runtime)
+      end,
+      
       uri(_): uri end,
-      get-compiled(_):
-        cases(Option<Loadable>) js-loc.get-compiled():
-          | none => none
-          | some(loadable) =>
-            cases(Loadable) loadable:
-              | module-as-string(prov, ce, _) =>
-                cases(CS.Provides) prov:
-                  | provides(_, values, aliases, data-defns) =>
-                    some(CL.module-as-string(CS.provides(uri, values, aliases, data-defns), ce,
-                        CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
-                end
-              | else => loadable
-            end
-        end
+      name(_): saved-path end,
+      
+      set-compiled(_, _): nothing end,
+      get-compiled(self):
+        provs = CS.provides-from-raw-provides(self.uri(), {
+            uri: self.uri(),
+            values: raw-array-to-list(raw.get-raw-value-provides()),
+            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          })
+        some(CL.module-as-string(provs, CS.minimal-builtins,
+            CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
+      end,
+      
+      _equals(self, other, req-eq):
+        req-eq(self.uri(), other.uri())
       end
     }
   end
