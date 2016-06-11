@@ -5,7 +5,6 @@ import either as Eth
 import srcloc as S
 import format as F
 import parse-pyret as P
-import world as W
 import string-dict as D
 import filelib as FL
 
@@ -51,10 +50,10 @@ check:
   e3 satisfies E.is-lookup-non-object
   when E.is-lookup-non-object(e3) block:
     e3.field is "x"
-    e3.non-obj is true 
+    e3.non-obj is true
     e3.loc satisfies S.is-srcloc
   end
-  
+
   e4 = get-err(lam(): "x".{x : false} end)
   e4 satisfies E.is-extend-non-object
   when E.is-extend-non-object(e4) block:
@@ -65,7 +64,7 @@ check:
   e5 = get-err(lam(): true.{x : false} end)
   e5 satisfies E.is-extend-non-object
   when E.is-extend-non-object(e5) block:
-    e5.non-obj is true 
+    e5.non-obj is true
     e5.loc satisfies S.is-srcloc
   end
 
@@ -115,7 +114,7 @@ check:
     e12.fun-def-loc satisfies S.is-builtin
     e12.fun-def-loc.module-name is "num-tostring"
   end
-  
+
   e13 = get-err(lam(): P.surface-parse("missing argument") end)
   e13 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e13) block:
@@ -124,7 +123,7 @@ check:
     e13.fun-def-loc satisfies S.is-builtin
     e13.fun-def-loc.module-name is "surface-parse"
   end
-  
+
   e14 = get-err(lam(): P.surface-parse("too", "many", "arguments") end)
   e14 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e14) block:
@@ -133,7 +132,7 @@ check:
     e14.fun-def-loc satisfies S.is-builtin
     e14.fun-def-loc.module-name is "surface-parse"
   end
-  
+
   e16 = get-err(lam(): F.format("too", "many", "arguments") end)
   e16 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e16) block:
@@ -142,41 +141,14 @@ check:
     e16.fun-def-loc satisfies S.is-builtin
     e16.fun-def-loc.module-name is "format"
   end
-  
-  e17 = get-err(lam(): W.big-bang("too", "many", "arguments") end)
-  e17 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e17) block:
-    e17.fun-def-arity is 2
-    e17.fun-app-args.length() is 3
-    e17.fun-def-loc satisfies S.is-builtin
-    e17.fun-def-loc.module-name is "big-bang"
-  end
-  
-  e18 = get-err(lam(): W.is-world-config("too", "many", "arguments") end)
-  e18 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e18) block:
-    e18.fun-def-arity is 1
-    e18.fun-app-args.length() is 3
-    e18.fun-def-loc satisfies S.is-builtin
-    e18.fun-def-loc.module-name is "is-world-config"
-  end
-  
-  e19 = get-err(lam(): W.is-key-equal("too", "many", "arguments") end)
-  e19 satisfies E.is-arity-mismatch
-  when E.is-arity-mismatch(e19) block:
-    e19.fun-def-arity is 2
-    e19.fun-app-args.length() is 3
-    e19.fun-def-loc satisfies S.is-builtin
-    e19.fun-def-loc.module-name is "is-key-equal"
-  end
-  
+
   e20 = get-err(lam(): D.to-dict("too", "many", "arguments") end)
   e20 satisfies E.is-field-not-found
   when E.is-field-not-found(e20) block:
     e20.field is "to-dict"
     e20.obj is D
   end
-  
+
   e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e21) block:
@@ -185,7 +157,7 @@ check:
     e21.fun-def-loc satisfies S.is-builtin
     e21.fun-def-loc.module-name is "make-string-dict"
   end
-  
+
   e22 = get-err(lam(): D.make-mutable-string-dict("too", "many", "arguments") end)
   e22 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e22) block:
@@ -194,7 +166,7 @@ check:
     e22.fun-def-loc satisfies S.is-builtin
     e22.fun-def-loc.module-name is "make-mutable-string-dict"
   end
-  
+
   e23 = get-err(lam(): FL.open-input-file("too", "many", "arguments") end)
   e23 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e23) block:
@@ -203,7 +175,7 @@ check:
     e23.fun-def-loc satisfies S.is-builtin
     e23.fun-def-loc.module-name is "open-input-file"
   end
-  
+
   e24 = get-err(lam(): FL.open-output-file("too", "many", "arguments") end)
   e24 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e24) block:
@@ -212,7 +184,7 @@ check:
     e24.fun-def-loc satisfies S.is-builtin
     e24.fun-def-loc.module-name is "open-output-file"
   end
-  
+
   e25 = get-err(lam(): FL.read-file("too", "many", "arguments") end)
   e25 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e25) block:
@@ -221,7 +193,7 @@ check:
     e25.fun-def-loc satisfies S.is-builtin
     e25.fun-def-loc.module-name is "read-file"
   end
-  
+
   e26 = get-err(lam(): FL.display("too", "many", "arguments") end)
   e26 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e26) block:
@@ -230,7 +202,7 @@ check:
     e26.fun-def-loc satisfies S.is-builtin
     e26.fun-def-loc.module-name is "display"
   end
-  
+
   e27 = get-err(lam(): FL.close-output-file("too", "many", "arguments") end)
   e27 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e27) block:
@@ -256,7 +228,7 @@ check:
     data-pred-arity.fun-app-args.length() is 2
     data-pred-arity.fun-def-loc satisfies S.is-srcloc
   end
-  
+
   data-var1-arity = get-err(lam(): is-var1(1, 2) end)
   data-var1-arity satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(data-var1-arity) block:
@@ -345,4 +317,3 @@ check:
     template-err.loc satisfies S.is-srcloc
   end
 end
-

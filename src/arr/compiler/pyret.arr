@@ -9,7 +9,6 @@ import file("cli-module-loader.arr") as CLI
 import file("locators/builtin.arr") as B
 import format as Format
 import either as E
-#import file("initialize-trove.arr") as IT
 import render-error-display as RED
 format = Format.format
 Either = E.Either
