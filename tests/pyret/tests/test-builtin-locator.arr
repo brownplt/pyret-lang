@@ -14,8 +14,8 @@ check:
   sd.get-dependencies() is [list: CM.builtin("valueskeleton")]
   sd.get-compiled() satisfies is-some
 
-  sd.get-compiled().value.provides.data-definitions.keys() is [tree-set:]
-  sd.get-compiled().value.provides.values.keys() is [tree-set:]
+  sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
+  sd.get-compiled().value.provides.values.keys() is [tree-set: "is-mutable-string-dict", "is-string-dict", "make-mutable-string-dict", "make-string-dict", "mutable-string-dict", "string-dict", "string-dict-of"]
 
   # TODO(joe): reinstate these once types come back
   # sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
@@ -44,9 +44,8 @@ check:
   modules.set-now("baz",
     ```
     import string-dict as SD
-    include image
 
-    is-function(image-url)
+    is-function(SD.make-string-dict)
     ```)
 
   fun string-to-locator(name :: String):
@@ -86,7 +85,7 @@ check:
 
   bazloc = string-to-locator("baz")
   wlist2 = CL.compile-worklist(dfind, bazloc, {})
-  wlist2.length() is 22
+  wlist2.length() is 19
   # TODO(joe): this requires some better eval support than we have
   # ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   # ans2.v satisfies L.is-success-result

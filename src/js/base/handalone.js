@@ -9,15 +9,16 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
 
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
-    stderr: function(s) { process.stderr.write(s); } 
+    stderr: function(s) { process.stderr.write(s); }
   });
 
   var EXIT_SUCCESS = 0;
   var EXIT_ERROR = 1;
   var EXIT_ERROR_RENDERING_ERROR = 2;
   var EXIT_ERROR_DISPLAYING_ERROR = 3;
-  var EXIT_ERROR_JS = 4;
-  var EXIT_ERROR_UNKNOWN = 5;
+  var EXIT_ERROR_CHECK_FAILURES = 4;
+  var EXIT_ERROR_JS = 5;
+  var EXIT_ERROR_UNKNOWN = 6;
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
@@ -61,10 +62,18 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var checks = runtime.getField(answer, "checks");
     runtime.safeCall(function() {
       return toCall.app(checks, getStackP);
-    }, function(printedCheckResult) {
-      if(runtime.isString(printedCheckResult)) {
-        process.stdout.write(printedCheckResult);
+    }, function(summary) {
+      if(runtime.isObject(summary)) {
+        process.stdout.write(runtime.getField(summary, "message"));
         process.stdout.write("\n");
+        var errs = runtime.getField(summary, "errored");
+        var failed = runtime.getField(summary, "failed");
+        if(errs !== 0 || failed !== 0) {
+          process.exit(EXIT_ERROR_CHECK_FAILURES);
+        }
+        else {
+          process.exit(EXIT_SUCCESS);
+        }
       }
     });
   }
@@ -83,7 +92,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
           } else {
             return execRt.ffi.edEmbed(res.exn.exn);
           }
-        }, 
+        },
         function(reasonResult) {
           if (execRt.isFailureResult(reasonResult)) {
             console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
@@ -95,10 +104,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
             execRt.runThunk(
               function() {
                 return gf(gf(rendererror, "values"), "display-to-string").app(
-                  reasonResult.result, 
-                  execRt.namespace.get("torepr"), 
+                  reasonResult.result,
+                  execRt.namespace.get("torepr"),
                   execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
-              }, 
+              },
               function(printResult) {
                 if(execRt.isSuccessResult(printResult)) {
                   console.error(printResult.result);

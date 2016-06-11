@@ -49,10 +49,10 @@ check:
   result4 = next-interaction("y")
   val(result4) is some(10)
 
-  result5 = next-interaction("include image")
+  result5 = next-interaction("include string-dict")
   result5.v satisfies L.is-success-result
 
-  result6 = next-interaction("is-function(rectangle)")
+  result6 = next-interaction("is-function(make-string-dict)")
   val(result6) is some(true)
 
   current-defs := "import string-dict as SD\nstring-dict = SD.string-dict\n55"

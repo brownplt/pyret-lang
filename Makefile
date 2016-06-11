@@ -235,7 +235,7 @@ TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
 TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
 REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
 
-tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES)
+tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) phaseA
 	$(NODE) build/phaseA/pyret.jarr \
 	  --outfile tests/pyret/all.jarr \
 	  --builtin-js-dir src/js/trove/ \

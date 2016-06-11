@@ -1,10 +1,68 @@
 ({
-  requires: 
+  requires:
     [
       { "import-type": "builtin", name: "valueskeleton" }
     ],
   nativeRequires: ["pyret-base/js/namespace"],
-  provides: {},
+  provides: {
+    shorthands: {
+      "sdOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],
+      "msdOfA": ["tyapp", ["local", "MutableStringDict"], [["tid", "a"]]],
+
+      "Equality": { tag: "name",
+                    origin: { "import-type": "uri", uri: "builtin://equality" },
+                    name: "EqualityResult" },
+      "VS": { tag: "name",
+                    origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+                    name: "ValueSkeleton" },
+      "SetOfA": ["tyapp", { tag: "name",
+               origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+               name: "ValueSkeleton" }, [["tid", "a"]]]
+    },
+    values: {
+      "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
+      "make-mutable-string-dict": ["forall", ["a"], ["arrow", [], "msdOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", "Any", "sdOfA"]],
+      "mutable-string-dict": ["forall", ["a"], ["Maker", "Any", "msdOfA"]],
+      "is-mutable-string-dict": ["arrow", ["Any"], "Boolean"],
+      "is-string-dict": ["arrow", ["Any"], "Boolean"],
+      "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]
+    },
+    aliases: {
+
+    },
+    datatypes: {
+      "StringDict": ["data", "StringDict", ["a"], [], {
+        "get": ["arrow", ["String"], ["Option", ["tid", "a"]]],
+        "get-value": ["arrow", ["String"], ["tid", "a"]],
+        "set": ["arrow", ["String", ["tid", "a"]], "sdOfA"],
+        "merge": ["arrow", ["sdOfA"], "sdOfA"],
+        "remove": ["arrow", ["String"], "sdOfA"],
+        "keys": ["arrow", [], "SetOfA"],
+        "keys-list": ["arrow", [], ["List", ["tid", "a"]]],
+        "count": ["arrow", [], "Number"],
+        "has-key": ["arrow", ["String"], "Boolean"],
+        "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        "unfreeze": ["arrow", [], "msdOfA"]
+      }],
+      "MutableStringDict": ["data", "MutableStringDict", ["a"], [], {
+        "get-now": ["arrow", ["String"], ["Option", ["tid", "a"]]],
+        "get-value-now": ["arrow", ["String"], ["tid", "a"]],
+        "set-now": ["arrow", ["String", ["tid", "a"]], "Nothing"],
+        "merge-now": ["arrow", ["msdOfA"], "Nothing"],
+        "remove-now": ["arrow", ["String"], "Nothing"],
+        "keys-now": ["arrow", [], "SetOfA"],
+        "keys-list-now": ["arrow", [], ["List", ["tid", "a"]]],
+        "count-now": ["arrow", [], "Number"],
+        "has-key-now": ["arrow", ["String"], "Boolean"],
+        "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        "freeze": ["arrow", [], "sdOfA"],
+        "seal": ["arrow", [], "msdOfA"]
+      }],
+    }
+  },
   theModule: function(runtime, namespace, uri, VSlib){
     var O = runtime.makeObject;
     var F = runtime.makeFunction;
@@ -211,7 +269,7 @@
         for (var mkey in underlyingDict) {
           var val = underlyingDict[mkey];
           if(val !== undefined) {
-            dict[mkey] = underlyingDict[mkey];  
+            dict[mkey] = underlyingDict[mkey];
           }
         }
         return makeMutableStringDict(dict);

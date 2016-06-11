@@ -23,8 +23,8 @@ language: node_js
 node_js:
 - 6.2.1
 install:
-  - sudo ./setup.sh < setup_commands 
+  - sudo ./setup.sh < setup_commands
   - make install
 before_script: make -j3
 script:
-  - make -j3 test
+  - make all-pyret-test

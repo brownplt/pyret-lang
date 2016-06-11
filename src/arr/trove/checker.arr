@@ -76,18 +76,18 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
-      
+
       ed-op = cases(Option) test-ast.refinement:
-        | none    => 
-          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")   
-        | some(e) => 
+        | none    =>
+          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
+        | some(e) =>
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
             ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], 1),
             ED.text(")")]
       end
-          
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -97,17 +97,17 @@ data TestResult:
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is(_) => [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "), 
+              ED.text("because it reports success if and only if the predicate "),
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
                 | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
               end,
               ED.text(" is satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-            | s-op-is-op(_, op) => 
+            | s-op-is-op(_, op) =>
               [ED.sequence:
                 ED.text("because it reports success if and only if the predicate "),
-                get-op-fun-name(op), ED.text(" is satisfied when the "), 
+                get-op-fun-name(op), ED.text(" is satisfied when the "),
                 ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
           report-value(ed-lhs, self.refinement, self.left),
@@ -129,18 +129,18 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
-      
+
       ed-op = cases(Option) test-ast.refinement:
-        | none    => 
-          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")   
-        | some(e) => 
+        | none    =>
+          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
+        | some(e) =>
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
             ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], 1),
             ED.text(")")]
       end
-          
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -150,7 +150,7 @@ data TestResult:
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is-not(_) => [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "), 
+              ED.text("because it reports success if and only if the predicate "),
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
                 | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
@@ -159,7 +159,7 @@ data TestResult:
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
             | s-op-is-not-op(_, op) => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "),
-              get-op-fun-name(op), ED.text(" is not satisfied when the "), 
+              get-op-fun-name(op), ED.text(" is not satisfied when the "),
               ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
           report-value(ed-lhs, self.refinement, self.left),
@@ -181,7 +181,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -210,7 +210,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -276,12 +276,12 @@ data TestResult:
           cases(CheckOperand) self.exn-place:
             | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)]
             | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 0)]
-            | on-refinement => 
+            | on-refinement =>
               cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
                 | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], 0)]
                 # this branch shouldn't happen
-                | none    => [list: 
-                                ED.text("predicate"), 
+                | none    => [list:
+                                ED.text("predicate"),
                                 ED.cmcode(self.loc)]
               end
           end + [list: ED.text(" to raise an exception:")]),
@@ -312,7 +312,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -341,7 +341,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -396,7 +396,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
         else:
           res = run-task(lam(): with-vals(lv.v, rv.v) end)
-          if is-right(res): add-result(failure-exn(loc, res.v, on-refinement)) 
+          if is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
           else: res.v
           end
         end
@@ -641,5 +641,5 @@ fun render-check-results(block-results):
 end
 
 fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
-  results-summary(block-results, get-stack).message
+  results-summary(block-results, get-stack)
 end
