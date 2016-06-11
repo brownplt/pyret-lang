@@ -34,9 +34,11 @@ fun main(args):
     "standalone-file",
       C.next-val-default(C.String, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
     "builtin-js-dir",
-      C.next-val(C.String, C.once, "Directory to find the source of builtin js modules"),
+      C.next-val(C.String, C.many, "Directory to find the source of builtin js modules"),
     "builtin-arr-dir",
-      C.next-val(C.String, C.once, "Directory to find the source of builtin arr modules"),
+      C.next-val(C.String, C.many, "Directory to find the source of builtin arr modules"),
+    "allow-builtin-overrides",
+      C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
     "compiled-dir",
       C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to"),
     "library",
@@ -54,7 +56,7 @@ fun main(args):
     "type-check",
       C.flag(C.once, "Type-check the program during compilation")
   ]
-  
+
   params-parsed = C.parse-args(options, args)
 
   fun err-less(e1, e2):
@@ -63,9 +65,9 @@ fun main(args):
     else: tostring(e1) < tostring(e2)
     end
   end
-  
+
   cases(C.ParsedArguments) params-parsed block:
-    | success(r, rest) => 
+    | success(r, rest) =>
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
@@ -78,10 +80,13 @@ fun main(args):
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
       when r.has-key("builtin-js-dir"):
-        B.set-builtin-js-dir(r.get-value("builtin-js-dir"))
+        B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
       when r.has-key("builtin-arr-dir"):
-        B.set-builtin-arr-dir(r.get-value("builtin-arr-dir"))
+        B.set-builtin-arr-dirs(r.get-value("builtin-arr-dir"))
+      end
+      when r.has-key("allow-builtin-overrides"):
+        B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
       if not(is-empty(rest)):
         raise("No longer supported")
@@ -108,7 +113,7 @@ fun main(args):
                 compiled-cache: compiled-dir
               })
         else if r.has-key("build-standalone"):
-          CLI.build-require-standalone(r.get-value("build-standalone"), 
+          CLI.build-require-standalone(r.get-value("build-standalone"),
               CS.default-compile-options.{
                 check-mode : check-mode,
                 type-check : type-check,

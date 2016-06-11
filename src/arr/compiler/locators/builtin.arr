@@ -30,15 +30,20 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-var builtin-js-dir = "src/js/trove/"
-var builtin-arr-dir = "src/arr/trove/"
+var builtin-js-dirs = [list: "src/js/trove/"]
+var builtin-arr-dirs = [list: "src/arr/trove/"]
+var allow-builtin-overrides = false
 
-fun set-builtin-js-dir(s :: String):
-  builtin-js-dir := s
+fun set-builtin-js-dirs(paths :: List<String>):
+  builtin-js-dirs := paths
 end
 
-fun set-builtin-arr-dir(s :: String):
-  builtin-arr-dir := s
+fun set-builtin-arr-dirs(paths :: List<String>):
+  builtin-arr-dirs := paths
+end
+
+fun set-allow-builtin-overrides(flag :: Boolean):
+  allow-builtin-overrides := flag
 end
 
 fun make-builtin-js-locator(basedir, builtin-name):
@@ -174,13 +179,43 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   }
 end
 
-fun make-builtin-locator(builtin-name :: String) -> CL.Locator:
+fun make-builtin-locator(builtin-name :: String) -> CL.Locator block:
+  matching-arr-files = for map(p from builtin-arr-dirs):
+    full-path = P.join(p, builtin-name + ".arr")
+    if F.file-exists(full-path):
+      some(full-path)
+    else:
+      none
+    end
+  end.filter(is-some).map(_.value)
+  matching-js-files = for map(p from builtin-js-dirs):
+    full-path = P.join(p, builtin-name + ".js")
+    if F.file-exists(full-path):
+      some(full-path)
+    else:
+      none
+    end
+  end.filter(is-some).map(_.value)
+  when not(allow-builtin-overrides) block:
+    when matching-arr-files.length() > 1:
+      raise("The module " + builtin-name + " is defined in several locations: " +
+        matching-arr-files.join-str(", ") + ".  Use --allow-builtin-overrides to permit this.")
+    end
+    when matching-js-files.length() > 1:
+      raise("The module " + builtin-name + " is defined in several locations: " +
+        matching-js-files.join-str(", ") + ".  Use --allow-builtin-overrides to permit this.")
+    end
+    when is-link(matching-arr-files) and is-link(matching-js-files):
+      raise("The module " + builtin-name + " is defined in several locations: " +
+        (matching-arr-files + matching-js-files).join-str(", ") + ".  Use --allow-builtin-overrides to permit this.")
+    end
+  end
   ask:
-    | F.file-exists(P.join(builtin-arr-dir, builtin-name + ".arr")) then:
-      make-builtin-arr-locator(builtin-arr-dir, builtin-name)
-    | F.file-exists(P.join(builtin-js-dir, builtin-name + ".js")) then:
-      make-builtin-js-locator(builtin-js-dir, builtin-name)
+    | is-link(matching-arr-files) then:
+      make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name)
+    | is-link(matching-js-files) then:
+      make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name)
     | otherwise:
-      raise("Could not find module " + builtin-name + " in either of " + builtin-js-dir + " or " + builtin-arr-dir)
+      raise("Could not find module " + builtin-name + " in any of " + (builtin-arr-dirs + builtin-js-dirs).join-str(", "))
   end
 end
