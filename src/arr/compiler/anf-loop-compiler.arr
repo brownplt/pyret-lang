@@ -1549,7 +1549,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   module-locators = imports.map(lam(i):
     cases(N.AImportType) i.import-type:
       | a-import-builtin(_, name) => CS.builtin(name)
-      | a-import-file(_, file) => CS.dependency("legacy-path", [list: file])
+      | a-import-file(_, file) => raise("import-file no longer supported")
       | a-import-special(_, typ, args) => CS.dependency(typ, args)
     end
   end)

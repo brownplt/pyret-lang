@@ -18,7 +18,6 @@ import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/file.arr") as FL
-import file("locators/legacy-path.arr") as LP
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
@@ -120,10 +119,10 @@ fun get-cached-if-available(basedir, loc) block:
       get-namespace(_, some-runtime):
         N.make-base-namespace(some-runtime)
       end,
-      
+
       uri(_): uri end,
       name(_): saved-path end,
-      
+
       set-compiled(_, _): nothing end,
       get-compiled(self):
         provs = CS.provides-from-raw-provides(self.uri(), {
@@ -135,7 +134,7 @@ fun get-cached-if-available(basedir, loc) block:
         some(CL.module-as-string(provs, CS.minimal-builtins,
             CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
       end,
-      
+
       _equals(self, other, req-eq):
         req-eq(self.uri(), other.uri())
       end
@@ -268,8 +267,6 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
-      else if protocol == "legacy-path":
-        CL.located(LP.legacy-path-locator(dep.arguments.get(0)), ctxt)
       else:
         raise("Unknown import type: " + protocol)
       end
