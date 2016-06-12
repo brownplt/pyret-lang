@@ -104,8 +104,6 @@ end
 
 data Loadable:
   | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer)
-  # Doesn't need compilation, just contains a JS closure
-  | pre-loaded(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, internal-mod :: Any)
 end
 
 type ModuleResult = Any
@@ -542,7 +540,7 @@ fun make-standalone(wl, compiled, options) block:
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
-  
+
   var failure = false
   static-modules = j-obj(for C.map_list(w from wl):
     loadable = compiled.modules.get-value-now(w.locator.uri())
@@ -558,8 +556,6 @@ fun make-standalone(wl, compiled, options) block:
             failure := true
             j-field(w.locator.uri(), J.j-raw-code("\"error\""))
         end
-      | pre-loaded(provides, _, _) =>
-        raise("Cannot serialize pre-loaded: " + torepr(provides.from-uri))
     end
   end)
   when failure:

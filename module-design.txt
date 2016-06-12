@@ -178,7 +178,11 @@ defined-values/defined-types?
 
     cpo-builtin-modules/realms does this
 
-[ ] 30. Delete legacy-path and `pre-loaded` module type
+[ ] 30. Delete legacy-path
+
+    - remove all uses of s-file-import and a-import-file
+    - also remove `pre-loaded` module type
+
 
 [ ] 31. Just use get-compiled to streamline caching of modules, and don't pass
     in the initial cache?  That is, locator constructors like file could
@@ -194,10 +198,10 @@ defined-values/defined-types?
 
 [ ] 35. Get rid of tany
 
-[ ] 36. Make nice handalone/load-lib code for rendering in the presence of errors
+[x] 36. Make nice handalone/load-lib code for rendering in the presence of errors
         - renderErrorMessage->renderErrorMessageAndExit
 
-[ ] 37. Type checking Q's to repro:
+[x] 37. Type checking Q's to repro:
 
       numbers.arr, line 54ish
 
