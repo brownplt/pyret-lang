@@ -9,6 +9,7 @@ import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as CL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
+import file("type-structs.arr") as T
 import string-dict as D
 import srcloc as SL
 import sets as S
@@ -84,6 +85,8 @@ j-break = J.j-break
 j-while = J.j-while
 j-for = J.j-for
 make-label-sequence = J.make-label-sequence
+
+is-t-data = T.is-t-data
 
 data BindType:
   | b-let(value :: N.ABind)
@@ -1424,27 +1427,106 @@ end
 
 fun import-key(i): AU.import-to-dep-anf(i).key() end
 
+fun compile-type-variant(variant):
+  # TODO -- support with-members
+  cases(T.TypeVariant) variant:
+    | t-variant(name, members, with-members) =>
+      j-list(true, [clist: j-str(name),
+          j-list(false, for CL.map_list(mem from members):
+              cases(T.TypeMember) mem:
+                | t-member(mem-name, typ) =>
+                  if T.is-t-ref(typ):
+                    j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
+                  else:
+                    j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
+                  end
+              end
+            end)])
+    | t-singleton-variant(name, with-members) =>
+      j-list(true, [clist: j-str(name)])
+  end
+end
+
+fun compile-type-member(member):
+  cases(T.TypeMember) member:
+    | t-member(name, typ) => j-field(name, compile-provided-type(typ))
+  end
+end
+
+fun compile-provided-data(typ :: T.Type%(is-t-data), params):
+  cases(T.Type) typ:
+    | t-data(name, variants, members, l) =>
+      j-list(false,
+        [clist: j-str("data"), j-str(name),
+          j-list(false, for CL.map_list(p from params):
+              j-str(tostring(p))
+            end),
+          j-list(false, CL.map_list(compile-type-variant, variants)),
+          j-obj(CL.map_list(compile-type-member, members))])
+  end
+end
+
 fun compile-provided-type(typ):
-  j-str("tany")
+  cases(T.Type) typ:
+    | t-name(mod-name, id, l) =>
+      cases(T.NameOrigin) mod-name:
+        | local => j-obj([clist:
+              j-field("tag", j-str("name")),
+              j-field("origin", j-obj([clist: j-field("import-type", j-str("$ELF"))])),
+              j-field("name", j-str(id.toname()))]) # TODO: toname or key?
+        | module-uri(uri) =>
+          j-obj([clist:
+              j-field("tag", j-str("name")),
+              j-field("origin", j-obj([clist: j-field("import-type", j-str("uri")), j-field("uri", j-str(uri))])),
+              j-field("name", j-str(id.toname()))]) # TODO: toname or key?
+        | dependency(dep) =>
+          raise("Dependency-origin names in provided-types shouldn't be possible")
+      end
+    | t-var(name, l) => j-list(true, [clist: j-str("tid"), j-str(name.toname())])
+    | t-arrow(args, ret, l) =>
+      j-list(true,
+        [clist: j-str("arrow"),
+          j-list(true, CL.map_list(compile-provided-type, args)), compile-provided-type(ret)])
+    | t-app(base, args, l) =>
+      j-list(false,
+        [clist: j-str("tyapp"), compile-provided-type(base),
+          j-list(true, CL.map_list(compile-provided-type, args))])
+    | t-top(_) => j-str("tany")
+      # | t-bot(_) =>
+    | t-record(fields, l) =>
+      j-list(false,
+        [clist: j-str("record"), j-obj(CL.map_list(compile-type-member, fields))])
+    | t-forall(params, body, l) =>
+      if T.is-t-data(body): compile-provided-data(body, params)
+      else:
+        j-list(true,
+          [clist: j-str("forall"), CL.map_list(compile-provided-type, params), compile-provided-type(body)])
+      end
+      # | t-ref(_, _) =>
+      # | t-existential(_, _) =>
+    | t-data(_, _, _, _) => compile-provided-data(typ, empty)
+      # | t-data-refinement(_, _, _) =>
+    | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
+  end
 end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-  | provides(thismod-uri, values, aliases, data-defs) =>
-    value-fields = for CL.map_list(v from values.keys().to-list()):
-      j-field(v, compile-provided-type(values.get-value(v)))
-    end
-    data-fields = for CL.map_list(d from data-defs.keys().to-list()):
-      j-field(d, compile-provided-type(data-defs.get-value(d)))
-    end
-    alias-fields = for CL.map_list(a from aliases.keys().to-list()):
-      j-field(a, compile-provided-type(aliases.get-value(a)))
-    end
-    j-obj([clist:
-      j-field("values", j-obj(value-fields)),
-      j-field("datatypes", j-obj(data-fields)),
-      j-field("aliases", j-obj(alias-fields))
-    ])
+    | provides(thismod-uri, values, aliases, data-defs) =>
+      value-fields = for CL.map_list(v from values.keys().to-list()):
+        j-field(v, compile-provided-type(values.get-value(v)))
+      end
+      data-fields = for CL.map_list(d from data-defs.keys().to-list()):
+        j-field(d, compile-provided-type(data-defs.get-value(d)))
+      end
+      alias-fields = for CL.map_list(a from aliases.keys().to-list()):
+        j-field(a, compile-provided-type(aliases.get-value(a)))
+      end
+      j-obj([clist:
+          j-field("values", j-obj(value-fields)),
+          j-field("datatypes", j-obj(data-fields)),
+          j-field("aliases", j-obj(alias-fields))
+        ])
   end
 end
 
