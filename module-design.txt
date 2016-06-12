@@ -178,10 +178,10 @@ defined-values/defined-types?
 
     cpo-builtin-modules/realms does this
 
-[ ] 30. Delete legacy-path
+[/] 30. Delete legacy-path
 
-    - remove all uses of s-file-import and a-import-file
-    - also remove `pre-loaded` module type
+    [ ] remove all uses of s-file-import and a-import-file
+    [ ] also remove `pre-loaded` module type
 
 
 [ ] 31. Just use get-compiled to streamline caching of modules, and don't pass
@@ -201,7 +201,7 @@ defined-values/defined-types?
 [x] 36. Make nice handalone/load-lib code for rendering in the presence of errors
         - renderErrorMessage->renderErrorMessageAndExit
 
-[x] 37. Type checking Q's to repro:
+[ ] 37. Type checking Q's to repro:
 
       numbers.arr, line 54ish
 
