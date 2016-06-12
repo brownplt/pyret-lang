@@ -11,10 +11,9 @@ prelude: [provide-stmt] [provide-types-stmt] import-stmt*
 import-stmt: INCLUDE import-source
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT comma-names FROM import-source
-import-source: import-special | import-name | import-string 
+import-source: import-special | import-name
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
-import-string: STRING
 provide-stmt: PROVIDE stmt END | PROVIDE STAR
 provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 comma-names: NAME (COMMA NAME)*

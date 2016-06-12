@@ -64,8 +64,6 @@ end
 data AImportType:
   | a-import-builtin(l :: Loc, lib :: String) with:
     tosource(self): PP.str(self.lib) end
-  | a-import-file(l :: Loc, file :: String) with:
-    tosource(self): PP.dquote(PP.str(self.file)) end
   | a-import-special(l :: Loc, kind :: String, args :: List<String>) with:
     tosource(self):
       PP.group(PP.str(self.kind)
@@ -484,7 +482,6 @@ end
 fun strip-loc-import-type(i :: AImportType):
   cases(AImportType) i:
     | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
-    | a-import-file(_, file, id) => a-import-builtin(dummy-loc, file, id)
   end
 end
 
@@ -571,9 +568,6 @@ default-map-visitor = {
   end,
   a-program(self, l :: Loc, p, imports :: List<AImport>, body :: AExpr):
     a-program(l, p, imports.map(_.visit(self)), body.visit(self))
-  end,
-  a-import-file(self, l :: Loc, file :: String, name :: A.Name):
-    a-import-file(l, file, name)
   end,
   a-import-builtin(self, l :: Loc, lib :: String, name :: A.Name):
     a-import-builtin(l, lib, name)

@@ -696,7 +696,6 @@ end
 fun import-to-dep(imp):
   cases(A.ImportType) imp:
     # crossover compatibility
-    | s-file-import(_, path) => CS.dependency("legacy-path", [list: path])
     | s-const-import(_, modname) => CS.builtin(modname)
     | s-special-import(_, protocol, args) => CS.dependency(protocol, args)
   end
@@ -705,7 +704,6 @@ end
 fun import-to-dep-anf(imp):
   cases(N.AImportType) imp:
     | a-import-builtin(_, name) => CS.builtin(name)
-    | a-import-file(_, name) => CS.dependency("legacy-path", [list: name])
     | a-import-special(_, kind, args) => CS.dependency(kind, args)
   end
 end

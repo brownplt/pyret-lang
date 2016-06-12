@@ -393,19 +393,6 @@ where:
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
   ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
-
-
-#|
-  compare2 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:
-        A.s-import(d, A.s-file-import(d, "./foo.arr"), A.s-name(d, "F"))
-      ],
-        A.s-let-expr(d, [list: 
-            A.s-let-bind(d, b("x"), A.s-num(d, 10))
-          ],
-          A.s-module(d, A.s-app(d, id("F"), [list: id("x")]), id("x"), [list:], checks))
-      )
-  ds(PP.surface-parse("provide x end import 'foo.arr' as F x = 10 F(x)", "test")) is compare2
-|#
 end
 
 

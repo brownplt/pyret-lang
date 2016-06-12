@@ -119,7 +119,6 @@ end
 
 fun anf-import-type(it :: A.ImportType):
   cases(A.ImportType) it:
-    | s-file-import(l, fname) => N.a-import-file(l, fname)
     | s-const-import(l, mod) => N.a-import-builtin(l, mod)
     | s-special-import(l, kind, args) => N.a-import-special(l, kind, args)
   end
@@ -129,7 +128,6 @@ fun anf-import(i :: A.Import):
   cases(A.Import) i:
     | s-import-complete(l, vals, types, f, val-name, types-name) =>
       itype = cases(A.ImportType) f:
-        | s-file-import(_, fname) => N.a-import-file(l, fname)
         | s-const-import(_, mod) => N.a-import-builtin(l, mod)
         | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
       end

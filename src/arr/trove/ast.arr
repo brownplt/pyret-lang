@@ -373,9 +373,6 @@ end
 
 
 data ImportType:
-  | s-file-import(l :: Loc, file :: String) with:
-    label(self): "s-file-import" end,
-    tosource(self): PP.str(torepr(self.file)) end
   | s-const-import(l :: Loc, mod :: String) with:
     label(self): "s-const-import" end,
     tosource(self): PP.str(self.mod) end
@@ -1481,9 +1478,6 @@ default-map-visitor = {
       vals-name.visit(self),
       types-name.visit(self))
   end,
-  s-file-import(self, l, file):
-    s-file-import(l, file)
-  end,
   s-const-import(self, l, mod):
     s-const-import(l, mod)
   end,
@@ -1947,9 +1941,6 @@ default-iter-visitor = {
   s-include(self, l, import-type):
     import-type.visit(self)
   end,
-  s-file-import(self, l, file):
-    true
-  end,
   s-const-import(self, l, mod):
     true
   end,
@@ -2392,9 +2383,6 @@ dummy-loc-visitor = {
     s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  s-file-import(self, l :: Loc, file :: String):
-    s-file-import(dummy-loc, file)
-  end,
   s-const-import(self, l :: Loc, mod :: String):
     s-const-import(dummy-loc, mod)
   end,

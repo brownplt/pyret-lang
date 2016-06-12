@@ -183,11 +183,6 @@
           return RUNTIME.getField(ast, 's-const-import')
             .app(pos(node.pos), symbol(node.kids[0]))
         },
-        'import-string': function(node) {
-          // (import-string STRING)
-          return RUNTIME.getField(ast, 's-file-import')
-            .app(pos(node.pos), string(node.kids[0]))
-        },
         'block': function(node) {
           // (block stmts ...)
           return RUNTIME.getField(ast, 's-block')
