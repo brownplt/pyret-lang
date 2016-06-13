@@ -156,7 +156,7 @@ fun tvariant-from-raw(uri, tvariant, env):
       end
       T.t-variant(tvariant.name, members, empty)
     | t == "singleton-variant" then:
-      T.t-singleton-variant(tvariant.name, empty, l)
+      T.t-singleton-variant(tvariant.name, empty)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end

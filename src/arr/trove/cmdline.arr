@@ -30,6 +30,7 @@ provide {
 } end
 provide-types *
 
+import global as _
 import base as _
 import cmdline-lib as CL
 import format as F

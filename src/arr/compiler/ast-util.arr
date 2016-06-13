@@ -798,7 +798,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | none => raise("Name not found in globals.types: " + name)
               | some(key) =>
                 cases(Option<CS.Provides>) compile-env.mods.get(key):
-                  | none => raise("Module not found in compile-env.mods: " + key + " (looked up for " + name + ")")
+                  | none => raise("Module not found in compile-env.mods: " + key
+                        + " (looked up for " + name + " for module " + uri + ")")
                   | some(mod) => T.t-name(T.module-uri(mod.from-uri), id, l)
                 end
             end

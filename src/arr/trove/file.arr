@@ -10,6 +10,7 @@ provide {
 } end
 provide-types *
 
+import global as _
 import base as _
 import filelib as F
 

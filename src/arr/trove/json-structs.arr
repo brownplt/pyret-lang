@@ -1,6 +1,7 @@
 provide *
 provide-types *
 
+import global as _
 import base as _
 import string-dict as SD
 import lists as lists

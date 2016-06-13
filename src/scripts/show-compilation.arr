@@ -59,7 +59,7 @@ cases (C.ParsedArguments) parsed-options block:
       if opts.has-key("standard-builtins"):
         CS.standard-imports
       else:
-        CS.minimal-imports
+        CS.minimal-imports # not empty -- need globals
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")

@@ -44,6 +44,7 @@ provide {
 } end
 provide-types *
 
+import global as _
 import base as _
 import valueskeleton as VS
 import lists as lists

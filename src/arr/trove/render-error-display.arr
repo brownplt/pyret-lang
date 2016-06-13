@@ -1,4 +1,5 @@
 provide *
+import global as _
 import either as E
 import error-display as ED
 import srcloc as S

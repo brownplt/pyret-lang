@@ -115,7 +115,7 @@ check "Worklist generation (DAG)":
       get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
+      get-globals(self): CM.no-builtins.globals end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
