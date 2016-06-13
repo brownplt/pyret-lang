@@ -46,6 +46,12 @@
     - Is forcing tuples to be size >= 2 a big win?
     - What about doing all checks _before_ gets for a binding?
 
+[ ] *Make a mutable version of eachLoop 
+   [ ] *test
+   Note: only have one try catch block (have a helper function that calls try cathc block that does all of that work
+   [ ] *write tests that use both versions (getting old value, summing up, etc.)
+      - don't write tests that rely on the orders of the keys (sum, adding to a set)
+      - test-str-dict (can even check against all string-dict) (9 combos?)
 ______________________________________________________
 TODONE:
 

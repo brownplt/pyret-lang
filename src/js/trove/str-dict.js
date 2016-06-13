@@ -23,6 +23,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
                                       sdOfA))
           }),
+        "dict-each": t.any,
         "string-dict-of":
           t.forall(["a"],
             t.arrow(
@@ -786,6 +787,46 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeList(elts);
         });
 
+
+   function eachLoop(self, func) {
+      var i = 0;
+      var keys;
+      var currentRunCount = 0;
+      if(runtime.isActivationRecord(self)) {
+        i = self.vars[0];
+        keys = self.vars[1];
+        func = self.args[0];
+        i = i + 1;
+      }
+      else {
+        keys = underlyingMap.keys();
+      }
+      try {
+        if (--runtime.GAS <= 0) {
+          runtime.EXN_STACKHEIGHT = 0;
+          throw runtime.makeCont();
+        }
+        while(true) {
+          if(i >= keys.length) { return runtime.nothing; }
+          func.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])]));
+
+          if (++currentRunCount >= 1000) {
+            runtime.EXN_STACKHEIGHT = 0;
+            throw runtime.makeCont();
+          }  
+          else { i = i + 1; }
+        }
+      }
+      catch($e) {
+        if (runtime.isCont($e)) {
+          $e.stack[runtime.EXN_STACKHEIGHT++] =
+            runtime.makeActivationRecord("eachLoop", eachLoop, true, [func], [i, keys]);
+        }
+        throw $e;
+      }
+    }
+       var eachLoopISD = runtime.makeMethod1(eachLoop);
+
        var eachISD = runtime.makeMethod1(function(self, func) {
           var keys = underlyingMap.keys();
            function deepCallTuple(i) {
@@ -891,6 +932,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'has-key': hasKeyISD,
           'items': itemsISD,
           'each': eachISD,
+          'each-loop' : eachLoopISD,
           _equals: equalsISD,
           _output: outputISD,
           unfreeze: unfreezeISD
@@ -1169,6 +1211,21 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         return runtime.makeBoolean(internal_isISD(obj))
       }
 
+      function dictEach(func, obj) {
+      //TODO: check that func is a function and obj is a string dict
+       arity(2, arguments,'dict-eact');
+       eachMethod = runtime.getField(obj, "each");
+       return eachMethod.app(func);
+      }
+      
+      function dictEachLoop(func, obj) {
+      //TODO: check that func is a function and obj is a string dict
+       arity(2, arguments,'dict-eact-loop');
+       eachMethod = runtime.getField(obj, "each-loop");
+       return eachMethod.app(func);
+      }
+
+
       function createImmutableStringDict() {
         arity(0, arguments, "make-string-dict");
         var map = emptyMap();
@@ -1442,6 +1499,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             }),
             "is-mutable-string-dict": F(isMutableStringDict),
             "make-string-dict": F(createImmutableStringDict),
+            "dict-each": F(dictEach),
+            "dict-each-loop": F(dictEachLoop),
             "string-dict": O({
               make: F(createImmutableStringDictFromArray),
               make0: F(createImmutableStringDict0),

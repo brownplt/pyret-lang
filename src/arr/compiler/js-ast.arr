@@ -131,8 +131,9 @@ data JStmt:
   | j-expr(expr :: JExpr) with:
     label(self): "j-expr" end,
     print-ugly-source(self, printer):
+      printer("(")
       self.expr.print-ugly-source(printer)
-      printer(";\n")
+      printer(");\n")
     end,
     tosource(self):
       self.expr.tosource() + PP.str(";")

@@ -1,6 +1,6 @@
 define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error-display"], function(r, RT, pyret, rendererrorLib) {
   var rt = RT.makeRuntime({
-    initialGas: 900,
+    initialGas: 500,
     stdout: function(str) { process.stdout.write(str); },
     stderr: function(str) { process.stderr.write(str); }
   });

@@ -276,6 +276,8 @@ check "items":
 
  var lst2 = [list: ]
 
+ var lst = [list: ]
+
  fun g(x):
     lst2 := link(x, lst2)
  end
@@ -287,4 +289,10 @@ check "items":
  s2.each(g) is nothing
  lst2 := lst2.reverse()
  lst2 is [list: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1} ]
+
+  for SD.dict-each(tup from s2):
+    {k;v} = tup
+    lst := link({k;v}, lst)
+  end
+  lst.reverse() is lst2
 end

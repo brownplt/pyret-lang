@@ -101,3 +101,6 @@ check "annotations for tuple":
   fun f(tup:: {Number; String; Number}): tup.{1} end
   f({4; "hi"; 235}) is "hi"
 end
+
+
+
