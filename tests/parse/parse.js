@@ -503,7 +503,8 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
 
     it("should parse imports", function() {
       expect(parse('import modname as G')).not.toBe(false);
-      expect(parse('import "modname.arr" as G')).not.toBe(false);
+      expect(parse('import file("modname.arr") as G')).not.toBe(false);
+      expect(parse('import file-is-not-special("modname.arr") as G')).not.toBe(false);
       expect(parse('import gdrive(a) as G')).toBe(false);
       expect(parse('import gdrive("a") as G')).not.toBe(false);
       expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
@@ -512,7 +513,8 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     
     it("should parse includes", function() {
       expect(parse('include modname')).not.toBe(false);
-      expect(parse('include "modname.arr"')).not.toBe(false);
+      expect(parse('include file("modname.arr")')).not.toBe(false);
+      expect(parse('include file-is-not-special("modname.arr")')).not.toBe(false);
       expect(parse('include gdrive(a)')).toBe(false);
       expect(parse('include gdrive("a")')).not.toBe(false);
       expect(parse('include gdrive("a", "b")')).not.toBe(false);
