@@ -791,7 +791,20 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     cases(A.Ann) a:
       | a-blank => T.t-top(A.dummy-loc)
       | a-any(l) => T.t-top(l)
-      | a-name(l, id) => T.t-name(T.module-uri(uri), id, l)
+      | a-name(l, id) =>
+        cases(A.Name) id:
+          | s-type-global(name) =>
+            cases(Option<String>) compile-env.globals.types.get(name):
+              | none => raise("Name not found in globals.types: " + name)
+              | some(key) =>
+                cases(Option<CS.Provides>) compile-env.mods.get(key):
+                  | none => raise("Module not found in compile-env.mods: " + key + " (looked up for " + name + ")")
+                  | some(mod) => T.t-name(T.module-uri(mod.from-uri), id, l)
+                end
+            end
+          | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l)
+          | else => raise("Bad name found in ann-to-typ: " + id.key())
+        end
       | a-type-var(l, id) =>
         T.t-var(id, l)
       | a-arrow(l, args, ret, use-parens) =>
