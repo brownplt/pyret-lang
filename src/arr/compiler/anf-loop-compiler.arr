@@ -1565,12 +1565,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
         dep = env.globals.values.get-value(n.toname())
         uri = cases(Option) env.mods.get(dep):
           | some(d) => d.from-uri
-          | none =>
-            if dep == "builtin(global)":
-              "builtin://global"
-            else:
-              raise(dep + " not found in: " + torepr(env.mods))
-            end
+          | none => raise(dep + " not found in: " + torepr(env.mods))
         end
         j-var(js-id-of(n),
           rt-method("getField", [clist:
@@ -1587,12 +1582,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
         dep = env.globals.types.get-value(n.toname())
         uri = cases(Option) env.mods.get(dep):
           | some(d) => d.from-uri
-          | none =>
-            if dep == "builtin(global)":
-              "builtin://global"
-            else:
-              raise(dep + " not found in: " + torepr(env.mods))
-            end
+          | none => raise(dep + " not found in: " + torepr(env.mods))
         end
         j-var(js-id-of(n),
           j-bracket(
