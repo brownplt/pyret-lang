@@ -268,10 +268,23 @@ check "items":
    sum + tup.{1}
  end
  sum is 156
- 
+
+ var lst1 = [list: ]
  fun f(x):
-   x is {"a"; 2}
- end 
+    lst1 := link(x, lst1)
+ end
+
+ var lst2 = [list: ]
+
+ fun g(x):
+    lst2 := link(x, lst2)
+ end
 
  s1.each(f) is nothing
+ lst1 := lst1.reverse()
+ lst1 is [list:  {"a"; 2}, {"g"; 4}]
+
+ s2.each(g) is nothing
+ lst2 := lst2.reverse()
+ lst2 is [list: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1} ]
 end

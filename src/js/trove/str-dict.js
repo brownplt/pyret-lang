@@ -786,6 +786,20 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeList(elts);
         });
 
+       var eachISD = runtime.makeMethod1(function(self, func) {
+          var keys = underlyingMap.keys();
+           function deepCallTuple(i) {
+            return runtime.safeCall(function() {
+              return func.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])]));
+            }, function(result) {
+                if((i + 1) == keys.length) { return runtime.nothing; }
+                else { return deepCallTuple(i + 1); }
+            },
+            "deepCallTuple");
+         }
+           return deepCallTuple(0);
+        });
+
         var keysListISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a);}
           var keys = underlyingMap.keys();
@@ -875,7 +889,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           "keys-list": keysListISD,
           count: countISD,
           'has-key': hasKeyISD,
-          'items': itemsISD,  
+          'items': itemsISD,
+          'each': eachISD,
           _equals: equalsISD,
           _output: outputISD,
           unfreeze: unfreezeISD
@@ -970,11 +985,16 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
 
         var eachMSD = runtime.makeMethod1(function(self, func) {
           var keys = Object.keys(underlyingDict);
-          var vsValue = get(VS, "vs-value");
-          for (var i = 0; i < keys.length; i++) {
-            func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
-          }
-          return runtime.nothing;
+           function deepCallTuple(i) {
+            return runtime.safeCall(function() {
+              return func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
+            }, function(result) {
+                if((i + 1) == keys.length) { return runtime.nothing; }
+                else { return deepCallTuple(i + 1); }
+            },
+            "deepCallTuple");
+         }
+           return deepCallTuple(0);
         });
 
         var keysListMSD = runtime.makeMethod0(function(_) {
