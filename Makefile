@@ -246,7 +246,7 @@ tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) phaseA
 		-check-all
 
 .PHONY : all-pyret-test
-all-pyret-test: tests/pyret/all.jarr
+all-pyret-test: tests/pyret/all.jarr parse-test
 	$(NODE) tests/pyret/all.jarr
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
