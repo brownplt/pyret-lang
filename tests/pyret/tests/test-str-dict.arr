@@ -347,7 +347,7 @@ check "all forms of fors":
    sum
  end
 
-  fun sum_old_each-mut(dict):
+  fun sum_old_each_mut(dict):
    var sum = 0
    for each(name from dict.keys-list-now()):
      sum := sum + dict.get-value-now(name)
@@ -385,12 +385,97 @@ check "all forms of fors":
  mutDict = createMutableDict(dict)
  sum_from_old = sum_old_each_old_dict(oldDict)
  sum_from_old is sum_old_each(dict)
- sum_from_old is sum_old_each-mut(mutDict)
+ sum_from_old is sum_old_each_mut(mutDict)
  sum_from_old is sum_new_dict_new_each(dict)
  sum_from_old is sum_new_dict_new_each(mutDict)
  sum_from_old is sum_new_dict_each(dict)
  sum_from_old is sum_new_dict_each(mutDict)
  sum_from_old is sum_new_dict_loop(dict)
  sum_from_old is sum_new_dict_loop(mutDict)
+
+ fun dostuff(x):
+  range(0, x)
+  end 
+
+ fun sum_old_each_old_dict_b(shadow dict):
+  var sum = 0
+  for each(name from dict.keys-list()):
+    values = dict.get-value(name)
+    num = cases(Option) values:
+    | none => 0
+    | some(v) => v
+    end
+    sum := sum + num
+    when num-modulo(num, 337) == 0:
+  	dostuff(1000)
+    end
+    end
+  sum
+ end
+
+ fun sum_old_each_b(shadow dict):
+   var sum = 0
+   for each(name from dict.keys-list()):
+     sum := sum + dict.get-value(name)
+     when num-modulo(dict.get-value(name), 337) == 0:
+  	dostuff(1000)
+      end
+   end
+   sum
+ end
+
+  fun sum_old_each_mut_b(shadow dict):
+   var sum = 0
+   for each(name from dict.keys-list-now()):
+     sum := sum + dict.get-value-now(name)
+      when num-modulo(dict.get-value-now(name), 337) == 0:
+  	dostuff(1000)
+      end
+   end
+   sum
+ end
+
+ fun sum_new_dict_new_each_b(shadow dict):
+   var sum = 0
+   for each(tup from dict.items()):
+     sum := sum + tup.{1}
+     when num-modulo(tup.{1}, 337) == 0:
+  	dostuff(1000)
+      end
+   end
+   sum
+ end
+
+ fun sum_new_dict_each_b(shadow dict):
+   var sum = 0
+   for SD.dict-each(tup from dict):
+     sum := sum + tup.{1}
+     when num-modulo(tup.{1}, 337) == 0:
+  	dostuff(1000)
+     end
+   end
+   sum
+ end
+
+ fun sum_new_dict_loop_b(shadow dict):
+  var sum = 0
+  for SD.dict-each-loop(tup from dict):
+    sum := sum + tup.{1}
+    when num-modulo(tup.{1}, 337) == 0:
+  	dostuff(1000)
+    end
+  end 
+  sum
+ end
+ 
+ sum_from_old_b = sum_old_each_old_dict_b(oldDict)
+ sum_from_old_b is sum_old_each_b(dict)
+ sum_from_old_b is sum_old_each_mut_b(mutDict)
+ sum_from_old_b is sum_new_dict_new_each_b(dict)
+ sum_from_old_b is sum_new_dict_new_each_b(mutDict)
+ sum_from_old_b is sum_new_dict_each_b(dict)
+ sum_from_old_b is sum_new_dict_each_b(mutDict)
+ sum_from_old_b is sum_new_dict_loop_b(dict)
+ sum_from_old_b is sum_new_dict_loop_b(mutDict)
 
 end
