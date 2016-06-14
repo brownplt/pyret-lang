@@ -311,6 +311,20 @@ check "all forms of fors":
       old_dict.set(key_lst.get(i), dict.get(key_lst.get(i)))
      end
    end
+  
+  fun createMutableDict(dict):
+    key_lst = dict.keys-list()
+    mutDict = [SD.mutable-string-dict:]
+    for each(key from key_lst):
+      num = cases(Option) dict.get(key):
+       | none => 0
+       | some(v) => v
+      end
+      mutDict.set-now(key, num)
+     end
+    mutDict
+   end 
+   
  
  fun sum_old_each_old_dict(dict):
   var sum = 0
@@ -333,6 +347,13 @@ check "all forms of fors":
    sum
  end
 
+  fun sum_old_each-mut(dict):
+   var sum = 0
+   for each(name from dict.keys-list-now()):
+     sum := sum + dict.get-value-now(name)
+   end
+   sum
+ end
 
  fun sum_new_dict_new_each(dict):
    var sum = 0
@@ -360,10 +381,16 @@ check "all forms of fors":
 
  dict = createDict(3000)
  oldDict = createOldDict(dict)
+ #mutDict = [SD.mutable-string-dict: {"a"; 4}, {"b"; 6}]
+ mutDict = createMutableDict(dict)
  sum_from_old = sum_old_each_old_dict(oldDict)
  sum_from_old is sum_old_each(dict)
+ sum_from_old is sum_old_each-mut(mutDict)
  sum_from_old is sum_new_dict_new_each(dict)
+ sum_from_old is sum_new_dict_new_each(mutDict)
  sum_from_old is sum_new_dict_each(dict)
+ sum_from_old is sum_new_dict_each(mutDict)
  sum_from_old is sum_new_dict_loop(dict)
+ sum_from_old is sum_new_dict_loop(mutDict)
 
 end

@@ -825,7 +825,11 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         throw $e;
       }
     }
-       var eachLoopISD = runtime.makeMethod1(eachLoop);
+     var eachLoopISD = runtime.makeMethod1(eachLoop);
+
+
+
+
 
        var eachISD = runtime.makeMethod1(function(self, func) {
           var keys = underlyingMap.keys();
@@ -1025,6 +1029,45 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeList(elts);
         });
 
+     function eachLoopM(self, func) {
+      var i = 0;
+      var keys;
+      var currentRunCount = 0;
+      if(runtime.isActivationRecord(self)) {
+        i = self.vars[0];
+        keys = self.vars[1];
+        func = self.args[0];
+        i = i + 1;
+      }
+      else {
+        keys = Object.keys(underlyingDict);
+      }
+      try {
+        if (--runtime.GAS <= 0) {
+          runtime.EXN_STACKHEIGHT = 0;
+          throw runtime.makeCont();
+        }
+        while(true) {
+          if(i >= keys.length) { return runtime.nothing; }
+          func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
+
+          if (++currentRunCount >= 1000) {
+            runtime.EXN_STACKHEIGHT = 0;
+            throw runtime.makeCont();
+          }  
+          else { i = i + 1; }
+        }
+      }
+      catch($e) {
+        if (runtime.isCont($e)) {
+          $e.stack[runtime.EXN_STACKHEIGHT++] =
+            runtime.makeActivationRecord("eachLoopM", eachLoopM, true, [func], [i, keys]);
+        }
+        throw $e;
+      }
+    }
+    var eachLoopMSD = runtime.makeMethod1(eachLoopM);
+
         var eachMSD = runtime.makeMethod1(function(self, func) {
           var keys = Object.keys(underlyingDict);
            function deepCallTuple(i) {
@@ -1158,6 +1201,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'has-key-now': hasKeyMSD,
           'items': itemsMSD,
           'each' : eachMSD,
+          'each-loop' : eachLoopMSD,
           _equals: equalsMSD,
           _output: outputMSD,
           freeze: freezeMSD,
@@ -1213,14 +1257,14 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
 
       function dictEach(func, obj) {
       //TODO: check that func is a function and obj is a string dict
-       arity(2, arguments,'dict-eact');
+       arity(2, arguments,'dict-each');
        eachMethod = runtime.getField(obj, "each");
        return eachMethod.app(func);
       }
       
       function dictEachLoop(func, obj) {
       //TODO: check that func is a function and obj is a string dict
-       arity(2, arguments,'dict-eact-loop');
+       arity(2, arguments,'dict-each-loop');
        eachMethod = runtime.getField(obj, "each-loop");
        return eachMethod.app(func);
       }
