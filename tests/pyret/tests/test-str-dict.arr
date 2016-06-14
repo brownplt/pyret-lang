@@ -1,4 +1,5 @@
 import str-dict as SD
+import string-dict as SDOLD
 import valueskeleton as VS
 
 sd1 = SD.make-mutable-string-dict()
@@ -173,7 +174,7 @@ check "merge":
  2 + 2 is 4
 end
 
-#|check "merge":
+check "merge":
   s1 = [SD.string-dict: {"a"; 5}, {"c"; 4}]
   s2 = [SD.string-dict: {"a"; 10}, {"b"; 6}]
   s3 = s1.merge(s2)
@@ -188,13 +189,13 @@ end
   s5 = [SD.string-dict:]
   s4.merge(s5) is s4
   s5.merge(s4) is s4
-end |# 
+end 
 
-#|check "duplicate":
+check "duplicate":
   [SD.string-dict: {"x"; 5}, {"x"; 10}] raises "duplicate key x"
   [SD.string-dict: {"x"; 6}, {"y"; 10}, {"x"; 22}] raises "duplicate key"
   [SD.string-dict: {"x"; 6}, {"y"; 10}, {"z"; 22}] does-not-raise
-end |#
+end 
 
 check "sdo":
   SD.string-dict-of([list: "x", "y", "z"], 5) is [SD.string-dict: {"x"; 5}, {"y"; 5}, {"z"; 5}]
@@ -296,4 +297,73 @@ check "items":
   lst is lst2
 end
 
+check "all forms of fors":
+  
+  fun createDict(length):
+    for fold(dict from [SD.string-dict: ], i from range(0, length)):
+       dict.set(tostring(random(length * 10)), random(length * 10))
+    end
+  end
 
+  fun createOldDict(dict):
+    key_lst = dict.keys-list()
+    for fold(old_dict from [SDOLD.string-dict: ], i from range(0, dict.count())):
+      old_dict.set(key_lst.get(i), dict.get(key_lst.get(i)))
+     end
+   end
+ 
+ fun sum_old_each_old_dict(dict):
+  var sum = 0
+  for each(name from dict.keys-list()):
+    values = dict.get-value(name)
+    num = cases(Option) values:
+    | none => 0
+    | some(v) => v
+    end
+    sum := sum + num
+    end
+  sum
+ end
+
+ fun sum_old_each(dict):
+   var sum = 0
+   for each(name from dict.keys-list()):
+     sum := sum + dict.get-value(name)
+   end
+   sum
+ end
+
+
+ fun sum_new_dict_new_each(dict):
+   var sum = 0
+   for each(tup from dict.items()):
+     sum := sum + tup.{1}
+   end
+   sum
+ end
+
+ fun sum_new_dict_each(dict):
+   var sum = 0
+   for SD.dict-each(tup from dict):
+     sum := sum + tup.{1}
+   end
+   sum
+ end
+
+ fun sum_new_dict_loop(dict):
+  var sum = 0
+  for SD.dict-each-loop(tup from dict):
+    sum := sum + tup.{1}
+  end 
+  sum
+ end
+
+ dict = createDict(3000)
+ oldDict = createOldDict(dict)
+ sum_from_old = sum_old_each_old_dict(oldDict)
+ sum_from_old is sum_old_each(dict)
+ sum_from_old is sum_new_dict_new_each(dict)
+ sum_from_old is sum_new_dict_each(dict)
+ sum_from_old is sum_new_dict_loop(dict)
+
+end
