@@ -754,8 +754,8 @@ data ParseError:
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around ")],
         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], 0)),
-        [ED.para: ED.text("You may need to add or remove some text to fix your program."),
-          ED.text("Look carefully before the",ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0)),
+        [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
+          ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
           ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
           ED.text("), comma ("), ED.code(ED.text(",")),
           ED.text("), string marker ("), ED.code(ED.text("\"")),
@@ -764,13 +764,17 @@ data ParseError:
     end,
     render-reason(self):
       [ED.error:
-        [ED.para: ED.text("Pyret didn't understand your program around"), draw-and-highlight(self.loc)],
-        [ED.para: ED.text("You may need to add or remove some text to fix your program."),
-          ED.text("Look carefully before the",ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0)),
-          ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
+        [ED.para: ED.text("Pyret didn't understand your program around "), draw-and-highlight(self.loc)],
+        [ED.para: ED.text("You may need to add or remove some text to fix your program.")],
+        [ED.para:
+          ED.text("Look carefully before the "),
+          ED.styled(ED.text("highlighted text"), 'error-highlight'),
+          ED.text(".")],
+        [ED.para: ED.text("Is there a missing colon ("), ED.code(ED.text(":")),
           ED.text("), comma ("), ED.code(ED.text(",")),
           ED.text("), string marker ("), ED.code(ED.text("\"")),
-          ED.text("), or keyword? Is there something there that shouldn’t be?")]
+          ED.text("), or keyword?")],
+        [ED.para: ED.text("Is there something there that shouldn’t be?")]
       ]
     end
   | parse-error-eof(loc) with:
