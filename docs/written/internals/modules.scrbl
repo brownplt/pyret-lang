@@ -100,7 +100,8 @@ type-array :=
   | ["RawArray", <type>]
   | ["Option", <type>]
   | ["List", <type>]
-  | ["Maker", <type>]
+    # type of args, resulting constructed type
+  | ["Maker", <type>, <type>]
   | ["arrow", [<type>, ...], <type>]
   | ["data",
       <string>,
@@ -319,6 +320,14 @@ It's easier to define:
 }
 
 There are several examples of the uses of these declarations in [REF].
+
+Some "shorthands with options" are predefined, namely @tt{Option}, @tt{Array},
+@tt{RawArray}, @tt{List}, and @tt{Maker}.  The first four of these are
+straightforward, single-argument type constructors.  The last one describes the
+type of @tt{list} in @tt{[list: ...]}, namely, the type of the object whose
+fields allow for the construction of composite values.  Makers accept two type
+arguments: the type of the @tt{...} arguments in the constructor notation, and
+the resulting type of the constructed value.
 
 
 @subsubsub*section{@bold{nativeRequires}}
