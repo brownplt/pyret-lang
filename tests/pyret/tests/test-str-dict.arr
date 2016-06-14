@@ -269,30 +269,31 @@ check "items":
  end
  sum is 156
 
- var lst1 = [list: ]
+ var lst1 = [list-set: ]
  fun f(x):
-    lst1 := link(x, lst1)
+    lst1 := lst1.add(x)
  end
 
- var lst2 = [list: ]
+ var lst2 = [list-set: ]
 
- var lst = [list: ]
+ var lst = [list-set: ]
 
  fun g(x):
-    lst2 := link(x, lst2)
+    lst2 := lst2.add(x)
  end
 
  s1.each(f) is nothing
- lst1 := lst1.reverse()
- lst1 is [list:  {"a"; 2}, {"g"; 4}]
+ lst1 is [list-set:  {"a"; 2}, {"g"; 4}]
 
  s2.each(g) is nothing
- lst2 := lst2.reverse()
- lst2 is [list: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1} ]
+ lst2 is [list-set: {"a"; 15}, {"b"; 10}, {"c"; 15}, {"d"; 41}, {"e"; 32}, {"f"; 42}, {"g"; 1} ]
 
   for SD.dict-each(tup from s2):
     {k;v} = tup
-    lst := link({k;v}, lst)
+    lst := lst.add({k;v})
   end
-  lst.reverse() is lst2
+
+  lst is lst2
 end
+
+
