@@ -4,7 +4,11 @@ provide-types *
 import ast as A
 import string-dict as SD
 import srcloc as SL
-import "compiler/type-structs.arr" as TS
+import file("type-structs.arr") as TS
+
+module-uri                = TS.module-uri
+dependency                = TS.dependency
+local                     = TS.local
 
 type Type                 = TS.Type
 t-name                    = TS.t-name(_, _, A.dummy-loc)
@@ -39,7 +43,7 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
-eq-EqualityResult = t-name(some("pyret-builtin://equality"), A.s-type-global("EqualityResult"))
+eq-EqualityResult = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
 
 # TODO(MATT): does this break things?
 tva = t-var(A.global-names.make-atom("A"))
@@ -69,7 +73,7 @@ fun make-default-aliases():
   default-aliases
 end
 
-fun make-default-types():
+fun make-default-types() block:
   default-typs = SD.make-mutable-string-dict()
   default-typs.set-now(A.s-global("builtins").key(), t-record([list:
       t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
@@ -92,128 +96,34 @@ fun make-default-types():
   ]))
 
   # Need to be fixed to correct type:
-  default-typs.set-now(A.s-global("raw-array-get").key(), t-forall([list: tva], t-arrow([list: t-array(tva), t-number], tva)))
-  default-typs.set-now(A.s-global("raw-array-set").key(), t-forall([list: tva], t-arrow([list: t-array(tva), t-number, tva], t-array(tva))))
-  default-typs.set-now(A.s-global("raw-array-of").key(), t-forall([list: tva], t-arrow([list: tva, t-number], t-array(tva))))
-  default-typs.set-now(A.s-global("raw-array-length").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], t-number)))
-  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], mk-list(tva))))
-  default-typs.set-now(A.s-global("raw-array-fold").key(), t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva, t-number], tvb), tvb, t-array(tva), t-number], tvb)))
-  default-typs.set-now(A.s-global("raw-array").key(), t-top)
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)
   default-typs.set-now(A.s-global("ref-freeze").key(), t-top)
-  default-typs.set-now(A.s-global("equal-always3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
-  default-typs.set-now(A.s-global("equal-now3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
-  default-typs.set-now(A.s-global("identical3").key(), t-arrow([list: t-top, t-top], eq-EqualityResult))
   default-typs.set-now(A.s-global("exn-unwrap").key(), t-top)
   default-typs.set-now(A.s-global("test-print").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
   default-typs.set-now(A.s-global("print-error").key(), t-top)
   default-typs.set-now(A.s-global("display-error").key(), t-top)
   default-typs.set-now(A.s-global("brander").key(), t-top)
   default-typs.set-now(A.s-global("run-task").key(), t-top)
-  default-typs.set-now(A.s-global("string-split").key(), t-arrow([list: t-string, t-string], mk-list(t-string)))
-  default-typs.set-now(A.s-global("string-split-all").key(), t-arrow([list: t-string, t-string], mk-list(t-string)))
-  default-typs.set-now(A.s-global("string-explode").key(), t-arrow([list: t-string], mk-list(t-string)))
-  default-typs.set-now(A.s-global("string-index-of").key(), t-arrow([list: t-string, t-string], t-number))
-  default-typs.set-now(A.s-global("string-to-code-points").key(), t-arrow([list: t-string], mk-list(t-number)))
-  default-typs.set-now(A.s-global("string-from-code-points").key(), t-arrow([list: mk-list(t-number)], t-string))
-  default-typs.set-now(A.s-global("_empty").key(), t-forall([list: tva], mk-list(tva)))
-  default-typs.set-now(A.s-global("_link").key(), t-forall([list: tva], t-arrow([list: tva, mk-list(tva)], mk-list(tva))))
-  default-typs.set-now(A.s-global("nothing").key(), t-name(none, A.s-type-global("Nothing")))
+  default-typs.set-now(A.s-global("string-split").key(), t-top)
+  default-typs.set-now(A.s-global("string-split-all").key(), t-top)
+  default-typs.set-now(A.s-global("string-explode").key(), t-top)
+  default-typs.set-now(A.s-global("string-index-of").key(), t-top)
+  default-typs.set-now(A.s-global("string-to-code-points").key(), t-top)
+  default-typs.set-now(A.s-global("string-from-code-points").key(), t-top)
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("torepr").key(), t-arrow([list: t-top], t-string))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
-  default-typs.set-now(A.s-global("not").key(), t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
-  default-typs.set-now(A.s-global("equal-always").key(), t-arrow([list: t-top, t-top], t-boolean))
-  default-typs.set-now(A.s-global("equal-now").key(), t-arrow([list: t-top, t-top], t-boolean))
-  default-typs.set-now(A.s-global("identical").key(), t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
-  default-typs.set-now(A.s-global("tostring").key(), t-arrow([list: t-top], t-string))
   default-typs.set-now(A.s-global("_times").key(), t-number-binop)
   default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
   default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
   default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
-  default-typs.set-now(A.s-global("is-nothing").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-number").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-string").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-boolean").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-object").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-function").key(), t-arrow([list: t-top], t-boolean))
-  default-typs.set-now(A.s-global("is-raw-array").key(), t-arrow([list: t-top], t-boolean))
-
-  # Number functions
-  default-typs.set-now(A.s-global("num-max").key(), t-number-binop)
-  default-typs.set-now(A.s-global("num-min").key(), t-number-binop)
-  default-typs.set-now(A.s-global("num-equal").key(), t-arrow([list: t-number, t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-within").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
-  default-typs.set-now(A.s-global("num-within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
-  default-typs.set-now(A.s-global("num-within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean)))
-  default-typs.set-now(A.s-global("num-abs").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-sin").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-cos").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-tan").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-asin").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-acos").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-atan").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-modulo").key(), t-number-binop)
-  default-typs.set-now(A.s-global("num-truncate").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-sqrt").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-sqr").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-ceiling").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-floor").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-round").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-round-even").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-log").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-exp").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-exact").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-to-rational").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-to-roughnum").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-to-fixnum").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-is-integer").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-rational").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-roughnum").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-positive").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-negative").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-non-positive").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-non-negative").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-is-fixnum").key(), t-arrow([list: t-number], t-boolean))
-  default-typs.set-now(A.s-global("num-expt").key(), t-number-binop)
-  default-typs.set-now(A.s-global("num-tostring").key(), t-arrow([list: t-number], t-string))
-  default-typs.set-now(A.s-global("num-to-string").key(), t-arrow([list: t-number], t-string))
-  default-typs.set-now(A.s-global("num-to-string-digits").key(), t-arrow([list: t-number, t-number], t-string))
-  default-typs.set-now(A.s-global("within").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("within-abs").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("within-rel").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("within-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("within-abs-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("within-rel-now").key(), t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean)))
-  default-typs.set-now(A.s-global("random").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-random").key(), t-arrow([list: t-number], t-number))
-  default-typs.set-now(A.s-global("num-random-seed").key(), t-arrow([list: t-number], t-nothing))
-
-  # Time functions
-  default-typs.set-now(A.s-global("time-now").key(), t-arrow(empty, t-number))
-
-  # String functions
-  default-typs.set-now(A.s-global("gensym").key(), t-arrow(empty, t-string))
-  default-typs.set-now(A.s-global("string-repeat").key(), t-arrow([list: t-string, t-number], t-string))
-  default-typs.set-now(A.s-global("string-substring").key(), t-arrow([list: t-string, t-number, t-number], t-string))
-  default-typs.set-now(A.s-global("string-toupper").key(), t-arrow([list: t-string], t-string))
-  default-typs.set-now(A.s-global("string-tolower").key(), t-arrow([list: t-string], t-string))
-  default-typs.set-now(A.s-global("string-append").key(), t-arrow([list: t-string, t-string], t-string))
-  default-typs.set-now(A.s-global("string-equal").key(), t-arrow([list: t-string, t-string], t-boolean))
-  default-typs.set-now(A.s-global("string-contains").key(), t-arrow([list: t-string, t-string], t-boolean))
-  default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-number))
   default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
-  default-typs.set-now(A.s-global("string-length").key(), t-arrow([list: t-string], t-number))
-  default-typs.set-now(A.s-global("string-replace").key(), t-arrow([list: t-string, t-string, t-string], t-string))
-  default-typs.set-now(A.s-global("string-char-at").key(), t-arrow([list: t-string, t-number], t-string))
-  default-typs.set-now(A.s-global("string-to-code-point").key(), t-arrow([list: t-string], t-number))
-  default-typs.set-now(A.s-global("string-from-code-point").key(), t-arrow([list: t-number], t-string))
 
   default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
   default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
@@ -225,34 +135,23 @@ fun make-default-types():
   default-typs
 end
 
-fun make-default-data-exprs():
+fun make-default-data-exprs() block:
   default-data-exprs = SD.make-mutable-string-dict()
-  default-data-exprs.set-now(A.s-type-global("RawArray").key(),
-    t-forall([list: t-var(s-atom("A", 10))],
-      t-data("RawArray", empty, empty)))
-  default-data-exprs.set-now(A.s-type-global("Number").key(),
-    t-data("Number", empty, empty))
-  default-data-exprs.set-now(A.s-type-global("String").key(),
-    t-data("String", empty, empty))
-  default-data-exprs.set-now(A.s-type-global("Boolean").key(),
-    t-data("Boolean", empty, empty))
-  default-data-exprs.set-now(A.s-type-global("Nothing").key(),
-    t-data("Nothing", empty, empty))
   default-data-exprs
 end
 
 # Begin hard-coded module types
-rec t-list = t-name(some("pyret-builtin://lists"), A.s-type-global("List"))
+rec t-list = t-name(module-uri("builtin://lists"), A.s-type-global("List"))
 fun mk-list(a :: Type) -> Type:
   t-app(t-list, [list: a])
 end
 
-t-big-array = t-name(some("pyret-builtin://arrays"), A.s-type-global("Array"))
+t-big-array = t-name(module-uri("builtin://arrays"), A.s-type-global("Array"))
 fun mk-array(typ :: Type):
   t-app(t-big-array, [list: typ])
 end
 
-t-set = t-name(some("pyret-builtin://sets"), A.s-type-global("Set"))
+t-set = t-name(module-uri("builtin://sets"), A.s-type-global("Set"))
 fun mk-set(typ :: Type):
   t-app(t-set, [list: typ])
 end
@@ -261,7 +160,7 @@ t-torepr   = t-arrow([list: ], t-string)
 t-tostring = t-arrow([list: ], t-string)
 
 # Functions for adding hard-coded modules
-module-const-equality = t-module("pyret-builtin://equality",
+module-const-equality = t-module("builtin://equality",
   t-record([list:
     t-member("EqualityResult", t-arrow([list: t-top], t-boolean)),
     t-member("is-EqualityResult", t-arrow([list: t-top], t-boolean)),
@@ -288,7 +187,7 @@ module-const-equality = t-module("pyret-builtin://equality",
   SD.make-string-dict()
 )
 
-module-const-arrays = t-module("pyret-builtin://arrays",
+module-const-arrays = t-module("builtin://arrays",
   t-record([list:
     t-member("array", t-top),
     t-member("build-array", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number], tva), t-number], mk-array(tva)))),
@@ -317,7 +216,7 @@ module-const-arrays = t-module("pyret-builtin://arrays",
       ))
   end,
   SD.make-string-dict()
-    .set("Array", t-name(none, A.s-name(A.dummy-loc, "Array")))
+    .set("Array", t-name(local, A.s-name(A.dummy-loc, "Array")))
 )
 
 set-constructor =
@@ -335,7 +234,7 @@ t-empty-set = t-forall([list: tva], mk-set(tva))
 
 t-list-to-set = t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-set(tva)))
 
-module-const-sets = t-module("pyret-builtin://sets",
+module-const-sets = t-module("builtin://sets",
   t-record([list:
     t-member("set", set-constructor),
     t-member("list-set", set-constructor),
@@ -357,7 +256,7 @@ module-const-sets = t-module("pyret-builtin://sets",
           [list: ],
           [list:
               t-member("length", t-arrow(empty, t-number)),
-              t-member("pick", t-arrow(empty, t-app(t-name(some("pyret-builtin://pick"), A.s-type-global("Pick")), [list: tva, mk-set(tva)]))),
+              t-member("pick", t-arrow(empty, t-app(t-name(module-uri("builtin://pick"), A.s-type-global("Pick")), [list: tva, mk-set(tva)]))),
               t-member("_torepr", t-torepr),
               t-member("fold", t-forall([list: tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb], tvb))),
               t-member("member", t-arrow([list: tva], t-boolean)),
@@ -372,10 +271,10 @@ module-const-sets = t-module("pyret-builtin://sets",
       ))
   end,
   SD.make-string-dict()
-    .set("Set", t-name(none, A.s-name(A.dummy-loc, "Set")))
+    .set("Set", t-name(local, A.s-name(A.dummy-loc, "Set")))
 )
 
-module-const-lists = t-module("pyret-builtin://lists",
+module-const-lists = t-module("builtin://lists",
   t-record([list:
     t-member("List", t-arrow([list: t-top], t-boolean)),
     t-member("is-List", t-arrow([list: t-top], t-boolean)),
@@ -388,7 +287,7 @@ module-const-lists = t-module("pyret-builtin://lists",
     t-member("repeat", t-forall([list: tva], t-arrow([list: t-number, tva], mk-list(tva)))),
     t-member("filter", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], mk-list(tva)))),
     t-member("partition", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-record([list: t-member("is-true", mk-list(tva)), t-member("is-false", mk-list(tva))])))),
-    t-member("find", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: tva])))),
+    t-member("find", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: tva])))),
     t-member("split-at", t-forall([list: tva], t-arrow([list: t-number, mk-list(tva)], t-record([list: t-member("prefix", mk-list(tva)), t-member("suffix", mk-list(tva))])))),
     t-member("any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean))),
     t-member("all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean))),
@@ -401,14 +300,14 @@ module-const-lists = t-module("pyret-builtin://lists",
     t-member("map2_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb], tvc), t-number, mk-list(tva), mk-list(tvb)], mk-list(tvc)))),
     t-member("map3_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], tvd), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], mk-list(tvd)))),
     t-member("map4_n", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], tve), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], mk-list(tve)))),
-    t-member("each", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-top), mk-list(tva)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-top), mk-list(tva), mk-list(tvb)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each3", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each4", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each_n", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number, tva], t-top), t-number, mk-list(tva)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each2_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], t-top), t-number, mk-list(tva), mk-list(tvb)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each3_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(none, A.s-type-global("Nothing"))))),
-    t-member("each4_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(none, A.s-type-global("Nothing"))))),
+    t-member("each", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-top), mk-list(tva)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-top), mk-list(tva), mk-list(tvb)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each3", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each4", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each_n", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number, tva], t-top), t-number, mk-list(tva)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each2_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], t-top), t-number, mk-list(tva), mk-list(tvb)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each3_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
+    t-member("each4_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing"))))),
     t-member("fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], tva), tva, mk-list(tvb)], tva))),
     t-member("fold2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], tva), tva, mk-list(tvb), mk-list(tvc)], tva))),
     t-member("fold3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd)], tva))),
@@ -466,10 +365,10 @@ module-const-lists = t-module("pyret-builtin://lists",
       ))
   end,
   SD.make-string-dict()
-    .set("List", t-name(some("pyret-builtin://lists"), A.s-name(A.dummy-loc, "List"))))
+    .set("List", t-name(module-uri("builtin://lists"), A.s-name(A.dummy-loc, "List"))))
 
 t-option = lam(param :: Type):
-  t-app(t-name(some("pyret-builtin://option"), A.s-type-global("Option")), [list: param])
+  t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: param])
 end
 
 t-and-then =
@@ -481,7 +380,7 @@ t-and-then =
       ],
       t-option(tvb)))
 
-module-const-option = t-module("pyret-builtin://option",
+module-const-option = t-module("builtin://option",
   t-record([list:
     t-member("Option", t-arrow([list: t-top], t-boolean)),
     t-member("is-Option", t-arrow([list: t-top], t-boolean)),
@@ -521,80 +420,80 @@ module-const-option = t-module("pyret-builtin://option",
       ])
     )),
   SD.make-string-dict()
-    .set("Option", t-name(some("pyret-builtin://option"), A.s-name(A.dummy-loc, "Option")))
+    .set("Option", t-name(module-uri("builtin://option"), A.s-name(A.dummy-loc, "Option")))
 )
 
-module-const-error = t-module("pyret-builtin://error",
+module-const-error = t-module("builtin://error",
   t-record([list:
     t-member("RuntimeError", t-arrow([list: t-top], t-boolean)),
     t-member("is-RuntimeError", t-arrow([list: t-top], t-boolean)),
-    t-member("message-exception", t-arrow([list: t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("message-exception", t-arrow([list: t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-message-exception", t-arrow([list: t-top], t-boolean)),
-    t-member("no-branches-matched", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("no-branches-matched", t-arrow([list: t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-no-branches-matched", t-arrow([list: t-top], t-boolean)),
-    t-member("internal-error", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("internal-error", t-arrow([list: t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-internal-error", t-arrow([list: t-top], t-boolean)),
-    t-member("field-not-found", t-arrow([list: t-top, t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("field-not-found", t-arrow([list: t-top, t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-field-not-found", t-arrow([list: t-top], t-boolean)),
-    t-member("lookup-non-object", t-arrow([list: t-top, t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("lookup-non-object", t-arrow([list: t-top, t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-lookup-non-object", t-arrow([list: t-top], t-boolean)),
-    t-member("extend-non-object", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("extend-non-object", t-arrow([list: t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-extend-non-object", t-arrow([list: t-top], t-boolean)),
-    t-member("non-boolean-condition", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("non-boolean-condition", t-arrow([list: t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-non-boolean-condition", t-arrow([list: t-top], t-boolean)),
-    t-member("non-boolean-op", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("non-boolean-op", t-arrow([list: t-top, t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-non-boolean-op", t-arrow([list: t-top], t-boolean)),
-    t-member("generic-type-mismatch", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("generic-type-mismatch", t-arrow([list: t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-generic-type-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("outside-numeric-range", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("outside-numeric-range", t-arrow([list: t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-outside-numeric-range", t-arrow([list: t-top], t-boolean)),
-    t-member("plus-error", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("plus-error", t-arrow([list: t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-plus-error", t-arrow([list: t-top], t-boolean)),
-    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("numeric-binop-error", t-arrow([list: t-top, t-top, t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-numeric-binop-error", t-arrow([list: t-top], t-boolean)),
-    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("cases-arity-mismatch", t-arrow([list: t-top, t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-cases-arity-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("cases-singleton-mismatch", t-arrow([list: t-top, t-boolean], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("cases-singleton-mismatch", t-arrow([list: t-top, t-boolean, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-cases-singleton-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("arity-mismatch", t-arrow([list: t-top, t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-arity-mismatch", t-arrow([list: t-top], t-boolean)),
-    t-member("non-function-app", t-arrow([list: t-top, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("non-function-app", t-arrow([list: t-top, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-non-function-app", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-app", t-arrow([list: t-top, t-string, t-string, t-number, t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("bad-app", t-arrow([list: t-top, t-string, t-string, t-number, t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-bad-app", t-arrow([list: t-top], t-boolean)),
-    t-member("uninitialized-id", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("uninitialized-id", t-arrow([list: t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-uninitialized-id", t-arrow([list: t-top], t-boolean)),
-    t-member("module-load-failure", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("module-load-failure", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-module-load-failure", t-arrow([list: t-top], t-boolean)),
-    t-member("invalid-array-index", t-arrow([list: t-string, t-top, t-number, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError")))),
+    t-member("invalid-array-index", t-arrow([list: t-string, t-top, t-number, t-string], t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError")))),
     t-member("is-invalid-array-index", t-arrow([list: t-top], t-boolean)),
-    t-member("user-break", t-name(some("pyret-builtin://error"), A.s-type-global("RuntimeError"))),
+    t-member("user-break", t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError"))),
     t-member("is-user-break", t-arrow([list: t-top], t-boolean)),
     t-member("ParseError", t-arrow([list: t-top], t-boolean)),
     t-member("is-ParseError", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-next-token", t-arrow([list: t-top, t-string], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("parse-error-next-token", t-arrow([list: t-top, t-string], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-parse-error-next-token", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-eof", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("parse-error-eof", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-parse-error-eof", t-arrow([list: t-top], t-boolean)),
-    t-member("parse-error-unterminated-string", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("parse-error-unterminated-string", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-parse-error-unterminated-string", t-arrow([list: t-top], t-boolean)),
-    t-member("empty-block", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("empty-block", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-empty-block", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-block-stmt", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("bad-block-stmt", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-bad-block-stmt", t-arrow([list: t-top], t-boolean)),
-    t-member("bad-check-block-stmt", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("bad-check-block-stmt", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-bad-check-block-stmt", t-arrow([list: t-top], t-boolean)),
-    t-member("fun-missing-colon", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("fun-missing-colon", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-fun-missing-colon", t-arrow([list: t-top], t-boolean)),
-    t-member("fun-missing-end", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("fun-missing-end", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-fun-missing-end", t-arrow([list: t-top], t-boolean)),
-    t-member("args-missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("args-missing-comma", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-args-missing-comma", t-arrow([list: t-top], t-boolean)),
-    t-member("app-args-missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("app-args-missing-comma", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-app-args-missing-comma", t-arrow([list: t-top], t-boolean)),
-    t-member("missing-end", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("missing-end", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-missing-end", t-arrow([list: t-top], t-boolean)),
-    t-member("missing-comma", t-arrow([list: t-top], t-name(some("pyret-builtin://error"), A.s-type-global("ParseError")))),
+    t-member("missing-comma", t-arrow([list: t-top], t-name(module-uri("builtin://error"), A.s-type-global("ParseError")))),
     t-member("is-missing-comma", t-arrow([list: t-top], t-boolean))
   ]),
   SD.make-string-dict()
@@ -611,7 +510,7 @@ module-const-error = t-module("pyret-builtin://error",
           t-variant("generic-type-mismatch", [list: t-member("val", t-top), t-member("typ", t-string)], empty),
           t-variant("numeric-binop-error", [list: t-member("val1", t-top), t-member("val2", t-top), t-member("opname", t-top), t-member("opdesc", t-top), t-member("methodname", t-top)], empty),
           t-variant("cases-arity-mismatch", [list: t-member("branch-loc", t-top), t-member("num-args", t-top), t-member("actual-arity", t-top), t-member("cases-loc", t-top)], empty),
-          t-variant("cases-singleton-mismatch", [list: t-member("name", t-top), t-member("branch-loc", t-top), t-member("should-be-singleton", t-boolean)], empty),
+          t-variant("cases-singleton-mismatch", [list: t-member("branch-loc", t-top), t-member("should-be-singleton", t-boolean), t-member("cases-loc", t-top)], empty),
           t-variant("arity-mismatch", [list: t-member("fun-def-loc", t-top), t-member("fun-def-arity", t-top), t-member("fun-app-args", t-top)], empty),
           t-variant("non-function-app", [list: t-member("loc", t-top), t-member("non-fun-val", t-top)], empty),
           t-variant("uninitialized-id", [list: t-member("loc", t-top), t-member("name", t-string)], empty),
@@ -648,7 +547,7 @@ module-const-error = t-module("pyret-builtin://error",
       ])
     ),
   SD.make-string-dict()
-    .set("Error", t-name(none, A.s-name(A.dummy-loc, "Error")))
+    .set("Error", t-name(local, A.s-name(A.dummy-loc, "Error")))
 )
 
 module-const-either =
@@ -656,9 +555,9 @@ module-const-either =
     t-record([list:
       t-member("Either", t-arrow([list: t-top], t-boolean)),
       t-member("is-Either", t-arrow([list: t-top], t-boolean)),
-      t-member("left", t-forall([list: tva, tvb], t-arrow([list: tva], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
+      t-member("left", t-forall([list: tva, tvb], t-arrow([list: tva], t-app(t-name(module-uri("builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
       t-member("is-left", t-arrow([list: t-top], t-boolean)),
-      t-member("right", t-forall([list: tva, tvb], t-arrow([list: tvb], t-app(t-name(some("pyret-builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
+      t-member("right", t-forall([list: tva, tvb], t-arrow([list: tvb], t-app(t-name(module-uri("builtin://either"), A.s-type-global("Either")), [list: tva, tvb])))),
       t-member("is-right", t-arrow([list: t-top], t-boolean))
     ]),
     SD.make-string-dict()
@@ -692,9 +591,9 @@ module-const-either =
         ])
       )),
     SD.make-string-dict()
-      .set("Either", t-name(some("pyret-builtin://either"), A.s-name(A.dummy-loc, "Either"))))
+      .set("Either", t-name(module-uri("builtin://either"), A.s-name(A.dummy-loc, "Either"))))
 
-t-s-exp = t-name(some("pyret-builtin://s-exp-structs"), A.s-type-global("S-Exp"))
+t-s-exp = t-name(module-uri("builtin://s-exp-structs"), A.s-type-global("S-Exp"))
 
 s-exp-struct-mems = [list:
   t-member("s-list", t-arrow([list: mk-list(t-s-exp)], t-s-exp)),
@@ -707,7 +606,7 @@ s-exp-struct-mems = [list:
   t-member("is-s-sym", t-arrow([list: t-top], t-boolean))
 ]
 
-module-const-s-exp = t-module("pyret-builtin://s-exp",
+module-const-s-exp = t-module("builtin://s-exp",
   t-record(s-exp-struct-mems + [list:
     t-member("read-s-exp", t-arrow([list: t-string], t-s-exp))
   ]),
@@ -716,7 +615,7 @@ module-const-s-exp = t-module("pyret-builtin://s-exp",
     .set("S-Exp", t-s-exp)
 )
 
-module-const-s-exp-structs = t-module("pyret-builtin://s-exp-structs",
+module-const-s-exp-structs = t-module("builtin://s-exp-structs",
   t-record(s-exp-struct-mems),
   SD.make-string-dict()
     .set("S-Exp", t-data(
@@ -766,16 +665,16 @@ module-const-s-exp-structs = t-module("pyret-builtin://s-exp-structs",
   SD.make-string-dict()
 )
 
-fun make-default-modules():
+fun make-default-modules() block:
   default-modules = SD.make-mutable-string-dict()
-  default-modules.set-now("pyret-builtin://equality", module-const-equality)
-  default-modules.set-now("pyret-builtin://lists", module-const-lists)
-  default-modules.set-now("pyret-builtin://option", module-const-option)
-  default-modules.set-now("pyret-builtin://error", module-const-error)
-  default-modules.set-now("pyret-builtin://either", module-const-either)
-  default-modules.set-now("pyret-builtin://arrays", module-const-arrays)
-  default-modules.set-now("pyret-builtin://sets", module-const-sets)
-  default-modules.set-now("pyret-builtin://s-exp", module-const-s-exp)
-  default-modules.set-now("pyret-builtin://s-exp-structs", module-const-s-exp-structs)
+  default-modules.set-now("builtin://equality", module-const-equality)
+  default-modules.set-now("builtin://lists", module-const-lists)
+  default-modules.set-now("builtin://option", module-const-option)
+  default-modules.set-now("builtin://error", module-const-error)
+  default-modules.set-now("builtin://either", module-const-either)
+  default-modules.set-now("builtin://arrays", module-const-arrays)
+  default-modules.set-now("builtin://sets", module-const-sets)
+  default-modules.set-now("builtin://s-exp", module-const-s-exp)
+  default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
   default-modules
 end

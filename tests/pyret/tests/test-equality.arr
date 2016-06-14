@@ -189,11 +189,11 @@ check:
   var called = false
   var long-equals = {}
   long-equals := {
-    _equals(_, _, eq):
+    _equals(_, _, eq) block:
       for each(i from range(0, 10000)):
         i + i
       end
-      if called:
+      if called block:
         E.Equal
       else:
         called := true

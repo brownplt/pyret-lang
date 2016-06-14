@@ -268,8 +268,8 @@ end
 check "should work with named refinements":
   data-def = ```
 
-  fun true-of-n(n): if n == 0: true else: true-of-n(n - 1);;
-  fun false-of-n(n): if n == 0: false else: false-of-n(n - 1);;
+  fun true-of-n(n): if n == 0: true else: true-of-n(n - 1) end end
+  fun false-of-n(n): if n == 0: false else: false-of-n(n - 1) end end
 
   type TrueNum = Number % (true-of-n)
   type FalseNum = Number % (false-of-n)

@@ -67,7 +67,7 @@ check "Cyclic objects":
     is "{x: [myself: <cyclic-object-1>], y: [myself: <cyclic-object-2>]}"
 
   rec olong = {
-    _output(self):
+    _output(self) block:
       for each(i from range(0, 10000)):
         "do nothing"
       end

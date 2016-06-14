@@ -5,19 +5,23 @@ import either as E
 import filelib as FL
 import namespace-lib as N
 import runtime-lib as R
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CS
-import "compiler/type-defaults.arr" as TD
-import "compiler/locators/builtin.arr" as BL
-import "compiler/cli-module-loader.arr" as CLI
+import load-lib as L
+import string-dict as SD
+import file("../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../src/arr/compiler/compile-structs.arr") as CS
+import file("../../src/arr/compiler/type-defaults.arr") as TD
+import file("../../src/arr/compiler/locators/builtin.arr") as BL
+import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 
 fun string-to-locator(name, str :: String):
   {
     needs-compile(self, provs): true end,
+    get-modified-time(self): 0 end,
+    get-options(self, options): options end,
     get-module(self): CL.pyret-string(str) end,
     get-extra-imports(self): CS.minimal-imports end,
+    get-native-modules(self): [list:] end,
     get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-    get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
     get-globals(self): CS.standard-globals end,
     get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     uri(self): "tc-test://" + name end,
@@ -36,9 +40,10 @@ fun dfind(ctxt, dep):
   CL.located(l, nothing)
 end
 
-compile-str = lam(filename, str):
-  l = string-to-locator(filename, str)
-  wlist = CL.compile-worklist(dfind, l, {})
+compile-str = lam(filename):
+  base-module = CS.dependency("file", [list: filename])
+  base = CLI.module-finder(CLI.default-test-context, base-module)
+  wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List) errors:
@@ -49,14 +54,6 @@ compile-str = lam(filename, str):
   end
 end
 
-fun compile-program(path):
-  base-module = CS.dependency("file", [list: path])
-  base = CLI.module-finder({current-load-path:[list: "./"]}, base-module)
-  wl = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
-  r = R.make-runtime()
-  CL.compile-and-run-worklist(wl, r, CS.default-compile-options.{type-check: true})
-end
-
 fun is-arr-file(filename):
   string-index-of(filename, ".arr") == (string-length(filename) - 4)
 end
@@ -65,9 +62,10 @@ check "These should all be good programs":
   base = "./tests/type-check/good/"
   good-progs = FL.list-files(base)
   for each(prog from good-progs):
-    when is-arr-file(prog):
+    when is-arr-file(prog) block:
+      #print("Running test for: " + prog + "\n")
       filename = base + prog
-      result = compile-program(filename)
+      result = compile-str(filename)
       result satisfies E.is-right
       when E.is-left(result):
         "Should be okay: " is filename
@@ -80,9 +78,9 @@ check "These should all be bad programs":
   base = "./tests/type-check/bad/"
   bad-progs = FL.list-files(base)
   for each(prog from bad-progs):
-    when is-arr-file(prog):
+    when is-arr-file(prog) block:
       filename  = base + prog
-      result = compile-program(filename)
+      result = compile-str(filename)
       result satisfies E.is-left
       cases(E.Either) result:
         | right(_) =>
@@ -96,6 +94,7 @@ check "These should all be bad programs":
   end
 end
 
+#|
 check "All builtins should have a type":
   covered = TD.make-default-types()
   for each(builtin from CS.standard-globals.values.keys-list()):
@@ -106,3 +105,4 @@ check "All builtins should have a type":
     end
   end
 end
+|#

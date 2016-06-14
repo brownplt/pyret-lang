@@ -5,6 +5,11 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
     stderr: function(str) { process.stderr.write(str); }
   });
   rt.setParam("command-line-arguments", process.argv.slice(1));
+
+  // NOTE(joe): will just be pyret when the world is sane
+  if(typeof pyret === "object") {
+    pyret = pyret.theModule.apply(null, pyret.oldDependencies);
+  }
   rt.run(pyret, rt.namespace, {sync: true}, function(result) {
     if(rt.isSuccessResult(result)) {
       process.exit(0);
@@ -17,9 +22,14 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
         console.error(rt.getField(result.exn.exn, "value"));
         process.exit(1);
       }
-      else if (rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
+      else if (rt.isPyretException(result.exn)) {
         rt.run(function(_, _) {
-          return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
+          if(rt.isObject(result.exn.exn) && rt.hasField(result.exn.exn, "render-reason")) {
+            return rt.getColonField(result.exn.exn, "render-reason").full_meth(result.exn.exn);
+          }
+          else {
+            return rt.ffi.edEmbed(result.exn.exn);
+          }
         }, rt.namespace, {sync: true}, function(outputResult) {
           if (rt.isFailureResult(outputResult)) {
             console.error('While trying to report that Pyret terminated with an error:\n' + JSON.stringify(result)
@@ -42,8 +52,7 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
                                 + "\nstringifying that error produced another error:\n" + JSON.stringify(printResult)
                                 + "\nStack:\n" + JSON.stringify(exnStack)
                                 + "\nPyret stack:\n" + rt.printPyretStack(pyretStack));
-                  process.exit(1);console.error(result.exn.exn);
-        process.exit(1);
+                  process.exit(1);
                 } else {
                   console.error('Pyret terminated with an error:\n' + printResult.result + "\nStack:\n"  +
                                 "\nPyret stack:\n" + rt.printPyretStack(pyretStack));
@@ -54,7 +63,12 @@ define(["requirejs", "js/runtime-anf", "compiler/pyret.arr", "trove/render-error
           }
         });
       } else {
-        console.error(result.exn.exn);
+        if(result.exn && exnStack) {
+          console.error("Abstraction breaking: Uncaught JavaScript error", result.exn, exnStack);
+        }
+        else {
+          console.error("Unknown error result: ", result.exn, result.exn.exn);
+        }
         process.exit(1);
       }
     }

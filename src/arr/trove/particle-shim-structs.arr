@@ -1,6 +1,8 @@
 provide *
 provide-types *
 
+import base as _
+
 type Pin = String
 
 var A0 :: Pin = "A0"

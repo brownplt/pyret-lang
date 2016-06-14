@@ -1,5 +1,5 @@
-import "tests/data1.arr" as C
-import "tests/data2.arr" as D
+import file("data1.arr") as C
+import file("data2.arr") as D
 
 check:
   C.foo(1) == D.foo(1) is false

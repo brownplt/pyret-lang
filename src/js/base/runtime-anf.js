@@ -2306,11 +2306,11 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return nothing;
       }),
       "check-is": makeFunction(function(left, right, loc) {
-        if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 4, $a); }
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a); }
         return nothing;
       }),
       "check-satisfies": makeFunction(function(left, pred, loc) {
-        if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 4, $a); }
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a); }
         return nothing;
       }),
       "results": makeFunction(function() {
@@ -4137,15 +4137,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
           }
           var curDeps = curMod.dependencies;
           var depMods = curDeps.map(function(d) {
+            //CONSOLE.error("Going to load: ", d);
             if(d.protocol === "legacy-path") {
               return { dname: d.args[0], modinfo: require(d.args[0]) };
             }
             else {
+              if(d.name.indexOf("/") !== -1) {
+                CONSOLE.error("Builtin names should not contain paths: ", d.name)
+                throw d;
+              }
               return { dname: d.name, modinfo: require("trove/" + d.name) };
             }
           });
-          var tocomp = {mod: curMod, path: curPath};
+          var tocomp = {mod: curMod, name: curName, path: curPath};
           return depMods.reduce(function(acc, elt) {
+            //CONSOLE.error("elt to reduce on: ", elt);
             return addMod(elt.modinfo, curPath.concat([tocomp]), elt.dname).concat(acc);
           }, [tocomp])
         }
@@ -4161,9 +4167,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
           return d.name;
         }
       }
+      function isProbablyOldStyleRNSFunction(moduleFun) {
+        var len2 = moduleFun.length === 2;
+        var funSpace = String(moduleFun).indexOf("function (R") === 0;
+        var funNoSpace = String(moduleFun).indexOf("function(R") === 0;
+        return len2 && (funSpace || funNoSpace);
+      }
       var rawModules = wl.forEach(function(m) {
         if(m.mod.name === startName) { return; }
-        if(m.mod.theModule.length == 2) { // Already a runtime/namespace function
+        // NOTE(joe): yes this is depressing.  I know.
+        if(isProbablyOldStyleRNSFunction(m.mod.theModule)) { // Already a runtime/namespace function
           var thisRawMod = m.mod.theModule;
         }
         else {
@@ -4172,10 +4185,15 @@ function isMethod(obj) { return obj instanceof PMethod; }
           });
           var thisRawMod = m.mod.theModule.apply(null, rawDeps);
         }
-        finalModMap[m.mod.name] = thisRawMod;
+        finalModMap[m.name] = thisRawMod;
       });
       var originalOrderRawModules = modules.map(function(m) {
-        return finalModMap[getName(m)];
+        var mod = finalModMap[getName(m)];
+        if(typeof mod === "undefined") {
+          //CONSOLE.error("FinalModMap: ", finalModMap);
+          throw Error("Unable to find module: " + getName(m));
+        }
+        return mod;
       });
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
@@ -4193,11 +4211,31 @@ function isMethod(obj) { return obj instanceof PMethod; }
 //                CONSOLE.error("Undefined dependencies remain: ", module);
                 return module;
               }
+              if(module.oldDependencies) {
+                //CONSOLE.error("Loading old deps: ", module.oldDependencies);
+                var innerModule = module.theModule.apply(null, module.oldDependencies);
+                //CONSOLE.error(String(innerModule).substring(0, 200));
+                return innerModule(thisRuntime, namespace);
+              }
+              else {
+                //CONSOLE.error("About to loadBuiltin modules: ", module.name, module.dependencies);
+                return loadBuiltinModules(module.dependencies, module.name,
+                  function() {
+                    var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
+                    //CONSOLE.error(String(innerModule).substring(0, 200));
+                    return innerModule(thisRuntime, namespace);
+                  });
+
+                //  CONSOLE.error("Cannot load this module: ", module);
+              }
+              /*
               return loadBuiltinModules(module.dependencies, module.name,
-                function(/* varargs */) {
+                function() {
                   var innerModule = module.theModule.apply(null, Array.prototype.slice.call(arguments));
                   return innerModule(thisRuntime, namespace);
                 });
+
+                */
           }
           else {
             CONSOLE.log("Unkown module type: ", module);
@@ -4228,20 +4266,28 @@ function isMethod(obj) { return obj instanceof PMethod; }
         var ms = new Array(arguments.length);
         for (var i = 0; i < arguments.length; i++) ms[i] = arguments[i];
         function wrapMod(m) {
+          //CONSOLE.error("The module is: ", m);
           if (typeof m === 'undefined') {
             CONSOLE.error("Undefined module in this list: ", modules, String(withModules).slice(0, 500));
+            throw new Error("Undefined module")
           }
-          if (hasField(m, "provide-plus-types")) {
-            return getField(m, "provide-plus-types");
+          // NOTE(joe): These following tests should be coalesced into one
+          // type that covers the JS and Pyret cases (and unifies the Pyret
+          // representations for typed and untyped)
+          else if (typeof m === "object" && !isObject(m)) {
+            return m;
           }
+          // NOTE(joe): Can we remove this next line?
           else if (hasField(m, "values")) {
             return m;
           }
+          else if (hasField(m, "provide-plus-types")) {
+            return getField(m, "provide-plus-types");
+          }
           else {
-            return thisRuntime.makeObject({
-              "values": getField(m, "provide"),
-              "types": {}
-            });
+            console.error("Got unrecognized module return format in loadModulesNew ", m);
+            throw new Error("Got unrecognized module return format in loadModulesNew ",
+                            JSON.stringify(m, null, "  "));
           }
         };
         var wrappedMods = ms.map(wrapMod);
@@ -4766,7 +4812,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'nothing': nothing,
 
         'makeSrcloc': makeSrcloc,
-        //'_link': function(f, r) { return getField(list, "link").app(f, r); },
 
         'loadModule' : loadModule,
         'loadModules' : loadModules,
@@ -4812,20 +4857,19 @@ function isMethod(obj) { return obj instanceof PMethod; }
       isOk: function() { return true; }
     }
 
-    var list;
     var srcloc;
     var ffi;
     loadModulesNew(thisRuntime.namespace,
-      [require("trove/lists"), require("trove/srcloc")],
-      function(listsLib, srclocLib) {
-        list = getField(listsLib, "values");
+      [require("trove/srcloc")],
+      function(srclocLib) {
         srcloc = getField(srclocLib, "values");
       });
-      
-    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers"), require("trove/image-lib")], function(f, i) {
+    loadJSModules(thisRuntime.namespace, [require("js/ffi-helpers")], function(f) {
       ffi = f;
       thisRuntime["ffi"] = ffi;
-      thisRuntime["imageLib"] = i;
+    });
+    loadModulesNew(thisRuntime.namespace, [require("trove/image-lib")], function(i) {
+      thisRuntime["imageLib"] = getField(i, "internal");
     });
 
     // NOTE(joe): set a few of these explicitly to work with s-prim-app
@@ -4845,6 +4889,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var nsWithList = ns;//.set("_link", getField(list, "link"))
                        //.set("_empty", getField(list, "empty"));
     thisRuntime.namespace = nsWithList;
+    thisRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
+    thisRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
+    thisRuntime["makeArrayN"] = function(n) { return new Array(n); };
 
     var checkList = makeCheckType(ffi.isList, "List");
     thisRuntime["checkList"] = checkList;

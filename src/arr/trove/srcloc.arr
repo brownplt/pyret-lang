@@ -3,6 +3,7 @@
 provide *
 provide-types *
 
+import global as _
 import valueskeleton as VS
 
 data Srcloc:
@@ -32,9 +33,15 @@ data Srcloc:
       ) with:
     format(self, show-file):
       doc: "Returns either 'file: line, col' or just 'line, col', depending on the show-file flag"
-      if show-file: self.source + ": " else: "" end
-        + "line " + tostring(self.start-line)
-        + ", column " + tostring(self.start-column)
+      # if show-file: self.source + ": " else: "" end
+      #   + "line " + tostring(self.start-line)
+      #   + ", column " + tostring(self.start-column)
+      if show-file:
+        self.source + ":" + tostring(self.start-line) + ":" + tostring(self.start-column)
+          + "-" + tostring(self.end-line) + ":" + tostring(self.end-column)
+      else:
+        "line " + tostring(self.start-line) + ", column " + tostring(self.start-column)
+      end
     end,
     key(self): self.source + ":" + tostring(self.start-char) + "-" + tostring(self.end-char) end,
     same-file(self, other :: Srcloc):

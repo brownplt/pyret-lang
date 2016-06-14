@@ -15,10 +15,10 @@ import ast as A
 import string-dict as SD
 import srcloc as SL
 import valueskeleton as VS
-import "compiler/type-structs.arr" as TS
-import "compiler/type-check-structs.arr" as TCS
-import "compiler/list-aux.arr" as LA
-import "compiler/compile-structs.arr" as C
+import file("type-structs.arr") as TS
+import file("type-check-structs.arr") as TCS
+import file("list-aux.arr") as LA
+import file("compile-structs.arr") as C
 
 all2-strict  = LA.all2-strict
 map2-strict  = LA.map2-strict
@@ -403,7 +403,7 @@ where:
     TS.t-datatype(list-name.key(),
                  [list: t-variable(A.dummy-loc, A.s-atom("C", 6), t-top, covariant)],
                  empty, empty))
-  t-list = lam(x): t-app(t-name(none, list-name), [list: x]);
+  t-list = lam(x): t-app(t-name(none, list-name), [list: x]) end
   a = t-forall([list: t-variable(A.dummy-loc, a1, t-top, covariant)], t-list(a1-t))
   b = t-forall([list: t-variable(A.dummy-loc, b1, t-top, covariant)], t-list(b1-t))
   c = t-list(t-top)
@@ -587,7 +587,7 @@ fun free-vars(t :: Type, binds :: Bindings) -> Set<Type>:
         .foldl(union, free-vars(onto, binds))
     | t-record(fields) =>
       fields
-        .map(lam(field): free-vars(field.typ, binds);)
+        .map(lam(field): free-vars(field.typ, binds) end)
         .foldl(union, [set: ])
     | t-ref(typ) =>
       free-vars(typ, binds)

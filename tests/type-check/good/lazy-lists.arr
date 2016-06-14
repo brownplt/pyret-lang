@@ -52,4 +52,4 @@ take(5, lz-map(d-dx-square-at-10, tenths))
 
 approximations-of-d-dx-square = lz-map(d-dx-square(10), tenths)
 print(take(5, approximations-of-d-dx-square))
-print(map(lam(x :: Number): x * 1.0;, take(5, lz-map(d-dx-square(10), tenths))))
+print(map(lam(x :: Number): x * 1.0 end, take(5, lz-map(d-dx-square(10), tenths))))

@@ -47,10 +47,10 @@ fun map2-strict<A, B, R>(f :: (A, B -> R), l1 :: List<A>, l2 :: List<B>) -> Opti
      end
   end
 where:
-  map2-strict(lam(_, _): raise("shipwrecked!");, [list: ], [list: 1 ]) is none
-  map2-strict(lam(x, y): x or y;, [list: true, false], [list: false]) is none
-  map2-strict(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is some([list: ])
-  map2-strict(lam(x, y): x or y;, [list: true, false], [list: false, false]) is some([list: true, false])
+  map2-strict(lam(_, _): raise("shipwrecked!") end, [list: ], [list: 1 ]) is none
+  map2-strict(lam(x, y): x or y end, [list: true, false], [list: false]) is none
+  map2-strict(lam(_, _): raise("shipwrecked!") end, [list: ], [list: ]) is some([list: ])
+  map2-strict(lam(x, y): x or y end, [list: true, false], [list: false, false]) is some([list: true, false])
 end
 
 fun fold2-strict<A, B, R>(f :: (R, A, B -> R), base :: R, l1 :: List<A>, l2 :: List<B>) -> Option<R>:
@@ -65,7 +65,7 @@ fun fold2-strict<A, B, R>(f :: (R, A, B -> R), base :: R, l1 :: List<A>, l2 :: L
       end
   end
 where:
-  fold2-strict(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: ]) is none
-  fold2-strict(lam(x, y, z): x - y - z;, 6, [list: ], [list: 1, 1, 1]) is none
-  fold2-strict(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is some(0)
+  fold2-strict(lam(x, y, z): x - y - z end, 6, [list: 1, 1, 1], [list: ]) is none
+  fold2-strict(lam(x, y, z): x - y - z end, 6, [list: ], [list: 1, 1, 1]) is none
+  fold2-strict(lam(x, y, z): x - y - z end, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is some(0)
 end

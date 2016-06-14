@@ -6,7 +6,11 @@ import ast as A
 import srcloc as SL
 import error-display as ED
 import string-dict as SD
-import "compiler/type-structs.arr" as T
+import file("concat-lists.arr") as CL
+import file("type-structs.arr") as T
+import file("js-ast.arr") as J
+
+clist = CL.clist
 
 t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)
@@ -28,16 +32,13 @@ t-singleton-variant = T.t-variant(_, _)
 t-app = T.t-app(_, _, A.dummy-loc)
 t-name = T.t-name(_, _, A.dummy-loc)
 
+
+
 type URI = String
 type StringDict = SD.StringDict
 string-dict = SD.string-dict
 
 type Loc = SL.Srcloc
-
-data PyretDialect:
-  | Pyret
-  | Bootstrap
-end
 
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
@@ -46,6 +47,10 @@ data Dependency:
   | builtin(modname :: String)
     with:
     key(self): "builtin(" + self.modname + ")" end
+end
+
+data NativeModule:
+  | requirejs(path :: String)
 end
 
 data NameResolution:
@@ -76,8 +81,9 @@ data CompileEnvironment:
       )
 end
 
+# The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<T.Type>, types :: StringDict<T.Type>)
+  | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
 data Provides:
@@ -89,20 +95,38 @@ data Provides:
     )
 end
 
+fun make-dep(raw-dep) -> Dependency:
+ if raw-dep.import-type == "builtin":
+    builtin(raw-dep.name)
+  else:
+    dependency(raw-dep.protocol, raw-array-to-list(raw-dep.args))
+  end
+end
+
+rag = raw-array-get
+
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
   tfr = type-from-raw(uri, _, tyvar-env)
+  # TODO(joe): Make this do something intelligent when location information
+  # is available
+  l = SL.builtin(uri)
   t = typ.tag
   ask:
-    | t == "any" then: t-top
+    | t == "any" then: T.t-top(l)
     | t == "record" then:
-      t-record(for map(f from typ.fields): t-member(f.name, tfr(f.value)) end)
+      T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end, l)
     | t == "name" then:
-      modname = if typ.module == "LOCAL": uri else: typ.module end
-      t-name(some(modname), A.s-type-global(typ.name))
+      if typ.origin.import-type == "$ELF":
+        T.t-name(T.local, A.s-type-global(typ.name), l)
+      else if typ.origin.import-type == "uri":
+        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l)
+      else:
+        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l)
+      end
     | t == "tyvar" then:
       cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
-        | some(tv) => t-var(tv)
+        | some(tv) => T.t-var(tv, l)
       end
     | t == "forall" then:
       new-env = for fold(new-env from tyvar-env, a from typ.args):
@@ -110,52 +134,62 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
         new-env.set(a, tvn)
       end
       params = for map(k from new-env.keys-list()):
-        t-var(new-env.get-value(k))
+        T.t-var(new-env.get-value(k), l)
       end
-      t-forall(params, type-from-raw(uri, typ.onto, new-env))
+      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l)
     | t == "tyapp" then:
-      t-app(tfr(typ.onto), map(tfr, typ.args))
+      T.t-app(tfr(typ.onto), map(tfr, typ.args), l)
     | t == "arrow" then:
-      t-arrow(map(tfr, typ.args), tfr(typ.ret))
-    | otherwise: raise("Unkonwn raw tag for type: " + t)
+      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l)
+    | otherwise: raise("Unknown raw tag for type: " + t)
   end
 end
 
 fun tvariant-from-raw(uri, tvariant, env):
+  l = SL.builtin(uri)
   t = tvariant.tag
   ask:
     | t == "variant" then:
       members = for map(tm from tvariant.vmembers):
         # TODO(joe): Exporting ref fields?
-        t-member(tm.name, type-from-raw(uri, tm.typ, env))
+        T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
       end
-      t-variant(tvariant.name, members, empty)
+      T.t-variant(tvariant.name, members, empty)
     | t == "singleton-variant" then:
-      t-singleton-variant(tvariant.name, empty)
+      T.t-singleton-variant(tvariant.name, empty)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
 
 fun datatype-from-raw(uri, datatyp):
-  pdict = for fold(pdict from SD.make-string-dict(), a from datatyp.params):
-    tvn = A.global-names.make-atom(a)
-    pdict.set(a, tvn)
-  end
-  params = for map(k from pdict.keys-list()):
-    t-var(pdict.get-value(k))
-  end
-  variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
-  members = for map(tm from datatyp.methods):
-    # TODO(joe): Exporting ref fields?
-    t-member(tm.name, type-from-raw(uri, tm.value, pdict))
-  end
-  temp-data = t-data(datatyp.name, variants, members)
-  if is-empty(params):
-    temp-data
+  l = SL.builtin(uri)
+
+  if datatyp.tag == "any":
+    # TODO(joe): this will be replaced when datatypes have a settled format
+    t-top
   else:
-    t-forall(params, temp-data)
+    pdict = for fold(pdict from SD.make-string-dict(), a from datatyp.params):
+      tvn = A.global-names.make-atom(a)
+      pdict.set(a, tvn)
+    end
+    params = for map(k from pdict.keys-list()):
+      T.t-var(pdict.get-value(k), l)
+    end
+    variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
+    members = for map(tm from datatyp.methods):
+      # TODO(joe): Exporting ref fields?
+      T.t-member(tm.name, type-from-raw(uri, tm.value, pdict))
+    end
+    temp-data = t-data(datatyp.name, variants, members)
+    if is-empty(params):
+      temp-data
+    else:
+      t-forall(params, temp-data)
+    end
   end
 end
+
+
 
 fun provides-from-raw-provides(uri, raw):
   values = raw.values
@@ -179,6 +213,31 @@ fun provides-from-raw-provides(uri, raw):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
   provides(uri, vdict, adict, ddict)
+end
+
+
+
+
+fun provides-to-raw-provides-ast(provs, env):
+  cases(Provides) provs:
+    | provides(uri, values, aliases, data-defs) =>
+    #|
+      value-fields = for CL.map_list(v from values.keys().to-list()):
+        J.j-field(v, type-to-raw-ast(values.get-value(v), compile-env))
+      end
+      data-fields = for CL.map_list(d from data-defs.keys().to-list()):
+        J.j-field(d, type-to-raw-ast(data-defs.get-value(d), compile-env))
+      end
+      alias-fields = for CL.map_list(a from aliases.keys().to-list()):
+        J.j-field(a, type-to-raw-ast(aliases.get-value(a), compile-env))
+      end
+      |#
+      J.j-obj([clist:
+        #|J.j-field("values", J.j-obj(value-fields)),
+        J.j-field("datatypes", J.j-obj(data-fields)),
+        J.j-field("aliases", J.j-obj(alias-fields))|#
+      ])
+  end
 end
 
 
@@ -479,6 +538,26 @@ data CompileError:
           ED.text(" at "),
           ED.loc(self.l),
           ED.text(" cannot be used where a type annotation is expected.")]]
+    end
+  | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
+    render-reason(self):
+      if self.block-locs.length() > 1:
+        [ED.error:
+          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
+            ED.text("contains several blocks that each contain multiple expressions:")],
+          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with"),
+            ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
+      else:
+        [ED.error:
+          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
+            ED.text("contains a block that contains multiple expressions:")],
+          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("Either simplify this block to a single expression, or mark the outer expression with"),
+            ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
+      end
     end
   | unbound-id(id :: A.Expr) with:
     render-fancy-reason(self):
@@ -928,11 +1007,11 @@ data CompileError:
           ED.text("The type checker rejected your program because the type instantiation")],
        [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], 0),
-            ED.text("<"),
-            ED.h-sequence(self.ann.args.map(lam(ann):
-              ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], 1);), ","),
-            ED.text(">")])],
+              ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], 0),
+              ED.text("<"),
+              ED.h-sequence(self.ann.args.map(lam(ann):
+                  ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], 1) end), ","),
+              ED.text(">")])],
         [ED.para:
           ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
           ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), 1),
@@ -1021,12 +1100,12 @@ data CompileError:
           ED.text("The type checker rejected your program because the function application expression")],
         [ED.para:
           ED.code([ED.sequence:
-            ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],0),
-            ED.text("("),
-            ED.h-sequence(
-              self.app-expr.args.map(
-                lam(arg):ED.h-sequence(arg.tosource().pretty(999).map(ED.text),"");), ", "),
-            ED.text(")")])],
+              ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],0),
+              ED.text("("),
+              ED.h-sequence(
+                self.app-expr.args.map(
+                  lam(arg):ED.h-sequence(arg.tosource().pretty(999).map(ED.text),"") end), ", "),
+              ED.text(")")])],
         [ED.para:
           ED.text("expects the "), ed-applicant,
           ED.text(" to evaluate to a function value. However, the type of the "),
@@ -1129,8 +1208,8 @@ data CompileError:
           ED.text("'s "),
           ED.highlight(ED.text("variants"),self.data-type.variants.map(_.l), 2),
           ED.text(":")],
-         ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
-          ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], 2));))]
+        ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
+            ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], 2)) end))]
     end,
     render-reason(self):
       [ED.error:
@@ -1178,9 +1257,9 @@ data CompileError:
           ED.code(ED.text(self.type-name)),
           ED.text(", but its branches cannot handle "),
           ED.highlight(ED.text(
-            if self.missing.length() > 1:
-              "several variants"
-            else: "a variant";), self.missing.map(_.l), 1),
+              if self.missing.length() > 1: "several variants"
+              else: "a variant"
+              end), self.missing.map(_.l), 1),
           ED.text(".")]]
     end,
     render-reason(self):
@@ -1217,8 +1296,8 @@ data CompileError:
         [ED.para:
           ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
         ED.bulleted-sequence(map_n(lam(n, branch):
-          ED.highlight(ED.embed(branch), [list: branch.l], n);,
-          0, self.branch-types))]
+            ED.highlight(ED.embed(branch), [list: branch.l], n) end,
+            0, self.branch-types))]
     end,
     render-reason(self):
       [ED.error:
@@ -1226,16 +1305,15 @@ data CompileError:
           ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
         ED.bulleted-sequence(map_n(lam(n, branch):
          [ED.sequence:
-          ED.loc(branch.l), ED.text(" has type "), ED.embed(branch)];,
-          0, self.branch-types))]
+              ED.loc(branch.l), ED.text(" has type "), ED.embed(branch)] end,
+            0, self.branch-types))]
     end
   | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
     render-fancy-reason(self):
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
-          ED.text(if n == 1: " field"
-                  else:      " fields";)]
+          ED.text(if n == 1: " field" else: " fields" end)]
       end
       [ED.error:
         [ED.para:
@@ -1256,8 +1334,7 @@ data CompileError:
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
-          ED.text(if n == 1: " field"
-                  else:      " fields";)]
+          ED.text(if n == 1: " field" else: " fields" end)]
       end
       [ED.error:
         [ED.para:
@@ -1565,13 +1642,32 @@ data CompileError:
     end
 end
 
+type CompileOptions = {
+  check-mode :: Boolean,
+  type-check :: Boolean,
+  allow-shadowed :: Boolean,
+  collect-all :: Boolean,
+  ignore-unbound :: Boolean,
+  proper-tail-calls :: Boolean,
+  compile-module :: Boolean,
+  compiled-cache :: String,
+  standalone-file :: String,
+  on-compile :: Function, # NOTE: skipping types because the are in compile-lib
+  before-compile :: Function
+}
+
 default-compile-options = {
   check-mode : true,
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
   ignore-unbound: false,
-  proper-tail-calls: true
+  proper-tail-calls: true,
+  compile-module: true,
+  compiled-cache: "compiled",
+  on-compile(_, locator, loadable): loadable end,
+  before-compile(_, _): nothing end,
+  standalone-file: "src/js/base/handalone.js"
 }
 
 t-pred = t-arrow([list: t-top], t-boolean)
@@ -1583,187 +1679,197 @@ t-number-pred1 = t-arrow([list: t-number], t-boolean)
 t-within-num = t-arrow([list: t-number], t-arrow([list: t-number, t-number], t-boolean))
 t-within-any = t-arrow([list: t-number], t-arrow([list: t-top, t-top], t-boolean))
 
-# TODO(MATT): figure out what this means, where it's used, and how to handle it
-runtime-types = [string-dict:
-  "Number", t-top,
-  "Exactnum", t-top,
-  "Roughnum", t-top,
-  "NumInteger", t-top,
-  "NumRational", t-top,
-  "NumPositive", t-top,
-  "NumNegative", t-top,
-  "NumNonPositive", t-top,
-  "NumNonNegative", t-top,
-  "String", t-str,
-  "Function", t-top,
-  "Boolean", t-top,
-  "Object", t-top,
-  "Method", t-top,
-  "Nothing", t-top,
-  "RawArray", t-top
-]
-
 fun t-forall1(f):
   n = A.global-names.make-atom("a")
   t-forall([list: t-var(n)], f(t-var(n)))
 end
 
-runtime-builtins = [string-dict:
-  "test-print", t-forall1(lam(a): t-arrow([list: a], a) end),
-  "print", t-forall1(lam(a): t-arrow([list: a], a) end),
-  "display", t-forall1(lam(a): t-arrow([list: a], a) end),
-  "print-error", t-forall1(lam(a): t-arrow([list: a], a) end),
-  "display-error", t-forall1(lam(a): t-arrow([list: a], a) end),
-  "tostring", t-arrow([list: t-top], t-str),
-  "torepr", t-arrow([list: t-top], t-str),
-  "brander", t-top,
-  "raise", t-arrow([list: t-top], t-bot),
-  "nothing", t-nothing,
-  "builtins", t-record([list:
-      t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
-      t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
-          t-member("run-checks", t-bot),
-          t-member("check-is", t-bot),
-          t-member("check-is-refinement", t-bot),
-          t-member("check-is-not", t-bot),
-          t-member("check-is-not-refinement", t-bot),
-          t-member("check-is-refinement", t-bot),
-          t-member("check-is-not-refinement", t-bot),
-          t-member("check-satisfies", t-bot),
-          t-member("check-satisfies-not", t-bot),
-          t-member("check-raises-str", t-bot),
-          t-member("check-raises-not", t-bot),
-          t-member("check-raises-other-str", t-bot),
-          t-member("check-raises-satisfies", t-bot),
-          t-member("check-raises-violates" , t-bot)
-      ])))
-  ]),
-  "not", t-arrow([list: t-boolean], t-boolean),
-  "is-nothing", t-pred,
-  "is-number", t-pred,
-  "is-string", t-pred,
-  "is-boolean", t-pred,
-  "is-object", t-pred,
-  "is-function", t-pred,
-  "is-raw-array", t-pred,
-  "gensym", t-top,
-  "random", t-top,
-  "run-task", t-top,
-  "_plus", t-top,
-  "_minus", t-top,
-  "_times", t-top,
-  "_divide", t-top,
-  "_lessthan", t-top,
-  "_lessequal", t-top,
-  "_greaterthan", t-top,
-  "_greaterequal", t-top,
-  "string-equal", t-top,
-  "string-contains", t-top,
-  "string-append", t-top,
-  "string-length", t-top,
-  "string-tonumber", t-top,
-  "string-to-number", t-arrow([list: t-string], t-option(t-number)),
-  "string-repeat", t-top,
-  "string-substring", t-top,
-  "string-replace", t-top,
-  "string-split", t-top,
-  "string-split-all", t-top,
-  "string-char-at", t-top,
-  "string-toupper", t-top,
-  "string-tolower", t-top,
-  "string-explode", t-top,
-  "string-index-of", t-top,
-  "string-to-code-point", t-top,
-  "string-from-code-point", t-top,
-  "string-to-code-points", t-top,
-  "string-from-code-points", t-top,
-  "time-now", t-number-unop,
-  "num-random", t-number-unop,
-  "num-random-seed", t-arrow([list: t-number], t-nothing),
-  "num-max", t-number-binop,
-  "num-min", t-number-binop,
-  "num-equal", t-arrow([list: t-number, t-number], t-boolean),
-  "num-round", t-number-unop,
-  "num-round-even", t-number-unop,
-  "num-abs", t-number-unop,
-  "num-sin", t-number-unop,
-  "num-cos", t-number-unop,
-  "num-tan", t-number-unop,
-  "num-asin", t-number-unop,
-  "num-acos", t-number-unop,
-  "num-atan", t-number-unop,
-  "num-modulo", t-number-binop,
-  "num-truncate", t-number-unop,
-  "num-sqrt", t-number-unop,
-  "num-sqr", t-number-unop,
-  "num-ceiling", t-number-unop,
-  "num-floor", t-number-unop,
-  "num-log", t-number-unop,
-  "num-exp", t-number-unop,
-  "num-exact", t-number-unop,
-  "num-to-rational", t-number-unop,
-  "num-to-roughnum", t-number-unop,
-  "num-is-positive", t-number-pred1,
-  "num-is-negative", t-number-pred1,
-  "num-is-non-positive", t-number-pred1,
-  "num-is-non-negative", t-number-pred1,
-  "num-is-integer", t-number-pred1,
-  "num-is-fixnum", t-number-pred1,
-  "num-is-rational", t-number-pred1,
-  "num-is-roughnum", t-number-pred1,
-  "num-expt", t-number-binop,
-  "num-tostring", t-arrow([list: t-number], t-string),
-  "num-to-string", t-arrow([list: t-number], t-string),
-  "num-to-string-digits", t-arrow([list: t-number, t-number], t-string),
-  "num-within", t-within-num,
-  "num-within-rel", t-within-num,
-  "num-within-abs", t-within-num,
-  "within-rel", t-within-any,
-  "within-rel-now", t-within-any,
-  "within-abs", t-within-any,
-  "within-abs-now", t-within-any,
-  "within", t-within-any,
-  "raw-array-get", t-top,
-  "raw-array-set", t-top,
-  "raw-array-obj-destructure", t-top,
-  "raw-array-of", t-top,
-  "raw-array-length", t-top,
-  "raw-array-to-list", t-top,
-  "raw-array-fold", t-top,
-  "raw-array", t-record(
-    [list:
-      t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),
-      t-member("make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end)),
-      t-member("make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end)),
-      t-member("make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end)),
-      t-member("make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end)),
-      t-member("make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end)),
-      t-member("make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end))
+runtime-provides = provides("builtin://global",
+  [string-dict:
+    "test-print", t-forall1(lam(a): t-arrow([list: a], a) end),
+    "print", t-forall1(lam(a): t-arrow([list: a], a) end),
+    "display", t-forall1(lam(a): t-arrow([list: a], a) end),
+    "print-error", t-forall1(lam(a): t-arrow([list: a], a) end),
+    "display-error", t-forall1(lam(a): t-arrow([list: a], a) end),
+    "tostring", t-arrow([list: t-top], t-str),
+    "torepr", t-arrow([list: t-top], t-str),
+    "brander", t-top,
+    "raise", t-arrow([list: t-top], t-bot),
+    "nothing", t-nothing,
+    "builtins", t-record([list:
+        t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
+        t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
+            t-member("run-checks", t-bot),
+            t-member("check-is", t-bot),
+            t-member("check-is-refinement", t-bot),
+            t-member("check-is-not", t-bot),
+            t-member("check-is-not-refinement", t-bot),
+            t-member("check-is-refinement", t-bot),
+            t-member("check-is-not-refinement", t-bot),
+            t-member("check-satisfies", t-bot),
+            t-member("check-satisfies-not", t-bot),
+            t-member("check-raises-str", t-bot),
+            t-member("check-raises-not", t-bot),
+            t-member("check-raises-other-str", t-bot),
+            t-member("check-raises-satisfies", t-bot),
+            t-member("check-raises-violates" , t-bot)
+        ])))
     ]),
-  "ref-get", t-top,
-  "ref-set", t-top,
-  "ref-freeze", t-top,
-  "equal-always", t-pred2,
-  "equal-always3", t-top,
-  "equal-now", t-pred2,
-  "equal-now3", t-top,
-  "identical", t-pred2,
-  "identical3", t-top,
-  "exn-unwrap", t-top# ,
-  # "_empty", t-top,
-  # "_link", t-top
-]
+    "not", t-arrow([list: t-boolean], t-boolean),
+    "is-nothing", t-pred,
+    "is-number", t-pred,
+    "is-string", t-pred,
+    "is-boolean", t-pred,
+    "is-object", t-pred,
+    "is-function", t-pred,
+    "is-raw-array", t-pred,
+    "gensym", t-top,
+    "random", t-top,
+    "run-task", t-top,
+    "_plus", t-top,
+    "_minus", t-top,
+    "_times", t-top,
+    "_divide", t-top,
+    "_lessthan", t-top,
+    "_lessequal", t-top,
+    "_greaterthan", t-top,
+    "_greaterequal", t-top,
+    "string-equal", t-top,
+    "string-contains", t-top,
+    "string-append", t-top,
+    "string-length", t-top,
+    "string-tonumber", t-top,
+    "string-to-number", t-arrow([list: t-string], t-option(t-number)),
+    "string-repeat", t-top,
+    "string-substring", t-top,
+    "string-replace", t-top,
+    "string-split", t-top,
+    "string-split-all", t-top,
+    "string-char-at", t-top,
+    "string-toupper", t-top,
+    "string-tolower", t-top,
+    "string-explode", t-top,
+    "string-index-of", t-top,
+    "string-to-code-point", t-top,
+    "string-from-code-point", t-top,
+    "string-to-code-points", t-top,
+    "string-from-code-points", t-top,
+    "time-now", t-number-unop,
+    "num-random", t-number-unop,
+    "num-random-seed", t-arrow([list: t-number], t-nothing),
+    "num-max", t-number-binop,
+    "num-min", t-number-binop,
+    "num-equal", t-arrow([list: t-number, t-number], t-boolean),
+    "num-round", t-number-unop,
+    "num-round-even", t-number-unop,
+    "num-abs", t-number-unop,
+    "num-sin", t-number-unop,
+    "num-cos", t-number-unop,
+    "num-tan", t-number-unop,
+    "num-asin", t-number-unop,
+    "num-acos", t-number-unop,
+    "num-atan", t-number-unop,
+    "num-modulo", t-number-binop,
+    "num-truncate", t-number-unop,
+    "num-sqrt", t-number-unop,
+    "num-sqr", t-number-unop,
+    "num-ceiling", t-number-unop,
+    "num-floor", t-number-unop,
+    "num-log", t-number-unop,
+    "num-exp", t-number-unop,
+    "num-exact", t-number-unop,
+    "num-to-rational", t-number-unop,
+    "num-to-roughnum", t-number-unop,
+    "num-is-positive", t-number-pred1,
+    "num-is-negative", t-number-pred1,
+    "num-is-non-positive", t-number-pred1,
+    "num-is-non-negative", t-number-pred1,
+    "num-is-integer", t-number-pred1,
+    "num-is-fixnum", t-number-pred1,
+    "num-is-rational", t-number-pred1,
+    "num-is-roughnum", t-number-pred1,
+    "num-expt", t-number-binop,
+    "num-tostring", t-arrow([list: t-number], t-string),
+    "num-to-string", t-arrow([list: t-number], t-string),
+    "num-to-string-digits", t-arrow([list: t-number, t-number], t-string),
+    "num-within", t-within-num,
+    "num-within-rel", t-within-num,
+    "num-within-abs", t-within-num,
+    "within-rel", t-within-any,
+    "within-rel-now", t-within-any,
+    "within-abs", t-within-any,
+    "within-abs-now", t-within-any,
+    "within", t-within-any,
+    "raw-array-get", t-top,
+    "raw-array-set", t-top,
+    "raw-array-of", t-top,
+    "raw-array-length", t-top,
+    "raw-array-to-list", t-top,
+    "raw-array-fold", t-top,
+    "raw-array", t-record(
+      [list:
+        t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),
+        t-member("make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end)),
+        t-member("make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end)),
+        t-member("make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end)),
+        t-member("make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end)),
+        t-member("make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end)),
+        t-member("make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end))
+      ]),
+    "ref-get", t-top,
+    "ref-set", t-top,
+    "ref-freeze", t-top,
+    "equal-always", t-pred2,
+    "equal-always3", t-top,
+    "equal-now", t-pred2,
+    "equal-now3", t-top,
+    "identical", t-pred2,
+    "identical3", T.t-top,
+    "exn-unwrap", T.t-top
+  ],
+  [string-dict:
+     "Number", t-top,
+     "Exactnum", t-top,
+     "Roughnum", t-top,
+     "NumInteger", t-top,
+     "NumRational", t-top,
+     "NumPositive", t-top,
+     "NumNegative", t-top,
+     "NumNonPositive", t-top,
+     "NumNonNegative", t-top,
+     "String", t-str,
+     "Function", t-top,
+     "Boolean", t-top,
+     "Object", t-top,
+     "Method", t-top,
+     "Nothing", t-top,
+     "RawArray", t-top  ],
+  [string-dict:])
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict:])
+runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):
+  rb.set(k, "builtin(global)")
+end
+
+runtime-types = for fold(rt from [string-dict:], k from runtime-provides.aliases.keys().to-list()):
+  rt.set(k, "builtin(global)")
+end
+shadow runtime-types = for fold(rt from runtime-types, k from runtime-provides.data-definitions.keys().to-list()):
+  rt.set(k, "builtin(global)")
+end
+
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides])
+
+minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
 standard-globals = globals(runtime-builtins, runtime-types)
-minimal-builtins = compile-env(standard-globals, [string-dict:])
-standard-builtins = compile-env(standard-globals, [string-dict:])
+standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
+      extra-import(builtin("global"), "$global", [list:], [list:]),
+      extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",

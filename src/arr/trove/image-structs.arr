@@ -3,6 +3,8 @@
 provide *
 provide-types *
 
+import base as _
+
 data Color:
   | color(
       red :: Number,

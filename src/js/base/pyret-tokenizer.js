@@ -1,4 +1,4 @@
-define(["../../../lib/jglr/jglr"], function(E) {
+define(["jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
@@ -134,6 +134,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const lparen = new RegExp("^\\(", STICKY_REGEXP);
   const rparen = new RegExp("^\\)", STICKY_REGEXP);
   const period = new RegExp("^\\.", STICKY_REGEXP);
+  const dotdotdot = new RegExp("^\\.\\.\\.", STICKY_REGEXP);
   const bang = new RegExp("^!", STICKY_REGEXP);
   const percent = new RegExp("^%", STICKY_REGEXP);
   const comma = new RegExp("^,", STICKY_REGEXP);
@@ -248,7 +249,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "TABLE-EXTRACT",  val: new RegExp(kw("extract"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
-    {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
     {name: "OF", val: new RegExp(kw("of"), STICKY_REGEXP)},
@@ -270,6 +271,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
+    {name: "DOTDOTDOT", val: dotdotdot},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},

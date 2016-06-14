@@ -1,18 +1,23 @@
-define(["js/runtime-util", "fs"], function(util, fs) {
-
-  return util.memoModule("filelib", function(RUNTIME, NAMESPACE) {
-      
+({
+  requires: [],
+  provides: {},
+  nativeRequires: ["fs"],
+  theModule: 
+    function(RUNTIME, NAMESPACE, uri, fs) {
       function InputFile(name) {
         this.name = name;
+        this.fd = fs.openSync(name, "r")
       }
 
       function OutputFile(name, append) {
         this.name = name;
-        this.append = append;
+        this.fd = fs.openSync(name, (append ? "a" : "w"));
       }
 
       return RUNTIME.makeObject({
-          provide: RUNTIME.makeObject({
+          "provide-plus-types": RUNTIME.makeObject({
+              types: { },
+              values: RUNTIME.makeObject({
               "open-input-file": RUNTIME.makeFunction(function(filename) {
                   RUNTIME.ffi.checkArity(1, arguments, "open-input-file");
                   RUNTIME.checkString(filename);
@@ -32,7 +37,11 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                   RUNTIME.checkOpaque(file);
                   var v = file.val;
                   if(v instanceof InputFile) {
-                    return RUNTIME.makeString(fs.readFileSync(v.name, {encoding: 'utf8'}));
+                    if (v.fd) {
+                      return RUNTIME.makeString(fs.readFileSync(v.fd, {encoding: 'utf8'}));
+                    } else {
+                      throw Error("Attempting to read an already-closed file");
+                    }
                   }
                   else {
                     throw Error("Expected file in read-file, but got something else");
@@ -45,22 +54,43 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                   var v = file.val;
                   var s = RUNTIME.unwrap(val);
                   if(v instanceof OutputFile) {
-                    fs.writeFileSync(v.name, s, {encoding: 'utf8'});
-                    return NAMESPACE.get('nothing');
+                    if (v.fd) {
+                      fs.writeSync(v.fd, s, {encoding: 'utf8'});
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      console.error("Failed to display to " + v.name);
+                      throw Error("Attempting to write to an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in display, but got something else");
+                  }
+                }),
+              "flush-output-file": RUNTIME.makeFunction(function(file) {
+                  RUNTIME.ffi.checkArity(1, arguments, "flush-output-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof OutputFile) {
+                    if (v.fd) {
+                      fs.fsyncSync(v.fd);
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to flush an already-closed file");
+                    }
                   }
                   else {
                     throw Error("Expected file in read-file, but got something else");
                   }
-                }),
+                }),                  
               "file-times": RUNTIME.makeFunction(function(file) {
                   RUNTIME.ffi.checkArity(1, arguments, "file-times");
                   RUNTIME.checkOpaque(file);
                   var v = file.val;
                   if(!(v instanceof InputFile || v instanceof OutputFile)) {
-                    RUNTIME.RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
+                    RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
                   }
                   if(!fs.existsSync(v.name)) {
-                    RUNTIME.RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
+                    RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
                   }
                   var stats = fs.lstatSync(v.name);
                   return RUNTIME.makeObject({
@@ -73,7 +103,12 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                   RUNTIME.ffi.checkArity(1, arguments, "real-path");
                   RUNTIME.checkString(path);
                   var s = RUNTIME.unwrap(path);
-                  var newpath = fs.realpathSync(s);
+                  var newpath;
+                  try {
+                    newpath = fs.realpathSync(s);
+                  } catch(e) {
+                    newpath = s; // should this be an error instead?
+                  }
                   return RUNTIME.makeString(newpath);
                 }),
               "exists": RUNTIME.makeFunction(function(path) {
@@ -85,10 +120,44 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                 }),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-output-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof OutputFile) {
+                    if (v.fd) {
+                      fs.closeSync(v.fd);
+                      v.fd = false;
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to close an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in close-output-file, but got something else");
+                  }                  
                 }),
               "close-input-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-input-file");
+                  RUNTIME.checkOpaque(file);
+                  var v = file.val;
+                  if(v instanceof InputFile) {
+                    if (v.fd) {
+                      fs.closeSync(v.fd);
+                      v.fd = false;
+                      return NAMESPACE.get('nothing');
+                    } else {
+                      throw Error("Attempting to close an already-closed file");
+                    }
+                  }
+                  else {
+                    throw Error("Expected file in close-input-file, but got something else");
+                  }                  
                 }),
+              "create-dir": RUNTIME.makeFunction(function(directory) {
+                RUNTIME.ffi.checkArity(1, arguments, "create-dir");
+                RUNTIME.checkString(directory);
+                fs.mkdirSync(directory);
+                return true;
+              }),
               "list-files": RUNTIME.makeFunction(function(directory) {
                   RUNTIME.ffi.checkArity(1, arguments, "list-files");
                   RUNTIME.checkString(directory);
@@ -96,9 +165,10 @@ define(["js/runtime-util", "fs"], function(util, fs) {
                   var contents = fs.readdirSync(dir)
                   return RUNTIME.ffi.makeList(contents.map(RUNTIME.makeString))
                 })
+              })
             }),
           answer: NAMESPACE.get("nothing")
-      });
-  });    
-});
+        });
+  }
+})
 

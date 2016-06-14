@@ -44,7 +44,16 @@ provide {
 } end
 provide-types *
 
+import global as _
+import base as _
 import valueskeleton as VS
+import lists as lists
+
+link = lists.link
+empty = lists.empty
+type List = lists.List
+list = lists.list
+is-empty = lists.is-empty
 
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)
@@ -126,7 +135,7 @@ fun collect-concats(i, m, it, rest):
     link(item(i, m, it), rest)
   end
 end
-fun format(width, doc :: PPrintDoc):
+fun format(width, doc :: PPrintDoc) block:
   var cur-line = empty
   var output = empty
   fun emit-text(s):
@@ -135,11 +144,11 @@ fun format(width, doc :: PPrintDoc):
   fun emit-spaces(n):
     emit-text(string-repeat(" ", n))
   end
-  fun emit-newline(i):
+  fun emit-newline(i) block:
     output := link(cur-line, output)
     cur-line := link(string-repeat(" ", i), empty)
   end
-  fun gen-output():
+  fun gen-output() block:
     output := link(cur-line, output)
     for lists.fold(lines from empty, line from output):
       l = for lists.fold(acc from "", piece from line):
@@ -154,7 +163,7 @@ fun format(width, doc :: PPrintDoc):
       first = items.first
       i = first.indent
       m = first.is-flat
-      cases(PPrintDoc) first.d:
+      cases(PPrintDoc) first.d block:
         | mt-doc(_, _) => process(column, items.rest)
         | concat(fst, snd, _, _) => process(column, collect-concats(i, m, first.d, items.rest))
         | str(s, flat-width, _) =>
@@ -166,7 +175,8 @@ fun format(width, doc :: PPrintDoc):
         | align(d, _, _) => process(column, link(item(column, m, d), items.rest))
         | nest(n, d, _, _) => process(column, link(item(i + n, m, d), items.rest))
         | hardline(_, _) =>
-          if m: raise("Impossible for HardLine to be flat")
+          if m block:
+            raise("Impossible for HardLine to be flat")
           else:
             emit-newline(i)
             process(i, items.rest)
@@ -174,7 +184,8 @@ fun format(width, doc :: PPrintDoc):
         | if-flat(flat, vert, _, _) =>
           process(column, link(item(i, m, if m: flat else: vert end), items.rest))
         | align-spaces(n, _, _) =>
-          if m: process(column, items.rest)
+          if m block:
+            process(column, items.rest)
           else:
             emit-spaces(n)
             process(column + n, items.rest)

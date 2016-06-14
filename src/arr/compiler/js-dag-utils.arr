@@ -4,11 +4,11 @@ provide *
 provide-types *
 import ast as A
 import sets as S
-import "compiler/ast-anf.arr" as N
-import "compiler/js-ast.arr" as J
-import "compiler/gensym.arr" as G
-import "compiler/compile-structs.arr" as CS
-import "compiler/concat-lists.arr" as CL
+import file("ast-anf.arr") as N
+import file("js-ast.arr") as J
+import file("gensym.arr") as G
+import file("compile-structs.arr") as CS
+import file("concat-lists.arr") as CL
 #import "compiler/live-ranges.arr" as LR
 import string-dict as D
 import srcloc as SL
@@ -23,7 +23,7 @@ cl-snoc = CL.concat-snoc
 cl-cons = CL.concat-cons
 ns-empty = D.make-mutable-string-dict
 
-fun difference(s1 :: FrozenNameSet, s2 :: FrozenNameSet):
+fun difference(s1 :: FrozenNameSet, s2 :: FrozenNameSet) block:
   s1-unfrozen-copy = s1.unfreeze()
   remove-overlap-now(s1-unfrozen-copy, s2.unfreeze())
   s1-unfrozen-copy.freeze()
@@ -34,7 +34,7 @@ fun copy-nameset(s :: NameSet) -> NameSet:
 end
 
 # does NOT mutate s1 or s2
-fun difference-now(s1 :: NameSet, s2 :: NameSet) -> NameSet:
+fun difference-now(s1 :: NameSet, s2 :: NameSet) -> NameSet block:
   s1-copy = copy-nameset(s1)
   remove-overlap-now(s1-copy, s2)
   s1-copy
@@ -69,14 +69,14 @@ data RegisterAllocation:
   | results(body :: ConcatList<J.JCase>, discardable-vars :: FrozenNameSet)
 end
 
-fun used-vars-jblock(b :: J.JBlock) -> NameSet:
+fun used-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
   for CL.each(s from b.stmts):
     acc.merge-now(used-vars-jstmt(s))
   end
   acc
 end
-fun declared-vars-jblock(b :: J.JBlock) -> NameSet:
+fun declared-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
   for CL.each(s from b.stmts):
     acc.merge-now(declared-vars-jstmt(s))
@@ -84,7 +84,7 @@ fun declared-vars-jblock(b :: J.JBlock) -> NameSet:
   acc
 end
 fun declared-vars-jstmt(s :: J.JStmt) -> NameSet:
-  cases(J.JStmt) s:
+  cases(J.JStmt) s block:
     | j-var(name, rhs) => [D.mutable-string-dict: name.key(), name]
     | j-if1(cond, consq) => declared-vars-jblock(consq)
     | j-if(cond, consq, alt) => 
@@ -116,7 +116,7 @@ fun declared-vars-jstmt(s :: J.JStmt) -> NameSet:
   end
 end
 fun used-vars-jstmt(s :: J.JStmt) -> NameSet:
-  cases(J.JStmt) s:
+  cases(J.JStmt) s block:
     | j-var(name, rhs) => 
       ans = used-vars-jexpr(rhs)
       ans.remove-now(name.key())
@@ -163,7 +163,7 @@ fun used-vars-jstmt(s :: J.JStmt) -> NameSet:
   end
 end
 fun used-vars-jexpr(e :: J.JExpr) -> NameSet:
-  cases(J.JExpr) e:
+  cases(J.JExpr) e block:
     | j-parens(exp) => used-vars-jexpr(exp)
     | j-unop(exp, op) => used-vars-jexpr(exp)
     | j-binop(left, op, right) => 
@@ -246,7 +246,7 @@ fun declared-vars-jcase(c :: J.JCase) -> NameSet:
   end
 end
 fun used-vars-jcase(c :: J.JCase) -> NameSet:
-  cases(J.JCase) c:
+  cases(J.JCase) c block:
     | j-case(exp, body) => 
       ans = used-vars-jexpr(exp)
       ans.merge-now(used-vars-jblock(body))
@@ -259,7 +259,7 @@ fun used-vars-jfield(f :: J.JField) -> NameSet:
 end
 
 fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet:
-  cases(Option) n!live-vars:
+  cases(Option) n!live-vars block:
     | some(live) => 
       live
     | none =>
@@ -288,7 +288,7 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
   for CL.foldr(acc from cl-empty, stmt from stmts):
     cases(J.JStmt) stmt:
       | j-var(name, rhs) =>
-        if is-some(looking-for) and (looking-for.value == name):
+        if is-some(looking-for) and (looking-for.value == name) block:
           looking-for := none
           for CL.foldl(shadow acc from acc, field from rhs.fields):
             cl-snoc(acc, field.value.label)
@@ -304,7 +304,7 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
       | j-throw(exp) => acc
       | j-expr(expr) =>
         if J.is-j-assign(expr) and (expr.name == step):
-          if J.is-j-label(expr.rhs):
+          if J.is-j-label(expr.rhs) block:
             # simple assignment statement to $step
             cl-snoc(acc, expr.rhs.label)
           else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
@@ -400,7 +400,7 @@ end
 #   end
 #   ranges
 # end
-fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation:
+fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
   for CL.each(body-case from body-cases):
@@ -424,7 +424,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #   print("\n" + n.case-body.to-ugly-source())
   # end
   # print("Step 3")
-  for each(lbl from str-labels):
+  for each(lbl from str-labels) block:
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
     n!{used-vars: used-vars-jcase(n.case-body)}
@@ -470,7 +470,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
       | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze())
     end
   end
-  
+
   # print("Done")
   results(dead-assignment-eliminated, discardable-vars)
 end

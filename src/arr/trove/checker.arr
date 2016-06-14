@@ -2,17 +2,46 @@
 
 provide *
 provide-types *
+import global as _
 import srcloc as SL
-import either as E
 import error-display as ED
 import render-error-display as RED
-import ast as A
+
+import ffi as _
+
+import either as either
+import lists as lists
+import option as option
+
+type Either = either.Either
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+fold = lists.fold
+each = lists.each
+
+type Option = option.Option
+is-some = option.is-some
+some = option.some
+none = option.none
+
 type Loc = SL.Srcloc
-type Either = E.Either
-type Expr = A.Expr
-get-op-fun-name = A.get-op-fun-name
-is-right = E.is-right
-is-left = E.is-left
+
+# Copied from AST to break a module cycle
+fun get-op-fun-name(opname):
+  ask:
+    | opname == "op==" then: "equal-always"
+    | opname == "op=~" then: "equal-now"
+    | opname == "op<=>" then: "identical"
+    | otherwise: raise("Unknown op: " + opname)
+  end
+end
+
+is-right = either.is-right
+is-left = either.is-left
 
 data CheckOperand:
   | on-left
@@ -47,17 +76,18 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
-      
+
       ed-op = cases(Option) test-ast.refinement:
-        | none    => 
-          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")   
-        | some(e) => 
+        | none    =>
+          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
+        | some(e) =>
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
             ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], 1),
-            ED.text(")")];
-          
+            ED.text(")")]
+      end
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -67,24 +97,24 @@ data TestResult:
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is(_) => [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "), 
+              ED.text("because it reports success if and only if the predicate "),
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
                 | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
               end,
               ED.text(" is satisfied when the "),
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-            | s-op-is-op(_, op) => 
+            | s-op-is-op(_, op) =>
               [ED.sequence:
                 ED.text("because it reports success if and only if the predicate "),
-                get-op-fun-name(op), ED.text(" is satisfied when the "), 
+                get-op-fun-name(op), ED.text(" is satisfied when the "),
                 ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
           report-value(ed-lhs, self.refinement, self.left),
           report-value(ed-rhs, self.refinement, self.right)]
     end,
     render-reason(self):
-      [ED.error: 
+      [ED.error:
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not equal")
             | some(_) => ED.text("Values not equal (using custom equality):")
@@ -99,17 +129,18 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
-      
+
       ed-op = cases(Option) test-ast.refinement:
-        | none    => 
-          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")   
-        | some(e) => 
+        | none    =>
+          ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
+        | some(e) =>
           [ED.sequence:
             ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),""),
             ED.text("%("),
             ED.highlight(ED.h-sequence(e.tosource().pretty(80).map(ED.text),""), [list: e.l ], 1),
-            ED.text(")")];
-          
+            ED.text(")")]
+      end
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -119,7 +150,7 @@ data TestResult:
         [ED.para:
           cases(Any) test-ast.op:
             | s-op-is-not(_) => [ED.sequence:
-              ED.text("because it reports success if and only if the predicate "), 
+              ED.text("because it reports success if and only if the predicate "),
               cases(Option) test-ast.refinement:
                 | none => ED.code(ED.text("equal-always"))
                 | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
@@ -128,7 +159,7 @@ data TestResult:
                ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
             | s-op-is-not-op(_, op) => [ED.sequence:
               ED.text("because it reports success if and only if the predicate "),
-              get-op-fun-name(op), ED.text(" is not satisfied when the "), 
+              get-op-fun-name(op), ED.text(" is not satisfied when the "),
               ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
           end],
           report-value(ed-lhs, self.refinement, self.left),
@@ -150,7 +181,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -179,7 +210,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -245,12 +276,12 @@ data TestResult:
           cases(CheckOperand) self.exn-place:
             | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)]
             | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 0)]
-            | on-refinement => 
-              cases(Option<Expr>) test-ast.refinement:
+            | on-refinement =>
+              cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
                 | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], 0)]
                 # this branch shouldn't happen
-                | none    => [list: 
-                                ED.text("predicate"), 
+                | none    => [list:
+                                ED.text("predicate"),
                                 ED.cmcode(self.loc)]
               end
           end + [list: ED.text(" to raise an exception:")]),
@@ -281,7 +312,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -310,7 +341,7 @@ data TestResult:
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
       ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
-        
+
       [ED.error:
         [ED.para:
           ED.text("The binary test operator "),
@@ -352,19 +383,24 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun add-block-result(cbr :: CheckBlockResult):
     block-results := [list: cbr] + block-results
   end
-  var current-results = [list: ] 
+  var current-results = [list: ]
   fun add-result(t :: TestResult):
     current-results := [list: t] + current-results
   end
   fun left-right-check(loc):
     lam(with-vals, left, right):
-      lv = run-task(if is-function(left): left else: left.v;)
-      if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))  else:
-      rv = run-task(if is-function(right): right else: right.v;)
-      if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right)) else:
-      res = run-task(lam():with-vals(lv.v, rv.v);)
-      if is-right(res): add-result(failure-exn(loc, res.v, on-refinement)) 
-      else: res.v;;;
+      lv = run-task(if is-function(left): left else: left.v end)
+      if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))
+      else:
+        rv = run-task(if is-function(right): right else: right.v end)
+        if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
+        else:
+          res = run-task(lam(): with-vals(lv.v, rv.v) end)
+          if is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
+          else: res.v
+          end
+        end
+      end
     end
   end
   fun check-bool(loc, test-result, on-failure):
@@ -378,7 +414,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   {
     run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
-        for each(c from checks):
+        for each(c from checks) block:
           results-before = current-results
           reset-results()
           result = run-task(c.run)
@@ -390,7 +426,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end
       end
     end,
-    check-is(self, left, right, loc):
+    check-is(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
           lv == rv,
@@ -398,7 +434,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not(self, left, right, loc):
+    check-is-not(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
           not(lv == rv),
@@ -406,7 +442,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-refinement(self, refinement, left, right, loc):
+    check-is-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -418,7 +454,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not-refinement(self, refinement, left, right, loc):
+    check-is-not-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -430,7 +466,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-delayed(self, left, pred, loc):
+    check-satisfies-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         check-bool(loc,
           pv(lv),
@@ -438,7 +474,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-not-delayed(self, left, pred, loc):
+    check-satisfies-not-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         check-bool(loc,
           not(pv(lv)),
@@ -446,19 +482,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies(self, left, pred, loc):
+    check-satisfies(self, left, pred, loc) block:
       check-bool(loc,
         pred(left),
         lam(): failure-not-satisfied(loc, left, pred) end)
       nothing
     end,
-    check-satisfies-not(self, left, pred, loc):
+    check-satisfies-not(self, left, pred, loc) block:
       check-bool(loc,
         not(pred(left)),
         lam(): failure-not-dissatisfied(loc, left, pred) end)
       nothing
     end,
-    check-raises(self, thunk, expected, comparator, on-failure, loc):
+    check-raises(self, thunk, expected, comparator, on-failure, loc) block:
       result = run-task(thunk)
       cases(Either) result:
         | left(v) => add-result(failure-no-exn(loc, some(expected)))
@@ -466,34 +502,34 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           if comparator(exn-unwrap(v), expected):
             add-result(success(loc))
           else:
-            add-result(on-failure(v))
+            add-result(on-failure(exn-unwrap(v)))
           end
       end
       nothing
     end,
-    check-raises-str(self, thunk, str, loc):
+    check-raises-str(self, thunk, str, loc) block:
       self.check-raises(thunk, str,
         lam(exn, s): string-contains(torepr(exn), s) end,
         lam(exn): failure-wrong-exn(loc, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-other-str(self, thunk, str, loc):
+    check-raises-other-str(self, thunk, str, loc) block:
       self.check-raises(thunk, str,
         lam(exn, s): not(string-contains(torepr(exn), s)) end,
         lam(exn): failure-right-exn(loc, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-not(self, thunk, loc):
+    check-raises-not(self, thunk, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc)
-          | right(exn) => failure-exn(loc, exn, true)
+          | right(exn) => failure-exn(loc, exn-unwrap(exn), true)
         end)
       nothing
     end,
-    check-raises-satisfies(self, thunk, pred, loc):
+    check-raises-satisfies(self, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
@@ -501,12 +537,12 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             if pred(exn-unwrap(exn)):
               success(loc)
             else:
-              failure-raise-not-satisfied(loc, exn, pred)
+              failure-raise-not-satisfied(loc, exn-unwrap(exn), pred)
             end
         end)
       nothing
     end,
-    check-raises-violates(self, thunk, pred, loc):
+    check-raises-violates(self, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
@@ -514,7 +550,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
             if not(pred(exn-unwrap(exn).value)):
               success(loc)
             else:
-              failure-raise-not-dissatisfied(loc, exn, pred)
+              failure-raise-not-dissatisfied(loc, exn-unwrap(exn), pred)
             end
         end)
       nothing
@@ -531,7 +567,10 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   }
 end
 
-fun results-summary(block-results :: List<CheckBlockResult>):
+# NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
+# require that magical callers provide a get-stack function that produces
+# the list of locations to render
+fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
   init = {
       message: "",
       errored: 0,
@@ -559,8 +598,12 @@ fun results-summary(block-results :: List<CheckBlockResult>):
     end
     ended-in-error = cases(Option) br.maybe-err:
       | none => ""
-      | some(err) => "\n  Block ended in the following error (all tests may not have ran): \n\n  "
-          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, empty) + "\n\n"
+      | some(err) =>
+        stack = get-stack(err)
+        "\n  Block ended in the following error (all tests may not have ran): \n\n  "
+          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
+          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
+          + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
     with-error-notification = message + ended-in-error
@@ -593,7 +636,10 @@ fun results-summary(block-results :: List<CheckBlockResult>):
   end
 end
 
-fun render-check-results(block-results :: List<CheckBlockResult>):
-  results-summary(block-results).message
+fun render-check-results(block-results):
+  results-summary(block-results, lam(err): empty end).message
 end
 
+fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
+  results-summary(block-results, get-stack)
+end

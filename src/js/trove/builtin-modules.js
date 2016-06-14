@@ -1,104 +1,160 @@
-define(["js/type-util"], function(t) {
-  return function(runtime, ns) {
-    var F = runtime.makeFunction;
-    function getBuiltinLocator(name) {
-      runtime.pauseStack(function(restarter) {
-        // NOTE(joe): This is a bit of requireJS hackery that assumes a
-        // certain layout for builtin modules
-        if (name === undefined) {
-          console.error("Got undefined name in builtin locator");
-          console.trace();
-        }
-        require(["trove/" + name], function(m) {
-          restarter.resume(runtime.makeObject({
-            "get-raw-dependencies":
-              F(function() {
-                if(m.dependencies) {
-                  return m.dependencies.map(function(m) { return runtime.makeObject(m); });
-                } else {
-                  return [];
-                }
-              }),
-            "get-raw-datatype-provides":
-              F(function() {
-                if(m.provides && m.provides.datatypes) {
-                  if(Array.isArray(m.provides.datatypes)) {
-                    return m.provides.datatypes;
-                  }
-                  else if(typeof m.provides === "object") {
-                    return Object.keys(m.provides.datatypes).map(function(k) {
-                      return runtime.makeObject({
-                        name: k,
-                        typ: t.toPyret(runtime, m.provides.datatypes[k])
-                      });
-                    });
-                  }
-                }
-                else {
-                  return [];
-                }
-              }),
-            "get-raw-alias-provides":
-              F(function() {
-                if(m.provides) {
-                  if(Array.isArray(m.provides.types)) {
-                    return m.provides.types;
-                  }
-                  else if(typeof m.provides.aliases === "object") {
-                    return Object.keys(m.provides.aliases).map(function(k) {
-                      return runtime.makeObject({
-                        name: k,
-                        typ: t.toPyret(runtime, m.provides.aliases[k])
-                      });
-                    });
-                  }
-                }
-                else {
-                  return [];
-                }
-              }),
-            "get-raw-value-provides":
-              F(function() {
-                if(m.provides) {
-                  if(Array.isArray(m.provides.values)) {
-                    return m.provides.values;
-                  }
-                  else if(typeof m.provides === "object") {
-                    return Object.keys(m.provides.values).map(function(k) {
-                      return runtime.makeObject({
-                        name: k,
-                        typ: t.toPyret(runtime, m.provides.values[k])
-                      });
-                    });
-                  }
-                }
-                else {
-                  return [];
-                }
-              }),
-            "get-raw-compiled":
-              F(function() {
-                if(m.theModule) {
-                  return runtime.makeOpaque(m.theModule);
-                }
-                else {
-                  return runtime.makeOpaque(function() { return m; });
-                }
-              })
-          }));
-        });
+({
+  requires: [],
+  nativeRequires: [
+    "fs",
+    "pyret-base/js/secure-loader",
+    "pyret-base/js/type-util"
+  ],
+  provides: {},
+  theModule: function(RUNTIME, ns, uri, fs, loader, t) {
+    var F = RUNTIME.makeFunction;
 
-      });
+    function builtinLocatorFromString(content) {
+      var noModuleContent = {};
+      var moduleContent = noModuleContent;
+
+      function getData(moduleString) {
+        if(moduleContent === noModuleContent) {
+          var setAns = function(answer) {
+            moduleContent = answer;
+          }
+          try {
+            loader.safeEval("define(" + moduleString + ")", {define: setAns});
+            return moduleContent;
+          }
+          catch(e) {
+            console.error("Content was: ", content);
+            throw e;
+          }
+        }
+        else {
+          return moduleContent;
+        }
+      }
+
+      return RUNTIME.makeObject({
+          "get-raw-dependencies":
+            F(function() {
+              var m = getData(content);
+              if(m.requires) {
+                return m.requires.map(function(m) {
+                  // NOTE(joe): This allows us to use builtin imports
+                  // without a bootstrap for the compiler re-inserting
+                  // import-type fields
+                  if(!m["import-type"]) {
+                    m["import-type"] = "dependency";
+                  }
+                  return RUNTIME.makeObject(m);
+                });
+              } else {
+                return [];
+              }
+            }),
+          "get-raw-native-modules":
+            F(function() {
+              var m = getData(content);
+              if(Array.isArray(m.nativeRequires)) {
+                return m.nativeRequires.map(RUNTIME.makeString);
+              } else {
+                return [];
+              }
+            }),
+          "get-raw-datatype-provides":
+            F(function() {
+              var m = getData(content);
+              if(m.provides && m.provides.datatypes) {
+                /*
+                if(Array.isArray(m.provides.datatypes)) {
+                  return m.provides.datatypes;
+                }
+                */
+                var dts = m.provides.datatypes;
+                if(typeof dts === "object") {
+                  return Object.keys(dts).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(dts[k], t.expandRecord(shorthands, {}));
+                    return RUNTIME.makeObject({
+                      name: k,
+                      typ: t.toPyret(RUNTIME, expanded)
+                    });
+                  });
+                }
+                else {
+                  throw new Error("Bad datatype specification: " + String(m.provides.datatypes))
+                }
+              }
+              return [];
+            }),
+          "get-raw-alias-provides":
+            F(function() {
+              var m = getData(content);
+              if(m.provides) {
+                if(Array.isArray(m.provides.types)) {
+                  return m.provides.types;
+                }
+                else if(typeof m.provides.aliases === "object") {
+                  var aliases = m.provides.aliases;
+                  return Object.keys(aliases).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(aliases[k], t.expandRecord(shorthands, {}));
+
+                    return RUNTIME.makeObject({
+                      name: k,
+                      typ: t.toPyret(RUNTIME, expanded)
+                    });
+                  });
+                }
+              }
+              return [];
+            }),
+          "get-raw-value-provides":
+            F(function() {
+              var m = getData(content);
+              if(m.provides) {
+                if(Array.isArray(m.provides.values)) {
+                  return m.provides.values;
+                }
+                else if(typeof m.provides.values === "object") {
+                  var vals = m.provides.values;
+
+                  return Object.keys(vals).map(function(k) {
+                    var shorthands = m.provides.shorthands || {};
+                    var expanded = t.expandType(vals[k], t.expandRecord(shorthands, {}));
+
+                    return RUNTIME.makeObject({
+                      name: k,
+                      typ: t.toPyret(RUNTIME, expanded)
+                    });
+                  });
+                }
+              }
+              return [];
+            }),
+          "get-raw-compiled":
+            F(function() {
+              return content;
+            })
+        });
     }
-    var O = runtime.makeObject;
+
+    function getBuiltinLocator(path) {
+      if (path === undefined) {
+        console.error("Got undefined name in builtin locator");
+        console.trace();
+      }
+      var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
+      return builtinLocatorFromString(content);
+    }
+    var O = RUNTIME.makeObject;
     return O({
       "provide-plus-types": O({
         types: { },
         values: O({
-          "builtin-raw-locator": runtime.makeFunction(getBuiltinLocator)
+          "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator),
+          "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString)
         })
       }),
-      "answer": runtime.nothing
+      "answer": RUNTIME.nothing
     });
-  };
-});
+  }
+})

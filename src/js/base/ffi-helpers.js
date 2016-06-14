@@ -5,8 +5,8 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
     return runtime.loadModules(namespace, [listLib, setLib, optLib, eitherLib, equalityLib, errorLib, srclocLib, contractsLib, checkerLib, errordispLib, valueskeletonLib, tableLib], function(L, Se, O, E, EQ, ERR, S, CON, CH, ED, VS, TB) {
     
       var gf = runtime.getField;
-
-      var lnk = function(first, rest) { return gf(L, "link").app(first, rest); };
+      var link = gf(L, "link");
+      var lnk = function(first, rest) { return link.app(first, rest); };
       var mt = gf(L, "empty");
       function makeList(arr) {
         if (!arr || typeof arr.length !== "number") {
@@ -265,6 +265,19 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwArityError(loc, arity, argsPyret);
       }
 
+      function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
+        checkSrcloc(branchLoc);
+        runtime.checkBoolean(shouldBeSingleton);
+        checkSrcloc(casesLoc);
+        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
+      }
+
+      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
+        var loc = runtime.makeSrcloc(branchLoc);
+        var cloc = runtime.makeSrcloc(casesLoc);
+        throwCasesSingletonError(loc, shouldBeSingleton, cloc);
+      }
+
       function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
         checkSrcloc(branchLoc);
         checkSrcloc(casesLoc);
@@ -277,19 +290,6 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         var loc = runtime.makeSrcloc(branchLoc);
         var cloc = runtime.makeSrcloc(casesLoc);
         throwCasesArityError(loc, arity, fields, cloc);
-      }
-
-      function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
-        checkSrcloc(branchLoc);
-        checkSrcloc(casesLoc);
-        runtime.checkBoolean(shouldBeSingleton);
-        raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
-      }
-
-      function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
-        var loc = runtime.makeSrcloc(branchLoc);
-        var cloc = runtime.makeSrcloc(casesLoc);
-        throwCasesSingletonError(loc, shouldBeSingleton, cloc);
       }
 
       function throwNoBranchesMatched(locArray, type) {
@@ -483,6 +483,19 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
         isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
         isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+        vsStr: function(s) {
+          runtime.checkString(s);
+          return runtime.getField(VS, "vs-str").app(s);
+        },
+
+        edEmbed: function(v) {
+          runtime.checkPyretVal(v);
+          return runtime.getField(ED, "embed").app(v);
+        },
+
+        //TODO(joe): add more creation methods for error-display/valueskeleton
+        //here, which are super-useful!
+
         skeletonValues: function(skel) {
           var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
           var isValue = runtime.getField(VS, "is-vs-value");

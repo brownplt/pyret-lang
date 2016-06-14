@@ -111,6 +111,7 @@ define([], function() {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
     var tp = function(thing) { return toPyret(runtime, thing); };
+    if(typ === "tany") { return O({ tag: "any" }); }
     switch(typ.tag) {
       case "any":
         return O({ tag: "any"});
@@ -134,7 +135,7 @@ define([], function() {
       case "singleton-variant":
         return O({
           tag: "singleton-variant",
-          name: typ.name          
+          name: typ.name
         });
       case "variant-member":
         return O({
@@ -151,7 +152,7 @@ define([], function() {
       case "name":
         return O({
           tag: "name",
-          module: typ.module,
+          origin: O(typ.origin),
           name: typ.name
         });
       case "forall":
@@ -229,6 +230,185 @@ define([], function() {
     });
   }
 
+  function expandType(typ, shorthands) {
+    var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
+    var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
+    function mkName(origin, name) {
+      return { tag: "name", origin: origin, name: name };
+    }
+    function p(name) { return mkName(fromGlobal, name); }
+    function mkApp1(tycon, arg) {
+      return {
+        tag: "tyapp",
+        onto: expandType(tycon, shorthands),
+        args: [ expandType(arg, shorthands) ]
+      };
+    }
+    var constrs = {
+      "Array": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
+      },
+      "RawArray": function(name, arg) { return mkApp1(mkName(fromGlobal, name), arg); },
+      "List": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg); 
+      },
+      "Option": function(name, arg) { 
+        return mkApp1(mkName({ "import-type": "uri", uri: "builtin://option" }, name), arg); 
+      },
+      "Maker": function(_, arg, ret) {
+        var maker = {
+          "make":  ["arrow", [["RawArray", arg]], ret],
+          "make0": ["arrow", [], ret],
+          "make1": ["arrow", [arg], ret],
+          "make2": ["arrow", [arg, arg], ret],
+          "make3": ["arrow", [arg, arg, arg], ret],
+          "make4": ["arrow", [arg, arg, arg, arg], ret],
+          "make5": ["arrow", [arg, arg, arg, arg, arg], ret]
+        };
+        return expandType(["record", maker], shorthands);
+      }
+    };
+    var iA = Array.isArray;
+    var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
+
+
+    function expandMember(m, shorthands) {
+      if(!iA(m)) {
+        throw new Error("Serialized members should be arrays, got: " + String(m));
+      }
+      if(m.length === 2) {
+        return {
+          tag: "variant-member",
+          kind: "normal",
+          name: m[0],
+          typ: expandType(m[1], shorthands)
+        };
+      }
+      else if(m.length === 3) {
+        return {
+          tag: "variant-member",
+          kind: "ref",
+          name: m[1],
+          typ: expandType(m[2], shorthands)
+        };
+      }
+      else {
+        throw new Error("Bad serialized member: " + String(m));
+      }
+    }
+
+    function expandVariant(v, shorthands) {
+      if(!iA(v)) {
+        throw new Error("Serialized variant types should be arrays, got: " + String(v));
+      }
+      else {
+        if(v.length === 1) {
+          return singletonVariant(v[0]);
+        }
+        else if(v.length === 2) {
+          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }));
+        }
+        else {
+          throw new Error("Bad serialized variant: " + String(v));
+        }
+      }
+    }
+
+    if(typeof typ === "string") {
+      if(typ === "tany") {
+        return "tany";
+      }
+      else if(prims.indexOf(typ) !== -1) {
+        return p(typ);
+      }
+      else if(typ in shorthands) {
+        return shorthands[typ];
+      }
+      else {
+        throw new Error("Unknown prim type or shorthand: " + typ);
+      }
+    }
+    else if(Array.isArray(typ)) {
+      var head = typ[0];
+      if (head in constrs) {
+        var constr = constrs[head];
+        if(typ.length !== constr.length) {
+          throw new Error("Bad tail for type constructor " + head + ": " + String(typ));
+        }
+        return constr.apply(null, typ);
+      }
+      else {
+        if(head === "arrow" && typ.length === 3 && Array.isArray(typ[1])) {
+          return {
+            tag: "arrow",
+            args: typ[1].map(function(t) { return expandType(t, shorthands); }),
+            ret: expandType(typ[2], shorthands)
+          };
+        }
+        else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
+          return {
+            tag: "data",
+            name: typ[1],
+            params: typ[2],
+            variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
+            methods: expandRecord(typ[4], shorthands)
+          };
+        }
+        else if(head === "tid" && typ.length === 2) {
+          return {
+            tag: "tyvar",
+            name: typ[1]
+          };
+        }
+        else if(head === "forall" && typ.length === 3) {
+          return {
+            tag: "forall",
+            args: typ[1],
+            onto: expandType(typ[2], shorthands)
+          };
+        }
+        else if(head === "local") {
+          return {
+            tag: "name",
+            origin: {"import-type": "$ELF"},
+            name: typ[1]
+          };
+        }
+        else if(head === "record") {
+          return {
+            tag: "record",
+            fields: expandRecord(typ[1], shorthands)
+          };
+        }
+        else if(head === "tyapp") {
+          return {
+            tag: "tyapp",
+            onto: expandType(typ[1], shorthands),
+            args: typ[2].map(function(t) { return expandType(t, shorthands); })
+          };
+        }
+        else {
+          throw new Error("Unknown shape or head tag for serialized type: " + String(typ));
+        }
+      }
+    }
+    else if(iO(typ)) {
+      return typ;
+    }
+    else {
+      throw new Error("Unknown description for serialized type: " + String(typ));
+    }
+  }
+
+  function expandRecord(r, shorthands) {
+    var o = {};
+    Object.keys(r).forEach(function(k) {
+      o[k] = expandType(r[k], shorthands);
+    });
+    return o;
+  }
+
+
   return {
     any: any,
     string: string,
@@ -245,7 +425,9 @@ define([], function() {
     record: record,
     dataType: dataType,
     toPyret: toPyret,
-    providesToPyret: providesToPyret
+    providesToPyret: providesToPyret,
+    expandType: expandType,
+    expandRecord: expandRecord
   };
 
 });

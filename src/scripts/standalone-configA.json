@@ -1,0 +1,15 @@
+{
+  "baseUrl": "./build/phaseA",
+  "optimize": "none",
+  "paths": {
+      "jglr": "../../lib/jglr",
+      "pyret-base": "./",
+      "crypto": "empty:",
+      "fs": "empty:",
+      "path": "empty:",
+      "q": "empty:",
+      "requirejs": "empty:",
+      "s-expression": "empty:",
+      "seedrandom": "empty:"
+    }
+}

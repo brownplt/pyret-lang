@@ -1,11 +1,10 @@
-define(["js/runtime-util", "js/namespace"], function(util, namespace) {
-return util.definePyretModule("namespace-lib",
-  [util.modBuiltin("load-lib")],
-  {
-    values: ["make-empty-namespace", "make-base-namespace"],
-    types: ["Namespace"]
-  },
-  function(runtime, ns, load) {
+({
+  requires: [
+    { "import-type": "builtin", "name": "load-lib" }
+  ],
+  nativeRequires: ["pyret-base/js/namespace"],
+  provides: {},
+  theModule: function(runtime, ns, uri, load, namespace) {
     var get = runtime.getField;
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
@@ -59,5 +58,5 @@ return util.definePyretModule("namespace-lib",
         }
       })
     });
-  });
-});
+  }
+})

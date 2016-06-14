@@ -5,10 +5,10 @@ import ast as A
 import string-dict as SD
 import equality as EQ
 import valueskeleton as VS
-import "compiler/type-structs.arr" as TS
-import "compiler/type-defaults.arr" as TD
-import "compiler/compile-structs.arr" as C
-import "compiler/list-aux.arr" as LA
+import file("type-structs.arr") as TS
+import file("type-defaults.arr") as TD
+import file("compile-structs.arr") as C
+import file("list-aux.arr") as LA
 
 fun bind(f, a): a.bind(f) end
 fun typing-bind(f, a): a.typing-bind(f) end
@@ -41,8 +41,8 @@ sharing:
     shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
       | t-name(module-name, name, _) =>
-        cases(Option<String>) module-name:
-          | some(mod) =>
+        cases(TS.NameOrigin) module-name:
+          | module-uri(mod) =>
             cases(Option<ModuleType>) self.modules.get-now(mod):
               | some(t-mod) =>
                 cases(Option<Type>) t-mod.types.get(name.toname()):
@@ -57,9 +57,10 @@ sharing:
                   raise("No module available with the name '" + mod + "'")
                 end
             end
-          | none =>
+          | local =>
             id-key = name.key()
             self.data-types.get-now(id-key)
+          | dependency(_) => TS.dep-error(typ)
         end
       | t-app(base-typ, args, l) =>
         base-data-typ = self.get-data-type(base-typ)
@@ -177,23 +178,29 @@ end
 fun resolve-alias(t :: Type, context :: Context) -> Type:
   cases(Type) t:
     | t-name(a-mod, a-id, l) =>
-      cases(Option<String>) a-mod:
-        | none =>
-          cases(Option<Type>) context.aliases.get-now(a-id.key()):
+      cases(TS.NameOrigin) a-mod:
+        | dependency(d) => TS.dep-error(a-mod)
+        | local =>
+          cases(Option) context.aliases.get-now(a-id.key()):
             | none => t
             | some(aliased) => resolve-alias(aliased, context).set-loc(l)
           end
-        | some(mod) =>
+        | module-uri(mod) =>
           if mod == "builtin":
             cases(Option<Type>) context.aliases.get-now(a-id.key()):
               | none => t
               | some(aliased) => aliased.set-loc(l)
             end
           else:
-            # TODO(MATT): make sure that a-id.key() is correct here
-            cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.key()):
-              | none => t
-              | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+            modtyp = context.modules.get-value-now(mod)
+            cases(Option<Type>) context.modules.get-value-now(mod).types.get(a-id.toname()):
+              | some(typ) => t
+              | none =>
+                # TODO(MATT): make sure that a-id.key() is correct here
+                cases(Option<Type>) context.modules.get-value-now(mod).aliases.get(a-id.toname()):
+                  | none => t
+                  | some(aliased) => resolve-alias(aliased, context).set-loc(l)
+                end
             end
           end
       end

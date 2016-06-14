@@ -1,10 +1,17 @@
 import string-dict as SD
+import srcloc as SL
 import load-lib as L
-import namespace-lib as N
 import runtime-lib as R
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CM
-import "compiler/locators/builtin.arr" as BL
+import ast as A
+import builtin-modules as BM
+import file("../../../src/arr/compiler/type-structs.arr") as T
+import file("../../../src/arr/compiler/ast-util.arr") as AU
+import file("../../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
+import file("../../../src/arr/compiler/compile-structs.arr") as CM
+import file("../../../src/arr/compiler/locators/builtin.arr") as BL
+
+print("Running compile-lib tests: " + tostring(time-now()) + "\n")
 
 fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
   locs = wlist.map(_.locator)
@@ -20,7 +27,7 @@ check "Worklist generation (simple)":
     import file("bar") as B
 
     fun f(x): B.g(x) end
-    f(42) 
+    f(42)
     ```)
   modules.set-now("bar",
     ```
@@ -34,10 +41,12 @@ check "Worklist generation (simple)":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -55,8 +64,8 @@ check "Worklist generation (simple)":
   wlist.get(1).locator is floc
   wlist.get(0).locator is string-to-locator("bar")
 
-  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
-  ans.v satisfies L.is-success-result
+  #ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  #ans.v satisfies L.is-success-result
 end
 
 check "Worklist generation (DAG)":
@@ -95,16 +104,18 @@ check "Worklist generation (DAG)":
   fun string-to-locator(name :: String):
     {
       needs-compile(self, provs): not(cresults.has-key-now(name)) end,
-      get-module(self):
+      get-module(self) block:
         count = if retrievals.has-key-now(name): retrievals.get-value-now(name) else: 0 end
         retrievals.set-now(name, count + 1)
         CL.pyret-string(modules.get-value-now(name))
       end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-extra-imports(self): CM.minimal-imports end,
       get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+      get-globals(self): CM.no-builtins.globals end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
@@ -162,10 +173,12 @@ check "Worklist generation (Cycle)":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.minimal-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
+      get-native-modules(self): empty end,
       get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -191,7 +204,7 @@ check "Multiple includes":
     ```
     provide *
     provide-types *
-    
+
     data D:
       | d(x)
     end
@@ -223,10 +236,12 @@ check "Multiple includes":
       needs-compile(self, provs): true end,
       get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
       get-extra-imports(self): CM.standard-imports end,
+      get-modified-time(self): 0 end,
+      get-options(self, options): options end,
       get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
       get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+      get-native-modules(self): empty end,
       uri(self): "file://" + name end,
       name(self): name end,
       set-compiled(self, ctxt, provs): nothing end,
@@ -236,19 +251,214 @@ check "Multiple includes":
   end
 
   fun dfind(ctxt, dep):
-    l = cases(CM.Dependency) dep:
+    cases(CM.Dependency) dep:
       | builtin(modname) =>
-        BL.make-builtin-locator(modname)
+        CLI.module-finder(ctxt, dep)
       | else =>
-        string-to-locator(dep.arguments.get(0))
+        CL.located(string-to-locator(dep.arguments.get(0)), ctxt)
     end
-    CL.located(l, CM.standard-globals)
   end
 
   start-loc = string-to-locator("C")
-  wlist = CL.compile-worklist(dfind, start-loc, {})
-  ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  wlist = CL.compile-worklist(dfind, start-loc, CLI.default-start-context)
+  ans = CL.compile-and-run-locator(start-loc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CM.default-compile-options)
 
   ans.v satisfies L.is-success-result
   L.get-result-answer(ans.v) is some("[list: true, true, true]")
+end
+
+mt = [SD.string-dict:]
+string-dict = SD.string-dict
+
+check "raw-provide-syntax":
+  mod = ```
+  ({
+    requires: [ ],
+    provides: {
+      shorthands: {
+        "num-pred": ["arrow", ["Number", "Number"], "Boolean"],
+        "I": ["local", "Ither"]
+      },
+      values: {
+        "string-to-num": ["arrow", ["String"], ["Option", "Number"]],
+        "num-greater": "num-pred"
+      },
+      datatypes: {
+        "Ither": ["data", "Ither", ["a", "b"],
+          [["left", [["value", ["tid", "a"]]]],
+           ["right", [["value", ["tid", "b"]]]]],
+          {
+            "join-left": ["arrow", [["tid", "a"]], ["tyapp", "I", [["tid", "a"], ["tid", "b"]]]]
+          }
+        ]
+      }
+    },
+    nativeRequires: [ ],
+    theModule: function() {}
+  })
+  ```
+  raw = BM.builtin-raw-locator-from-str(mod)
+
+  bnr = lam(modname, name):
+    {
+      tag: "name",
+      origin: {
+        import-type: "uri",
+        uri: "builtin://" + modname,
+      },
+      name: name
+    }
+  end
+  gr = lam(name):
+    bnr("global", name)
+  end
+
+  raw.get-raw-value-provides() is=~
+    [raw-array:
+      {
+        name: "string-to-num",
+        typ: {
+          tag: "arrow",
+          args: [list: gr("String")],
+          ret: {
+            tag: "tyapp",
+            onto: bnr("option", "Option"),
+            args: [list: gr("Number")]
+          }
+        }
+      },
+      {
+        name: "num-greater",
+        typ: {
+          tag: "arrow",
+          args: [list: gr("Number"), gr("Number")],
+          ret: gr("Boolean")
+        }
+      }]
+
+  ta = {
+    tag: "tyvar",
+    name: "a"
+  }
+  tb = {
+    tag: "tyvar",
+    name: "b"
+  }
+
+  raw.get-raw-datatype-provides() is=~
+    [raw-array:
+      {
+        name: "Ither",
+        typ: {
+          tag: "data",
+          name: "Ither",
+          params: [list: "a", "b"],
+          variants: [list:
+            {
+              tag: "variant",
+              name: "left",
+              vmembers: [list: {
+                tag: "variant-member",
+                name: "value",
+                kind: "normal",
+                typ: ta
+              }]
+            },
+            {
+              tag: "variant",
+              name: "right",
+              vmembers: [list: {
+                tag: "variant-member",
+                name: "value",
+                kind: "normal",
+                typ: tb
+              }]
+            }
+          ],
+          methods: [list: {
+            name: "join-left",
+            value: {
+              tag: "arrow",
+              args: [list: ta],
+              ret: {
+                tag: "tyapp",
+                onto: {
+                  tag: "name",
+                  origin: { import-type: "$ELF" },
+                  name: "Ither"
+                },
+                args: [list: ta, tb]
+              }
+            }
+          }]
+        }
+      }
+    ]
+
+  provs = CM.provides-from-raw-provides("test-raw-provides", {
+    uri: "test-raw-provides",
+    values: raw-array-to-list(raw.get-raw-value-provides()),
+    aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+    datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+  })
+
+  l = SL.builtin("test-raw-provides")
+
+  bn = lam(modname, name):
+    T.t-name(T.module-uri("builtin://" + modname), A.s-type-global(name), l)
+  end
+  g = lam(name):
+    bn("global", name)
+  end
+
+  provs.values is
+    [string-dict:
+      "string-to-num",
+      T.t-arrow(
+        [list: g("String")],
+        T.t-app(
+          bn("option", "Option"),
+          [list: g("Number")],
+          l),
+        l),
+      "num-greater",
+      T.t-arrow(
+        [list: g("Number"), g("Number")],
+        g("Boolean"),
+        l)
+    ]
+
+  #NOTE(joe): tough to test the case for Ither datatype because of generativity
+  # in foralls
+
+end
+
+check:
+  ps = CM.provides("test-provides1",
+    [string-dict:
+      "x", T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc)
+    ],
+    mt,
+    mt)
+
+  ce = CM.compile-env(CM.globals(mt, mt),
+    [string-dict:
+      "builtin(global)", CM.provides("builtin://global", mt, mt,
+        [SD.string-dict:
+          "Number", T.t-data("Number", empty, empty, A.dummy-loc)])])
+
+  canon = AU.canonicalize-provides(ps, ce)
+
+  canon is CM.provides("test-provides1",
+    [string-dict:
+      "x", T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc)
+    ],
+    mt,
+    mt)
+
+  local = AU.localize-provides(canon, ce)
+
+  local is ps
+  print("Done running compile-lib tests: " + tostring(time-now()) + "\n")
+
 end

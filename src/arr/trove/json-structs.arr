@@ -1,11 +1,24 @@
 provide *
 provide-types *
 
+import global as _
+import base as _
 import string-dict as SD
+import lists as lists
+import arrays as arrays
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+is-empty = lists.is-empty
+is-link = lists.is-link
+map = lists.map
+
+is-array = arrays.is-array
 
 data JSON:
   | j-obj(dict :: SD.StringDict<JSON>) with:
-    native(self):
+    native(self) block:
       d = self.dict
       ret = [SD.mutable-string-dict:]
       for map(s from d.keys().to-list()):
@@ -66,7 +79,7 @@ data JSON:
 end
 
 fun tojson(v :: Any) -> JSON:
-  if is-number(v):
+  if is-number(v) block:
     if num-is-fixnum(v) or num-is-roughnum(v):
       j-num(v)
     else:
