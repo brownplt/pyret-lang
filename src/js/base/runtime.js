@@ -1487,7 +1487,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       @return {!PBase} the value given in
     */
        function(val){
-                if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a); }
+         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a); }
 
         return thisRuntime.safeCall(function() {
           display.app(val);
@@ -1528,9 +1528,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
        function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a); }
-        display_error.app(val);
-        theOutsideWorld.stderr("\n");
-        return val;
+
+        return thisRuntime.safeCall(function() {
+          display_error.app(val);
+        }, function(_) {
+          return val;
+        }, "print-error");
     });
 
     var display_error = makeFunction(
