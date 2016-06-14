@@ -4817,7 +4817,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       contractOk: true,
       isOk: function() { return true; },
       throwMessageException: function(thing) {
-        console.error("Thing is here");
+        console.error("Dummy throwMessageException: " + thing);
       }
 
     };
