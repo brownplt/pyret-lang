@@ -161,6 +161,9 @@ data RuntimeError:
         vert-list-values(self.info-args)]
     end
   | template-not-finished(loc) with:
+    render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("The program tried to evaluate an unfinished template expression at")],
