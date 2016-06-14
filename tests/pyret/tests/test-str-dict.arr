@@ -325,8 +325,12 @@ check "all forms of fors":
     mutDict
    end 
    
+ dict = createDict(3000)
+ oldDict = createOldDict(dict)
+ mutDict = createMutableDict(dict)
+
  
- fun sum_old_each_old_dict(dict):
+ fun sum_old_each_old_dict(shadow dict):
   var sum = 0
   for each(name from dict.keys-list()):
     values = dict.get-value(name)
@@ -339,7 +343,7 @@ check "all forms of fors":
   sum
  end
 
- fun sum_old_each(dict):
+ fun sum_old_each(shadow dict):
    var sum = 0
    for each(name from dict.keys-list()):
      sum := sum + dict.get-value(name)
@@ -347,7 +351,7 @@ check "all forms of fors":
    sum
  end
 
-  fun sum_old_each_mut(dict):
+  fun sum_old_each_mut(shadow dict):
    var sum = 0
    for each(name from dict.keys-list-now()):
      sum := sum + dict.get-value-now(name)
@@ -355,7 +359,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_new_each(dict):
+ fun sum_new_dict_new_each(shadow dict):
    var sum = 0
    for each(tup from dict.items()):
      sum := sum + tup.{1}
@@ -363,7 +367,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_each(dict):
+ fun sum_new_dict_each(shadow dict):
    var sum = 0
    for SD.dict-each(tup from dict):
      sum := sum + tup.{1}
@@ -371,7 +375,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_loop(dict):
+ fun sum_new_dict_loop(shadow dict):
   var sum = 0
   for SD.dict-each-loop(tup from dict):
     sum := sum + tup.{1}
@@ -379,10 +383,6 @@ check "all forms of fors":
   sum
  end
 
- dict = createDict(3000)
- oldDict = createOldDict(dict)
- #mutDict = [SD.mutable-string-dict: {"a"; 4}, {"b"; 6}]
- mutDict = createMutableDict(dict)
  sum_from_old = sum_old_each_old_dict(oldDict)
  sum_from_old is sum_old_each(dict)
  sum_from_old is sum_old_each_mut(mutDict)
@@ -478,4 +478,157 @@ check "all forms of fors":
  sum_from_old_b is sum_new_dict_loop_b(dict)
  sum_from_old_b is sum_new_dict_loop_b(mutDict)
 
+  
+
+ fun set_old_each_old_dict(shadow dict):
+    var val-set = [list-set: ]
+    for each(name from dict.keys-list()):
+      values = dict.get-value(name)
+      num = cases(Option) values:
+        | none => 0
+        | some(v) => v
+      end
+      val-set := val-set.add(num)
+    end
+    val-set
+  end
+
+  fun set_old_each(shadow dict):
+    var val-set = [list-set: ]
+    for each(name from dict.keys-list()):
+      val-set := val-set.add(dict.get-value(name))
+    end
+    val-set
+  end
+
+  fun set_old_each_mut(shadow dict):
+    var val-set = [list-set: ]
+    for each(name from dict.keys-list-now()):
+      val-set := val-set.add(dict.get-value-now(name))
+    end
+    val-set
+  end
+
+  fun set_new_dict_new_each(shadow dict):
+    var val-set = [list-set: ]
+    for each(tup from dict.items()):
+      val-set := val-set.add(tup.{1})
+    end
+    val-set
+  end
+
+  fun set_new_dict_each(shadow dict):
+    var val-set = [list-set: ]
+    for SD.dict-each(tup from dict):
+      val-set := val-set.add(tup.{1})
+    end
+    val-set
+  end
+
+  fun set_new_dict_loop(shadow dict):
+    var val-set = [list-set: ]
+    for SD.dict-each-loop(tup from dict):
+      val-set := val-set.add(tup.{1})
+    end 
+    val-set
+  end
+
+  
+  smalldict = createDict(500)
+  smalloldDict = createOldDict(smalldict)
+  smallmutDict = createMutableDict(smalldict)
+
+  set_from_old = set_old_each_old_dict(smalloldDict)
+  set_from_old is set_old_each(smalldict)
+  set_from_old is set_old_each_mut(smallmutDict)
+  set_from_old is set_new_dict_new_each(smalldict)
+  set_from_old is set_new_dict_new_each(smallmutDict)
+  set_from_old is set_new_dict_each(smalldict)
+  set_from_old is set_new_dict_each(smallmutDict)
+  set_from_old is set_new_dict_loop(smalldict)
+  set_from_old is set_new_dict_loop(smallmutDict)
+ 
+
+
+ fun set_old_each_old_dict_b(shadow dict):
+     var val-set = [list-set: ]
+     for each(name from dict.keys-list()):
+       values = dict.get-value(name)
+       num = cases(Option) values:
+       | none => 0
+       | some(v) => v
+       end
+      val-set := val-set.add(num)
+      when num-modulo(num, 339) == 0:
+  	dostuff(1000)
+     end
+      end
+    val-set
+  end
+
+ fun set_old_each_b(shadow dict):
+   var val-set = [list-set: ]
+   for each(name from dict.keys-list()):
+     val-set := val-set.add(dict.get-value(name))
+     when num-modulo(dict.get-value(name), 339) == 0:
+  	dostuff(1000)
+     end
+   end
+   val-set
+ end
+
+  fun set_old_each_mut_b(shadow dict):
+   var val-set = [list-set: ]
+   for each(name from dict.keys-list-now()):
+     val-set := val-set.add(dict.get-value-now(name))
+     when num-modulo(dict.get-value-now(name), 339) == 0:
+  	dostuff(1000)
+     end
+   end
+   val-set
+ end
+
+ fun set_new_dict_new_each_b(shadow dict):
+   var val-set = [list-set: ]
+   for each(tup from dict.items()):
+     val-set := val-set.add(tup.{1})
+     when num-modulo(tup.{1}, 339) == 0:
+  	dostuff(1000)
+    end
+   end
+   val-set
+ end
+
+ fun set_new_dict_each_b(shadow dict):
+   var val-set = [list-set: ]
+   for SD.dict-each(tup from dict):
+     val-set := val-set.add(tup.{1})
+     when num-modulo(tup.{1}, 339) == 0:
+  	dostuff(1000)
+     end
+   end
+   val-set
+ end
+
+ fun set_new_dict_loop_b(shadow dict):
+  var val-set = [list-set: ]
+  for SD.dict-each-loop(tup from dict):
+    val-set := val-set.add(tup.{1})
+    when num-modulo(tup.{1}, 339) == 0:
+  	dostuff(1000)
+    end
+  end 
+  val-set
+end
+ 
+
+ set_from_old_b = set_old_each_old_dict_b(smalloldDict)
+ set_from_old_b is set_old_each_b(smalldict)
+ set_from_old_b is set_old_each_mut_b(smallmutDict)
+ set_from_old_b is set_new_dict_new_each_b(smalldict)
+ set_from_old_b is set_new_dict_new_each_b(smallmutDict)
+ set_from_old_b is set_new_dict_each_b(smalldict)
+ set_from_old_b is set_new_dict_each_b(smallmutDict)
+ set_from_old_b is set_new_dict_loop_b(smalldict)
+ set_from_old_b is set_new_dict_loop_b(smallmutDict)
 end
