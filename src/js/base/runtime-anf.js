@@ -2378,7 +2378,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'current-checker': makeFunction(function() {
           if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
           return getParam("current-checker");
-        })
+        }),
+        'raw-each-loop': makeFunction(eachLoop),
+        'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l);})
       });
 
     function unwrap(v) {
@@ -2968,6 +2970,46 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         if (thisRuntime.isPyretException($e)) {
           $e.pyretStack.push(stackFrame);
+        }
+        throw $e;
+      }
+    }
+
+  function eachLoop(fun, start, stop) {
+      var i = start;
+      var started = false;
+      var currentRunCount = 0;
+      if(thisRuntime.isActivationRecord(fun)) {
+        var ar = fun
+        i = ar.vars[0];
+        fun = ar.vars[1];
+        stop = ar.vars[2];
+        started = ar.vars[3];
+        if (started) {
+          i = i + 1;
+        }
+      }
+      try {
+        if (--thisRuntime.GAS <= 0) {
+          thisRuntime.EXN_STACKHEIGHT = 0;
+          throw thisRuntime.makeCont();
+        }
+        while(true) {
+          started = true;
+          if(i >= stop) { return thisRuntime.nothing; }
+          fun.app(i);
+
+          if (++currentRunCount >= 1000) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            throw thisRuntime.makeCont();
+          }  
+          else { i = i + 1; }
+        }
+      }
+      catch($e) {
+        if (thisRuntime.isCont($e)) {
+          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord("eachLoop", eachLoop, true, [], [i, fun, stop, started]);
         }
         throw $e;
       }
@@ -4471,6 +4513,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-to-list': makeFunction(raw_array_to_list),
           'raw-array-fold': makeFunction(raw_array_fold),
           'raw-array': raw_array_maker,
+          'raw-each-loop': makeFunction(eachLoop),
 
           'not': makeFunction(bool_not),
 
@@ -4512,6 +4555,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'runThunk': runThunk,
         'execThunk': execThunk,
         'safeCall': safeCall,
+        'eachLoop': eachLoop,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,
 

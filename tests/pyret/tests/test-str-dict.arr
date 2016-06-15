@@ -651,4 +651,11 @@ end
  sum_with_sub is sum_new_dict_each(mutDict)
  sum_with_sub is sum_new_dict_loop(mutDict)
 
+  [SD.string-dict: {"a"; 4}, {"a"; 3}] raises "duplicate key a"
+  [SD.string-dict: {"goo"; 4}, {"goo"; 3}, {"qwf"; 51}] raises "duplicate key goo"
+  [SD.string-dict: {"hello"; 41}, {"hi";53}, {"hi"; 51}] raises "duplicate key hi"
+  [SD.string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}] raises "duplicate key hello"
+  [SD.string-dict: {"hi"; 141}, {"hello"; 41}, {"hello";53}, {"fqf"; 51}] raises "duplicate key hello" 
+  [SD.string-dict: {"hello"; 141}, {"hi"; 41}, {"Sarah";53}, {"Sarah"; 51}] raises "duplicate key Sarah"
+# [SD.string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}] raises "duplicate key hello"
 end

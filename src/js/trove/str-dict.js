@@ -705,46 +705,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         };
       }
 
-    function eachLoop(self, fun, func, keys) {
-      var i = 0;
-      var keys;
-      var currentRunCount = 0;
-      if(runtime.isActivationRecord(self)) {
-        i = self.vars[0];
-        keys = self.vars[1];
-        fun = self.vars[2];
-        func = self.args[0];
-        i = i + 1;
-      }
-      /*else {
-        keys = underlyingMap.keys();
-      }*/
-      try {
-        if (--runtime.GAS <= 0) {
-          runtime.EXN_STACKHEIGHT = 0;
-          throw runtime.makeCont();
-        }
-        while(true) {
-          if(i >= keys.length) { return runtime.nothing; }
-          //func.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])]));
-          fun(keys, i, func);
-
-          if (++currentRunCount >= 1000) {
-            runtime.EXN_STACKHEIGHT = 0;
-            throw runtime.makeCont();
-          }  
-          else { i = i + 1; }
-        }
-      }
-      catch($e) {
-        if (runtime.isCont($e)) {
-          $e.stack[runtime.EXN_STACKHEIGHT++] =
-            runtime.makeActivationRecord("eachLoop", eachLoop, true, [func], [i, keys, fun]);
-        }
-        throw $e;
-      }
-    }
-
+    
       function makeImmutableStringDict(underlyingMap) {
 
         var getISD = runtime.makeMethod1(function(_, key) {
@@ -834,9 +795,9 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
        var eachLoopISD = runtime.makeMethod1(function(self, func) {
           var keys = underlyingMap.keys();
           function callEachLoop() {
-            return eachLoop(self, function(keys, i, func) {
+            return runtime.eachLoop(runtime.makeFunction(function(i) {
               return func.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])])); 
-            }, func, keys);
+            }), 0, keys.length);
           }
            return callEachLoop();
        });
@@ -1043,9 +1004,9 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
      var eachLoopMSD = runtime.makeMethod1(function(self, func) {
           var keys = Object.keys(underlyingDict);
           function callEachLoop() {
-            return eachLoop(self, function(keys, i, func) {
+            return runtime.eachLoop(runtime.makeFunction(function(i) {
               return func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]])); 
-            }, func, keys);
+            }), 0, keys.length);
           }
            return callEachLoop();
        });
@@ -1212,7 +1173,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       }
 
       function createMutableStringDictFromArray(array) {
-        //TODO/Note: doesn't check for duplicate keys?
+        //TODO/Note (Sarah): doesn't check for duplicate keys?
         arity(1, arguments, "mutable-string-dict");
         runtime.checkArray(array);
         var dict = Object.create(null);
