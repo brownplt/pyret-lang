@@ -150,6 +150,12 @@
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
     }
+    function throwLookupConstructorNotObject(loc, constrName, field) {
+      checkSrcloc(loc);
+      runtime.checkString(constrName);
+      runtime.checkString(field);
+      raise(err("lookup-constructor-not-object")(loc, constrName, runtime.makeString(field)));
+    }
     function throwLookupNonObject(loc, nonObject, field) {
       checkSrcloc(loc);
       runtime.checkPyretVal(nonObject);
@@ -417,6 +423,7 @@
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,
       throwFieldNotFound: throwFieldNotFound,
+      throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwExtendNonObject: throwExtendNonObject,
       throwTypeMismatch: throwTypeMismatch,

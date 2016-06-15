@@ -204,10 +204,41 @@ data RuntimeError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
+          ED.text("Field "), ED.code(ED.text(self.field)), ED.text(" not found in the lookup expression at"),
           draw-and-highlight(self.loc)],
         [ED.para: ED.text("The object was:")],
         ED.embed(self.obj)]
+    end
+  | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast = loc-to-ast(self.loc).block.stmts.first
+      ast-dot = cases(Any) ast:
+        | s-dot(_,_,_) => ast
+        | s-app(_,f,_) => f
+      end
+      obj-loc = ast-dot.obj.l
+      fld-loc = ast-dot.field-loc()
+      obj-txt = loc-to-src(obj-loc)
+      obj-col = 0
+      fld-col = 1
+      [ED.error:
+        [ED.para:
+          ED.text("The field lookup expression ")],
+         ED.cmcode(self.loc),
+        [ED.para:
+          ED.text(" attempted to lookup a field on a "),
+          ED.highlight(ED.text("constructor"), [ED.locs: obj-loc], obj-col),
+          ED.text(" for "),
+          ED.code(ED.text(self.constr-name)), ED.text(" values, rather than a constructed "),
+          ED.code(ED.text(self.constr-name)), ED.text(" value.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The field lookup expression "), ED.loc(self.loc),
+          ED.text(" attempted to lookup a field on a constructor for "),
+          ED.code(ED.text(self.constr-name)), ED.text(" values, rather than a constructed "),
+          ED.code(ED.text(self.constr-name)), ED.text(" value.")]]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):

@@ -355,7 +355,12 @@ function getFieldLocInternal(val, field, loc, isBang) {
         thisRuntime.ffi.throwInternalError("Field lookup on undefined ", thisRuntime.ffi.makeList([field]));
       }
     }
-    if(!isObject(val)) { thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field); }
+    if(!isObject(val)) {
+      if (val.$constrFor !== undefined) {
+        thisRuntime.ffi.throwLookupConstructorNotObject(makeSrcloc(loc), val.$constrFor, field);
+      }
+      thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field); 
+    }
     var fieldVal = val.dict[field];
     if(fieldVal === undefined) {
       if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
@@ -4348,6 +4353,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var funToReturn = makeFunction(function() {
         var theFun = makeConstructor();
         funToReturn.app = theFun;
+        funToReturn.$constrFor = reflName;
         //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
         //CONSOLE.trace();
         var res = theFun.apply(null, arguments)
