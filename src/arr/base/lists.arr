@@ -679,6 +679,10 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   end
 end
 
+#fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
+
+#end
+
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
