@@ -79,7 +79,7 @@
       return arr;
     }
     var checkSrcloc = runtime.makeCheckType(function(val) {
-      return runtime.unwrap(gf(S, "Srcloc").app(val));
+      return runtime.unwrap(gf(S, "is-Srcloc").app(val));
     }, "Srcloc");
 
 /* NOTE(joe): skipping checker
