@@ -1212,6 +1212,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       }
 
       function createMutableStringDictFromArray(array) {
+        //TODO/Note: doesn't check for duplicate keys?
         arity(1, arguments, "mutable-string-dict");
         runtime.checkArray(array);
         var dict = Object.create(null);
@@ -1240,6 +1241,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       function dictEach(func, obj) {
       //TODO: check that func is a function and obj is a string dict
        arity(2, arguments,'dict-each');
+       runtime.checkObject(obj);
+       runtime.checkFunction(func)
        eachMethod = runtime.getField(obj, "each");
        return eachMethod.app(func);
       }
@@ -1247,6 +1250,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
       function dictEachLoop(func, obj) {
       //TODO: check that func is a function and obj is a string dict
        arity(2, arguments,'dict-each-loop');
+       runtime.checkObject(obj);
+       runtime.checkFunction(func);
        eachMethod = runtime.getField(obj, "each-loop");
        return eachMethod.app(func);
       }
@@ -1312,7 +1317,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(aval);
         runtime.checkString(bval);
         if (aval == bval) {
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+          runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + aval);
         }
         dict[aval] = a.vals[1];
         dict[bval] = b.vals[1];
@@ -1332,7 +1337,12 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(bval);
         runtime.checkString(cval);
         if (aval == bval || aval == cval || bval == cval) {
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + aval);
+          }
+          else {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + bval);
+          }
         }
         dict[aval] = a.vals[1];
         dict[bval] = b.vals[1];
@@ -1356,7 +1366,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(cval);
         runtime.checkString(dval);
         if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval) {
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval || aval == dval) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + aval);
+          }
+          else if (bval == cval || bval == dval) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + bval);
+          }
+          else {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + cval);
+          }
         }
         dict[aval] = a.vals[1];
         dict[bval] = b.vals[1];
@@ -1384,7 +1402,18 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(dval);
         runtime.checkString(eval);
         if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval || aval == dval || aval == eval) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + aval);
+          }
+          else if (bval == cval || bval == dval || bval == eval) { 
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + bval);
+          }
+          else if (cval == dval || cval == eval) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + cval);
+          }
+          else {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + dval);
+          }
         }
         dict[aval] = a.vals[1];
         dict[bval] = b.vals[1];
@@ -1442,7 +1471,12 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(cval);
         if (aval == bval || aval == cval || bval == cval) {
           //TODO: figure out which key is duplciated
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval) { 
+            runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+          }
+          else {
+            runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + bval);
+          }
         }
         map = map.set(aval, a.vals[1]);
         map = map.set(bval, b.vals[1]);
@@ -1467,7 +1501,15 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(dval);
         if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval) {
           //TODO: figure out which key is duplciated
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval || aval == dval) {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+          }
+          else if (bval == cval || bval == dval) {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + bval);
+          }
+          else { 
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + cval);
+          }
         }
         map = map.set(aval, a.vals[1]);
         map = map.set(bval, b.vals[1]);
@@ -1496,7 +1538,18 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         runtime.checkString(eval);
         if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
           //TODO: figure out which key is duplciated
-          runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key ");
+          if (aval == bval || aval == cval || aval == dval || aval == eval) {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
+          }
+          else if (bval == cval || bval == dval || bval == eval) {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + bval);
+          }
+          else if (cval == dval || cval == eval) {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + cval);
+          }
+          else {
+             runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + dval);
+          }   
         }
         map = map.set(aval, a.vals[1]);
         map = map.set(bval, b.vals[1]);
