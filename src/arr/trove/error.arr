@@ -223,22 +223,19 @@ data RuntimeError:
       fld-col = 1
       [ED.error:
         [ED.para:
-          ED.text("The field lookup expression ")],
+          ED.text("The expression ")],
          ED.cmcode(self.loc),
         [ED.para:
-          ED.text(" attempted to lookup a field on a "),
-          ED.highlight(ED.text("constructor"), [ED.locs: obj-loc], obj-col),
-          ED.text(" for "),
-          ED.code(ED.text(self.constr-name)), ED.text(" values, rather than a constructed "),
-          ED.code(ED.text(self.constr-name)), ED.text(" value.")]]
+          ED.text(" attempted to lookup a field "), ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col),
+          ED.text("on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
+          ED.text("), but field lookups can only be performed on objects.")]]
     end,
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The field lookup expression "), ED.loc(self.loc),
-          ED.text(" attempted to lookup a field on a constructor for "),
-          ED.code(ED.text(self.constr-name)), ED.text(" values, rather than a constructed "),
-          ED.code(ED.text(self.constr-name)), ED.text(" value.")]]
+          ED.text("The expression "), ED.loc(self.loc),
+          ED.text(" attempted to lookup a field "), ED.code(ED.text(self.field)), ED.text(" on a constructor ("),
+          ED.code(ED.text(self.constr-name)), ED.text("), but field lookups can only be performed on objects.")]]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
