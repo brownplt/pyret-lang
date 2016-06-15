@@ -44,7 +44,7 @@
       return gf(Se, 'list-to-tree-set').app(makeList(arr));
     }
     function toArray(list) {
-      var isList = runtime.getField(L, "List");
+      var isList = runtime.getField(L, "is-List");
       var isEmpty = runtime.getField(L, "is-empty");
       var isLink = runtime.getField(L, "is-link");
       // console.error("list is " + JSON.stringify(list).substr(0, 100));
@@ -497,7 +497,7 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "List").app(list)); },
+      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,
@@ -506,7 +506,7 @@
 //      checkTestResult: checkTestResult,
 //      isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success").app(val)); },
 
-      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "ValueSkeleton").app(v)); },
+      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
@@ -526,7 +526,7 @@
       //here, which are super-useful!
 
       skeletonValues: function(skel) {
-        var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
+        var isValueSkeleton = runtime.getField(VS, "is-ValueSkeleton");
         var isValue = runtime.getField(VS, "is-vs-value");
         var isCollection = runtime.getField(VS, "is-vs-collection");
         var isConstr = runtime.getField(VS, "is-vs-constr");

@@ -26,7 +26,7 @@ import equality as equality
 import valueskeleton as VS
 
 type List = lists.List
-List = lists.List
+List = lists.is-List
 empty = lists.empty
 link = lists.link
 is-empty = lists.is-empty
@@ -163,7 +163,7 @@ sharing:
     self.inorder()
   end,
   _equals(self, other, eq):
-    if not(AVLTree(other)):
+    if not(is-AVLTree(other)):
       equality.NotEqual("Non-AVLTree", self, other)
     else:
       eq(self.inorder(), other.inorder())
@@ -482,7 +482,7 @@ sharing:
   end,
 
   _equals(self, other, eq):
-    if not(Set(other)):
+    if not(is-Set(other)):
       equality.NotEqual("Non-Set", self, other)
     else:
       self-list = self.to-list()

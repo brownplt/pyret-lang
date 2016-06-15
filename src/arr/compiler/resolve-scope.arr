@@ -200,8 +200,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check)
           bind-data = A.s-letrec-bind(l, bn(l, blob-id), data-expr)
           bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
-          bind-data-pred2 = A.s-letrec-bind(l, b(l, name), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
-          all-binds = for fold(acc from [list: bind-data-pred, bind-data-pred2, bind-data], v from variants):
+          all-binds = for fold(acc from [list: bind-data-pred, bind-data], v from variants):
             variant-binds(A.s-id-letrec(v.l, blob-id, true), v) + acc
           end
           add-letrec-binds(binding-group, all-binds, rest-stmts)

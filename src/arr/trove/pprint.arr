@@ -1,7 +1,7 @@
 #lang pyret
 
 provide {
-  PPrintDoc: PPrintDoc,
+  #PPrintDoc: PPrintDoc,
   mt-doc: mt-doc,
   is-mt-doc: is-mt-doc,
   str: str,
