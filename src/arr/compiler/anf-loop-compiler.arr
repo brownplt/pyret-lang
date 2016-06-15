@@ -1036,7 +1036,7 @@ compiler-visitor = {
     compile-lettable(self, none, e1, some(e2), lam():
       e1-visit = e1.visit(self)
       e2-visit = e2.visit(self)
-      first-stmt = if J.JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
+      first-stmt = if J.is-JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
       c-block(
         j-block(e1-visit.other-stmts + cl-cons(first-stmt, e2-visit.block.stmts)),
         e2-visit.new-cases)
