@@ -631,4 +631,25 @@ end
  set_from_old_b is set_new_dict_each_b(smallmutDict)
  set_from_old_b is set_new_dict_loop_b(smalldict)
  set_from_old_b is set_new_dict_loop_b(smallmutDict)
+
+ fun mut_sub_from_all(mutdict, toSub):
+    key_lst = mutdict.keys-list-now()
+    for each(key from key_lst):
+      num = cases(Option) mutdict.get-now(key):
+       | none => 0
+       | some(v) => v
+      end
+      mutDict.set-now(key, num - toSub)
+     end
+     nothing
+   end 
+
+ mut_sub_from_all(mutDict, 3)
+ sum_with_sub = sum_from_old - (3 * dict.count())
+ sum_with_sub is sum_old_each_mut(mutDict)
+ sum_with_sub is sum_new_dict_new_each(mutDict)
+ sum_with_sub is sum_new_dict_each(mutDict)
+ sum_with_sub is sum_new_dict_loop(mutDict)
+
+
 end
