@@ -1797,7 +1797,6 @@ standard-imports = extra-imports(
         ],
         [list: "List"]),
       extra-import(builtin("option"), "option", [list:
-          "Option",
           "is-Option",
           "is-none",
           "is-some",
