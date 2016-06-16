@@ -115,6 +115,7 @@ fun make-default-types() block:
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
+  default-typs.set-now("throwUnfinishedTemplate", t-arrow([list: t-srcloc], t-bot))
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
   default-typs.set-now("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))

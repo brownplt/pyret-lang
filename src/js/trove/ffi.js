@@ -44,7 +44,7 @@
       return gf(Se, 'list-to-tree-set').app(makeList(arr));
     }
     function toArray(list) {
-      var isList = runtime.getField(L, "List");
+      var isList = runtime.getField(L, "is-List");
       var isEmpty = runtime.getField(L, "is-empty");
       var isLink = runtime.getField(L, "is-link");
       // console.error("list is " + JSON.stringify(list).substr(0, 100));
@@ -79,7 +79,7 @@
       return arr;
     }
     var checkSrcloc = runtime.makeCheckType(function(val) {
-      return runtime.unwrap(gf(S, "Srcloc").app(val));
+      return runtime.unwrap(gf(S, "is-Srcloc").app(val));
     }, "Srcloc");
 
 /* NOTE(joe): skipping checker
@@ -149,6 +149,12 @@
       runtime.checkPyretVal(object);
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
+    }
+    function throwLookupConstructorNotObject(loc, constrName, field) {
+      checkSrcloc(loc);
+      runtime.checkString(constrName);
+      runtime.checkString(field);
+      raise(err("lookup-constructor-not-object")(loc, constrName, runtime.makeString(field)));
     }
     function throwLookupNonObject(loc, nonObject, field) {
       checkSrcloc(loc);
@@ -425,6 +431,7 @@
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,
       throwFieldNotFound: throwFieldNotFound,
+      throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwExtendNonObject: throwExtendNonObject,
       throwTypeMismatch: throwTypeMismatch,
@@ -506,7 +513,7 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "List").app(list)); },
+      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,
@@ -515,7 +522,7 @@
 //      checkTestResult: checkTestResult,
 //      isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success").app(val)); },
 
-      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "ValueSkeleton").app(v)); },
+      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
       isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
@@ -536,7 +543,7 @@
       //here, which are super-useful!
 
       skeletonValues: function(skel) {
-        var isValueSkeleton = runtime.getField(VS, "ValueSkeleton");
+        var isValueSkeleton = runtime.getField(VS, "is-ValueSkeleton");
         var isValue = runtime.getField(VS, "is-vs-value");
         var isTable = runtime.getField(VS, "is-vs-table");
         var isCollection = runtime.getField(VS, "is-vs-collection");

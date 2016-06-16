@@ -161,6 +161,9 @@ data RuntimeError:
         vert-list-values(self.info-args)]
     end
   | template-not-finished(loc) with:
+    render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
     render-reason(self):
       [ED.error:
         [ED.para: ED.text("The program tried to evaluate an unfinished template expression at")],
@@ -201,10 +204,38 @@ data RuntimeError:
     render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Field"), ED.code(ED.text(self.field)), ED.text("not found in the lookup expression at"),
+          ED.text("Field "), ED.code(ED.text(self.field)), ED.text(" not found in the lookup expression at"),
           draw-and-highlight(self.loc)],
         [ED.para: ED.text("The object was:")],
         ED.embed(self.obj)]
+    end
+  | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
+    render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast = loc-to-ast(self.loc).block.stmts.first
+      ast-dot = cases(Any) ast:
+        | s-dot(_,_,_) => ast
+        | s-app(_,f,_) => f
+      end
+      obj-loc = ast-dot.obj.l
+      fld-loc = ast-dot.field-loc()
+      obj-txt = loc-to-src(obj-loc)
+      obj-col = 0
+      fld-col = 1
+      [ED.error:
+        [ED.para:
+          ED.text("The expression ")],
+         ED.cmcode(self.loc),
+        [ED.para:
+          ED.text(" attempted to lookup a field "), ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col),
+          ED.text("on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
+          ED.text("), but field lookups can only be performed on objects.")]]
+    end,
+    render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The expression "), ED.loc(self.loc),
+          ED.text(" attempted to lookup a field "), ED.code(ED.text(self.field)), ED.text(" on a constructor ("),
+          ED.code(ED.text(self.constr-name)), ED.text("), but field lookups can only be performed on objects.")]]
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     render-fancy-reason(self, loc-to-ast, loc-to-src):
@@ -748,62 +779,31 @@ end
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
     render-fancy-reason(self, loc-to-src):
-      color = 0
-      missing =
-        [ED.error:
-          [ED.para: ED.text("The program is missing something")],
-          [ED.para-nospace:
-            ED.text("Look carefully before the "), 
-            ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc], color),
-            ED.text(".  Is something missing just before it?"),
-            ED.text("  Common missing items are colons ("), ED.code(ED.text(":")),
-            ED.text("), commas ("), ED.code(ED.text(",")), ED.text("), string markers ("),
-            ED.code(ED.text("\"")), ED.text("), and keywords.")],
-          [ED.para: ED.styled(ED.text("Usually, inserting the missing item will fix this error."), "hint")]]
-      extra =
-        [ED.error:
-          [ED.para: ED.text("The program contains something extra")],
-          [ED.para-nospace:
-            ED.text("Look carefully before the "), 
-            ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc], color),
-            ED.text(".  Does it contains something extra?"),
-            ED.text("  A common source of errors is typing too much text or in the wrong order.")],
-          [ED.para:
-            ED.styled(ED.text("Usually, removing the extra item will fix this error."), "hint"),
-            ED.text(" However, you may have meant to keep this text, so think before you delete!")]]
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around ")],
-         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], color)),
-        [ED.opt:
-          [ED.para: ED.text("Typical reasons for getting this error are")],
-          [ED.bulleted: missing, extra]]]
+        ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], 0)),
+        [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
+          ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
+          ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
+          ED.text("), comma ("), ED.code(ED.text(",")),
+          ED.text("), string marker ("), ED.code(ED.text("\"")),
+          ED.text("), or keyword? Is there something there that shouldn’t be?")]
+      ]
     end,
     render-reason(self):
-      missing =
-        [ED.error:
-          [ED.para: ED.text("The program is missing something")],
-          [ED.para-nospace:
-            ED.text("Look carefully before the "), ED.styled(ED.text("highlighted text"), 'error-highlight'),
-            ED.text(".  Is something missing just before it?"),
-            ED.text("  Common missing items are colons ("), ED.code(ED.text(":")),
-            ED.text("), commas ("), ED.code(ED.text(",")), ED.text("), string markers ("),
-            ED.code(ED.text("\"")), ED.text("), and keywords.")],
-          [ED.para: ED.styled(ED.text("Usually, inserting the missing item will fix this error."), "hint")]]
-      extra =
-        [ED.error:
-          [ED.para: ED.text("The program contains something extra")],
-          [ED.para-nospace:
-            ED.text("Look carefully before the "), ED.styled(ED.text("highlighted text"), 'error-highlight'),
-            ED.text(".  Does it contains something extra?"),
-            ED.text("  A common source of errors is typing too much text or in the wrong order.")],
-          [ED.para:
-            ED.styled(ED.text("Usually, removing the extra item will fix this error."), "hint"),
-            ED.text("However, you may have meant to keep this text, so think before you delete!")]]
       [ED.error:
-        [ED.para: ED.text("Pyret didn't understand your program around"), draw-and-highlight(self.loc)],
-        [ED.opt:
-          [ED.para: ED.text("Typical reasons for getting this error are")],
-          [ED.bulleted: missing, extra]]]
+        [ED.para: ED.text("Pyret didn't understand your program around "), draw-and-highlight(self.loc)],
+        [ED.para: ED.text("You may need to add or remove some text to fix your program.")],
+        [ED.para:
+          ED.text("Look carefully before the "),
+          ED.styled(ED.text("highlighted text"), 'error-highlight'),
+          ED.text(".")],
+        [ED.para: ED.text("Is there a missing colon ("), ED.code(ED.text(":")),
+          ED.text("), comma ("), ED.code(ED.text(",")),
+          ED.text("), string marker ("), ED.code(ED.text("\"")),
+          ED.text("), or keyword?")],
+        [ED.para: ED.text("Is there something there that shouldn’t be?")]
+      ]
     end
   | parse-error-eof(loc) with:
     render-fancy-reason(self, loc-to-src):

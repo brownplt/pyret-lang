@@ -7,9 +7,9 @@ provide {
   Bool: read-bool,
   String: read-string,
   Custom: read-custom,
-  ParseParam: ParseParam,
-  ParamRepeat: ParamRepeat,
-  Param: Param,
+  ParseParam: is-ParseParam,
+  ParamRepeat: is-ParamRepeat,
+  Param: is-Param,
   parse-args: parse-args,
   parse-cmdline: parse-cmdline,
   usage-info: usage-info,
@@ -24,7 +24,7 @@ provide {
   right: right,
   required-once: required-once,
   required-many: required-many,
-  ParsedArguments: ParsedArguments,
+  ParsedArguments: is-ParsedArguments,
   is-success: is-success,
   is-arg-error: is-arg-error
 } end

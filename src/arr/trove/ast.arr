@@ -1604,7 +1604,7 @@ fun binding-ids(stmt) -> List<Name>:
     | s-rec(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-data(l, name, _, _, variants, _, _) =>
-      s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
+      s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
     | else => [list: ]
   end
 end
