@@ -784,7 +784,27 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
   end
 end
 
-index = nothing
+fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
+  cases(List<a>) lst:
+    | empty => empty
+    | link(first, rest) =>
+      cases(Option<b>) f(first):
+        | none => filter-map(f, rest)
+        | some(v) => link(v, filter-map(f, rest))
+      end
+  end
+end
+
+fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
+  cases(List<a>) lst:
+    | empty => empty
+    | link(first, rest) =>
+      cases(Option<a>) first:
+        | none => filter-values(rest)
+        | some(v) => link(v, filter-values(rest))
+      end
+  end
+end  
 
 list = {
   make: raw-array-to-list,
