@@ -3416,6 +3416,61 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return arr;
     }
 
+    var raw_array_build = function(f, len) {
+      if (thisRuntime.isActivationRecord(f)) {
+        var $ar = f;
+        $step = $ar.step;
+        $ans = $ar.ans;
+        curIdx = $ar.vars[0];
+        arr = $ar.vars[1];
+        f = $ar.args[0];
+        len = $ar.args[1];
+      } else {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
+        thisRuntime.checkFunction(f);
+        thisRuntime.checkNumber(len);
+        var curIdx = 0;
+        var arr = new Array();
+        var $ans;
+        var $step = 0;
+      }
+      var currentRunCount = 0;
+      try {
+        if (--thisRuntime.GAS <= 0) {
+          thisRuntime.EXN_STACKHEIGHT = 0;
+          throw thisRuntime.makeCont();
+        }
+        
+        while (true) {
+          if (++currentRunCount >= 1000) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            throw thisRuntime.makeCont();
+          }
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = f.app(curIdx);
+            // no need to break
+          case 1:
+            if (thisRuntime.ffi.isSome($ans)) {
+              arr.push(thisRuntime.getField($ans, "value"));
+            }
+            if (++curIdx < len) {
+              $step = 0;
+            } else {
+              return arr;
+            }
+          }
+        }
+      } catch($e) {
+        if (thisRuntime.isCont($e)) {
+          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+        }
+        throw $e;
+      }
+    }
+
     var raw_array_get = function(arr, ix) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
       thisRuntime.checkArray(arr);
@@ -4486,6 +4541,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'time-now': makeFunction(time_now),
 
           'raw-array-of': makeFunction(raw_array_of),
+          'raw-array-build': makeFunction(raw_array_build),
           'raw-array-get': makeFunction(raw_array_get),
           'raw-array-set': makeFunction(raw_array_set),
           'raw-array-length': makeFunction(raw_array_length),
