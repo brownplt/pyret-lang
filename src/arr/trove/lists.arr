@@ -337,7 +337,7 @@ where:
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>:
-  raw-array-fold(lam(acc, elt, _): link(elt, acc) end, empty, lst, 0)
+  builtins.raw-list-fold(lam(acc, elt, _): link(elt, acc) end, empty, lst, 0)
 end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
@@ -684,7 +684,7 @@ end
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  raw-list-fold(lam(acc, val, _): f(acc, val) end, base, a, 0)
+  builtins.raw-list-fold(lam(acc, val, _): f(acc, val) end, base, lst, 0)
 end
 
 rec foldl = fold
