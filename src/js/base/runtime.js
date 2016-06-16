@@ -2305,7 +2305,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     /** type {!PBase} */
     var builtins = makeObject({
-        'has-field': hasField,
+        'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }),
+        'has-field': makeFunction(hasField),
         'current-checker': makeFunction(function() {
           if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
           return getParam("current-checker");

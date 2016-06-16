@@ -127,8 +127,9 @@ data List<a>:
 
     each(self :: List<a>, f :: (a -> Nothing)) -> Nothing block:
       doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      f(self.first)
-      self.rest.each(f)
+      each(f, self)
+      #f(self.first)
+      #self.rest.each(f)
     end,
 
     map<b>(self, f :: (a -> b)) -> List<b>:
@@ -475,13 +476,18 @@ fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
   help(lst1, lst2)
 end
 
-fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
+fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
+  a = builtins.list-to-raw-array(lst)
+  raw-array-fold(lam(_, elt, i): raw-array-set(a, i, f(raw-array-get(a, i))) end, nothing, a, 0)
+  raw-array-to-list(a)
+  #|
   if is-empty(lst):
     empty
   else:
     f(lst.first) ^ link(_, map(f, lst.rest))
   end
+  |#
 end
 
 fun map2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
@@ -547,9 +553,12 @@ fun map4_n<a, b, c, d, e>(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: Lis
   end
 end
 
-fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
+fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
   doc: "Calls f for each elem in lst, and returns nothing"
-  fun help(l):
+  a = builtins.list-to-raw-array(lst)
+  raw-array-fold(lam(_, elt, _): f(elt) end, nothing, a, 0)
+  nothing
+  #|fun help(l):
     if is-empty(l) block:
       nothing
     else:
@@ -557,7 +566,7 @@ fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
       help(l.rest)
     end
   end
-  help(lst)
+  help(lst)|#
 end
 
 fun each2<a, b>(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
@@ -668,11 +677,8 @@ end
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  if is-empty(lst):
-    base
-  else:
-    fold(f, f(base, lst.first), lst.rest)
-  end
+  a = builtins.list-to-raw-array(lst)
+  raw-array-fold(lam(acc, val, _): f(acc, val) end, base, a, 0)
 end
 
 rec foldl = fold
