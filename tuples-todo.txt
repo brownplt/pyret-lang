@@ -33,6 +33,7 @@
     better
 
 [ ] Presentation
+    [ ] *Found new eachLoop primitive slide
 
 [ ] Heroku setup - finish
 [ ] Gdrive setup?
