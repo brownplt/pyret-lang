@@ -482,8 +482,16 @@ define(["js/runtime-util", "trove/ast", "trove/srcloc", "js/pyret-tokenizer", "j
               return tr(node.kids[1]);
             }
           },
+         /*'tuple-binding-expr': function(node) {
+            return RUNTIME.getField(ast, 's-tuple-let')
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
+          },*/
           'binding': function(node) {
-            if (node.kids.length === 1) {
+            /*if (node.kids[0] == "tuple-binding-expr") {
+              return RUNTIME.getField(ast, 's-tuple-let')
+                .app(pos(node.pos), tr(node.kids[0]))
+             }
+              else*/ if (node.kids.length === 1) {
               // (binding name)
               return RUNTIME.getField(ast, 's-bind')
                 .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
