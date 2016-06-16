@@ -1176,12 +1176,16 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         //TODO/Note (Sarah): doesn't check for duplicate keys?
         arity(1, arguments, "mutable-string-dict");
         runtime.checkArray(array);
+        var key_missing = {};
         var dict = Object.create(null);
         var len = array.length;
         for(var i = 0; i < len; i += 1) {
           var key = array[i].vals[0];
           var val = array[i].vals[1];
           runtime.checkString(key);
+        if (dict[key] !== key_missing) {
+            runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + key);
+          }
           dict[key] = val;
         }
         return makeMutableStringDict(dict);

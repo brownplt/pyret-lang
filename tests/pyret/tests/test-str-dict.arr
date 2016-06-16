@@ -657,5 +657,22 @@ end
   [SD.string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}] raises "duplicate key hello"
   [SD.string-dict: {"hi"; 141}, {"hello"; 41}, {"hello";53}, {"fqf"; 51}] raises "duplicate key hello" 
   [SD.string-dict: {"hello"; 141}, {"hi"; 41}, {"Sarah";53}, {"Sarah"; 51}] raises "duplicate key Sarah"
-# [SD.string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}] raises "duplicate key hello"
+  [SD.string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}, {"qdq"; 5}] raises "duplicate key hello" 
+  [SD.string-dict: {"hey"; 141}, {"hello"; 41}, {"hello";53}, {"fqf"; 51}, {"qdq"; 5}] raises "duplicate key hello" 
+  [SD.string-dict: {"hello"; 141}, {"hellooo"; 41}, {"hi";53}, {"hi"; 51}, {"qdq"; 5}] raises "duplicate key hi"
+  [SD.string-dict: {"hello"; 141}, {"helloooo"; 41}, {"hi";53}, {"fqf"; 51}, {"fqf"; 5}] raises "duplicate key fqf" 
+  [SD.string-dict: {"hello"; 141}, {"hrwfq"; 41}, {"hi";53}, {"fqf"; 51}, {"qdq"; 5}, {"hello"; 23}] raises "duplicate key hello"
+
+  
+  [SD.mutable-string-dict: {"a"; 4}, {"a"; 3}] raises "duplicate key a"
+  [SD.mutable-string-dict: {"goo"; 4}, {"goo"; 3}, {"qwf"; 51}] raises "duplicate key goo"
+  [SD.mutable-string-dict: {"hello"; 41}, {"hi";53}, {"hi"; 51}] raises "duplicate key hi"
+  [SD.mutable-string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}] raises "duplicate key hello"
+  [SD.mutable-string-dict: {"hi"; 141}, {"hello"; 41}, {"hello";53}, {"fqf"; 51}] raises "duplicate key hello" 
+  [SD.mutable-string-dict: {"hello"; 141}, {"hi"; 41}, {"Sarah";53}, {"Sarah"; 51}] raises "duplicate key Sarah"
+  [SD.mutable-string-dict: {"hello"; 141}, {"hello"; 41}, {"hi";53}, {"fqf"; 51}, {"qdq"; 5}] raises "duplicate key hello" 
+  [SD.mutable-string-dict: {"hey"; 141}, {"hello"; 41}, {"hello";53}, {"fqf"; 51}, {"qdq"; 5}] raises "duplicate key hello" 
+  [SD.mutable-string-dict: {"hello"; 141}, {"hellooo"; 41}, {"hi";53}, {"hi"; 51}, {"qdq"; 5}] raises "duplicate key hi"
+  [SD.mutable-string-dict: {"hello"; 141}, {"helloooo"; 41}, {"hi";53}, {"fqf"; 51}, {"fqf"; 5}] raises "duplicate key fqf" 
+  [SD.mutable-string-dict: {"hello"; 141}, {"hrwfq"; 41}, {"hi";53}, {"fqf"; 51}, {"qdq"; 5}, {"hello"; 23}] raises "duplicate key hello"
 end
