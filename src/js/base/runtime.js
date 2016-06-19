@@ -3443,7 +3443,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     var raw_array_get = function(arr, ix) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a); }
       thisRuntime.checkArray(arr);
       thisRuntime.checkNumber(ix);
       checkArrayIndex("raw-array-get", arr, ix);
@@ -3754,7 +3754,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       for(var i = 0; i < jsnums.toFixnum(n); i++) {
         resultStr += s;
       }
-      return makeString(resultStr);
+      return thisRuntime.makeString(resultStr);
     }
     var string_split_all = function(s, splitstr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split-all"], 2, $a); }
@@ -4096,25 +4096,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var num_tostring = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a); }
       thisRuntime.checkNumber(n);
-      return makeString(String(n));
+      return thisRuntime.makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring-digits"], 2, $a); }
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
-      var d = jsnums.toFixnum(digits);
-      var tenDigits = jsnums.expt(10, digits);
-      if (n != n) { return thisRuntime.makeString("NaN"); }
-      else if (jsnums.equals(n, Number.POSITIVE_INFINITY)) { return thisRuntime.makeString("+inf"); }
-      else if (jsnums.equals(n, Number.NEGATIVE_INFINITY)) { return thisRuntime.makeString("-inf"); }
-      else if (jsnums.isReal(n)) {
-        n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits)), tenDigits)
-        var s = jsnums.toFixnum(n).toString().split(".");
-        s[1] = (s[1] || "").substring(0, d);
-        for (var i = s[1].length; i < d; i++)
-          s[1] += "0";
-        return thisRuntime.makeString(s[0] + "." + s[1]);
-      }
+      return thisRuntime.makeString(jsnums.toStringDigits(n, digits));
     }
     function random(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a); }
@@ -4855,6 +4843,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'num_expt': num_expt,
         'num_tostring': num_tostring,
         'num_to_string': num_tostring,
+        'num_tostring_digits': num_tostring_digits,
 
         'string_contains': string_contains,
         'string_append': string_append,

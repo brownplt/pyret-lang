@@ -501,6 +501,8 @@
 
       makeList: makeList,
       makeTreeSet: makeTreeSet,
+
+      isOption: runtime.getField(O, "is-Option"),
       isNone: function(v) { return runtime.getField(O, "is-none").app(v); },
       isSome: function(v) { return runtime.getField(O, "is-some").app(v); },
       makeNone: function() { return runtime.getField(O, "none"); },

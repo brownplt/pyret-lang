@@ -855,10 +855,11 @@ decimal.
 
 @examples{
 check:
-  num-to-string-digits(5432.1234, 2) is "5432.12"
-  num-to-string-digits(0.123456789, 2) is "0.12"
+  num-to-string-digits(2/3, 3) is "0.667"
+  num-to-string-digits(-2/3, 3) is "-0.667"
   num-to-string-digits(5, 2) is "5.00"
-  num-to-string-digits(555, -2) is "500"
+  num-to-string-digits(5, 0) is "5"
+  num-to-string-digits(555, -2) is "600"
 end
 }
   }
