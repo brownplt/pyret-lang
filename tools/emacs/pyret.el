@@ -732,6 +732,11 @@
             (incf (pyret-indent-data cur-closed))
             (incf (pyret-indent-shared defered-opened))
             (cond 
+             ((pyret-has-top opens '(field object data))
+              (pop opens) (pop opens) (pop opens)
+              (incf (pyret-indent-object cur-closed))
+              (push 'shared opens)
+              (push 'wantcolon opens))
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
               ;(incf (pyret-indent-object cur-closed))
@@ -744,6 +749,11 @@
             (forward-char 7))
            ((pyret-WHERE)
             (cond
+             ((pyret-has-top opens '(field object data))
+              (pop opens) (pop opens) (pop opens)
+              (incf (pyret-indent-object cur-closed))
+              (incf (pyret-indent-data cur-closed))
+              (incf (pyret-indent-shared defered-opened)))
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
               ;(incf (pyret-indent-object cur-closed))
