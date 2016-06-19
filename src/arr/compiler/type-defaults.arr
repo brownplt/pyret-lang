@@ -173,8 +173,7 @@ module-const-equality = t-module("builtin://equality",
     t-member("is-Unknown", t-arrow([list: t-top], t-boolean)),
     t-member("equal-and", t-arrow([list: eq-EqualityResult, eq-EqualityResult], eq-EqualityResult)),
     t-member("equal-or", t-arrow([list: eq-EqualityResult, eq-EqualityResult], eq-EqualityResult)),
-    t-member("to-boolean", t-arrow([list: eq-EqualityResult], t-boolean)),
-    t-member("from-boolean", t-arrow([list: t-boolean], eq-EqualityResult))
+    t-member("to-boolean", t-arrow([list: eq-EqualityResult], t-boolean))
   ]),
   SD.make-string-dict()
     .set("EqualityResult", t-data(

@@ -76,10 +76,11 @@ sharing:
     self.typ.free-variable(var-type)
   end,
   _equals(self, other :: TypeMember, _) -> E.EqualityResult:
-    bool-result =
-      (self.field-name == other.field-name) and
-      (self.typ == other.typ)
-    E.from-boolean(bool-result)
+    ask:
+      | not(self.field-name == other.field-name) then: E.NotEqual("field names", self, other)
+      | not(self.typ == other.typ) then: E.NotEqual("typs", self, other)
+      | otherwise: E.Equal
+    end
   end
 end
 
@@ -114,25 +115,29 @@ sharing:
     end
   end,
   _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
-    bool-result =
-      cases(TypeVariant) self:
-        | t-variant(a-name, a-fields, a-with-fields) =>
-          cases(TypeVariant) other:
-            | t-variant(b-name, b-fields, b-with-fields) =>
-              (a-name == b-name) and
-              compare-lists(a-fields, b-fields) and
-              compare-lists(a-with-fields, b-with-fields)
-            | else => false
-          end
-        | t-singleton-variant(a-name, a-with-fields) =>
-          cases(TypeVariant) other:
-            | t-singleton-variant(b-name, b-with-fields) =>
-              (a-name == b-name) and
-              compare-lists(a-with-fields, b-with-fields)
-            | else => false
-          end
-      end
-    E.from-boolean(bool-result)
+    cases(TypeVariant) self:
+      | t-variant(a-name, a-fields, a-with-fields) =>
+        cases(TypeVariant) other:
+          | t-variant(b-name, b-fields, b-with-fields) =>
+            ask:
+              | not(a-name == b-name) then: E.NotEqual("names", self, other)
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("fields", self, other)
+              | not(compare-lists(a-with-fields, b-with-fields)) then: E.NotEqual("with-fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different type variants", self, other)
+        end
+      | t-singleton-variant(a-name, a-with-fields) =>
+        cases(TypeVariant) other:
+          | t-singleton-variant(b-name, b-with-fields) =>
+            ask:
+              | not(a-name == b-name) then: E.NotEqual("names", self, other)
+              | not(compare-lists(a-with-fields, b-with-fields)) then: E.NotEqual("with-fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different type variants", self, other)
+        end
+    end
   end
 end
 
@@ -354,85 +359,114 @@ sharing:
   end,
 
   _equals(self, other :: Type, _) -> E.EqualityResult:
-    bool-result =
-      cases(Type) self:
-        | t-name(a-module-name, a-id, _) =>
-          cases(Type) other:
-            | t-name(b-module-name, b-id, _) =>
-              (a-module-name == b-module-name) and
-              (a-id == b-id)
-            | else => false
-          end
-        | t-var(a-id, _) =>
-          cases(Type) other:
-            | t-var(b-id, _) => a-id == b-id
-            | else => false
-          end
-        | t-arrow(a-args, a-ret, _) =>
-          cases(Type) other:
-            | t-arrow(b-args, b-ret, _) =>
-              compare-lists(a-args, b-args) and
-              (a-ret == b-ret)
-            | else => false
-          end
-        | t-app(a-onto, a-args, _) =>
-          cases(Type) other:
-            | t-app(b-onto, b-args, _) =>
-              (a-onto == b-onto) and
-              compare-lists(a-args, b-args)
-            | else => false
-          end
-        | t-top(_) =>
-          cases(Type) other:
-            | t-top(_) => true
-            | else => false
-          end
-        | t-bot(_) =>
-          cases(Type) other:
-            | t-bot(_) => true
-            | else => false
-          end
-        | t-record(a-fields, _) =>
-          cases(Type) other:
-            | t-record(b-fields, _) =>
-              compare-lists(a-fields, b-fields)
-            | else => false
-          end
-        | t-forall(a-introduces, a-onto, _) =>
-          cases(Type) other:
-            | t-forall(b-introduces, b-onto, _) =>
-              compare-lists(a-introduces, b-introduces) and
-              (a-onto == b-onto)
-            | else => false
-          end
-        | t-ref(a-typ, _) =>
-          cases(Type) other:
-            | t-ref(b-typ, _) =>
-              a-typ == b-typ
-            | else => false
-          end
-        | t-existential(a-id, _) =>
-          cases(Type) other:
-            | t-existential(b-id, _) =>
-              a-id == b-id
-            | else => false
-          end
-        | t-data(a-name, a-variants, a-fields, _) =>
-          cases(Type) other:
-            | t-data(b-name, b-variants, b-fields, _) =>
-              compare-lists(a-variants, b-variants) and
-              compare-lists(a-fields, b-fields)
-            | else => false
-          end
-        | t-data-refinement(a-data-type, a-field-name, _) =>
-          cases(Type) other:
-            | t-data-refinement(b-data-type, b-field-name, _) =>
-              (a-data-type == b-data-type) and
-              (a-field-name == b-field-name)
-            | else => false
-          end
-      end
-    E.from-boolean(bool-result)
+    cases(Type) self:
+      | t-name(a-module-name, a-id, _) =>
+        cases(Type) other:
+          | t-name(b-module-name, b-id, _) =>
+            ask:
+              | not(a-module-name == b-module-name) then: E.NotEqual("Module names", self, other)
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-var(a-id, _) =>
+        cases(Type) other:
+          | t-var(b-id, _) =>
+            ask:
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-arrow(a-args, a-ret, _) =>
+        cases(Type) other:
+          | t-arrow(b-args, b-ret, _) =>
+            ask:
+              | not(compare-lists(a-args, b-args)) then: E.NotEqual("Arguments", self, other)
+              | not(a-ret == b-ret) then: E.NotEqual("Return types", self, other)
+              | otherwise: E.Equal
+            end
+         | else => E.NotEqual("Different types", self, other)
+        end
+      | t-app(a-onto, a-args, _) =>
+        cases(Type) other:
+          | t-app(b-onto, b-args, _) =>
+            ask:
+              | not(a-onto == b-onto) then: E.NotEqual("Onto", self, other)
+              | not(compare-lists(a-args, b-args)) then: E.NotEqual("Arguments", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-top(_) =>
+        cases(Type) other:
+          | t-top(_) => E.Equal
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-bot(_) =>
+        cases(Type) other:
+          | t-bot(_) => E.Equal
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-record(a-fields, _) =>
+        cases(Type) other:
+          | t-record(b-fields, _) =>
+            ask:
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("Fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-forall(a-introduces, a-onto, _) =>
+        cases(Type) other:
+          | t-forall(b-introduces, b-onto, _) =>
+            ask:
+              | not(compare-lists(a-introduces, b-introduces)) then: E.NotEqual("Introductions", self, other)
+              | not(a-onto == b-onto) then: E.NotEqual("Onto", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-ref(a-typ, _) =>
+        cases(Type) other:
+          | t-ref(b-typ, _) =>
+            ask:
+              | not(a-typ == b-typ) then: E.NotEqual("Typs", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-existential(a-id, _) =>
+        cases(Type) other:
+          | t-existential(b-id, _) =>
+            ask:
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-data(a-name, a-variants, a-fields, _) =>
+        cases(Type) other:
+          | t-data(b-name, b-variants, b-fields, _) =>
+            ask:
+              | not(compare-lists(a-variants, b-variants)) then: E.NotEqual("Variants", self, other)
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("Fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-data-refinement(a-data-type, a-field-name, _) =>
+        cases(Type) other:
+          | t-data-refinement(b-data-type, b-field-name, _) =>
+            ask:
+              | not(a-data-type == b-data-type) then: E.NotEqual("Data type", self, other)
+              | not(a-field-name == b-field-name) then: E.NotEqual("Field name", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+    end
   end
 end
 
