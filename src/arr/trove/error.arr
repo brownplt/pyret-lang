@@ -227,7 +227,7 @@ data RuntimeError:
          ED.cmcode(self.loc),
         [ED.para:
           ED.text(" attempted to lookup a field "), ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col),
-          ED.text("on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
+          ED.text(" on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
           ED.text("), but field lookups can only be performed on objects.")]]
     end,
     render-reason(self):
