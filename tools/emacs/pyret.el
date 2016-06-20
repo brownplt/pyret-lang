@@ -845,6 +845,11 @@
               ;;(message "Line %d, Seen rbrack, and opens is %s, incrementing defered-closed-vars" (1+ n) opens)
               (incf (pyret-indent-vars defered-closed)))
             (forward-char))
+           ((pyret-SEMI)
+            (when (pyret-has-top opens '(object))
+              (pop opens)
+              (push 'tuple opens))
+            (forward-char))
            ((pyret-LBRACE)
             (incf (pyret-indent-object defered-opened))
             (push 'object opens)
@@ -867,7 +872,7 @@
                (t 
                 ;;(message "In rbrace, incrementing cur-closed-fields")
                 (incf (pyret-indent-fields cur-closed))))) ;; otherwise decrement the running count
-            (if (pyret-has-top opens '(object))
+            (if (or (pyret-has-top opens '(object)) (pyret-has-top opens '(tuple)))
                 (pop opens))
             (while (pyret-has-top opens '(var))
               (pop opens)
