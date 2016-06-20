@@ -526,26 +526,27 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
   fun resolve-letrec-binds(visitor, binds):
-    bind-env-and-atoms = for fold(acc from { env: visitor.env, atoms: [list: ] }, b from binds):
+    {env; atoms} = for fold(acc from { visitor.env; empty }, b from binds):
+      {env; atoms} = acc
       # TODO(joe): I think that b.b.ann.visit below could be wrong if
       # a letrec'd ID is used in a refinement within the same letrec,
       # so state may be necessary here
-      atom-env = make-atom-for(b.b.id, b.b.shadows, acc.env, bindings, letrec-bind(_, _, b.b.ann.visit(visitor), none))
-      { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      atom-env = make-atom-for(b.b.id, b.b.shadows, env, bindings, letrec-bind(_, _, b.b.ann.visit(visitor), none))
+      { atom-env.env; link(atom-env.atom, atoms) }
     end
-    new-visitor = visitor.{env: bind-env-and-atoms.env}
-    visit-binds = for map2(b from binds, a from bind-env-and-atoms.atoms.reverse()):
+    new-visitor = visitor.{env: env}
+    visit-binds = for map2(b from binds, a from atoms.reverse()):
       cases(A.LetrecBind) b block:
         | s-letrec-bind(l2, bind, expr) =>
-          new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: bind-env-and-atoms.env}))
+          new-bind = A.s-bind(l2, false, a, bind.ann.visit(visitor.{env: env}))
           visit-expr = expr.visit(new-visitor)
           update-binding-expr(a, some(visit-expr))
           A.s-letrec-bind(l2, new-bind, visit-expr)
       end
     end
     {
-      new-binds: visit-binds,
-      new-visitor: new-visitor
+      visit-binds;
+      new-visitor
     }
   end
   fun handle-id(env, l, id):
@@ -615,45 +616,45 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
     end,
     s-program(self, l, _provide, _provide-types, imports, body) block:
-      imports-and-env = for fold(
-          acc from { e: self.env, te: self.type-env, imps: [list: ] },
-          i from imports
-        ):
+      {imp-e; imp-te; imp-imps} = for fold(acc from { self.env; self.type-env; empty }, i from imports):
+        {imp-e; imp-te; imp-imps} = acc
         cases(A.Import) i block:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", acc.e, bindings, let-bind(l, _, A.a-any(l2), none))
+                make-anon-import-for(name-vals.l, "$import", imp-e, bindings, let-bind(l, _, A.a-any(l2), none))
               else:
-                make-atom-for(name-vals, false, acc.e, bindings, let-bind(_, _, A.a-any(l2), none))
+                make-atom-for(name-vals, false, imp-e, bindings, let-bind(_, _, A.a-any(l2), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
-                make-anon-import-for(name-types.l, "$import", acc.te, type-bindings, let-type-bind(l, _, none))
+                make-anon-import-for(name-types.l, "$import", imp-te, type-bindings, let-type-bind(l, _, none))
               else:
-                make-atom-for(name-types, false, acc.te, type-bindings, let-type-bind(_, _, none))
+                make-atom-for(name-types, false, imp-te, type-bindings, let-type-bind(_, _, none))
               end
-            with-vals = for fold(nv-v from {e: atom-env.env, vn: empty}, v from vnames):
-              v-atom-env = make-atom-for(v, false, nv-v.e, bindings, module-bind(_, _, file, none))
-              { e: v-atom-env.env, vn: link(v-atom-env.atom, nv-v.vn) }
+            {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
+              {e; vn} = nv-v
+              v-atom-env = make-atom-for(v, false, e, bindings, module-bind(_, _, file, none))
+              { v-atom-env.env; link(v-atom-env.atom, vn) }
             end
-            with-types = for fold(nv-t from {et: atom-env-t.env, tn: empty}, t from tnames):
-              t-atom-env = make-atom-for(t, false, nv-t.et, bindings, module-type-bind(_, _, file, none))
-              { et: t-atom-env.env, tn: link(t-atom-env.atom, nv-t.tn) }
+            {te; tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
+              {te; tn} = nv-t
+              t-atom-env = make-atom-for(t, false, te, bindings, module-type-bind(_, _, file, none))
+              { t-atom-env.env; link(t-atom-env.atom, tn) }
             end
             new-header = A.s-import-complete(l2,
-              with-vals.vn,
-              with-types.tn,
+              vn,
+              tn,
               file,
               atom-env.atom,
               atom-env-t.atom)
             update-binding-expr(atom-env.atom, some(new-header))
             update-type-binding-ann(atom-env-t.atom, some(new-header))
-            { e: with-vals.e, te: with-types.et, imps: link(new-header, acc.imps) }
+            { e; te; link(new-header, imp-imps) }
           | else => raise("Should only have s-import-complete when checking scope")
         end
       end
-      visit-body = body.visit(self.{env: imports-and-env.e, type-env: imports-and-env.te})
+      visit-body = body.visit(self.{env: imp-e, type-env: imp-te})
       var vals = nothing
       var typs = nothing
       visit-body.visit(A.default-iter-visitor.{
@@ -708,168 +709,179 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         data-defs
       )
       
-      A.s-program(l, one-true-provide, _provide-types, imports-and-env.imps.reverse(), visit-body)
+      A.s-program(l, one-true-provide, _provide-types, imp-imps.reverse(), visit-body)
     end,
     s-type-let-expr(self, l, binds, body, blocky):
-      bound-env = for fold(acc from { e: self.env, te: self.type-env, bs: [list: ] }, b from binds):
+      {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
+        {e; te; bs} = acc
         cases(A.TypeLetBind) b block:
           | s-type-bind(l2, name, ann) =>
-            atom-env = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: acc.e, type-env: acc.te}))
+            atom-env = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
+            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: e, type-env: te}))
             update-type-binding-ann(atom-env.atom, some(new-bind.ann))
-            { e: acc.e, te: atom-env.env, bs: link(new-bind, acc.bs) }
+            { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
-            atom-env-t = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
+            atom-env-t = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
             # TODO(joe): type for name in newtype-bind?  Brander-binding?
-            atom-env = make-atom-for(tname, false, acc.e, bindings, let-bind(_, _, A.a-blank, none))
+            atom-env = make-atom-for(tname, false, e, bindings, let-bind(_, _, A.a-blank, none))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
             update-binding-expr(atom-env.atom, none)
             update-type-binding-ann(atom-env-t.atom, none)
-            { e: atom-env.env, te: atom-env-t.env, bs: link(new-bind, acc.bs) }
+            { atom-env.env; atom-env-t.env; link(new-bind, bs) }
         end
       end
-      visit-body = body.visit(self.{env: bound-env.e, type-env: bound-env.te})
-      A.s-type-let-expr(l, bound-env.bs.reverse(), visit-body, blocky)
+      visit-body = body.visit(self.{env: e, type-env: te})
+      A.s-type-let-expr(l, bs.reverse(), visit-body, blocky)
     end,
     s-let-expr(self, l, binds, body, blocky):
-      bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
+      {e; bs} = for fold(acc from { self.env; empty }, b from binds):
+        {e; bs} = acc
         cases(A.LetBind) b block:
           | s-let-bind(l2, bind, expr) =>
-            visited-ann = bind.ann.visit(self.{env: acc.e})
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.e, bindings, let-bind(_, _, visited-ann, none))
-            visit-expr = expr.visit(self.{env: acc.e})
+            visited-ann = bind.ann.visit(self.{env: e})
+            atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, let-bind(_, _, visited-ann, none))
+            visit-expr = expr.visit(self.{env: e})
             update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
-              e: atom-env.env,
-              bs: link(new-bind, acc.bs)
+              atom-env.env;
+              link(new-bind, bs)
             }
           | s-var-bind(l2, bind, expr) =>
-            visited-ann = bind.ann.visit(self.{env: acc.e})
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.e, bindings, var-bind(_, _, visited-ann, none))
-            visit-expr = expr.visit(self.{env: acc.e})
+            visited-ann = bind.ann.visit(self.{env: e})
+            atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, var-bind(_, _, visited-ann, none))
+            visit-expr = expr.visit(self.{env: e})
             update-binding-expr(atom-env.atom, some(visit-expr))
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
-              e: atom-env.env,
-              bs: link(new-bind, acc.bs)
+              atom-env.env;
+              link(new-bind, bs)
             }
         end
       end
-      visit-binds = bound-env.bs.reverse()
-      visit-body = body.visit(self.{env: bound-env.e})
+      visit-binds = bs.reverse()
+      visit-body = body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
     end,
     s-letrec(self, l, binds, body, blocky):
-      binds-and-visitor = resolve-letrec-binds(self, binds)
-      visit-body = body.visit(binds-and-visitor.new-visitor)
-      A.s-letrec(l, binds-and-visitor.new-binds, visit-body, blocky)
+      {new-binds; new-visitor} = resolve-letrec-binds(self, binds)
+      visit-body = body.visit(new-visitor)
+      A.s-letrec(l, new-binds, visit-body, blocky)
     end,
     s-for(self, l, iter, binds, ann, body, blocky):
-      env-and-binds = for fold(acc from { env: self.env, fbs: [list: ] }, fb from binds):
+      {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
+        {env; fbs} = acc
         cases(A.ForBind) fb block:
           | s-for-bind(l2, bind, val) => 
-            atom-env = make-atom-for(bind.id, bind.shadows, acc.env, bindings, let-bind(_, _, bind.ann, none))
-            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: acc.env}))
+            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
+            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
             visit-val = val.visit(self)
             update-binding-expr(atom-env.atom, some(visit-val))
             new-fb = A.s-for-bind(l2, new-bind, visit-val)
-            { env: atom-env.env, fbs: link(new-fb, acc.fbs) }
+            { atom-env.env; link(new-fb, fbs) }
         end
       end
-      A.s-for(l, iter.visit(self), env-and-binds.fbs.reverse(), ann.visit(self), body.visit(self.{env: env-and-binds.env}), blocky)
+      A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
     end,
     s-cases-branch(self, l, pat-loc, name, args, body):
-      env-and-atoms = for fold(acc from { env: self.env, atoms: [list: ] }, a from args.map(_.bind)):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind(_, _, a.ann.visit(self), none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
+        {env; atoms} = acc
+        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(self), none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+      new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.CasesBind) a:
           | s-cases-bind(l2, typ, binding) =>
             cases(A.Bind) binding:
               | s-bind(l3, shadows, id, ann) =>
-                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env-and-atoms.env})))
+                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env})))
             end
         end
       end
-      new-body = body.visit(self.{env: env-and-atoms.env})
+      new-body = body.visit(self.{env: env})
       A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
     s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check) block:
-      new-types = for fold(acc from { env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
+        {env; atoms} = acc
+        atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: new-types.env}
-      result = A.s-data-expr(l, name, namet, new-types.atoms.reverse(),
+      with-params = self.{type-env: env}
+      result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
       datatypes.set-now(namet.key(), result)
       result
     end,
     s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
-      new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+        {env; atoms} = acc
+        atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: new-types.env}
-      env-and-atoms = for fold(acc from { env: with-params.env, atoms: [list: ] }, a from args):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      with-params = self.{type-env: ty-env}
+      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
+        {env; atoms} = acc
+        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+      new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(with-params))
         end
       end
-      with-params-and-args = with-params.{env: env-and-atoms.env}
+      with-params-and-args = with-params.{env: env}
       new-body = body.visit(with-params-and-args)
       saved-name-errors = name-errors
       new-check = with-params.option(_check) # Maybe should be self?  Are any type params visible here?
       # Restore the errors to what they were. (_check has already been desugared,
       # so the programmer will see those errors, not the ones from here.)
       name-errors := saved-name-errors
-      A.s-lam(l, new-types.atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-lam(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     s-method(self, l, params, args, ann, doc, body, _check, blocky):
-      new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+        {env; atoms} = acc
+        atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: new-types.env}
-      env-and-atoms = for fold(acc from { env: with-params.env, atoms: [list: ] }, a from args):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      with-params = self.{type-env: ty-env}
+      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
+        {env; atoms} = acc
+        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+      new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params))
         end
       end
-      new-body = body.visit(with-params.{env: env-and-atoms.env})
+      new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method(l, new-types.atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-method(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
-      new-types = for fold(acc from {env: self.type-env, atoms: empty }, param from params):
-        atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+        {env; atoms} = acc
+        atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: new-types.env}
-      env-and-atoms = for fold(acc from { env: with-params.env, atoms: [list: ] }, a from args):
-        atom-env = make-atom-for(a.id, a.shadows, acc.env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
-        { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+      with-params = self.{type-env: ty-env}
+      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
+        {env; atoms} = acc
+        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
+        { atom-env.env; link(atom-env.atom, atoms) }
       end
-      new-args = for map2(a from args, at from env-and-atoms.atoms.reverse()):
+      new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params))
         end
       end
-      new-body = body.visit(with-params.{env: env-and-atoms.env})
+      new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method-field(l, name, new-types.atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     s-assign(self, l, id, expr):
       cases(A.Name) id:
