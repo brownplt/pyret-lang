@@ -540,24 +540,25 @@ fun make-standalone(wl, compiled, options) block:
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
-
+  
   var failure = false
   static-modules = j-obj(for C.map_list(w from wl):
-    loadable = compiled.modules.get-value-now(w.locator.uri())
-    cases(Loadable) loadable:
-      | module-as-string(_, _, rp) =>
-        cases(CS.CompileResult) rp block:
-          | ok(code) =>
-            j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
-          | err(problems) =>
-            for lists.each(e from problems):
-              print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-            end
-            failure := true
-            j-field(w.locator.uri(), J.j-raw-code("\"error\""))
-        end
-    end
-  end)
+      loadable = compiled.modules.get-value-now(w.locator.uri())
+      cases(Loadable) loadable:
+        | module-as-string(_, _, rp) =>
+          cases(CS.CompileResult) rp block:
+            | ok(code) =>
+              j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
+            | err(problems) =>
+              for lists.each(e from problems) block:
+                print-error(RED.display-to-string(e.render-reason(), torepr, empty))
+                print-error("\n")
+              end
+              failure := true
+              j-field(w.locator.uri(), J.j-raw-code("\"error\""))
+          end
+      end
+    end)
   when failure:
     raise("There were compilation errors")
   end
