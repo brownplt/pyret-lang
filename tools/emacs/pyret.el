@@ -122,7 +122,7 @@
   '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
 
 (defconst pyret-punctuation-regex
-  (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
+  (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," ";" "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\(?:\\_<"
@@ -166,7 +166,6 @@
   (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
   (defconst pyret-font-lock-keywords-1
     (list
-     `(";" . font-lock-keyword-face)
      `("\\(```\\(?:\\\\[`\\]\\|[^`\\]\\|``?[^`]\\)*?```\\)" 
        (1 '(face font-lock-string-face font-lock-multiline t) t))
      `(,(concat 
@@ -901,13 +900,11 @@
               ;;(message "Line %d, Seen rparen, and opens is %s, incrementing defered-closed-vars" (1+ n) opens)
               (incf (pyret-indent-vars defered-closed)))
             (forward-char))
-           ((or (pyret-END) (pyret-SEMI))
+           ((pyret-END)
             (when (pyret-has-top opens '(object data))
               ;(incf (pyret-indent-object cur-closed))
               (pop opens))
             (let* ((h (car-safe opens))
-                   (is-semi (pyret-SEMI))
-                   (which-to-close (if is-semi defered-closed cur-closed))
                    (still-unclosed t))
               (while (and still-unclosed opens)
                 (cond
@@ -918,71 +915,69 @@
                   (cond 
                    ((> (pyret-indent-object cur-opened) 0) (decf (pyret-indent-object cur-opened)))
                    ((> (pyret-indent-object defered-opened) 0) (decf (pyret-indent-object defered-opened)))
-                   (t (incf (pyret-indent-object which-to-close)))))
+                   (t (incf (pyret-indent-object cur-closed)))))
                  ((equal h 'wantcloseparen)
                   (cond
                    ((> (pyret-indent-parens cur-opened) 0) (decf (pyret-indent-parens cur-opened)))
                    ((> (pyret-indent-parens defered-opened) 0) (decf (pyret-indent-parens defered-opened)))
-                   (t (incf (pyret-indent-parens which-to-close)))))
+                   (t (incf (pyret-indent-parens cur-closed)))))
                  ((equal h 'field)
                   (cond
                    ((> (pyret-indent-fields cur-opened) 0) (decf (pyret-indent-fields cur-opened)))
                    ((> (pyret-indent-fields defered-opened) 0) (decf (pyret-indent-fields defered-opened)))
-                   (t (incf (pyret-indent-fields which-to-close)))))
+                   (t (incf (pyret-indent-fields cur-closed)))))
                  ((equal h 'var)
                   (cond
                    ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
-                   (t (incf (pyret-indent-vars which-to-close)))))
+                   (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
                  ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
-                   (t (incf (pyret-indent-fun which-to-close))))
+                   (t (incf (pyret-indent-fun cur-closed))))
                   (setq still-unclosed nil))
                  ((or (equal h 'cases) (equal h 'ifcond))
                   (cond
                    ((> (pyret-indent-cases cur-opened) 0) (decf (pyret-indent-cases cur-opened)))
                    ((> (pyret-indent-cases defered-opened) 0) (decf (pyret-indent-cases defered-opened)))
-                   (t (incf (pyret-indent-cases which-to-close))))
+                   (t (incf (pyret-indent-cases cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'data)
                   (cond
                    ((> (pyret-indent-data cur-opened) 0) (decf (pyret-indent-data cur-opened)))
                    ((> (pyret-indent-data defered-opened) 0) (decf (pyret-indent-data defered-opened)))
-                   (t (incf (pyret-indent-data which-to-close))))
+                   (t (incf (pyret-indent-data cur-closed))))
                   (setq still-unclosed nil))
                  ((or (equal h 'shared) (equal h 'check))
                   (cond
                    ((> (pyret-indent-shared cur-opened) 0) (decf (pyret-indent-shared cur-opened)))
                    ((> (pyret-indent-shared defered-opened) 0) (decf (pyret-indent-shared defered-opened)))
-                   (t (incf (pyret-indent-shared which-to-close))))
+                   (t (incf (pyret-indent-shared cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'try)
                   (cond
                    ((> (pyret-indent-try cur-opened) 0) (decf (pyret-indent-try cur-opened)))
                    ((> (pyret-indent-try defered-opened) 0) (decf (pyret-indent-try defered-opened)))
-                   (t (incf (pyret-indent-try which-to-close))))
+                   (t (incf (pyret-indent-try cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'except)
                   (cond
                    ((> (pyret-indent-except cur-opened) 0) (decf (pyret-indent-except cur-opened)))
                    ((> (pyret-indent-except defered-opened) 0) (decf (pyret-indent-except defered-opened)))
-                   (t (incf (pyret-indent-except which-to-close))))
+                   (t (incf (pyret-indent-except cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'graph)
                   (cond
                    ((> (pyret-indent-graph cur-opened) 0) (decf (pyret-indent-graph cur-opened)))
                    ((> (pyret-indent-graph defered-opened) 0) (decf (pyret-indent-graph defered-opened)))
-                   (t (incf (pyret-indent-graph which-to-close))))
+                   (t (incf (pyret-indent-graph cur-closed))))
                   (setq still-unclosed nil))
                  )
                 (pop opens)
                 (setq h (car-safe opens)))
-              (if is-semi
-                  (forward-char 1)
-                (forward-char 3))))
+              (forward-char 3)))
            (t (if (not (eobp)) (forward-char)))))
         ;;(message "At end   of line %d, open is %s" (+ n 1) open)
         (aset pyret-nestings-at-line-start n (pyret-add-indent open (pyret-sub-indent cur-opened cur-closed)))

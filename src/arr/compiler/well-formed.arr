@@ -107,7 +107,7 @@ fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
     if seen-non-let:    # once we've seen a non-let expression, and see anything else
       is-blocky := true # this must be a blocky block
     else:
-      when not(A.is-s-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)):
+      when not(A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)):
         seen-non-let := true
       end
     end
