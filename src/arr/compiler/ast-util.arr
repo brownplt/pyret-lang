@@ -23,6 +23,7 @@ dependency = T.dependency
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
+    A.is-s-tuple-let(stmt) or
     A.is-s-var(stmt) or
     A.is-s-rec(stmt) or
     A.is-s-fun(stmt) or
@@ -814,6 +815,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         raise("Cannot provide a raw method")
       | a-record(l, fields) =>
         T.t-record(map(field-to-typ, fields), l)
+      | a-tuple(l, fields) =>
+        T.t-top(l)
       | a-app(l, ann, args) =>
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l)
       | a-pred(l, ann, exp) =>
@@ -944,6 +947,7 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
     | t-name(module-name, id, l) => transform-name(typ)
     | t-var(id, l) => typ
     | t-arrow(args, ret, l) => T.t-arrow(map(c, args), c(ret), l)
+    | t-tuple(elts, l) => T.t-tuple(map(c, elts), l)
     | t-app(onto, args, l) => T.t-app(c(onto), map(c, args), l)
     | t-top(l) => T.t-top(l)
     | t-bot(l) => T.t-bot(l)

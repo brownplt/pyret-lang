@@ -131,8 +131,10 @@ data JStmt:
   | j-expr(expr :: JExpr) with:
     label(self): "j-expr" end,
     print-ugly-source(self, printer) block:
+      # (BSL) I wish this weren't necessary
+      printer("(")
       self.expr.print-ugly-source(printer)
-      printer(";\n")
+      printer(");\n")
     end,
     tosource(self):
       self.expr.tosource() + PP.str(";")

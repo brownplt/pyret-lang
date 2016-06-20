@@ -11,7 +11,6 @@ import format as Format
 import either as E
 import render-error-display as RED
 format = Format.format
-Either = E.Either
 left = E.left
 right = E.right
 

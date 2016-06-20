@@ -34,6 +34,7 @@
       "is-object": "AnyPred",
       "is-function": "AnyPred",
       "is-raw-array": "AnyPred",
+      "is-tuple": "AnyPred",
 
       // Array functions
       "raw-array":         ["forall", ["a"], ["Maker", "tva", ["RawArray", "tva"]]],

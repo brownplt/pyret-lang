@@ -1,0 +1,113 @@
+[ ] Type checking
+  [x] Add a new type
+  [x] Add synth/check
+  [x] Add tests to tests/type-check/[good|bad]/
+  [ ] Add new pretty error
+
+[ ] What happens if we have really big numbers? (Wf-error)
+        [x] Ask on Slack – what's the best place to cut off?
+            Should we formalize `MAX_SAFE_INTEGER` in the language for things like this?
+        [ ] Pick a number
+
+[ ] Binding errors:
+        [ ] Highlight the bindings in the error message? 
+            - problem is no location for the bindings themselves
+        [ ] Investigate highlighting of tuple index in errors (@jack)
+
+[ ] *Refactor existing code to use tuples
+    [x] *in compiler
+      [x] *anf-loop-compiler
+      [x] *resolve-scope
+    [ ] CS173 interp-state assignment
+    [ ] CS75 assignment?
+    [ ] find other places?
+
+[ ] Add helpers for tuples:
+    [x] is-tuple
+    [ ] *test is-tuple (in test-tuple file)
+    [ ] tuple-length?
+    [ ] test tuple-length?
+
+
+[ ] Find out how to change and save Vim font, or get an editor that you like
+    better
+
+[ ] Presentation
+    [ ] *Found new eachLoop primitive slide
+
+[ ] Heroku setup - finish
+[ ] Gdrive setup?
+[ ] SSH forwarding/tunneling
+
+[ ] Investigate perforamce tests
+    [ ] Write performance tests
+        Questions:
+        - Is forcing tuples to be size >= 2 a big win?
+        - What about doing all checks _before_ gets for a binding?
+    [ ] tuple-get-safe 
+
+[ ] More stack iteration primitives?
+
+[ ] *Destructuring everywhere
+
+[ ] Check for duplication in CreateMutableFromArray
+    [ ] Test
+
+[ ] *Make more thing faster
+______________________________________________________
+TODONE:
+
+
+[x] Make negative index be well-formed error
+[x] Change name variable to be tup
+[x] Make errors fancy
+        [x] Too big index
+        [x] Not a tuple
+        [x] Do "fancy-reason" as well
+
+[x] Finish Equality
+       path correct? yes
+       [x] Add test(s) for nested tuple
+       [x] Add test(s) for cyclic tuple
+           (see http://www.pyret.org/docs/latest/equality.html)
+
+[x] *Setup workflow
+
+[x] Annotation checking
+  [x] Ann-mismatch for a single element
+  [x] *Length-mismatch for the whole tuple
+  [x] *Add tests to tests/pyret/tests/test-contracts.arr
+
+[x] Binding
+      [x] tosource
+      [x] Add to resolve-scope
+        [x] Toplevel bindings of tuple destruction
+            - Bad error, needed it in ok-last, but didn't get any indication
+              of that
+        [x] Introduce intermediate binding for tuple value
+            - Done with make-atom
+        [x] Reversing/ordering/processing of tuple binds
+      [ ] Errors
+        [x] Add a new runtime function for checking binding mismatches
+        [x] Add a new let-binding in resolve-scope that calls the rt function
+            with the right information
+        [x] *Do the single-error version, but have all four of:
+            - source location
+            - tuple
+            - length
+            - desired-length
+
+            (A single error required a boostrap to introduce is-tuple)
+
+[x] DOM - printing of tuples
+
+[x] *Make a mutable version of eachLoop 
+   [x] *test
+   Note: only have one try catch block (have a helper function that calls try cathc block that does all of that work
+   [x] *write tests that use both versions (getting old value, summing up, etc.)
+      - don't write tests that rely on the orders of the keys (sum, adding to a set)
+      - test-str-dict (can even check against all string-dict) (9 combos?)
+
+[x] Teach highlighter what a semi-colon means
+
+[x] Remove "hello" in output printing

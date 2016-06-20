@@ -168,6 +168,7 @@ data Type:
   | t-top(l :: A.Loc)
   | t-bot(l :: A.Loc)
   | t-record(fields :: List<TypeMember>, l :: A.Loc)
+  | t-tuple(elts :: List<Type>, l :: A.Loc)
   | t-forall(introduces :: List<Type>, onto :: Type, l :: A.Loc)
   | t-ref(typ :: Type, l :: A.Loc)
   | t-existential(id :: Name, l :: A.Loc)
@@ -191,6 +192,10 @@ sharing:
       | t-record(fields, _) =>
         VS.vs-seq([list: VS.vs-str("{")]
           + interleave(fields.map(VS.vs-value), VS.vs-value(", "))
+          + [list: VS.vs-str("}")])
+      | t-tuple(elts, _) =>
+        VS.vs-seq([list: VS.vs-str("{")]
+          + interleave(elts.map(VS.vs-value), VS.vs-value("; "))
           + [list: VS.vs-str("}")])
       | t-forall(introduces, onto, _) =>
         VS.vs-seq([list: VS.vs-str("forall ")]
@@ -230,6 +235,12 @@ sharing:
               field.key()
             end.join-str(", ")
           + "}"
+      | t-tuple(elts, _) =>
+        "{"
+          + for map(elt from elts):
+              elt.key()
+            end.join-str("; ")
+          + "}"
       | t-forall(introduces, onto, _) =>
         "<" + introduces.map(_.key()).join-str(", ") + ">"
           + onto.key()
@@ -259,6 +270,8 @@ sharing:
           t-app(new-onto, new-args, l)
         | t-record(fields, l) =>
           t-record(fields.map(_.substitute(new-type, old-type)), l)
+        | t-tuple(elts, l) =>
+          t-tuple(elts.map(_.substitute(new-type, old-type)), l)
         | t-forall(introduces, onto, l) =>
           # doesn't need to be capture avoiding due to resolve-names
           new-onto = onto.substitute(new-type, old-type)
@@ -308,6 +321,8 @@ sharing:
           true
         | t-record(fields, _) =>
           all(_.free-variable(var-type), fields)
+        | t-tuple(elts, _) =>
+          all(_.free-variable(var-type), elts)
         | t-forall(_, onto, _) =>
           onto.free-variable(var-type)
         | t-ref(typ, _) =>
@@ -345,6 +360,8 @@ sharing:
         t-bot(loc)
       | t-record(fields, _) =>
         t-record(fields, loc)
+      | t-tuple(elts, _) =>
+        t-tuple(elts, loc)
       | t-forall(introduces, onto, _) =>
         t-forall(introduces, onto, loc)
       | t-ref(typ, _) =>
@@ -414,6 +431,15 @@ sharing:
           | t-record(b-fields, _) =>
             ask:
               | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("Fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-tuple(a-elts, _) =>
+        cases(Type) other:
+          | t-tuple(b-elts, _) =>
+            ask:
+              | not(compare-lists(a-elts, b-elts)) then: E.NotEqual("Elements", self, other)
               | otherwise: E.Equal
             end
           | else => E.NotEqual("Different types", self, other)

@@ -40,7 +40,9 @@ provide {
   langle: langle,
   rangle: rangle,
   comma: comma,
-  commabreak: commabreak
+  commabreak: commabreak,
+  semi: semi,
+  semibreak: semibreak
 } end
 provide-types *
 
@@ -228,8 +230,11 @@ rbrack = str("]")
 langle = str("<")
 rangle = str(">")
 comma = str(",")
+semi = str(";")
+
 fun sbreak(n): if-flat(blank(n), hardline) end
 commabreak = comma + sbreak(1)
+semibreak = semi + sbreak(1)
 
 fun flow-map(sep, f, items):
   for lists.fold(acc from mt-doc, shadow item from items):

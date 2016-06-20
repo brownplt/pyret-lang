@@ -58,6 +58,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
       A.a-record(l, fields.map(desugar-afield))
+    | a-tuple(l, fields) =>
+      A.a-tuple(l, fields.map(desugar-ann))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -476,6 +478,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
+    | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
+    | s-tuple-get(l, tup, index) => A.s-tuple-get(l, tup, index)
     | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:

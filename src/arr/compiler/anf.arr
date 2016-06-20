@@ -338,6 +338,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
                 A.s-id(l, name.id), false))))
       end
+    | s-tuple(l, fields) =>
+      anf-name-rec(fields, "anf_tuple_fields", lam(vs):
+       k.apply(l, N.a-tuple(l, vs))
+     end)
+    | s-tuple-get(l, tup, index) => 
+       anf-name(tup, "anf_tuple_get", lam(v): k.apply(l, N.a-tuple-get(l, v, index)) end)
     | s-array(l, values) =>
       array-id = names.make-atom("anf_array")
       N.a-let(

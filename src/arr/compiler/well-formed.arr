@@ -545,6 +545,17 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
+  s-tuple-get(self, l, tup, index):
+    if (index < 0) block: 
+      wf-error(" Index too small  ", l)
+      false
+    else if (index > 1000):
+      wf-error(" Index over maximum allowed index  ", l)
+      false
+    else:
+      true
+     end
+  end,
   s-check(self, l, name, body, keyword-check) block:
     last-visited-loc := l
     if not(keyword-check) block:
@@ -832,6 +843,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-update(l, supe, fields)
+  end,
+  s-tuple-get(_, l :: Loc, tup, index):
+    well-formed-visitor.s-tuple-get(l, tup, index)
   end,
   s-obj(_, l :: Loc, fields :: List<A.Member>):
     well-formed-visitor.s-obj(l, fields)

@@ -38,6 +38,14 @@ data FieldFailure:
           ED.text(", field "), ED.code(ED.text(self.field)), ED.text(" failed because")],
         self.reason.render-reason(loc, from-fail-arg)]
     end
+  | ann-failure(loc, ann, reason) with:
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para-nospace: ED.text("The annotation at "), draw-and-highlight(self.loc),
+         ED.text(" failed because")],
+        self.reason.render-reason(loc, from-fail-arg)]
+    end
+
   | missing-field(loc, field) with:
     render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -182,7 +190,7 @@ data FailureReason:
             ED.text("The runtime contract checker halted execution because the "),
             ED.text("record annotation"),
             ED.text(" was not satisfied by the value")],
-           ED.embed(self.val),
+          ED.embed(self.val),
           [ED.para:
             ED.text("because:")],
           reasons])
@@ -191,12 +199,93 @@ data FailureReason:
       [ED.error:
         [ED.para:
           ED.text("The record annotation at "),
-          ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
+          ED.loc-display(loc, "error-highlight", ED.code(ED.text("this annotation"))),
           ED.text("failed on this value:")],
         ED.embed(self.val),
         [ED.para: ED.text("Because:")],
         ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
       ]
+    end
+  | tuple-anns-fail(val, anns-failures :: L.List<FieldFailure>) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      var n = 0
+      reasons =
+        self.anns-failures.map(lam(failure):
+            cases(FieldFailure) failure block:
+              | missing-field(fl, ff) =>
+                n := n + 1
+                [ED.error:
+                  [ED.para:
+                    ED.text("The value was excepted to have the annotation "),
+                    ED.code(ED.text(ff)),
+                    ED.text(" because of the tuple annotation ")],
+                  ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]
+              | ann-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
+            end
+          end) ^ ED.bulleted-sequence
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the "),
+              ED.text("tuple annotation"),
+              ED.text(" was not satisfied by the value")],
+            ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+            ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 0)),
+            [ED.para:
+              ED.text("because:")],
+            reasons]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the "),
+            ED.text("tuple annotation"),
+            ED.text(" was not satisfied by the value")],
+          ED.embed(self.val),
+          [ED.para:
+            ED.text("because:")],
+          reasons])
+    end,
+    render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple annotation "),
+          ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
+          ED.text("failed on this value:")],
+        ED.embed(self.val),
+        [ED.para: ED.text("Because:")],
+        ED.bulleted-sequence(self.anns-failures.map(_.render-reason(loc, false)))
+      ]
+    end
+  | tup-length-mismatch(loc, val, annLength, tupleLength) with:
+    render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple annotation "),
+          ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], 0),
+          ED.text(" expected the given tuple to be of length "),
+          ED.embed(self.annLength)],
+        [ED.para:
+          ED.text("The given tuple had the incorrect length of "),
+          ED.embed(self.tupleLength)],
+        [ED.para:
+          ED.text("The tuple was "),
+          ED.embed(self.val)]
+      ]
+    end,
+    render-reason(self, loc, fail-from-arg):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple annotation at "),
+          ED.embed(self.loc),
+          ED.text(" expected the given tuple to be of length "),
+          ED.embed(self.annLength)],
+        [ED.para:
+          ED.text("The given tuple had the incorrect length of "),
+          ED.embed(self.tupleLength)]
+      ] 
     end
   | dot-ann-not-present(name, field) with:
     render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
@@ -204,9 +293,9 @@ data FailureReason:
         [ED.para:
           ED.text("The runtime contract checker halted execution because the "),
           ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], 0)],
-         # can't highlight individual components since non-top-level
-         # expressions can't presently be parsed
-         ED.code(
+        # can't highlight individual components since non-top-level
+        # expressions can't presently be parsed
+        ED.code(
           [ED.sequence:
             ED.text(self.name),
             ED.text("."),

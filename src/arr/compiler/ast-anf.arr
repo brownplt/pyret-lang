@@ -381,6 +381,16 @@ data ALettable:
           PP.group(PP.str("ref ") + ann.tosource())
       end
     end
+  | a-tuple(l :: Loc, fields :: List<AVal>%(is-link)) with:
+    label(self): "a-tuple" end,
+    tosource(self):
+     PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+        PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
+  | a-tuple-get(l :: Loc, tup :: AVal, index :: Number) with:
+   label(self): "s-tuple-get" end,
+    tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
+    end 
   | a-obj(l :: Loc, fields :: List<AField>) with:
     label(self): "a-obj" end,
     tosource(self):
@@ -523,6 +533,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
+    | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
+    | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
     | a-update(_, supe, fields) =>
       a-update(_, strip-loc-val(supe), fields.map(strip-loc-field))
@@ -639,6 +651,12 @@ default-map-visitor = {
   a-ref(self, l :: Loc, ann :: Option<A.Ann>):
     a-ref(l, ann)
   end,
+  a-tuple(self, l :: Loc, fields :: List<AVal>):
+    a-tuple(l, fields.map(_.visit(self)))
+  end,
+  a-tuple-get(self, l :: Loc, tup :: AVal, index :: Number):
+    a-tuple-get(l, tup.visit(self), index)
+  end,
   a-obj(self, l :: Loc, fields :: List<AField>):
     a-obj(l, fields.map(_.visit(self)))
   end,
@@ -721,6 +739,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))
     | a-record(l, fields) => lst-a(fields.map(get-ann))
+    | a-tuple(l, fields) => lst-a(fields)
     | a-app(l, a, args) => lst-a(link(a, args))
     | a-method-app(l, a, _, args) => lst-a(link(a, args))
     | a-pred(l, a, pred) =>
@@ -867,6 +886,12 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
         | none => seen-so-far
         | some(a) => freevars-ann-acc(a, seen-so-far)
       end
+    | a-tuple(_, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-v-acc(f, acc)
+      end
+    | a-tuple-get(_, tup, index) =>
+       freevars-v-acc(tup, seen-so-far)
     | a-obj(_, fields) =>
       for fold(acc from seen-so-far, f from fields):
         freevars-v-acc(f.value, acc)

@@ -635,7 +635,48 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('#\n1')).not.toBe(false);
       expect(parse('#\n{1:2}')).toBe(false);
     });
+
+    it("should parse tuples", function() {
+      expect(parse("{1; 2; 3}")).not.toBe(false);
+      expect(parse("{4 * 3; 3; 10 - 2}")).not.toBe(false);
+      expect(parse("{12; 2 + 3; 14;}")).not.toBe(false);
+      expect(parse("{{124; 124; 12}")).toBe(false);
+      expect(parse("{word; hello; there; pyret")).toBe(false);
+      expect(parse("234; hi; bad}")).toBe(false);
+    });
+
+    it("should parse tuple-get", function() {
+      expect(parse("tup.{2}")).not.toBe(false);
+      expect(parse("one.{3 + 4}")).toBe(false);
+      expect(parse("two.{4")).toBe(false);
+      expect(parse("two.{two}")).toBe(false);
+      expect(parse("hello.5}")).toBe(false);
+      expect(parse("tup. {2}")).not.toBe(false);
+      expect(parse("tup\n\n\n\n\n    \n\n\n.{2}")).not.toBe(false);
+      expect(parse("{1;2;3}.{2}")).not.toBe(false);
+      expect(parse("(5 + 6).{2}")).not.toBe(false);
+      expect(parse("f().{2}")).not.toBe(false);
+    });
+
+    it("should parse tuple binding", function() {
+     expect(parse("{x;y} = {1;2}")).not.toBe(false);
+     expect(parse("{x;y;z = } {1;2}")).toBe(false);
+     expect(parse("{1 + 3; hello} = t")).toBe(false);
+     expect(parse("{v;v;b;u} = t")).not.toBe(false);
+    });
+
+    it("should parse tuple annotations", function(){
+     expect(parse("fun f(tup:: {Number; String; Number}): tup.{0} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; String; Number): tup.{0} end")).toBe(false);
+     expect(parse("fun f(tup:: {hello; there}): hello end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number}): tup.{1} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; {String; Number; {hello; there}}; {hi; what}}): tup.{1} end")).not.toBe(false);
+    });
+
+  it("should parse tuple binding", function() {
+    expect(parse("for each({k;v}; from elts): k end")).not.toBe(false);
+  });
   });
 
-
+  
 });

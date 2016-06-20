@@ -133,7 +133,8 @@ data List<a>:
 
     map<b>(self, f :: (a -> b)) -> List<b>:
       doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      f(self.first) ^ link(_, self.rest.map(f))
+      #f(self.first) ^ link(_, self.rest.map(f))
+      map(f, self)
     end,
 
     filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
@@ -475,14 +476,26 @@ fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
   help(lst1, lst2)
 end
 
-fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
+fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
+  doc: "Returns a list made up of f(elem) for each elem in lst"
+  newRaw = builtins.list-to-raw-array(lst)
+  len = raw-array-length(newRaw)
+  builtins.raw-each-loop(lam(i): 
+                    raw-array-set(newRaw, i, f(raw-array-get(newRaw, i))) end,
+                    0, len)
+  raw-array-to-list(newRaw)
+ end
+
+#|
+fun _map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
   doc: "Returns a list made up of f(elem) for each elem in lst"
   if is-empty(lst):
     empty
   else:
-    f(lst.first) ^ link(_, map(f, lst.rest))
+    f(lst.first) ^ link(_, _map(f, lst.rest))
   end
 end
+|#
 
 fun map2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   doc: "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
@@ -548,6 +561,12 @@ fun map4_n<a, b, c, d, e>(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: Lis
 end
 
 fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
+  newRaw = builtins.list-to-raw-array(lst)
+  builtins.raw-each-loop(lam(i): f(raw-array-get(newRaw, i)) end, 0, raw-array-length(newRaw))  
+end
+
+
+fun _each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
   doc: "Calls f for each elem in lst, and returns nothing"
   fun help(l):
     if is-empty(l) block:
@@ -664,6 +683,10 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
       end
   end
 end
+
+#fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
+
+#end
 
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,

@@ -235,6 +235,23 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
           ]),
         comp-fields.others
         )
+    | a-tuple(l, tuple-fields) =>
+      comp-fields = for fold(acc from {locs: cl-empty, fields: cl-empty, others: cl-empty},
+         field from tuple-fields):
+       compiled = compile-ann(field, visitor)
+       {
+          locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
+          fields: cl-snoc(acc.fields, compiled.exp),
+          others: acc.others + compiled.other-stmts
+       }
+       end
+     c-exp(
+       rt-method("makeTupleAnn", [clist:
+           j-list(false, comp-fields.locs),
+           j-list(false, comp-fields.fields)
+        ]),
+       comp-fields.others
+      )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
@@ -1146,6 +1163,19 @@ compiler-visitor = {
   a-field(self, l :: Loc, name :: String, value :: N.AVal):
     visit-v = value.visit(self)
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
+  end,
+  a-tuple(self, l, values):
+    visit-vals = values.map(_.visit(self)) 
+    c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
+  end,
+  a-tuple-get(self, l, tup, index):
+   visit-name = tup.visit(self)
+    c-exp(rt-method("getTuple", [clist: visit-name.exp, j-num(index), self.get-loc(l)]), cl-empty)
+  end,
+  a-array(self, l, values):
+    visit-vals = values.map(_.visit(self))
+    other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, cl-empty)
+    c-exp(j-list(false, CL.map_list(get-exp, visit-vals)), other-stmts)
   end,
   a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)

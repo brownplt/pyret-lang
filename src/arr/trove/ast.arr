@@ -799,7 +799,22 @@ data Expr:
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
-  | s-obj(l :: Loc, fields :: List<Member>) with:
+  | s-tuple(l :: Loc, fields :: List<Expr>) with:
+    label(self): "s-tuple" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+        PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
+   | s-tuple-get(l :: Loc, tup :: Expr, index :: Number) with:
+    label(self): "s-tuple-get" end,
+    tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
+    end 
+   | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
+   label(self): "s-tuple-let" end,
+   tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
+                   + str-spaceequal + self.tup.tosource()
+    end
+   | s-obj(l :: Loc, fields :: List<Member>) with:
     label(self): "s-obj" end,
     tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -1329,6 +1344,12 @@ data Ann:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
+  | a-tuple(l :: Loc, fields :: List<AField>) with:
+    label(self): "a-tuple" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end,
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
     label(self): "a-app" end,
     tosource(self):
@@ -1692,6 +1713,15 @@ default-map-visitor = {
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
+  s-tuple(self, l :: Loc, fields :: List<Expr>):
+    s-tuple(l, fields.map(_.visit(self)))
+  end,
+  s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+    s-tuple-get(l, tup.visit(self), index)
+  end,
+  s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
+  end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
@@ -1871,6 +1901,9 @@ default-map-visitor = {
   end,
   a-record(self, l, fields):
     a-record(l, fields.map(_.visit(self)))
+  end,
+  a-tuple(self, l, fields):
+    a-tuple(l, fields.map(_.visit(self)))
   end,
   a-app(self, l, ann, args):
     a-app(l, ann.visit(self), args.map(_.visit(self)))
@@ -2157,6 +2190,15 @@ default-iter-visitor = {
   s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and lists.all(_.visit(self), fields)
   end,
+  s-tuple(self, l :: Loc, fields :: List<Expr>):
+    lists.all(_.visit(self), fields)
+  end,
+  s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+    tup.visit(self)
+  end,
+  s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    lists.all(_.visit(self), names) and tup.visit(self)
+  end,
   s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
   end,
@@ -2328,6 +2370,9 @@ default-iter-visitor = {
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
   a-record(self, l, fields):
+    lists.all(_.visit(self), fields)
+  end,
+  a-tuple(self, l, fields):
     lists.all(_.visit(self), fields)
   end,
   a-app(self, l, ann, args):
@@ -2791,6 +2836,9 @@ dummy-loc-visitor = {
   end,
   a-record(self, l, fields):
     a-record(dummy-loc, fields.map(_.visit(self)))
+  end,
+  a-tuple(self, l, fields):
+    a-tuple(dummy-loc, fields.map(_.visit(self)))
   end,
   a-app(self, l, ann, args):
     a-app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
