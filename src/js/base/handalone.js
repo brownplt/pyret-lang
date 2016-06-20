@@ -36,6 +36,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       runtime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
       runtime["throwUnfinishedTemplate"] = ffi.throwUnfinishedTemplate;
       runtime["throwInvalidTableColumn"] = ffi.throwInvalidTableColumn;
+      runtime["toArray"] = ffi.toArray;
 
       var checkList = runtime.makeCheckType(ffi.isList, "List");
       runtime["checkList"] = checkList;
