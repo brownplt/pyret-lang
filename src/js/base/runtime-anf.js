@@ -2715,7 +2715,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return safeCall(function() {
           var thisChecker = remainingAnns.pop();
           thisAnn = thisChecker;
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+          return thisChecker.check(that.locs[remainingAnns.length], val.vals[remainingAnns.length]);
         }, function(result) {
           if(ffi.isOk(result)) {
             if(remainingAnns.length === 0) { return ffi.contractOk; }
