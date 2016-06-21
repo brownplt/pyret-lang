@@ -235,6 +235,23 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
           ]),
         comp-fields.others
         )
+    | a-tuple(l, tuple-fields) =>
+      comp-fields = for fold(acc from {locs: cl-empty, fields: cl-empty, others: cl-empty},
+         field from tuple-fields):
+       compiled = compile-ann(field, visitor)
+       {
+          locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
+          fields: cl-snoc(acc.fields, compiled.exp),
+          others: acc.others + compiled.other-stmts
+       }
+       end
+     c-exp(
+       rt-method("makeTupleAnn", [clist:
+           j-list(false, comp-fields.locs),
+           j-list(false, comp-fields.fields)
+        ]),
+       comp-fields.others
+      )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
@@ -941,7 +958,7 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
 end
 
 compiler-visitor = {
-  a-module(self, l, answer, dvs, dts, provides, types, checks):
+  method a-module(self, l, answer, dvs, dts, provides, types, checks):
     types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
       compiled = compile-ann(ann.ann, self)
       {
@@ -979,7 +996,7 @@ compiler-visitor = {
       types-obj-fields.others
         + compiled-provides.other-stmts + compiled-answer.other-stmts + compiled-checks.other-stmts)
   end,
-  a-type-let(self, l, bind, body):
+  method a-type-let(self, l, bind, body):
     cases(N.ATypeBind) bind:
       | a-type-bind(l2, name, ann) =>
         visited-body = body.visit(self)
@@ -1004,21 +1021,21 @@ compiler-visitor = {
           visited-body.new-cases)
     end
   end,
-  a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
+  method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compile-lettable(self, some(b-let(b)), e, some(body), lam():
       compiled-e = e.visit(self)
       compiled-body = body.visit(self)
       compile-annotated-let(self, b-let(b), compiled-e, compiled-body)
     end)
   end,
-  a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
+  method a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
     compile-lettable(self, some(b-array(b, idx)), e, some(body), lam():
       compiled-e = e.visit(self)
       compiled-body = body.visit(self)
       compile-annotated-let(self, b-array(b, idx), compiled-e, compiled-body)
     end)
   end,
-  a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
+  method a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     compiled-e = e.visit(self)
     # TODO: annotations here?
@@ -1032,7 +1049,7 @@ compiler-visitor = {
         ^ cl-cons(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
-  a-seq(self, _, e1, e2):
+  method a-seq(self, _, e1, e2):
     compile-lettable(self, none, e1, some(e2), lam():
       e1-visit = e1.visit(self)
       e2-visit = e2.visit(self)
@@ -1042,16 +1059,16 @@ compiler-visitor = {
         e2-visit.new-cases)
     end)
   end,
-  a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
+  method a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     raise("Impossible: a-if directly in compiler-visitor should never happen")
   end,
-  a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr):
+  method a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr):
     raise("Impossible: a-cases directly in compiler-visitor should never happen")
   end,
-  a-update(self, l, obj, fields):
+  method a-update(self, l, obj, fields):
     raise("Impossible: a-update directly in compiler-visitor should never happen")
   end,
-  a-lettable(self, _, e :: N.ALettable):
+  method a-lettable(self, _, e :: N.ALettable):
     compile-lettable(self, none, e, none, lam():
       visit-e = e.visit(self)
       c-block(
@@ -1064,14 +1081,14 @@ compiler-visitor = {
         cl-empty)
     end)
   end,
-  a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
+  method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
     c-exp(j-dot-assign(j-id(js-id-of(id)), "$var", visit-value.exp), visit-value.other-stmts)
   end,
-  a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
+  method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
-  a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     visit-args = args.map(_.visit(self))
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
@@ -1079,36 +1096,36 @@ compiler-visitor = {
     c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), set-loc)
   end,
 
-  a-ref(self, l, maybe-ann):
+  method a-ref(self, l, maybe-ann):
     cases(Option) maybe-ann:
       | none => c-exp(rt-method("makeGraphableRef", cl-empty), cl-empty)
       | some(ann) => raise("Cannot handle annotations in refs yet")
     end
   end,
-  a-obj(self, l :: Loc, fields :: List<N.AField>):
+  method a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(lam(f): f.visit(self) end)
     c-exp(rt-method("makeObject", [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), cl-empty)
   end,
-  a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
+  method a-get-bang(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
     c-exp(rt-method("getFieldRef", [clist: visit-obj.exp, j-str(field), self.get-loc(l)]), visit-obj.other-stmts)
   end,
-  a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
+  method a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
     visit-fields = fields.map(lam(f): f.visit(self) end)
     c-exp(rt-method("extendObj", [clist: self.get-loc(l), visit-obj.exp, j-obj(CL.map_list(o-get-field, visit-fields))]),
       cl-empty)
   end,
-  a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
+  method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
     c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
   end,
-  a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
+  method a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
     c-exp(rt-method("getColonFieldLoc", [clist: visit-obj.exp, j-str(field), self.get-loc(l)]),
       visit-obj.other-stmts)
   end,
-  a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
+  method a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = fresh-id(compiler-name("step"))
     temp = fresh-id(compiler-name("temp_lam"))
     len = args.length()
@@ -1124,7 +1141,7 @@ compiler-visitor = {
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
                 compile-fun-body(l, new-step, temp, self, effective-args, some(len), body, true)))])
   end,
-  a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
+  method a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     step = fresh-id(compiler-name("step"))
     temp-full = fresh-id(compiler-name("temp_full"))
     len = args.length()
@@ -1140,39 +1157,52 @@ compiler-visitor = {
     end
     c-exp(method-expr, [clist: full-var])
   end,
-  a-val(self, l :: Loc, v :: N.AVal):
+  method a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)
   end,
-  a-field(self, l :: Loc, name :: String, value :: N.AVal):
+  method a-field(self, l :: Loc, name :: String, value :: N.AVal):
     visit-v = value.visit(self)
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
-  a-srcloc(self, l, loc):
+  method a-tuple(self, l, values):
+    visit-vals = values.map(_.visit(self)) 
+    c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
+  end,
+  method a-tuple-get(self, l, tup, index):
+   visit-name = tup.visit(self)
+    c-exp(rt-method("getTuple", [clist: visit-name.exp, j-num(index), self.get-loc(l)]), cl-empty)
+  end,
+  method a-array(self, l, values):
+    visit-vals = values.map(_.visit(self))
+    other-stmts = visit-vals.foldr(lam(v, acc): v.other-stmts + acc end, cl-empty)
+    c-exp(j-list(false, CL.map_list(get-exp, visit-vals)), other-stmts)
+  end,
+  method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  a-num(self, l :: Loc, n :: Number):
+  method a-num(self, l :: Loc, n :: Number):
     if num-is-fixnum(n):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
       c-exp(rt-method("makeNumberFromString", [clist: j-str(tostring(n))]), cl-empty)
     end
   end,
-  a-str(self, l :: Loc, s :: String):
+  method a-str(self, l :: Loc, s :: String):
     c-exp(j-parens(j-str(s)), cl-empty)
   end,
-  a-bool(self, l :: Loc, b :: Boolean):
+  method a-bool(self, l :: Loc, b :: Boolean):
     c-exp(j-parens(if b: j-true else: j-false end), cl-empty)
   end,
-  a-undefined(self, l :: Loc):
+  method a-undefined(self, l :: Loc):
     c-exp(undefined, cl-empty)
   end,
-  a-id(self, l :: Loc, id :: A.Name):
+  method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,
-  a-id-var(self, l :: Loc, id :: A.Name):
+  method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,
-  a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
+  method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = j-id(js-id-of(id))
     if safe:
       c-exp(j-dot(s, "$var"), cl-empty)
@@ -1186,7 +1216,7 @@ compiler-visitor = {
     end
   end,
 
-  a-data-expr(self, l, name, namet, variants, shared):
+  method a-data-expr(self, l, name, namet, variants, shared):
     fun brand-name(base):
       js-id-of(compiler-name("brand-" + base)).toname()
     end
@@ -1377,7 +1407,7 @@ compiler-visitor = {
 }
 
 remove-useless-if-visitor = N.default-map-visitor.{
-  a-if(self, l, c, t, e):
+  method a-if(self, l, c, t, e):
     cases(N.AVal) c:
       | a-bool(_, test) =>
         if test:
@@ -1762,7 +1792,7 @@ end
 fun non-splitting-compiler(env, provides, options):
   compiler-visitor.{
     options: options,
-    a-program(self, l, _, imports, body):
+    method a-program(self, l, _, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
       if options.compile-module:

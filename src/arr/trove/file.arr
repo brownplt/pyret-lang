@@ -16,13 +16,13 @@ import filelib as F
 
 data File:
   | in-fd(inner-file :: Any) with:
-    read-file(self): F.read-file(self.inner-file) end,
-    close-file(self): F.close-input-file(self.inner-file) end,
-    full-path(self): F.real-path(self.inner-file) end
+    method read-file(self): F.read-file(self.inner-file) end,
+    method close-file(self): F.close-input-file(self.inner-file) end,
+    method full-path(self): F.real-path(self.inner-file) end
   | out-fd(inner-file :: Any) with:
-    display(self, val): F.display(self.inner-file, val) end,
-    close-file(self): F.close-output-file(self.inner-file) end,
-    flush(self): F.flush-output-file(self.inner-file) end
+    method display(self, val): F.display(self.inner-file, val) end,
+    method close-file(self): F.close-output-file(self.inner-file) end,
+    method flush(self): F.flush-output-file(self.inner-file) end
 end
 
 fun input-file(path :: String):

@@ -34,10 +34,10 @@ data Context:
                    existentials :: SD.StringDict<Pair<Type, Type>>, # existential, assigned-type
                    info :: TCInfo)
 sharing:
-  _output(self):
+  method _output(self):
     VS.vs-seq([list: VS.vs-str("{ BINDS: "), VS.vs-value(self.binds), VS.vs-str(" EXISTS: "), VS.vs-value(self.existentials), VS.vs-str(" }")])
   end,
-  get-data-type(self, typ :: Type) -> Option<Type>:
+  method get-data-type(self, typ :: Type) -> Option<Type>:
     shadow typ = resolve-alias(typ, self)
     cases(Type) typ:
       | t-name(module-name, name, _) =>
@@ -68,7 +68,7 @@ sharing:
       | else => none
     end
   end,
-  apply(self, typ :: Type) -> Type:
+  method apply(self, typ :: Type) -> Type:
     keys = self.existentials.keys()
     keys.fold(lam(current-type, key):
       existential-pair = self.existentials.get-value(key)
@@ -77,7 +77,7 @@ sharing:
       current-type.substitute(assigned-type, existential)
     end, typ)
   end,
-  assign-existential(self, existential :: Type, assigned-type :: Type) -> Context:
+  method assign-existential(self, existential :: Type, assigned-type :: Type) -> Context:
     if self.existentials.has-key(existential.key()):
       self
     else:
@@ -96,16 +96,16 @@ sharing:
       typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, updated-existentials, self.info)
     end
   end,
-  add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
+  method add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
     typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.existentials, self.info)
   end,
-  add-dict-to-bindings(self, dict :: SD.StringDict<Type>):
+  method add-dict-to-bindings(self, dict :: SD.StringDict<Type>):
     new-binds = dict.keys().fold(lam(bindings, key):
       bindings.set(key, dict.get-value(key))
     end, self.binds)
     typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, self.existentials, self.info)
   end,
-  set-info(self, info :: TCInfo) -> Context:
+  method set-info(self, info :: TCInfo) -> Context:
     typing-context(self.types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.existentials, info)
   end
 end
@@ -119,46 +119,46 @@ end
 
 data TypingResult:
   | typing-result(ast :: A.Expr, typ :: Type, out-context :: Context) with:
-    bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
+    method bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
       f(self.ast, self.typ, self.out-context)
     end,
-    fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
+    method fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
       f(self.ast, self.typ, self.out-context)
     end,
-    map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
+    method map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
       typing-result(f(self.ast), self.typ, self.out-context)
     end,
-    map-type(self, f :: (Type -> Type)) -> TypingResult:
+    method map-type(self, f :: (Type -> Type)) -> TypingResult:
       typing-result(self.ast, f(self.typ), self.out-context)
     end
   | typing-error(errors :: List<C.CompileError>) with:
-    bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
+    method bind(self, f :: (A.Expr, Type, Context -> TypingResult)) -> TypingResult:
       self
     end,
-    fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
+    method fold-bind<V>(self, f :: (A.Expr, Type, Context -> FoldResult<V>)) -> FoldResult<V>:
       fold-errors(self.errors)
     end,
-    map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
+    method map-expr(self, f :: (A.Expr -> A.Expr)) -> TypingResult:
       self
     end,
-    map-type(self, f :: (Type -> Type)) -> TypingResult:
+    method map-type(self, f :: (Type -> Type)) -> TypingResult:
       self
     end
 end
 
 data FoldResult<V>:
   | fold-result(v :: V, context :: Context) with:
-    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
+    method bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
       f(self.v, self.context)
     end,
-    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
+    method typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
       f(self.v, self.context)
     end
   | fold-errors(errors :: List<C.CompileError>) with:
-    bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
+    method bind<Z>(self, f :: (V, Context -> FoldResult<Z>)) -> FoldResult<Z>:
       fold-errors(self.errors)
     end,
-    typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
+    method typing-bind(self, f :: (V, Context -> TypingResult)) -> TypingResult:
       typing-error(self.errors)
     end
 end

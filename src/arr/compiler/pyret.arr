@@ -11,7 +11,6 @@ import format as Format
 import either as E
 import render-error-display as RED
 format = Format.format
-Either = E.Either
 left = E.left
 right = E.right
 
@@ -137,8 +136,9 @@ fun main(args):
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
             for each(f from failures) block:
-              for lists.each(e from f.errors):
+              for lists.each(e from f.errors) block:
                 print-error(tostring(e))
+                print-error("\n")
               end
               raise("There were compilation errors")
             end
@@ -154,7 +154,7 @@ fun main(args):
         end
       end
     | arg-error(message, partial) =>
-      print(message)
+      print(message + "\n")
       print(C.usage-info(options).join-str("\n"))
   end
 end

@@ -132,6 +132,23 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         runtime.checkString(field);
         raise(err("lookup-non-object")(loc, nonObject, runtime.makeString(field)));
       }
+      function throwLookupNonTuple(loc, nonTuple, index) {
+        checkSrcloc(loc);
+        runtime.checkPyretVal(nonTuple);
+        runtime.checkNumber(index);
+        raise(err("lookup-non-tuple")(loc, nonTuple, runtime.makeNumber(index)));
+      }
+      function throwBadTupleBind(loc, tup, length, desiredLength) {
+        checkSrcloc(loc);
+        //runtime.checkPyretVal(tup);
+        raise(err("bad-tuple-bind")(loc, tup, length, desiredLength));
+      }
+      function throwLookupLargeIndex(loc, tup, index) {
+        checkSrcloc(loc);
+        runtime.checkPyretVal(tup);
+        runtime.checkNumber(index);
+        raise(err("lookup-large-index")(loc, tup, runtime.makeNumber(index)));
+      }
       function throwExtendNonObject(loc, nonObject) {
         checkSrcloc(loc);
         runtime.checkPyretVal(nonObject);
@@ -335,16 +352,32 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return contract("record-fields-fail")(value, failures);
       }
 
+      function makeTupleAnnsFail(value, failures) {
+        return contract("tuple-anns-fail")(value, failures);
+      }
+
       function makeFieldFailure(loc, field, reason) {
         checkSrcloc(loc);
         runtime.checkString(field);
         return contract("field-failure")(loc, field, reason);
       }
 
+      function makeAnnFailure(loc, ann, reason) {
+        checkSrcloc(loc);
+        return contract("ann-failure")(loc, ann, reason);
+      }
+
       function makeMissingField(loc, field) {
         checkSrcloc(loc);
         runtime.checkString(field);
         return contract("missing-field")(loc, field);
+      }
+      
+      function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+        checkSrcloc(loc);
+        runtime.checkNumber(annLength);
+        runtime.checkNumber(tupLength);
+        return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
       }
 
       function makeTypeMismatch(val, name) {
@@ -389,6 +422,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwInternalError: throwInternalError,
         throwFieldNotFound: throwFieldNotFound,
         throwLookupNonObject: throwLookupNonObject,
+        throwLookupNonTuple: throwLookupNonTuple,
+        throwBadTupleBind: throwBadTupleBind,
+        throwLookupLargeIndex: throwLookupLargeIndex,
         throwExtendNonObject: throwExtendNonObject,
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
@@ -418,6 +454,9 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         makeFieldFailure: makeFieldFailure,
         makeMissingField: makeMissingField,
         makeTypeMismatch: makeTypeMismatch,
+        makeTupleAnnsFail: makeTupleAnnsFail,
+        makeTupleLengthMismatch: makeTupleLengthMismatch,
+        makeAnnFailure: makeAnnFailure,
         makeRefInitFail: makeRefInitFail,
         makePredicateFailure: makePredicateFailure,
         makeDotAnnNotPresent: makeDotAnnNotPresent,

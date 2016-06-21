@@ -92,39 +92,39 @@ fun get-cached-if-available(basedir, loc) block:
     static-path = saved-path + "-static"
     raw = B.builtin-raw-locator(static-path)
     {
-      needs-compile(_, _): false end,
-      get-modified-time(self):
+      method needs-compile(_, _): false end,
+      method get-modified-time(self):
         F.file-times(static-path + ".js").mtime
       end,
-      get-options(self, options):
+      method get-options(self, options):
         options.{ check-mode: false }
       end,
-      get-module(_):
+      method get-module(_):
         raise("Should never fetch source for builtin module " + static-path)
       end,
-      get-extra-imports(self):
+      method get-extra-imports(self):
         CS.standard-imports
       end,
-      get-dependencies(_):
+      method get-dependencies(_):
         deps = raw.get-raw-dependencies()
         raw-array-to-list(deps).map(CS.make-dep)
       end,
-      get-native-modules(_):
+      method get-native-modules(_):
         natives = raw.get-raw-native-modules()
         raw-array-to-list(natives).map(CS.requirejs)
       end,
-      get-globals(_):
+      method get-globals(_):
         CS.standard-globals
       end,
-      get-namespace(_, some-runtime):
+      method get-namespace(_, some-runtime):
         N.make-base-namespace(some-runtime)
       end,
 
-      uri(_): uri end,
-      name(_): saved-path end,
+      method uri(_): uri end,
+      method name(_): saved-path end,
 
-      set-compiled(_, _): nothing end,
-      get-compiled(self):
+      method set-compiled(_, _): nothing end,
+      method get-compiled(self):
         provs = CS.provides-from-raw-provides(self.uri(), {
             uri: self.uri(),
             values: raw-array-to-list(raw.get-raw-value-provides()),
@@ -135,7 +135,7 @@ fun get-cached-if-available(basedir, loc) block:
             CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
       end,
 
-      _equals(self, other, req-eq):
+      method _equals(self, other, req-eq):
         req-eq(self.uri(), other.uri())
       end
     }
@@ -205,7 +205,7 @@ end
 
 fun get-cli-module-storage(storage-dir :: String):
   {
-    load-modules(self, to-compile) block:
+    method load-modules(self, to-compile) block:
       maybe-modules = for map(t from to-compile):
         get-loadable(storage-dir, t)
       end
@@ -220,7 +220,7 @@ fun get-cli-module-storage(storage-dir :: String):
       modules
     end,
 
-    save-modules(self, loadables) block:
+    method save-modules(self, loadables) block:
       for each(l from loadables): set-loadable(storage-dir, l) end
       s = for fold(s from "{\n", l from loadables):
         locuri = l.provides.from-uri
@@ -337,12 +337,12 @@ fun build-program(path, options) block:
   var num-compiled = cached-modules
   shadow options = options.{
     compile-module: true,
-    before-compile(_, locator) block:
+    method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    on-compile(_, locator, loadable) block:
+    method on-compile(_, locator, loadable) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")

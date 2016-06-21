@@ -70,7 +70,7 @@ end
 data TestResult:
   | success(loc :: Loc)
   | failure-not-equal(loc :: Loc, refinement, left, right) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -113,7 +113,7 @@ data TestResult:
           report-value(ed-lhs, self.refinement, self.left),
           report-value(ed-rhs, self.refinement, self.right)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not equal")
@@ -123,7 +123,7 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-different(loc :: Loc, refinement, left, right) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -165,7 +165,7 @@ data TestResult:
           report-value(ed-lhs, self.refinement, self.left),
           report-value(ed-rhs, self.refinement, self.right)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: cases(Option) self.refinement:
             | none    => ED.text("Values not different")
@@ -175,7 +175,7 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-satisfied(loc :: Loc, val, pred) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -198,13 +198,13 @@ data TestResult:
           ED.text(" is:")],
         ED.embed(self.val)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate failed for value:")],
         [ED.para: ED.embed(self.val)]]
     end
   | failure-not-dissatisfied(loc :: Loc, val, pred) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -227,20 +227,20 @@ data TestResult:
           ED.text(" is:")],
         ED.embed(self.val)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for value (it should have failed):")],
         [ED.para: ED.embed(self.val)]]
     end
   | failure-wrong-exn(loc :: Loc, exn-expected, actual-exn) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)],
         [ED.para: ED.text("when expecting ")],
         [ED.para: ED.embed(self.exn-expected)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -248,14 +248,14 @@ data TestResult:
         [ED.para: ED.embed(self.exn-expected)]]
     end
   | failure-right-exn(loc :: Loc, exn-not-expected, actual-exn) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para: ED.text("Got exception ")],
         [ED.para: ED.embed(self.actual-exn)],
         [ED.para: ED.text("and expected it not to contain ")],
         [ED.para: ED.embed(self.exn-not-expected)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -263,7 +263,7 @@ data TestResult:
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
   | failure-exn(loc :: Loc, actual-exn, exn-place :: CheckOperand) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -287,26 +287,26 @@ data TestResult:
           end + [list: ED.text(" to raise an exception:")]),
         ED.embed(self.actual-exn)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)]]
     end
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(Option) self.exn-expected:
         | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(Option) self.exn-expected:
         | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end
   | failure-raise-not-satisfied(loc :: Loc, exn, pred) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -329,13 +329,13 @@ data TestResult:
           ED.text(" is:")],
         ED.embed(self.exn)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate failed for exception:")],
         [ED.para: ED.embed(self.exn)]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, exn, pred) with:
-    render-fancy-reason(self, locToAST):
+    method render-fancy-reason(self, locToAST):
       test-ast = locToAST(self.loc).block.stmts.first
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
@@ -358,7 +358,7 @@ data TestResult:
           ED.text(" is:")],
         ED.embed(self.exn)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
         [ED.para: ED.embed(self.exn)]]
@@ -366,12 +366,12 @@ data TestResult:
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, refinement, left, righ, test-result) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
@@ -412,7 +412,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   end
   fun reset-results(): current-results := [list: ] end
   {
-    run-checks(self, module-name, checks):
+    method run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name):
         for each(c from checks) block:
           results-before = current-results
@@ -426,7 +426,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end
       end
     end,
-    check-is(self, left, right, loc) block:
+    method check-is(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
           lv == rv,
@@ -434,7 +434,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not(self, left, right, loc) block:
+    method check-is-not(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
           not(lv == rv),
@@ -442,7 +442,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-refinement(self, refinement, left, right, loc) block:
+    method check-is-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -454,7 +454,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-is-not-refinement(self, refinement, left, right, loc) block:
+    method check-is-not-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         test-result = refinement(lv, rv)
         if not(is-boolean(test-result)):
@@ -466,7 +466,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-delayed(self, left, pred, loc) block:
+    method check-satisfies-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         check-bool(loc,
           pv(lv),
@@ -474,7 +474,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies-not-delayed(self, left, pred, loc) block:
+    method check-satisfies-not-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         check-bool(loc,
           not(pv(lv)),
@@ -482,19 +482,19 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-satisfies(self, left, pred, loc) block:
+    method check-satisfies(self, left, pred, loc) block:
       check-bool(loc,
         pred(left),
         lam(): failure-not-satisfied(loc, left, pred) end)
       nothing
     end,
-    check-satisfies-not(self, left, pred, loc) block:
+    method check-satisfies-not(self, left, pred, loc) block:
       check-bool(loc,
         not(pred(left)),
         lam(): failure-not-dissatisfied(loc, left, pred) end)
       nothing
     end,
-    check-raises(self, thunk, expected, comparator, on-failure, loc) block:
+    method check-raises(self, thunk, expected, comparator, on-failure, loc) block:
       result = run-task(thunk)
       cases(Either) result:
         | left(v) => add-result(failure-no-exn(loc, some(expected)))
@@ -507,21 +507,21 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
-    check-raises-str(self, thunk, str, loc) block:
+    method check-raises-str(self, thunk, str, loc) block:
       self.check-raises(thunk, str,
         lam(exn, s): string-contains(torepr(exn), s) end,
         lam(exn): failure-wrong-exn(loc, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-other-str(self, thunk, str, loc) block:
+    method check-raises-other-str(self, thunk, str, loc) block:
       self.check-raises(thunk, str,
         lam(exn, s): not(string-contains(torepr(exn), s)) end,
         lam(exn): failure-right-exn(loc, str, exn) end,
         loc)
       nothing
     end,
-    check-raises-not(self, thunk, loc) block:
+    method check-raises-not(self, thunk, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc)
@@ -529,7 +529,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end)
       nothing
     end,
-    check-raises-satisfies(self, thunk, pred, loc) block:
+    method check-raises-satisfies(self, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
@@ -542,7 +542,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end)
       nothing
     end,
-    check-raises-violates(self, thunk, pred, loc) block:
+    method check-raises-violates(self, thunk, pred, loc) block:
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
@@ -555,13 +555,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         end)
       nothing
     end,
-    summary(self):
+    method summary(self):
       results-summary(block-results)
     end,
-    results(self):
+    method results(self):
       block-results
     end,
-    render(self):
+    method render(self):
       render-check-results(block-results)
     end
   }

@@ -23,6 +23,7 @@ dependency = T.dependency
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
+    A.is-s-tuple-let(stmt) or
     A.is-s-var(stmt) or
     A.is-s-rec(stmt) or
     A.is-s-fun(stmt) or
@@ -58,7 +59,7 @@ fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
 end
 
 flatten-single-blocks = A.default-map-visitor.{
-    s-block(self, l, stmts):
+    method s-block(self, l, stmts):
       if stmts.length() == 1: stmts.first.visit(self)
       else: A.s-block(l, stmts.map(_.visit(self)))
       end
@@ -72,7 +73,7 @@ check:
 end
 
 merge-nested-blocks = A.default-map-visitor.{
-    s-block(self, l, stmts):
+    method s-block(self, l, stmts):
       merged-stmts = for fold(new-stmts from [list: ], s from stmts):
         cases(A.Expr) s.visit(self):
           | s-block(l2, stmts2) => stmts2.reverse() + new-stmts
@@ -87,7 +88,7 @@ merge-nested-blocks = A.default-map-visitor.{
 fun count-apps(expr) block:
   var count = 0
   visitor = A.default-iter-visitor.{
-      s-app(self, l, f, args) block:
+      method s-app(self, l, f, args) block:
         count := count + 1
         f.visit(self) and args.map(_.visit(self))
       end
@@ -184,7 +185,7 @@ fun default-env-map-visitor<a, c>(
     env: initial-env,
     type-env: initial-type-env,
 
-    s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, imports, body):
       visit-provide = _provide.visit(self)
       visit-provide-types = _provide-types.visit(self)
       visit-imports = for map(i from imports):
@@ -197,7 +198,7 @@ fun default-env-map-visitor<a, c>(
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
       A.s-program(l, visit-provide, visit-provide-types, visit-imports, visit-body)
     end,
-    s-type-let-expr(self, l, binds, body, blocky):
+    method s-type-let-expr(self, l, binds, body, blocky):
       new-envs = { val-env: self.env, type-env: self.type-env }
       bound-env = for lists.fold(acc from new-envs.{ bs: [list: ] }, b from binds):
         updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
@@ -207,7 +208,7 @@ fun default-env-map-visitor<a, c>(
       end
       A.s-type-let-expr(l, bound-env.bs.reverse(), body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env }), blocky)
     end,
-    s-let-expr(self, l, binds, body, blocky):
+    method s-let-expr(self, l, binds, body, blocky):
       bound-env = for fold(acc from { e: self.env, bs : [list: ] }, b from binds):
         new-bind = b.visit(self.{env : acc.e})
         this-env = bind-handlers.s-let-bind(new-bind, acc.e)
@@ -220,7 +221,7 @@ fun default-env-map-visitor<a, c>(
       visit-body = body.visit(self.{env: bound-env.e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
     end,
-    s-letrec(self, l, binds, body, blocky):
+    method s-letrec(self, l, binds, body, blocky):
       bind-env = for fold(acc from self.env, b from binds):
         bind-handlers.s-letrec-bind(b, acc)
       end
@@ -229,7 +230,7 @@ fun default-env-map-visitor<a, c>(
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, visit-binds, visit-body, blocky)
     end,
-    s-lam(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -243,20 +244,20 @@ fun default-env-map-visitor<a, c>(
       new-check = with-args.option(_check)
       A.s-lam(l, params, new-args, ann.visit(with-args), doc, new-body, new-check, blocky)
     end,
-    s-cases-else(self, l, typ, val, branches, _else, blocky):
+    method s-cases-else(self, l, typ, val, branches, _else, blocky):
       A.s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
     end,
-    s-cases-branch(self, l, pat-loc, name, args, body):
+    method s-cases-branch(self, l, pat-loc, name, args, body):
       new-args = args.map(_.visit(self))
       args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
       end
       A.s-cases-branch(l, pat-loc, name, new-args, body.visit(self.{env: args-env}))
     end,
-    s-singleton-cases-branch(self, l, pat-loc, name, body):
+    method s-singleton-cases-branch(self, l, pat-loc, name, body):
       A.s-singleton-cases-branch(l, pat-loc, name, body.visit(self))
     end,
-    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -265,7 +266,7 @@ fun default-env-map-visitor<a, c>(
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
-    s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -298,7 +299,7 @@ fun default-env-iter-visitor<a, c>(
     env: initial-env,
     type-env: initial-type-env,
 
-    s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, imports, body):
       if _provide.visit(self) and _provide-types.visit(self):
         new-envs = { val-env: self.env, type-env: self.type-env }
         imported-envs = for fold(acc from new-envs, i from imports):
@@ -310,7 +311,7 @@ fun default-env-iter-visitor<a, c>(
         false
       end
     end,
-    s-type-let-expr(self, l, binds, body, blocky):
+    method s-type-let-expr(self, l, binds, body, blocky):
       new-envs = { val-env: self.env, type-env: self.type-env }
       bound-env = for lists.fold-while(acc from new-envs.{ bs: true }, b from binds):
         updated = bind-handlers.s-type-let-bind(b, acc.val-env, acc.type-env)
@@ -324,7 +325,7 @@ fun default-env-iter-visitor<a, c>(
       end
       bound-env.bs and body.visit(self.{ env: bound-env.val-env, type-env: bound-env.type-env })
     end,
-    s-let-expr(self, l, binds, body, blocky):
+    method s-let-expr(self, l, binds, body, blocky):
       bound-env = for lists.fold-while(acc from { e: self.env, bs: true }, b from binds):
         this-env = bind-handlers.s-let-bind(b, acc.e)
         new-bind = b.visit(self.{env : acc.e})
@@ -336,7 +337,7 @@ fun default-env-iter-visitor<a, c>(
       end
       bound-env.bs and body.visit(self.{env: bound-env.e})
     end,
-    s-letrec(self, l, binds, body, blocky):
+    method s-letrec(self, l, binds, body, blocky):
       bind-env = for lists.fold(acc from self.env, b from binds):
         bind-handlers.s-letrec-bind(b, acc)
       end
@@ -346,7 +347,7 @@ fun default-env-iter-visitor<a, c>(
       end
       continue-binds and body.visit(new-visitor)
     end,
-    s-lam(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -361,13 +362,13 @@ fun default-env-iter-visitor<a, c>(
         body.visit(with-args) and
         with-args.option(_check)
     end,
-    s-cases-else(self, l, typ, val, branches, _else, blocky):
+    method s-cases-else(self, l, typ, val, branches, _else, blocky):
       typ.visit(self)
       and val.visit(self)
       and lists.all(_.visit(self), branches)
       and _else.visit(self)
     end,
-    s-cases-branch(self, l, pat-loc, name, args, body):
+    method s-cases-branch(self, l, pat-loc, name, args, body):
       visit-args = lists.all(_.visit(self), args)
       args-env = for lists.fold(acc from self.env, arg from args.map(_.bind)):
         bind-handlers.s-bind(arg, acc)
@@ -376,7 +377,7 @@ fun default-env-iter-visitor<a, c>(
       and body.visit(self.{env: args-env})
     end,
     # s-singleton-cases-branch introduces no new bindings, so default visitor is fine
-    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -387,7 +388,7 @@ fun default-env-iter-visitor<a, c>(
       and lists.all(_.visit(with-params), shared-members)
       and with-params.option(_check)
     end,
-    s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -404,7 +405,7 @@ fun default-env-iter-visitor<a, c>(
 end
 
 binding-handlers = {
-  s-header(_, imp, env, type-env) block:
+  method s-header(_, imp, env, type-env) block:
 
     shadow env = env.unfreeze()
     shadow type-env = type-env.unfreeze()
@@ -422,10 +423,10 @@ binding-handlers = {
       type-env: type-env.freeze()
     }
   end,
-  s-param-bind(_, l, param, type-env):
+  method s-param-bind(_, l, param, type-env):
     type-env.set(param.key(), e-bind(l, false, b-typ))
   end,
-  s-type-let-bind(_, tlb, env, type-env):
+  method s-type-let-bind(_, tlb, env, type-env):
     cases(A.TypeLetBind) tlb:
       | s-type-bind(l, name, ann) =>
         {
@@ -439,7 +440,7 @@ binding-handlers = {
         }
     end
   end,
-  s-let-bind(_, lb, env):
+  method s-let-bind(_, lb, env):
     cases(A.LetBind) lb:
       | s-let-bind(l2, bind, val) =>
         env.set(bind.id.key(), e-bind(l2, false, bind-or-unknown(val, env)))
@@ -447,11 +448,11 @@ binding-handlers = {
         env.set(bind.id.key(), e-bind(l2, true, b-unknown))
     end
   end,
-  s-letrec-bind(_, lrb, env):
+  method s-letrec-bind(_, lrb, env):
     env.set(lrb.b.id.key(),
       e-bind(lrb.l, false, bind-or-unknown(lrb.value, env)))
   end,
-  s-bind(_, b, env):
+  method s-bind(_, b, env):
     env.set(b.id.key(), e-bind(b.l, false, b-unknown))
   end
 }
@@ -464,7 +465,7 @@ end
 
 fun link-list-visitor(initial-env):
   binding-env-map-visitor(initial-env).{
-    s-app(self, l, f, args):
+    method s-app(self, l, f, args):
       if A.is-s-dot(f) and (f.field == "_plus"):
         target = f.obj
         cases(A.Expr) target:
@@ -518,7 +519,7 @@ fun bad-assignments(initial-env, ast) block:
   var errors = [list: ] # THE MUTABLE LIST OF ERRORS
   fun add-error(err): errors := err ^ link(_, errors) end
   ast.visit(binding-env-iter-visitor(initial-env).{
-    s-assign(self, loc, id, value) block:
+    method s-assign(self, loc, id, value) block:
       cases(Option<Binding>) bind-exp(A.s-id(loc, id), self.env):
         | none => nothing
         | some(b) =>
@@ -533,7 +534,7 @@ fun bad-assignments(initial-env, ast) block:
 end
 
 inline-lams = A.default-map-visitor.{
-  s-app(self, loc, f, exps):
+  method s-app(self, loc, f, exps):
     cases(A.Expr) f:
       | s-lam(l, _, args, ann, _, body, _, blocky) =>
         if (args.length() == exps.length()):
@@ -580,29 +581,29 @@ fun check-unbound(initial-env, ast) block:
     end
   end
   ast.visit(binding-env-iter-visitor(initial-env).{
-      s-id(self, loc, id) block:
+      method s-id(self, loc, id) block:
         handle-id(A.s-id(loc, id), self.env)
         true
       end,
-      s-id-var(self, loc, id) block:
+      method s-id-var(self, loc, id) block:
         handle-id(A.s-id-var(loc, id), self.env)
         true
       end,
-      s-id-letrec(self, loc, id, safe) block:
+      method s-id-letrec(self, loc, id, safe) block:
         handle-id(A.s-id-letrec(loc, id, safe), self.env)
         true
       end,
-      s-assign(self, loc, id, value) block:
+      method s-assign(self, loc, id, value) block:
         when is-none(bind-exp(A.s-id(loc, id), self.env)):
           add-error(CS.unbound-var(id.toname(), loc))
         end
         value.visit(self)
       end,
-      a-name(self, loc, id) block:
+      method a-name(self, loc, id) block:
         handle-type-id(A.a-name(loc, id), self.type-env)
         true
       end,
-      a-dot(self, loc, name, field) block:
+      method a-dot(self, loc, name, field) block:
         handle-type-id(A.a-name(loc, name), self.type-env)
         true
       end
@@ -621,7 +622,7 @@ end
 
 letrec-visitor = A.default-map-visitor.{
   env: SD.make-string-dict(),
-  s-letrec(self, l, binds, body, blocky):
+  method s-letrec(self, l, binds, body, blocky):
     bind-envs = for map2(b1 from binds, i from range(0, binds.length())) block:
       rhs-is-delayed = value-delays-exec-of(b1.b.id, b1.value)
       acc = self.env.unfreeze()
@@ -644,14 +645,14 @@ letrec-visitor = A.default-map-visitor.{
     new-body = body.visit(self.{ env: body-env })
     A.s-letrec(l, new-binds, new-body, blocky)
   end,
-  s-id-letrec(self, l, id, _):
+  method s-id-letrec(self, l, id, _):
     A.s-id-letrec(l, id, self.env.get-value(id.key()))
   end
 }
 
 fun make-renamer(replacements :: SD.StringDict):
   A.default-map-visitor.{
-    s-atom(self, base, serial):
+    method s-atom(self, base, serial):
       a = A.s-atom(base, serial)
       k = a.key()
       if replacements.has-key(k):
@@ -814,6 +815,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         raise("Cannot provide a raw method")
       | a-record(l, fields) =>
         T.t-record(map(field-to-typ, fields), l)
+      | a-tuple(l, fields) =>
+        T.t-top(l)
       | a-app(l, ann, args) =>
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l)
       | a-pred(l, ann, exp) =>
@@ -944,6 +947,7 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
     | t-name(module-name, id, l) => transform-name(typ)
     | t-var(id, l) => typ
     | t-arrow(args, ret, l) => T.t-arrow(map(c, args), c(ret), l)
+    | t-tuple(elts, l) => T.t-tuple(map(c, elts), l)
     | t-app(onto, args, l) => T.t-app(c(onto), map(c, args), l)
     | t-top(l) => T.t-top(l)
     | t-bot(l) => T.t-bot(l)

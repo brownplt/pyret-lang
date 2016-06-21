@@ -342,6 +342,11 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun foo(self): _ end", "The underscore");
         P.checkCompileErrorMsg("check: _ end", "The underscore");
         P.checkCompileErrorMsg("provide _ end", "The underscore");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
+        P.wait(done);
+      });
+        it("tuples", function(done) {
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
         P.wait(done);
       });
       it("tables", function(done) {

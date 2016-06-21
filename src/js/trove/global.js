@@ -34,6 +34,7 @@
       "is-object": "AnyPred",
       "is-function": "AnyPred",
       "is-raw-array": "AnyPred",
+      "is-tuple": "AnyPred",
 
       // Array functions
       "raw-array":         ["forall", ["a"], ["Maker", "tva", ["RawArray", "tva"]]],
@@ -41,6 +42,8 @@
       "raw-array-set":     ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number", "tva"], 
                                               ["RawArray", "tva"]]],
       "raw-array-of":      ["forall", ["a"], ["arrow", ["tva", "Number"], ["RawArray", "tva"]]],
+      "raw-array-build":   ["forall", ["a"], ["arrow", [["arrow", ["Number"], ["Option", "tva"]], "Number"],
+                                                       ["RawArray", "tva"]]],
       "raw-array-length":  ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
       "raw-array-to-list": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
       "raw-array-fold":    ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 

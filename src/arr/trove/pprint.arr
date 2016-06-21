@@ -40,7 +40,9 @@ provide {
   langle: langle,
   rangle: rangle,
   comma: comma,
-  commabreak: commabreak
+  commabreak: commabreak,
+  semi: semi,
+  semibreak: semibreak
 } end
 provide-types *
 
@@ -67,7 +69,7 @@ data PPrintDoc:
   | align-spaces(n :: Number, flat-width :: Number, has-hardline :: Boolean)
   | group(d :: PPrintDoc, flat-width :: Number, has-hardline :: Boolean)
 sharing:
-  _plus(self, other):
+  method _plus(self, other):
     if is-mt-doc(self): other
     else if is-mt-doc(other): self
     else:
@@ -76,7 +78,7 @@ sharing:
       end
     end
   end,
-  _output(self):
+  method _output(self):
     cases(PPrintDoc) self:
       | mt-doc(_, _) => VS.vs-str("EmptyDoc")
       | str(s, _, _) => VS.vs-constr("Str", link(VS.vs-value(s), empty))
@@ -90,7 +92,7 @@ sharing:
       | align-spaces(n, _, _) => VS.vs-constr("AlignSpaces", link(VS.vs-value(n), empty))
     end
   end,
-  pretty(self, width):
+  method pretty(self, width):
     format(width, self)
   end
 end
@@ -228,8 +230,11 @@ rbrack = str("]")
 langle = str("<")
 rangle = str(">")
 comma = str(",")
+semi = str(";")
+
 fun sbreak(n): if-flat(blank(n), hardline) end
 commabreak = comma + sbreak(1)
+semibreak = semi + sbreak(1)
 
 fun flow-map(sep, f, items):
   for lists.fold(acc from mt-doc, shadow item from items):

@@ -21,7 +21,7 @@ check:
 
   o = {
       arr: [list: 1,2,3],
-      _plus(self, other): for lists.map2(a1 from self.arr, a2 from other.arr): a1 + a2 end end
+      method _plus(self, other): for lists.map2(a1 from self.arr, a2 from other.arr): a1 + a2 end end
     }
   o2 = { arr: [list: 3,4,5] }
   o + o2 is [list: 4,6,8]

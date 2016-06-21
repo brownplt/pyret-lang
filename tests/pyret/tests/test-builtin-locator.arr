@@ -50,7 +50,7 @@ check:
 
   fun string-to-locator(name :: String):
     CL.string-locator("protocol://" + name, modules.get-value-now(name)).{
-      get-extra-imports(self): CM.minimal-imports end
+      method get-extra-imports(self): CM.minimal-imports end
     }
   end
 

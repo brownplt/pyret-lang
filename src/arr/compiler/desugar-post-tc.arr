@@ -14,7 +14,7 @@ fun no-cases-exn(l, val):
 end
 
 desugar-visitor = A.default-map-visitor.{
-  s-cases-else(self, l, typ, val, branches, els):
+  method s-cases-else(self, l, typ, val, branches, els):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)
     val-exp = val.visit(self)
@@ -23,7 +23,7 @@ desugar-visitor = A.default-map-visitor.{
       A.s-cases-else(l, A.a-blank, val-id, branches.map(_.visit(self)),
         els.visit(self), true), false)
   end,
-  s-cases(self, l, typ, val, branches):
+  method s-cases(self, l, typ, val, branches):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)
     val-exp = val.visit(self)
@@ -32,7 +32,7 @@ desugar-visitor = A.default-map-visitor.{
       A.s-cases-else(l, A.a-blank, val-id, branches.map(_.visit(self)),
         A.s-block(l, [list: no-cases-exn(l, val-id)]), true), false)
   end,
-  s-check(self, l, name, body, keyword-check):
+  method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-global("nothing"))
   end
 }

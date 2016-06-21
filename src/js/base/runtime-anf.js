@@ -115,6 +115,7 @@ inherits(PObject, PBase);
 inherits(PFunction, PBase);
 inherits(PMethod, PBase);
 inherits(POpaque, PBase);
+inherits(PTuple, PBase);
 
 /**
     Tests whether a JS Object has a property
@@ -267,6 +268,19 @@ function isBase(obj) { return obj instanceof PBase; }
       } else {
         return "<internal value>";
       }
+    },
+    "tuple": function(t, pushTodo) {
+        pushTodo(undefined, undefined, undefined, Array.prototype.slice.call(t.vals), "render-tuple");
+    },
+    "render-tuple": function(top) {
+      var s = "{ ";
+      for(var i = top.done.length - 1; i >= 0; i--) {
+        if(i < top.done.length - 1) { s += "; "; }
+        s += top.done[i];
+      }
+      s += " }";
+      return s;
+  
     },
     "object": function(val, pushTodo) {
       var keys = [];
@@ -967,6 +981,39 @@ function isMethod(obj) { return obj instanceof PMethod; }
       ffi.throwMessageException("Attempt to get an unset ref");
     }
 
+   function PTuple(vals) {
+      this.vals = vals;
+   }
+   
+   function makeTuple(vals) {
+      return new PTuple(vals);
+   }
+   
+   function isTuple(val) {
+      return val instanceof PTuple;
+   }
+
+   function getTuple(tup, index, l) {
+     if(!isTuple(tup)) {
+        ffi.throwLookupNonTuple(makeSrcloc(l), tup, index);
+     }
+     if (index >= tup.vals.length) {
+        ffi.throwLookupLargeIndex(makeSrcloc(l), tup, index);
+     }
+     return tup.vals[index]
+   }
+
+   function checkTupleBind(tup, length, l) {
+    if (!isTuple(tup)) {
+       ffi.throwBadTupleBind(makeSrcloc(l), tup, length, length);
+    }
+    if (tup.vals.length !== length) {
+       ffi.throwBadTupleBind(makeSrcloc(l), tup, tup.vals.length, length);
+    }
+    return true;
+   }
+        
+
     /*********************
             Object
     **********************/
@@ -1010,7 +1057,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     */
     function makeObject(dict) {
        return new PObject(dict, noBrands);
-    }
+    ;}
 
     function makeBrandedObject(dict, brands) {
       return new PObject(dict, brands);
@@ -1095,7 +1142,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -1109,6 +1155,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         return true;
       }
       else if (isObject(val) ||
+               isTuple(val) ||
                isFunction(val) ||
                isMethod(val) ||
                isRef(val) ||
@@ -1151,6 +1198,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var checkNumNonPositive = makeCheckType(jsnums.isNonPositive, "NumNonPositive");
     var checkNumNonNegative = makeCheckType(jsnums.isNonNegative, "NumNonNegative");
     // var checkArray = makeCheckType(isArray, "Array");
+    // changes here
+    var checkTuple = makeCheckType(isTuple, "Tuple");
     var checkArray = makeCheckType(isArray, "RawArray");
     var checkBoolean = makeCheckType(isBoolean, "Boolean");
     var checkObject = makeCheckType(isObject, "Object");
@@ -1329,6 +1378,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
               else {
                 reprMethods["array"](next, pushTodo);
               }
+            }
+            else if(isTuple(next)) {
+                reprMethods["tuple"](next, pushTodo);
             }
             else if(isRef(next)) {
               var refHasBeenSeen = findSeenRef(top.refs, next);
@@ -1816,7 +1868,22 @@ function isMethod(obj) { return obj instanceof PMethod; }
                     path: newPath
                   });
                 }
-              } else if (isArray(curLeft) && isArray(curRight)) {
+              }
+              //changes here
+              else if(isTuple(curLeft) && isTuple(curRight)) {
+                 if (curLeft.vals.length !== curRight.vals.length) {
+                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+                 } else {
+                  for (var i = 0; i < curLeft.vals.length; i++) {
+                    toCompare.stack.push({
+                      left: curLeft.vals[i],
+                      right: curRight.vals[i],
+                      path: "is-tuple{ " + current.path + "; " + i + " }"
+                    });
+                  }
+                }
+              }
+              else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
                   toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
@@ -2168,7 +2235,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       // is returned directly when it is encountered
       while(toCompare.length > 0) {
         current = toCompare.pop();
-        left = current.left;
+        left = current.left.vars;
         right = current.right;
         if (left === right) { continue; }
         if (isNumber(left) && isNumber(right) && jsnums.equals(left, right)) {
@@ -2189,6 +2256,16 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         else if (isOpaque(left) && isOpaque(right) && left.equals(left.val, right.val)) {
           continue;
+        }
+        //changes here
+        else if (isTuple(left) && isTuple(right)) {
+          if (left.vars.length !== right.vars.length) { return false; }
+          for (var i = 0; i < left.vars.length; i++) {
+            toCompare.push({
+              left: left.vars[i],
+              right: right.vars[i]
+            });
+          }
         }
         else if (isArray(left) && isArray(right)) {
           if (left.length !== right.length) { return false; }
@@ -2327,7 +2404,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'current-checker': makeFunction(function() {
           if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
           return getParam("current-checker");
-        })
+        }),
+        'raw-each-loop': makeFunction(eachLoop),
+        'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l);})
       });
 
     function unwrap(v) {
@@ -2362,7 +2441,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn);
+      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2631,6 +2710,79 @@ function isMethod(obj) { return obj instanceof PMethod; }
       });
     }
 
+   function PTupleAnn(locs, anns) {
+      this.locs = locs;
+      this.anns = anns;
+      var hasRefinement = false;
+      for (var i = 0; i < anns.length; i++) {
+        hasRefinement = hasRefinement || anns[i].refinement;
+      }
+      this.refinement = hasRefinement;
+    }
+    
+   function makeTupleAnn(locs, anns) {
+      return new PTupleAnn(locs, anns);
+    }
+    PTupleAnn.prototype.check = function(compilerLoc, val) {
+      var that = this;
+      if(!isTuple(val)) {
+        return ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            ffi.makeTypeMismatch(val, "Tuple")
+          );
+      }
+      if(that.anns.length != val.vals.length) {
+       //return ffi.throwMessageException("lengths not equal");
+       return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
+      }
+
+      function deepCheckFields(remainingAnns) {
+        var thisAnn;
+        return safeCall(function() {
+          var thisChecker = remainingAnns.pop();
+          thisAnn = thisChecker;
+          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+        }, function(result) {
+          if(ffi.isOk(result)) {
+            if(remainingAnns.length === 0) { return ffi.contractOk; }
+            else { return deepCheckFields(remainingAnns); }
+          }
+          else if(ffi.isFail(result)) {
+            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            //return ffi.throwMessageException("types are wrong");
+          }
+        },
+        "deepCheckFields");
+      }
+      if(that.anns.length === 0) { return ffi.contractOk; }
+      else { return deepCheckFields(that.anns.slice()); }
+    }
+    PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
+      return ffi.contractFail(compilerLoc, ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+    };
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
+      var that = this;
+      var loc;
+      for(var i = 0; i < that.anns.length; i++) {
+        if(that.anns[i] === ann) { loc = that.locs[i]; }
+      }
+      return ffi.contractFail(
+        makeSrcloc(compilerLoc),
+        ffi.makeTupleAnnsFail(val, ffi.makeList([
+            ffi.makeAnnFailure(
+              makeSrcloc(loc),
+              ann,
+              getField(result, "reason")
+            )
+          ]))
+      );
+    };
+
+   /* PTupleAnn.prototype.createTupleLengthMismatch = function(loc, val, annLength, tupLength) {
+        ffi.contractFail(loc, ffi.makeTupleLengthMismatch(loc, val, annLength, tupleLength);
+    }; */
+
+    
     function PRecordAnn(fields, locs, anns) {
       this.fields = fields;
       this.locs = locs;
@@ -2844,6 +2996,46 @@ function isMethod(obj) { return obj instanceof PMethod; }
         }
         if (thisRuntime.isPyretException($e)) {
           $e.pyretStack.push(stackFrame);
+        }
+        throw $e;
+      }
+    }
+
+  function eachLoop(fun, start, stop) {
+      var i = start;
+      var started = false;
+      var currentRunCount = 0;
+      if(thisRuntime.isActivationRecord(fun)) {
+        var ar = fun
+        i = ar.vars[0];
+        fun = ar.vars[1];
+        stop = ar.vars[2];
+        started = ar.vars[3];
+        if (started) {
+          i = i + 1;
+        }
+      }
+      try {
+        if (--thisRuntime.GAS <= 0) {
+          thisRuntime.EXN_STACKHEIGHT = 0;
+          throw thisRuntime.makeCont();
+        }
+        while(true) {
+          started = true;
+          if(i >= stop) { return thisRuntime.nothing; }
+          fun.app(i);
+
+          if (++currentRunCount >= 1000) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            throw thisRuntime.makeCont();
+          }  
+          else { i = i + 1; }
+        }
+      }
+      catch($e) {
+        if (thisRuntime.isCont($e)) {
+          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord("eachLoop", eachLoop, true, [], [i, fun, stop, started]);
         }
         throw $e;
       }
@@ -4442,6 +4634,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'is-function': mkPred(isFunction),
           'is-object': mkPred(isObject),
           'is-raw-array': mkPred(isArray),
+          'is-tuple' : mkPred(isTuple),
 
           'run-task': makeFunction(execThunk),
 
@@ -4532,6 +4725,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
           'raw-array-map': makeFunction(raw_array_map),
           'raw-array-filter': makeFunction(raw_array_filter),
           'raw-array': raw_array_maker,
+          'raw-each-loop': makeFunction(eachLoop),
 
           'not': makeFunction(bool_not),
 
@@ -4573,6 +4767,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'runThunk': runThunk,
         'execThunk': execThunk,
         'safeCall': safeCall,
+        'eachLoop': eachLoop,
         'safeTail': safeTail,
         'printPyretStack': printPyretStack,
 
@@ -4598,6 +4793,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'makePrimitiveAnn': makePrimitiveAnn,
         'makeBranderAnn': makeBranderAnn,
         'makeRecordAnn': makeRecordAnn,
+        'makeTupleAnn': makeTupleAnn,
 
         'makeCont'    : makeCont,
         'isCont'      : isCont,
@@ -4614,6 +4810,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'getFields'        : getFields,
         'getColonField'    : getColonField,
         'getColonFieldLoc' : getColonFieldLoc,
+        'getTuple'         : getTuple,
+        'checkTupleBind'   : checkTupleBind,
         'extendObj'        : extendObj,
 
         'hasBrand' : hasBrand,
@@ -4629,6 +4827,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'isBoolean'   : isBoolean,
         'isFunction'  : isFunction,
         'isMethod'    : isMethod,
+        'isTuple'     : isTuple,
         'isObject'    : isObject,
         'isDataValue' : isDataValue,
         'isRef'       : isRef,
@@ -4671,6 +4870,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'callIfPossible6' : callIfPossible6,
         'callIfPossible7' : callIfPossible7,
         'callIfPossible8' : callIfPossible8,
+        'makeTuple' : makeTuple,
         'makeObject'   : makeObject,
         'makeArray' : makeArray,
         'checkArrayIndex' : checkArrayIndex,
@@ -4802,7 +5002,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'checkArityC': checkArityC,
-        
+
+        'checkTuple' : checkTuple,
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
         'makeMessageException'      : makeMessageException,
@@ -4848,6 +5049,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     makePrimAnn("Method", isMethod);
     makePrimAnn("Nothing", isNothing);
     makePrimAnn("Object", isObject);
+    //changes here
+    makePrimAnn("Tuple", isTuple);
     makePrimAnn("Any", function() { return true; });
 
     thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);

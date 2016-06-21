@@ -15,14 +15,14 @@ end
 
 data RuntimeError:
   | message-exception(message :: String) with:
-    render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: [ED.para: ED.text(self.message)]]
     end
   | update-non-obj(loc, obj, objloc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression")],
@@ -33,7 +33,7 @@ data RuntimeError:
           ED.text(" is expected to evaluate to an object, but its value was: ")],
         ED.embed(self.obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression at "),
@@ -42,7 +42,7 @@ data RuntimeError:
          ED.embed(self.obj)]
     end
   | update-frozen-ref(loc, obj, objloc, field, fieldloc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression")],
@@ -54,7 +54,7 @@ data RuntimeError:
           ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
         ED.embed(self.obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression at "),
@@ -65,7 +65,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | update-non-ref(loc, obj, objloc, field, fieldloc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression")],
@@ -77,7 +77,7 @@ data RuntimeError:
           ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
         ED.embed(self.obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression at "),
@@ -88,7 +88,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression")],
@@ -100,7 +100,7 @@ data RuntimeError:
           ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
         ED.embed(self.obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The reference update expression at "),
@@ -111,7 +111,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | no-cases-matched(loc, val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-cse = loc-to-ast(self.loc).block.stmts.first
       txt-val = loc-to-src(ast-cse.val.l)
       branches-loc = ast-cse.branches-loc()
@@ -129,7 +129,7 @@ data RuntimeError:
           ED.text(" was:")],
          ED.embed(self.val)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("No branches matched in the cases expression at"),
@@ -137,40 +137,40 @@ data RuntimeError:
         ED.embed(self.val)]
     end
   | no-branches-matched(loc, expression :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The "),
           ED.highlight([ED.sequence: ED.text(self.expression), ED.text(" expression")],[ED.locs: self.loc],0),
           ED.text(" expects that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("No branches matched in the"), ED.code(ED.text(self.expression)),
           ED.text("expression at"), draw-and-highlight(self.loc)]]
     end
   | internal-error(message, info-args) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Internal error:"), ED.text(self.message)],
         [ED.para: ED.text("Relevant arguments:")],
         vert-list-values(self.info-args)]
     end
   | template-not-finished(loc) with:
-    render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("The program tried to evaluate an unfinished template expression at")],
         [ED.para: draw-and-highlight(self.loc)]]
     end
   | field-not-found(loc, obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast = loc-to-ast(self.loc).block.stmts.first
       ast-dot = cases(Any) ast:
         | s-dot(_,_,_) => ast
@@ -184,7 +184,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
-         ED.cmcode(self.loc),
+        ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
@@ -199,9 +199,9 @@ data RuntimeError:
           ED.text("The value of the "),
           ED.highlight(ED.text("object"),[ED.locs: obj-loc], obj-col),
           ED.text(" was:")],
-         ED.embed(self.obj)]
+        ED.embed(self.obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Field "), ED.code(ED.text(self.field)), ED.text(" not found in the lookup expression at"),
@@ -210,7 +210,7 @@ data RuntimeError:
         ED.embed(self.obj)]
     end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast = loc-to-ast(self.loc).block.stmts.first
       ast-dot = cases(Any) ast:
         | s-dot(_,_,_) => ast
@@ -224,21 +224,138 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The expression ")],
-         ED.cmcode(self.loc),
+        ED.cmcode(self.loc),
         [ED.para:
           ED.text(" attempted to lookup a field "), ED.highlight(ED.text(self.field), [ED.locs: fld-loc], fld-col),
-          ED.text("on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
+          ED.text(" on a constructor ("), ED.highlight(ED.text(self.constr-name), [ED.locs: obj-loc], obj-col),
           ED.text("), but field lookups can only be performed on objects.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The expression "), ED.loc(self.loc),
           ED.text(" attempted to lookup a field "), ED.code(ED.text(self.field)), ED.text(" on a constructor ("),
           ED.code(ED.text(self.constr-name)), ED.text("), but field lookups can only be performed on objects.")]]
     end
+  | lookup-non-tuple(loc, non-tup, index :: Number) with:
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast-dot = loc-to-ast(self.loc).block.stmts.first
+      tup-loc = ast-dot.tup.l
+      tup-txt = loc-to-src(tup-loc)
+      tup-col = 0
+      fld-col = 1 
+      [ED.error:
+        [ED.para:
+          ED.text("The field lookup expression ")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text(" expects the "),
+          ED.highlight(ED.text("left hand side"), [ED.locs: tup-loc], tup-col),
+          ED.text(" to evaluate to a tuple.")],
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("left hand side"), [ED.locs: tup-loc], tup-col),
+          ED.text(" evaluated to a non-tuple value:")],
+        ED.embed(self.non-tup)] 
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple lookup expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the left hand side to evaluate to an tuple.")],
+        [ED.para:
+          ED.text("The left hand side"),
+          ED.text(" evaluated to a non-tuple value:")],
+        ED.embed(self.non-tup)]
+    end
+  | lookup-large-index(loc, tup, index :: Number) with:
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast-dot = loc-to-ast(self.loc).block.stmts.first
+      tup-loc = ast-dot.tup.l
+      tup-txt = loc-to-src(tup-loc) 
+      tup-col = 0
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple lookup expression ")],
+        ED.cmcode(self.loc) ,
+        [ED.para:
+          ED.text(" expects the index to be smaller than the length of the "),
+          ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
+        [ED.para:
+          ED.text("The given invalid index was")],
+        ED.embed(self.index)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The tuple lookup expression at "),
+          ED.loc(self.loc),
+          ED.text(" expects the index to be smaller than the length of the tuple.")],
+        [ED.para:
+          ED.text("The given invalid index was"),
+          ED.embed(self.index),
+          ED.text(" accessed on the tuple")],
+        ED.embed(self.tup)]
+    end
+  | bad-tuple-bind(loc, tup, length, desiredLength) with:
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      ast-dot = loc-to-ast(self.loc).block.stmts.first
+      tup-loc = ast-dot.tup.l
+      tup-txt = loc-to-src(tup-loc) 
+      tup-col = 0
+      if (self.length == self.desiredLength):
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple binding expression ")],
+          ED.cmcode(self.loc) ,
+          [ED.para:
+            ED.text(" expects the right side of the binding to be a "),
+            ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple binding expression ")],
+          ED.cmcode(self.loc) ,
+          [ED.para:
+            ED.text(" expects the number of bindings"),
+            ED.text(" to be equivalent to the length of the "),
+            ED.highlight(ED.text("tuple"), [ED.locs: tup-loc], tup-col)],
+          [ED.para:
+            ED.text("The length of the given tuple was "),
+            ED.embed(self.length),
+            ED.text(" but the number of bindings was "),
+            ED.embed(self.desiredLength)]]
+      end 
+    end,
+    method render-reason(self):
+      if (self.length == self.desiredLength):
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple binding expression at "),
+            ED.loc(self.loc),
+            ED.text(" expects the right hand side to evaluate to an tuple.")],
+          [ED.para:
+            ED.text("The right hand side"),
+            ED.text(" evaluated to a non-tuple value:")],
+          ED.embed(self.tup)]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple binding expression at "),
+            ED.loc(self.loc),
+            ED.text(" expects the number of bindings to be equivalent to the length of the tuple")],
+          [ED.para:
+            ED.text("The given length of the tuple was "),
+            ED.embed(self.length),
+            ED.text(" but the number of bindings given was "),
+            ED.embed(self.desiredLength),
+            ED.text(" accessed on the tuple")],
+          ED.embed(self.tup)]
+      end
+    end
   | lookup-non-object(loc, non-obj, field :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast = loc-to-ast(self.loc).block.stmts.first
       ast-dot = cases(Any) ast:
         | s-dot(_,_,_) => ast
@@ -252,7 +369,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression ")],
-         ED.cmcode(self.loc),
+        ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
@@ -261,9 +378,9 @@ data RuntimeError:
           ED.text("The "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
           ED.text(" evaluated to a non-object value:")],
-         ED.embed(self.non-obj)]
+        ED.embed(self.non-obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The field lookup expression at "),
@@ -272,10 +389,10 @@ data RuntimeError:
         [ED.para:
           ED.text("The left hand side"),
           ED.text(" evaluated to a non-object value:")],
-         ED.embed(self.non-obj)]
+        ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-ext = loc-to-ast(self.loc).block.stmts.first
       txt-obj = loc-to-src(ast-ext.supe.l)
       obj-loc = ast-ext.supe.l
@@ -286,7 +403,7 @@ data RuntimeError:
       [ED.error:
         [ED.para:
           ED.text("The object extension expression ")],
-         ED.cmcode(self.loc),
+        ED.cmcode(self.loc),
         [ED.para:
           ED.text(" expects the "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
@@ -295,9 +412,9 @@ data RuntimeError:
           ED.text("The "),
           ED.highlight(ED.text("left hand side"), [ED.locs: obj-loc], obj-col),
           ED.text(" evaluated to a non-object value:")],
-         ED.embed(self.non-obj)]
+        ED.embed(self.non-obj)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The object extension expression at "),
@@ -306,13 +423,13 @@ data RuntimeError:
         [ED.para:
           ED.text("The left hand side"),
           ED.text(" evaluated to a non-object value:")],
-         ED.embed(self.non-obj)]
+        ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason() # TODO!!
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
@@ -321,10 +438,10 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason() # TODO!!
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
@@ -334,7 +451,7 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | generic-type-mismatch(val, typ :: String) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(0, true,
         lam(loc):
           src = loc-to-src(loc)
@@ -353,7 +470,7 @@ data RuntimeError:
         [ED.error:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
     end, 
-    render-reason(self):
+    method render-reason(self):
       ED.maybe-stack-loc(0, true,
         lam(loc):
           [ED.error:
@@ -366,7 +483,7 @@ data RuntimeError:
           [ED.para-nospace: ED.text("Expected "), ED.embed(self.typ), ED.text(", but got "), ED.embed(self.val)]])
     end
   | num-string-binop-error(val1, val2, opname, opdesc, methodname) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
@@ -401,7 +518,7 @@ data RuntimeError:
         end, 
         self.render-reason())
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
@@ -415,7 +532,7 @@ data RuntimeError:
             ED.text("A left-hand operand that has a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | numeric-binop-error(val1, val2, opname, opdesc, methodname) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(0, true,
         lam(binop-loc):
           binop-ast = loc-to-ast(binop-loc).block.stmts.first
@@ -452,7 +569,7 @@ data RuntimeError:
         end, 
         self.render-reason())
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Invalid use of"), ED.code(ED.text(self.opname)), ED.text("for these values:")],
@@ -465,7 +582,7 @@ data RuntimeError:
             ED.text("The left operand must have a"), ED.code(ED.text(self.methodname)), ED.text("method")]]]
     end
   | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
       ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
@@ -489,7 +606,7 @@ data RuntimeError:
             ED.text(", but the variant is not a singleton.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
@@ -503,7 +620,7 @@ data RuntimeError:
       end
     end
   | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ast-cases = loc-to-ast(self.cases-loc).block.stmts.first
       src-branch = loc-to-src(self.branch-loc)
       ast-branch = ast-cases.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
@@ -543,7 +660,7 @@ data RuntimeError:
           ED.text(" datatype has "),
           ED.ed-fields(self.actual-arity)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         if self.num-args < self.actual-arity:
           [ED.para:
@@ -562,7 +679,7 @@ data RuntimeError:
         end]
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       fun-app-arity = self.fun-app-args.length()
       arity-helper = lam(n, els):
         ED.maybe-stack-loc(
@@ -605,7 +722,7 @@ data RuntimeError:
       end
       arity-helper(1, arity-helper(0, self.render-reason()))
     end,
-    render-reason(self):
+    method render-reason(self):
       num-args = self.fun-app-args.length()
       this-str = if num-args == 1: "this" else: "these" end
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
@@ -637,7 +754,7 @@ data RuntimeError:
           vert-list-values(self.fun-app-args)])
     end
   | non-function-app(loc, non-fun-val) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       app-ast = loc-to-ast(self.loc).block.stmts.first
       fun-loc = app-ast._fun.l
       fun-src = loc-to-src(fun-loc)
@@ -660,7 +777,7 @@ data RuntimeError:
           ED.text(" evaluated to the non-function value:")],
          ED.embed(self.non-fun-val)]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Expected a function in the application expression at"),
@@ -668,7 +785,7 @@ data RuntimeError:
         ED.embed(self.non-fun-val)]
     end
   | uninitialized-id(loc, name) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       [ED.error:
         [ED.para:
           ED.text("The identifier "), 
@@ -677,16 +794,16 @@ data RuntimeError:
           ED.highlight(ED.text("used"), [ED.locs: self.loc],0),
           ED.text(" before it has been is initialized to a value.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("The name"), ED.code(ED.text(self.name)), ED.text("was used at"),
           draw-and-highlight(self.loc), ED.text("before it was defined.")]]
     end
   | module-load-failure(names) with: # names is List<String>
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           if self.names.length() == 1: ED.text("The following module failed to load:")
@@ -695,7 +812,7 @@ data RuntimeError:
         ED.h-sequence(self.names.map(ED.text), ", ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       ED.maybe-stack-loc(0, true,
         lam(loc):
           ast-dot = loc-to-ast(loc).block.stmts.first
@@ -715,7 +832,7 @@ data RuntimeError:
           [ED.para: ED.text("Invalid array index"), ED.code(ED.embed(self.index)),
             ED.text("because:"), ED.text(self.reason)]])
     end,
-    render-reason(self):
+    method render-reason(self):
       ED.maybe-stack-loc(0, true,
         lam(loc):
           [ED.error:
@@ -728,10 +845,10 @@ data RuntimeError:
             ED.text("because:"), ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason() # TODO
     end,
-    render-reason(self):
+    method render-reason(self):
       value1 = self.value1
       value2 = self.value2
       ask:
@@ -762,23 +879,23 @@ data RuntimeError:
     end
 
   | user-break with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
 
   | user-exception(value :: Any) with:
-    render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
       self.render-reason()
     end,
-    render-reason(self): [ED.para: ED.embed(self.value)] end
+    method render-reason(self): [ED.para: ED.embed(self.value)] end
 end
 
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
-    render-fancy-reason(self, loc-to-src):
+    method render-fancy-reason(self, loc-to-src):
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around ")],
         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], 0)),
@@ -790,7 +907,7 @@ data ParseError:
           ED.text("), or keyword? Is there something there that shouldn’t be?")]
       ]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around "), draw-and-highlight(self.loc)],
         [ED.para: ED.text("You may need to add or remove some text to fix your program.")],
@@ -806,20 +923,20 @@ data ParseError:
       ]
     end
   | parse-error-eof(loc) with:
-    render-fancy-reason(self, loc-to-src):
+    method render-fancy-reason(self, loc-to-src):
       [ED.error: 
         [ED.para:
           ED.text("Pyret didn't expect your program to "),
           ED.code(ED.highlight(ED.text("end"),[ED.locs: self.loc],0)),
           ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: [ED.para:
           ED.text("Pyret didn't understand the very end of your program."),
           ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" right at the end.")]]
     end
   | parse-error-unterminated-string(loc) with:
-    render-fancy-reason(self, loc-to-src):
+    method render-fancy-reason(self, loc-to-src):
       [ED.error: 
         [ED.para:
           ED.text("Pyret thinks the string ")],
@@ -829,64 +946,64 @@ data ParseError:
           ED.code(ED.text("```")),
           ED.text(" instead of quotation marks.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("Pyret thinks your program has an incomplete string literal around "),
           draw-and-highlight(self.loc),
           ED.text("; you may be missing closing punctuation.")]]
     end
   | parse-error-bad-operator(loc) with:
-    render-fancy-reason(self, loc-to-src):
+    method render-fancy-reason(self, loc-to-src):
       [ED.error: 
         [ED.para:
           ED.text("The operator "),
           ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc],0)),
           ED.text(" must have whitespace separating it from its operands.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("The operator at "),
           draw-and-highlight(self.loc),
           ED.text(" has no surrounding whitespace.")]]
     end
   | parse-error-bad-number(loc) with:
-    render-fancy-reason(self, loc-to-src):
+    method render-fancy-reason(self, loc-to-src):
       [ED.error: 
         [ED.para:
           ED.text("Pyret thinks "),
           ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc],0)),
           ED.text(" is probably a number, but number literals in Pyret require at least one digit before the decimal point.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error: [ED.para-nospace:
           ED.text("Pyret thinks your program probably has a number at "),
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
   | empty-block(loc) with:
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "Empty block at " + self.loc.format(true)
     end
   | bad-block-stmt(loc) with:
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "Expected a val binding or an expression, but got something else " + self.loc.format(true)
     end
   | bad-check-block-stmt(loc) with:
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "Expected a val binding or an expression, but got something else " + self.loc.format(true)
     end
   | fun-missing-colon(loc) with:
-    _tostring(self, shadow tostring): "fun-missing-colon: " + self.loc.format(true) end
+    method _tostring(self, shadow tostring): "fun-missing-colon: " + self.loc.format(true) end
   | fun-missing-end(loc) with:
-    _tostring(self, shadow tostring): "fun-missing-end: " + self.loc.format(true) end
+    method _tostring(self, shadow tostring): "fun-missing-end: " + self.loc.format(true) end
   | args-missing-comma(loc) with:
-    _tostring(self, shadow tostring): "args-missing-comma: " + self.loc.format(true) end
+    method _tostring(self, shadow tostring): "args-missing-comma: " + self.loc.format(true) end
   | app-args-missing-comma(loc) with:
-    _tostring(self, shadow tostring): "app-args-missing-comma: " + self.loc.format(true) end
+    method _tostring(self, shadow tostring): "app-args-missing-comma: " + self.loc.format(true) end
   | missing-end(loc)
   | missing-comma(loc)
 sharing:
-  render-reason(self):
+  method render-reason(self):
     ED.text(self._tostring(tostring))
   end
 end

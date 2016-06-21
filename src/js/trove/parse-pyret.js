@@ -511,8 +511,16 @@
             return tr(node.kids[1]);
           }
         },
+         /*'tuple-binding-expr': function(node) {
+            return RUNTIME.getField(ast, 's-tuple-let')
+                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
+          },*/
         'binding': function(node) {
-          if (node.kids.length === 1) {
+            /*if (node.kids[0] == "tuple-binding-expr") {
+              return RUNTIME.getField(ast, 's-tuple-let')
+                .app(pos(node.pos), tr(node.kids[0]))
+             }
+              else*/ if (node.kids.length === 1) {
             // (binding name)
             return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
@@ -597,12 +605,30 @@
             return RUNTIME.getField(ast, 's-data-field')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
-            // (obj-field key fun-header COLON doc body check END)
-            var isBlock = (node.kids[2].name === "BLOCK");
-            var header = tr(node.kids[1]);
+            // (obj-field METHOD key fun-header COLON doc body check END)
+            var isBlock = (node.kids[3].name === "BLOCK");
+            var header = tr(node.kids[2]);
             return RUNTIME.getField(ast, 's-method-field')
-              .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
+          }
+        },
+        'tuple-name-list' : function(node) {
+          if (node.kids[node.kids.length - 1].name !== "binding") {
+            // (obj-fields (list-tuple-field f1 SEMI) ... lastField SEMI)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
+          } else {
+            // (fields (list-tuple-field f1 SEMI) ... lastField)
+            return makeListComma(node.kids);
+          }
+        },
+        'tuple-fields' : function(node) {
+          if (node.kids[node.kids.length - 1].name === "SEMI") {
+            // (obj-fields (list-tuple-field f1 SEMI) ... lastField SEMI)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
+          } else {
+            // (fields (list-tuple-field f1 SEMI) ... lastField)
+            return makeListComma(node.kids);
           }
         },
         'table-expr': function(node) {
@@ -731,12 +757,12 @@
             return RUNTIME.getField(ast, "s-data-field")
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
-            // (field key fun-header (BLOCK|COLON) doc body check END)
-            var isBlock = (node.kids[2].name === "BLOCK");
-            var header = tr(node.kids[1]);
+            // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
+            var isBlock = (node.kids[3].name === "BLOCK");
+            var header = tr(node.kids[2]);
             return RUNTIME.getField(ast, "s-method-field")
-              .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
           }
         },
         'fields': function(node) {
@@ -831,6 +857,19 @@
         'prim-expr': function(node) {
           // (prim-expr e)
           return tr(node.kids[0]);
+        },
+        'tuple-expr': function(node) {
+          return RUNTIME.getField(ast, 's-tuple')
+              .app(pos(node.pos), tr(node.kids[1]))
+        },
+        'tuple-bind-expr': function(node) {
+          return RUNTIME.getField(ast, 's-tuple-let')
+              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
+        },
+        //changes here
+        'tuple-get': function(node) {
+          return RUNTIME.getField(ast, 's-tuple-get')
+              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]))
         },
         'obj-expr': function(node) {
           if (node.kids.length === 2) {
@@ -1024,6 +1063,16 @@
           // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
           return RUNTIME.getField(ast, 'a-record')
             .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+        },
+        'tuple-ann': function(node) {
+          // (tuple LBRACE ann (SEMI ann)* [SEMI] RBRACE
+          if (node.kids[node.kids.length - 2].name === "SEMI") {
+            return RUNTIME.getField(ast, 'a-tuple')
+              .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2));
+          } else {
+            return RUNTIME.getField(ast, 'a-tuple')
+              .app(pos(node.pos), makeListComma(node.kids, 0, node.kids.length - 1));
+          }
         },
         'noparen-arrow-ann': function(node) {
           if (node.kids.length === 2) {

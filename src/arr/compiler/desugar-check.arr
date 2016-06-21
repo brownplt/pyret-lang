@@ -25,7 +25,7 @@ fun ast-srcloc(l):
 end
 
 check-stmts-visitor = A.default-map-visitor.{
-  s-check-test(self, l, op, refinement, left, right):
+  method s-check-test(self, l, op, refinement, left, right):
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
@@ -72,7 +72,7 @@ check-stmts-visitor = A.default-map-visitor.{
       | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))
     end
   end,
-  s-check(self, l, name, body, keyword-check):
+  method s-check(self, l, name, body, keyword-check):
     # collapse check blocks into top layer
     body.visit(self)
   end
@@ -133,25 +133,25 @@ fun make-lam(l, args, body):
 end
 
 no-checks-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     A.s-block(l, stmts.map(_.visit(self)))
   end,
-  s-fun(self, l, name, params, args, ann, doc, body, _, blocky):
+  method s-fun(self, l, name, params, args, ann, doc, body, _, blocky):
     A.s-fun(l, name, params, args, ann, doc, body, none, blocky)
   end,
-  s-data(self, l, name, params, mixins, variants, shared-members, _):
+  method s-data(self, l, name, params, mixins, variants, shared-members, _):
     A.s-data(l, name, params, mixins, variants, shared-members, none)
   end,
-  s-lam(self, l, params, args, ann, doc, body, _, blocky):
+  method s-lam(self, l, params, args, ann, doc, body, _, blocky):
     A.s-lam(l, params, args, ann, doc, body, none, blocky)
   end,
-  s-check(self, l, name, body, keyword-check):
+  method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name(l, "nothing"))
   end
 }
 
 check-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     checks-to-perform = get-checks(stmts)
     ds-stmts = stmts.map(_.visit(self))
     do-checks = create-check-block(l, checks-to-perform)

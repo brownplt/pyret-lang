@@ -36,7 +36,3 @@ fun to-boolean(er :: EqualityResult):
     | NotEqual(_,_,_) => false
   end
 end
-
-fun from-boolean(b :: Boolean):
-  if b: Equal else: NotEqual("false", "value1", "value2") end
-end

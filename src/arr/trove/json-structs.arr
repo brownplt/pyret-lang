@@ -18,7 +18,7 @@ is-array = arrays.is-array
 
 data JSON:
   | j-obj(dict :: SD.StringDict<JSON>) with:
-    native(self) block:
+    method native(self) block:
       d = self.dict
       ret = [SD.mutable-string-dict:]
       for map(s from d.keys().to-list()):
@@ -26,7 +26,7 @@ data JSON:
       end
       ret.freeze()
     end,
-    serialize(self):
+    method serialize(self):
       d = self.dict
       l = for map(s from d.keys().to-list()):
         '"' + s + '": ' + d.get-value(s).serialize()
@@ -34,17 +34,17 @@ data JSON:
       "{" + l.join-str(", ") + "}"
     end
   | j-arr(l :: List<JSON>) with:
-    native(self):
+    method native(self):
       self.l.map(lam(x): x.native() end)
     end,
-    serialize(self):
+    method serialize(self):
       "[" + self.l.map(lam(x): x.serialize() end).join-str(", ") + "]"
     end
   | j-num(n :: Number) with:
-    native(self):
+    method native(self):
       self.n
     end,
-    serialize(self):
+    method serialize(self):
       # This feels like a pretty big hack.  All I want is to convert a
       # roughnum (or a rational) as a JavaScript number, which just
       # means cutting off the initial "~".
@@ -56,24 +56,24 @@ data JSON:
       end
     end
   | j-str(s :: String) with:
-    native(self):
+    method native(self):
       self.s
     end,
-    serialize(self):
+    method serialize(self):
       '"' + self.s + '"'
     end
   | j-bool(b :: Boolean) with:
-    native(self):
+    method native(self):
       self.b
     end,
-    serialize(self):
+    method serialize(self):
       if self.b: "true" else: "false" end
     end
   | j-null with:
-    native(self):
+    method native(self):
       nothing
     end,
-    serialize(self):
+    method serialize(self):
       "null"
     end
 end

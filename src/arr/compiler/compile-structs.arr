@@ -43,10 +43,10 @@ type Loc = SL.Srcloc
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
     with:
-    key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
+    method key(self): self.protocol + "(" + self.arguments.join-str(", ") + ")" end
   | builtin(modname :: String)
     with:
-    key(self): "builtin(" + self.modname + ")" end
+    method key(self): "builtin(" + self.modname + ")" end
 end
 
 data NativeModule:
@@ -252,10 +252,10 @@ end
 
 data CompileError:
   | wf-err(msg :: String, loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -265,14 +265,14 @@ data CompileError:
     end
   | wf-empty-block(loc :: A.Loc) with:
     # semi-counterfactual loc on this error
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret rejected your program because you have an "),
           ED.highlight(ED.text("empty block"), [list: self.loc], 0),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -281,10 +281,10 @@ data CompileError:
         [ED.para: draw-and-highlight(self.loc)]]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Well-formedness:"),
@@ -293,14 +293,14 @@ data CompileError:
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the use of "),
           ED.code(ED.highlight(ED.text(self.id), [list: self.loc], 0)),
           ED.text(" as an identifier because it is reserved.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the use of "),
@@ -310,7 +310,7 @@ data CompileError:
           ED.text(" because it is reserved.")]]
     end
   | zero-fraction(loc, numerator) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
@@ -322,7 +322,7 @@ data CompileError:
         [ED.para:
           ED.text("because its denominator is zero.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret disallows the fraction literal expression")],
@@ -336,7 +336,7 @@ data CompileError:
           ED.text(" because its denominator is zero.")]]
     end
   | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
@@ -345,7 +345,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
           ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Binary operators of different kinds cannot be mixed at the same level, but you use "),
@@ -359,14 +359,14 @@ data CompileError:
           ED.text(". Use parentheses to group the operations and to make their precedence unambiguous.")]]
     end
   | block-ending(l :: Loc, kind) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
           ED.highlight(ED.text(self.kind), [list: self.l], 0),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Blocks should end with an expression, but you ended a block with a statement. You cannot end a block with a "),
@@ -376,7 +376,7 @@ data CompileError:
           ED.text(".")]]
     end
   | single-branch-if(expr :: A.Expr) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("If-expressions must have more than one branch, but the if-expression")],
@@ -386,7 +386,7 @@ data CompileError:
           ED.highlight(ED.text("one branch"), [list: self.expr.branches.first.l], 1),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("If-expressions may not only have one branch, but the if-expression at "),
@@ -394,7 +394,7 @@ data CompileError:
           ED.text(" does not have any other branches.")]]
     end
   | unwelcome-where(kind, loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.code(ED.text("`where`")),
@@ -402,7 +402,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.kind), [list: self.loc], 0)),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.code(ED.text("`where`")),
@@ -413,7 +413,7 @@ data CompileError:
           ED.text(".")]]
     end
   | non-example(expr :: A.Expr) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.code(ED.text("`example`")),
@@ -422,7 +422,7 @@ data CompileError:
         [ED.para:
           ED.text(" isn't a testing statement.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.code(ED.text("`example`")),
@@ -431,7 +431,7 @@ data CompileError:
           ED.text(" isn't a testing statement.")]]
     end
   | no-arguments(expr) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Method declarations are expected to accept at least one argument, but the method declaration")],
@@ -439,7 +439,7 @@ data CompileError:
         [ED.para:
           ED.text("has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
@@ -447,14 +447,14 @@ data CompileError:
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
   | non-toplevel(kind, l :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("You may only define a "),
           ED.code(ED.highlight(ED.text(self.kind), [ED.locs: self.l], 0)),
           ED.text(" at the top-level.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("You may only define the "),
@@ -464,7 +464,7 @@ data CompileError:
           ED.text(" at the top-level.")]]
     end
   | underscore-as(l :: Loc, kind) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -473,7 +473,7 @@ data CompileError:
           ED.text(self.kind),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -485,7 +485,7 @@ data CompileError:
           ED.text(".")]]
     end
   | underscore-as-pattern(l :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -494,7 +494,7 @@ data CompileError:
           ED.code(ED.text("else")),
           ED.text(" instead.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -506,14 +506,14 @@ data CompileError:
           ED.text(" instead.")]]
     end
   | underscore-as-expr(l :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text(" cannot be used where an expression is expected.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -523,14 +523,14 @@ data CompileError:
           ED.text(" cannot be used where an expression is expected.")]]
     end
   | underscore-as-ann(l :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
           ED.text("cannot be used where a type annotation is expected.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The underscore "),
@@ -540,7 +540,7 @@ data CompileError:
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
   | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
-    render-reason(self):
+    method render-reason(self):
       if self.block-locs.length() > 1:
         [ED.error:
           [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
@@ -560,7 +560,7 @@ data CompileError:
       end
     end
   | unbound-id(id :: A.Expr) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
           [ED.para:
@@ -577,7 +577,7 @@ data CompileError:
               ED.text(" but not previously defined.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
           [ED.para:
@@ -596,7 +596,7 @@ data CompileError:
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -613,7 +613,7 @@ data CompileError:
               ED.text(" but not previously defined.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -632,7 +632,7 @@ data CompileError:
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.ann.l:
         | builtin(_) =>
           [ED.para:
@@ -649,7 +649,7 @@ data CompileError:
               ED.text(" could not be found.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.ann.l:
         | builtin(_) =>
           [ED.para:
@@ -669,10 +669,10 @@ data CompileError:
       end
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       #### TODO ###
       [ED.error:
         [ED.para-nospace:
@@ -683,7 +683,7 @@ data CompileError:
           ED.text(", but is bound as a type variable")]]
     end
   | pointless-var(loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.error:
@@ -698,7 +698,7 @@ data CompileError:
               ED.text(" is pointless since there is no name that can be used to mutate it later on.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -715,7 +715,7 @@ data CompileError:
       end
     end
   | pointless-rec(loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.error:
@@ -730,7 +730,7 @@ data CompileError:
               ED.text(" is pointless since there is no name to call recursively.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.error:
@@ -748,7 +748,7 @@ data CompileError:
       end
     end
   | pointless-shadow(loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -762,7 +762,7 @@ data CompileError:
               ED.text(" cannot shadow anything: there is no name to shadow.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.loc:
         | builtin(_) =>
           [ED.para:
@@ -779,7 +779,7 @@ data CompileError:
       end
     end
   | bad-assignment(iuse :: A.Expr, idef :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       use-loc-color = 0
       def-loc-color = 1
       [ED.error:
@@ -793,7 +793,7 @@ data CompileError:
           ED.text(" is declared by an "),
           ED.highlight(ED.text("identifier definition expression."), [ED.locs: self.idef], def-loc-color)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The variable assignment expression "),
@@ -809,10 +809,10 @@ data CompileError:
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
     #### TODO ###
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
@@ -821,7 +821,7 @@ data CompileError:
   | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       old-loc-color = 0
       new-loc-color = 1
       cases(SL.Srcloc) self.old-loc:
@@ -840,7 +840,7 @@ data CompileError:
               ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
@@ -867,7 +867,7 @@ data CompileError:
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       old-loc-color = 0
       new-loc-color = 1
       cases(SL.Srcloc) self.old-loc:
@@ -889,7 +889,7 @@ data CompileError:
               ED.text(".")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
           [ED.error:
@@ -916,7 +916,7 @@ data CompileError:
       end
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       old-loc-color = 0
       new-loc-color = 1
       [ED.error:
@@ -928,7 +928,7 @@ data CompileError:
           ED.text(".")],
         [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The declaration of the field named "),
@@ -943,7 +943,7 @@ data CompileError:
         [ED.para: ED.text("You need to pick a different name for one of them.")]]
     end
   | same-line(a :: Loc, b :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret expects each expression within a block to have its own line, but Pyret found "),
@@ -952,7 +952,7 @@ data CompileError:
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Pyret expects each expression within a block to have its own line, but the expression at "),
@@ -962,7 +962,7 @@ data CompileError:
           ED.text(".")]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because it found a "),
@@ -972,7 +972,7 @@ data CompileError:
           ED.text(" a "),
           ED.text(self.expected-name)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("Expected to find "), ED.code(ED.text(self.expected-name)),
@@ -981,10 +981,10 @@ data CompileError:
           ED.text(", but instead found "), ED.code(ED.text(self.bad-name)), ED.text(".")]]
     end
   | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
 
         [ED.para:
@@ -1001,7 +1001,7 @@ data CompileError:
           draw-and-highlight(self.expected-loc)]]
     end
   | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type instantiation")],
@@ -1019,7 +1019,7 @@ data CompileError:
           ED.embed(self.expected.length()),
           ED.text(" parameters.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type instantiation")],
@@ -1035,7 +1035,7 @@ data CompileError:
           ED.text(" parameters.")]]
     end
   | incorrect-number-of-args(app-expr, fun-typ) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
         [ED.para:
@@ -1059,7 +1059,7 @@ data CompileError:
           ED.ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
@@ -1081,7 +1081,7 @@ data CompileError:
           ED.text(".")]]
     end
   | method-missing-self(method-expr :: A.Expr) with:
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the method expression")],
@@ -1093,7 +1093,7 @@ data CompileError:
           ED.text(" requires at least a 'self' argument.")]]
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
         [ED.para:
@@ -1113,7 +1113,7 @@ data CompileError:
           ED.text(" is "),
           ED.embed(self.typ)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the function application expression")],
@@ -1126,7 +1126,7 @@ data CompileError:
           ED.embed(self.typ)]]
     end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
@@ -1135,7 +1135,7 @@ data CompileError:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], 1))]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type ")],
@@ -1148,7 +1148,7 @@ data CompileError:
           ED.loc(self.access-loc)]
     end
   | duplicate-variant(id :: String, found :: Loc, previous :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("A variant may not have the same name as any other variant in the type, but the declaration of a variant named "),
@@ -1157,7 +1157,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.id), [list: self.previous], 1)),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("A variant may not have the same name as any other variant in the type, but the declaration of a variant "),
@@ -1171,7 +1171,7 @@ data CompileError:
           ED.text(".")]]
     end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("A variant may not be matched more than once in a cases expression, but the branch matching the variant "),
@@ -1180,7 +1180,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.id), [list: self.previous], 1)),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("A variant may not be matched more than once in a cases expression, but the branch matching the variant "),
@@ -1194,7 +1194,7 @@ data CompileError:
           ED.text(".")]]
     end,
   | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.Type, cases-loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the "),
@@ -1211,7 +1211,7 @@ data CompileError:
         ED.bulleted-sequence(self.data-type.variants.map(lam(variant):
             ED.code(ED.highlight(ED.text(variant.name), [list: variant.l], 2)) end))]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the cases expression at "),
@@ -1229,7 +1229,7 @@ data CompileError:
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
   | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the "),
@@ -1240,7 +1240,7 @@ data CompileError:
           ED.code(ED.text("else")),
           ED.text(" branch is unreachable.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("The else branch for the cases expression at "),
@@ -1248,7 +1248,7 @@ data CompileError:
           ED.text(" is not needed since all variants of " + self.type-name + " have been exhausted.")]]
     end
   | non-exhaustive-pattern(missing :: List<T.TypeVariant>, type-name :: String, loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
@@ -1262,7 +1262,7 @@ data CompileError:
               end), self.missing.map(_.l), 1),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The cases expression at"),
@@ -1271,7 +1271,7 @@ data CompileError:
             + ". It is missing: " + self.missing.map(_.name).join-str(", ") + ".")]]
     end
   | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("A "),
@@ -1282,7 +1282,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.type-name), [list: self.ann.l], 1)),
           ED.text(" cannot be used in cases expressions.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type specified " + self.type-name),
@@ -1291,7 +1291,7 @@ data CompileError:
           ED.text("cannot be used in a cases expression.")]]
     end
   | different-branch-types(l, branch-types) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
@@ -1299,7 +1299,7 @@ data CompileError:
             ED.highlight(ED.embed(branch), [list: branch.l], n) end,
             0, self.branch-types))]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The branches of this expression evaluate to different types and no common type encompasses all of them:")],
@@ -1309,7 +1309,7 @@ data CompileError:
             0, self.branch-types))]
     end
   | incorrect-number-of-bindings(branch :: A.CasesBranch, variant :: T.TypeVariant) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
@@ -1330,7 +1330,7 @@ data CompileError:
           ED.text(" and the variant is declared as having "),
           ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], 3)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       fun ed-fields(n):
         [ED.sequence:
           ED.embed(n),
@@ -1350,7 +1350,7 @@ data CompileError:
           ed-fields(self.variant.fields.length())]]
     end
   | cases-singleton-mismatch(name :: String, branch-loc :: A.Loc, should-be-singleton :: Boolean) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
@@ -1365,7 +1365,7 @@ data CompileError:
             ED.text(" has an argument list, but the variant is not a singleton.")]]
       end
     end,
-    render-reason(self):
+    method render-reason(self):
       if self.should-be-singleton:
         [ED.error:
           [ED.para:
@@ -1386,10 +1386,10 @@ data CompileError:
     end
   | given-parameters(data-type :: String, loc :: A.Loc) with:
     # duplicate of `bad-type-instantiation` ?
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The data type"),  ED.code(ED.text(self.data-type)),
@@ -1397,10 +1397,10 @@ data CompileError:
           draw-and-highlight(self.loc)]]
     end
   | unable-to-instantiate(loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("In the type at"), draw-and-highlight(self.loc),
@@ -1408,17 +1408,17 @@ data CompileError:
             + "or the given arguments are incompatible.")]]
     end
   | unable-to-infer(loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
           ED.text(". Please add an annotation.")]]
     end
   | toplevel-unann(arg :: A.Bind) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
@@ -1427,7 +1427,7 @@ data CompileError:
           ED.cmcode(self.arg.l),
           ED.text(" needs a type annotation.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
@@ -1435,7 +1435,7 @@ data CompileError:
           ED.text(" needs a type annotation.")]]
     end
   | binop-type-error(binop :: A.Expr, tl :: T.Type, tr :: T.Type, etl :: T.Type, etr :: T.Type) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The typechecker thinks there's a problem with the "),
@@ -1459,7 +1459,7 @@ data CompileError:
           ED.text(" should be a "),
           ED.embed(self.etr)]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The typechecker thinks there's a problem with the "),
@@ -1483,10 +1483,10 @@ data CompileError:
           ED.embed(self.etr)]]
     end
   | cant-typecheck(reason :: String, loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
@@ -1494,10 +1494,10 @@ data CompileError:
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
     #### TODO ###
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text(self.message + " (found at "),
@@ -1506,10 +1506,10 @@ data CompileError:
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     #### TODO ###
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       self.render-reason()
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("There is no module imported with the name " + self.mod-name),
@@ -1518,13 +1518,13 @@ data CompileError:
           ED.text(")")]]
     end
   | table-empty-header(loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.highlight(ED.text("This table"), [list: self.loc], 0),
           ED.text(" has no column names, but tables must have at least one column.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The table at "),
@@ -1532,13 +1532,13 @@ data CompileError:
           ED.text(" has no column names, but tables must have at least one column.")]]
     end
   | table-empty-row(loc :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.highlight(ED.text("This table row"), [list: self.loc], 0),
           ED.text(" is empty, but table rows cannot be empty.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The table row at "),
@@ -1546,7 +1546,7 @@ data CompileError:
           ED.text(" is empty, but table rows cannot be empty.")]]
     end
   | table-row-wrong-size(header-loc :: A.Loc, header :: List<A.FieldName>, row :: A.TableRow) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       fun ed-cols(n, ls, c):
         ED.highlight([ED.sequence:
             ED.embed(n),
@@ -1570,7 +1570,7 @@ data CompileError:
           ed-cols(self.header.length(), self.header.map(_.l), 1),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       fun ed-cols(n):
         [ED.sequence:
           ED.embed(n),
@@ -1593,7 +1593,7 @@ data CompileError:
           ED.text(".")]]
     end
   | table-duplicate-column-name(column1 :: A.FieldName, column2 :: A.FieldName) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Column "),
@@ -1602,7 +1602,7 @@ data CompileError:
           ED.highlight(ED.text(self.column2.name), [list: self.column2.l], 0),
           ED.text(" have the same name, but table columns must have different names.")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The table columns at "),
@@ -1612,7 +1612,7 @@ data CompileError:
           ED.text(" have the same name, but columns in a table must have different names.")]]
     end
   | table-reducer-bad-column(extension :: A.TableExtendField, col-defs :: A.Loc) with:
-    render-fancy-reason(self):
+    method render-fancy-reason(self):
       bad-column = self.extension.col
       bad-column-name = bad-column.tosource().pretty(80)
       reducer = self.extension.reducer
@@ -1627,7 +1627,7 @@ data CompileError:
           ED.highlight(ED.text("used columns"), [list: self.col-defs], 2),
           ED.text(".")]]
     end,
-    render-reason(self):
+    method render-reason(self):
       bad-column = self.extension.col
       reducer = self.extension.reducer
       [ED.error:
@@ -1665,8 +1665,8 @@ default-compile-options = {
   proper-tail-calls: true,
   compile-module: true,
   compiled-cache: "compiled",
-  on-compile(_, locator, loadable): loadable end,
-  before-compile(_, _): nothing end,
+  method on-compile(_, locator, loadable): loadable end,
+  method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"
 }
 
@@ -1723,6 +1723,7 @@ runtime-provides = provides("builtin://global",
     "is-object", t-pred,
     "is-function", t-pred,
     "is-raw-array", t-pred,
+    "is-tuple", t-pred,
     "gensym", t-top,
     "random", t-top,
     "run-task", t-top,
@@ -1803,6 +1804,7 @@ runtime-provides = provides("builtin://global",
     "raw-array-get", t-top,
     "raw-array-set", t-top,
     "raw-array-of", t-top,
+    "raw-array-build", t-top,
     "raw-array-length", t-top,
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
