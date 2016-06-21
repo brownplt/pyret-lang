@@ -571,7 +571,7 @@
                   (pyret-has-top opens '(shared)))
                   ;;(pyret-has-top opens '(data)))
               ;;(message "Line %d, saw colon in context %s, pushing 'field" (+ 1 n) (car-safe opens))
-              (when (pyret-has-top opens '(object))
+              (when (pyret-has-top opens '(objectortuple))
                 (pop opens)
                 (push 'object opens))
               (incf (pyret-indent-fields defered-opened))
