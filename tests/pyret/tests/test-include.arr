@@ -143,20 +143,20 @@ modules = [SD.mutable-string-dict:
 
 fun string-to-locator(name :: String):
   {
-    needs-compile(self, provs): true end,
-    get-modified-time(self): 0 end,
-    get-options(self, options): options end,
-    get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-    get-native-modules(self): [list:] end,
-    get-extra-imports(self): CM.standard-imports end,
-    get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-    get-globals(self): CM.standard-globals end,
-    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    uri(self): "file://" + name end,
-    name(self): name end,
-    set-compiled(self, _, _): nothing end,
-    get-compiled(self): none end,
-    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    method needs-compile(self, provs): true end,
+    method get-modified-time(self): 0 end,
+    method get-options(self, options): options end,
+    method get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+    method get-native-modules(self): [list:] end,
+    method get-extra-imports(self): CM.standard-imports end,
+    method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
+    method get-globals(self): CM.standard-globals end,
+    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    method uri(self): "file://" + name end,
+    method name(self): name end,
+    method set-compiled(self, _, _): nothing end,
+    method get-compiled(self): none end,
+    method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
 end
 

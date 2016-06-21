@@ -38,20 +38,20 @@ check "Worklist generation (simple)":
 
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): true end,
-      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self): CM.minimal-imports end,
-      get-modified-time(self): 0 end,
-      get-options(self, options): options end,
-      get-native-modules(self): empty end,
-      get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
-      uri(self): "file://" + name end,
-      name(self): name end,
-      set-compiled(self, ctxt, provs): nothing end,
-      get-compiled(self): none end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+      method needs-compile(self, provs): true end,
+      method get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      method get-extra-imports(self): CM.minimal-imports end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): empty end,
+      method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+      method get-globals(self): CM.standard-globals end,
+      method uri(self): "file://" + name end,
+      method name(self): name end,
+      method set-compiled(self, ctxt, provs): nothing end,
+      method get-compiled(self): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
 
@@ -103,24 +103,24 @@ check "Worklist generation (DAG)":
   retrievals = SD.make-mutable-string-dict()
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): not(cresults.has-key-now(name)) end,
-      get-module(self) block:
+      method needs-compile(self, provs): not(cresults.has-key-now(name)) end,
+      method get-module(self) block:
         count = if retrievals.has-key-now(name): retrievals.get-value-now(name) else: 0 end
         retrievals.set-now(name, count + 1)
         CL.pyret-string(modules.get-value-now(name))
       end,
-      get-modified-time(self): 0 end,
-      get-options(self, options): options end,
-      get-native-modules(self): empty end,
-      get-extra-imports(self): CM.minimal-imports end,
-      get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      get-globals(self): CM.no-builtins.globals end,
-      uri(self): "file://" + name end,
-      name(self): name end,
-      set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
-      get-compiled(self): if cresults.has-key-now(name): some(cresults.get-value-now(name)) else: none end end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): empty end,
+      method get-extra-imports(self): CM.minimal-imports end,
+      method get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
+      method get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
+      method get-globals(self): CM.no-builtins.globals end,
+      method uri(self): "file://" + name end,
+      method name(self): name end,
+      method set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
+      method get-compiled(self): if cresults.has-key-now(name): some(cresults.get-value-now(name)) else: none end end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
 
@@ -170,20 +170,20 @@ check "Worklist generation (Cycle)":
 
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): true end,
-      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self): CM.minimal-imports end,
-      get-modified-time(self): 0 end,
-      get-options(self, options): options end,
-      get-native-modules(self): empty end,
-      get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
-      uri(self): "file://" + name end,
-      name(self): name end,
-      set-compiled(self, ctxt, provs): nothing end,
-      get-compiled(self): none end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+      method needs-compile(self, provs): true end,
+      method get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      method get-extra-imports(self): CM.minimal-imports end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): empty end,
+      method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+      method get-globals(self): CM.standard-globals end,
+      method uri(self): "file://" + name end,
+      method name(self): name end,
+      method set-compiled(self, ctxt, provs): nothing end,
+      method get-compiled(self): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
 
@@ -233,20 +233,20 @@ check "Multiple includes":
 
   fun string-to-locator(name :: String):
     {
-      needs-compile(self, provs): true end,
-      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self): CM.standard-imports end,
-      get-modified-time(self): 0 end,
-      get-options(self, options): options end,
-      get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
-      get-native-modules(self): empty end,
-      uri(self): "file://" + name end,
-      name(self): name end,
-      set-compiled(self, ctxt, provs): nothing end,
-      get-compiled(self): none end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+      method needs-compile(self, provs): true end,
+      method get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
+      method get-extra-imports(self): CM.standard-imports end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
+      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
+      method get-globals(self): CM.standard-globals end,
+      method get-native-modules(self): empty end,
+      method uri(self): "file://" + name end,
+      method name(self): name end,
+      method set-compiled(self, ctxt, provs): nothing end,
+      method get-compiled(self): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
 

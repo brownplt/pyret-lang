@@ -15,20 +15,20 @@ import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 
 fun string-to-locator(name, str :: String):
   {
-    needs-compile(self, provs): true end,
-    get-modified-time(self): 0 end,
-    get-options(self, options): options end,
-    get-module(self): CL.pyret-string(str) end,
-    get-extra-imports(self): CS.minimal-imports end,
-    get-native-modules(self): [list:] end,
-    get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-    get-globals(self): CS.standard-globals end,
-    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    uri(self): "tc-test://" + name end,
-    name(self): name end,
-    set-compiled(self, ctxt, provs): nothing end,
-    get-compiled(self): none end,
-    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    method needs-compile(self, provs): true end,
+    method get-modified-time(self): 0 end,
+    method get-options(self, options): options end,
+    method get-module(self): CL.pyret-string(str) end,
+    method get-extra-imports(self): CS.minimal-imports end,
+    method get-native-modules(self): [list:] end,
+    method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    method get-globals(self): CS.standard-globals end,
+    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    method uri(self): "tc-test://" + name end,
+    method name(self): name end,
+    method set-compiled(self, ctxt, provs): nothing end,
+    method get-compiled(self): none end,
+    method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
 end
 

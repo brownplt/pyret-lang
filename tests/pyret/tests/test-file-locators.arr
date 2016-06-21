@@ -31,28 +31,28 @@ fun file-object(time): {
     ctime: time,
     mtime: box(time),
     contents: box(""),
-    file-times(self):
+    method file-times(self):
       {
         mtime: self.mtime!v,
         atime: self.atime!v,
         ctime: self.ctime
       }
     end,
-    read-file(self) block:
+    method read-file(self) block:
       self.atime!{v : counter()}
       self.contents!v
     end,
-    display(self, str) block:
+    method display(self, str) block:
       self.mtime!{v : counter()}
       self.contents!{v : str}
     end,
-    close-file(self): nothing end
+    method close-file(self): nothing end
 } end
 
 fun make-file-ops(): {
     file-map: SD.make-mutable-string-dict(),
-    input-file(self, path): self.file-map.get-value-now(path) end,
-    output-file(self, path):
+    method input-file(self, path): self.file-map.get-value-now(path) end,
+    method output-file(self, path):
       cases (Option) self.file-map.get-now(path) block:
         | none =>
           fp = file-object(counter())
@@ -61,9 +61,9 @@ fun make-file-ops(): {
         | some(fp) => fp
       end
     end,
-    file-exists(self, path): self.file-map.has-key-now(path) end,
-    file-times(self, path): self.file-map.get-value-now(path).file-times() end,
-    real-path(self, path): "/mock" + path end
+    method file-exists(self, path): self.file-map.has-key-now(path) end,
+    method file-times(self, path): self.file-map.get-value-now(path).file-times() end,
+    method real-path(self, path): "/mock" + path end
 } end
 
 check "File locators":

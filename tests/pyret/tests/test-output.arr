@@ -20,11 +20,11 @@ data DerivedStrings:
   | w-sing
   | w()
   | x-sing with:
-    _output(self): VS.vs-value("output-x-sing") end
+    method _output(self): VS.vs-value("output-x-sing") end
   | x() with:
-    _output(self): VS.vs-constr("output-x", empty) end
+    method _output(self): VS.vs-constr("output-x", empty) end
 sharing:
-  _output(self): VS.vs-value("shared-output") end
+  method _output(self): VS.vs-value("shared-output") end
 end
 
 check "Should correctly derive tostring and torepr only when needed":
@@ -58,7 +58,7 @@ end
 
 check "Cyclic objects":
   rec o = {
-    _output(self): VS.vs-collection("myself", [list: VS.vs-value(self)]) end
+    method _output(self): VS.vs-collection("myself", [list: VS.vs-value(self)]) end
   }
 
   torepr(o) is "[myself: <cyclic-object-1>]"
@@ -67,7 +67,7 @@ check "Cyclic objects":
     is "{x: [myself: <cyclic-object-1>], y: [myself: <cyclic-object-2>]}"
 
   rec olong = {
-    _output(self) block:
+    method _output(self) block:
       for each(i from range(0, 10000)):
         "do nothing"
       end
@@ -78,7 +78,7 @@ check "Cyclic objects":
   torepr({x: olong, y: olong})
     is "{x: [myself: <cyclic-object-1>], y: [myself: <cyclic-object-2>]}"
 
-  o2 = { _output(self): VS.vs-value("myself") end }
+  o2 = { method _output(self): VS.vs-value("myself") end }
   torepr({x: o2, y: o2}) is "{x: \"myself\", y: \"myself\"}"
 
 end

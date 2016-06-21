@@ -37,7 +37,7 @@ check "basics":
 
   var long-torepr = nothing
   long-torepr := {
-    _output(self) block:
+    method _output(self) block:
       var str = ""
       for each(i from range(0, 10000)):
         str := tostring(i)
