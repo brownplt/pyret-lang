@@ -27,7 +27,7 @@ data CompilationPhase:
   | start
   | phase(name :: String, result :: Any, prev :: CompilationPhase)
 sharing:
-  tolist(self):
+  method tolist(self):
     fun help(the-phase, acc):
       if is-start(the-phase): acc
       else: help(the-phase.prev, {name : the-phase.name, result : the-phase.result} ^ link(_, acc))
@@ -155,20 +155,20 @@ type Locator = {
 
 fun string-locator(uri :: URI, s :: String):
   {
-    needs-compile(self, _): true end,
-    get-modified-time(self): 0 end,
-    get-options(self, options): options end,
-    get-module(self): pyret-string(s) end,
-    get-native-modules(self): [list:] end,
-    get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
-    get-extra-imports(self): CS.standard-imports end,
-    get-globals(self): CS.standard-globals end,
-    get-namespace(self, r): N.make-base-namespace(r) end,
-    uri(self): uri end,
-    name(self): uri end,
-    set-compiled(self, _, _): nothing end,
-    get-compiled(self): none end,
-    _equals(self, other, rec-eq): rec-eq(other.uri(), self.uri()) end
+    method needs-compile(self, _): true end,
+    method get-modified-time(self): 0 end,
+    method get-options(self, options): options end,
+    method get-module(self): pyret-string(s) end,
+    method get-native-modules(self): [list:] end,
+    method get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
+    method get-extra-imports(self): CS.standard-imports end,
+    method get-globals(self): CS.standard-globals end,
+    method get-namespace(self, r): N.make-base-namespace(r) end,
+    method uri(self): uri end,
+    method name(self): uri end,
+    method set-compiled(self, _, _): nothing end,
+    method get-compiled(self): none end,
+    method _equals(self, other, rec-eq): rec-eq(other.uri(), self.uri()) end
   }
 end
 

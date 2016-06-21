@@ -309,10 +309,10 @@ end
 var last-visited-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
-  s-special-import(self, l, kind, args) block:
+  method s-special-import(self, l, kind, args) block:
     last-visited-loc := l
     if kind == "my-gdrive":
       if args.length() <> 1 block:
@@ -345,50 +345,50 @@ well-formed-visitor = A.default-iter-visitor.{
       #wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
   end,
-  s-data(self, l, name, params, mixins, variants, shares, _check) block:
+  method s-data(self, l, name, params, mixins, variants, shares, _check) block:
     last-visited-loc := l
     add-error(C.non-toplevel("data declaration", l))
     true
   end,
-  s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
+  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
     last-visited-loc := l
     add-error(C.non-toplevel("data declaration", l))
     true
   end,
-  s-type(self, l, name, ann) block:
+  method s-type(self, l, name, ann) block:
     last-visited-loc := l
     add-error(C.non-toplevel("type alias", l))
     true
   end,
-  s-newtype(self, l, name, namet) block:
+  method s-newtype(self, l, name, namet) block:
     last-visited-loc := l
     add-error(C.non-toplevel("newtype", l))
     true
   end,
-  s-let-expr(self, l, binds, body, blocky) block:
+  method s-let-expr(self, l, binds, body, blocky) block:
     last-visited-loc := l
     when not(blocky): 
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  s-letrec(self, l, binds, body, blocky) block:
+  method s-letrec(self, l, binds, body, blocky) block:
     last-visited-loc := l
     when not(blocky): 
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  s-type-let-expr(self, l, binds, body, blocky) block:
+  method s-type-let-expr(self, l, binds, body, blocky) block:
     last-visited-loc := l
     add-error(C.non-toplevel("type alias", l))
     true
   end,
-  s-op(self, l, op-l, op, left, right) block:
+  method s-op(self, l, op-l, op, left, right) block:
     last-visited-loc := l
     reachable-ops(self, l, op-l, op, left) and reachable-ops(self, l, op-l, op, right)
   end,
-  s-cases-branch(self, l, pat-loc, name, args, body) block:
+  method s-cases-branch(self, l, pat-loc, name, args, body) block:
     last-visited-loc := l
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
@@ -396,35 +396,35 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-ids(args.map(_.bind))
     lists.all(_.visit(self), args) and body.visit(self)
   end,
-  s-singleton-cases-branch(self, l, pat-loc, name, body) block:
+  method s-singleton-cases-branch(self, l, pat-loc, name, body) block:
     last-visited-loc := l
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
     end
     body.visit(self)
   end,
-  s-var(self, l, bind, val) block:
+  method s-var(self, l, bind, val) block:
     last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
-  s-rec(self, l, bind, val) block:
+  method s-rec(self, l, bind, val) block:
     last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-rec(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
-  s-var-bind(self, l, bind, val) block:
+  method s-var-bind(self, l, bind, val) block:
     last-visited-loc := l
     when A.is-s-underscore(bind.id):
       add-error(C.pointless-var(l.at-start() + bind.l))
     end
     bind.visit(self) and val.visit(self)
   end,
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     if is-empty(stmts) block:
       add-error(C.wf-empty-block(last-visited-loc))
       true
@@ -434,7 +434,7 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     end
   end,
-  s-bind(self, l, shadows, name, ann) block:
+  method s-bind(self, l, shadows, name, ann) block:
     last-visited-loc := l
     when (reserved-names.has-key(name.tosourcestring())):
       reserved-name(l, name.tosourcestring())
@@ -444,7 +444,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     name.visit(self) and ann.visit(self)
   end,
-  s-check-test(self, l, op, refinement, left, right) block:
+  method s-check-test(self, l, op, refinement, left, right) block:
     last-visited-loc := l
     when not(in-check-block):
       op-name = op.tosource().pretty(80).join-str("\n")
@@ -467,7 +467,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     left.visit(self) and self.option(right)
   end,
-  s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+  method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
@@ -485,21 +485,21 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  s-data-field(self, l, name, value) block:
+  method s-data-field(self, l, name, value) block:
     last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     value.visit(self)
   end,
-  s-mutable-field(self, l, name, ann, value) block:
+  method s-mutable-field(self, l, name, ann, value) block:
     last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ann.visit(self) and value.visit(self)
   end,
-  s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
+  method s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when args.length() == 0:
       add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check)))
@@ -514,7 +514,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
+  method s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -527,7 +527,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  s-fun(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
@@ -539,13 +539,13 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  s-obj(self, l, fields) block:
+  method s-obj(self, l, fields) block:
     last-visited-loc := l
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
-  s-tuple-get(self, l, tup, index):
+  method s-tuple-get(self, l, tup, index):
     if (index < 0) block: 
       wf-error(" Index too small  ", l)
       false
@@ -556,7 +556,7 @@ well-formed-visitor = A.default-iter-visitor.{
       true
      end
   end,
-  s-check(self, l, name, body, keyword-check) block:
+  method s-check(self, l, name, body, keyword-check) block:
     last-visited-loc := l
     if not(keyword-check) block:
       wrap-visit-check(self, some(body))
@@ -565,14 +565,14 @@ well-formed-visitor = A.default-iter-visitor.{
       wrap-visit-check(self, some(body))
     end
   end,
-  s-when(self, l, test, block, blocky) block:
+  method s-when(self, l, test, block, blocky) block:
     last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: block])
     end
     test.visit(self) and block.visit(self)
   end,
-  s-if(self, l, branches, blocky) block:
+  method s-if(self, l, branches, blocky) block:
     last-visited-loc := l
     when branches.length() == 1:
       add-error(C.single-branch-if(A.s-if(l, branches)))
@@ -582,28 +582,28 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), branches)
   end,
-  s-if-else(self, l, branches, _else, blocky) block:
+  method s-if-else(self, l, branches, _else, blocky) block:
     last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  s-if-pipe(self, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean) block:
+  method s-if-pipe(self, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean) block:
     last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
     lists.all(_.visit(self), branches)
   end,
-  s-if-pipe-else(self, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean) block:
+  method s-if-pipe-else(self, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean) block:
     last-visited-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  s-cases(self, l, typ, val, branches, blocky) block:
+  method s-cases(self, l, typ, val, branches, blocky) block:
     last-visited-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
@@ -611,7 +611,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
-  s-cases-else(self, l, typ, val, branches, _else, blocky) block:
+  method s-cases-else(self, l, typ, val, branches, _else, blocky) block:
     last-visited-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
@@ -619,58 +619,58 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  s-for(self, l, iterator, bindings, ann, body, blocky) block:
+  method s-for(self, l, iterator, bindings, ann, body, blocky) block:
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s-frac(self, l, num, den) block:
+  method s-frac(self, l, num, den) block:
     last-visited-loc := l
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
     true
   end,
-  s-id(self, l, id) block:
+  method s-id(self, l, id) block:
     last-visited-loc := l
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
     end
     true
   end,
-  s-provide(self, l, expr):
+  method s-provide(self, l, expr):
     true
   end
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
       | else => body.visit(self)
     end
     ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
-  s-type(self, l, name, ann):
+  method s-type(self, l, name, ann):
     ann.visit(well-formed-visitor)
   end,
-  s-newtype(self, l, name, namet):
+  method s-newtype(self, l, name, namet):
     true
   end,
-  s-type-let-expr(self, l, binds, body, blocky) block:
+  method s-type-let-expr(self, l, binds, body, blocky) block:
     when not(blocky): 
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(well-formed-visitor)
   end,
-  s-type-bind(self, l, name, ann):
+  method s-type-bind(self, l, name, ann):
     ann.visit(well-formed-visitor)
   end,
-  s-newtype-bind(self, l, name, namet):
+  method s-newtype-bind(self, l, name, namet):
     true
   end,
-  s-variant(self, l, constr-loc, name, binds, with-members) block:
+  method s-variant(self, l, constr-loc, name, binds, with-members) block:
     ids = fields-to-binds(with-members) + binds.map(_.bind)
     ensure-unique-ids(ids)
     underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
@@ -681,11 +681,11 @@ top-level-visitor = A.default-iter-visitor.{
     is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
-  s-singleton-variant(self, l, name, with-members) block:
+  method s-singleton-variant(self, l, name, with-members) block:
     ensure-unique-ids(fields-to-binds(with-members))
     lists.all(_.visit(well-formed-visitor), with-members)
   end,
-  s-data(self, l, name, params, mixins, variants, shares, _check) block:
+  method s-data(self, l, name, params, mixins, variants, shares, _check) block:
     ensure-unique-variant-ids(variants)
     check-underscore-name(variants, "a data variant name")
     check-underscore-name(shares, "a shared field name")
@@ -699,7 +699,7 @@ top-level-visitor = A.default-iter-visitor.{
     cur-shared := the-cur-shared
     params-v and mixins-v and variants-v and shares-v and wrap-visit-check(well-formed-visitor, _check)
   end,
-  s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
+  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
     ensure-unique-variant-ids(variants)
     underscores = variants.filter(lam(v): v.name == "_" end)
     when not(is-empty(underscores)):
@@ -718,211 +718,211 @@ top-level-visitor = A.default-iter-visitor.{
 
 
   # Everything else delegates to the non-toplevel visitor
-  s-import(_, l, import-type, name):
+  method s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
   end,
-  s-include(_, l, import-type, name):
+  method s-include(_, l, import-type, name):
     well-formed-visitor.s-include(l, import-type)
   end,
-  s-import-types(_, l, import-type, name, types):
+  method s-import-types(_, l, import-type, name, types):
     well-formed-visitor.s-import-types(l, import-type, name, types)
   end,
-  s-import-fields(_, l, fields, import-type):
+  method s-import-fields(_, l, fields, import-type):
     well-formed-visitor.s-import-fields(l, fields, import-type)
   end,
-  s-provide(_, l, expr):
+  method s-provide(_, l, expr):
     well-formed-visitor.s-provide(l, expr)
   end,
-  s-provide-types(_, l, anns):
+  method s-provide-types(_, l, anns):
     well-formed-visitor.s-provide-types(l, anns)
   end,
-  s-bind(_, l, shadows, name, ann):
+  method s-bind(_, l, shadows, name, ann):
     well-formed-visitor.s-bind(l, shadows, name, ann)
   end,
-  s-var-bind(_, l, bind, expr):
+  method s-var-bind(_, l, bind, expr):
     well-formed-visitor.s-var-bind(l, bind, expr)
   end,
-  s-let-bind(_, l, bind, expr):
+  method s-let-bind(_, l, bind, expr):
     well-formed-visitor.s-let-bind(l, bind, expr)
   end,
-  s-template(self, l):
+  method s-template(self, l):
     well-formed-visitor.s-template(l)
   end,
-  s-let-expr(_, l, binds, body, blocky):
+  method s-let-expr(_, l, binds, body, blocky):
     well-formed-visitor.s-let-expr(l, binds, body, blocky)
   end,
-  s-letrec-bind(_, l, bind, expr):
+  method s-letrec-bind(_, l, bind, expr):
     well-formed-visitor.s-letrec-bind(l, bind, expr)
   end,
-  s-letrec(_, l, binds, body, blocky):
+  method s-letrec(_, l, binds, body, blocky):
     well-formed-visitor.s-letrec(l, binds, body, blocky)
   end,
-  s-hint-exp(_, l :: Loc, hints :: List<A.Hint>, exp :: A.Expr):
+  method s-hint-exp(_, l :: Loc, hints :: List<A.Hint>, exp :: A.Expr):
     well-formed-visitor.s-hint-exp(l, hints, exp)
   end,
-  s-instantiate(_, l :: Loc, expr :: A.Expr, params :: List<A.Ann>):
+  method s-instantiate(_, l :: Loc, expr :: A.Expr, params :: List<A.Ann>):
     well-formed-visitor.s-instantiate(l, expr, params)
   end,
-  s-block(_, l, stmts):
+  method s-block(_, l, stmts):
     well-formed-visitor.s-block(l, stmts)
   end,
-  s-user-block(_, l :: Loc, body :: A.Expr):
+  method s-user-block(_, l :: Loc, body :: A.Expr):
     well-formed-visitor.s-user-block(l, body)
   end,
-  s-fun(_, l, name, params, args, ann, doc, body, _check, blocky):
+  method s-fun(_, l, name, params, args, ann, doc, body, _check, blocky):
     well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check, blocky)
   end,
-  s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
+  method s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-var(l, name, value)
   end,
-  s-rec(_, l :: Loc, name :: A.Bind, value :: A.Expr):
+  method s-rec(_, l :: Loc, name :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-rec(l, name, value)
   end,
-  s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
+  method s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
   end,
-  s-ref(_, l :: Loc, ann :: A.Ann):
+  method s-ref(_, l :: Loc, ann :: A.Ann):
     well-formed-visitor.s-ref(l, ann)
   end,
-  s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
+  method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
-  s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
+  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
     well-formed-visitor.s-contract(l, name, ann)
   end,
-  s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
+  method s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
     well-formed-visitor.s-assign(l, id, value)
   end,
-  s-if-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
+  method s-if-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
     well-formed-visitor.s-if-branch(l, test, body)
   end,
-  s-if-pipe-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
+  method s-if-pipe-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
     well-formed-visitor.s-if-pipe-branch(l, test, body)
   end,
-  s-if(_, l :: Loc, branches :: List<A.IfBranch>, blocky :: Boolean):
+  method s-if(_, l :: Loc, branches :: List<A.IfBranch>, blocky :: Boolean):
     well-formed-visitor.s-if(l, branches, blocky)
   end,
-  s-if-else(_, l :: Loc, branches :: List<A.IfBranch>, _else :: A.Expr, blocky :: Boolean):
+  method s-if-else(_, l :: Loc, branches :: List<A.IfBranch>, _else :: A.Expr, blocky :: Boolean):
     well-formed-visitor.s-if-else(l, branches, _else, blocky)
   end,
-  s-if-pipe(_, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean):
+  method s-if-pipe(_, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean):
     well-formed-visitor.s-if-pipe(l, branches, blocky)
   end,
-  s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean):
+  method s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean):
     well-formed-visitor.s-if-pipe-else(l, branches, _else, blocky)
   end,
-  s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.CasesBind>, body :: A.Expr):
+  method s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.CasesBind>, body :: A.Expr):
     well-formed-visitor.s-cases-branch(l, pat-loc, name, args, body)
   end,
-  s-singleton-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, body :: A.Expr):
+  method s-singleton-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, body :: A.Expr):
     well-formed-visitor.s-singleton-cases-branch(l, pat-loc, name, body)
   end,
-  s-cases(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, blocky :: Boolean):
+  method s-cases(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, blocky :: Boolean):
     well-formed-visitor.s-cases(l, typ, val, branches, blocky)
   end,
-  s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr, blocky :: Boolean):
+  method s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr, blocky :: Boolean):
     well-formed-visitor.s-cases-else(l, typ, val, branches, _else, blocky)
   end,
-  s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
+  method s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op-loc, op, left, right)
   end,
-  s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
+  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
     well-formed-visitor.s-check-test(l, op, refinement, left, right)
   end,
-  s-paren(_, l :: Loc, expr :: A.Expr):
+  method s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
   end,
-  s-lam(_, l :: Loc, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+  method s-lam(_, l :: Loc, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
     well-formed-visitor.s-lam(l, params, args, ann, doc, body, _check, blocky)
   end,
-  s-method(_, l :: Loc, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+  method s-method(_, l :: Loc, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
     well-formed-visitor.s-method(l, params, args, ann, doc, body, _check, blocky)
   end,
-  s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
+  method s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-extend(l, supe, fields)
   end,
-  s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
+  method s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-update(l, supe, fields)
   end,
-  s-tuple-get(_, l :: Loc, tup, index):
+  method s-tuple-get(_, l :: Loc, tup, index):
     well-formed-visitor.s-tuple-get(l, tup, index)
   end,
-  s-obj(_, l :: Loc, fields :: List<A.Member>):
+  method s-obj(_, l :: Loc, fields :: List<A.Member>):
     well-formed-visitor.s-obj(l, fields)
   end,
-  s-array(_, l :: Loc, values :: List<A.Expr>):
+  method s-array(_, l :: Loc, values :: List<A.Expr>):
     well-formed-visitor.s-array(l, values)
   end,
-  s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
+  method s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
     well-formed-visitor.s-construct(l, mod, constructor, values)
   end,
-  s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
+  method s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
     well-formed-visitor.s-app(l, _fun, args)
   end,
-  s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
     well-formed-visitor.s-prim-app(l, _fun, args)
   end,
-  s-frac(_, l :: Loc, num, den):
+  method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
   end,
-  s-id(_, l :: Loc, id :: A.Name):
+  method s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)
   end,
-  s-id-var(_, l :: Loc, id :: A.Name):
+  method s-id-var(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id-var(l, id)
   end,
-  s-id-letrec(_, l :: Loc, id :: A.Name, safe :: Boolean):
+  method s-id-letrec(_, l :: Loc, id :: A.Name, safe :: Boolean):
     well-formed-visitor.s-id-letrec(l, id, safe)
   end,
-  s-dot(_, l :: Loc, obj :: A.Expr, field :: String):
+  method s-dot(_, l :: Loc, obj :: A.Expr, field :: String):
     well-formed-visitor.s-dot(l, obj, field)
   end,
-  s-get-bang(_, l :: Loc, obj :: A.Expr, field :: String):
+  method s-get-bang(_, l :: Loc, obj :: A.Expr, field :: String):
     well-formed-visitor.s-get-bang(l, obj, field)
   end,
-  s-bracket(_, l :: Loc, obj :: A.Expr, field :: A.Expr):
+  method s-bracket(_, l :: Loc, obj :: A.Expr, field :: A.Expr):
     well-formed-visitor.s-bracket(l, obj, field)
   end,
-  s-for(_, l :: Loc, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr, blocky :: Boolean):
+  method s-for(_, l :: Loc, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr, blocky :: Boolean):
     well-formed-visitor.s-for(l, iterator, bindings, ann, body, blocky)
   end,
-  s-check(_, l :: Loc, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
+  method s-check(_, l :: Loc, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
     well-formed-visitor.s-check(l, name, body, keyword-check)
   end,
-  s-data-field(_, l :: Loc, name :: A.Expr, value :: A.Expr):
+  method s-data-field(_, l :: Loc, name :: A.Expr, value :: A.Expr):
     well-formed-visitor.s-data-field(l, name, value)
   end,
-  s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
+  method s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
+  method s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
     well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check)
   end,
-  s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
+  method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)
   end,
-  s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
+  method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
     well-formed-visitor.s-variant-member(l, member-type, bind)
   end,
-  a-arrow(_, l, args, ret, use-parens):
+  method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
   end,
-  a-method(_, l, args, ret):
+  method a-method(_, l, args, ret):
     well-formed-visitor.a-method(l, args, ret)
   end,
-  a-record(_, l, fields):
+  method a-record(_, l, fields):
     well-formed-visitor.a-record(l, fields)
   end,
-  a-app(_, l, ann, args):
+  method a-app(_, l, ann, args):
     well-formed-visitor.a-app(l, ann, args)
   end,
-  a-pred(_, l, ann, exp):
+  method a-pred(_, l, ann, exp):
     well-formed-visitor.a-pred(l, ann, exp)
   end,
-  a-dot(_, l, obj, field):
+  method a-dot(_, l, obj, field):
     well-formed-visitor.a-dot(l, obj, field)
   end,
-  a-field(_, l, name, ann):
+  method a-field(_, l, name, ann):
     well-formed-visitor.a-field(l, name, ann)
   end
 }

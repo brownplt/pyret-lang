@@ -24,26 +24,26 @@ get-arr-key = {}
 
 fun make(arr :: RawArray) -> Array:
   ArrayT.brand({
-    get-arr(_, key):
+    method get-arr(_, key):
       if key == get-arr-key: arr else: raise("Cannot get arr externally") end
     end,
-    get-now(_, ix :: Number): raw-array-get(arr, ix) end,
-    set-now(self, ix :: Number, val) -> Nothing block:
+    method get-now(_, ix :: Number): raw-array-get(arr, ix) end,
+    method set-now(self, ix :: Number, val) -> Nothing block:
       raw-array-set(arr, ix, val)
       nothing
     end,
-    length(_): raw-array-length(arr) end,
-    to-list-now(_): raw-array-to-list(arr) end,
-    _equals(self, other, eq):
+    method length(_): raw-array-length(arr) end,
+    method to-list-now(_): raw-array-to-list(arr) end,
+    method _equals(self, other, eq):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
     end,
-    _torepr(self, shadow torepr):
+    method _torepr(self, shadow torepr):
       "[array: " + self.to-list-now().map(torepr).join-str(", ") + "]"
     end,
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "[array: " + self.to-list-now().map(tostring).join-str(", ") + "]"
     end,
-    _output(self): VS.vs-collection("array", self.to-list-now().map(VS.vs-value)) end
+    method _output(self): VS.vs-collection("array", self.to-list-now().map(VS.vs-value)) end
   })
 end
 

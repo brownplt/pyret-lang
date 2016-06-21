@@ -3,51 +3,51 @@ provide-types *
 
 data ConcatList<a>:
   | concat-empty with:
-    to-list-acc(self, rest): rest end,
-    map-to-list-acc(self, f, rest): rest end,
-    map(self, f): self end,
-    each(self, f): nothing end,
-    foldl(self, f, base): base end,
-    foldr(self, f, base): base end,
-    is-empty(self): true end,
-    length(self): 0 end,
-    join-str(self, sep): "" end,
-    reverse(self): self end
+    method to-list-acc(self, rest): rest end,
+    method map-to-list-acc(self, f, rest): rest end,
+    method map(self, f): self end,
+    method each(self, f): nothing end,
+    method foldl(self, f, base): base end,
+    method foldr(self, f, base): base end,
+    method is-empty(self): true end,
+    method length(self): 0 end,
+    method join-str(self, sep): "" end,
+    method reverse(self): self end
   | concat-singleton(element) with:
-    to-list-acc(self, rest): link(self.element, rest) end,
-    map-to-list-acc(self, f, rest): link(f(self.element), rest) end,
-    map(self, f): concat-singleton(f(self.element)) end,
-    each(self, f) block:
+    method to-list-acc(self, rest): link(self.element, rest) end,
+    method map-to-list-acc(self, f, rest): link(f(self.element), rest) end,
+    method map(self, f): concat-singleton(f(self.element)) end,
+    method each(self, f) block:
       f(self.element)
       nothing
     end,
-    foldl(self, f, base): f(base, self.element) end,
-    foldr(self, f, base): f(base, self.element) end,
-    getFirst(self): self.element end,
-    getLast(self): self.element end,
-    is-empty(self): false end,
-    length(self): 1 end,
-    join-str(self, sep): tostring(self.element) end,
-    reverse(self): self end
+    method foldl(self, f, base): f(base, self.element) end,
+    method foldr(self, f, base): f(base, self.element) end,
+    method getFirst(self): self.element end,
+    method getLast(self): self.element end,
+    method is-empty(self): false end,
+    method length(self): 1 end,
+    method join-str(self, sep): tostring(self.element) end,
+    method reverse(self): self end
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
-    to-list-acc(self, rest :: List):
+    method to-list-acc(self, rest :: List):
       self.left.to-list-acc(self.right.to-list-acc(rest))
     end,
-    map-to-list-acc(self, f, rest :: List):
+    method map-to-list-acc(self, f, rest :: List):
       self.left.map-to-list-acc(f, self.right.map-to-list-acc(f, rest))
     end,
-    map(self, f): concat-append(self.left.map(f), self.right.map(f)) end,
-    each(self, f) block:
+    method map(self, f): concat-append(self.left.map(f), self.right.map(f)) end,
+    method each(self, f) block:
       self.left.each(f)
       self.right.each(f)
     end,
-    foldl(self, f, base): self.right.foldl(f, self.left.foldl(f, base)) end,
-    foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end,
-    getFirst(self): if self.left.is-empty(): self.right.getFirst() else: self.left.getFirst() end end,
-    getLast(self): if self.right.is-empty(): self.left.getLast() else: self.right.getLast() end end,
-    is-empty(self): self.left.is-empty() and self.right.is-empty() end,
-    length(self): self.left.length() + self.right.length() end,
-    join-str(self, sep):
+    method foldl(self, f, base): self.right.foldl(f, self.left.foldl(f, base)) end,
+    method foldr(self, f, base): self.left.foldr(f, self.right.foldr(f, base)) end,
+    method getFirst(self): if self.left.is-empty(): self.right.getFirst() else: self.left.getFirst() end end,
+    method getLast(self): if self.right.is-empty(): self.left.getLast() else: self.right.getLast() end end,
+    method is-empty(self): self.left.is-empty() and self.right.is-empty() end,
+    method length(self): self.left.length() + self.right.length() end,
+    method join-str(self, sep):
       l = self.left.join-str(sep)
       r = self.right.join-str(sep)
       if l == "": r
@@ -55,62 +55,62 @@ data ConcatList<a>:
       else: l + sep + r
       end
     end,
-    reverse(self): concat-append(self.right.reverse(), self.left.reverse()) end
+    method reverse(self): concat-append(self.right.reverse(), self.left.reverse()) end
   | concat-cons(first :: a, rest :: ConcatList<a>) with:
-    to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
-    map-to-list-acc(self, f, rest): link(f(self.first), self.rest.map-to-list-acc(f, rest)) end,
-    map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
-    each(self, f) block:
+    method to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
+    method map-to-list-acc(self, f, rest): link(f(self.first), self.rest.map-to-list-acc(f, rest)) end,
+    method map(self, f): concat-cons(f(self.first), self.rest.map(f)) end,
+    method each(self, f) block:
       f(self.first)
       self.rest.each(f)
     end,
-    foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
-    foldr(self, f, base): f(self.rest.foldr(f, base), self.first) end,
-    getFirst(self): self.first end,
-    getLast(self): if self.rest.is-empty(): self.first else: self.rest.getLast() end end,
-    is-empty(self): false end,
-    length(self): 1 + self.rest.length() end,
-    join-str(self, sep):
+    method foldl(self, f, base): self.rest.foldl(f, f(base, self.first)) end,
+    method foldr(self, f, base): f(self.rest.foldr(f, base), self.first) end,
+    method getFirst(self): self.first end,
+    method getLast(self): if self.rest.is-empty(): self.first else: self.rest.getLast() end end,
+    method is-empty(self): false end,
+    method length(self): 1 + self.rest.length() end,
+    method join-str(self, sep):
       l = tostring(self.first)
       r = self.rest.join-str(sep)
       if r == "": l
       else: l + sep + r
       end
     end,
-    reverse(self): concat-snoc(self.rest.reverse(), self.first) end
+    method reverse(self): concat-snoc(self.rest.reverse(), self.first) end
   | concat-snoc(head :: ConcatList<a>, last :: a) with:
-    to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
-    map-to-list-acc(self, f, rest): self.head.map-to-list-acc(f, link(f(self.last), rest)) end,
-    map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
-    each(self, f) block:
+    method to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
+    method map-to-list-acc(self, f, rest): self.head.map-to-list-acc(f, link(f(self.last), rest)) end,
+    method map(self, f): concat-snoc(self.head.map(f), f(self.last)) end,
+    method each(self, f) block:
       self.head.each(f)
       f(self.last)
       nothing
     end,
-    foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
-    foldr(self, f, base): self.head.foldr(f, f(base, self.last)) end,
-    getFirst(self): if self.head.is-empty(): self.last else: self.head.getFirst() end end,
-    getLast(self): self.last end,
-    is-empty(self): false end,
-    length(self): self.head.length() + 1 end,
-    join-str(self, sep):
+    method foldl(self, f, base): f(self.head.foldl(f, base), self.last) end,
+    method foldr(self, f, base): self.head.foldr(f, f(base, self.last)) end,
+    method getFirst(self): if self.head.is-empty(): self.last else: self.head.getFirst() end end,
+    method getLast(self): self.last end,
+    method is-empty(self): false end,
+    method length(self): self.head.length() + 1 end,
+    method join-str(self, sep):
       h = self.head.join-str(sep)
       l = tostring(self.last)
       if h == "": l
       else: h + sep + l
       end
     end,
-    reverse(self): concat-cons(self.last, self.head.reverse()) end
+    method reverse(self): concat-cons(self.last, self.head.reverse()) end
 sharing:
-  _plus(self, other :: ConcatList):
+  method _plus(self, other :: ConcatList):
     if is-concat-empty(self): other
     else if is-concat-empty(other): self
     else: concat-append(self, other)
     end
   end,
-  to-list(self): self.to-list-acc(empty) end,
-  map-to-list-left(self, f): revmap-to-list-acc(self, f, empty).reverse() end,
-  map-to-list(self, f): self.map-to-list-acc(f, empty) end
+  method to-list(self): self.to-list-acc(empty) end,
+  method map-to-list-left(self, f): revmap-to-list-acc(self, f, empty).reverse() end,
+  method map-to-list(self, f): self.map-to-list-acc(f, empty) end
 where:
   ce = concat-empty
   co = concat-singleton

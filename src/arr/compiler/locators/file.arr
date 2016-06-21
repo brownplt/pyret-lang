@@ -20,13 +20,13 @@ fun mockable-file-locator(file-ops):
     {
       path: path,
       globals: globals,
-      get-modified-time(self):
+      method get-modified-time(self):
         file-ops.file-times(path).mtime
       end,
-      get-options(self, options):
+      method get-options(self, options):
         options
       end,
-      get-module(self) block:
+      method get-module(self) block:
         when ast == nothing block:
           when not(file-ops.file-exists(self.path)):
             raise("File " + self.path + " does not exist")
@@ -38,30 +38,30 @@ fun mockable-file-locator(file-ops):
         end
         ast
       end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-      get-dependencies(self):
+      method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+      method get-dependencies(self):
         CL.get-standard-dependencies(self.get-module(), self.uri())
       end,
-      get-native-modules(self):
+      method get-native-modules(self):
         [list:]
       end,
-      get-extra-imports(self):
+      method get-extra-imports(self):
         CS.standard-imports
       end,
-      get-globals(self): self.globals end,
-      set-compiled(self, cr, deps) block:
+      method get-globals(self): self.globals end,
+      method set-compiled(self, cr, deps) block:
         ast := nothing
         nothing
       end,
-      needs-compile(self, provides):
+      method needs-compile(self, provides):
         true
       end,
-      get-compiled(self):
+      method get-compiled(self):
         none
       end,
-      uri(self): "file://" + string-replace(file-ops.real-path(self.path), P.path-sep, "/") end,
-      name(self): self.path end,
-      _equals(self, other, eq): eq(self.uri(), other.uri()) end
+      method uri(self): "file://" + string-replace(file-ops.real-path(self.path), P.path-sep, "/") end,
+      method name(self): self.path end,
+      method _equals(self, other, eq): eq(self.uri(), other.uri()) end
     }
   end
 end

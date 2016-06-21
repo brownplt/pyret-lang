@@ -512,8 +512,8 @@ fun desugar-expr(expr :: A.Expr):
 where:
   d = A.dummy-loc
   unglobal = A.default-map-visitor.{
-    s-global(self, s): A.s-name(d, s) end,
-    s-atom(self, base, serial): A.s-name(d, base) end
+    method s-global(self, s): A.s-name(d, s) end,
+    method s-atom(self, base, serial): A.s-name(d, base) end
   }
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end

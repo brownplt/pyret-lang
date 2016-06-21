@@ -20,9 +20,9 @@ end
 
 data ANFCont:
   | k-cont(k :: (N.ALettable -> N.AExpr)) with:
-    apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
+    method apply(self, l :: Loc, expr :: N.ALettable): self.k(expr) end
   | k-id(name :: A.Name) with:
-    apply(self, l :: Loc, expr :: N.ALettable):
+    method apply(self, l :: Loc, expr :: N.ALettable):
       cases(N.ALettable) expr:
         | a-val(l2, v) =>
           N.a-lettable(l, N.a-app(l, N.a-id(l, self.name), [list: v]))

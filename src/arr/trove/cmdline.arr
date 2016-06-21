@@ -66,33 +66,33 @@ other-args = all-cmdline-params.rest
 
 data ParseParam:
   | read-number with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
       n = string-tonumber(s)
       if is-nothing(n):
         right(format("~a expected a numeric argument, got ~a", [list: param-name, torepr(s)]))
       else: left(n)
       end
     end,
-    parse-string(self): "<number>" end
+    method parse-string(self): "<number>" end
   | read-bool with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:
         right(format("~a expected a boolean argument, got ~a", [list: param-name, torepr(s)]))
       end
     end,
-    parse-string(self): "(true|false)" end
+    method parse-string(self): "(true|false)" end
   | read-string with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
       left(s)
     end,
-    parse-string(self): "<string>" end
+    method parse-string(self): "<string>" end
   | read-custom(name :: String, parser :: Function) with:
-    parse(self, arg-index :: Number, param-name :: String, s :: String):
+    method parse(self, arg-index :: Number, param-name :: String, s :: String):
       self.parser(arg-index, param-name, s)
     end,
-    parse-string(self): format("<~a>", [list: self.name]) end
+    method parse-string(self): format("<~a>", [list: self.name]) end
 end
 
 data ParsedArguments:
@@ -102,10 +102,10 @@ end
 
 
 data ParamRepeat:
-  | once with: _tostring(_, ts): "may be used at most once" end
-  | many with: _tostring(_, ts): "may be repeated" end
-  | required-once with: _tostring(_, ts): "must be used exactly once" end
-  | required-many with: _tostring(_, ts): "must be used at least once" end
+  | once with: method _tostring(_, ts): "may be used at most once" end
+  | many with: method _tostring(_, ts): "may be repeated" end
+  | required-once with: method _tostring(_, ts): "must be used exactly once" end
+  | required-many with: method _tostring(_, ts): "must be used at least once" end
 end
 
 data Param:

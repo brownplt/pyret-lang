@@ -49,39 +49,39 @@ end
 fun make-builtin-js-locator(basedir, builtin-name):
   raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
   {
-    needs-compile(_, _): false end,
-    get-modified-time(self):
+    method needs-compile(_, _): false end,
+    method get-modified-time(self):
       F.file-times(P.join(basedir, builtin-name + ".js")).mtime
     end,
-    get-options(self, options):
+    method get-options(self, options):
       options.{ check-mode: false, type-check: false }
     end,
-    get-module(_):
+    method get-module(_):
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
-    get-extra-imports(self):
+    method get-extra-imports(self):
       CM.standard-imports
     end,
-    get-dependencies(_):
+    method get-dependencies(_):
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,
-    get-native-modules(_):
+    method get-native-modules(_):
       natives = raw.get-raw-native-modules()
       raw-array-to-list(natives).map(CM.requirejs)
     end,
-    get-globals(_):
+    method get-globals(_):
       CM.standard-globals
     end,
-    get-namespace(_, some-runtime):
+    method get-namespace(_, some-runtime):
       N.make-base-namespace(some-runtime)
     end,
 
-    uri(_): "builtin://" + builtin-name end,
-    name(_): builtin-name end,
+    method uri(_): "builtin://" + builtin-name end,
+    method name(_): builtin-name end,
 
-    set-compiled(_, _, _): nothing end,
-    get-compiled(self):
+    method set-compiled(_, _, _): nothing end,
+    method get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
         values: raw-array-to-list(raw.get-raw-value-provides()),
@@ -92,7 +92,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
           CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
     end,
 
-    _equals(self, other, req-eq):
+    method _equals(self, other, req-eq):
       req-eq(self.uri(), other.uri())
     end
   }
@@ -102,13 +102,13 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   path = P.join(basedir, builtin-name + ".arr")
   var ast = nothing
   {
-    get-modified-time(self):
+    method get-modified-time(self):
       F.file-times(path).mtime
     end,
-    get-options(self, options):
+    method get-options(self, options):
       options.{ check-mode: false, type-check: false }
     end,
-    get-module(self) block:
+    method get-module(self) block:
       when ast == nothing block:
         when not(F.file-exists(path)):
           raise("File " + path + " does not exist")
@@ -117,24 +117,24 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       end
       ast
     end,
-    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    get-dependencies(self):
+    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    method get-dependencies(self):
       CL.get-dependencies(self.get-module(), self.uri())
     end,
-    get-native-modules(self):
+    method get-native-modules(self):
       [list:]
     end,
-    get-extra-imports(self):
+    method get-extra-imports(self):
       CM.minimal-imports
     end,
-    get-globals(self):
+    method get-globals(self):
       CM.standard-globals
     end,
-    set-compiled(self, cr, deps) block:
+    method set-compiled(self, cr, deps) block:
       ast := nothing
       nothing
     end,
-    needs-compile(self, provides):
+    method needs-compile(self, provides):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
       cpath = path + ".js"
@@ -146,7 +146,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         true
       end
     end,
-    get-compiled(self):
+    method get-compiled(self):
       cpath = path + ".js"
       if F.file-exists(path) and F.file-exists(cpath):
         # NOTE(joe):
@@ -173,9 +173,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         none
       end
     end,
-    uri(self): "builtin://" + builtin-name end,
-    name(self): builtin-name end,
-    _equals(self, other, eq): eq(self.uri(), other.uri()) end
+    method uri(self): "builtin://" + builtin-name end,
+    method name(self): builtin-name end,
+    method _equals(self, other, eq): eq(self.uri(), other.uri()) end
   }
 end
 

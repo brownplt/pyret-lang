@@ -605,12 +605,12 @@
             return RUNTIME.getField(ast, 's-data-field')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
-            // (obj-field key fun-header COLON doc body check END)
-            var isBlock = (node.kids[2].name === "BLOCK");
-            var header = tr(node.kids[1]);
+            // (obj-field METHOD key fun-header COLON doc body check END)
+            var isBlock = (node.kids[3].name === "BLOCK");
+            var header = tr(node.kids[2]);
             return RUNTIME.getField(ast, 's-method-field')
-              .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
           }
         },
         'tuple-name-list' : function(node) {
@@ -646,12 +646,12 @@
             return RUNTIME.getField(ast, "s-data-field")
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
-            // (field key fun-header (BLOCK|COLON) doc body check END)
-            var isBlock = (node.kids[2].name === "BLOCK");
-            var header = tr(node.kids[1]);
+            // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
+            var isBlock = (node.kids[3].name === "BLOCK");
+            var header = tr(node.kids[2]);
             return RUNTIME.getField(ast, "s-method-field")
-              .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
           }
         },
         'fields': function(node) {

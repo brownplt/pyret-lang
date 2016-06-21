@@ -146,11 +146,11 @@ obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: obj-field (COMMA obj-field)* [COMMA]
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
-     | key fun-header (BLOCK|COLON) doc-string block where-clause END
+     | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 
 fields: field (COMMA field)* [COMMA]
 field: key COLON binop-expr
-     | key fun-header (BLOCK|COLON) doc-string block where-clause END
+     | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK

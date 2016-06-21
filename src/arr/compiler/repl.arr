@@ -128,24 +128,24 @@ fun make-repl-definitions-locator(get-definitions, globals):
     make-provide-for-repl-main(parsed, globals)
   end
   {
-    needs-compile(self, provs): true end,
-    get-modified-time(self): 0 end,
-    get-options(self, options): options end,
-    get-native-modules(self): [list:] end,
-    get-module(self): CL.pyret-ast(get-ast()) end,
-    get-extra-imports(self):
+    method needs-compile(self, provs): true end,
+    method get-modified-time(self): 0 end,
+    method get-options(self, options): options end,
+    method get-native-modules(self): [list:] end,
+    method get-module(self): CL.pyret-ast(get-ast()) end,
+    method get-extra-imports(self):
       CS.standard-imports
     end,
-    get-dependencies(self):
+    method get-dependencies(self):
       CL.get-standard-dependencies(self.get-module(), self.uri())
     end,
-    get-globals(self): globals end,
-    get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    uri(self): "definitions://" end,
-    name(self): "definitions" end,
-    set-compiled(self, env, result): nothing end,
-    get-compiled(self): none end,
-    _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    method get-globals(self): globals end,
+    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
+    method uri(self): "definitions://" end,
+    method name(self): "definitions" end,
+    method set-compiled(self, env, result): nothing end,
+    method get-compiled(self): none end,
+    method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
 end
 
@@ -296,24 +296,24 @@ fun make-repl<a>(
     extras-now = extra-imports
     globals-now = globals
     {
-      needs-compile(self, provs): true end,
-      get-modified-time(self): 0 end,
-      get-options(self, options): options end,
-      get-native-modules(self): [list:] end,
-      get-module(self): CL.pyret-ast(get-ast()) end,
-      get-extra-imports(self): extras-now end,
-      get-dependencies(self):
+      method needs-compile(self, provs): true end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): [list:] end,
+      method get-module(self): CL.pyret-ast(get-ast()) end,
+      method get-extra-imports(self): extras-now end,
+      method get-dependencies(self):
         mod-deps = CL.get-dependencies(self.get-module(), self.uri())
         mod-deps + self.get-extra-imports().imports.map(_.dependency)
       end,
-      get-globals(self): globals-now end,
-      get-namespace(self, this-runtime): N.make-base-namespace(this-runtime) end,
-      update-compile-context(self, ctxt): ctxt end,
-      uri(self): uri end,
-      name(self): "interactions" + num-to-string(this-interaction) end,
-      set-compiled(self, env, result): nothing end,
-      get-compiled(self): none end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+      method get-globals(self): globals-now end,
+      method get-namespace(self, this-runtime): N.make-base-namespace(this-runtime) end,
+      method update-compile-context(self, ctxt): ctxt end,
+      method uri(self): uri end,
+      method name(self): "interactions" + num-to-string(this-interaction) end,
+      method set-compiled(self, env, result): nothing end,
+      method get-compiled(self): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
 

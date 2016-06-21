@@ -37,10 +37,10 @@ end
 data Pair<L,R>:
   | pair(left :: L, right :: R)
 sharing:
-  on-left(self, f :: (L -> L)) -> Pair<L,R>:
+  method on-left(self, f :: (L -> L)) -> Pair<L,R>:
     pair(f(self.left), self.right)
   end,
-  on-right(self, f :: (R -> R)) -> Pair<L,R>:
+  method on-right(self, f :: (R -> R)) -> Pair<L,R>:
     pair(self.left, f(self.right))
   end
 end
@@ -50,7 +50,7 @@ end
 data ModuleType:
   | t-module(name :: String, provides :: Type, types :: SD.StringDict<Type>, aliases :: SD.StringDict<Type>)
 sharing:
-  _output(self):
+  method _output(self):
     VS.vs-constr("t-module",
       [list:
         VS.vs-value(torepr(self.name)),
@@ -63,19 +63,19 @@ end
 data TypeMember:
   | t-member(field-name :: String, typ :: Type)
 sharing:
-  _output(self):
+  method _output(self):
     VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
   end,
-  key(self) -> String:
+  method key(self) -> String:
     self.field-name + " : " + self.typ.key()
   end,
-  substitute(self, new-type :: Type, old-type :: Type):
+  method substitute(self, new-type :: Type, old-type :: Type):
     t-member(self.field-name, self.typ.substitute(new-type, old-type))
   end,
-  free-variable(self, var-type :: Type) -> Boolean:
+  method free-variable(self, var-type :: Type) -> Boolean:
     self.typ.free-variable(var-type)
   end,
-  _equals(self, other :: TypeMember, _) -> E.EqualityResult:
+  method _equals(self, other :: TypeMember, _) -> E.EqualityResult:
     ask:
       | not(self.field-name == other.field-name) then: E.NotEqual("field names", self, other)
       | not(self.typ == other.typ) then: E.NotEqual("typs", self, other)
@@ -94,7 +94,7 @@ data TypeVariant:
                         with-fields :: List<TypeMember>) with:
     fields: empty
 sharing:
-  substitute(self, new-type :: Type, old-type :: Type):
+  method substitute(self, new-type :: Type, old-type :: Type):
     cases(TypeVariant) self:
       | t-variant(name, fields, with-fields) =>
         new-fields = fields.map(_.substitute(new-type, old-type))
@@ -105,7 +105,7 @@ sharing:
         t-singleton-variant(name, new-with-fields)
     end
   end,
-  free-variable(self, var-type :: Type) -> Boolean:
+  method free-variable(self, var-type :: Type) -> Boolean:
     cases(TypeVariant) self:
       | t-variant(_, fields, with-fields) =>
         all(_.free-variable(var-type), fields) and
@@ -114,7 +114,7 @@ sharing:
         all(_.free-variable(var-type), with-fields)
     end
   end,
-  _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
+  method _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
     cases(TypeVariant) self:
       | t-variant(a-name, a-fields, a-with-fields) =>
         cases(TypeVariant) other:
@@ -175,7 +175,7 @@ data Type:
   | t-data(name :: String, variants :: List<TypeVariant>, fields :: List<TypeMember>, l :: A.Loc)
   | t-data-refinement(data-type :: Type, variant-name :: String, l :: A.Loc)
 sharing:
-  _output(self):
+  method _output(self):
     cases(Type) self:
       | t-name(module-name, id, _) => VS.vs-value(id.toname() + "@" + torepr(module-name))
       | t-var(id, _) => VS.vs-str(id.toname())
@@ -212,7 +212,7 @@ sharing:
                          VS.vs-str(" % is-" + variant-name + ")")])
     end
   end,
-  key(self) -> String:
+  method key(self) -> String:
     cases(Type) self:
       | t-name(module-name, id, _) =>
         cases(NameOrigin) module-name:
@@ -255,7 +255,7 @@ sharing:
           + ")"
     end
   end,
-  substitute(self, new-type :: Type, old-type :: Type):
+  method substitute(self, new-type :: Type, old-type :: Type):
     if self == old-type:
       new-type
     else:
@@ -291,7 +291,7 @@ sharing:
       end
     end
   end,
-  introduce(self, args :: List<Type>) -> Type:
+  method introduce(self, args :: List<Type>) -> Type:
     cases(Type) self:
       | t-forall(introduces, onto, l) =>
         fold2(lam(new-type, param-type, arg-type):
@@ -300,7 +300,7 @@ sharing:
       | else => self
     end
   end,
-  free-variable(self, var-type :: Type) -> Boolean:
+  method free-variable(self, var-type :: Type) -> Boolean:
     if self == var-type:
       false
     else:
@@ -337,14 +337,14 @@ sharing:
       end
     end
   end,
-  lookup-variant(self, name :: String) -> Option<TypeVariant>:
+  method lookup-variant(self, name :: String) -> Option<TypeVariant>:
     cases(Type) self:
       | t-data(_, variants, _, _) =>
         variants.find(lam(tv): tv.name == name end)
       | else => none
     end
   end,
-  set-loc(self, loc :: A.Loc):
+  method set-loc(self, loc :: A.Loc):
     cases(Type) self:
       | t-name(module-name, id, _) =>
         t-name(module-name, id, loc)
@@ -375,7 +375,7 @@ sharing:
     end
   end,
 
-  _equals(self, other :: Type, _) -> E.EqualityResult:
+  method _equals(self, other :: Type, _) -> E.EqualityResult:
     cases(Type) self:
       | t-name(a-module-name, a-id, _) =>
         cases(Type) other:

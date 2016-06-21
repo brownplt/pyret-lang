@@ -40,39 +40,39 @@ pick-some = pick.pick-some
 
 data AVLTree:
   | leaf with:
-    height(self) -> Number: 0 end,
-    contains(self, val :: Any) -> Boolean: false end,
-    insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
-    remove(self, val :: Any) -> AVLTree: leaf end,
-    preorder(self) -> lists.List: empty end,
-    inorder(self) -> lists.List: empty end,
-    postorder(self) -> lists.List: empty end,
-    revpreorder(self) -> lists.List: empty end,
-    revinorder(self) -> lists.List: empty end,
-    revpostorder(self) -> lists.List: empty end,
-    fold-preorder(self, f, base): base end,
-    fold-inorder(self, f, base): base end,
-    fold-postorder(self, f, base): base end,
-    fold-revpreorder(self, f, base): base end,
-    fold-revinorder(self, f, base): base end,
-    fold-revpostorder(self, f, base): base end,
-    count(self): 0 end,
-    all(self, f): true end,
-    any(self, f): false end
+    method height(self) -> Number: 0 end,
+    method contains(self, val :: Any) -> Boolean: false end,
+    method insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
+    method remove(self, val :: Any) -> AVLTree: leaf end,
+    method preorder(self) -> lists.List: empty end,
+    method inorder(self) -> lists.List: empty end,
+    method postorder(self) -> lists.List: empty end,
+    method revpreorder(self) -> lists.List: empty end,
+    method revinorder(self) -> lists.List: empty end,
+    method revpostorder(self) -> lists.List: empty end,
+    method fold-preorder(self, f, base): base end,
+    method fold-inorder(self, f, base): base end,
+    method fold-postorder(self, f, base): base end,
+    method fold-revpreorder(self, f, base): base end,
+    method fold-revinorder(self, f, base): base end,
+    method fold-revpostorder(self, f, base): base end,
+    method count(self): 0 end,
+    method all(self, f): true end,
+    method any(self, f): false end
 
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
-    height(self) -> Number:
+    method height(self) -> Number:
       doc: "Returns the depth of the tree"
       self.h
     end,
-    contains(self, val :: Any) -> Boolean:
+    method contains(self, val :: Any) -> Boolean:
       doc: "Returns true of the tree contains val, otherwise returns false"
       if val == self.value: true
       else if val < self.value: self.left.contains(val)
       else: self.right.contains(val)
       end
     end,
-    insert(self, val :: Any) -> AVLTree:
+    method insert(self, val :: Any) -> AVLTree:
       doc: "Returns a new tree containing val but otherwise equal"
       if val == self.value: mkbranch(val, self.left, self.right)
       else if val < self.value:
@@ -81,7 +81,7 @@ data AVLTree:
         rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
       end
     end,
-    remove(self, val :: Any) -> AVLTree:
+    method remove(self, val :: Any) -> AVLTree:
       doc: "Returns a new tree without val but otherwise equal"
       if val == self.value: remove-root(self)
       else if val < self.value:
@@ -90,79 +90,79 @@ data AVLTree:
         rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
       end
     end,
-    preorder(self) -> lists.List:
+    method preorder(self) -> lists.List:
       doc: "Returns a list of all elements from a left-to-right preorder traversal"
       fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
       self.fold-revpreorder(knil, empty) # reversed because knil is reversed
     end,
-    inorder(self) -> lists.List:
+    method inorder(self) -> lists.List:
       doc: "Returns a list of all elements from a left-to-right inorder traversal"
       fun knil(l, x): link(x, l) end
       self.fold-revinorder(knil, empty)
     end,
-    postorder(self) -> lists.List:
+    method postorder(self) -> lists.List:
       doc: "Returns a list of all elements from a left-to-right postorder traversal"
       fun knil(l, x): link(x, l) end
       self.fold-revpostorder(knil, empty)
     end,
-    revpreorder(self) -> lists.List:
+    method revpreorder(self) -> lists.List:
       doc: "Returns a list of all elements from a right-to-left preorder traversal"
       fun knil(l, x): link(x, l) end
       self.fold-preorder(knil, empty)
     end,
-    revinorder(self) -> lists.List:
+    method revinorder(self) -> lists.List:
       doc: "Returns a list of all elements from a right-to-leftinorder traversal"
       fun knil(l, x): link(x, l) end
       self.fold-inorder(knil, empty)
     end,
-    revpostorder(self) -> lists.List:
+    method revpostorder(self) -> lists.List:
       doc: "Returns a list of all elements from a roght-to-left postorder traversal"
       fun knil(l, x): link(x, l) end
       self.fold-postorder(knil, empty)
     end,
-    fold-preorder(self, f, base):
+    method fold-preorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in a preorder traversal```
       self.right.fold-preorder(f, self.left.fold-preorder(f, f(base, self.value)))
     end,
-    fold-inorder(self, f, base):
+    method fold-inorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in an inorder traversal```
       self.right.fold-inorder(f, f(self.left.fold-inorder(f, base), self.value))
     end,
-    fold-postorder(self, f, base):
+    method fold-postorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in a postorder traversal```
       f(self.right.fold-postorder(f, self.left.fold-postorder(f, base)), self.value)
     end,
-    fold-revpreorder(self, f, base):
+    method fold-revpreorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in a right-to-left preorder traversal```
       self.left.fold-revpreorder(f, self.right.fold-revpreorder(f, f(base, self.value)))
     end,
-    fold-revinorder(self, f, base):
+    method fold-revinorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in a right-to-left inorder traversal```
       self.left.fold-revinorder(f, f(self.right.fold-revinorder(f, base), self.value))
     end,
-    fold-revpostorder(self, f, base):
+    method fold-revpostorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
             analogous to folding a list, in a right-to-left postorder traversal```
       f(self.left.fold-revpostorder(f, self.right.fold-revpostorder(f, base)), self.value)
     end,
-    count(self): 1 + self.left.count() + self.right.count() end,
-    all(self, f):
+    method count(self): 1 + self.left.count() + self.right.count() end,
+    method all(self, f):
       f(self.value) and self.right.all(f) and self.left.all(f)
     end,
-    any(self, f):
+    method any(self, f):
       f(self.value) or self.right.all(f) or self.left.all(f)
     end
 sharing:
-  to-list(self) -> lists.List:
+  method to-list(self) -> lists.List:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
-  _equals(self, other, eq):
+  method _equals(self, other, eq):
     if not(is-AVLTree(other)):
       equality.NotEqual("Non-AVLTree", self, other)
     else:
@@ -272,7 +272,7 @@ end
 
 data Set:
   | list-set(elems :: lists.List) with:
-    pick(self):
+    method pick(self):
       lst = self.elems
       cases(List) lst:
         | empty => pick-none
@@ -289,7 +289,7 @@ data Set:
           end
       end
     end,
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "[set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": tostring(elem)
@@ -298,7 +298,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self, shadow torepr):
+    method _torepr(self, shadow torepr):
       "[list-set: " +
       self.elems.foldl(lam(elem, acc):
           if acc == "": torepr(elem)
@@ -307,18 +307,18 @@ data Set:
         end, "") +
       "]"
     end,
-    _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
+    method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
-    fold(self, f :: (Any, Any -> Any), base :: Any):
+    method fold(self, f :: (Any, Any -> Any), base :: Any):
       fold(f, base, self.elems)
     end,
 
-    member(self, elem :: Any) -> Boolean:
+    method member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.member(elem)
     end,
 
-    add(self, elem :: Any) -> Set:
+    method add(self, elem :: Any) -> Set:
       doc: "Add an element to the set if it is not already present."
       if (self.elems.member(elem)):
         self
@@ -327,24 +327,24 @@ data Set:
       end
     end,
 
-    remove(self, elem :: Any) -> Set:
+    method remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       list-set(self.elems.remove(elem))
     end,
 
-    to-list(self) -> lists.List:
+    method to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems
     end,
 
-    union(self :: Set, other :: Set) -> Set:
+    method union(self :: Set, other :: Set) -> Set:
       doc: 'Compute the union of this set and another set.'
       other.fold(lam(u, elem):
         u.add(elem)
       end, self)
     end,
 
-    intersect(self :: Set, other :: Set) -> Set:
+    method intersect(self :: Set, other :: Set) -> Set:
       doc: 'Compute the intersection of this set and another set.'
       new-elems = for fold(elems from self.elems, elem from self.elems):
         if other.member(elem):
@@ -356,12 +356,12 @@ data Set:
       list-set(new-elems)
     end,
 
-    overlaps(self :: Set, other :: Set) -> Boolean:
+    method overlaps(self :: Set, other :: Set) -> Boolean:
       doc: 'Determines if the intersection of this set and another set is non-empty.'
       self.any(other.member)
     end,
     
-    difference(self :: Set, other :: Set) -> Set:
+    method difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
       new-elems = for fold(elems from self.elems, elem from self.elems):
         if other.member(elem):
@@ -373,22 +373,22 @@ data Set:
       list-set(new-elems)
     end,
 
-    size(self :: Set) -> Number:
+    method size(self :: Set) -> Number:
       self.elems.length()
     end,
 
-    is-empty(self): is-empty(self.elems) end,
+    method is-empty(self): is-empty(self.elems) end,
 
-    all(self, f) -> Boolean:
+    method all(self, f) -> Boolean:
       self.elems.all(f)
     end,
 
-    any(self, f) -> Boolean:
+    method any(self, f) -> Boolean:
       self.elems.any(f)
     end
     
   | tree-set(elems :: AVLTree) with:
-    pick(self):
+    method pick(self):
       t = self.elems
       cases(AVLTree) t:
         | leaf => pick-none
@@ -396,7 +396,7 @@ data Set:
           pick-some(v, tree-set(t.remove(v)))
       end
     end,
-    _tostring(self, shadow tostring):
+    method _tostring(self, shadow tostring):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": tostring(elem)
@@ -405,7 +405,7 @@ data Set:
         end, "") +
       "]"
     end,
-    _torepr(self, shadow torepr):
+    method _torepr(self, shadow torepr):
       "[tree-set: " +
       self.elems.fold(lam(acc, elem):
           if acc == "": torepr(elem)
@@ -414,74 +414,74 @@ data Set:
         end, "") +
       "]"
     end,
-    _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
+    method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
-    fold(self, f :: (Any -> Any), base :: Any):
+    method fold(self, f :: (Any -> Any), base :: Any):
       tree-fold(f, base, self.elems)
     end,
 
-    member(self, elem :: Any) -> Boolean:
+    method member(self, elem :: Any) -> Boolean:
       doc: 'Check to see if an element is in a set.'
       self.elems.contains(elem)
     end,
 
-    add(self, elem :: Any) -> Set:
+    method add(self, elem :: Any) -> Set:
       doc: "Add an element to the set if it is not already present."
       tree-set(self.elems.insert(elem))
     end,
 
-    remove(self, elem :: Any) -> Set:
+    method remove(self, elem :: Any) -> Set:
       doc: "Remove an element from the set if it is present."
       tree-set(self.elems.remove(elem))
     end,
 
-    to-list(self) -> lists.List:
+    method to-list(self) -> lists.List:
       doc: 'Convert a set into a list of elements.'
       self.elems.inorder()
     end,
 
-    union(self, other):
+    method union(self, other):
       doc: 'Compute the union of this set and another set.'
       tree-set-union(self, other)
     end,
 
-    intersect(self, other):
+    method intersect(self, other):
       doc: 'Compute the intersection of this set and another set.'
       tree-set-intersect(self, other)
     end,
 
-    overlaps(self :: Set, other :: Set) -> Boolean:
+    method overlaps(self :: Set, other :: Set) -> Boolean:
       doc: 'Determines if the intersection of this set and another set is non-empty.'
       self.any(other.member)
     end,
 
-    difference(self :: Set, other :: Set) -> Set:
+    method difference(self :: Set, other :: Set) -> Set:
       doc: 'Compute the difference of this set and another set.'
       tree-set-difference(self, other)
     end,
 
-    size(self :: Set) -> Number:
+    method size(self :: Set) -> Number:
       self.elems.count()
     end,
 
-    is-empty(self): is-leaf(self.elems) end,
+    method is-empty(self): is-leaf(self.elems) end,
 
-    all(self, f) -> Boolean:
+    method all(self, f) -> Boolean:
       self.elems.all(f)
     end,
 
-    any(self, f) -> Boolean:
+    method any(self, f) -> Boolean:
       self.elems.any(f)
     end
     
 sharing:
 
-  symmetric-difference(self :: Set, other :: Set) -> Set:
+  method symmetric-difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'
     self.union(other).difference(self.intersect(other))
   end,
 
-  _equals(self, other, eq):
+  method _equals(self, other, eq):
     if not(is-Set(other)):
       equality.NotEqual("Non-Set", self, other)
     else:

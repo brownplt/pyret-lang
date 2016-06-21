@@ -338,7 +338,7 @@ where:
 end
 
 desugar-scope-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty))
   end
 }
@@ -586,7 +586,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
-    s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
+    method s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
       non-globals =
         for filter(k from self.env.keys-list()):
           sb = self.env.get-value(k)
@@ -615,7 +615,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
     end,
-    s-program(self, l, _provide, _provide-types, imports, body) block:
+    method s-program(self, l, _provide, _provide-types, imports, body) block:
       {imp-e; imp-te; imp-imps} = for fold(acc from { self.env; self.type-env; empty }, i from imports):
         {imp-e; imp-te; imp-imps} = acc
         cases(A.Import) i block:
@@ -658,7 +658,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       var vals = nothing
       var typs = nothing
       visit-body.visit(A.default-iter-visitor.{
-        s-module(_, _, _, dv, dt, _, _, _) block:
+        method s-module(_, _, _, dv, dt, _, _, _) block:
           vals := dv
           typs := dt
           true
@@ -711,7 +711,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       
       A.s-program(l, one-true-provide, _provide-types, imp-imps.reverse(), visit-body)
     end,
-    s-type-let-expr(self, l, binds, body, blocky):
+    method s-type-let-expr(self, l, binds, body, blocky):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
         {e; te; bs} = acc
         cases(A.TypeLetBind) b block:
@@ -733,7 +733,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(self.{env: e, type-env: te})
       A.s-type-let-expr(l, bs.reverse(), visit-body, blocky)
     end,
-    s-let-expr(self, l, binds, body, blocky):
+    method s-let-expr(self, l, binds, body, blocky):
       {e; bs} = for fold(acc from { self.env; empty }, b from binds):
         {e; bs} = acc
         cases(A.LetBind) b block:
@@ -763,12 +763,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
     end,
-    s-letrec(self, l, binds, body, blocky):
+    method s-letrec(self, l, binds, body, blocky):
       {new-binds; new-visitor} = resolve-letrec-binds(self, binds)
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, new-binds, visit-body, blocky)
     end,
-    s-for(self, l, iter, binds, ann, body, blocky):
+    method s-for(self, l, iter, binds, ann, body, blocky):
       {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
         {env; fbs} = acc
         cases(A.ForBind) fb block:
@@ -783,7 +783,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
     end,
-    s-cases-branch(self, l, pat-loc, name, args, body):
+    method s-cases-branch(self, l, pat-loc, name, args, body):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(self), none))
@@ -802,7 +802,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
-    s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check) block:
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check) block:
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -815,7 +815,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       datatypes.set-now(namet.key(), result)
       result
     end,
-    s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
+    method s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -841,7 +841,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       name-errors := saved-name-errors
       A.s-lam(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
-    s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -862,7 +862,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-check = with-params.option(_check)
       A.s-method(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
-    s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -883,7 +883,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-check = with-params.option(_check)
       A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
-    s-assign(self, l, id, expr):
+    method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>
           if self.env.has-key(s):
@@ -902,7 +902,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     # NOTE(joe): Since there's no syntactic difference between _uses_ of letrec-,
     # let-, and var-bound names, this case disambiguates based on known binding
     # information
-    s-id(self, l, id):
+    method s-id(self, l, id):
       cases(A.Name) id:
         | s-name(l2, s) =>
           cases(Option) self.env.get(s):
@@ -922,9 +922,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
       end
     end,
-    s-id-letrec(self, l, id, _): A.s-id-letrec(l, handle-id(self.env, l, id), false) end,
-    s-id-var(self, l, id): A.s-id-var(l, handle-id(self.env, l, id)) end,
-    s-variant-member(self, l, typ, bind):
+    method s-id-letrec(self, l, id, _): A.s-id-letrec(l, handle-id(self.env, l, id), false) end,
+    method s-id-var(self, l, id): A.s-id-var(l, handle-id(self.env, l, id)) end,
+    method s-variant-member(self, l, typ, bind):
       new-bind = cases(A.Bind) bind:
         | s-bind(l2, shadows, name, ann) =>
           atom-env = make-atom-for(name, true, self.env, bindings, let-bind(_, _, ann.visit(self), none))
@@ -932,22 +932,22 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-variant-member(l, typ, new-bind)
     end,
-    s-bind(self, l, shadows, id, ann):
+    method s-bind(self, l, shadows, id, ann):
       cases(A.Name) id:
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
         | else => 
           raise("Should not reach non-underscore bindings in resolve-names" + torepr(l) + torepr(id))
       end
     end,
-    a-blank(self): A.a-blank end,
-    a-any(self, l): A.a-any(l) end,
-    a-name(self, l, id): handle-ann(l, self.type-env, id) end,
-    a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
-    a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
-    a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
-    a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
-    a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
-    a-dot(self, l, obj, field):
+    method a-blank(self): A.a-blank end,
+    method a-any(self, l): A.a-any(l) end,
+    method a-name(self, l, id): handle-ann(l, self.type-env, id) end,
+    method a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
+    method a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
+    method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
+    method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
+    method a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
+    method a-dot(self, l, obj, field):
       obj-ann = handle-ann(l, self.type-env, obj)
       cases(A.Ann) obj-ann block:
         | a-name(_, name) => A.a-dot(l, name, field)
@@ -956,7 +956,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           A.a-blank
       end
     end,
-    a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
+    method a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
   }
   C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end

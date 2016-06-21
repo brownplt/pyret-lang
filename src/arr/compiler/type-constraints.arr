@@ -777,21 +777,21 @@ end
 
 data TypeConstraint:
   | Equality(t :: Type) with:
-    max(self) -> Type: self.t end,
-    min(self) -> Type: self.t end,
-    is-rigid(self, info :: TCInfo) -> Boolean: is-rigid-under(self.t, info.binds) end,
-    is-tight(self, info :: TCInfo) -> Boolean: true end
+    method max(self) -> Type: self.t end,
+    method min(self) -> Type: self.t end,
+    method is-rigid(self, info :: TCInfo) -> Boolean: is-rigid-under(self.t, info.binds) end,
+    method is-tight(self, info :: TCInfo) -> Boolean: true end
   | Bounds(s :: Type, t :: Type) with:
-    max(self) -> Type: self.t end,
-    min(self) -> Type: self.s end,
-    is-rigid(self, info :: TCInfo) -> Boolean:
+    method max(self) -> Type: self.t end,
+    method min(self) -> Type: self.s end,
+    method is-rigid(self, info :: TCInfo) -> Boolean:
       (self.s == self.t) and is-rigid-under(self.s, info.binds)
     end,
-    is-tight(self, info :: TCInfo) -> Boolean:
+    method is-tight(self, info :: TCInfo) -> Boolean:
       satisfies-type(self.s, self.t, info) and satisfies-type(self.t, self.s, info)
     end
 sharing:
-  meet(self, other :: TypeConstraint, info :: TCInfo) -> Option<TypeConstraint>:
+  method meet(self, other :: TypeConstraint, info :: TCInfo) -> Option<TypeConstraint>:
     undefined = none
     cases(TypeConstraint) self:
       | Equality(s) =>
@@ -945,7 +945,7 @@ end
 data TypeConstraints:
   | type-constraints(dict :: SD.StringDict<Option<TypeConstraint>>)
 sharing:
-  _insert(self, typ-str :: String, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
+  method _insert(self, typ-str :: String, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     new-constraint = if self.dict.has-key(typ-str):
                        cases (Option<TypeConstraint>) (self.dict.get-value(typ-str)):
                          | none => none
@@ -956,11 +956,11 @@ sharing:
                      end
     type-constraints(self.dict.set(typ-str, new-constraint))
   end,
-  insert(self, typ :: Type, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
+  method insert(self, typ :: Type, constraint :: TypeConstraint, info :: TCInfo) -> TypeConstraints:
     typ-str = typ.key()
     self._insert(typ-str, constraint, info)
   end,
-  get(self, typ :: Type) -> Option<TypeConstraint>:
+  method get(self, typ :: Type) -> Option<TypeConstraint>:
     typ-str = typ.key()
     if self.dict.has-key(typ-str):
       self.dict.get-value(typ-str)
@@ -968,7 +968,7 @@ sharing:
       some(Bounds(t-bot, t-top))
     end
   end,
-  meet(self, other :: TypeConstraints, info :: TCInfo) -> TypeConstraints:
+  method meet(self, other :: TypeConstraints, info :: TCInfo) -> TypeConstraints:
     keys = other.dict.keys().to-list()
     for fold(curr from self, key from keys):
       cases(Option<TypeConstraint>) other.dict.get-value(key):
@@ -979,7 +979,7 @@ sharing:
       end
     end
   end,
-  substitute(self, blame-loc :: A.Loc, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> FoldResult<Type>:
+  method substitute(self, blame-loc :: A.Loc, x :: Type % (is-t-var), r :: Type, info :: TCInfo) -> FoldResult<Type>:
     cases(Option<TypeConstraint>) self.get(x):
       | some(constraint) =>
         variance = determine-variance(r, x.id, info)
@@ -998,7 +998,7 @@ sharing:
         fold-errors([list: C.unable-to-instantiate(blame-loc)])
     end
   end,
-  _output(self):
+  method _output(self):
     VS.vs-constr("type-constraints", [list: VS.vs-value(dict-to-string(self.dict))])
   end
 end
