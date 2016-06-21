@@ -1016,7 +1016,13 @@ data Bind:
         end
       end
     end,
-    label(self): "s_bind" end
+    label(self): "s_bind" end,
+  | s-tuple-bind(l :: Loc, fields :: List<Name>) with:
+    label(self): "s-tuple-bind" end,
+    tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end
 sharing:
   visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1489,6 +1495,10 @@ default-map-visitor = {
     s-bind(l, shadows, name.visit(self), ann.visit(self))
   end,
 
+  s-tuple-bind(self, l, fields):
+    s-tuple-bind(l, fields.map(_.visit(self)))
+  end,
+
   s-var-bind(self, l, bind, expr):
     s-var-bind(l, bind.visit(self), expr.visit(self))
   end,
@@ -1958,6 +1968,10 @@ default-iter-visitor = {
     name.visit(self) and ann.visit(self)
   end,
 
+  s-tuple-bind(self, l, fields):
+    lists.all(_.visit(self), fields)
+  end,
+
   s-var-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
@@ -2421,6 +2435,10 @@ dummy-loc-visitor = {
 
   s-bind(self, l, shadows, name, ann):
     s-bind(dummy-loc, shadows, name.visit(self), ann.visit(self))
+  end,
+
+  s-tuple-bind(self, l, fields):
+    s-tuple-bind(dummy-loc, fields.map(_.visit(self)))
   end,
 
   s-var-bind(self, l, bind, expr):
