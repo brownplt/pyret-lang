@@ -540,6 +540,9 @@ data CompileError:
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
   | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
+    method render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
     method render-reason(self):
       if self.block-locs.length() > 1:
         [ED.error:
