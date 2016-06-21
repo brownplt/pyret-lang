@@ -1419,6 +1419,7 @@ fun binding-ids(stmt) -> List<Name>:
   end
   cases(Expr) stmt:
     | s-let(_, b, _, _) => [list: b.id]
+    | s-tuple-let(_, names, _) => names.map(_.id)
     | s-var(_, b, _) => [list: b.id]
     | s-rec(_, b, _) => [list: b.id]
     | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
