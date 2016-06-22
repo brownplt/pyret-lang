@@ -104,19 +104,24 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   end
 end
 
+fun is-binder(expr):
+  A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)
+end
+
 fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var seen-non-let = false
   var is-blocky = false
+  var seen-template = false
   for each(expr from block.stmts):
-    if seen-non-let:    # once we've seen a non-let expression, and see anything else
-      is-blocky := true # this must be a blocky block
-    else:
-      when not(A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)):
-        seen-non-let := true
-      end
+    ask:
+      | A.is-s-template(expr) then: seen-template := true
+      | seen-non-let          then: is-blocky := true # even if expr is a binder, it's non-consecutive
+      | not(is-binder(expr))  then: seen-non-let := true
+      | otherwise: nothing
     end
   end
-  is-blocky
+  # any template presence overrules blockiness presence
+  is-blocky and not(seen-template)
 end
 
 fun wf-blocky-blocks(l :: Loc, blocks :: List<A.Expr % (is-s-block)>):
@@ -259,7 +264,7 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
     | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
     | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
-    | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
+    | s-fun(l, _, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-contract(l, _, _) => add-error(C.block-ending(l, "contract"))
     | else => nothing
@@ -477,7 +482,7 @@ well-formed-visitor = A.default-iter-visitor.{
       reserved-name(l, name)
     end
     when args.length() == 0:
-      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check)))
+      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -506,7 +511,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when args.length() == 0:
-      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check)))
+      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -659,6 +664,12 @@ well-formed-visitor = A.default-iter-visitor.{
       end
     end
   end,
+  method a-name(self, l, id) block:
+    when A.is-s-underscore(id):
+      add-error(C.underscore-as-ann(l))
+    end
+    true
+  end
 }
 
 top-level-visitor = A.default-iter-visitor.{
@@ -942,8 +953,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-mutable-field(_, l :: Loc, name :: String, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  method s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
-    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check)
+  method s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)
   end,
   method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)

@@ -1146,7 +1146,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;

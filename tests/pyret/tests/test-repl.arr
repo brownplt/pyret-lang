@@ -115,4 +115,12 @@ check:
   result23 = next-interaction("fun g() -> Number: x end\ng()")
   val(result23) is some(5)
 
+  current-defs := "{x; y} = {1; 2}\nx"
+  result24 = repl.restart-interactions(false)
+  val(result24) is some(1)
+
+  result25 = next-interaction("x + y")
+  val(result25) is some(3)
+
 end
+
