@@ -2473,10 +2473,12 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
           | link(f, r) =>
             synthesis(f, false, context).fold-bind(
               lam(_, f-typ, shadow context):
+                shadow f-typ = context.get-data-type(f-typ).or-else(f-typ)
                 ask:
                   | f-typ == t-number(A.dummy-loc) then: result(num-typ-f(fun-loc), context)
                   | is-t-record(f-typ) then: result(rec-typ-f(fun-loc), context)
                   | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
+                  | is-t-data(f-typ) then: result(rec-typ-f(fun-loc), context)
                   | otherwise: fold-errors([list:
                       C.incorrect-type(tostring(f-typ), f-typ.l, "Number or an object with the field " + id.toname(), app-loc)])
                 end
@@ -2490,11 +2492,13 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context 
           | link(f, r) =>
             synthesis(f, false, context).fold-bind(
               lam(_, f-typ, shadow context):
+                shadow f-typ = context.get-data-type(f-typ).or-else(f-typ)
                 ask:
                   | f-typ == t-number(A.dummy-loc) then: binop-result(num-typ-f(fun-loc), context)
                   | f-typ == t-string(A.dummy-loc) then: binop-result(str-typ-f(fun-loc), context)
                   | is-t-record(f-typ) then: binop-result(rec-typ-f(fun-loc), context)
                   | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
+                  | is-t-data(f-typ) then: binop-result(rec-typ-f(fun-loc), context)
                   | otherwise: fold-errors([list:
                     C.incorrect-type(tostring(f-typ), f-typ.l, "Number, String or an object with the field " + id.toname(), app-loc)])
                 end
