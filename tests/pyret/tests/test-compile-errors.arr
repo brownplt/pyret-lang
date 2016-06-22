@@ -10,6 +10,25 @@ check:
     end
   end
 
+  fun c-ok(str):
+    result = C.compile-str(str)
+    cases(CS.CompileResult) result:
+      | ok(_) => true
+      | err(_) => false
+    end
+  end
+
+  check:
+    "fun f(): ... x ... end" satisfies c-ok
+    c("fun f(): ... ... end") satisfies CS.is-wf-err-split
+    c("fun f(): 5 3 end") satisfies CS.is-same-line
+    c("fun f(): 5 \n 3 end") satisfies CS.is-block-needed
+    "fun f() block: 5 \n 3 end" satisfies c-ok
+    "fun f(): 5 \n ... \n 3 end" satisfies c-ok
+    "fun f(): 5 \n ... end" satisfies c-ok
+    "fun f(): 5 \n ... 3 end" satisfies c-ok
+  end
+  
   check "underscores":
     c("a = _") satisfies CS.is-underscore-as-expr
     c("when _: 5 end") satisfies CS.is-underscore-as-expr

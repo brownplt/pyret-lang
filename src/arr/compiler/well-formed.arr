@@ -109,18 +109,15 @@ fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var is-blocky = false
   var seen-template = false
   for each(expr from block.stmts):
-    if seen-non-let and not(seen-template) block:    # once we've seen a non-let expression, and see anything else, but no templates
-      is-blocky := true # this must be a blocky block
-    else:
-      when not(is-binder(expr)):
-        seen-non-let := true
-      end
-      when A.is-s-template(expr):
-        seen-template := true
-      end
+    ask:
+      | A.is-s-template(expr) then: seen-template := true
+      | seen-non-let          then: is-blocky := true # even if expr is a binder, it's non-consecutive
+      | not(is-binder(expr))  then: seen-non-let := true
+      | otherwise: nothing
     end
   end
-  is-blocky
+  # any template presence overrules blockiness presence
+  is-blocky and not(seen-template)
 end
 
 fun wf-blocky-blocks(l :: Loc, blocks :: List<A.Expr % (is-s-block)>):
