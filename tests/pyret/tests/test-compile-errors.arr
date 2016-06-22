@@ -1,13 +1,25 @@
-import "compiler/compile-structs.arr" as CS
-import "../test-compile-helper.arr" as C
+import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../test-compile-helper.arr") as C
+import load-lib as L
+import either as E
 
 check:
-  fun c(str):
-    result = C.compile-str(str)
+  fun c(str) block:
+    errs = C.get-compile-errs(str)
+    when is-empty(errs):
+      print-error("Expected at least one error for running \n\n " + str + "\n\n" + " but got none ")
+    end
+    errs.first
+    #|
+    result = C.run-to-result(str)
     cases(CS.CompileResult) result:
       | ok(_) => "No error for " + str
       | err(probs) => probs.first
     end
+    |#
+  end
+  fun cok(str):
+    C.get-compile-errs(str)
   end
 
   fun c-ok(str):
@@ -62,10 +74,10 @@ check:
 
   check "underscore object fields":
     c("{_: 5}") satisfies CS.is-underscore-as
-    c("data D: n() with: _(self): 5 end end") satisfies CS.is-underscore-as
-    c("data D: n() sharing: _(self): 5 end end") satisfies CS.is-underscore-as
-    c("data D: _() sharing: m(self): 5 end end") satisfies CS.is-underscore-as
-    c("data _: d() sharing: m(self): 5 end end") satisfies CS.is-underscore-as
+    c("data D: n() with: method _(self): 5 end end") satisfies CS.is-underscore-as
+    c("data D: n() sharing: method _(self): 5 end end") satisfies CS.is-underscore-as
+    c("data D: _() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
+    c("data _: d() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
   end
 
   check "unbound type ids":
@@ -82,7 +94,7 @@ end
   end
 
   check "bound type aliases":
-    c(```
+    cok(```
 type N = Number
 type N2 = N
 
@@ -93,6 +105,6 @@ end
 check:
  test<N>(1) is 1
 end    
-```) satisfies string-contains(_, "No error")
+```) is empty
   end
 end

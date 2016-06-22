@@ -260,7 +260,7 @@ fun wf-last-stmt(stmt :: A.Expr):
     | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
     | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
     | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
-    | s-fun(l, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
+    | s-fun(l, _, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
     | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
     | s-contract(l, _, _) => add-error(C.block-ending(l, "contract"))
     | else => nothing
@@ -645,6 +645,12 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   method s-provide(self, l, expr):
+    true
+  end,
+  method a-name(self, l, id) block:
+    when A.is-s-underscore(id):
+      add-error(C.underscore-as-ann(l))
+    end
     true
   end
 }
