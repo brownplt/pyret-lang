@@ -564,12 +564,12 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('method<a>(self): self end')).not.toBe(false);
       expect(parse('method<a,b>(self): self end')).not.toBe(false);
       expect(parse('method<a,b,c>(self): self end')).not.toBe(false);
-      expect(parse('{ m<a>(self): self end }')).not.toBe(false);
-      expect(parse('{ m<a,b>(self): self end }')).not.toBe(false);
-      expect(parse('{ m<a,b,c>(self): self end }')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a>(self): 5 end sharing: m2<a>(self): 5 end end')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a,b>(self): 5 end sharing: m2<a,b>(self): 5 end end')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a,b,c>(self): 5 end sharing: m2<a,b,c>(self): 5 end end')).not.toBe(false);
+      expect(parse('{ method m<a>(self): self end }')).not.toBe(false);
+      expect(parse('{ method m<a,b>(self): self end }')).not.toBe(false);
+      expect(parse('{ method m<a,b,c>(self): self end }')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a>(self): 5 end sharing: method m2<a>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a,b>(self): 5 end sharing: method m2<a,b>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a,b,c>(self): 5 end sharing: method m2<a,b,c>(self): 5 end end')).not.toBe(false);
     });
 
     it("should parse rec statements", function() {
