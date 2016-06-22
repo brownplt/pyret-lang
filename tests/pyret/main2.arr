@@ -21,6 +21,7 @@ import file("./tests/test-lists.arr") as _
 import file("./tests/test-cases.arr") as _
 #import file("./tests/test-rec.arr") as _
 import file("./tests/test-compile-errors.arr") as _
+import file("./tests/test-well-formed.arr") as _
 import file("./tests/test-file.arr") as _
 import file("./tests/test-path.arr") as _
 import file("./tests/test-repl.arr") as _

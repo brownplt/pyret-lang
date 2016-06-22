@@ -478,7 +478,7 @@ well-formed-visitor = A.default-iter-visitor.{
       reserved-name(l, name)
     end
     when args.length() == 0:
-      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check)))
+      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -507,7 +507,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when args.length() == 0:
-      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check)))
+      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -906,8 +906,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-mutable-field(_, l :: Loc, name :: A.Expr, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  method s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>):
-    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check)
+  method s-method-field(_, l :: Loc, name :: A.Expr, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)
   end,
   method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)

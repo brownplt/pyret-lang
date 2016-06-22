@@ -1,7 +1,5 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import file("../test-compile-helper.arr") as C
-import load-lib as L
-import either as E
 
 check:
   fun c(str) block:
@@ -10,35 +8,20 @@ check:
       print-error("Expected at least one error for running \n\n " + str + "\n\n" + " but got none ")
     end
     errs.first
-    #|
-    result = C.run-to-result(str)
-    cases(CS.CompileResult) result:
-      | ok(_) => "No error for " + str
-      | err(probs) => probs.first
-    end
-    |#
   end
   fun cok(str):
     C.get-compile-errs(str)
   end
 
-  fun c-ok(str):
-    result = C.compile-str(str)
-    cases(CS.CompileResult) result:
-      | ok(_) => true
-      | err(_) => false
-    end
-  end
-
   check:
-    "fun f(): ... x ... end" satisfies c-ok
+    cok("fun f(x): ... x ... end") is empty
     c("fun f(): ... ... end") satisfies CS.is-wf-err-split
-    c("fun f(): 5 3 end") satisfies CS.is-same-line
+    c("fun f(): block: 5 3 end end") satisfies CS.is-same-line
     c("fun f(): 5 \n 3 end") satisfies CS.is-block-needed
-    "fun f() block: 5 \n 3 end" satisfies c-ok
-    "fun f(): 5 \n ... \n 3 end" satisfies c-ok
-    "fun f(): 5 \n ... end" satisfies c-ok
-    "fun f(): 5 \n ... 3 end" satisfies c-ok
+    cok("fun f() block: 5 \n 3 end") is empty
+    cok("fun f(): 5 \n ... \n 3 end") is empty
+    cok("fun f(): 5 \n ... end") is empty
+    cok("fun f(): 5 \n ... 3 end") is empty
   end
   
   check "underscores":
