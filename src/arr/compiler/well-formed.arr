@@ -100,15 +100,23 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   end
 end
 
+fun is-binder(expr):
+  A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)
+end
+
 fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var seen-non-let = false
   var is-blocky = false
+  var seen-template = false
   for each(expr from block.stmts):
-    if seen-non-let:    # once we've seen a non-let expression, and see anything else
+    if seen-non-let and not(seen-template) block:    # once we've seen a non-let expression, and see anything else, but no templates
       is-blocky := true # this must be a blocky block
     else:
-      when not(A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)):
+      when not(is-binder(expr)):
         seen-non-let := true
+      end
+      when A.is-s-template(expr):
+        seen-template := true
       end
     end
   end
