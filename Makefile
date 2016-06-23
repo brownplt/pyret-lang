@@ -9,9 +9,6 @@ TROVE            = arr/trove
 COMPILER         = arr/compiler
 
 PHASE0           = build/phase0
-PHASE1           = build/phase1
-PHASE2           = build/phase2
-PHASE3           = build/phase3
 PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
@@ -23,6 +20,7 @@ PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wil
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
 COMPILER_FILES = $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
+TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 
 # You can download the script to work with s3 here:
 #
@@ -175,31 +173,22 @@ $(PHASEC)/$(JS)/%.js : src/$(JSBASE)/%.js
 docs:
 	cd docs/written && make VERSION=$(VERSION)
 
-docs-skel: $(DOCS_SKEL_DEPS)
-$(DOCS_SKEL_DEPS): | $(PHASE1)/phase1.built docs-trove
-$(DOCS)/written/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-
 .PHONY : install
 install:
 	@$(call MKDIR,node_modules)
 	npm install
 
 PYRET_TEST_PHASE=$(P)
-ifeq ($(PYRET_TEST_PHASE),2)
-  PYRET_TEST_PHASE=$(PHASE2)
-  PYRET_TEST_PREREQ=$(PHASE2)/phase2.built
+ifeq ($(PYRET_TEST_PHASE),B)
+  PYRET_TEST_PHASE=$(PHASEB)
+  PYRET_TEST_PREREQ=$(PHASEB)/pyret.jarr
 else
-ifeq ($(PYRET_TEST_PHASE),3)
-  PYRET_TEST_PHASE=$(PHASE3)
-  PYRET_TEST_PREREQ=$(PHASE3)/phase3.built
+ifeq ($(PYRET_TEST_PHASE),C)
+  PYRET_TEST_PHASE=$(PHASEC)
+  PYRET_TEST_PREREQ=$(PHASEC)/pyret.jarr
 else
-  PYRET_TEST_PHASE=$(PHASE1)
-  PYRET_TEST_PREREQ=$(PHASE1)/phase1.built
+  PYRET_TEST_PHASE=$(PHASEA)
+  PYRET_TEST_PREREQ=$(PHASEA)/pyret.jarr
 endif
 endif
 
@@ -234,8 +223,9 @@ parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA
 TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
 TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
 REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
+MAIN_TEST_FILES := tests/pyret/main2.arr tests/type-check/main.arr tests/pyret/regression.arr tests/lib-test/lib-test-main.arr tests/all.arr
 
-tests/pyret/all.jarr: $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) phaseA
+tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) $(MAIN_TEST_FILES)
 	$(NODE) build/phaseA/pyret.jarr \
 	  --outfile tests/pyret/all.jarr \
 	  --builtin-js-dir src/js/trove/ \
@@ -250,7 +240,7 @@ all-pyret-test: tests/pyret/all.jarr parse-test
 	$(NODE) tests/pyret/all.jarr
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
-	$(NODE) $(PHASEA)/pyret.jarr \
+	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 		--outfile tests/pyret/main2.jarr \
 		--build-runnable tests/pyret/main2.arr \
 		--builtin-js-dir src/js/trove/ \
@@ -264,38 +254,29 @@ tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 pyret-test: phaseA tests/pyret/main2.jarr
 	$(NODE) tests/pyret/main2.jarr
 
-TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
-TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
-REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
-
-tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
-
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
-
-tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
-
 .PHONY : regression-test
-regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    -check-all tests/pyret/regression.arr
+regression-test: tests/pyret/regression.jarr
+	$(NODE) tests/pyret/regression.jarr
 
+tests/pyret/regression.jarr: $(PYRET_TEST_PREREQ) $(REG_TEST_FILES) tests/pyret/regression.arr
+	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config src/scripts/standalone-configA.json \
+		--compiled-dir tests/compiled/ \
+		--build-runnable tests/pyret/regression.arr --outfile tests/pyret/regression.jarr
 
 .PHONY : type-check-test
 type-check-test: phaseA tests/type-check/main.jarr
 	$(NODE) tests/type-check/main.jarr
 
 tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
-	$(NODE) $(PHASEA)/pyret.jarr \
+	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config src/scripts/standalone-configA.json \
 		--compiled-dir tests/compiled/ \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
-
 
 
 .PHONY : compiler-test
@@ -305,9 +286,17 @@ compiler-test: $(PYRET_TEST_PREREQ)
     -check-all src/arr/compiler/compile.arr
 
 .PHONY : lib-test
-lib-test: $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    -check-all tests/lib-test/lib-test-main.arr
+lib-test: tests/lib-test-main/lib-test-main.jarr
+	$(NODE) tests/lib-test/lib-test-main.jarr
+
+tests/lib-test-main/lib-test-main.jarr: phaseA $(TROVE_ARR_FILES) tests/lib-test/lib-test-main.arr
+	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config src/scripts/standalone-configA.json \
+		--compiled-dir tests/compiled/ \
+		--build-runnable tests/lib-test/lib-test-main.arr \
+    --outfile tests/lib-test/lib-test-main.jarr
 
 .PHONY : benchmark-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)

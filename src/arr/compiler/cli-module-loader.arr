@@ -152,6 +152,13 @@ fun get-builtin-locator(basedir, modname):
   get-cached-if-available(basedir, loc)
 end
 
+fun get-builtin-test-locator(basedir, modname):
+  loc = BL.make-builtin-locator(modname).{
+    method uri(_): "builtin-test://" + modname end
+  }
+  get-cached-if-available(basedir, loc)
+end
+
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri))
@@ -250,6 +257,14 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         else:
           raise("Cannot find import " + torepr(dep))
         end
+      else if protocol == "builtin-test":
+        l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
+        force-check-mode = l.{
+          method get-options(self, options):
+            options.{ check-mode: true, type-check: false }
+          end
+        }
+        CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
