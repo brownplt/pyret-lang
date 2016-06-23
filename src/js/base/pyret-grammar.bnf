@@ -25,7 +25,7 @@ stmt: type-expr | newtype-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
     | contract-stmt | tuple-bind-expr | tuple-binding-expr
 
-type-expr: TYPE NAME EQUALS ann
+type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding-expr
@@ -35,7 +35,7 @@ multi-let-expr: LET let-binding (COMMA let-binding)* (BLOCK|COLON) block END
 let-binding: let-expr | var-expr
 letrec-expr: LETREC let-expr (COMMA let-expr)* (BLOCK|COLON) block END
 
-type-bind: NAME EQUALS ann
+type-bind: NAME ty-params EQUALS ann
 newtype-bind: NEWTYPE NAME AS NAME
 
 type-let-bind: type-bind | newtype-bind

@@ -134,7 +134,7 @@ fun lookup-value(value, bindings):
           | s-id(_, id) => help(item ^ link(_, seen), id)
           | s-id-letrec(_, id, _) => help(item ^ link(_, seen), id)
           | s-id-var(_, id) => help(item ^ link(_, seen), id)
-          | s-type(_, id, ann) => help(item ^ link(_, seen), id)
+          | s-type(_, id, params, ann) => help(item ^ link(_, seen), id)
           | s-newtype(_, id, _) => help(item ^ link(_, seen), id)
           | s-block(_, stmts) => help(seen, stmts.last())
           | s-user-block(_, body) => help(seen, body)
