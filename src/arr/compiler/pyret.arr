@@ -37,6 +37,8 @@ fun main(args):
       C.next-val(C.String, C.many, "Directory to find the source of builtin arr modules"),
     "allow-builtin-overrides",
       C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
+    "no-display-progress",
+      C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
     "compiled-dir",
       C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to"),
     "library",
@@ -77,6 +79,7 @@ fun main(args):
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
+      display-progress = not(r.has-key("no-display-progress"))
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -108,7 +111,8 @@ fun main(args):
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
                 compile-module: true,
-                compiled-cache: compiled-dir
+                compiled-cache: compiled-dir,
+                display-progress: display-progress
               })
         else if r.has-key("build-standalone"):
           CLI.build-require-standalone(r.get-value("build-standalone"),
@@ -120,7 +124,8 @@ fun main(args):
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
                 compile-module: true,
-                compiled-cache: compiled-dir
+                compiled-cache: compiled-dir,
+                display-progress: display-progress
               })
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
@@ -131,7 +136,8 @@ fun main(args):
               collect-all: false,
               ignore-unbound: false,
               proper-tail-calls: tail-calls,
-              compile-module: false # weird, but accurate for now
+              compile-module: false,
+              display-progress: display-progress
             })
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
@@ -146,7 +152,8 @@ fun main(args):
         else if r.has-key("run"):
           CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
-              compile-module: true
+              compile-module: true,
+              display-progress: display-progress
             })
         else:
           print(C.usage-info(options).join-str("\n"))
