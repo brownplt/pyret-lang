@@ -182,15 +182,24 @@ PYRET_TEST_PHASE=$(P)
 ifeq ($(PYRET_TEST_PHASE),B)
   PYRET_TEST_PHASE=$(PHASEB)
   PYRET_TEST_PREREQ=$(PHASEB)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configB.json
 else
 ifeq ($(PYRET_TEST_PHASE),C)
   PYRET_TEST_PHASE=$(PHASEC)
   PYRET_TEST_PREREQ=$(PHASEC)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configC.json
 else
   PYRET_TEST_PHASE=$(PHASEA)
   PYRET_TEST_PREREQ=$(PHASEA)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configA.json
 endif
 endif
+
+TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+	  --builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config $(PYRET_TEST_CONFIG) \
+		--compiled-dir tests/compiled/
 
 .PHONY : old-test
 old-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
@@ -226,13 +235,9 @@ REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
 MAIN_TEST_FILES := tests/pyret/main2.arr tests/type-check/main.arr tests/pyret/regression.arr tests/lib-test/lib-test-main.arr tests/all.arr
 
 tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) $(MAIN_TEST_FILES)
-	$(NODE) build/phaseA/pyret.jarr \
-	  --outfile tests/pyret/all.jarr \
-	  --builtin-js-dir src/js/trove/ \
-		--builtin-arr-dir src/arr/trove/ \
-		--require-config src/scripts/standalone-configA.json \
-		--compiled-dir tests/compiled/ \
+	$(TEST_BUILD) \
 		--build-runnable tests/all.arr \
+    --outfile tests/pyret/all.jarr \
 		-check-all
 
 .PHONY : all-pyret-test
@@ -240,13 +245,9 @@ all-pyret-test: tests/pyret/all.jarr parse-test
 	$(NODE) tests/pyret/all.jarr
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
-	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+	$(TEST_BUILD) \
 		--outfile tests/pyret/main2.jarr \
 		--build-runnable tests/pyret/main2.arr \
-		--builtin-js-dir src/js/trove/ \
-		--builtin-arr-dir src/arr/trove/ \
-		--compiled-dir tests/compiled/ \
-		--require-config src/scripts/standalone-configA.json \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
 
 
@@ -259,11 +260,7 @@ regression-test: tests/pyret/regression.jarr
 	$(NODE) tests/pyret/regression.jarr
 
 tests/pyret/regression.jarr: $(PYRET_TEST_PREREQ) $(REG_TEST_FILES) tests/pyret/regression.arr
-	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
-		--builtin-js-dir src/js/trove/ \
-		--builtin-arr-dir src/arr/trove/ \
-		--require-config src/scripts/standalone-configA.json \
-		--compiled-dir tests/compiled/ \
+	$(TEST_BUILD) \
 		--build-runnable tests/pyret/regression.arr --outfile tests/pyret/regression.jarr
 
 .PHONY : type-check-test
@@ -271,11 +268,7 @@ type-check-test: phaseA tests/type-check/main.jarr
 	$(NODE) tests/type-check/main.jarr
 
 tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
-	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
-		--builtin-js-dir src/js/trove/ \
-		--builtin-arr-dir src/arr/trove/ \
-		--require-config src/scripts/standalone-configA.json \
-		--compiled-dir tests/compiled/ \
+	$(TEST_BUILD) \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
 
 
@@ -290,11 +283,7 @@ lib-test: tests/lib-test-main/lib-test-main.jarr
 	$(NODE) tests/lib-test/lib-test-main.jarr
 
 tests/lib-test-main/lib-test-main.jarr: phaseA $(TROVE_ARR_FILES) tests/lib-test/lib-test-main.arr
-	$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
-		--builtin-js-dir src/js/trove/ \
-		--builtin-arr-dir src/arr/trove/ \
-		--require-config src/scripts/standalone-configA.json \
-		--compiled-dir tests/compiled/ \
+	$(TEST_BUILD) \
 		--build-runnable tests/lib-test/lib-test-main.arr \
     --outfile tests/lib-test/lib-test-main.jarr
 
