@@ -255,7 +255,10 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           | else => raise("typechecker received incomplete import")
         end
       end
-      #each(print, body.tosource().pretty(72))
+      #each(lam(x) block:
+      #  print(x)
+      #  print("\n")
+      #end, body.tosource().pretty(72))
 
       tc-result = checking(body, t-top(l), true, context)
       cases(TypingResult) tc-result:
@@ -275,18 +278,22 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
   end
 end
 
-fun checking(e, expect-typ, top-level, context):
-  result = _checking(e, resolve-alias(expect-typ, context), top-level, context)
-  #print("")
-  #print("checking:")
-  #each(print, e.tosource().pretty(72))
-  #print("has type: " + tostring(expect-typ))
-  #print("result:")
+fun checking(e, expect-typ, top-level, context) block:
+  result = _checking(e, expect-typ, top-level, context)
+  #print("\n\n")
+  #print("checking:\n")
+  #each(lam(x) block:
+  #  print(x)
+  #  print("\n")
+  #end, e.tosource().pretty(72))
+  #print("has type: " + tostring(expect-typ) + "\n")
+  #print("result:\n")
   #print(result)
   result
 end
 
 fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
+  shadow expect-type = resolve-alias(expect-type, context)
   cases(Type) expect-type:
     | t-existential(_, _) =>
       check-synthesis(e, expect-type, top-level, context)
@@ -586,18 +593,21 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
   end
 end
 
-fun synthesis(e, top-level, context):
+fun synthesis(e, top-level, context) block:
   result = _synthesis(e, top-level, context)
-  #print("")
-  #print("synthesis on:")
-  #each(print, e.tosource().pretty(72))
-  #print("result:")
+  #print("\n\n")
+  #print("synthesis on:\n")
+  #each(lam(x) block:
+  #  print(x)
+  #  print("\n")
+  #end, e.tosource().pretty(72))
+  #print("result:\n")
   #print(result)
   result
 end
 
 fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingResult:
-  cases(Expr) e:
+  cases(Expr) e block:
     | s-module(l, answer, defined-values, defined-types, provided-values, provided-types, checks) =>
       synthesis(answer, false, context)
         .map-expr(A.s-module(l, _, defined-values, defined-types, provided-values, provided-types, checks))
@@ -797,9 +807,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-construct(l, modifier, constructor, values) =>
       raise("synthesis for s-construct not implemented")
     | s-app(l, _fun, args) =>
-      synthesis-app-fun(l, _fun, args, context)
-        .typing-bind(lam(result-obj, shadow context):
-          synthesis-spine(context.apply(result-obj.fun-type), A.s-app(l, _fun, _), args, l, context)
+      synthesis-app-fun(l, _fun, context)
+        .typing-bind(lam(fun-type, shadow context) block:
+          synthesis-spine(context.apply(fun-type), A.s-app(l, _fun, _), args, l, context)
             .map-type(_.set-loc(l))
         end)
     | s-prim-app(l, _fun, args) =>
@@ -868,13 +878,16 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
   end)
 end
 
-fun synthesis-spine(fun-type, recreate, args, app-loc, context):
+fun synthesis-spine(fun-type, recreate, args, app-loc, context) block:
   result = _synthesis-spine(fun-type, recreate, args, app-loc, context)
-  #print("")
-  #print("spine synthesis with type: " + tostring(fun-type))
-  #print("args:")
-  #each(lam(arg): each(print, arg.tosource().pretty(72)) end, args)
-  #print("result:")
+  #print("\n\n")
+  #print("spine synthesis with type: " + tostring(fun-type) + "\n")
+  #print("args:\n")
+  #each(lam(arg): each(lam(x) block:
+  #  print(x)
+  #  print("\n")
+  #end, arg.tosource().pretty(72)) end, args)
+  #print("result:\n")
   #print(result)
   result
 end
@@ -1095,9 +1108,9 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
         | t-forall(b-introduces, b-onto, _) =>
           satisfies-assuming(subtype, b-onto, context, assumptions)
         | else =>
-          cases(Type) subtype:
+          cases(Type) subtype block:
             | t-name(a-mod, a-id, _) =>
-              cases(Type) supertype:
+              cases(Type) supertype block:
                 | t-top(_) => some(context)
                 | t-name(b-mod, b-id, _) =>
                   if (a-mod == b-mod) and (a-id == b-id):
@@ -1255,18 +1268,18 @@ fun satisfies-type(subtype :: Type, supertype :: Type, context :: Context) -> Op
     end, some(_context))
   end
 
-  fun satisfies-assuming(_subtype, _supertype, _context, assumptions):
+  fun satisfies-assuming(_subtype, _supertype, _context, assumptions) block:
     result = _satisfies-assuming(_subtype, _supertype, _context, assumptions)
-    #print("")
-    #print(tostring(_subtype) + " <: " + tostring(_supertype))
-    #print("result:")
+    #print("\n\n")
+    #print(tostring(_subtype) + " <: " + tostring(_supertype) + "\n")
+    #print("result:\n")
     #print(result)
     result
   end
   satisfies-assuming(subtype, supertype, context, [list-set: ])
 end
 
-fun instantiate-right(subtype, supertype, context):
+fun instantiate-right(subtype, supertype, context) block:
   result = _instantiate-right(subtype, supertype, context)
   #print("")
   #print(tostring(subtype) + " <=: " + tostring(supertype))
@@ -1318,7 +1331,7 @@ fun _instantiate-right(subtype :: Type, supertype :: Type, context :: Context) -
   end
 end
 
-fun instantiate-left(subtype :: Type, supertype :: Type, context :: Context) -> Context:
+fun instantiate-left(subtype :: Type, supertype :: Type, context :: Context) -> Context block:
   result = _instantiate-left(subtype, supertype, context)
   #print("")
   #print(tostring(subtype) + " :=< " + tostring(supertype))
@@ -2457,72 +2470,30 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
   end)
 end
 
-fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<{fun-type :: Type, is-binop :: Boolean}>:
+fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, context :: Context) -> FoldResult<Type> block:
   cases(Expr) _fun:
     | s-id(fun-loc, id) =>
-      binop-result = lam(new-type, shadow context):
-        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: true}, context)
-      end
-      result = lam(new-type, shadow context):
-        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
-      end
-      fun pick2(num-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
-        cases(List<A.Expr>) args:
-          | empty =>
-            fold-errors([list: C.incorrect-number-of-args(app-loc)])
-          | link(f, r) =>
-            synthesis(f, false, context).fold-bind(
-              lam(_, f-typ, shadow context):
-                shadow f-typ = context.get-data-type(f-typ).or-else(f-typ)
-                ask:
-                  | f-typ == t-number(A.dummy-loc) then: result(num-typ-f(fun-loc), context)
-                  | is-t-record(f-typ) then: result(rec-typ-f(fun-loc), context)
-                  | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
-                  | is-t-data(f-typ) then: result(rec-typ-f(fun-loc), context)
-                  | otherwise: fold-errors([list:
-                      C.incorrect-type(tostring(f-typ), f-typ.l, "Number or an object with the field " + id.toname(), app-loc)])
-                end
-              end)
-        end
-      end
-      fun pick3(num-typ-f :: (A.Loc -> Type), str-typ-f :: (A.Loc -> Type), rec-typ-f :: (A.Loc -> Type)):
-        cases(List<A.Expr>) args:
-          | empty =>
-            fold-errors([list: C.incorrect-number-of-args(app-loc)])
-          | link(f, r) =>
-            synthesis(f, false, context).fold-bind(
-              lam(_, f-typ, shadow context):
-                shadow f-typ = context.get-data-type(f-typ).or-else(f-typ)
-                ask:
-                  | f-typ == t-number(A.dummy-loc) then: binop-result(num-typ-f(fun-loc), context)
-                  | f-typ == t-string(A.dummy-loc) then: binop-result(str-typ-f(fun-loc), context)
-                  | is-t-record(f-typ) then: binop-result(rec-typ-f(fun-loc), context)
-                  | is-t-existential(f-typ) then: fold-errors([list:C.unable-to-infer(f-typ.l)])
-                  | is-t-data(f-typ) then: binop-result(rec-typ-f(fun-loc), context)
-                  | otherwise: fold-errors([list:
-                    C.incorrect-type(tostring(f-typ), f-typ.l, "Number, String or an object with the field " + id.toname(), app-loc)])
-                end
-              end)
-        end
+      fun choose-type(type-f :: (A.Loc -> Type)) -> FoldResult<Type>:
+        fold-result(type-f(app-loc), context)
       end
       ask:
-        # Math operations
-        | id == A.s-global("_plus")   then: pick3(t-num-binop, t-str-binop, t-plus-method)
-        | id == A.s-global("_times")  then: pick2(t-num-binop, t-times-method)
-        | id == A.s-global("_divide") then: pick2(t-num-binop, t-divide-method)
-        | id == A.s-global("_minus")  then: pick2(t-num-binop, t-minus-method)
-        # Comparison operations
-        | id == A.s-global("_lessthan")     then: pick3(t-num-cmp, t-str-cmp, t-lt-method)
-        | id == A.s-global("_lessequal")    then: pick3(t-num-cmp, t-str-cmp, t-lte-method)
-        | id == A.s-global("_greaterthan")  then: pick3(t-num-cmp, t-str-cmp, t-gt-method)
-        | id == A.s-global("_greaterequal") then: pick3(t-num-cmp, t-str-cmp, t-gte-method)
-        | otherwise: synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-            fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
+        | id == A.s-global("_plus") then: choose-type(t-plus-method)
+        | id == A.s-global("_times") then: choose-type(t-times-method)
+        | id == A.s-global("_divide") then: choose-type(t-divide-method)
+        | id == A.s-global("_minus") then: choose-type(t-minus-method)
+        | id == A.s-global("_lessthan") then: choose-type(t-lt-method)
+        | id == A.s-global("_lessequal") then: choose-type(t-lte-method)
+        | id == A.s-global("_greaterthan") then: choose-type(t-gt-method)
+        | id == A.s-global("_greaterequal") then: choose-type(t-gte-method)
+        | otherwise:
+          synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
+            fold-result(new-type.set-loc(app-loc), context)
           end)
       end
     | else =>
       synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-        fold-result({fun-type: new-type.set-loc(app-loc), is-binop: false}, context)
+        fold-result(new-type.set-loc(app-loc), context)
       end)
   end
 end
+
