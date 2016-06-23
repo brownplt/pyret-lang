@@ -2709,7 +2709,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
        //return ffi.throwMessageException("lengths not equal");
        return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
-
       function deepCheckFields(remainingAnns) {
         var thisAnn;
         return safeCall(function() {
@@ -2722,7 +2721,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
             else { return deepCheckFields(remainingAnns); }
           }
           else if(ffi.isFail(result)) {
-            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            return that.createTupleFailureError(compilerLoc, val, thisAnn, result, that.locs[remainingAnns.length]);
             //return ffi.throwMessageException("types are wrong");
           }
         },
@@ -2734,12 +2733,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
       return ffi.contractFail(compilerLoc, ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
     };
-    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result, loc) {
       var that = this;
-      var loc;
+      /*var loc;
       for(var i = 0; i < that.anns.length; i++) {
         if(that.anns[i] === ann) { loc = that.locs[i]; }
-      }
+      }*/
       return ffi.contractFail(
         makeSrcloc(compilerLoc),
         ffi.makeTupleAnnsFail(val, ffi.makeList([
