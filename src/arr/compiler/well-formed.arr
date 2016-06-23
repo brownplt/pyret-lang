@@ -584,7 +584,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-if(self, l, branches, blocky) block:
     last-visited-loc := l
     when branches.length() == 1:
-      add-error(C.single-branch-if(A.s-if(l, branches)))
+      add-error(C.single-branch-if(A.s-if(l, branches, blocky)))
     end
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))

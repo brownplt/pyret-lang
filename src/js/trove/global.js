@@ -149,16 +149,103 @@
       "Any": "tany"
     },
     datatypes: {
-      "Number": ["data", "Number", [], [], {}],
-      "Exactnum": ["data", "Exactnum", [], [], {}],
-      "Roughnum": ["data", "Roughnum", [], [], {}],
-      "NumInteger": ["data", "NumInteger", [], [], {}],
-      "NumRational": ["data", "NumRational", [], [], {}],
-      "NumPositive": ["data", "NumPositive", [], [], {}],
-      "NumNegative": ["data", "NumNegative", [], [], {}],
-      "NumNonPositive": ["data", "NumNonPositive", [], [], {}],
-      "NumNonNegative": ["data", "NumNonNegative", [], [], {}],
-      "String": ["data", "String", [], [], {}],
+      "Number": ["data", "Number", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "Exactnum": ["data", "Exactnum", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "Roughnum": ["data", "Roughnum", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumInteger": ["data", "NumInteger", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumRational": ["data", "NumRational", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumPositive": ["data", "NumPositive", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumNegative": ["data", "NumNegative", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumNonPositive": ["data", "NumNonPositive", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "NumNonNegative": ["data", "NumNonNegative", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "String": ["data", "String", [], [], {
+        "_plus": ["arrow", ["String"], "String"],
+        "_lessthan": ["arrow", ["String"], "Boolean"],
+        "_lessequal": ["arrow", ["String"], "Boolean"],
+        "_greaterthan": ["arrow", ["String"], "Boolean"],
+        "_greaterequal": ["arrow", ["String"], "Boolean"]
+      }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],

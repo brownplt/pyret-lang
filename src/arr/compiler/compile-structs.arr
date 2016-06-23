@@ -1654,6 +1654,7 @@ type CompileOptions = {
   proper-tail-calls :: Boolean,
   compile-module :: Boolean,
   compiled-cache :: String,
+  display-progress :: Boolean,
   standalone-file :: String,
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
@@ -1668,6 +1669,7 @@ default-compile-options = {
   proper-tail-calls: true,
   compile-module: true,
   compiled-cache: "compiled",
+  display-progress: true,
   method on-compile(_, locator, loadable): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"
