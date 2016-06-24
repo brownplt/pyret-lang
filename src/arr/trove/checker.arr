@@ -70,8 +70,8 @@ end
 data TestResult:
   | success(loc :: Loc)
   | failure-not-equal(loc :: Loc, refinement, left, right) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -123,8 +123,8 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-different(loc :: Loc, refinement, left, right) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -175,8 +175,8 @@ data TestResult:
         [ED.para: ED.embed(self.right)]]
     end
   | failure-not-satisfied(loc :: Loc, val, pred) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -204,8 +204,8 @@ data TestResult:
         [ED.para: ED.embed(self.val)]]
     end
   | failure-not-dissatisfied(loc :: Loc, val, pred) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -233,7 +233,7 @@ data TestResult:
         [ED.para: ED.embed(self.val)]]
     end
   | failure-wrong-exn(loc :: Loc, exn-expected, actual-exn) with:
-    method render-fancy-reason(self):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -248,7 +248,7 @@ data TestResult:
         [ED.para: ED.embed(self.exn-expected)]]
     end
   | failure-right-exn(loc :: Loc, exn-not-expected, actual-exn) with:
-    method render-fancy-reason(self):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         [ED.para: ED.text("Got exception ")],
         [ED.para: ED.embed(self.actual-exn)],
@@ -263,8 +263,8 @@ data TestResult:
         [ED.para: ED.embed(self.exn-not-expected)]]
     end
   | failure-exn(loc :: Loc, actual-exn, exn-place :: CheckOperand) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       [ED.error:
@@ -293,7 +293,7 @@ data TestResult:
         [ED.para: ED.embed(self.actual-exn)]]
     end
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>) with:
-    method render-fancy-reason(self):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       cases(Option) self.exn-expected:
         | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
@@ -306,8 +306,8 @@ data TestResult:
       end
     end
   | failure-raise-not-satisfied(loc :: Loc, exn, pred) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -335,8 +335,8 @@ data TestResult:
         [ED.para: ED.embed(self.exn)]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, exn, pred) with:
-    method render-fancy-reason(self, locToAST):
-      test-ast = locToAST(self.loc).block.stmts.first
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      test-ast = maybe-ast(self.loc).value
       lhs-ast = test-ast.left
       rhs-ast = test-ast.right.value
       ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
@@ -366,7 +366,7 @@ data TestResult:
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, refinement, left, righ, test-result) with:
-    method render-fancy-reason(self):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
