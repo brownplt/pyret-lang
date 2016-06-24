@@ -100,7 +100,13 @@ end
 check "annotations for tuple":
   fun f(tup:: {Number; String; Number}): tup.{1} end
   f({4; "hi"; 235}) is "hi"
+end 
+
+check "parse and print tuple-binding":
+   x = P.surface-parse("for each({k;v}; from elts): k end", "test")
+   x.tosource().pretty(80) is [list: "for each({ k; v } from elts) -> Any: k end"]
 end
+
 
 
 
