@@ -136,7 +136,7 @@ inst-expr: expr LANGLE ann (COMMA ann)* RANGLE
 tuple-expr: LBRACE tuple-fields RBRACE
 tuple-fields: binop-expr (SEMI binop-expr)* [SEMI]
 
-tuple-get: expr DOT LBRACE NUMBER RBRACE
+tuple-get: expr DOT LBRACE num-expr RBRACE
 
 tuple-bind-expr: LBRACE tuple-name-list RBRACE EQUALS binop-expr
 tuple-binding-expr: LBRACE tuple-name-list RBRACE SEMI
