@@ -190,7 +190,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           bind-check = A.s-let-bind(l, A.s-bind(l, false, A.s-underscore(l), A.a-blank), check-expr)
           get-binds =
             for map_n(n from 0, element from binds):
-              A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n))
+              A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), A.s-num(A.dummy-loc, n)))
             end
            add-let-binds(binding-group, link(tup-name, link(bind-check, get-binds)).reverse(), rest-stmts) 
          #| cases(List) binds:
