@@ -552,6 +552,22 @@
           }
         },
 
+          /*'tup-name' : function(node) {
+            return tr(node.kids[0]);
+          },
+
+          'tuple-binding' : function(node) {
+              if (node.kids[node.kids.length - 2].name === "SEMI") {
+              //  return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2)); 
+                return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeList(node.kids.slice(1, -2).map(tr)));
+              }
+              else {
+                //return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+                return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeList(node.kids.slice(0, -1).map(tr)));
+              }
+        },*/
+
+
         'tuple-binding' : function(node) {
           return tr(node.kids[1]);
         },

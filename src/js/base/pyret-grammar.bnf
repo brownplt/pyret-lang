@@ -30,10 +30,10 @@ newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
 binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding
 
-tuple-binding: LBRACE tuple-bind-list RBRACE SEMI
-tuple-bind-list: bind-tuple* single-tuple-name [SEMI]
-bind-tuple: NAME SEMI
-single-tuple-name: NAME
+tuple-binding: LBRACE tuple-bind-list RBRACE
+tuple-bind-list: bind-tuple* single-tuple-name SEMI
+bind-tuple: binding SEMI
+single-tuple-name: binding
 
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
@@ -146,7 +146,8 @@ tuple-get: expr DOT LBRACE NUMBER RBRACE
 
 tuple-bind-expr: LBRACE tuple-name-list RBRACE EQUALS binop-expr
 tuple-binding-expr: LBRACE tuple-name-list RBRACE SEMI
-tuple-name-list: binding (SEMI binding)* [SEMI]
+tuple-name-list: tuple-name* binding 
+tuple-name: binding SEMI
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: obj-field (COMMA obj-field)* [COMMA]

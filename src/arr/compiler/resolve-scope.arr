@@ -788,17 +788,34 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, new-binds, visit-body, blocky)
     end,
-    method s-for(self, l, iter, binds, ann, body, blocky):
-      {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
-        {env; fbs} = acc
-        cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) => 
-            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
-            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
-            visit-val = val.visit(self)
-            update-binding-expr(atom-env.atom, some(visit-val))
-            new-fb = A.s-for-bind(l2, new-bind, visit-val)
-            { atom-env.env; link(new-fb, fbs) }
+    s-for(self, l, iter, binds, ann, body):
+      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
+      {env; fbs} = acc
+        cases(A.ForBind) fb:
+          | s-for-bind(l2, bind, val) =>
+            cases(A.Bind) bind:
+            | s-bind(l1, shadows1, name1, ann1) =>
+               atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
+               new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
+               visit-val = val.visit(self)
+               update-binding-expr(atom-env.atom, some(visit-val))
+               new-fb = A.s-for-bind(l2, new-bind, visit-val)
+               { atom-env.env; link(new-fb, fbs) }
+            | s-tuple-bind(l1, fields) =>
+             # {new-atom-env; new-fbs} = for fold(acc2 from {self.env; [list: ]}, elt from fields):
+               # {in-atom-env; in-fbs} = acc2
+                tup = for each(elt from fields):
+                atom-env = make-atom-for(elt.id, false, env, bindings, let-bind(_, _, ann, none))
+                new-bind = A.s-bind(l1, false, atom-env.atom, ann)
+                visit-val = val.visit(self)
+                update-binding-expr(atom-env.atom, some(visit-val))
+                new-fb = A.s-for-bind(l2, new-bind, visit-val)
+                #{atom-env.env; link(new-fb, in-fbs)}
+                {atom-env.env; link(new-fb, fbs)}
+              end
+              #{new-atom-env; new-fbs}
+               tup
+            end
         end
       end
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
