@@ -8,6 +8,10 @@ import parse-pyret as P
 import string-dict as D
 import filelib as FL
 
+data FreshData:
+  | fresh-constr()
+end
+
 data Data:
   | var1
   | var2(x)
@@ -316,4 +320,8 @@ check:
   when E.is-template-not-finished(template-err) block:
     template-err.loc satisfies S.is-srcloc
   end
+
+  constr-err = get-err(lam(): fresh-constr.foo end)
+  constr-err satisfies E.is-lookup-constructor-not-object
+
 end

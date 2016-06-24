@@ -4602,13 +4602,13 @@ function isMethod(obj) { return obj instanceof PMethod; }
       var funToReturn = makeFunction(function() {
         var theFun = makeConstructor();
         funToReturn.app = theFun;
-        funToReturn.$constrFor = reflName;
         //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
         //CONSOLE.trace();
         var res = theFun.apply(null, arguments)
         //CONSOLE.log("got ", res);
         return res;
       });
+      funToReturn.$constrFor = reflName;
       return funToReturn;
     }
 
