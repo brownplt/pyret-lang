@@ -405,7 +405,10 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
     end
   end
   fun b(blk):
-    blk.stmts.each(s)
+    cases(J.JBlock) blk:
+      | j-block1(stmt) => s(stmt)
+      | j-block(stmts) => stmts.each(s)
+    end
   end
   c(kase)
   vars

@@ -346,60 +346,51 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
   end
 end
 
+#|
 fun ignorable(rhs):
-  if J.is-j-app(rhs):
-    (J.is-j-id(rhs.func) and (rhs.func.id.toname() == "G"))
-  else if J.is-j-method(rhs):
-    (J.is-j-id(rhs.obj) and (rhs.obj.id.toname() == "R") and ((rhs.meth == "getFieldRef") or (rhs.meth == "getDotAnn")))
-  else:
-    J.is-j-id(rhs)
-    or (J.is-j-dot(rhs) and ignorable(rhs.obj))
-    or (J.is-j-bracket(rhs) and ignorable(rhs.obj) and ignorable(rhs.field))
-  end
+  J.is-j-id(rhs)
+  or (J.is-j-dot(rhs) and ignorable(rhs.obj))
+  or (J.is-j-bracket(rhs) and ignorable(rhs.obj) and ignorable(rhs.field))
 end
+|#
 
 
 fun elim-dead-vars-jblock(b :: J.JBlock, dead-vars :: FrozenNameSet):
   cases(J.JBlock) b:
-    | j-block1(s) => J.j-block(elim-dead-vars-jstmts(cl-sing(s), dead-vars))
+    | j-block1(s) => J.j-block1(elim-dead-vars-jstmt(s, dead-vars))
     | j-block(stmts) => J.j-block(elim-dead-vars-jstmts(stmts, dead-vars))
   end
 end
-fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet):
-  for CL.foldl(acc from cl-empty, s from stmts):
-    cases(J.JStmt) s:
-      | j-var(name, rhs) =>
-        if dead-vars.has-key(name.key()):
-          if ignorable(rhs): acc
-          else: cl-snoc(acc, J.j-expr(rhs))
-          end
-        else:
-          cl-snoc(acc, s)
-        end
-      | j-if1(cond, consq) =>
-        cl-snoc(acc, J.j-if1(cond, elim-dead-vars-jblock(consq, dead-vars)))
-      | j-if(cond, consq, alt) =>
-        cl-snoc(acc,
-          J.j-if(cond, elim-dead-vars-jblock(consq, dead-vars), elim-dead-vars-jblock(alt, dead-vars)))
-      | j-return(expr) => cl-snoc(acc, s)
-      | j-try-catch(body, exn, catch) =>
-        cl-snoc(acc,
-          J.j-try-catch(elim-dead-vars-jblock(body, dead-vars), exn, elim-dead-vars-jblock(catch, dead-vars)))
-      | j-throw(exp) => cl-snoc(acc, s)
-      | j-expr(expr) => cl-snoc(acc, s)
-      | j-break => cl-snoc(acc, s)
-      | j-continue => cl-snoc(acc, s)
-      | j-switch(exp, branches) =>
-        new-switch-branches = for map(b from branches):
-          elim-dead-vars-jcase(b, dead-vars)
-        end
-        cl-snoc(acc, J.j-switch(exp, new-switch-branches))
-      | j-while(cond, body) =>
-        cl-snoc(acc, J.j-while(cond, elim-dead-vars-jblock(body, dead-vars)))
-      | j-for(create-var, init, cont, update, body) =>
-        cl-snoc(acc, J.j-for(create-var, init, cont, update, elim-dead-vars-jblock(body, dead-vars)))
-    end
+fun elim-dead-vars-jstmt(s :: J.JStmt, dead-vars :: FrozenNameSet):
+  cases(J.JStmt) s:
+    | j-var(name, rhs) =>
+      if dead-vars.has-key(name.key()): J.j-expr(rhs)
+      else: s
+      end
+    | j-if1(cond, consq) =>
+      J.j-if1(cond, elim-dead-vars-jblock(consq, dead-vars))
+    | j-if(cond, consq, alt) =>
+      J.j-if(cond, elim-dead-vars-jblock(consq, dead-vars), elim-dead-vars-jblock(alt, dead-vars))
+    | j-return(expr) => s
+    | j-try-catch(body, exn, catch) =>
+      J.j-try-catch(elim-dead-vars-jblock(body, dead-vars), exn, elim-dead-vars-jblock(catch, dead-vars))
+    | j-throw(exp) => s
+    | j-expr(expr) => s
+    | j-break => s
+    | j-continue => s
+    | j-switch(exp, branches) =>
+      new-switch-branches = for map(b from branches):
+        elim-dead-vars-jcase(b, dead-vars)
+      end
+      J.j-switch(exp, new-switch-branches)
+    | j-while(cond, body) =>
+      J.j-while(cond, elim-dead-vars-jblock(body, dead-vars))
+    | j-for(create-var, init, cont, update, body) =>
+      J.j-for(create-var, init, cont, update, elim-dead-vars-jblock(body, dead-vars))
   end
+end
+fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet):
+  CL.map(elim-dead-vars-jstmt(_, dead-vars), stmts)
 end
 fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: FrozenNameSet):
   cases(J.JCase) c:
