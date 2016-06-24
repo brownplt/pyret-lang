@@ -654,7 +654,6 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("table: h1, h2 row: 3, 3 row: 4, 4 end")).not.toBe(false);
       expect(parse("table: h1, h2 row: 3 + 3, 3 * 3 end")).not.toBe(false);
     });
-  });
 
     it("should parse tuples", function() {
       expect(parse("{1; 2; 3}")).not.toBe(false);
