@@ -639,8 +639,6 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     it("should parse tables", function() {
       expect(parse("table 3: row 3 end")).toBe(false);
 
-      expect(parse("table: end")).toBe(false);
-      expect(parse("table: row: end")).not.toBe(false);
       expect(parse("table: h1 row: end")).not.toBe(false);
       expect(parse("table: row: 3 end")).not.toBe(false);
 
