@@ -87,7 +87,7 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
   var rev-stmts = empty
   for lists.each(s from stmts):
     cases(A.Expr) s block:
-      | s-type(l, name, ann) =>
+      | s-type(l, name, params, ann) =>
         rev-stmts := link(s, rev-stmts)
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
@@ -174,8 +174,8 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
     | empty => raise("Should not get an empty block in desugar-scope-block")
     | link(f, rest-stmts) =>
       cases(A.Expr) f:
-        | s-type(l, name, ann) =>
-          add-type-let-bind(binding-group, A.s-type-bind(l, name, ann), rest-stmts)
+        | s-type(l, name, params, ann) =>
+          add-type-let-bind(binding-group, A.s-type-bind(l, name, params, ann), rest-stmts)
         | s-let(l, bind, expr, _) =>
           add-let-bind(binding-group, A.s-let-bind(l, bind, expr), rest-stmts)
         | s-var(l, bind, expr) =>
@@ -715,11 +715,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
         {e; te; bs} = acc
         cases(A.TypeLetBind) b block:
-          | s-type-bind(l2, name, ann) =>
-            atom-env = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, ann.visit(self.{env: e, type-env: te}))
+          | s-type-bind(l2, name, params, ann) =>
+            shadow acc = { env: e, te: te }
+            new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
+              atom-env = make-atom-for(param, false, acc.env, type-bindings, type-var-bind(_, _, none))
+              { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
+            end
+            atom-env = make-atom-for(name, false, acc.te, type-bindings, let-type-bind(_, _, none))
+            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: e, type-env: new-types.env}))
             update-type-binding-ann(atom-env.atom, some(new-bind.ann))
             { e; atom-env.env; link(new-bind, bs) }
+
+            #new-types = for fold(shadow acc from { e; te; empty }, param from params) block:
+            #  atom-env = make-atom-for(param, false, acc.{1}, type-bindings, type-var-bind(_, _, none))
+            #  { e; atom-env.env; link(atom-env.atom, acc.{2}) }
+            #end
+            #atom-env = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
+            #new-bind = A.s-type-bind(l2, atom-env.atom, new-types.{2}.reverse(), ann.visit(self.{env: acc.{0}, type-env: acc.{1}}))
+
+            #update-type-binding-ann(atom-env.atom, some(new-bind.ann))
+            #{ e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
             atom-env-t = make-atom-for(name, false, te, type-bindings, let-type-bind(_, _, none))
             # TODO(joe): type for name in newtype-bind?  Brander-binding?
@@ -905,8 +920,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-id(self, l, id):
       cases(A.Name) id:
         | s-name(l2, s) =>
-          cases(Option) self.env.get(s):
+          cases(Option) self.env.get(s) block:
             | none =>
+              when self.type-env.has-key(s):
+                name-errors := link(C.type-id-used-as-value(l2, id), name-errors)
+              end
               A.s-id(l2, names.s-global(s))
             | some(sb) =>
               cases (ScopeBinding) sb:

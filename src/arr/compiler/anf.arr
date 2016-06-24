@@ -187,8 +187,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | empty => anf(body, k)
         | link(f, r) =>
           new-bind = cases(A.TypeLetBind) f:
-            | s-type-bind(l2, name, ann) =>
-              N.a-type-bind(l2, name, ann)
+            | s-type-bind(l2, name, params, ann) =>
+              N.a-type-bind(l2, name, ann) # TODO(MATT): is this going to have to change?
             | s-newtype-bind(l2, name, namet) =>
               N.a-newtype-bind(l2, name, namet)
           end

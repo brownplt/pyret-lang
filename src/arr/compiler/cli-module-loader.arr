@@ -152,6 +152,13 @@ fun get-builtin-locator(basedir, modname):
   get-cached-if-available(basedir, loc)
 end
 
+fun get-builtin-test-locator(basedir, modname):
+  loc = BL.make-builtin-locator(modname).{
+    method uri(_): "builtin-test://" + modname end
+  }
+  get-cached-if-available(basedir, loc)
+end
+
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri))
@@ -250,6 +257,14 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         else:
           raise("Cannot find import " + torepr(dep))
         end
+      else if protocol == "builtin-test":
+        l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
+        force-check-mode = l.{
+          method get-options(self, options):
+            options.{ check-mode: true, type-check: false }
+          end
+        }
+        CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
         this-path = dep.arguments.get(0)
@@ -310,16 +325,20 @@ fun build-program(path, options) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
-
+  print-progress = lam(s):
+    when options.display-progress:
+      print(s)
+    end
+  end
   var str = "Gathering dependencies..."
   fun clear-and-print(new-str) block:
-    print("\r")
-    print(string-repeat(" ", string-length(str)))
-    print("\r")
+    print-progress("\r")
+    print-progress(string-repeat(" ", string-length(str)))
+    print-progress("\r")
     str := new-str
-    print(str)
+    print-progress(str)
   end
-  print(str)
+  print-progress(str)
   base-module = CS.dependency("file", [list: path])
   base = module-finder({
     current-load-path: P.resolve("./"),
@@ -347,7 +366,7 @@ fun build-program(path, options) block:
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
       when num-compiled == total-modules:
-        print("\nCleaning up and generating standalone...\n")
+        print-progress("\nCleaning up and generating standalone...\n")
       end
       module-path = set-loadable(options.compiled-cache, locator, loadable)
       if (num-compiled == total-modules) and options.collect-all:

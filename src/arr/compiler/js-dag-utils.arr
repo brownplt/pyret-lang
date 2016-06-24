@@ -71,15 +71,23 @@ end
 
 fun used-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
-  for CL.each(s from b.stmts):
-    acc.merge-now(used-vars-jstmt(s))
+  cases(J.JBlock) b:
+    | j-block1(s) => acc.merge-now(used-vars-jstmt(s))
+    | j-block(stmts) =>
+      for CL.each(s from stmts):
+        acc.merge-now(used-vars-jstmt(s))
+      end
   end
   acc
 end
 fun declared-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
-  for CL.each(s from b.stmts):
-    acc.merge-now(declared-vars-jstmt(s))
+  cases(J.JBlock) b:
+    | j-block1(s) => acc.merge-now(declared-vars-jstmt(s))
+    | j-block(stmts) =>
+      for CL.each(s from stmts):
+        acc.merge-now(declared-vars-jstmt(s))
+      end
   end
   acc
 end
@@ -283,6 +291,13 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
   end
 end
 
+fun stmts-of(blk :: J.JBlock):
+  cases(J.JBlock) blk:
+    | j-block1(s) => cl-sing(s)
+    | j-block(stmts) => stmts
+  end
+end
+
 fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
   var looking-for = none
   for CL.foldr(acc from cl-empty, stmt from stmts):
@@ -296,9 +311,9 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
         else:
           acc
         end
-      | j-if1(cond, consq) => acc + find-steps-to(consq.stmts, step)
+      | j-if1(cond, consq) => acc + find-steps-to(stmts-of(consq), step)
       | j-if(cond, consq, alt) =>
-        acc + find-steps-to(consq.stmts, step) + find-steps-to(alt.stmts, step)
+        acc + find-steps-to(stmts-of(consq), step) + find-steps-to(stmts-of(alt), step)
       | j-return(expr) => acc
       | j-try-catch(body, exn, catch) => acc # ignoring for now, because we know we don't use these
       | j-throw(exp) => acc
@@ -312,8 +327,12 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
             # ASSUMES that the dispatch table is assigned two statements before this one
             looking-for := some(expr.rhs.left.obj.id)
             cl-snoc(acc, expr.rhs.right.label)
+          else if J.is-j-ternary(expr.rhs):
+            # ASSUMES that the only current use of $step = ( ? : )
+            # comes from compile-split-if
+            cl-snoc(cl-snoc(acc, expr.rhs.consq.label), expr.rhs.altern.label)
           else:
-            raise("Should not happen")
+            raise({err: "Should not happen", expr: expr})
           end
         else:
           acc
@@ -340,8 +359,11 @@ fun ignorable(rhs):
 end
 
 
-fun elim-dead-vars-jblock(block :: J.JBlock, dead-vars :: FrozenNameSet):
-  J.j-block(elim-dead-vars-jstmts(block.stmts, dead-vars))
+fun elim-dead-vars-jblock(b :: J.JBlock, dead-vars :: FrozenNameSet):
+  cases(J.JBlock) b:
+    | j-block1(s) => J.j-block(elim-dead-vars-jstmts(cl-sing(s), dead-vars))
+    | j-block(stmts) => J.j-block(elim-dead-vars-jstmts(stmts, dead-vars))
+  end
 end
 fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet):
   for CL.foldl(acc from cl-empty, s from stmts):
@@ -406,7 +428,11 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   for CL.each(body-case from body-cases):
     when J.is-j-case(body-case):
       acc-dag.set-now(tostring(body-case.exp.label.get()),
-        node(body-case.exp.label, find-steps-to(body-case.body.stmts, step), body-case,
+        node(body-case.exp.label,
+          cases(J.JBlock) body-case.body:
+            | j-block1(s) => find-steps-to(cl-sing(s), step)
+            | j-block(stmts) => find-steps-to(stmts, step)
+          end, body-case,
           ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
     end
   end

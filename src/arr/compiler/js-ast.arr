@@ -37,6 +37,10 @@ data JBlock:
       else: PP.vert(self.stmts.map-to-list(_.tosource()))
       end
     end
+  | j-block1(stmt :: JStmt) with:
+    method label(self): "j-block1" end,
+    method print-ugly-source(self, printer): self.stmt.print-ugly-source(printer) end,
+    method tosource(self): PP.vert([list: self.stmt.tosource()]) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

@@ -244,7 +244,10 @@
         },
         'type-expr': function(node) {
           return RUNTIME.getField(ast, 's-type')
-            .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+              .app(pos(node.pos),
+                   name(node.kids[1]),
+                   tr(node.kids[2]),
+                   tr(node.kids[4]));
         },
         'newtype-expr': function(node) {
           return RUNTIME.getField(ast, 's-newtype')
@@ -277,7 +280,10 @@
         },
         'type-bind': function(node) {
           return RUNTIME.getField(ast, 's-type-bind')
-            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos),
+                  name(node.kids[0]),
+                  tr(node.kids[1]),
+                  tr(node.kids[3]));
         },
         'type-let-bind': function(node) {
           return tr(node.kids[0]);

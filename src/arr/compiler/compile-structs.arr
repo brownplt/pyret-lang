@@ -671,6 +671,19 @@ data CompileError:
               ED.text(" could not be found.")]]
       end
     end
+  | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a type.")]]
+    end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       self.render-reason()
@@ -985,23 +998,29 @@ data CompileError:
     end
   | incorrect-type-expression(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc, e :: A.Expr) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected the expression")],
+        [ED.para:
+          ED.cmcode(self.e.l)],
+        [ED.para:
+          ED.text("becuase it found a "),
+          ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
+          ED.text(" but it "),
+          ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
+          ED.text(" a "), ED.text(self.expected-name)]]
     end,
     method render-reason(self):
       [ED.error:
-
         [ED.para:
           ED.text("The type checker rejected the expression")],
         [ED.para:
           ED.code(ED.v-sequence(self.e.tosource().pretty(80).map(ED.text)))],
         [ED.para:
-          ED.text("because the expression at "),
-          ED.embed(self.bad-loc),
-          ED.text(" was of type " + self.bad-name),
-          ED.text(" but it was expected to be of type "),
-          ED.embed(self.expected-name),
-          ED.text(" because "),
-          draw-and-highlight(self.expected-loc)]]
+          ED.text("because the expression at "), draw-and-highlight(self.bad-loc),
+          ED.text(" was of type "), ED.code(ED.text(self.bad-name)),
+          ED.text(" but it was expected to be of type "), ED.code(ED.text(self.expected-name)),
+          ED.text(" because of "), draw-and-highlight(self.expected-loc)]]
     end
   | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
     method render-fancy-reason(self):
@@ -1531,6 +1550,7 @@ type CompileOptions = {
   proper-tail-calls :: Boolean,
   compile-module :: Boolean,
   compiled-cache :: String,
+  display-progress :: Boolean,
   standalone-file :: String,
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
@@ -1545,6 +1565,7 @@ default-compile-options = {
   proper-tail-calls: true,
   compile-module: true,
   compiled-cache: "compiled",
+  display-progress: true,
   method on-compile(_, locator, loadable): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"

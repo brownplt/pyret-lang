@@ -326,12 +326,12 @@ fun desugar-expr(expr :: A.Expr):
       A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, params, args, ann, doc, body, _check, blocky) =>
       A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
-    | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
+    | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body, blocky) =>
       fun desugar-type-bind(tb):
         cases(A.TypeLetBind) tb:
-          | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
+          | s-type-bind(l2, name, params, ann) => A.s-type-bind(l2, name, params, desugar-ann(ann))
           | s-newtype-bind(l2, name, nameb) => tb
         end
       end
