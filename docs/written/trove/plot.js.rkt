@@ -14,7 +14,7 @@
     (fun-spec (name "histogram") (arity 2))
     (fun-spec (name "pie-chart"))
 
-    (fun-spec (name "plot-xy"))
+    (fun-spec (name "plot-function"))
     (fun-spec (name "plot-scatter"))
     (fun-spec (name "plot-line"))
 
@@ -24,7 +24,7 @@
     (type-spec (name "PlotWindowOptions"))
     (data-spec
       (name "Plot")
-      (variants ("line-plot" "scatter-plot" "xy-plot")))
+      (variants ("line-plot" "scatter-plot" "function-plot")))
   ))
 
 @docmodule["plot"]{
@@ -38,7 +38,7 @@
 
   Every function in this library is available on the @tt{plot} module object. For
   example, if you used @pyret{import plot as P}, you would write
-  @pyret{P.plot-xy} to access @pyret{plot-xy} below.
+  @pyret{P.plot-function} to access @pyret{plot-function} below.
 
   @;############################################################################
   @section{The Plot Type}
@@ -47,7 +47,7 @@
   There will be a link referring back to this section when necessary)
 
   @data-spec2["Plot" (list) (list
-  @constructor-spec["Plot" "xy-plot" `(("f" ("type" "normal") ("contract" ,(a-arrow N N)))
+  @constructor-spec["Plot" "function-plot" `(("f" ("type" "normal") ("contract" ,(a-arrow N N)))
                                        ("options" ("type" "normal") ("contract" ,(link "PlotOptions"))))]
   @constructor-spec["Plot" "line-plot" `(("points" ("type" "normal") ("contract" ,TA))
                                          ("options" ("type" "normal") ("contract" ,(link "PlotOptions"))))]
@@ -56,7 +56,7 @@
 
   @nested[#:style 'inset]{
 
-  @constructor-doc["Plot" "xy-plot" (list `("f" ("type" "normal") ("contract" ,(a-arrow N N)))
+  @constructor-doc["Plot" "function-plot" (list `("f" ("type" "normal") ("contract" ,(a-arrow N N)))
                                           `("options" ("type" "normal") ("contract" ,(link "PlotOptions")))) (link "Plot")]{
     A graph of a function of one variable.
 
@@ -96,7 +96,7 @@
   }
 
   @examples{
-    my-plot = xy-plot(lam(x): num-sqrt(x) end, plot-options)
+    my-plot = function-plot(lam(x): num-sqrt(x) end, plot-options)
   }
 
   @;############################################################################
@@ -122,13 +122,13 @@
   instead of connecting lines between them. This is to avoid the problem of inaccurate plotting
   causing from, for example, discontinuity of the function, or a function which oscillates infinitely.
 
-  @function["plot-xy"
+  @function["plot-function"
     #:contract (a-arrow (a-arrow N N) (a-arrow N N))
     #:args '(("f" #f))
     #:return (a-arrow N N)
   ]{
-    A shorthand to construct an @link{xy-plot} with default options and then
-    display it. See @link{xy-plot} for more information.
+    A shorthand to construct an @link{function-plot} with default options and then
+    display it. See @link{function-plot} for more information.
   }
 
   @function["plot-line"
@@ -160,7 +160,7 @@
 
   @examples{
   import image-structs as I
-  p1 = xy-plot(lam(x): x * x end, _.{color: I.red})
+  p1 = function-plot(lam(x): x * x end, _.{color: I.red})
   p2 = line-plot(table: x :: Number, y :: Number
       row: 1, 1
       row: 2, 4
