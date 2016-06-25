@@ -551,10 +551,10 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index):
-    if (index.n < 0) block: 
+    if (index < 0) block: 
       wf-error(" Index too small  ", l)
       false
-    else if (index.n > 1000):
+    else if (index > 1000):
       wf-error(" Index over maximum allowed index  ", l)
       false
     else:

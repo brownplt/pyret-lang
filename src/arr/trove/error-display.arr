@@ -101,12 +101,6 @@ fun ed-args(n):
     text(if n == 1: " argument" else: " arguments" end)]
 end
 
-fun ed-names(n):
-  [sequence:
-    embed(n),
-    text(if n == 1: " name" else: " names" end)]
-end
-
 fun ed-fields(n):
   [sequence:
     embed(n),
@@ -123,10 +117,4 @@ fun ed-params(n):
   [sequence:
     embed(n),
     text(if n == 1: " parameter" else: " parameters" end)]
-end
-
-fun ed-components(n):
-  [sequence:
-    embed(n),
-    text(if n == 1: " component" else: " components" end)]
 end

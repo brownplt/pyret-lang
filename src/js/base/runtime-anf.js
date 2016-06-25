@@ -979,7 +979,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
    function checkTupleBind(tup, length, l) {
     if (!isTuple(tup)) {
-       ffi.throwNonTupleBind(makeSrcloc(l), tup);
+       ffi.throwBadTupleBind(makeSrcloc(l), tup, length, length);
     }
     if (tup.vals.length !== length) {
        ffi.throwBadTupleBind(makeSrcloc(l), tup, tup.vals.length, length);

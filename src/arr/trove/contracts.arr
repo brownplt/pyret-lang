@@ -4,7 +4,6 @@ provide *
 provide-types *
 import global as _
 import lists as L
-import option as O
 import error-display as ED
 
 fun draw-and-highlight(l):
@@ -15,15 +14,15 @@ data ContractResult:
   | ok with:
     method render-reason(self): ED.text("There were no errors") end
   | fail(loc, reason :: FailureReason) with:
-    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.reason.render-fancy-reason(self.loc, false, maybe-stack-loc, src-available, maybe-ast)
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.reason.render-fancy-reason(self.loc, false, loc-to-ast, loc-to-src)
     end,
     method render-reason(self):
       self.reason.render-reason(self.loc, false)
     end
   | fail-arg(loc, reason :: FailureReason) with:
-    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.reason.render-fancy-reason(self.loc, true, maybe-stack-loc, src-available, maybe-ast)
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      self.reason.render-fancy-reason(self.loc, true, loc-to-ast, loc-to-src)
     end,
     method render-reason(self):
       self.reason.render-reason(self.loc, true)
@@ -46,6 +45,7 @@ data FieldFailure:
          ED.text(" failed because")],
         self.reason.render-reason(loc, from-fail-arg)]
     end
+
   | missing-field(loc, field) with:
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -56,7 +56,7 @@ end
 
 data FailureReason:
   | ref-init(loc, reason :: FailureReason) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src) block:
       print("ref-init")
       self.render-reason(loc, from-fail-arg)
     end,
@@ -73,45 +73,27 @@ data FailureReason:
           self.reason.render-reason(loc, false)])
     end
   | type-mismatch(val, name :: String) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        if loc.is-builtin():
-          [ED.para:
-            ED.text("A runtime contract, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", in "),
-            ED.loc(loc)]
-        else if src-available(loc):
-          [ED.sequence:
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
             [ED.para:
-              ED.text("The "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
-            ED.cmcode(loc)]
-        else:
-          [ED.para:
-            ED.text("The annotation, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", at "),
-            ED.loc(loc)]
+              ED.text("The runtime contract checker halted execution because the annotation")],
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
+            [ED.para:
+              ED.text("was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 1))]
         end,
-        [ED.para:
-          ED.text("was not satisfied by the value")],
-        ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
-                [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end]
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the annotation")],
+           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
+          [ED.para:
+            ED.text("was not satisfied by the value")],
+           ED.embed(self.val)])
     end,
     method render-reason(self, loc, from-fail-arg):
       message = [ED.para:
@@ -129,48 +111,32 @@ data FailureReason:
         [ED.error: message, ED.embed(self.val)]
       end
     end
-  | predicate-failure(val, name) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        if loc.is-builtin():
-          [ED.para:
-            ED.text("A predicate, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", in "),
-            ED.loc(loc)]
-        else if src-available(loc):
-          [ED.sequence:
+  | predicate-failure(val, pred-name) with:
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
             [ED.para:
-              ED.text("The predicate "),
-              ED.code(ED.text(self.name)),
-              ED.text(" in the "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
-            ED.cmcode(loc)]
-        else:
-          [ED.para:
-              ED.text("The predicate, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", at "),
-              ED.loc(loc)]
+              ED.text("The runtime contract checker halted execution because the predicate "),
+              ED.code(ED.text(self.pred-name)),
+              ED.text(" in the annotation ")],
+             ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
+            [ED.para:
+              ED.text("was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 1))]
         end,
-        [ED.para:
-          ED.text("was not satisfied by the value")],
-        ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
-                [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end]
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the predicate "),
+            ED.code(ED.text(self.pred-name)),
+            ED.text(" in the annotation ")],
+           ED.code(ED.highlight(ED.text(loc-to-src(loc)), [ED.locs: loc], 0)),
+          [ED.para:
+            ED.text("was not satisfied by the value")],
+           ED.embed(self.val)])
     end,
     method render-reason(self, loc, from-fail-arg):
       message = [ED.para:
@@ -188,68 +154,46 @@ data FailureReason:
       end
     end
   | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        if loc.is-builtin():
-          [ED.para:
-            ED.text("A record annotation, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", in "),
-            ED.loc(loc)]
-        else if src-available(loc):
-          [ED.sequence:
-            [ED.para:
-              ED.text("The record annotation "),
-              ED.code(ED.text(self.name)),
-              ED.text(" in the "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
-            ED.cmcode(loc)]
-        else:
-          [ED.para:
-              ED.text("The record annotation, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", at "),
-              ED.loc(loc)]
-        end,
-        [ED.para:
-          ED.text("was not satisfied by the value")],
-        ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
-                [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end,
-        [ED.para:
-          ED.text("because, "),
-          L.fold_n(lam(n, failure):
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      var n = 0
+      reasons =
+        self.field-failures.map(lam(failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
-                if src-available(fl):
-                  [ED.sequence:
-                    ED.text("The value was "),
-                    ED.highlight(ED.text("expected"), [ED.locs: fl], n),
-                    ED.text(" to have a field named "),
-                    ED.code(ED.text(ff))]
-                else: 
-                  [ED.sequence:
-                    ED.text("The value was expected to have a field named "),
+                n := n + 1
+                [ED.error:
+                  [ED.para:
+                    ED.text("The value was excepted to have a field named "),
                     ED.code(ED.text(ff)),
-                    ED.text(" because of the annotation at "),
-                    ED.loc(fl)]
-                end
+                    ED.text(" because of the annotation ")],
+                  ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]
               | field-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
             end
-          end, 1, self.field-failures) ^ ED.bulleted-sequence]]
+          end) ^ ED.bulleted-sequence
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the "),
+              ED.text("record annotation"),
+              ED.text(" was not satisfied by the value")],
+             ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+             ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 0)),
+            [ED.para:
+              ED.text("because:")],
+            reasons]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the "),
+            ED.text("record annotation"),
+            ED.text(" was not satisfied by the value")],
+          ED.embed(self.val),
+          [ED.para:
+            ED.text("because:")],
+          reasons])
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -263,68 +207,46 @@ data FailureReason:
       ]
     end
   | tuple-anns-fail(val, anns-failures :: L.List<FieldFailure>) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        if loc.is-builtin():
-          [ED.para:
-            ED.text("A tuple annotation, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", in "),
-            ED.loc(loc)]
-        else if src-available(loc):
-          [ED.sequence:
-            [ED.para:
-              ED.text("The tuple annotation "),
-              ED.code(ED.text(self.name)),
-              ED.text(" in the "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
-            ED.cmcode(loc)]
-        else:
-          [ED.para:
-              ED.text("The tuple annotation, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", at "),
-              ED.loc(loc)]
-        end,
-        [ED.para:
-          ED.text("was not satisfied by the value")],
-        ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
-                [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end,
-        [ED.para:
-          ED.text("because, "),
-          L.fold_n(lam(n, failure):
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      var n = 0
+      reasons =
+        self.anns-failures.map(lam(failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
-                if src-available(fl):
-                  [ED.sequence:
-                    ED.text("The value was "),
-                    ED.highlight(ED.text("expected"), [ED.locs: fl], n),
-                    ED.text(" to have a field named "),
-                    ED.code(ED.text(ff))]
-                else: 
-                  [ED.sequence:
-                    ED.text("The value was expected to have a field named "),
+                n := n + 1
+                [ED.error:
+                  [ED.para:
+                    ED.text("The value was excepted to have the annotation "),
                     ED.code(ED.text(ff)),
-                    ED.text(" because of the annotation at "),
-                    ED.loc(fl)]
-                end
-              | field-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
+                    ED.text(" because of the tuple annotation ")],
+                  ED.code(ED.highlight(ED.text(loc-to-src(fl)), [ED.locs: fl], n))]
+              | ann-failure(_, _, _) => failure.render-reason(loc, from-fail-arg)
             end
-          end, 0, self.anns-failures)]]
+          end) ^ ED.bulleted-sequence
+      ED.maybe-stack-loc(1, true, 
+        lam(l):
+          [ED.error:
+            [ED.para:
+              ED.text("The runtime contract checker halted execution because the "),
+              ED.text("tuple annotation"),
+              ED.text(" was not satisfied by the value")],
+            ED.embed(self.val),
+            [ED.para:
+              ED.text("which was sent from around")],
+            ED.code(ED.highlight(ED.text(loc-to-src(l)), [ED.locs: l], 0)),
+            [ED.para:
+              ED.text("because:")],
+            reasons]
+        end,
+        [ED.error:
+          [ED.para:
+            ED.text("The runtime contract checker halted execution because the "),
+            ED.text("tuple annotation"),
+            ED.text(" was not satisfied by the value")],
+          ED.embed(self.val),
+          [ED.para:
+            ED.text("because:")],
+          reasons])
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -338,55 +260,26 @@ data FailureReason:
       ]
     end
   | tup-length-mismatch(loc, val, annLength, tupleLength) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
       [ED.error:
-          if loc.is-builtin():
-            [ED.para:
-              ED.text("A tuple annotation, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", in "),
-              ED.loc(loc)]
-          else if src-available(loc):
-            [ED.sequence:
-              [ED.para:
-                ED.text("The "),
-                ED.highlight(ED.text("tuple annotation"), [ED.locs: loc], 0)],
-              ED.cmcode(loc)]
-          else:
-            [ED.para:
-                ED.text("The tuple annotation, "),
-                ED.code(ED.text(self.name)),
-                ED.text(", at "),
-                ED.loc(loc)]
-          end,
-          [ED.para:
-            ED.text("which expects a tuple containing exactly "),
-            ED.ed-components(self.annLength),
-            ED.text(" was not satisfied by the "),
-            ED.embed(self.tupleLength),
-            ED.text(" component tuple:")],
-          ED.embed(self.val),
-          cases(O.Option) maybe-stack-loc(1, true):
-            | some(sender) =>
-              if src-available(sender):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("which was sent from around")],
-                   ED.cmcode(sender)]
-              else:
-                [ED.para:
-                  ED.text("which was sent from around "),
-                  ED.loc(sender)]
-              end
-            | none =>
-              [ED.sequence:]
-          end]
+        [ED.para:
+          ED.text("The tuple annotation "),
+          ED.highlight(ED.text(loc-to-src(self.loc)), [ED.locs: self.loc], 0),
+          ED.text(" expected the given tuple to be of length "),
+          ED.embed(self.annLength)],
+        [ED.para:
+          ED.text("The given tuple had the incorrect length of "),
+          ED.embed(self.tupleLength)],
+        [ED.para:
+          ED.text("The tuple was "),
+          ED.embed(self.val)]
+      ]
     end,
     method render-reason(self, loc, fail-from-arg):
       [ED.error:
         [ED.para:
           ED.text("The tuple annotation at "),
-          ED.embed(loc),
+          ED.embed(self.loc),
           ED.text(" expected the given tuple to be of length "),
           ED.embed(self.annLength)],
         [ED.para:
@@ -395,60 +288,26 @@ data FailureReason:
       ] 
     end
   | dot-ann-not-present(name, field) with:
-    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      if loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("The dot-annotation "),
-            ED.code(
-              [ED.sequence:
-                ED.text(self.name),
-                ED.text("."),
-                ED.text(self.field)]),
-            ED.text(" in "),
-            ED.loc(loc)],
-          [ED.para:
-            ED.text("expects that the type named "),
-            ED.code(ED.text(self.field)),
-            ED.text(" exists in the object named "),
-            ED.code(ED.text(self.name)),
-            ED.text(", but "),
-            ED.code(ED.text(self.field)),
-            ED.text(" could not be found.")]]
-      else if src-available(loc):
-        [ED.error:
-          [ED.para:
-            ED.text("The "),
-            ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], 0)],
-          ED.cmcode(loc),
-          [ED.para:
-            ED.text("expects that the type named "),
-            ED.code(ED.text(self.field)),
-            ED.text(" exists in the object named "),
-            ED.code(ED.text(self.name)),
-            ED.text(", but "),
-            ED.code(ED.text(self.field)),
-            ED.text(" could not be found.")]]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The dot-annotation "),
-            ED.code(
-              [ED.sequence:
-                ED.text(self.name),
-                ED.text("."),
-                ED.text(self.field)]),
-            ED.text(" at "),
-            ED.loc(loc)],
-          [ED.para:
-            ED.text("expects that the type named "),
-            ED.code(ED.text(self.field)),
-            ED.text(" exists in the object named "),
-            ED.code(ED.text(self.name)),
-            ED.text(", but "),
-            ED.code(ED.text(self.field)),
-            ED.text(" could not be found.")]]
-      end
+    method render-fancy-reason(self, loc, from-fail-arg, loc-to-ast, loc-to-src):
+      [ED.error:
+        [ED.para:
+          ED.text("The runtime contract checker halted execution because the "),
+          ED.highlight(ED.text("dot-annotation"), [ED.locs: loc], 0)],
+        # can't highlight individual components since non-top-level
+        # expressions can't presently be parsed
+        ED.code(
+          [ED.sequence:
+            ED.text(self.name),
+            ED.text("."),
+            ED.text(self.field)]),
+        [ED.para:
+          ED.text("expects that the type named "),
+          ED.code(ED.text(self.field)),
+          ED.text(" exists in the object named "),
+          ED.code(ED.text(self.name)),
+          ED.text(", but "),
+          ED.code(ED.text(self.field)),
+          ED.text(" could not be found.")]]
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
