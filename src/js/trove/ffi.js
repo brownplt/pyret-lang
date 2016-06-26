@@ -414,6 +414,9 @@
     var isNotEqual = gf(EQ, "is-NotEqual").app;
     var isUnknown = gf(EQ, "is-Unknown").app
 
+    var isEmpty = gf(L, "is-empty").app;
+    var isLink = gf(L, "is-link").app;
+
     return runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
@@ -505,6 +508,8 @@
 
       toArray: toArray,
       isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
+      isLink : isLink,
+      isEmpty : isEmpty,
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,

@@ -125,15 +125,13 @@ data List<a>:
       1 + self.rest.length()
     end,
 
-    method each(self :: List<a>, f :: (a -> Nothing)) -> Nothing block:
+    method each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
       doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      f(self.first)
-      self.rest.each(f)
+      each(f, self)
     end,
 
     method map<b>(self, f :: (a -> b)) -> List<b>:
       doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      #f(self.first) ^ link(_, self.rest.map(f))
       map(f, self)
     end,
 
@@ -322,12 +320,9 @@ fun set<a>(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
-fun reverse-help<a>(lst :: List<a>, acc :: List<a>) -> List<a>:
+fun reverse-help<a>(lst :: List<a>, tail :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
-  cases(List) lst:
-    | empty => acc
-    | link(first, rest) => reverse-help(rest, first ^ link(_, acc))
-  end
+  builtins.raw-list-fold(lam(acc, elt): link(elt, acc) end, tail, lst)
 where:
   reverse-help([list: ], [list: ]) is [list: ]
   reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
@@ -375,15 +370,7 @@ end
 
 fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
-  if is-empty(lst):
-    empty
-  else:
-    if f(lst.first):
-      lst.first ^ link(_, filter(f, lst.rest))
-    else:
-      filter(f, lst.rest)
-    end
-  end
+  builtins.raw-list-filter(f, lst)
 end
 
 fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
@@ -478,24 +465,8 @@ end
 
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
-  newRaw = builtins.list-to-raw-array(lst)
-  len = raw-array-length(newRaw)
-  builtins.raw-each-loop(lam(i): 
-                    raw-array-set(newRaw, i, f(raw-array-get(newRaw, i))) end,
-                    0, len)
-  raw-array-to-list(newRaw)
- end
-
-#|
-fun _map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b>:
-  doc: "Returns a list made up of f(elem) for each elem in lst"
-  if is-empty(lst):
-    empty
-  else:
-    f(lst.first) ^ link(_, _map(f, lst.rest))
-  end
+  builtins.raw-list-map(f, lst)
 end
-|#
 
 fun map2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   doc: "Returns a list made up of f(elem1, elem2) for each elem1 in l1, elem2 in l2"
@@ -560,23 +531,10 @@ fun map4_n<a, b, c, d, e>(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: Lis
   end
 end
 
-fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
-  newRaw = builtins.list-to-raw-array(lst)
-  builtins.raw-each-loop(lam(i): f(raw-array-get(newRaw, i)) end, 0, raw-array-length(newRaw))  
-end
-
-
-fun _each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing:
+fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
   doc: "Calls f for each elem in lst, and returns nothing"
-  fun help(l):
-    if is-empty(l) block:
-      nothing
-    else:
-      f(l.first)
-      help(l.rest)
-    end
-  end
-  help(lst)
+  builtins.raw-list-fold(lam(_, elt): f(elt) end, nothing, lst)
+  nothing
 end
 
 fun each2<a, b>(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
@@ -684,18 +642,10 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   end
 end
 
-#fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
-
-#end
-
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  if is-empty(lst):
-    base
-  else:
-    fold(f, f(base, lst.first), lst.rest)
-  end
+  builtins.raw-list-fold(f, base, lst)
 end
 
 rec foldl = fold

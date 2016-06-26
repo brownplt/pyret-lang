@@ -2378,17 +2378,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     setParam("current-checker", nullChecker);
 
-    /** type {!PBase} */
-    var builtins = makeObject({
-        'has-field': hasField,
-        'current-checker': makeFunction(function() {
-          if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
-          return getParam("current-checker");
-        }),
-        'raw-each-loop': makeFunction(eachLoop),
-        'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l);})
-      });
-
     function unwrap(v) {
       if(isNumber(v)) { return v; }
       else if(isString(v)) { return v; }
@@ -3748,6 +3737,126 @@ function isMethod(obj) { return obj instanceof PMethod; }
       return foldFun();
     };
 
+    var raw_list_map = function(f, lst) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkList(lst);
+      var currentAcc = [];
+      var currentLst = lst;
+      var currentFst;
+      function foldHelp() {
+        while(thisRuntime.ffi.isLink(currentLst)) {
+          currentFst = thisRuntime.getColonField(currentLst, "first");
+          currentLst = thisRuntime.getColonField(currentLst, "rest");
+          currentAcc.push(f.app(currentFst));
+        }
+        return thisRuntime.ffi.makeList(currentAcc);
+      }
+      function foldFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            currentAcc.push($ar.ans);
+          }
+          return foldHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-map"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-list-map"]);
+          }
+          throw $e;
+        }
+      }
+      return foldFun();
+    };
+
+    var raw_list_filter = function(f, lst) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-filter"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkList(lst);
+      var currentAcc = [];
+      var currentLst = lst;
+      var currentFst;
+      function foldHelp() {
+        while(thisRuntime.ffi.isLink(currentLst)) {
+          currentFst = thisRuntime.getColonField(currentLst, "first");
+          currentLst = thisRuntime.getColonField(currentLst, "rest");
+          if(f.app(currentFst)) {
+            currentAcc.push(currentFst);
+          }
+        }
+        return thisRuntime.ffi.makeList(currentAcc);
+      }
+      function foldFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            if($ar.ans) {
+              currentAcc.push(currentFst);
+            }
+          }
+          return foldHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-filter"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-list-filter"]);
+          }
+          throw $e;
+        }
+      }
+      return foldFun();
+    };
+
+
+    var raw_list_fold = function(f, init, lst) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-fold"], 3, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkPyretVal(init);
+      thisRuntime.checkList(lst);
+      var currentAcc = init;
+      var currentLst = lst;
+      function foldHelp() {
+        while(thisRuntime.ffi.isLink(currentLst)) {
+          var fst = thisRuntime.getColonField(currentLst, "first");
+          currentLst = thisRuntime.getColonField(currentLst, "rest");
+          currentAcc = f.app(currentAcc, fst);
+        }
+        return currentAcc;
+      }
+      function foldFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            currentAcc = $ar.ans;
+          }
+          return foldHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-list-fold"]);
+          }
+          throw $e;
+        }
+      }
+      return foldFun();
+    };
+
+
     var string_substring = function(s, min, max) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a); }
       thisRuntime.checkString(s);
@@ -4634,6 +4743,21 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     // Filled in by makePrimAnn
     var runtimeTypeBindings = {};
+
+    /** type {!PBase} */
+    var builtins = makeObject({
+        'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }),
+        'has-field': makeFunction(hasField),
+        'raw-each-loop': makeFunction(eachLoop),
+        'raw-list-map': makeFunction(raw_list_map),
+        'raw-list-filter': makeFunction(raw_list_filter),
+        'raw-list-fold': makeFunction(raw_list_fold),
+        'current-checker': makeFunction(function() {
+          if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
+          return getParam("current-checker");
+        })
+      });
+
 
     var runtimeNamespaceBindings = {
           'torepr': torepr,
