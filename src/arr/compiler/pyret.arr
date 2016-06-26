@@ -115,6 +115,8 @@ fun main(args):
                 display-progress: display-progress
               })
         else if r.has-key("build-standalone"):
+          raise("Use build-runnable instead of build-standalone")
+          #|
           CLI.build-require-standalone(r.get-value("build-standalone"),
               CS.default-compile-options.{
                 check-mode : check-mode,
@@ -127,6 +129,7 @@ fun main(args):
                 compiled-cache: compiled-dir,
                 display-progress: display-progress
               })
+           |#
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
             CS.default-compile-options.{

@@ -43,6 +43,7 @@ j-var = J.j-var
 j-id = J.j-id
 j-method = J.j-method
 j-block = J.j-block
+j-block1 = J.j-block1
 j-true = J.j-true
 j-false = J.j-false
 j-num = J.j-num
@@ -189,7 +190,7 @@ end
 
 fun check-fun(l, f):
   j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block([clist: j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))]))
+    j-block1(j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))))
 end
 
 fun thunk-app(block):
@@ -197,7 +198,7 @@ fun thunk-app(block):
 end
 
 fun thunk-app-stmt(stmt):
-  thunk-app(j-block([clist: stmt]))
+  thunk-app(j-block1(stmt))
 end
 
 c-exp = DAG.c-exp
@@ -296,7 +297,7 @@ fun arity-check(loc-expr, arity :: Number):
       j-block([clist:
           j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
           j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
-            j-block([clist: j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter)))])),
+            j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
           j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
 end
 
@@ -404,7 +405,10 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
     end
   end
   fun b(blk):
-    blk.stmts.each(s)
+    cases(J.JBlock) blk:
+      | j-block1(stmt) => s(stmt)
+      | j-block(stmts) => stmts.each(s)
+    end
   end
   c(kase)
   vars
@@ -466,9 +470,9 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         end + [clist:
           j-expr(j-unop(rt-field("GAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
-  ^ cl-snoc(_, j-default(j-block([clist:
+  ^ cl-snoc(_, j-default(j-block1(
           j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
-              j-str(" in " + fun-name.tosourcestring())))])))
+              j-str(" in " + fun-name.tosourcestring()))))))
   # fun check-no-dups(seen, kases):
   #   cases(List) kases:
   #     | empty => nothing
@@ -556,34 +560,30 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
                   # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
                   j-throw(rt-method("makeCont", cl-empty))])),
             j-while(j-true,
-              j-block([clist:
-                  # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
-                  j-switch(j-id(step), switch-cases)]))]),
+              j-block1(j-switch(j-id(step), switch-cases)))]),
         e,
         j-block(
           [clist:
             j-if1(stack-attach-guard,
-              j-block([clist:
-                  j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
-                      j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
-              ]))] +
+              j-block1(
+                j-expr(j-bracket-assign(j-dot(j-id(e), "stack"),
+                    j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
+              ))] +
           if should-report-error-frame:
+            add-frame = j-expr(add-stack-frame(e, j-id(apploc)))
             [clist:
               j-if1(rt-method("isPyretException", [clist: j-id(e)]),
-                j-block(
-                  [clist: j-expr(add-stack-frame(e, j-id(apploc)))] +
-                  if show-stack-trace:
-                    [clist: j-expr(rt-method("traceErrExit", entryExit))]
-                  else:
-                    cl-empty
-                  end
-                  ))]
+                if show-stack-trace:
+                  j-block([clist: add-frame, j-expr(rt-method("traceErrExit", entryExit))])
+                else:
+                  j-block1(add-frame)
+                end
+                )]
           else if show-stack-trace:
             [clist:
               j-if1(rt-method("isPyretException", [clist: j-id(e)]),
-                j-block([clist:
-                    j-expr(add-stack-frame(e, j-id(apploc)))
-                ]))]
+                j-block1(j-expr(add-stack-frame(e, j-id(apploc)))
+                  ))]
           else:
             cl-empty
           end +
@@ -699,14 +699,15 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(j-id(colon-field-id), link(compiled-obj, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist:
-                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                        cl-cons(compiled-obj, compiled-args))))
-                ]),
-              j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-                ]))
+          j-if(check-method,
+            j-block1(
+              j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+                    cl-cons(compiled-obj, compiled-args))))
+              ),
+            j-block([clist:
+                check-fun(compiler.get-loc(l), colon-field-id),
+                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
+              ]))
           # end
           ,
           j-break]),
@@ -729,14 +730,15 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist:
-                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                        cl-cons(obj-id, compiled-args))))
-                ]),
-              j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-                ]))
+          j-if(check-method,
+            j-block1(
+              j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+                    cl-cons(obj-id, compiled-args))))
+              ),
+            j-block([clist:
+                check-fun(compiler.get-loc(l), colon-field-id),
+                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
+              ]))
           # end
           ,
           j-break]),
@@ -776,9 +778,9 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
     + get-new-cases(compiler, opt-dest, opt-body, after-if-label, ans)
   c-block(
     j-block([clist:
-        j-if(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
-          j-block([clist: j-expr(j-assign(compiler.cur-step, consq-label))]),
-          j-block([clist: j-expr(j-assign(compiler.cur-step, alt-label))])),
+        j-expr(j-assign(compiler.cur-step,
+            j-ternary(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
+              consq-label, alt-label))),
         j-break
       ]),
     new-cases)
@@ -824,22 +826,24 @@ fun cases-preamble(compiler, compiled-val, branch, cases-loc):
     | a-cases-branch(_, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
-      checker = j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
-        j-block([clist:
-            j-if1(j-binop(branch-given-arity, j-neq, obj-expected-arity),
-              j-block([clist:
-                  j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                      [clist: compiler.get-loc(pat-loc), branch-given-arity, obj-expected-arity, compiler.get-loc(cases-loc)]))]))]),
-        j-block([clist:
-            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))]))
+      checker =
+        j-if1(j-binop(obj-expected-arity, j-neq, branch-given-arity),
+          j-block1(
+            j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
+              j-block1(
+                j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                    [clist: compiler.get-loc(pat-loc), branch-given-arity,
+                      obj-expected-arity, compiler.get-loc(cases-loc)]))),
+              j-block1(
+                j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                    [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))
       [clist: checker]
     | a-singleton-cases-branch(_, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
-          j-block([clist:
-              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                  [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))]))
+          j-block1(
+            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))))
       [clist: checker]
   end
 end
@@ -1072,12 +1076,12 @@ compiler-visitor = {
     compile-lettable(self, none, e, none, lam():
       visit-e = e.visit(self)
       c-block(
-        j-block(
+          j-block(
           cl-sing(j-expr(j-assign(self.cur-step, self.cur-target)))
             + visit-e.other-stmts
-            + [clist:
-            j-expr(j-assign(self.cur-ans, visit-e.exp)),
-            j-break]),
+              + [clist:
+              j-expr(j-assign(self.cur-ans, visit-e.exp)),
+              j-break]),
         cl-empty)
     end)
   end,
@@ -1268,7 +1272,7 @@ compiler-visitor = {
             self.get-loc(l2),
             # NOTE(joe): Thunked at the JS level because compiled-anns might contain
             # references to rec ids that should be resolved later
-            j-fun(cl-empty, j-block([clist: j-return(j-list(false, compiled-anns.anns))])),
+            j-fun(cl-empty, j-block1(j-return(j-list(false, compiled-anns.anns)))),
             j-list(false, compiled-vals),
             j-list(false, compiled-locs),
             j-list(false, CL.map_list(lam(m): j-bool(N.is-a-mutable(m.member-type)) end, members)),
@@ -1316,7 +1320,7 @@ compiler-visitor = {
                   rt-method("derefField", [clist: field, j-bool(N.is-a-mutable(m.member-type)), mask])
                 end))]))
           | a-singleton-variant(_, _, _) =>
-            j-fun([clist: f-id], j-block([clist: j-return(j-app(j-id(f-id), cl-empty))]))
+            j-fun([clist: f-id], j-block1(j-return(j-app(j-id(f-id), cl-empty))))
         end
 
       refl-ref-fields-mask-id = js-id-of(compiler-name(vname + "_mutablemask"))
@@ -1332,12 +1336,12 @@ compiler-visitor = {
       refl-fields =
         cases(N.AVariant) v:
           | a-variant(_, _, _, members, _) =>
-            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id),
-                      CL.map_list(lam(m):
-                          get-dict-field(THIS, j-str(m.bind.id.toname()))
-                        end, members)))]))
+            j-fun([clist: const-id("f")], j-block1(j-return(j-app(j-id(f-id),
+                    CL.map_list(lam(m):
+                        get-dict-field(THIS, j-str(m.bind.id.toname()))
+                      end, members)))))
           | a-singleton-variant(_, _, _) =>
-            j-fun([clist: const-id("f")], j-block([clist: j-return(j-app(j-id(f-id), cl-empty))]))
+            j-fun([clist: const-id("f")], j-block1(j-return(j-app(j-id(f-id), cl-empty))))
         end
 
       fun member-count(shadow v):
@@ -1448,8 +1452,8 @@ fun mk-abbrevs(l):
   [clist:
     j-var(const-id("G"), rt-field("getFieldLoc")),
     j-var(const-id("U"), j-fun([clist: loc, name],
-        j-block([clist: j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
-                          [clist: j-id(loc), j-id(name)])]))),
+        j-block1(j-expr(j-method(rt-field("ffi"), "throwUninitializedIdMkLoc",
+            [clist: j-id(loc), j-id(name)]))))),
     j-var(const-id("M"), j-str(l.source)),
     j-var(const-id("D"), rt-field("undefined"))
   ]

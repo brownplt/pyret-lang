@@ -958,8 +958,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-id(self, l, id):
       cases(A.Name) id:
         | s-name(l2, s) =>
-          cases(Option) self.env.get(s):
+          cases(Option) self.env.get(s) block:
             | none =>
+              when self.type-env.has-key(s):
+                name-errors := link(C.type-id-used-as-value(l2, id), name-errors)
+              end
               A.s-id(l2, names.s-global(s))
             | some(sb) =>
               cases (ScopeBinding) sb:

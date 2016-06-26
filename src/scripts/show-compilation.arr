@@ -37,8 +37,8 @@ compile-str = lam(filename, options):
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, options.{
       collect-all: true,
-      before-compile(_, _): nothing end,
-      on-compile(_, _, loadable): loadable end
+      method before-compile(_, _): nothing end,
+      method on-compile(_, _, loadable): loadable end
     })
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List<CS.CompileResult>) errors:
@@ -63,41 +63,41 @@ cases (C.ParsedArguments) parsed-options block:
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
-    print("Success")
+    println("Success")
     cases (List) rest block:
-      | empty => print("Require a file name")
+      | empty => println("Require a file name")
       | link(file, _) =>
-        print("File is " + file)
+        println("File is " + file)
         options = CS.default-compile-options.{
           check-mode: check-mode,
           type-check: type-check,
         }
         compiled = compile-str(file, options)
-        print("")
+        println("")
 
         comp = cases(E.Either) compiled block:
           | left(v) =>
-            print("Compilation failed")
+            println("Compilation failed")
             v.last().result-printer.tolist()
           | right(v) => v.last().result-printer.tolist()
         end
 
         for each(phase from comp) block:
-          print("\n")
-          print(">>>>>>>>>>>>>>>>>>\n")
-          print(phase.name + ":\n")
-          if A.Program(phase.result) block: each(println, phase.result.tosource().pretty(print-width))
-          else if AN.AProg(phase.result): each(println, phase.result.tosource().pretty(print-width))
-          else if JS.CompiledCodePrinter(phase.result): println(phase.result.pyret-to-js-pretty(print-width))
-          else if CS.NameResolution(phase.result): each(println, phase.result.ast.tosource().pretty(print-width))
-          else if CS.CompileResult(phase.result):
+          println("\n")
+          println(">>>>>>>>>>>>>>>>>>\n")
+          println(phase.name + ":\n")
+          if A.is-Program(phase.result) block: each(println, phase.result.tosource().pretty(print-width))
+          else if AN.is-AProg(phase.result): each(println, phase.result.tosource().pretty(print-width))
+          else if JS.is-CompiledCodePrinter(phase.result): println(phase.result.pyret-to-js-pretty(print-width))
+          else if CS.is-NameResolution(phase.result): each(println, phase.result.ast.tosource().pretty(print-width))
+          else if CS.is-CompileResult(phase.result):
             cases(CS.CompileResult) phase.result block:
               | ok(c) =>
-                if A.Program(c) block: each(println, c.tosource().pretty(print-width))
-                else if JS.CompiledCodePrinter(c): println(c.pyret-to-js-pretty(print-width))
+                if A.is-Program(c) block: each(println, c.tosource().pretty(print-width))
+                else if JS.is-CompiledCodePrinter(c): println(c.pyret-to-js-pretty(print-width))
                 else:
-                  print("Unknown CompileResult result type")
-                  print(torepr(c))
+                  println("Unknown CompileResult result type")
+                  println(torepr(c))
                 end
               | err(problems) => each(println, problems.map(tostring))
             end
@@ -110,4 +110,4 @@ cases (C.ParsedArguments) parsed-options block:
   | arg-error(m, _) =>
     each(println,  ("Error: " + m) ^ link(_, C.usage-info(cl-options)))
 end
-print("Finished")
+println("Finished")

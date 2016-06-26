@@ -517,16 +517,31 @@
             return tr(node.kids[1]);
           }
         },
-         /*'tuple-binding-expr': function(node) {
-            return RUNTIME.getField(ast, 's-tuple-let')
-                .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
-          },*/
+        'single-tuple-name': function(node) {
+          return name(node.kids[0]); 
+        },
+
+        'bind-tuple': function(node) {
+          return name(node.kids[0]);
+        }, 
+
+        'tuple-bind-list': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "single-tuple-name") {
+            return makeList(node.kids.slice(0, -1).map(tr));
+          } else {
+            return makeList(node.kids.map(tr));
+          }
+        },
+
+        'tuple-binding' : function(node) {
+          return tr(node.kids[1]);
+        },
+           
         'binding': function(node) {
-            /*if (node.kids[0] == "tuple-binding-expr") {
-              return RUNTIME.getField(ast, 's-tuple-let')
-                .app(pos(node.pos), tr(node.kids[0]))
-             }
-              else*/ if (node.kids.length === 1) {
+          if (node.kids[0].name == "tuple-binding") {
+            return RUNTIME.getField(ast, 's-tuple-bind')
+              .app(pos(node.pos), tr(node.kids[0]));
+          } else if (node.kids.length === 1) {
             // (binding name)
             return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 

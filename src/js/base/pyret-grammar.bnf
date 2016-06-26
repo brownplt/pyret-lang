@@ -28,7 +28,13 @@ stmt: type-expr | newtype-expr
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
-binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding-expr
+binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding
+
+tuple-binding: LBRACE tuple-bind-list RBRACE SEMI
+tuple-bind-list: bind-tuple* single-tuple-name [SEMI]
+bind-tuple: NAME SEMI
+single-tuple-name: NAME
+
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding (COMMA let-binding)* (BLOCK|COLON) block END

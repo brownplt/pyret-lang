@@ -671,6 +671,19 @@ data CompileError:
               ED.text(" could not be found.")]]
       end
     end
+  | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a type.")]]
+    end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       self.render-reason()

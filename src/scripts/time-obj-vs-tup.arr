@@ -37,3 +37,31 @@ print("using tuples 10 times")
 print(measure(sum_and_product_tup, 10, lst))
 print("using object 10 times")
 print(measure(sum_and_product_obj, 10, lst))
+
+fun sum_and_product_tup_comp(l):
+  {fsum; fprod} = for fold(totals from {0; 1}, item from l):
+    {insum; inprod} = totals
+    var computation = insum + inprod + (insum * inprod)
+    #var more_comp = ((insum * (inprod - insum)) + (inprod + inprod)) * (insum - inprod) 
+    {insum + item ; inprod * item}
+  end
+  [list: fsum, fprod]
+end
+
+
+fun sum_and_product_obj_comp(l):
+  fsumandprod = for fold(acc from {insum: 0, inprod: 1}, item from l):
+    var computation = acc.insum + acc.inprod + (acc.insum * acc.inprod)
+    #  var more_comp = ((acc.insum * (acc.inprod - acc.insum)) + (acc.inprod + acc.inprod)) * (acc.insum - acc.inprod) 
+    {insum: acc.insum + item, inprod: acc.inprod * item}
+  end
+  [list: fsumandprod.insum, fsumandprod.inprod]
+end
+
+
+shadow lst = createList(10000)
+
+print("using tuples 5 times with comp")
+print(measure(sum_and_product_tup_comp, 5, lst))
+print("using object 5 times with comp")
+print(measure(sum_and_product_obj_comp, 5, lst))
