@@ -162,6 +162,23 @@
       runtime.checkString(field);
       raise(err("lookup-non-object")(loc, nonObject, runtime.makeString(field)));
     }
+    function throwLookupNonTuple(loc, nonTuple, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(nonTuple);
+      runtime.checkNumber(index);
+      raise(err("lookup-non-tuple")(loc, nonTuple, runtime.makeNumber(index)));
+    }
+    function throwBadTupleBind(loc, tup, length, desiredLength) {
+      checkSrcloc(loc);
+      //runtime.checkPyretVal(tup);
+      raise(err("bad-tuple-bind")(loc, tup, length, desiredLength));
+    }
+    function throwLookupLargeIndex(loc, tup, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(tup);
+      runtime.checkNumber(index);
+      raise(err("lookup-large-index")(loc, tup, runtime.makeNumber(index)));
+    }
     function throwExtendNonObject(loc, nonObject) {
       checkSrcloc(loc);
       runtime.checkPyretVal(nonObject);
@@ -408,6 +425,10 @@
       return contract("tuple-anns-fail")(value, failures);
     }
 
+    function makeTupleAnnsFail(value, failures) {
+      return contract("tuple-anns-fail")(value, failures);
+    }
+
     function makeFieldFailure(loc, field, reason) {
       checkSrcloc(loc);
       runtime.checkString(field);
@@ -526,6 +547,9 @@
       makeMissingField: makeMissingField,
       makeTupleLengthMismatch: makeTupleLengthMismatch,
       makeTypeMismatch: makeTypeMismatch,
+      makeTupleAnnsFail: makeTupleAnnsFail,
+      makeTupleLengthMismatch: makeTupleLengthMismatch,
+      makeAnnFailure: makeAnnFailure,
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,

@@ -2734,12 +2734,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
         thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
-          thisRuntime.ffi.makeAnnFailure(
-            makeSrcloc(loc),
-            ann,
-            getField(result, "reason")
-          )
-        ]))
+            thisRuntime.ffi.makeAnnFailure(
+              makeSrcloc(loc),
+              ann,
+              getField(result, "reason")
+            )
+          ]))
       );
     };
 

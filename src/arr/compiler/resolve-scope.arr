@@ -788,12 +788,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, new-binds, visit-body, blocky)
     end,
-    s-for(self, l, iter, binds, ann, body):
+    method s-for(self, l, iter, binds, ann, body, blocky):
       {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
       {env; fbs} = acc
         cases(A.ForBind) fb:
           | s-for-bind(l2, bind, val) =>
-            cases(A.Bind) bind:
+            cases(A.Bind) bind block:
             | s-bind(l1, shadows1, name1, ann1) =>
                atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
                new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
@@ -802,9 +802,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                new-fb = A.s-for-bind(l2, new-bind, visit-val)
                { atom-env.env; link(new-fb, fbs) }
             | s-tuple-bind(l1, fields) =>
-             # {new-atom-env; new-fbs} = for fold(acc2 from {self.env; [list: ]}, elt from fields):
+             # {new-atom-env; new-fbs} = for fold(acc2 from {self.env; [list: ]}, elt from fields) block:
                # {in-atom-env; in-fbs} = acc2
-                tup = for each(elt from fields):
+                tup = for each(elt from fields) block:
                 atom-env = make-atom-for(elt.id, false, env, bindings, let-bind(_, _, ann, none))
                 new-bind = A.s-bind(l1, false, atom-env.atom, ann)
                 visit-val = val.visit(self)

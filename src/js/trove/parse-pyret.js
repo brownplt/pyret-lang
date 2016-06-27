@@ -537,11 +537,12 @@
           }
         },
         'single-tuple-name': function(node) {
-          return name(node.kids[0]); 
+          return tr(node.kids[0]); 
         },
 
         'bind-tuple': function(node) {
-          return name(node.kids[0]);
+          console.log(node);
+          return tr(node.kids[0]);
         }, 
 
         'tuple-bind-list': function(node) {

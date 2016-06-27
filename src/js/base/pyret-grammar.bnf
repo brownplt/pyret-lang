@@ -23,7 +23,7 @@ block: stmt*
 stmt: type-expr | newtype-expr
     | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
-    | contract-stmt | tuple-bind-expr | tuple-binding-expr
+    | contract-stmt | tuple-bind-expr
 
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
@@ -145,9 +145,7 @@ tuple-fields: binop-expr (SEMI binop-expr)* [SEMI]
 tuple-get: expr DOT LBRACE NUMBER RBRACE
 
 tuple-bind-expr: LBRACE tuple-name-list RBRACE EQUALS binop-expr
-tuple-binding-expr: LBRACE tuple-name-list RBRACE SEMI
-tuple-name-list: tuple-name* binding 
-tuple-name: binding SEMI
+tuple-name-list: binding (SEMI binding)* 
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: obj-field (COMMA obj-field)* [COMMA]
