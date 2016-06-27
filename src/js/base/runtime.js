@@ -973,20 +973,20 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
     function getTuple(tup, index, l) {
       if(!isTuple(tup)) {
-        ffi.throwLookupNonTuple(makeSrcloc(l), tup, index);
+        thisRuntime.ffi.throwLookupNonTuple(makeSrcloc(l), tup, index);
       }
       if (index >= tup.vals.length) {
-        ffi.throwLookupLargeIndex(makeSrcloc(l), tup, index);
+        thisRuntime.ffi.throwLookupLargeIndex(makeSrcloc(l), tup, index);
       }
       return tup.vals[index]
     }
 
     function checkTupleBind(tup, length, l) {
       if (!isTuple(tup)) {
-        ffi.throwBadTupleBind(makeSrcloc(l), tup, length, length);
+        thisRuntime.ffi.throwNonTupleBind(makeSrcloc(l), tup);
       }
       if (tup.vals.length !== length) {
-        ffi.throwBadTupleBind(makeSrcloc(l), tup, tup.vals.length, length);
+        thisRuntime.ffi.throwBadTupleBind(makeSrcloc(l), tup, tup.vals.length, length);
       }
       return true;
     }
