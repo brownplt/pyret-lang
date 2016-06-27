@@ -96,7 +96,7 @@ data RuntimeError:
         [ED.para:
           ED.text("failed because the "),
           ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
-          ED.text(" is does not exist in the "),
+          ED.text(" does not exist in the "),
           ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
         ED.embed(self.obj)]
     end,
