@@ -165,6 +165,11 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         return err("message-exception")(message);
       }
 
+      function throwMultiErrorException(errs) {
+        runtime.checkList(errs);
+        raise(err("multi-error")(errs));
+      }
+
       function throwUserException(errVal) {
         runtime.checkPyretVal(errVal);
         raise(err("user-exception")(errVal));
@@ -429,6 +434,7 @@ define(["js/runtime-util", "trove/lists", "trove/sets", "trove/option", "trove/e
         throwTypeMismatch: throwTypeMismatch,
         throwInvalidArrayIndex: throwInvalidArrayIndex,
         throwMessageException: throwMessageException,
+        throwMultiErrorException: throwMultiErrorException,
         throwUserException: throwUserException,
         throwEqualityException: throwEqualityException,
         throwUninitializedId: throwUninitializedId,

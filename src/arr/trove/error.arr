@@ -14,6 +14,15 @@ fun vert-list-values(vals):
 end
 
 data RuntimeError:
+  | multi-error(errors #|:: List<RuntimeError>|#) with:
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      rendered = self.errors.map(_.render-fancy-reason(loc-to-ast, loc-to-src))
+      ED.v-sequence(rendered)
+    end,
+    method render-reason(self):
+      rendered = self.errors.map(_.render-reason())
+      ED.v-sequence(rendered)
+    end
   | message-exception(message :: String) with:
     method render-fancy-reason(self, _, _):
       self.render-reason()
