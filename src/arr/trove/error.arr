@@ -562,7 +562,7 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"), [ED.locs: self.ast.tup.l], 0),
+                ED.highlight(ED.text("left hand side"), [ED.locs: ast.tup.l], 0),
                 ED.text(" did not evaluate to a tuple:")],
               ED.embed(self.non-tup)]
           | none      =>
@@ -702,7 +702,7 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because the "),
-                ED.highlight(ED.text("right hand side"), [ED.locs: self.ast.tup.l], 0),
+                ED.highlight(ED.text("right hand side"), [ED.locs: ast.tup.l], 0),
                 ED.text(" did not evaluate to a tuple:")],
               ED.embed(self.non-tup)]
           | none      =>
@@ -895,31 +895,27 @@ data RuntimeError:
             ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
             ED.code(ED.text(self.field)),
             ED.text(":")],
-           ED.embed(self.obj),
+           ED.embed(self.non-obj),
            please-report-bug()]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
-            shadow ast = cases(Any) ast:
-              | s-dot(_,_,_) => ast
-              | s-app(_,f,_) => f
-            end
             [ED.error:
                ed-intro("object extension expression", self.loc, -1),
                ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"),[ED.locs: ast.obj.l], 0),
+                ED.highlight(ED.text("left hand side"),[ED.locs: ast.supe.l], 0),
                 ED.text(" evaluated to a non-object value:"),
                 ED.text(":")],
-               ED.embed(self.obj)]
+               ED.embed(self.non-obj)]
           | none =>
             [ED.error:
               ed-intro("object extension expression", self.loc, -1),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because the left hand side evaluated to a non-object value:")],
-               ED.embed(self.obj)]
+               ED.embed(self.non-obj)]
         end
       else:
         [ED.error:
@@ -927,7 +923,7 @@ data RuntimeError:
             ED.text("The object extension expression in "),
             ED.loc(self.loc),
             ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.obj)]
+           ED.embed(self.non-obj)]
       end
     end,
     method render-reason(self):
@@ -939,7 +935,7 @@ data RuntimeError:
             ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
             ED.code(ED.text(self.field)),
             ED.text(":")],
-           ED.embed(self.obj),
+           ED.embed(self.non-obj),
            please-report-bug()]
       else:
         [ED.error:
@@ -947,7 +943,7 @@ data RuntimeError:
             ED.text("An object extension expression in "),
             ED.loc(self.loc),
             ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.obj)]
+           ED.embed(self.non-obj)]
       end
     end
   | non-boolean-condition(loc, typ, value) with:
