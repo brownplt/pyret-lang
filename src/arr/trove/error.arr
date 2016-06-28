@@ -1646,7 +1646,12 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(1, false):
+            cases(O.Option) maybe-stack-loc(
+              if self.fun-def-loc.is-builtin(): 
+                0 
+              else: 
+                1 
+              end, true):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1753,7 +1758,7 @@ data RuntimeError:
     end,
     method render-reason(self):
       num-args = self.fun-app-args.length()
-      this-str = if num-args == 1: "this" else: "these" end
+      this-str = if num-args == 1: "this " else: "these " end
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
