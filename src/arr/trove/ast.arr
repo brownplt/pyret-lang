@@ -807,9 +807,9 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | s-tuple-get(l :: Loc, tup :: Expr, index :: Expr%(is-s-num)) with:
+  | s-tuple-get(l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc) with:
     method label(self): "s-tuple-get" end,
-    method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + self.index.tosource() + PP.rbrace
+    method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
   | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
     method label(self): "s-tuple-let" end,
@@ -1728,8 +1728,8 @@ default-map-visitor = {
   method s-tuple(self, l :: Loc, fields :: List<Expr>):
     s-tuple(l, fields.map(_.visit(self)))
   end,
-  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Expr%(is-s-num)):
-    s-tuple-get(l, tup.visit(self), index.visit(self))
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+    s-tuple-get(l, tup.visit(self), index, index-loc)
   end,
   method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
     s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
@@ -2209,8 +2209,8 @@ default-iter-visitor = {
   method s-tuple(self, l :: Loc, fields :: List<Expr>):
     lists.all(_.visit(self), fields)
   end,
-  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Expr%(is-s-num)):
-    tup.visit(self) and index.visit(self)
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+    tup.visit(self)
   end,
   method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
     lists.all(_.visit(self), names) and tup.visit(self)

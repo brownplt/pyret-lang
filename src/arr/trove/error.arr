@@ -624,7 +624,7 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text(" failed because a value could not be found at the given "),
-                ED.highlight(ED.text("position"), [ED.locs: ast.index.l], 1),
+                ED.highlight(ED.text("position"), [ED.locs: ast.index-loc], 1),
                 ED.text(" because the "),
                 ED.highlight(ED.text("left hand side"), [ED.locs: ast.tup.l], 0),
                 ED.text(" evaluated to a tuple containing "),
@@ -981,7 +981,7 @@ data RuntimeError:
               [ED.para:
                 ED.text("An expression in "),
                 ED.loc(loc),
-                ED.text("was expected to evaluate to a "),
+                ED.text(" was expected to evaluate to a "),
                 ED.embed(self.typ),
                 ED.text(". It evaluated to the non-"),
                 ED.embed(self.typ),
@@ -1005,7 +1005,7 @@ data RuntimeError:
               [ED.para:
                 ED.text("The expression in "),
                 ED.loc(loc),
-                ED.text("was expected to evaluate to a "),
+                ED.text(" was expected to evaluate to a "),
                 ED.embed(self.typ),
                 ED.text(". It evaluated to the non-"),
                 ED.embed(self.typ),
@@ -1033,7 +1033,7 @@ data RuntimeError:
                 [ED.para:
                   ED.text("An expression in "),
                   ED.loc(loc),
-                  ED.text("was expected to evaluate to a "),
+                  ED.text(" was expected to evaluate to a "),
                   ED.embed(self.typ),
                   ED.text(". It evaluated to the non-"),
                   ED.embed(self.typ),
@@ -1045,7 +1045,7 @@ data RuntimeError:
                 [ED.para:
                   ED.text("The expression in "),
                   ED.loc(loc),
-                  ED.text("was expected to evaluate to a "),
+                  ED.text(" was expected to evaluate to a "),
                   ED.embed(self.typ),
                   ED.text(". It evaluated to the non-"),
                   ED.embed(self.typ),
@@ -1158,7 +1158,7 @@ data RuntimeError:
                   ED.code(ED.text(self.opdesc)),
                   ED.text(" operator expression in "),
                   ED.loc(loc),
-                  ED.text("failed because the left hand side evaluated to")],
+                  ED.text(" failed because the left hand side evaluated to")],
                 ED.embed(self.val1),
                 [ED.para:
                   ED.text("and the right hand side evaluated to")],
@@ -1351,7 +1351,7 @@ data RuntimeError:
                   ED.code(ED.text(self.opdesc)),
                   ED.text(" operator expression in "),
                   ED.loc(loc),
-                  ED.text("failed because the left hand side evaluated to")],
+                  ED.text(" failed because the left hand side evaluated to")],
                 ED.embed(self.val1),
                 [ED.para:
                   ED.text("and the right hand side evaluated to")],
@@ -1653,7 +1653,7 @@ data RuntimeError:
                     [ED.para:
                       ED.text("The function application in "),
                       ED.loc(fun-app-loc),
-                      ED.text("expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.text("The applicant had "),
                       ED.ed-args(fun-app-arity),
@@ -1694,7 +1694,7 @@ data RuntimeError:
                     [ED.para:
                       ED.text("The function application in "),
                       ED.loc(fun-app-loc),
-                      ED.text("expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.text("The applicant had "),
                       ED.ed-args(fun-app-arity),
@@ -1708,7 +1708,8 @@ data RuntimeError:
                 [ED.para:
                   ED.text("The applicant had "),
                   ED.ed-args(fun-app-arity),
-                  ED.text(" applied to it.")]]
+                  ED.text(" applied to it.")],
+                  rest(ED.text("applicant"))]
             end]
           end
         
