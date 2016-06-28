@@ -186,11 +186,9 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
       args.map(lam(a): a.tosource() end)))
-  ftype = funtype + typarams
   fname =
-    if is-nothing(name): ftype
-    else if PP.is-mt-doc(ftype): PP.str(name)
-    else: ftype + PP.str(" " + name)
+    if PP.is-mt-doc(name): funtype + typarams
+    else: PP.group(funtype + break-one + name + typarams)
     end
   fann =
     if is-a-blank(ann) or is-nothing(ann): PP.mt-doc
@@ -555,7 +553,7 @@ data Expr:
       method label(self): "s-fun" end,
     method tosource(self):
       funlam-tosource(str-fun,
-        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-type" end,
@@ -762,7 +760,7 @@ data Expr:
     method label(self): "s-lam" end,
     method tosource(self):
       funlam-tosource(str-lam,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-method(
       l :: Loc,
@@ -777,7 +775,7 @@ data Expr:
     method label(self): "s-method" end,
     method tosource(self):
       funlam-tosource(str-method,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     method label(self): "s-extend" end,
@@ -1104,9 +1102,8 @@ data Member:
     ) with:
       method label(self): "s-method-field" end,
     method tosource(self):
-      name-part = PP.str(self.name)
-      funlam-tosource(name-part,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+      funlam-tosource(str-method,
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
 sharing:
   method visit(self, visitor):

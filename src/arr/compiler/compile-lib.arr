@@ -337,7 +337,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       shadow options = locator.get-options(options)
       libs = locator.get-extra-imports()
       mod = locator.get-module()
-      ast = cases(PyretCode) mod:
+      var ast = cases(PyretCode) mod:
         | pyret-string(module-string) =>
           P.surface-parse(module-string, locator.uri())
         | pyret-ast(module-ast) =>
@@ -346,9 +346,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       var ret = start
       var ast-ended = AU.append-nothing-if-necessary(ast)
       when options.collect-all:
-        when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
+        when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, ret) end
       end
-      var wf = W.check-well-formed(ast-ended.or-else(ast))
+      ast := nothing
+      var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
       checker = if options.check-mode and not(is-builtin-module(locator.uri())):
@@ -404,9 +405,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               tc-ast := nothing
               var cleaned = dp-ast
               dp-ast := nothing
-              cleaned := cleaned.visit(AU.merge-nested-blocks)
-              cleaned := cleaned.visit(AU.flatten-single-blocks)
-              cleaned := cleaned.visit(AU.link-list-visitor(env))
+              cleaned := cleaned.visit(AU.flatten-and-merge-blocks)
+              # this visitor no longer works; it may need to be scrapped or reworked
+              # cleaned := cleaned.visit(AU.link-list-visitor(env))
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               var inlined = cleaned.visit(AU.inline-lams)

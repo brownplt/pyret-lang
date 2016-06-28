@@ -11,6 +11,7 @@ import file("type-structs.arr") as T
 import file("type-check-structs.arr") as TCS
 import string-dict as SD
 import either as E
+import lists as L
 
 type URI = String
 type Loc = SL.Srcloc
@@ -37,51 +38,42 @@ end
 
 fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
 
-fun append-nothing-if-necessary(prog :: A.Program) -> Option<A.Program>:
+fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
     | s-program(l1, _provide, _provide-types, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              some(A.s-program(l1, _provide, _provide-types, imports, A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))])))
+              A.s-program(l1, _provide, _provide-types, imports,
+                A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
             | link(_, _) =>
               last-stmt = stmts.last()
-              if ok-last(last-stmt): none
+              if ok-last(last-stmt): prog
               else:
-                some(A.s-program(l1, _provide, _provide-types, imports,
-                    A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))])))
+                A.s-program(l1, _provide, _provide-types, imports,
+                  A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
               end
           end
-        | else => none
+        | else => prog
       end
   end
 end
 
-flatten-single-blocks = A.default-map-visitor.{
-    method s-block(self, l, stmts):
-      if stmts.length() == 1: stmts.first.visit(self)
-      else: A.s-block(l, stmts.map(_.visit(self)))
-      end
-    end
-  }
 
-check:
-  d = A.dummy-loc
-  PP.surface-parse("x", "test").block.visit(flatten-single-blocks).visit(A.dummy-loc-visitor)
-    is A.s-id(d, A.s-name(d, "x"))
-end
-
-merge-nested-blocks = A.default-map-visitor.{
+flatten-and-merge-blocks = A.default-map-visitor.{
     method s-block(self, l, stmts):
+    if stmts.length() == 1: stmts.first.visit(self)
+    else:
       merged-stmts = for fold(new-stmts from [list: ], s from stmts):
         cases(A.Expr) s.visit(self):
-          | s-block(l2, stmts2) => stmts2.reverse() + new-stmts
-          | else => [list: s] + new-stmts
+          | s-block(l2, stmts2) => L.reverse-help(stmts2, new-stmts)
+          | else => s ^ link(_, new-stmts)
         end
       end
       A.s-block(l, merged-stmts.reverse())
     end
+  end
   }
 
 

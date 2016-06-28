@@ -65,7 +65,7 @@
       function getAxisConf(aMin, aMax) {
         var conf = {},
         scaler = libNum.scaler(aMin, aMax, 0, 1, false),
-        pos = jsnums.toFixnum(scaler(0));
+        pos = jsnums.toFixnum(scaler(0), RUNTIME.NumberErrbacks);
 
         if (0 <= pos && pos <= 1) {
           conf.bold = true;
@@ -262,25 +262,25 @@
           .reduce(libNum.max);
 
         var blockPortion = 10;
-        var xOneBlock = jsnums.divide(jsnums.subtract(xMax, xMin),
-                                      blockPortion);
-        var yOneBlock = jsnums.divide(jsnums.subtract(yMax, yMin),
-                                      blockPortion);
+        var xOneBlock = jsnums.divide(jsnums.subtract(xMax, xMin, RUNTIME.NumberErrbacks),
+                                      blockPortion, RUNTIME.NumberErrbacks);
+        var yOneBlock = jsnums.divide(jsnums.subtract(yMax, yMin, RUNTIME.NumberErrbacks),
+                                      blockPortion, RUNTIME.NumberErrbacks);
 
-        xMin = jsnums.subtract(xMin, xOneBlock);
-        xMax = jsnums.add(xMax, xOneBlock);
-        yMin = jsnums.subtract(yMin, yOneBlock);
-        yMax = jsnums.add(yMax, yOneBlock);
+        xMin = jsnums.subtract(xMin, xOneBlock, RUNTIME.NumberErrbacks);
+        xMax = jsnums.add(xMax, xOneBlock, RUNTIME.NumberErrbacks);
+        yMin = jsnums.subtract(yMin, yOneBlock, RUNTIME.NumberErrbacks);
+        yMax = jsnums.add(yMax, yOneBlock, RUNTIME.NumberErrbacks);
 
         // Plotting 1 point should be possible
         // but we need a wider range
-        if (jsnums.equals(xMin, xMax)) {
-          xMin = jsnums.subtract(xMin, 1);
-          xMax = jsnums.add(xMax, 1);
+        if (jsnums.equals(xMin, xMax, RUNTIME.NumberErrbacks)) {
+          xMin = jsnums.subtract(xMin, 1, RUNTIME.NumberErrbacks);
+          xMax = jsnums.add(xMax, 1, RUNTIME.NumberErrbacks);
         }
-        if (jsnums.equals(yMin, yMax)) {
-          yMin = jsnums.subtract(yMin, 1);
-          yMax = jsnums.add(yMax, 1);
+        if (jsnums.equals(yMin, yMax, RUNTIME.NumberErrbacks)) {
+          yMin = jsnums.subtract(yMin, 1, RUNTIME.NumberErrbacks);
+          yMax = jsnums.add(yMax, 1, RUNTIME.NumberErrbacks);
         }
       }
       return {xMin: xMin, xMax: xMax, yMin: yMin, yMax: yMax};
@@ -288,10 +288,10 @@
 
     function isInBoundGenerator(xMin, xMax, yMin, yMax){
       return function(point) {
-        return jsnums.lessThanOrEqual(xMin, point.x) &&
-          jsnums.lessThanOrEqual(point.x, xMax) &&
-          jsnums.lessThanOrEqual(yMin, point.y) &&
-          jsnums.lessThanOrEqual(point.y, yMax);
+        return jsnums.lessThanOrEqual(xMin, point.x, RUNTIME.NumberErrbacks) &&
+          jsnums.lessThanOrEqual(point.x, xMax, RUNTIME.NumberErrbacks) &&
+          jsnums.lessThanOrEqual(yMin, point.y, RUNTIME.NumberErrbacks) &&
+          jsnums.lessThanOrEqual(point.y, yMax, RUNTIME.NumberErrbacks);
       };
     }
 
@@ -480,7 +480,7 @@
       }
 
       function tooClose(coordA, coordB) {
-        return jsnums.roughlyEquals(coordA.px, coordB.px, DELTA);
+        return jsnums.roughlyEquals(coordA.px, coordB.px, DELTA, RUNTIME.NumberErrbacks);
       }
 
       if (isSafe) {
@@ -498,8 +498,8 @@
             RUNTIME.ffi.cases(PyretEither, "Either", result, {
               left: function(val){
                 if (jsnums.isReal(val) &&
-                    jsnums.lessThanOrEqual(yMin, val) &&
-                    jsnums.lessThanOrEqual(val, yMax)) {
+                    jsnums.lessThanOrEqual(yMin, val, RUNTIME.NumberErrbacks) &&
+                    jsnums.lessThanOrEqual(val, yMax, RUNTIME.NumberErrbacks)) {
 
                   pt.y = val;
                   pt.py = yToPixel(val);
@@ -577,8 +577,8 @@
           try {
             y = f.app(x);
             if (jsnums.isReal(y) &&
-                jsnums.lessThanOrEqual(yMin, y) &&
-                jsnums.lessThanOrEqual(y, yMax)) {
+                jsnums.lessThanOrEqual(yMin, y, RUNTIME.NumberErrbacks) &&
+                jsnums.lessThanOrEqual(y, yMax, RUNTIME.NumberErrbacks)) {
               this.y = y;
               this.py = yToPixel(y);
             }
@@ -652,8 +652,8 @@
       var yMin = gf(pyretWinOptions, "y-min");
       var yMax = gf(pyretWinOptions, "y-max");
 
-      if (jsnums.greaterThanOrEqual(xMin, xMax) ||
-          jsnums.greaterThanOrEqual(yMin, yMax)) {
+      if (jsnums.greaterThanOrEqual(xMin, xMax, RUNTIME.NumberErrbacks) ||
+          jsnums.greaterThanOrEqual(yMin, yMax, RUNTIME.NumberErrbacks)) {
         RUNTIME.throwMessageException(CError.RANGE);
       }
 
@@ -753,7 +753,7 @@
 
       var histogramData = d3.layout.histogram()
         .bins(n).value(function (val) {
-          return jsnums.toFixnum(dataScaler(val));
+          return jsnums.toFixnum(dataScaler(val), RUNTIME.NumberErrbacks);
         })(data);
 
       var yMax = d3.max(histogramData, function (d) { return d.y; });
@@ -808,7 +808,7 @@
       });
 
       var sum = data.map(function (e) { return e.value; })
-        .reduce(jsnums.add);
+        .reduce(function(a,b) { return jsnums.add(a, b, RUNTIME.NumberErrbacks); });
 
       var scaler = libNum.scaler(0, sum, 0, 100);
 
@@ -840,7 +840,7 @@
             "percent: <br />" +
             libNum.format(
               jsnums.toFixnum(
-                scaler(d.data.value)), 7) + "%";
+                scaler(d.data.value), RUNTIME.NumberErrbacks), 7) + "%";
         });
 
       var canvas = createCanvas(detached, margin, "center");
