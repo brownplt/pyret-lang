@@ -1,10 +1,38 @@
 #lang pyret
 
+
 provide *
 
 check:
   fun negate(f): lam(x): not(f(x)) end end
   fun around(n, delta): lam(other): num-abs(other - n) < delta end end
+
+  3 / (4 - 4) raises "division by zero"
+
+  within-abs(-3)(1, 2) raises "negative tolerance"
+  within(-3)(2, 3) raises "negative relative tolerance"
+  within-rel(-3)(2, 3) raises "negative relative tolerance"
+
+  min-number = ~0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005
+  within-abs(min-number)(0, min-number) raises "roughnum tolerance too small"
+
+  num-expt(0, -1) raises "expt: division by zero"
+
+  num-exp(5000) raises "exp: argument too large"
+
+  num-modulo(0.5, 5) raises "first argument 1/2 is not an integer"
+  num-modulo(5, 0.5) raises "second argument 1/2 is not an integer"
+  num-modulo(6, 0) raises "second argument is zero"
+
+  num-sqrt(-3) raises "negative argument"
+
+  num-acos(-2) raises "acos: out of domain"
+  num-acos(2) raises "acos: out of domain"
+
+  num-asin(-2) raises "asin: out of domain"
+  num-asin(2) raises "asin: out of domain"
+
+  num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
   num-max("not-a-num", 3) raises ""
@@ -83,7 +111,6 @@ check:
 
   num-log(0) raises "non-positive argument"
   num-log(1) is 0
-  # num-log(num-exp(1)) is 1  # can't compare rough with exact!
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 
   2 is num-exact(2)

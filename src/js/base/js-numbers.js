@@ -446,23 +446,23 @@ define(function() {
       }
     },
     function(x, y, errbacks) {
-      if (equalsAnyZero(y)) {
+      if (equalsAnyZero(y, errbacks)) {
         errbacks.throwDivByZero('/: division by zero, ' + x + ' ' + y);
       }
       return x.divide(y, errbacks);
     },
     {
       isXSpecialCase: function(x, errbacks) {
-        return equalsAnyZero(x);
+        return equalsAnyZero(x, errbacks);
       },
       onXSpecialCase: function(x, y, errbacks) {
-        if (equalsAnyZero(y)) {
+        if (equalsAnyZero(y, errbacks)) {
           errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
         }
         return 0;
       },
       isYSpecialCase: function(y, errbacks) {
-        return equalsAnyZero(y);
+        return equalsAnyZero(y, errbacks);
       },
       onYSpecialCase: function(x, y, errbacks) {
         errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
@@ -475,13 +475,13 @@ define(function() {
       return x === y;
     },
     function(x, y, errbacks) {
-      return x.equals(y);
+      return x.equals(y, errbacks);
     });
 
-  var equalsAnyZero = function(x) {
+  var equalsAnyZero = function(x, errbacks) {
     if (typeof(x) === 'number') return x === 0;
     if (isRoughnum(x)) return x.n === 0;
-    return x.equals(0);
+    return x.equals(0, errbacks);
   };
 
   // eqv: pyretnum pyretnum -> boolean
@@ -524,7 +524,7 @@ define(function() {
 
   var roughlyEqualsRel = function(computedValue, trueValue, delta, errbacks) {
     if (isNegative(delta)) {
-      errbacks.throwRelToleranceError('negative relative tolerance' + delta)
+      errbacks.throwRelToleranceError('negative relative tolerance ' + delta)
     }
 
     if (computedValue === trueValue) {

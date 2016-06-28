@@ -3448,7 +3448,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var NumberErrbacks = {
       throwDivByZero: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwToleranceError: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
-      throwRelToleranceErrror: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
+      throwRelToleranceError: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwGeneralError: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwDomainError: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwSqrtNegative: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
@@ -3502,9 +3502,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var divide = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_divide"], 2, $a); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
-        if (jsnums.equalsAnyZero(r)) {
-          NumberErrbacks.throwDivByZero("Division by zero");
-        }
         return thisRuntime.makeNumberBig(jsnums.divide(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
         return safeTail(function() {
