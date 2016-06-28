@@ -6,7 +6,7 @@ import parse-pyret as P
 import string-dict as D
 import file as F
 fun just-parse(file):
-  P.parse-dialect("Pyret", F.file-to-string(file), file)
+  P.surface-parse(F.file-to-string(file), file)
 end
 
 options = [D.string-dict:
@@ -15,13 +15,15 @@ options = [D.string-dict:
 
 parsed = C.parse-cmdline(options)
 
+fun println(str): print(str + "\n") end
+
 cases (C.ParsedArguments) parsed:
   | success(opts, rest) =>
     cases (List) rest:
       | empty => print("Require a file name")
       | link(file, _) =>
-        each(print, just-parse(file).tosource().pretty(opts.get-value("width")))
+        each(println, just-parse(file).tosource().pretty(opts.get-value("width")))
     end
   | arg-error(m, _) =>
-    each(print,  ("Error: " + m) ^ link(C.usage-info(options)))
+    each(println,  ("Error: " + m) ^ link(C.usage-info(options)))
 end

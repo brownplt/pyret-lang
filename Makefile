@@ -134,6 +134,15 @@ build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.a
                       -no-check-mode \
                       --require-config src/scripts/standalone-configA.json
 
+%.jarr: $(PHASEA)/pyret.jarr %.arr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+                      --build-runnable $*.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configA.json
+
 $(PHASEA_ALL_DEPS): | $(PHASEA)
 
 $(PHASEB_ALL_DEPS): | $(PHASEB) phaseA

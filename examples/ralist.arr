@@ -3,7 +3,7 @@
 # An implementation of Chris Okasaki's skew-binary random access lists.
 
 provide {
-  RandomAccessList: RandomAccessList,
+  rlist: rlist
   rempty: ra-empty,
   rlink: rlink,
   is-rempty: is-ra-empty,
@@ -23,6 +23,9 @@ provide {
   rlist-to-list: rlist-to-list,
   list-to-rlist: list-to-rlist
 } end
+provide-types *
+
+import valueskeleton as VS
 
 data NodeTree:
   | nt-leaf(val :: Any)
@@ -31,35 +34,34 @@ end
 
 data RandomAccessList:
   | ra-empty with:
-      join-str(self, str): "" end
+    method join-str(self, str): "" end
   | ra-link(size :: Number, tree :: NodeTree, next :: RandomAccessList) with:
-      join-str(self, str): rjoinr(lam(l, r): l + str + r end, self) end,
+    method join-str(self, str): rjoinr(lam(l, r): l + str + r end, self) end,
 sharing:
-  first(self): rfirst(self) end,
-  rest(self): rrest(self) end,
-  length(self): rlength(self) end,
-  each(self, f): reach(f, self) end,
-  map(self, f): rmap(f, self) end,
-  filter(self, f): rfilter(f, self) end,
-  find(self, f): rfind(f, self) end,
-  partition(self, f): rpartition(f, self) end,
-  foldr(self, f): rfoldr(f, self) end,
-  foldl(self, f): rfoldl(f, self) end,
-  member(self, elt): rany(lam(e): e == elt end, self) end,
-  append(self, other): rappend(self, other) end,
-  last(self): rlast(self) end,
-  take(self, n): rtake(self, n) end,
-  drop(self, n): rdrop(self, n) end,
-  reverse(self): rreverse(self) end,
-  get(self, n): rget(self, n) end,
-  set(self, n, e): rset(self, n, e) end,
-  sort-by(self, cmp, eq): rsort(self, cmp, eq) end,
-  sort(self): rsort(self, lam(l, r): l < r end, lam(l, r): l == r end) end,
+  method first(self): rfirst(self) end,
+  method rest(self): rrest(self) end,
+  method length(self): rlength(self) end,
+  method each(self, f): reach(f, self) end,
+  method map(self, f): rmap(f, self) end,
+  method filter(self, f): rfilter(f, self) end,
+  method find(self, f): rfind(f, self) end,
+  method partition(self, f): rpartition(f, self) end,
+  method foldr(self, f): rfoldr(f, self) end,
+  method foldl(self, f): rfoldl(f, self) end,
+  method member(self, elt): rany(lam(e): e == elt end, self) end,
+  method append(self, other): rappend(self, other) end,
+  method last(self): rlast(self) end,
+  method take(self, n): rtake(self, n) end,
+  method drop(self, n): rdrop(self, n) end,
+  method reverse(self): rreverse(self) end,
+  method get(self, n): rget(self, n) end,
+  method set(self, n, e): rset(self, n, e) end,
+  method sort-by(self, cmp, eq): rsort(self, cmp, eq) end,
+  method sort(self): rsort(self, lam(l, r): l < r end, lam(l, r): l == r end) end,
 
-  to-list(self): rlist-to-list(self) end,
-  tostring(self): tostring(rlist-to-list(self)) end,
-  _torepr(self): torepr(rlist-to-list(self)) end,
-  _plus(self, other): rappend(self, other) end
+  method to-list(self): rlist-to-list(self) end,
+  method _output(self): VS.vs-constr("rlist", rlist-to-list(self)) end,
+  method _plus(self, other): rappend(self, other) end
 end
 
 fun rlink(val :: Any, rlist :: RandomAccessList) -> RandomAccessList:
@@ -588,8 +590,8 @@ where:
     is rlink(-7, rlink(-5, rlink(0, rlink(1, rlink(1, rlink(4, rlink(10, ra-empty)))))))
   
   wrapper = lam(n): { v:n,
-                      _lessthan(self, other): self.v < other.v end,
-                      _equals(self, other, shadow eq): eq(self.v, other.v) end } end
+                      method _lessthan(self, other): self.v < other.v end,
+                      method _equals(self, other, shadow eq): eq(self.v, other.v) end } end
   wrap-list = rmap(wrapper, rlink(5, rlink(2, rlink(4, rlink(8, ra-empty)))))
   for rmap(el from sort(wrap-list)): el.v end
     is rlink(2, rlink(4, rlink(5, rlink(8, ra-empty))))
@@ -615,9 +617,19 @@ where:
   list-to-rlist([list: 1, 2, 3, 4]) is rlink(1, rlink(2, rlink(3, rlink(4, ra-empty))))
 end
 
+rlist = {
+  make: lam(args): list-to-rlist(raw-array-to-list(args)) end,
+  make0: lam(): ra-empty end,
+  make1: lam(a): rlink(a, ra-empty) end,
+  make2: lam(a): rlink(a, rlink(b, ra-empty)) end,
+  make3: lam(a): rlink(a, rlink(b, rlink(c, ra-empty))) end,
+  make4: lam(a): rlink(a, rlink(b, rlink(c, rlink(d, ra-empty)))) end,
+  make5: lam(a): rlink(a, rlink(b, rlink(c, rlink(d, rlink(e, ra-empty))))) end,
+}
+
 check:
-  RandomAccessList(ra-empty) is true
-  RandomAccessList(rlink(1, ra-empty)) is true
+  is-RandomAccessList(ra-empty) is true
+  is-RandomAccessList(rlink(1, ra-empty)) is true
 
   ra-empty.join-str(", ") is ""
   rlink("foo", ra-empty).join-str(", ") is "foo"
