@@ -761,27 +761,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       result.typing-bind(lam(typs :: List<Type>, shadow context):
         typing-result(A.s-tuple(l, elts), t-tuple(typs, l), context)
       end)
-
-      #|
-      result = fold2-strict(lam(acc, arg, arg-type):
-        acc.bind(lam(exprs, shadow context):
-          checking(arg, arg-type, false, context)
-            .fold-bind(lam(new-arg, _, shadow context):
-              fold-result(link(new-arg, exprs), context)
-            end)
-        end)
-      end, fold-result(empty, context), args, arg-types)
-
-      cases(Option<FoldResult<List<Expr>>>) result:
-        | none =>
-          typing-error([list: C.incorrect-number-of-args(recreate(args), fun-type)])
-        | some(folded) =>
-          folded.typing-bind(lam(exprs, shadow context):
-            typing-result(recreate(exprs), ret-type, context)
-          end)
-      end 
-
-      typing-result(A.s-tuple(l, elts), t-tuple([list: t-number(l), t-string(l)], l), context) |#
     | s-tuple-get(l, tup, index, index-loc) =>
       raise("synthesis for s-tuple-get not yet implemented")
     | s-tuple-let(l, names, tup) =>

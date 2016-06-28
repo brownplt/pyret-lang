@@ -2,6 +2,7 @@
 
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import file("../test-compile-helper.arr") as C
+import load-lib as L
 
 compile-str = C.compile-str
 
@@ -29,7 +30,7 @@ end
 #end
 
 fun is-contract-error(result):
-  (result.success == false) and result.is-contract-error
+  L.is-failure-result(result) and result.is-contract-error
 end
 
 fun is-refinement-error-str(result):
