@@ -136,12 +136,16 @@ data JStmt:
     method label(self): "j-expr" end,
     method print-ugly-source(self, printer) block:
       # (BSL) I wish this weren't necessary
-      printer("(")
+      when is-j-obj(self.expr): printer("(") end
       self.expr.print-ugly-source(printer)
-      printer(");\n")
+      when is-j-obj(self.expr): printer(")") end
+      printer(";\n")
     end,
     method tosource(self):
-      self.expr.tosource() + PP.str(";")
+      if is-j-obj(self.expr): PP.parens(self.expr.tosource())
+      else: self.expr.tosource()
+      end
+        + PP.str(";")
     end
   | j-break with:
     method label(self): "j-break" end,
