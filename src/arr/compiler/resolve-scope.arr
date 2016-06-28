@@ -802,19 +802,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                new-fb = A.s-for-bind(l2, new-bind, visit-val)
                { atom-env.env; link(new-fb, fbs) }
             | s-tuple-bind(l1, fields) =>
-             # {new-atom-env; new-fbs} = for fold(acc2 from {self.env; [list: ]}, elt from fields) block:
-               # {in-atom-env; in-fbs} = acc2
-                tup = for each(elt from fields) block:
-                atom-env = make-atom-for(elt.id, false, env, bindings, let-bind(_, _, ann, none))
-                new-bind = A.s-bind(l1, false, atom-env.atom, ann)
+               {new-atom-env; new-fbs} = for fold(acc2 from {env; fbs}, elt from fields) block:
+                 {in-atom-env; in-fbs} = acc2
+                #tup = for each(elt from fields) block:
+                  atom-env = make-atom-for(elt.id, false, in-atom-env, bindings, let-bind(_, _, A.a-blank, none))
+                  new-bind = A.s-bind(bind.l, false, atom-env.atom, A.a-blank.visit(self.{env: env}))
+                  visit-val = val.visit(self)
+                  update-binding-expr(atom-env.atom, some(visit-val))
+                  new-fb = A.s-for-bind(l2, new-bind, visit-val)
+                  {atom-env.env; link(new-fb, in-fbs)}
+                  #{atom-env.env; link(new-fb, fbs)}
+                end
+                newest-bind = A.s-bind(bind.l, false, new-atom-env.atom, A.a-blank)
                 visit-val = val.visit(self)
-                update-binding-expr(atom-env.atom, some(visit-val))
-                new-fb = A.s-for-bind(l2, new-bind, visit-val)
-                #{atom-env.env; link(new-fb, in-fbs)}
-                {atom-env.env; link(new-fb, fbs)}
-              end
-              #{new-atom-env; new-fbs}
-               tup
+                update-binding-expr(new-atom-env.atom, some(visit-val))
+                newest-fb = A.s-for-bind(l2, newest-bind, visit-val)
+               {new-atom-env; newest-fb}
+              # tup
             end
         end
       end
