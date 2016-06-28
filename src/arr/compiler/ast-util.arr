@@ -63,7 +63,7 @@ end
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
   if ok-last(exp):
-    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "record-or-discard"),
+    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
       [list: A.s-srcloc(l, l), exp])
   else: exp
   end

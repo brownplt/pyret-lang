@@ -4766,30 +4766,25 @@ function isMethod(obj) { return obj instanceof PMethod; }
           if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
           return getParam("current-checker");
         }),
-        'record-or-discard': makeFunction(recordOrDiscard)
+        'trace-value': makeFunction(traceValue)
       });
 
 
-    function recordOrDiscard(loc, val) {
-      if (thisRuntime.hasParam("currentURL")) {
-        var currentURL = thisRuntime.getParam("currentURL");
-        if (isArray(loc) && loc[0] === currentURL) {
-          if (thisRuntime.hasParam("onRecordTrace")) {
-            var callback = thisRuntime.getParam("onRecordTrace");
-            if (typeof callback === 'function') {
-              return callback(val);
-            } else if (callback) {
-              var traceResults = thisRuntime.getParamOrSetDefault("traceResults", []);
-              traceResults.push(val);
-              return val;
-            }
-          }
-        }
+    function traceValue(loc, val) {
+      if(!thisRuntime.hasParam("onTrace")) { return thisRuntime.nothing; }
+      var callback = thisRuntime.getParam("onTrace");
+      var uri = loc[0];
+      if (typeof callback === 'function') {
+        return thisRuntime.safeCall(function() {
+          return callback(loc, val, uri);
+        }, function(_) {
+          return thisRuntime.nothing;
+        });
       }
-      return val;
+      else {
+        thisRuntime.ffi.throwMessageException("onTrace parameter was not a function: " + callback);
+      }
     }
-    function clearTrace() { thisRuntime.setParam("traceResults", []); }
-
 
     var runtimeNamespaceBindings = {
           'torepr': torepr,
@@ -4945,8 +4940,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'eachLoop': eachLoop,
         'printPyretStack': printPyretStack,
 
-        'recordOrDiscard': recordOrDiscard,
-        'clearTrace': clearTrace,
+        'traceValue': traceValue,
 
 
         'traceEnter': traceEnter,

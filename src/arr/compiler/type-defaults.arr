@@ -77,7 +77,7 @@ fun make-default-types() block:
   default-typs = SD.make-mutable-string-dict()
   default-typs.set-now(A.s-global("builtins").key(), t-record([list:
       t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
-      t-member("record-or-discard", t-arrow([list: t-top, t-top], t-bot)),
+      t-member("trace-value", t-arrow([list: t-top, t-top], t-bot)),
       t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
           t-member("run-checks", t-bot),
           t-member("check-is", t-bot),
