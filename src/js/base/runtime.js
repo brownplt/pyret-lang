@@ -3696,7 +3696,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
         }
         throw $e;
       }
