@@ -40,13 +40,13 @@
          * @return {Function}
          */
         return function (k) {
-          var oldDiff = jsnums.subtract(k, oldX);
-          var oldRange = jsnums.subtract(oldY, oldX);
-          var portion = jsnums.divide(oldDiff, oldRange);
-          var newRange = jsnums.subtract(newY, newX);
-          var newPortion = jsnums.multiply(portion, newRange);
-          var result = jsnums.add(newPortion, newX);
-          return toFixnum ? jsnums.toFixnum(result) : result;
+          var oldDiff = jsnums.subtract(k, oldX, RUNTIME.NumberErrbacks);
+          var oldRange = jsnums.subtract(oldY, oldX, RUNTIME.NumberErrbacks);
+          var portion = jsnums.divide(oldDiff, oldRange, RUNTIME.NumberErrbacks);
+          var newRange = jsnums.subtract(newY, newX, RUNTIME.NumberErrbacks);
+          var newPortion = jsnums.multiply(portion, newRange, RUNTIME.NumberErrbacks);
+          var result = jsnums.add(newPortion, newX, RUNTIME.NumberErrbacks);
+          return toFixnum ? jsnums.toFixnum(result, RUNTIME.NumberErrbacks) : result;
         };
       }
 
@@ -59,8 +59,8 @@
          * @param {jsnums} vmax
          * @return {jsnums}
          */
-        if (jsnums.lessThan(k, vmin)) return vmin;
-        else if (jsnums.lessThan(vmax, k)) return vmax;
+        if (jsnums.lessThan(k, vmin, RUNTIME.NumberErrbacks)) return vmin;
+        else if (jsnums.lessThan(vmax, k, RUNTIME.NumberErrbacks)) return vmax;
         else return k;
       }
 
@@ -72,7 +72,7 @@
          * @param {jsnums} b
          * @return {jsnums}
          */
-        return jsnums.lessThan(a, b) ? b : a;
+        return jsnums.lessThan(a, b, RUNTIME.NumberErrbacks) ? b : a;
       }
 
       function min(a, b) {
@@ -83,7 +83,7 @@
          * @param {jsnums} b
          * @return {jsnums}
          */
-        return jsnums.lessThan(a, b) ? a : b;
+        return jsnums.lessThan(a, b, RUNTIME.NumberErrbacks) ? a : b;
       }
 
       function random(a, b) {
@@ -92,7 +92,7 @@
 
       function format(num, digit) {
         if (num.toString().length > digit) {
-          var fixnum = jsnums.toFixnum(num);
+          var fixnum = jsnums.toFixnum(num, RUNTIME.NumberErrbacks);
           if (fixnum.toString().length > digit) {
             var digitRounded = digit - 1;
             if (fixnum < 0) digitRounded--;
@@ -118,8 +118,8 @@
       }
 
       function between(b, a, c) {
-        return (jsnums.lessThanOrEqual(a, b) && jsnums.lessThanOrEqual(b, c)) ||
-          (jsnums.lessThanOrEqual(c, b) && jsnums.lessThanOrEqual(b, a));
+        return (jsnums.lessThanOrEqual(a, b, RUNTIME.NumberErrbacks) && jsnums.lessThanOrEqual(b, c, RUNTIME.NumberErrbacks)) ||
+          (jsnums.lessThanOrEqual(c, b, RUNTIME.NumberErrbacks) && jsnums.lessThanOrEqual(b, a, RUNTIME.NumberErrbacks));
       }
 
       function calcPointOnEdge(pin, pout, xMin, xMax, yMin, yMax) {
@@ -134,9 +134,9 @@
         // c = y - m * x [2]
         // x = (y - c) / m // [4]
 
-        if(jsnums.eqv(pin.x, pout.x)) {
+        if(jsnums.eqv(pin.x, pout.x, RUNTIME.NumberErrbacks)) {
           // special mode
-          if (jsnums.lessThan(pout.y, yMin)) {
+          if (jsnums.lessThan(pout.y, yMin, RUNTIME.NumberErrbacks)) {
             return {x: pin.x, y: yMin};
           } else {
             return {x: pin.x, y: yMax};
@@ -144,12 +144,13 @@
         }
 
         var m = jsnums.divide(
-          jsnums.subtract(pin.y, pout.y),
-          jsnums.subtract(pin.x, pout.x)); // [1]
-        var c = jsnums.subtract(pin.y, jsnums.multiply(m, pin.x)); // [2]
+          jsnums.subtract(pin.y, pout.y, RUNTIME.NumberErrbacks),
+          jsnums.subtract(pin.x, pout.x, RUNTIME.NumberErrbacks),
+          RUNTIME.NumberErrbacks); // [1]
+        var c = jsnums.subtract(pin.y, jsnums.multiply(m, pin.x, RUNTIME.NumberErrbacks), RUNTIME.NumberErrbacks); // [2]
 
-        function f(x) { return jsnums.add(jsnums.multiply(m, x), c); } // [3]
-        function g(y) { return jsnums.divide(jsnums.subtract(y, c), m); } // [4]
+        function f(x) { return jsnums.add(jsnums.multiply(m, x), c, RUNTIME.NumberErrbacks); } // [3]
+        function g(y) { return jsnums.divide(jsnums.subtract(y, c), m, RUNTIME.NumberErrbacks); } // [4]
 
         var yCurrent = f(xMin); // if (xMin, yCurrent) is the answer
         if (between(xMin, pin.x, pout.x) &&
@@ -744,6 +745,6 @@ assert(testFenwick.sumInterval(1, 10) === 9);
 assert(testFenwick.sumInterval(1, 2) === 5);
 assert(testFenwick.sumInterval(2, 3) === 4);
 
-assert(calcPointOnEdge({x: 0, y: 0}, {x: -20, y: -30}, -10, 10, -10, 10), jsnums.divide(-20, 3));
-assert(calcPointOnEdge({x: -20, y: -30}, {x: 0, y: 0}, -10, 10, -10, 10), jsnums.divide(-20, 3));
+assert(calcPointOnEdge({x: 0, y: 0}, {x: -20, y: -30}, -10, 10, -10, 10), jsnums.divide(-20, 3, RUNTIME.NumberErrbacks));
+assert(calcPointOnEdge({x: -20, y: -30}, {x: 0, y: 0}, -10, 10, -10, 10), jsnums.divide(-20, 3, RUNTIME.NumberErrbacks));
 */
