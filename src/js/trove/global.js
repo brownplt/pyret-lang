@@ -37,17 +37,19 @@
       "is-tuple": "AnyPred",
 
       // Array functions
-      "raw-array":         ["forall", ["a"], ["Maker", "tva", ["RawArray", "tva"]]],
-      "raw-array-get":     ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number"], "tva"]],
-      "raw-array-set":     ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number", "tva"], 
-                                              ["RawArray", "tva"]]],
-      "raw-array-of":      ["forall", ["a"], ["arrow", ["tva", "Number"], ["RawArray", "tva"]]],
-      "raw-array-build":   ["forall", ["a"], ["arrow", [["arrow", ["Number"], ["Option", "tva"]], "Number"],
-                                                       ["RawArray", "tva"]]],
-      "raw-array-length":  ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
-      "raw-array-to-list": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
-      "raw-array-fold":    ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 
-                                                             "tvb", ["RawArray", "tva"], "Number"], "tvb"]],
+      "raw-array":           ["forall", ["a"], ["Maker", "tva", ["RawArray", "tva"]]],
+      "raw-array-get":       ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number"], "tva"]],
+      "raw-array-set":       ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number", "tva"], 
+                                                ["RawArray", "tva"]]],
+      "raw-array-of":        ["forall", ["a"], ["arrow", ["tva", "Number"], ["RawArray", "tva"]]],
+      "raw-array-build-opt": ["forall", ["a"], ["arrow", [["arrow", ["Number"], ["Option", "tva"]], "Number"],
+                                                ["RawArray", "tva"]]],
+      "raw-array-build":     ["forall", ["a"], ["arrow", [["arrow", ["Number"], "tva"], "Number"],
+                                                ["RawArray", "tva"]]],
+      "raw-array-length":    ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
+      "raw-array-to-list":   ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
+      "raw-array-fold":      ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 
+                                                               "tvb", ["RawArray", "tva"], "Number"], "tvb"]],
 
       // Equality functions
 
