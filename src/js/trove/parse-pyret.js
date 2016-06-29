@@ -541,7 +541,6 @@
         },
 
         'bind-tuple': function(node) {
-          console.log(node);
           return tr(node.kids[0]);
         }, 
 

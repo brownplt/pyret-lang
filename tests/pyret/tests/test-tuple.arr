@@ -109,11 +109,11 @@ end
 
 
 check "tuple decunstruction":
-  fun f(elts):
+  fun f(elts) block:
     var sum = 0
-  #  for each({k;v;} from elts):
-   #   sum := sum + v
-   # end
+    for each({k;v;} from elts):
+      sum := sum + v
+    end
     sum
   end
 
@@ -121,4 +121,5 @@ check "tuple decunstruction":
 
   f(elts) is 18  
 end
+
 

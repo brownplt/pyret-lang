@@ -2692,9 +2692,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var that = this;
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
-          makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
-        );
+            makeSrcloc(compilerLoc),
+            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+          );
       }
       if(that.anns.length != val.vals.length) {
         //return ffi.throwMessageException("lengths not equal");

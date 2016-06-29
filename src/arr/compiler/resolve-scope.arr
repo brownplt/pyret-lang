@@ -789,8 +789,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-letrec(l, new-binds, visit-body, blocky)
     end,
     method s-for(self, l, iter, binds, ann, body, blocky):
-      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
-      {env; fbs} = acc
+      {env; fbs; new-body} = for fold(acc from { self.env; [list: ]; body }, fb from binds):
+      {env; fbs; new-body} = acc
         cases(A.ForBind) fb:
           | s-for-bind(l2, bind, val) =>
             cases(A.Bind) bind block:
@@ -800,29 +800,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                visit-val = val.visit(self)
                update-binding-expr(atom-env.atom, some(visit-val))
                new-fb = A.s-for-bind(l2, new-bind, visit-val)
-               { atom-env.env; link(new-fb, fbs) }
+               { atom-env.env; link(new-fb, fbs); new-body }
             | s-tuple-bind(l1, fields) =>
-               {new-atom-env; new-fbs} = for fold(acc2 from {env; fbs}, elt from fields) block:
-                 {in-atom-env; in-fbs} = acc2
-                #tup = for each(elt from fields) block:
-                  atom-env = make-atom-for(elt.id, false, in-atom-env, bindings, let-bind(_, _, A.a-blank, none))
-                  new-bind = A.s-bind(bind.l, false, atom-env.atom, A.a-blank.visit(self.{env: env}))
-                  visit-val = val.visit(self)
-                  update-binding-expr(atom-env.atom, some(visit-val))
-                  new-fb = A.s-for-bind(l2, new-bind, visit-val)
-                  {atom-env.env; link(new-fb, in-fbs)}
-                  #{atom-env.env; link(new-fb, fbs)}
+               namet = names.make-atom("tup") 
+               visit-val = val.visit(self)
+               tup-bind = A.s-for-bind(l2, A.s-bind(l, false, namet, A.a-blank), visit-val)
+               {num; new-atom-env; new-let-binds} = 
+                for fold(acc2 from {0; env; [list: ]}, element from fields):
+                  {n; in-atom-env; in-lets} = acc2
+                  t-let-bind = A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n))
+                  {n + 1; in-atom-env; link(t-let-bind, in-lets)}
                 end
-                newest-bind = A.s-bind(bind.l, false, new-atom-env.atom, A.a-blank)
-                visit-val = val.visit(self)
-                update-binding-expr(new-atom-env.atom, some(visit-val))
-                newest-fb = A.s-for-bind(l2, newest-bind, visit-val)
-               {new-atom-env; newest-fb}
-              # tup
+                all-lets-expr = A.s-let-expr(l1, new-let-binds, new-body, false)
+               {new-atom-env; link(tup-bind, fbs); all-lets-expr} 
             end
         end
       end
-      A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
+      A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), new-body.visit(self.{env: env}), blocky)
     end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
