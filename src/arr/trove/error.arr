@@ -492,7 +492,7 @@ data RuntimeError:
                ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"), [ED.locs: self.obj.l], 0),
+                ED.highlight(ED.text("left hand side"), [ED.locs: ast.obj.l], 0),
                 ED.text(" evaluated to a constructor ("),
                 ED.code(ED.text(self.constr-name)),
                 ED.text("), which is not an object.")]]
