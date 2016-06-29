@@ -312,6 +312,14 @@
       throwArityError(loc, arity, argsPyret);
     }
 
+    function throwConstructorArityErrorC(funLoc, name, arity, args) {
+      runtime.checkString(name);
+      runtime.checkNumber(arity);
+      var loc = runtime.makeSrcloc(funLoc);
+      var argsPyret = makeList(args);
+      raise(err("constructor-arity-mismatch")(loc, name, arity, argsPyret));
+    }
+
     function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
       checkSrcloc(branchLoc);
       runtime.checkNumber(arity);
@@ -468,6 +476,7 @@
       throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
+      throwConstructorArityErrorC: throwConstructorArityErrorC,
       throwCasesArityError: throwCasesArityError,
       throwCasesArityErrorC: throwCasesArityErrorC,
       throwCasesSingletonError: throwCasesSingletonError,

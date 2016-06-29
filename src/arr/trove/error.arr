@@ -1640,6 +1640,14 @@ data RuntimeError:
             ED.ed-fields(self.actual-arity)]]
       end
     end
+  | constructor-arity-mismatch(fun-def-loc, constructor-name, fun-def-arity, fun-app-args) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason() 
+    end,
+    method render-reason(self):
+      [ED.error:
+        ED.text("constructor-arity-mismatch: " + self.constructor-name)]
+    end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()

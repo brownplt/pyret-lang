@@ -1155,6 +1155,12 @@ function isMethod(obj) { return obj instanceof PMethod; }
       }
     }
 
+    var checkConstructorArityC = function(cloc, name, expected, args) {
+      if (expected !== args.length) {
+        throw thisRuntime.ffi.throwConstructorArityErrorC(cloc, name, expected, args);
+      }
+    }
+
     var makeCheckType = function(test, typeName) {
       if (arguments.length !== 2) {
         // can't use checkArity yet because thisRuntime.ffi isn't initialized
@@ -3007,6 +3013,8 @@ function isMethod(obj) { return obj instanceof PMethod; }
     var currentThreadId = 0;
     var activeThreads = {};
 
+    var queuedRuns = [];
+
   function run(program, namespace, options, onDone) {
     // CONSOLE.log("In run2");
     if(RUN_ACTIVE) {
@@ -4744,7 +4752,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
         var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
           "if(arguments.length !== " + allArgs.length + ") {\n" +
-            "thisRuntime.checkArityC(" + constArr(loc) + ", " + allArgs.length + ", thisRuntime.cloneArgs.apply(null, arguments));\n" +
+            "thisRuntime.checkConstructorArityC(" + constArr(loc) + ", " + quote(reflName) + ", " + allArgs.length + ", thisRuntime.cloneArgs.apply(null, arguments));\n" +
           "}\n" +
           checksPlusBody + "\n" +
         "}";
@@ -5191,6 +5199,7 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'checkPyretVal' : checkPyretVal,
         'checkArity': checkArity,
         'checkArityC': checkArityC,
+        'checkConstructorArityC': checkConstructorArityC,
         'checkTuple' : checkTuple,
         'makeCheckType' : makeCheckType,
         'confirm'      : confirm,
