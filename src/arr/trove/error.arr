@@ -1642,11 +1642,151 @@ data RuntimeError:
     end
   | constructor-arity-mismatch(fun-def-loc, constructor-name, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason() 
+      fun-app-arity = self.fun-app-args.length()
+      helper =
+        lam(rest):
+          [ED.error: 
+            cases(O.Option) maybe-stack-loc(0, true):
+              | some(fun-app-loc) =>
+                if fun-app-loc.is-builtin():
+                  [ED.sequence:
+                    [ED.para:
+                      ED.text("The function application in "),
+                      ED.loc(fun-app-loc),
+                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                    [ED.para:
+                      ED.text("The applicant had "),
+                      ED.ed-args(fun-app-arity),
+                      ED.text(" applied to it.")],
+                    rest(ED.text("applicant"))]
+                else if src-available(fun-app-loc):
+                  cases(O.Option) maybe-ast(fun-app-loc):
+                    | some(ast) =>
+                      applicant = ED.highlight(ED.text("applicant"), [ED.locs: ast._fun.l], 0)
+                      [ED.sequence:
+                        ed-intro("function application expression", fun-app-loc, -1),
+                        ED.cmcode(fun-app-loc),
+                        [ED.para:
+                          ED.text("expected the "),
+                          applicant,
+                          ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                        [ED.para:
+                          ED.text("The "),
+                          applicant,
+                          ED.text(" had "),
+                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
+                          ED.text(" applied to it.")],
+                        rest(applicant)]
+                    | none      =>
+                      [ED.sequence:
+                        ed-intro("function application expression", fun-app-loc, -1),
+                        ED.cmcode(fun-app-loc),
+                        [ED.para:
+                          ED.text("expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                        [ED.para:
+                          ED.text("The applicant had "),
+                          ED.ed-args(fun-app-arity),
+                          ED.text(" applied to it.")],
+                        rest(ED.text("applicant"))]
+                  end
+                else:
+                  [ED.sequence:
+                    [ED.para:
+                      ED.text("The function application in "),
+                      ED.loc(fun-app-loc),
+                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                    [ED.para:
+                      ED.text("The applicant had "),
+                      ED.ed-args(fun-app-arity),
+                      ED.text(" applied to it.")],
+                      rest(ED.text("applicant"))]
+                end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("A function application expects its applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                [ED.para:
+                  ED.text("The applicant had "),
+                  ED.ed-args(fun-app-arity),
+                  ED.text(" applied to it.")],
+                  rest(ED.text("applicant"))]
+            end]
+          end
+        
+        if src-available(self.fun-def-loc):
+          cases(O.Option) maybe-ast(self.fun-def-loc):
+            | some(ast) =>
+              helper(lam(applicant):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("The "),
+                    applicant,
+                    ED.text(" evaluated to the "),
+                    ED.code(ED.text(self.constructor-name)),
+                    ED.text(" constructor, which accepts "),
+                    ED.highlight(ED.ed-args(self.fun-def-arity), ast.args.map(_.l), 2),
+                    ED.text(":")],
+                  ED.cmcode(self.fun-def-loc)]
+              end)
+            | none      =>
+              helper(lam(applicant):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("The "),
+                    applicant,
+                    ED.text(" evaluated to the "),
+                    ED.code(ED.text(self.constructor-name)),
+                    ED.text(" constructor, which accepts "),
+                    ED.ed-args(self.fun-def-arity),
+                    ED.text(":")],
+                  ED.cmcode(self.fun-def-loc)]
+              end)
+          end
+        else:
+          helper(lam(applicant):
+            [ED.para:
+              ED.text("The "),
+              applicant,
+              ED.text(" evaluated to the "),
+              ED.code(ED.text(self.constructor-name)),
+              ED.text(" constructor, defined in "),
+              ED.loc(self.fun-def-loc),
+              ED.text(", which accepts "),
+              ED.ed-args(self.fun-def-arity),
+              ED.text(".")]
+          end)
+        end
     end,
     method render-reason(self):
-      [ED.error:
-        ED.text("constructor-arity-mismatch: " + self.constructor-name)]
+      num-args = self.fun-app-args.length()
+      this-str = if num-args == 1: "this " else: "these " end
+      arg-str = if num-args == 1: " argument:" else: " arguments:" end
+      exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
+      
+      ED.maybe-stack-loc(0, true,
+        lam(caller-loc):
+          if self.fun-def-loc.is-builtin():
+            [ED.error:
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              vert-list-values(self.fun-app-args)]
+          else:
+            [ED.error:
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity),
+                ED.text(exp-arg-str + " when calling the function at ")],
+              draw-and-highlight(self.fun-def-loc),
+              [ED.para: ED.text("from")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              vert-list-values(self.fun-app-args)]
+          end
+        end,
+        [ED.error:
+          [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at ")],
+          draw-and-highlight(self.fun-def-loc),
+          [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+          vert-list-values(self.fun-app-args)])
     end
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
