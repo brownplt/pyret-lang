@@ -342,7 +342,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name-rec(fields, "anf_tuple_fields", lam(vs):
        k.apply(l, N.a-tuple(l, vs))
      end)
-    | s-tuple-get(l, tup, index) => 
+    | s-tuple-get(l, tup, index, index-loc) => 
        anf-name(tup, "anf_tuple_get", lam(v): k.apply(l, N.a-tuple-get(l, v, index)) end)
     | s-array(l, values) =>
       array-id = names.make-atom("anf_array")

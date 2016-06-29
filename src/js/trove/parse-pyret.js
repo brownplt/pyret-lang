@@ -779,7 +779,7 @@
         //changes here
         'tuple-get': function(node) {
           return RUNTIME.getField(ast, 's-tuple-get')
-              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]))
+              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
         },
         'obj-expr': function(node) {
           if (node.kids.length === 2) {

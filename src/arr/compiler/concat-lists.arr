@@ -12,7 +12,8 @@ data ConcatList<a>:
     method is-empty(self): true end,
     method length(self): 0 end,
     method join-str(self, sep): "" end,
-    method reverse(self): self end
+    method reverse(self): self end,
+    method all(self, f): true end
   | concat-singleton(element) with:
     method to-list-acc(self, rest): link(self.element, rest) end,
     method map-to-list-acc(self, f, rest): link(f(self.element), rest) end,
@@ -28,7 +29,8 @@ data ConcatList<a>:
     method is-empty(self): false end,
     method length(self): 1 end,
     method join-str(self, sep): tostring(self.element) end,
-    method reverse(self): self end
+    method reverse(self): self end,
+    method all(self, f): f(self.element) end
   | concat-append(left :: ConcatList<a>, right :: ConcatList<a>) with:
     method to-list-acc(self, rest :: List):
       self.left.to-list-acc(self.right.to-list-acc(rest))
@@ -55,7 +57,8 @@ data ConcatList<a>:
       else: l + sep + r
       end
     end,
-    method reverse(self): concat-append(self.right.reverse(), self.left.reverse()) end
+    method reverse(self): concat-append(self.right.reverse(), self.left.reverse()) end,
+    method all(self, f): self.left.all(f) and self.right.all(f) end
   | concat-cons(first :: a, rest :: ConcatList<a>) with:
     method to-list-acc(self, rest): link(self.first, self.rest.to-list-acc(rest)) end,
     method map-to-list-acc(self, f, rest): link(f(self.first), self.rest.map-to-list-acc(f, rest)) end,
@@ -77,7 +80,8 @@ data ConcatList<a>:
       else: l + sep + r
       end
     end,
-    method reverse(self): concat-snoc(self.rest.reverse(), self.first) end
+    method reverse(self): concat-snoc(self.rest.reverse(), self.first) end,
+    method all(self, f): f(self.first) and self.rest.all(f) end
   | concat-snoc(head :: ConcatList<a>, last :: a) with:
     method to-list-acc(self, rest): self.head.to-list-acc(link(self.last, rest)) end,
     method map-to-list-acc(self, f, rest): self.head.map-to-list-acc(f, link(f(self.last), rest)) end,
@@ -100,7 +104,8 @@ data ConcatList<a>:
       else: h + sep + l
       end
     end,
-    method reverse(self): concat-cons(self.last, self.head.reverse()) end
+    method reverse(self): concat-cons(self.last, self.head.reverse()) end,
+    method all(self, f): self.head.all(f) and f(self.last) end
 sharing:
   method _plus(self, other :: ConcatList):
     if is-concat-empty(self): other
@@ -154,6 +159,10 @@ shadow foldl = lam(f, base, lst): lst.foldl(f, base) end
 shadow foldr = lam(f, base, lst): lst.foldr(f, base) end
 shadow map = lam(f, lst): lst.map(f) end
 shadow each = lam(f, lst): lst.each(f) end
+
+fun all<a>(f :: (a -> Boolean), lst :: ConcatList<a>) -> Boolean:
+  lst.all(f)
+end
 
 clist = {
   make: lam(arr):

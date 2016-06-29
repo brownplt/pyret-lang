@@ -144,7 +144,7 @@ check:
 end
 
 check:
-  arr = for raw-array-build(i from 100):
+  arr = for raw-array-build-opt(i from 100):
     if num-modulo(i, 5) == 0:
       some(i * i)
     else:
@@ -154,15 +154,21 @@ check:
   
   arr is=~ [raw-array: 0, 25, 100, 225, 400, 625, 900, 1225, 1600, 2025, 2500, 3025, 3600, 4225, 4900, 5625, 6400, 7225, 8100, 9025]
 
+  fun slowly(n):
+    if n <= 0: nothing
+    else: slowly(n - 1)
+    end
+  end
+  
   fun slow(i) block:
-    range(0, 3000)
+    slowly(3000)
     if num-modulo(i, 2) == 0:
       some(i)
     else:
       none
     end
   end
-  arr2 = raw-array-build(slow, 1000)
+  arr2 = raw-array-build-opt(slow, 1000)
   raw-array-length(arr2) is 500
   for each(i from range(0, 500)): raw-array-get(arr2, i) is i * 2 end
 end

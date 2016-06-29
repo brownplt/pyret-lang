@@ -167,6 +167,32 @@
       runtime.checkPyretVal(nonObject);
       raise(err("extend-non-object")(loc, nonObject));
     }
+    function throwLookupNonTuple(loc, nonTuple, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(nonTuple);
+      runtime.checkNumber(index);
+      raise(err("lookup-non-tuple")(loc, nonTuple, runtime.makeNumber(index)));
+    }
+    function throwBadTupleBind(loc, tup, length, desiredLength) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(tup);
+      raise(err("bad-tuple-bind")(loc, tup, length, desiredLength));
+    }
+    function throwNonTupleBind(loc, non_tup) {
+      checkSrcloc(loc);
+      raise(err("non-tuple-bind")(loc, non_tup));
+    }
+    function throwLookupLargeIndex(loc, tup, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(tup);
+      runtime.checkNumber(index);
+      raise(err("lookup-large-index")(loc, tup, tup.vals.length, runtime.makeNumber(index)));
+    }
+    function throwExtendNonObject(loc, nonObject) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(nonObject);
+      raise(err("extend-non-object")(loc, nonObject));
+    }
 
     function throwMessageException(message) {
       runtime.checkString(message);
@@ -284,6 +310,14 @@
       var loc = runtime.makeSrcloc(funLoc);
       var argsPyret = makeList(args);
       throwArityError(loc, arity, argsPyret);
+    }
+
+    function throwConstructorArityErrorC(funLoc, name, arity, args) {
+      runtime.checkString(name);
+      runtime.checkNumber(arity);
+      var loc = runtime.makeSrcloc(funLoc);
+      var argsPyret = makeList(args);
+      raise(err("constructor-arity-mismatch")(loc, name, arity, argsPyret));
     }
 
     function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
@@ -428,6 +462,10 @@
       throwFieldNotFound: throwFieldNotFound,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
+      throwLookupNonTuple: throwLookupNonTuple,
+      throwBadTupleBind: throwBadTupleBind,
+      throwNonTupleBind: throwNonTupleBind,
+      throwLookupLargeIndex: throwLookupLargeIndex,
       throwExtendNonObject: throwExtendNonObject,
       throwTypeMismatch: throwTypeMismatch,
       throwInvalidArrayIndex: throwInvalidArrayIndex,
@@ -438,6 +476,7 @@
       throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
+      throwConstructorArityErrorC: throwConstructorArityErrorC,
       throwCasesArityError: throwCasesArityError,
       throwCasesArityErrorC: throwCasesArityErrorC,
       throwCasesSingletonError: throwCasesSingletonError,
