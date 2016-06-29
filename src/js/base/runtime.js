@@ -4771,14 +4771,14 @@ function isMethod(obj) { return obj instanceof PMethod; }
 
 
     function traceValue(loc, val) {
-      if(!thisRuntime.hasParam("onTrace")) { return thisRuntime.nothing; }
+      if(!thisRuntime.hasParam("onTrace")) { return val; }
       var callback = thisRuntime.getParam("onTrace");
       var uri = loc[0];
       if (typeof callback === 'function') {
         return thisRuntime.safeCall(function() {
           return callback(loc, val, uri);
         }, function(_) {
-          return thisRuntime.nothing;
+          return val;
         });
       }
       else {
