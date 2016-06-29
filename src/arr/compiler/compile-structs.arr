@@ -699,7 +699,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("name"), [ED.locs: self.loc], self.loc),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
           ED.text(" is being used as a value.")],
         ED.cmcode(self.loc),
         [ED.para:
