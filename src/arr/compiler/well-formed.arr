@@ -554,7 +554,7 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
-  method s-tuple-get(self, l, tup, index):
+  method s-tuple-get(self, l, tup, index, index-loc):
     if (index < 0) block: 
       wf-error(" Index too small  ", l)
       false
@@ -902,8 +902,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-update(l, supe, fields)
   end,
-  method s-tuple-get(_, l :: Loc, tup, index):
-    well-formed-visitor.s-tuple-get(l, tup, index)
+  method s-tuple-get(_, l :: Loc, tup, index, index-loc):
+    well-formed-visitor.s-tuple-get(l, tup, index, index-loc)
   end,
   method s-obj(_, l :: Loc, fields :: List<A.Member>):
     well-formed-visitor.s-obj(l, fields)

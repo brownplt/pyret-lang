@@ -1,5 +1,4 @@
 provide *
-import namespace-lib as N
 import runtime-lib as R
 import builtin-modules as B
 import make-standalone as MS
@@ -115,9 +114,6 @@ fun get-cached-if-available(basedir, loc) block:
       end,
       method get-globals(_):
         CS.standard-globals
-      end,
-      method get-namespace(_, some-runtime):
-        N.make-base-namespace(some-runtime)
       end,
 
       method uri(_): uri end,

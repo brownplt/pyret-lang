@@ -1,5 +1,4 @@
 provide *
-import namespace-lib as N
 import builtin-modules as B
 import string-dict as SD
 import file as F
@@ -73,9 +72,6 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method get-globals(_):
       CM.standard-globals
     end,
-    method get-namespace(_, some-runtime):
-      N.make-base-namespace(some-runtime)
-    end,
 
     method uri(_): "builtin://" + builtin-name end,
     method name(_): builtin-name end,
@@ -117,7 +113,6 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       end
       ast
     end,
-    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     method get-dependencies(self):
       CL.get-dependencies(self.get-module(), self.uri())
     end,

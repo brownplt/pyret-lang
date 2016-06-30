@@ -3,7 +3,6 @@
 import ast as A
 import either as E
 import filelib as FL
-import namespace-lib as N
 import runtime-lib as R
 import load-lib as L
 import string-dict as SD
@@ -23,7 +22,6 @@ fun string-to-locator(name, str :: String):
     method get-native-modules(self): [list:] end,
     method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
     method get-globals(self): CS.standard-globals end,
-    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     method uri(self): "tc-test://" + name end,
     method name(self): name end,
     method set-compiled(self, ctxt, provs): nothing end,

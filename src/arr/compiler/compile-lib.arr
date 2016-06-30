@@ -5,7 +5,6 @@ import either as E
 import parse-pyret as P
 import ast as A
 import load-lib as L
-import namespace-lib as N
 import render-error-display as RED
 import runtime-lib as R
 import sets as S
@@ -93,7 +92,6 @@ mtd = [SD.string-dict:]
 
 # for re-export
 standard-builtins = CS.standard-builtins
-make-base-namespace = N.make-base-namespace
 
 type URI = String
 
@@ -163,7 +161,6 @@ fun string-locator(uri :: URI, s :: String):
     method get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
     method get-extra-imports(self): CS.standard-imports end,
     method get-globals(self): CS.standard-globals end,
-    method get-namespace(self, r): N.make-base-namespace(r) end,
     method uri(self): uri end,
     method name(self): uri end,
     method set-compiled(self, _, _): nothing end,
@@ -337,7 +334,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       shadow options = locator.get-options(options)
       libs = locator.get-extra-imports()
       mod = locator.get-module()
-      ast = cases(PyretCode) mod:
+      var ast = cases(PyretCode) mod:
         | pyret-string(module-string) =>
           P.surface-parse(module-string, locator.uri())
         | pyret-ast(module-ast) =>
@@ -346,9 +343,11 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       var ret = start
       var ast-ended = AU.append-nothing-if-necessary(ast)
       when options.collect-all:
-        when is-some(ast-ended): ret := phase("Added nothing", ast-ended.value, ret) end
+        when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, ret) end
       end
-      var wf = W.check-well-formed(ast-ended.or-else(ast))
+      ast := nothing
+      ast-ended := AU.wrap-toplevels(ast-ended)
+      var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
       checker = if options.check-mode and not(is-builtin-module(locator.uri())):
@@ -404,9 +403,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               tc-ast := nothing
               var cleaned = dp-ast
               dp-ast := nothing
-              cleaned := cleaned.visit(AU.merge-nested-blocks)
-              cleaned := cleaned.visit(AU.flatten-single-blocks)
-              cleaned := cleaned.visit(AU.link-list-visitor(env))
+              cleaned := cleaned.visit(AU.flatten-and-merge-blocks)
+              # this visitor no longer works; it may need to be scrapped or reworked
+              # cleaned := cleaned.visit(AU.link-list-visitor(env))
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               var inlined = cleaned.visit(AU.inline-lams)
@@ -437,26 +436,8 @@ end
 type PyretAnswer = Any
 type PyretMod = Any
 
-fun compile-and-run-worklist(ws :: List<ToCompile>, runtime :: R.Runtime, options):
-  compile-and-run-worklist-with(ws, runtime, SD.make-mutable-string-dict(), options)
-end
-
 fun is-error-compilation(cr):
   is-module-as-string(cr) and CS.is-err(cr.result-printer)
-end
-
-fun compile-and-run-worklist-with(ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.MutableStringDict<Loadable>, options):
-  compiled-mods = compile-program-with(ws, initial, options).loadables
-  errors = compiled-mods.filter(is-error-compilation)
-  cases(List) errors:
-    | empty =>
-      load-infos = for map2(tc from ws, cm from compiled-mods):
-        { to-compile: tc, compiled-mod: cm }
-      end
-      right(load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime))
-    | link(_, _) =>
-      left(errors.map(_.result-printer))
-  end
 end
 
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):
@@ -473,38 +454,6 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
-end
-
-
-fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
-  doc: "Assumes topo-sorted worklist in ws"
-  cases(List) ws block:
-    | empty =>
-      raise("Didn't get anything to run in run-worklist")
-    | link(load-info, r) =>
-      depmap = load-info.to-compile.dependency-map
-      dependencies = load-info.to-compile.locator.get-dependencies()
-      depnames = dependencies.map(lam(d): d.key() end).sort()
-      depvals = for map(d from depnames):
-        { modval: modvals.get-value(depmap.get-value-now(d).uri()), key: d }
-      end
-      m = load-info.compiled-mod
-      when is-module-as-string(m) and CS.is-err(m):
-        raise(m.result-printer.problems)
-      end
-      ans = loader.load(m, depvals, load-info.to-compile.locator.get-namespace(runtime), load-info.to-compile.locator)
-      modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
-      answer = loader.run(ans, m, load-info.to-compile.locator.uri())
-      cases(List) r:
-        | empty => answer
-        | link(_, _) => load-worklist(r, modvals-new, loader, runtime)
-      end
-  end
-end
-
-fun _compile-and-run-locator(locator, finder, context, runtime, options):
-  wl = compile-worklist(finder, locator, context)
-  compile-and-run-worklist(wl, runtime, options)
 end
 
 fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-modules, options) block:

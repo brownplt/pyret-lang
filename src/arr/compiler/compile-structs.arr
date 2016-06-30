@@ -313,12 +313,9 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Pyret disallows the fraction literal expression")],
-        [ED.para:
-          ED.code(ED.highlight([ED.sequence:
-                                  ED.embed(self.numerator),
-                                  ED.text(" / 0")],
-                               [list: self.loc], 0))],
+          ED.text("Pyret disallows the "),
+          ED.highlight(ED.text("fraction literal expression"), [ED.locs: self.loc], 0)],
+        ED.cmcode(self.loc),
         [ED.para:
           ED.text("because its denominator is zero.")]]
     end,
@@ -379,8 +376,9 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("If-expressions must have more than one branch, but the if-expression")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
+          ED.text("The "),
+          ED.code(ED.text("if-expression"))],
+        ED.cmcode(self.expr.l),
         [ED.para:
           ED.text("only has "),
           ED.highlight(ED.text("one branch"), [list: self.expr.branches.first.l], 1),
@@ -416,17 +414,17 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.code(ED.text("`example`")),
-          ED.text("blocks must only contain testing statements, but ")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
+          ED.code(ED.text("example")),
+          ED.text(" blocks must only contain testing statements, but ")],
+        ED.cmcode(self.expr.l),
         [ED.para:
-          ED.text(" isn't a testing statement.")]]
+          ED.text(" is not a testing statement.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.code(ED.text("`example`")),
-          ED.text("blocks must only contain testing statements, but the statement at "),
+          ED.code(ED.text("example")),
+          ED.text(" blocks must only contain testing statements, but the statement at "),
           ED.loc(self.expr.l),
           ED.text(" isn't a testing statement.")]]
     end
@@ -434,10 +432,11 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Method declarations are expected to accept at least one argument, but the method declaration")],
-         ED.code(ED.highlight(ED.v-sequence(self.expr.tosource().pretty(80).map(ED.text)), [list: self.expr.l], 0)),
+          ED.text("The "),
+          ED.highlight(ED.text("method declaration"), [list: self.expr.l], 0)],
+        ED.cmcode(self.expr.l),
         [ED.para:
-          ED.text("has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
+          ED.text(" does not accept at least one argument. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -540,26 +539,50 @@ data CompileError:
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
   | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
-    method render-fancy-reason(self, _, _):
-      self.render-reason()
-    end,
-    method render-reason(self):
+    method render-fancy-reason(self):
       if self.block-locs.length() > 1:
         [ED.error:
-          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
-            ED.text("contains several blocks that each contain multiple expressions:")],
-          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("The expression")],
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("contains several blocks that each contain "),
+            ED.highlight(ED.text("multiple expressions"), self.block-locs, 0),
+            ED.text(".")],
           [ED.para:
             ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with"),
             ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
       else:
         [ED.error:
-          [ED.para: ED.text("The expression at"), draw-and-highlight(self.expr-loc),
-            ED.text("contains a block that contains multiple expressions:")],
+          [ED.para:
+            ED.text("The expression")],
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("contains a block that contains "),
+            ED.highlight(ED.text("multiple expressions"), self.block-locs, 0),
+            ED.text(".")],
+          [ED.para:
+            ED.text("Either simplify this block to a single expression, or mark the outer expression with "),
+            ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
+      end
+    end,
+    method render-reason(self):
+      if self.block-locs.length() > 1:
+        [ED.error:
+          [ED.para: ED.text("The expression at "), draw-and-highlight(self.expr-loc),
+            ED.text(" contains several blocks that each contain multiple expressions:")],
           ED.v-sequence(self.block-locs.map(draw-and-highlight)),
           [ED.para:
-            ED.text("Either simplify this block to a single expression, or mark the outer expression with"),
-            ED.code(ED.text("block:")), ED.text("to indicate this is deliberate.")]]
+            ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with "),
+            ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
+      else:
+        [ED.error:
+          [ED.para: ED.text("The expression at "), draw-and-highlight(self.expr-loc),
+            ED.text(" contains a block that contains multiple expressions:")],
+          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          [ED.para:
+            ED.text("Either simplify this block to a single expression, or mark the outer expression with "),
+            ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
       end
     end
   | unbound-id(id :: A.Expr) with:
@@ -673,7 +696,14 @@ data CompileError:
     end
   | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a value.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a type.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -686,7 +716,14 @@ data CompileError:
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("identifier"), [ED.locs: self.loc], self.loc),
+          ED.text(" is used in a dot-annotation")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but is bound as a type variable.")]]
     end,
     method render-reason(self):
       #### TODO ###
@@ -800,14 +837,17 @@ data CompileError:
       def-loc-color = 1
       [ED.error:
         [ED.para:
-          ED.text("The variable assignment expression "),
-          ED.code(ED.highlight(ED.text(self.iuse.tosource().pretty(1000).first), [ED.locs: self.iuse.l], use-loc-color)),
+          ED.text("The "),
+          ED.highlight(ED.text("variable assignment statement"), [ED.locs: self.iuse.l], use-loc-color)],
+        ED.cmcode(self.iuse.l),
+        [ED.para:
           ED.text(" expects the name "),
           ED.code(ED.highlight(ED.text(self.iuse.id.toname()), [ED.locs: self.iuse.l], use-loc-color)),
-          ED.text(" to refer to a variable definition expression, but "),
+          ED.text(" to refer to a variable definition statement, but "),
           ED.code(ED.text(self.iuse.id.toname())),
           ED.text(" is declared by an "),
-          ED.highlight(ED.text("identifier definition expression."), [ED.locs: self.idef], def-loc-color)]]
+          ED.highlight(ED.text("identifier definition statement."), [ED.locs: self.idef], def-loc-color)],
+          ED.cmcode(self.idef)]
     end,
     method render-reason(self):
       [ED.error:
@@ -824,9 +864,18 @@ data CompileError:
           ED.loc(self.idef)]]
     end
   | mixed-id-var(id :: String, var-loc :: Loc, id-loc :: Loc) with:
-    #### TODO ###
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para:
+          ED.text("The name "),
+          ED.code(ED.text(self.id)),
+          ED.text(" is both "),
+          ED.highlight(ED.text("declared as a variable"), [ED.locs: self.var-loc], 0)],
+        ED.cmcode(self.var-loc),
+        [ED.para:
+          ED.text("and "),
+          ED.highlight(ED.text("declared as an identifier"), [ED.locs: self.id-loc], 1)],
+        ED.cmcode(self.id-loc)]
     end,
     method render-reason(self):
       [ED.error:
@@ -876,7 +925,7 @@ data CompileError:
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.new-loc),
-              ED.text(" shadows the declaration of a built-in identifier also named "),
+              ED.text(" shadows the declaration of an identifier also named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.old-loc)]]
@@ -1061,18 +1110,16 @@ data CompileError:
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the function application expression")],
-        [ED.para:
-          ED.code(ED.v-sequence(self.app-expr.tosource().pretty(80).map(ED.text)))],
+          ED.text("The "),
+          ED.highlight(ED.text("function application"), [ED.locs: self.app-expr.l], -1)],
+        ED.cmcode(self.app-expr.l),
         [ED.para:
           ED.text("expects the "), ed-applicant,
-          ED.text(" to evaluate to a function accepting exactly the same number of arguments as given to it in application.")],
+          ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
         [ED.para:
-          ED.text("However, the "),
-          ed-applicant,
-          ED.text(" is given "),
           ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1),
-          ED.text(" and the type signature of the "),
+          ED.text(" " + if self.app-expr.args.length() == 1: "is" else: "are" end 
+                + "given, but the type signature of the "),
           ed-applicant],
         [ED.para:
           ED.embed(self.fun-typ)],
@@ -1102,38 +1149,40 @@ data CompileError:
           ED.ed-args(self.fun-typ.args.length()),
           ED.text(".")]]
     end
-  | method-missing-self(method-expr :: A.Expr) with:
+  | method-missing-self(expr :: A.Expr) with:
+    # TODO: is this a duplicate of `no-arguments`???
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("method declaration"), [list: self.expr.l], 0)],
+        ED.cmcode(self.expr.l),
+        [ED.para:
+          ED.text(" does not accept at least one argument. When a method is applied, the first argument is a reference to the object it belongs to.")]]
+    end,
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the method expression")],
-        [ED.para:
-          ED.code(ED.v-sequence(self.method-expr.tosource().pretty(800).map(ED.text)))],
-        [ED.para:
-          ED.text("at "),
-          ED.loc(self.method-expr.l),
-          ED.text(" requires at least a 'self' argument.")]]
+          ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
+          ED.loc(self.expr.l),
+          ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
   | apply-non-function(app-expr :: A.Expr, typ) with:
     method render-fancy-reason(self):
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the function application expression")],
-        [ED.para:
-          ED.code([ED.sequence:
-              ED.highlight(ED.h-sequence(self.app-expr._fun.tosource().pretty(999).map(ED.text),""),[list: self.app-expr._fun.l],0),
-              ED.text("("),
-              ED.h-sequence(
-                self.app-expr.args.map(
-                  lam(arg):ED.h-sequence(arg.tosource().pretty(999).map(ED.text),"") end), ", "),
-              ED.text(")")])],
+          ED.text("The "),
+          ED.highlight(ED.text("function application"), [ED.locs: self.app-expr.l], -1)],
+        ED.cmcode(self.app-expr.l),
         [ED.para:
           ED.text("expects the "), ed-applicant,
-          ED.text(" to evaluate to a function value. However, the type of the "),
+          ED.text(" to evaluate to a function value.")],
+        [ED.para:
+          ED.text("The "),
           ed-applicant,
-          ED.text(" is "),
-          ED.embed(self.typ)]]
+          ED.text(" is a ")],
+        ED.embed(self.typ)]
     end,
     method render-reason(self):
       [ED.error:
@@ -1722,6 +1771,7 @@ runtime-provides = provides("builtin://global",
     "nothing", t-nothing,
     "builtins", t-record([list:
         t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
+        t-member("trace-value", t-arrow([list: t-top, t-top], t-bot)),
         t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
             t-member("run-checks", t-bot),
             t-member("check-is", t-bot),
@@ -1829,6 +1879,7 @@ runtime-provides = provides("builtin://global",
     "raw-array-set", t-top,
     "raw-array-of", t-top,
     "raw-array-build", t-top,
+    "raw-array-build-opt", t-top,
     "raw-array-length", t-top,
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,

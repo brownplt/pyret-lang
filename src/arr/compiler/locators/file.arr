@@ -1,7 +1,6 @@
 provide *
 
 import builtin-modules as B
-import namespace-lib as N
 import parse-pyret as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS
@@ -38,7 +37,6 @@ fun mockable-file-locator(file-ops):
         end
         ast
       end,
-      method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
       method get-dependencies(self):
         CL.get-standard-dependencies(self.get-module(), self.uri())
       end,

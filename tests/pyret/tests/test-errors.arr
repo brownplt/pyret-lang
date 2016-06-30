@@ -225,6 +225,15 @@ check:
     e28.fun-def-loc.module-name is "close-input-file"
   end
 
+  e29 = get-err(lam(): link(1) end)
+  e29 satisfies E.is-constructor-arity-mismatch
+  when E.is-constructor-arity-mismatch(e12) block:
+    e29.fun-def-arity is 2
+    e29.fun-app-args.length() is 1
+    e29.constructor-name is "link"
+    e29.fun-def-loc satisfies S.is-srcloc
+  end
+
   data-pred-arity = get-err(lam(): is-Data(1, 2) end)
   data-pred-arity satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(data-pred-arity) block:

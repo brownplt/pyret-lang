@@ -1,6 +1,5 @@
 import string-dict as SD
 import load-lib as L
-import namespace-lib as N
 import runtime-lib as R
 import either as E
 import render-error-display as ED
@@ -151,7 +150,6 @@ fun string-to-locator(name :: String):
     method get-extra-imports(self): CM.standard-imports end,
     method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
     method get-globals(self): CM.standard-globals end,
-    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
     method uri(self): "file://" + name end,
     method name(self): name end,
     method set-compiled(self, _, _): nothing end,

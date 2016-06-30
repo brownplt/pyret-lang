@@ -1,5 +1,4 @@
 provide *
-import namespace-lib as N
 import builtin-modules as B
 import string-dict as SD
 import file as F
@@ -42,9 +41,6 @@ fun make-jsfile-locator(path):
     end,
     method get-globals(_):
       CM.standard-globals
-    end,
-    method get-namespace(_, some-runtime):
-      N.make-base-namespace(some-runtime)
     end,
 
     method uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,

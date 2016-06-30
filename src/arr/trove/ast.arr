@@ -197,11 +197,9 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
       args.map(lam(a): a.tosource() end)))
-  ftype = funtype + typarams
   fname =
-    if is-nothing(name): ftype
-    else if PP.is-mt-doc(ftype): PP.str(name)
-    else: ftype + PP.str(" " + name)
+    if PP.is-mt-doc(name): funtype + typarams
+    else: PP.group(funtype + break-one + name + typarams)
     end
   fann =
     if is-a-blank(ann) or is-nothing(ann): PP.mt-doc
@@ -566,7 +564,7 @@ data Expr:
       method label(self): "s-fun" end,
     method tosource(self):
       funlam-tosource(str-fun,
-        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-type" end,
@@ -773,7 +771,7 @@ data Expr:
     method label(self): "s-lam" end,
     method tosource(self):
       funlam-tosource(str-lam,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-method(
       l :: Loc,
@@ -788,7 +786,7 @@ data Expr:
     method label(self): "s-method" end,
     method tosource(self):
       funlam-tosource(str-method,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     method label(self): "s-extend" end,
@@ -820,7 +818,7 @@ data Expr:
       PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
-  | s-tuple-get(l :: Loc, tup :: Expr, index :: Number) with:
+  | s-tuple-get(l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc) with:
     method label(self): "s-tuple-get" end,
     method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
@@ -1222,9 +1220,8 @@ data Member:
     ) with:
       method label(self): "s-method-field" end,
     method tosource(self):
-      name-part = PP.str(self.name)
-      funlam-tosource(name-part,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+      funlam-tosource(str-method,
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
 sharing:
   method visit(self, visitor):
@@ -1933,8 +1930,8 @@ default-map-visitor = {
   method s-tuple(self, l :: Loc, fields :: List<Expr>):
     s-tuple(l, fields.map(_.visit(self)))
   end,
-  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
-    s-tuple-get(l, tup.visit(self), index)
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+    s-tuple-get(l, tup.visit(self), index, index-loc)
   end,
   method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
     s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
@@ -2454,7 +2451,7 @@ default-iter-visitor = {
   method s-tuple(self, l :: Loc, fields :: List<Expr>):
     lists.all(_.visit(self), fields)
   end,
-  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number):
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     tup.visit(self)
   end,
   method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):

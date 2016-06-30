@@ -332,13 +332,12 @@ fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
-  if start < stop:       link(start, range(start + 1, stop))
-  else if start == stop: empty
-  else:  raise("range: start greater than stop: ("
+  if start > stop: raise("range: start greater than stop: ("
                                  + tostring(start)
                                  + ", "
                                  + tostring(stop)
                                  + ")")
+  else: raw-array-to-list(raw-array-build(_ + start, stop - start))
   end
 end
 
@@ -349,22 +348,23 @@ fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
     if start == stop: empty
     else: raise("range-by: an interval of 0 would produce an infinite list")
     end
-  else if delta < 0:
-    if start <= stop: empty
-    else: link(start, range-by(start + delta, stop, delta))
-    end
   else:
-    if start >= stop: empty
-    else: link(start, range-by(start + delta, stop, delta))
-    end
+    length = num-max(num-ceiling((stop - start) / delta), 0)
+    raw-array-to-list(raw-array-build(lam(i): start + (i * delta) end, length))
   end
+where:
+  range-by(1, 10, 4) is [list: 1, 5, 9]
+  range-by(10, 1, -4) is [list: 10, 6, 2]
+  range-by(3, 20, 9) is [list: 3, 12]
+  range-by(20, 3, 9) is empty
+  range-by(20, 3, -9) is [list: 20, 11]
+  range-by(2, 3, 0) raises "interval of 0"
 end
 
 fun repeat<a>(n :: Number, e :: a) -> List<a>:
   doc: "Creates a list with n copies of e"
-  if n > 0:       link(e, repeat(n - 1, e))
-  else if n == 0: empty
-  else:           raise("repeat: can't have a negative argument'")
+  if n < 0: raise("repeat: can't have a negative argument'")
+  else: raw-array-to-list(raw-array-of(e, n))
   end
 end
 
