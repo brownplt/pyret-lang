@@ -1129,7 +1129,7 @@ compiler-visitor = {
     c-exp(rt-method("getColonFieldLoc", [clist: visit-obj.exp, j-str(field), self.get-loc(l)]),
       visit-obj.other-stmts)
   end,
-  method a-lam(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
+  method a-lam(self, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     new-step = fresh-id(compiler-name("step"))
     temp = fresh-id(compiler-name("temp_lam"))
     len = args.length()
@@ -1139,13 +1139,13 @@ compiler-visitor = {
       else: [list: N.a-bind(l, self.resumer, A.a-blank)]
       end
     c-exp(
-      rt-method("makeFunction", [clist: j-id(temp)]),
+      rt-method("makeFunction", [clist: j-id(temp), j-str(name)]),
       [clist:
         j-var(temp,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
                 compile-fun-body(l, new-step, temp, self, effective-args, some(len), body, true)))])
   end,
-  method a-method(self, l :: Loc, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
+  method a-method(self, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     step = fresh-id(compiler-name("step"))
     temp-full = fresh-id(compiler-name("temp_full"))
     len = args.length()
@@ -1155,9 +1155,9 @@ compiler-visitor = {
           compile-fun-body(l, step, temp-full, self, args, some(len), body, true)
         ))
     method-expr = if len < 9:
-      rt-method("makeMethod" + tostring(len - 1), [clist: j-id(temp-full)])
+      rt-method("makeMethod" + tostring(len - 1), [clist: j-id(temp-full), j-str(name)])
     else:
-      rt-method("makeMethodN", [clist: j-id(temp-full)])
+      rt-method("makeMethodN", [clist: j-id(temp-full), j-str(name)])
     end
     c-exp(method-expr, [clist: full-var])
   end,
@@ -1240,7 +1240,8 @@ compiler-visitor = {
                 arity-check(self.get-loc(loc), 1) +
                 [clist: j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])]))]
                 )
-              )
+              ),
+            j-str(pred-name + "-Tester")
           ])
         )
     end

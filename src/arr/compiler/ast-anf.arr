@@ -416,10 +416,10 @@ data ALettable:
   | a-get-bang(l :: Loc, obj :: AVal, field :: String) with:
     method label(self): "a-get-bang" end,
     method tosource(self): PP.infix(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | a-lam(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
+  | a-lam(l :: Loc, name :: String, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     method label(self): "a-lam" end,
     method tosource(self): fun-method-pretty(PP.str("lam"), self.args, self.body) end
-  | a-method(l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
+  | a-method(l :: Loc, name :: String, args :: List<ABind>, ret :: A.Ann, body :: AExpr) with:
     method label(self): "a-method" end,
     method tosource(self): fun-method-pretty(PP.str("method"), self.args, self.body) end
   | a-val(l :: Loc, v :: AVal) with:
@@ -546,10 +546,10 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-colon(dummy-loc, strip-loc-val(obj), field)
     | a-get-bang(_, obj, field) =>
       a-get-bang(dummy-loc, strip-loc-val(obj), field)
-    | a-lam(_, args, ret, body) =>
-      a-lam(dummy-loc, args, ret, strip-loc-expr(body))
-    | a-method(_, args, ret, body) =>
-      a-method(dummy-loc, args, ret, strip-loc-expr(body))
+    | a-lam(_, name, args, ret, body) =>
+      a-lam(dummy-loc, name, args, ret, strip-loc-expr(body))
+    | a-method(_, name, args, ret, body) =>
+      a-method(dummy-loc, name, args, ret, strip-loc-expr(body))
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
     | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
     | a-val(_, v) =>
@@ -675,11 +675,11 @@ default-map-visitor = {
   method a-get-bang(self, l :: Loc, obj :: AVal, field :: String):
     a-get-bang(l, obj.visit(self), field)
   end,
-  method a-lam(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
-    a-lam(l, args.map(_.visit(self)), ret, body.visit(self))
+  method a-lam(self, l :: Loc, name :: String, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+    a-lam(l, name, args.map(_.visit(self)), ret, body.visit(self))
   end,
-  method a-method(self, l :: Loc, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
-    a-method(l, args.map(_.visit(self)), ret, body.visit(self))
+  method a-method(self, l :: Loc, name :: String, args :: List<ABind>, ret :: A.Ann, body :: AExpr):
+    a-method(l, name, args.map(_.visit(self)), ret, body.visit(self))
   end,
   method a-val(self, l, v :: AVal):
     a-val(l, v.visit(self))
@@ -861,7 +861,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       for fold(acc from seen-so-far, arg from args):
         freevars-v-acc(arg, acc)
       end
-    | a-lam(_, args, ret, body) =>
+    | a-lam(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
       for each(arg from args.map(get-id)):
@@ -871,7 +871,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
         freevars-ann-acc(a.ann, acc)
       end
       freevars-ann-acc(ret, from-args)
-    | a-method(_, args, ret, body) =>
+    | a-method(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
       for each(arg from args.map(get-id)):

@@ -242,7 +242,7 @@ fun default-env-map-visitor<a, c>(
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, visit-binds, visit-body, blocky)
     end,
-    method s-lam(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -254,7 +254,7 @@ fun default-env-map-visitor<a, c>(
       with-args = with-params.{env: args-env}
       new-body = body.visit(with-args)
       new-check = with-args.option(_check)
-      A.s-lam(l, params, new-args, ann.visit(with-args), doc, new-body, new-check, blocky)
+      A.s-lam(l, name, params, new-args, ann.visit(with-args), doc, new-body, new-check, blocky)
     end,
     method s-cases-else(self, l, typ, val, branches, _else, blocky):
       A.s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
@@ -278,7 +278,7 @@ fun default-env-map-visitor<a, c>(
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
     end,
-    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -289,7 +289,7 @@ fun default-env-map-visitor<a, c>(
       end
       new-body = body.visit(with-params.{env: args-env})
       new-check = with-params.{env: args-env}.option(_check)
-      A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, new-check, blocky)
+      A.s-method(l, name, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, new-check, blocky)
     end
   }
 end
@@ -359,7 +359,7 @@ fun default-env-iter-visitor<a, c>(
       end
       continue-binds and body.visit(new-visitor)
     end,
-    method s-lam(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -400,7 +400,7 @@ fun default-env-iter-visitor<a, c>(
       and lists.all(_.visit(with-params), shared-members)
       and with-params.option(_check)
     end,
-    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -551,7 +551,7 @@ end
 inline-lams = A.default-map-visitor.{
   method s-app(self, loc, f, exps):
     cases(A.Expr) f:
-      | s-lam(l, _, args, ann, _, body, _, blocky) =>
+      | s-lam(l, _, _, args, ann, _, body, _, blocky) =>
         if (args.length() == exps.length()):
           a = A.global-names.make-atom("inline_body")
           let-binds = for lists.map2(arg from args, exp from exps):

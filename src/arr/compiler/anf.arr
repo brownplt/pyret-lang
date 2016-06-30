@@ -318,25 +318,25 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       bindings = [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ann), expr)]
       anf(A.s-let-expr(l, bindings, A.s-id(l, name.id), false), k)
 
-    | s-lam(l, params, args, ret, doc, body, _, _) =>
+    | s-lam(l, name, params, args, ret, doc, body, _, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
-        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+        k.apply(l, N.a-lam(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
-        name = mk-id(l, "ann_check_temp")
-        k.apply(l, N.a-lam(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+        temp = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-lam(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
             anf-term(A.s-let-expr(l,
-                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                A.s-id(l, name.id), false))))
+                [list: A.s-let-bind(l, A.s-bind(l, false, temp.id, ret), body)],
+                A.s-id(l, temp.id), false))))
       end
-    | s-method(l, params, args, ret, doc, body, _, _) =>
+    | s-method(l, name, params, args, ret, doc, body, _, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
-        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
+        k.apply(l, N.a-method(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
-        name = mk-id(l, "ann_check_temp")
-        k.apply(l, N.a-method(l, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
+        temp = mk-id(l, "ann_check_temp")
+        k.apply(l, N.a-method(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret,
             anf-term(A.s-let-expr(l,
-                [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ret), body)],
-                A.s-id(l, name.id), false))))
+                [list: A.s-let-bind(l, A.s-bind(l, false, temp.id, ret), body)],
+                A.s-id(l, temp.id), false))))
       end
     | s-tuple(l, fields) =>
       anf-name-rec(fields, "anf_tuple_fields", lam(vs):

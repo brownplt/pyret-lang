@@ -17,7 +17,7 @@ fun ast-pretty(ast):
 end
 
 fun ast-lam(ast):
-  A.s-lam(ast.l, [list: ], [list: ], A.a-blank, "", ast, none, true)
+  A.s-lam(ast.l, "", [list: ], [list: ], A.a-blank, "", ast, none, true)
 end
 
 fun ast-srcloc(l):
@@ -129,7 +129,7 @@ fun create-check-block(l, checks):
 end
 
 fun make-lam(l, args, body):
-  A.s-lam(l, [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, true)
+  A.s-lam(l, "", [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, true)
 end
 
 no-checks-visitor = A.default-map-visitor.{
@@ -142,8 +142,8 @@ no-checks-visitor = A.default-map-visitor.{
   method s-data(self, l, name, params, mixins, variants, shared-members, _):
     A.s-data(l, name, params, mixins, variants, shared-members, none)
   end,
-  method s-lam(self, l, params, args, ann, doc, body, _, blocky):
-    A.s-lam(l, params, args, ann, doc, body, none, blocky)
+  method s-lam(self, l, name, params, args, ann, doc, body, _, blocky):
+    A.s-lam(l, name, params, args, ann, doc, body, none, blocky)
   end,
   method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name(l, "nothing"))
