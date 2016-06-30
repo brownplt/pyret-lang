@@ -206,7 +206,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-              A.s-lam(l, params, args, ann, doc, body, _check, blocky)
+              A.s-lam(l, name, params, args, ann, doc, body, _check, blocky)
             ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank) end
@@ -257,7 +257,7 @@ where:
     dsb(p(str).stmts).visit(A.dummy-loc-visitor)
   end
   n = none
-  thunk = lam(e): A.s-lam(d, [list: ], [list: ], A.a-blank, "", bk(e), n, false) end
+  thunk = lam(e): A.s-lam(d, "", [list: ], [list: ], A.a-blank, "", bk(e), n, false) end
 
 
   compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
@@ -868,7 +868,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       datatypes.set-now(namet.key(), result)
       result
     end,
-    method s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
+    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -892,9 +892,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # Restore the errors to what they were. (_check has already been desugared,
       # so the programmer will see those errors, not the ones from here.)
       name-errors := saved-name-errors
-      A.s-lam(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-lam(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
-    method s-method(self, l, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
@@ -913,7 +913,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method(l, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):

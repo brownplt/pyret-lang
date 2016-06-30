@@ -508,10 +508,10 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     ann.visit(self) and value.visit(self)
   end,
-  method s-method(self, l, params, args, ann, doc, body, _check, blocky) block:
+  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     when args.length() == 0:
-      add-error(C.no-arguments(A.s-method(l, params, args, ann, doc, body, _check, blocky)))
+      add-error(C.no-arguments(A.s-method(l, name, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -523,7 +523,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
   end,
-  method s-lam(self, l, params, args, ann, doc, body, _check, blocky) block:
+  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -890,11 +890,11 @@ top-level-visitor = A.default-iter-visitor.{
   method s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
   end,
-  method s-lam(_, l :: Loc, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
-    well-formed-visitor.s-lam(l, params, args, ann, doc, body, _check, blocky)
+  method s-lam(_, l :: Loc, name :: String, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-lam(l, name, params, args, ann, doc, body, _check, blocky)
   end,
-  method s-method(_, l :: Loc, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
-    well-formed-visitor.s-method(l, params, args, ann, doc, body, _check, blocky)
+  method s-method(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method(l, name, params, args, ann, doc, body, _check, blocky)
   end,
   method s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-extend(l, supe, fields)
