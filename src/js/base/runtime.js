@@ -2380,6 +2380,47 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function checkAnnArg(compilerLoc, ann, args, index, funName) {
+      function wrapReason(fail) {
+        return thisRuntime.ffi.contractFail(
+            thisRuntime.getField(fail, "loc"),
+            thisRuntime.ffi.makeFailureAtArg(
+              makeSrcloc(compilerLoc),
+              index,
+              funName,
+              thisRuntime.ffi.makeList(args),
+              thisRuntime.getField(fail, "reason"))
+          );
+      }
+      if (isCheapAnnotation(ann)) {
+        var result = ann.check(compilerLoc, args[index]);
+        if(thisRuntime.ffi.isOk(result)) { return args[index]; }
+        if(thisRuntime.ffi.isFail(result)) {
+          raiseJSJS(wrapReason(result));
+        }
+        throw "Internal error: got invalid result from annotation check";
+      } else {
+        return safeCall(function() {
+          return ann.check(compilerLoc, args[index]);
+        }, function(result) {
+          if(thisRuntime.ffi.isOk(result)) { return args[index]; }
+          if(thisRuntime.ffi.isFail(result)) { raiseJSJS(wrapReason(result)); }
+          throw "Internal error: got invalid result from annotation check";
+        },
+        "checkAnnArg");
+      }
+    }
+
+    function checkArgsInternal(moduleName, funName, args, anns) {
+      anns.forEach(function(ann, i) {
+        if (!isCheapAnnotation(ann)) {
+          thisRuntime.ffi.throwMessageException("Internal error: non-stacksafe annotation given to checkArgsInternal");
+        }
+        checkAnnArg([moduleName], ann, args, i, funName);
+      });
+    }
+
+
     function _checkAnn(compilerLoc, ann, val) {
       if (isCheapAnnotation(ann)) {
         var result = ann.check(compilerLoc, val);
@@ -4964,6 +5005,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'checkAnn': checkAnn,
       '_checkAnn': _checkAnn,
       'checkAnnArgs': checkAnnArgs,
+      'checkArgsInternal': checkArgsInternal,
       'checkConstructorArgs': checkConstructorArgs,
       'checkConstructorArgs2': checkConstructorArgs2,
       'getDotAnn': getDotAnn,

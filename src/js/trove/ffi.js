@@ -439,6 +439,14 @@
       return contract("dot-ann-not-present")(name, field);
     }
 
+    function makeFailureAtArg(loc, index, name, args, reason) {
+      checkSrcloc(loc);
+      runtime.checkNumber(index);
+      runtime.checkString(name);
+      runtime.checkList(args);
+      return contract("failure-at-arg")(loc, index, name, args, reason);
+    }
+
     var isOk = contract("is-ok");
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
@@ -502,6 +510,7 @@
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
+      makeFailureAtArg: makeFailureAtArg,
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),
       contractFailArg: contract("fail-arg"),

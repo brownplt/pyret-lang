@@ -55,6 +55,29 @@ data FieldFailure:
 end
 
 data FailureReason:
+  | failure-at-arg(loc, index, function-name, args, reason) with:
+    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      [ED.error:
+        [ED.para:
+          ED.code(ED.text(self.function-name)),
+          ED.text(" : The argument at position " + tostring(self.index + 1)),
+          ED.text(" was invalid because: ")],
+        self.reason.render-reason(loc, from-fail-arg),
+        [ED.para:
+          ED.text("The other arguments were:"),
+          ED.h-sequence(L.map(ED.embed, self.args), " ")]]
+    end,
+    method render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para:
+          ED.code(ED.text(self.function-name)),
+          ED.text(" : The argument at position " + tostring(self.index + 1)),
+          ED.text(" was invalid because: ")],
+        self.reason.render-reason(loc, from-fail-arg),
+        [ED.para:
+          ED.text("The other arguments were:"),
+          ED.h-sequence(L.map(ED.embed, self.args), " ")]]
+    end
   | ref-init(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:
       print("ref-init")
