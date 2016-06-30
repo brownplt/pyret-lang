@@ -170,6 +170,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
                 | none => nothing
               end
           end
+        | s-tuple-bind(l, fields) => nothing
       end
       ensure-unique-ids(rest)
   end

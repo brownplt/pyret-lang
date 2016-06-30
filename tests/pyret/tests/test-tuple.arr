@@ -1,7 +1,7 @@
 import parse-pyret as P
 import pprint as PP
 
-#| check "parse and print":
+check "parse and print":
    x = P.surface-parse("{1; 2}", "test")
    x.tosource().pretty(80) is [list: "{ 1; 2 }"]
 end
@@ -100,7 +100,7 @@ end
 check "annotations for tuple":
   fun f(tup:: {Number; String; Number}): tup.{1} end
   f({4; "hi"; 235}) is "hi"
-end |#
+end 
 
 check "parse and print tuple-binding":
    x = P.surface-parse("for each({k;v;} from elts): k end", "test")
@@ -119,7 +119,25 @@ check "tuple decunstruction":
 
   elts = [list: {"a"; 5}, {"b"; 6}, {"c"; 7}]
 
-  f(elts) is 18  
+  f(elts) is 18 
+
+  fun g(shadow elts) block:
+   {sum; prod} = for fold({sum;prod;} from {0;1}, elt from elts):
+     { sum + elt; prod * elt }
+   end
+   [list: sum, prod]
+  end
+
+  lst = [list: 513, 642, 51, 64, 14]
+  g(lst) is [list: 1284, 15049794816]
+
+  fun h({k;v;}, {a;b;c;}) block:
+    k + v + a + b + c
+  end
+
+  h({10; 12}, {1; 4; 5}) is 32
 end
+
+
 
 

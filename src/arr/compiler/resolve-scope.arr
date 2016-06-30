@@ -859,16 +859,46 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       with-params = self.{type-env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args) block:
         {env; atoms} = acc
-        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
-        { atom-env.env; link(atom-env.atom, atoms) }
+        cases(A.Bind) a:
+         | s-bind(_, _, _, _) =>
+            atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
+            { atom-env.env; link(atom-env.atom, atoms) }
+         | s-tuple-bind(_, fields) =>
+            #{new-env; new-atoms} = for fold(acc2 from {env; atoms}, elt from fields):
+             # {in-env; in-atoms} = acc2
+              namet = names.make-atom("tup")
+              atom-env = make-atom-for(namet, false, env, bindings, let-bind(_, _, A.a-blank.visit(with-params), none))
+              {atom-env.env; link(atom-env.atom, atoms)}
+            #end
+            #{env; atoms}
+         end
       end
       new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(with-params))
+          | s-tuple-bind(l2, fields) => A.s-bind(l2, false, at, A.a-blank)
+           # new-args-t = for fold(acc from [list: ], elt from fields) block:
+           #   t-bind = A.s-bind(l2, false, elt.id, A.a-blank.visit(with-params))
+           #   link(t-bind, acc)
+           # end
+           # new-args-t.reverse()
         end
       end
+      new-let-body = for fold2(acc3 from body, a from args, at from atoms.reverse()):
+        updated-body = cases(A.Bind) a:
+        | s-bind(_, _, _, _) => acc3
+        | s-tuple-bind(l2, fields) => 
+          {n; new-let-binds} = for fold(acc4 from {0; [list: ]}, element from fields):
+            {n; new-let-binds} = acc4
+            t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
+            {n + 1; link(t-let-bind, new-let-binds)}
+            end
+          A.s-let-expr(l2, new-let-binds, acc3, false)
+        end
+        updated-body
+      end
       with-params-and-args = with-params.{env: env}
-      new-body = body.visit(with-params-and-args)
+      new-body = new-let-body.visit(with-params-and-args)
       saved-name-errors = name-errors
       new-check = with-params.option(_check) # Maybe should be self?  Are any type params visible here?
       # Restore the errors to what they were. (_check has already been desugared,
