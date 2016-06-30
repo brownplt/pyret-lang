@@ -282,6 +282,7 @@
       var toLoad = program.toLoad;
 
       var main = toLoad[toLoad.length - 1];
+      runtime.setParam("currentMainURL", main);
 
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");

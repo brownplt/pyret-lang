@@ -148,6 +148,16 @@ function setParam(param, val) {
 function hasParam(param) {
   return param in parameters;
 }
+function getParamOrSetDefault(param, defVal) {
+  if (hasParam(param))
+    return getParam(param);
+  setParam(param, defVal);
+  return defVal;
+}
+function clearParam(param) {
+  delete parameters[param];
+}
+
 
 /**
     Get the brands on an object
@@ -4812,9 +4822,26 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'current-checker': makeFunction(function() {
           if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
           return getParam("current-checker");
-        })
+        }),
+        'trace-value': makeFunction(traceValue)
       });
 
+
+    function traceValue(loc, val) {
+      if(!thisRuntime.hasParam("onTrace")) { return val; }
+      var callback = thisRuntime.getParam("onTrace");
+      var uri = loc[0];
+      if (typeof callback === 'function') {
+        return thisRuntime.safeCall(function() {
+          return callback(loc, val, uri);
+        }, function(_) {
+          return val;
+        });
+      }
+      else {
+        thisRuntime.ffi.throwMessageException("onTrace parameter was not a function: " + callback);
+      }
+    }
 
     var runtimeNamespaceBindings = {
           'torepr': torepr,
@@ -4970,6 +4997,9 @@ function isMethod(obj) { return obj instanceof PMethod; }
         'safeTail': safeTail,
         'eachLoop': eachLoop,
         'printPyretStack': printPyretStack,
+
+        'traceValue': traceValue,
+
 
         'traceEnter': traceEnter,
         'traceExit': traceExit,
@@ -5240,8 +5270,10 @@ function isMethod(obj) { return obj instanceof PMethod; }
           theOutsideWorld.stdout = newStdout;
         },
         'getParam' : getParam,
+        'getParamOrSetDefault' : getParamOrSetDefault,
         'setParam' : setParam,
         'hasParam' : hasParam,
+        'clearParam' : clearParam,
         'stdout' : theOutsideWorld.stdout,
         'stderr' : theOutsideWorld.stderr,
         'console' : CONSOLE
@@ -5277,7 +5309,6 @@ function isMethod(obj) { return obj instanceof PMethod; }
       throwMessageException: function(thing) {
         console.error("Dummy throwMessageException: " + thing);
       }
-
     };
 
     return thisRuntime;

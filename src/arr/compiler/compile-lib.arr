@@ -349,6 +349,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, ret) end
       end
       ast := nothing
+      ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end

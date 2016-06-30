@@ -60,9 +60,29 @@ fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   end
 end
 
+fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
+  l = exp.l
+  if ok-last(exp):
+    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
+      [list: A.s-srcloc(l, l), exp])
+  else: exp
+  end
+end
+
+fun wrap-toplevels(prog :: A.Program) -> A.Program:
+  cases(A.Program) prog:
+    | s-program(l1, _prov, _prov-types, imps, body) =>
+      new-body = cases(A.Expr) body:
+        | s-block(l2, stmts) => A.s-block(l2, map(wrap-if-needed, stmts))
+        | else => wrap-if-needed(body)
+      end
+      A.s-program(l1, _prov, _prov-types, imps, new-body)
+  end
+end
+
 
 flatten-and-merge-blocks = A.default-map-visitor.{
-    method s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     if stmts.length() == 1: stmts.first.visit(self)
     else:
       merged-stmts = for fold(new-stmts from [list: ], s from stmts):
@@ -74,7 +94,7 @@ flatten-and-merge-blocks = A.default-map-visitor.{
       A.s-block(l, merged-stmts.reverse())
     end
   end
-  }
+}
 
 
 fun count-apps(expr) block:

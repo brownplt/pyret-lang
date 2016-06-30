@@ -321,6 +321,7 @@ fun make-repl<a>(
     restart-interactions: restart-interactions,
     make-interaction-locator: make-interaction-locator,
     run-interaction: run-interaction,
-    runtime: runtime
+    runtime: runtime,
+    initial-locator: defs-locator
   }
 end
