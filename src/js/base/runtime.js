@@ -231,6 +231,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         return s;
       } else if (thisRuntime.ffi.isVSTable(val)) {
+        // Do this for now until we decide on a string
+        // representation
+        if (util.isBrowser()) {
+          return "<table>";
+        }
         if (!AsciiTable){
           AsciiTable = require("ascii-table");
         }
