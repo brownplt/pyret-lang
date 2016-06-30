@@ -3500,7 +3500,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return thisRuntime.getField(l, "_minus").app(r);
         });
       } else {
-        thisRuntime.ffi.throwNumericBinopError(l, r, "Minus", "_minus");
+        thisRuntime.ffi.throwNumericBinopError(l, r, "-", "Minus", "_minus");
       }
     };
 
@@ -3513,7 +3513,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return thisRuntime.getField(l, "_times").app(r);
         });
       } else {
-        thisRuntime.ffi.throwNumericBinopError(l, r, "Times", "_times");
+        thisRuntime.ffi.throwNumericBinopError(l, r, "*", "Times", "_times");
       }
     };
 
@@ -3526,7 +3526,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return thisRuntime.getField(l, "_divide").app(r);
         });
       } else {
-        thisRuntime.ffi.throwNumericBinopError(l, r, "Divide", "_divide");
+        thisRuntime.ffi.throwNumericBinopError(l, r, "/", "Divide", "_divide");
       }
     };
 

@@ -26,4 +26,19 @@ check:
   o2 = { arr: [list: 3,4,5] }
   o + o2 is [list: 4,6,8]
 
+  e2 = get-err(lam(): true * 5 end)
+  e2 satisfies E.is-numeric-binop-error
+  e2.val1 is true
+  e2.val2 is 5
+  
+  e3 = get-err(lam(): true - 5 end)
+  e3 satisfies E.is-numeric-binop-error
+  e3.val1 is true
+  e3.val2 is 5
+  
+  e4 = get-err(lam(): true / 5 end)
+  e4 satisfies E.is-numeric-binop-error
+  e4.val1 is true
+  e4.val2 is 5
+  
 end
