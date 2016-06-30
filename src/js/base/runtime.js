@@ -4902,10 +4902,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'not': makeFunction(bool_not, "not"),
 
-      'ref-set'    : makeFunction(setRef),
-      'ref-get'    : makeFunction(getRef),
-      'ref-end-graph'   : makeFunction(refEndGraph),
-      'ref-freeze' : makeFunction(freezeRef),
+      'ref-set'    : makeFunction(setRef, "ref-set"),
+      'ref-get'    : makeFunction(getRef, "ref-get"),
+      'ref-end-graph'   : makeFunction(refEndGraph, "ref-end-graph"),
+      'ref-freeze' : makeFunction(freezeRef, "ref-freeze"),
 
       'identical3': identical3Py,
       'identical': identicalPy,
