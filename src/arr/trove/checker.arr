@@ -310,11 +310,11 @@ data TestResult:
               ED.paragraph(
                 [list: ED.text("reported failure for the test, because it did not expect the evaluation of the ")] +
                 cases(CheckOperand) self.exn-place:
-                  | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)]
-                  | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 0)]
+                  | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], -1)]
+                  | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], -1)]
                   | on-refinement =>
                     cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
-                      | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], 0)]
+                      | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], -1)]
                       # this branch shouldn't happen
                       | none    => [list:
                                       ED.text("predicate"),
