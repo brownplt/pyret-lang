@@ -16,7 +16,7 @@ data ContractResult:
     method render-reason(self): ED.text("There were no errors") end
   | fail(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.reason.render-fancy-reason(self.loc, false, maybe-stack-loc, src-available, maybe-ast)
+      self.reason.render-fancy-reason(self.loc, true, maybe-stack-loc, src-available, maybe-ast)
     end,
     method render-reason(self):
       self.reason.render-reason(self.loc, false)
@@ -57,15 +57,55 @@ end
 data FailureReason:
   | failure-at-arg(loc, index, function-name, args, reason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        [ED.para:
-          ED.code(ED.text(self.function-name)),
-          ED.text(" : The argument at position " + tostring(self.index + 1)),
-          ED.text(" was invalid because: ")],
-        self.reason.render-reason(loc, from-fail-arg),
-        [ED.para:
-          ED.text("The other arguments were:"),
-          ED.h-sequence(L.map(ED.embed, self.args), " ")]]
+      cases(O.Option) maybe-stack-loc(0, true):
+        | some(app-loc) =>
+          if src-available(app-loc):
+            cases(O.Option) maybe-ast(app-loc):
+              | some(ast) =>
+                [ED.error:
+                  [ED.para:
+                    ED.text("The "),
+                    ED.highlight(ED.text("function application"), [ED.locs: app-loc], -1)],
+                   ED.cmcode(app-loc),
+                  [ED.para:
+                    ED.text("failed because the "),
+                    ED.highlight(
+                      [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")], 
+                      [ED.locs: ast.args.get(self.index).l], 0),
+                    ED.text(" argument evaluated to an unexpected value.")],
+                  self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
+              | none      =>
+                [ED.error:
+                  [ED.para:
+                    ED.text("The "),
+                    ED.highlight(ED.text("function application"), [ED.locs: app-loc], 0)],
+                   ED.cmcode(app-loc),
+                  [ED.para:
+                    ED.text("failed because the "),
+                    ED.ed-nth(self.index + 1),
+                    ED.text(" argument evaluated to an unexpected value.")],
+                  self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
+            end
+          else:
+            [ED.error:
+              [ED.para:
+                ED.text("The function application at "),
+                ED.loc(app-loc),
+                ED.text(" failed because the "),
+                ED.ed-nth(self.index + 1),
+                ED.text(" argument evaluated to an unexpected value.")],
+              self.reason.render-fancy-reason(loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast)]
+          end
+        | none          =>
+          [ED.error:
+            [ED.para:
+              ED.text("An application of "),
+              ED.code(ED.text(self.function-name)),
+              ED.text(" failed because the "),
+              ED.ed-nth(self.index + 1),
+              ED.text(" argument evaluated to an unexpected value.")],
+            self.reason.render-fancy-reason(loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast)]
+      end
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
@@ -100,7 +140,7 @@ data FailureReason:
       [ED.error:
         if loc.is-builtin():
           [ED.para:
-            ED.text("A runtime contract, "),
+            ED.text("An annotation, "),
             ED.code(ED.text(self.name)),
             ED.text(", in "),
             ED.loc(loc)]
@@ -120,21 +160,23 @@ data FailureReason:
         [ED.para:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
+        if from-fail-arg:
+          cases(O.Option) maybe-stack-loc(1, true):
+            | some(sender) =>
+              if src-available(sender):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("which was sent from around")],
+                   ED.cmcode(sender)]
+              else:
                 [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end]
+                  ED.text("which was sent from around "),
+                  ED.loc(sender)]
+              end
+            | none =>
+              [ED.sequence:]
+          end
+        else: [ED.sequence:] end]
     end,
     method render-reason(self, loc, from-fail-arg):
       message = [ED.para:
@@ -179,21 +221,23 @@ data FailureReason:
         [ED.para:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
+        if from-fail-arg:
+          cases(O.Option) maybe-stack-loc(1, true):
+            | some(sender) =>
+              if src-available(sender):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("which was sent from around")],
+                   ED.cmcode(sender)]
+              else:
                 [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end]
+                  ED.text("which was sent from around "),
+                  ED.loc(sender)]
+              end
+            | none =>
+              [ED.sequence:]
+          end
+        else: [ED.sequence:] end]
     end,
     method render-reason(self, loc, from-fail-arg):
       message = [ED.para:
@@ -237,21 +281,23 @@ data FailureReason:
         [ED.para:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
+        if from-fail-arg:
+          cases(O.Option) maybe-stack-loc(1, true):
+            | some(sender) =>
+              if src-available(sender):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("which was sent from around")],
+                   ED.cmcode(sender)]
+              else:
                 [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end,
+                  ED.text("which was sent from around "),
+                  ED.loc(sender)]
+              end
+            | none =>
+              [ED.sequence:]
+          end
+        else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
           L.fold_n(lam(n, failure):
@@ -312,21 +358,23 @@ data FailureReason:
         [ED.para:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
-        cases(O.Option) maybe-stack-loc(1, true):
-          | some(sender) =>
-            if src-available(sender):
-              [ED.sequence:
+        if from-fail-arg:
+          cases(O.Option) maybe-stack-loc(1, true):
+            | some(sender) =>
+              if src-available(sender):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("which was sent from around")],
+                   ED.cmcode(sender)]
+              else:
                 [ED.para:
-                  ED.text("which was sent from around")],
-                 ED.cmcode(sender)]
-            else:
-              [ED.para:
-                ED.text("which was sent from around "),
-                ED.loc(sender)]
-            end
-          | none =>
-            [ED.sequence:]
-        end,
+                  ED.text("which was sent from around "),
+                  ED.loc(sender)]
+              end
+            | none =>
+              [ED.sequence:]
+          end
+        else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
           L.fold_n(lam(n, failure):
@@ -389,21 +437,23 @@ data FailureReason:
             ED.embed(self.tupleLength),
             ED.text(" component tuple:")],
           ED.embed(self.val),
-          cases(O.Option) maybe-stack-loc(1, true):
-            | some(sender) =>
-              if src-available(sender):
-                [ED.sequence:
+          if from-fail-arg:
+            cases(O.Option) maybe-stack-loc(1, true):
+              | some(sender) =>
+                if src-available(sender):
+                  [ED.sequence:
+                    [ED.para:
+                      ED.text("which was sent from around")],
+                     ED.cmcode(sender)]
+                else:
                   [ED.para:
-                    ED.text("which was sent from around")],
-                   ED.cmcode(sender)]
-              else:
-                [ED.para:
-                  ED.text("which was sent from around "),
-                  ED.loc(sender)]
-              end
-            | none =>
-              [ED.sequence:]
-          end]
+                    ED.text("which was sent from around "),
+                    ED.loc(sender)]
+                end
+              | none =>
+                [ED.sequence:]
+            end
+          else: [ED.sequence:] end]
     end,
     method render-reason(self, loc, fail-from-arg):
       [ED.error:

@@ -2218,7 +2218,7 @@ data RuntimeError:
     method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    method render-reason(self): [ED.para: ED.embed(self.value)] end
+    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end
 end
 
 data ParseError:

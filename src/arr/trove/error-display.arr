@@ -35,16 +35,6 @@ locs = {
   make5: lam(a, b, c, d, e): raw-array-to-list([raw-array: a, b, c, d, e]) end
 }
 
-shadow error = {
-  make:  lam(arr):           v-sequence(raw-array-to-list(arr)) end,
-  make0: lam():              v-sequence(raw-array-to-list([raw-array: ])) end,
-  make1: lam(a):             v-sequence(raw-array-to-list([raw-array: a])) end,
-  make2: lam(a, b):          v-sequence(raw-array-to-list([raw-array: a, b])) end,
-  make3: lam(a, b, c):       v-sequence(raw-array-to-list([raw-array: a, b, c])) end,
-  make4: lam(a, b, c, d):    v-sequence(raw-array-to-list([raw-array: a, b, c, d])) end,
-  make5: lam(a, b, c, d, e): v-sequence(raw-array-to-list([raw-array: a, b, c, d, e])) end
-}
-
 para = {
   make:  lam(arr):           paragraph(raw-array-to-list(arr)) end,
   make0: lam():              paragraph(raw-array-to-list([raw-array: ])) end,
@@ -64,6 +54,8 @@ sequence = {
   make4: lam(a, b, c, d):    h-sequence(raw-array-to-list([raw-array: a, b, c, d]), " ") end,
   make5: lam(a, b, c, d, e): h-sequence(raw-array-to-list([raw-array: a, b, c, d, e]), " ") end
 }
+
+shadow error = sequence
 
 para-nospace = {
   make:  lam(arr):           h-sequence(raw-array-to-list(arr), "") end,
@@ -129,4 +121,16 @@ fun ed-components(n):
   [sequence:
     embed(n),
     text(if n == 1: " component" else: " components" end)]
+end
+
+fun ed-nth(n):
+  text(
+    let last-digit = num-modulo(n,10):
+      num-to-string(n) +  ask:
+        | last-digit == 1 then: "ˢᵗ"
+        | last-digit == 2 then: "ⁿᵈ"
+        | last-digit == 3 then: "ⁿᵈ"
+        | otherwise:            "ᵗʰ"
+      end
+    end)
 end
