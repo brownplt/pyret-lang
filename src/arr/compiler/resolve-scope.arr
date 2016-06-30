@@ -841,6 +841,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, A.a-blank))
             end
         end
+
       end
       
       new-let-body = for fold2(acc3 from body, a from args, at from atoms.reverse()):
