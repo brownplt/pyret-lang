@@ -121,33 +121,6 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
   end
 end
 
-fun make-repl-definitions-locator(get-definitions, globals):
-  fun get-ast():
-    initial-definitions = get-definitions()
-    parsed = P.surface-parse(initial-definitions, "definitions://")
-    make-provide-for-repl-main(parsed, globals)
-  end
-  {
-    method needs-compile(self, provs): true end,
-    method get-modified-time(self): 0 end,
-    method get-options(self, options): options end,
-    method get-native-modules(self): [list:] end,
-    method get-module(self): CL.pyret-ast(get-ast()) end,
-    method get-extra-imports(self):
-      CS.standard-imports
-    end,
-    method get-dependencies(self):
-      CL.get-standard-dependencies(self.get-module(), self.uri())
-    end,
-    method get-globals(self): globals end,
-    method get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-    method uri(self): "definitions://" end,
-    method name(self): "definitions" end,
-    method set-compiled(self, env, result): nothing end,
-    method get-compiled(self): none end,
-    method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
-  }
-end
 
 fun make-definitions-finder(import-types :: SD.StringDict, make-builtin):
   fun definitions-finder(context, dep):
@@ -193,11 +166,10 @@ fun make-repl<a>(
     runtime :: R.Runtime,
     modules :: SD.MutableStringDict<CL.Loadable>,
     realm :: L.Realm,
-    defs-locator :: CL.Locator,
     compile-context :: a,
     finder :: (a, CS.Dependency -> CL.Located<a>)):
 
-  var globals = defs-locator.get-globals()
+  var globals = CS.standard-globals
   var current-type-check = false
   var extra-imports = CS.standard-imports
   var current-modules = modules
@@ -241,7 +213,7 @@ fun make-repl<a>(
     current-realm := L.get-result-realm(result)
 
   end
-  fun restart-interactions(type-check :: Boolean) block:
+  fun restart-interactions(defs-locator :: CL.Locator, type-check :: Boolean) block:
     current-interaction := 0
     current-type-check := type-check
     current-realm := realm
@@ -288,10 +260,14 @@ fun make-repl<a>(
     current-interaction := current-interaction + 1
     this-interaction = current-interaction
     uri = "interactions://" + num-to-string(this-interaction)
-    fun get-ast():
-      interactions = get-interactions()
-      parsed = P.surface-parse(interactions, uri)
-      make-provide-for-repl(parsed)
+    var ast = nothing
+    fun get-ast() block:
+      when ast == nothing block:
+        interactions = get-interactions()
+        parsed = P.surface-parse(interactions, uri)
+        ast := make-provide-for-repl(parsed)
+      end
+      ast
     end
     extras-now = extra-imports
     globals-now = globals
@@ -307,7 +283,6 @@ fun make-repl<a>(
         mod-deps + self.get-extra-imports().imports.map(_.dependency)
       end,
       method get-globals(self): globals-now end,
-      method get-namespace(self, this-runtime): N.make-base-namespace(this-runtime) end,
       method update-compile-context(self, ctxt): ctxt end,
       method uri(self): uri end,
       method name(self): "interactions" + num-to-string(this-interaction) end,
@@ -317,11 +292,43 @@ fun make-repl<a>(
     }
   end
 
+  fun make-definitions-locator(get-defs, shadow globals):
+    var ast = nothing
+    fun get-ast() block:
+      when ast == nothing block:
+        initial-definitions = get-defs()
+        parsed = P.surface-parse(initial-definitions, "definitions://")
+        provided = make-provide-for-repl-main(parsed, globals)
+        ast := provided
+      end
+      ast
+    end
+    {
+      method needs-compile(self, provs): true end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): [list:] end,
+      method get-module(self): CL.pyret-ast(get-ast()) end,
+      method get-extra-imports(self):
+        CS.standard-imports
+      end,
+      method get-dependencies(self):
+        CL.get-standard-dependencies(self.get-module(), self.uri())
+      end,
+      method get-globals(self): globals end,
+      method uri(self): "definitions://" end,
+      method name(self): "definitions" end,
+      method set-compiled(self, env, result): nothing end,
+      method get-compiled(self): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    }
+  end
+
   {
     restart-interactions: restart-interactions,
     make-interaction-locator: make-interaction-locator,
+    make-definitions-locator: make-definitions-locator,
     run-interaction: run-interaction,
-    runtime: runtime,
-    initial-locator: defs-locator
+    runtime: runtime
   }
 end

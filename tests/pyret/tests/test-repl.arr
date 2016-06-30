@@ -27,21 +27,22 @@ msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
 check:
   r = RT.make-runtime()
-  var current-defs = "5"
-  loc = R.make-repl-definitions-locator(lam(): current-defs end, CS.standard-globals)
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), loc, CLI.default-test-context, CLI.module-finder)
 
-  result1 = repl.restart-interactions(false)
-  L.get-result-answer(result1.v) is some(5)
-
-  current-defs := "x = 5"
-  result2 = repl.restart-interactions(false)
-  L.get-result-answer(result2.v) is none
-
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, CLI.module-finder)
+  fun restart(src, type-check):
+    i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
+    repl.restart-interactions(i, type-check)
+  end
   fun next-interaction(src):
     i = repl.make-interaction-locator(lam(): src end)
     repl.run-interaction(i)
   end
+
+  result1 = restart("5", false)
+  L.get-result-answer(result1.v) is some(5)
+
+  result2 = restart("x = 5", false)
+  L.get-result-answer(result2.v) is none
 
   result3 = next-interaction("y = 10\nx")
   val(result3) is some(5)
@@ -55,8 +56,8 @@ check:
   result6 = next-interaction("is-function(make-string-dict)")
   val(result6) is some(true)
 
-  current-defs := "import string-dict as SD\nstring-dict = SD.string-dict\n55"
-  result7 = repl.restart-interactions(false)
+  importsd = "import string-dict as SD\nstring-dict = SD.string-dict\n55"
+  result7 = restart(importsd, false)
   val(result7) is some(55)
 
   # should fail because y no longer bound
@@ -80,8 +81,8 @@ check:
   result12 = next-interaction("import string-dict as SD")
   result12 satisfies E.is-left
 
-  current-defs := "import string-dict as SD\nstring-dict = SD.string-dict"
-  result13 = repl.restart-interactions(false)
+  importbindsd = "import string-dict as SD\nstring-dict = SD.string-dict"
+  result13 = restart(importbindsd, false)
   result13 satisfies E.is-right
 
   result14 = next-interaction("[string-dict: 'x', 10].get-value('x')")
@@ -105,8 +106,7 @@ check:
   result20 = next-interaction("is-object(Defs.string-dict)")
   val(result20) is some(true)
 
-  current-defs := "x :: Number = 5\nx"
-  result21 = repl.restart-interactions(true)
+  result21 = restart("x :: Number = 5\nx", true)
   val(result21) is some(5)
 
   result22 = next-interaction("fun f() -> String: x end")
@@ -115,8 +115,7 @@ check:
   result23 = next-interaction("fun g() -> Number: x end\ng()")
   val(result23) is some(5)
 
-  current-defs := "{x; y} = {1; 2}\nx"
-  result24 = repl.restart-interactions(false)
+  result24 = restart("{x; y} = {1; 2}\nx", false)
   val(result24) is some(1)
 
   result25 = next-interaction("x + y")
