@@ -72,7 +72,7 @@ data FailureReason:
                     ED.highlight(
                       [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")], 
                       [ED.locs: ast.args.get(self.index).l], 0),
-                    ED.text(" argument evaluated to an unexpected value.")],
+                    ED.text(" evaluated to an unexpected value.")],
                   self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
               | none      =>
                 [ED.error:
