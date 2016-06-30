@@ -374,6 +374,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     ReprMethods["_tostring"] = Object.create(DefaultReprMethods);
 
+    ReprMethods["$cli"] = Object.create(DefaultReprMethods);
+    ReprMethods["$cli"]["function"] = function(val) { return "<function:" + val.name + ">"; }
+    ReprMethods["$cli"]["method"] = function(val) { return "<method:" + val.name + ">"; }
+
     ReprMethods.createNewRenderer = function createNewRenderer(name, base) {
       if (ReprMethods[name]) { return false; }
       ReprMethods[name] = Object.create(base);

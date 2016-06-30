@@ -115,9 +115,12 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
           } else {
             execRt.runThunk(
               function() {
+                var cliRender = execRt.makeFunction(function(val) { 
+                  return execRt.toReprJS(val, execRt.ReprMethods["$cli"]); 
+                }, "cliRender");
                 return gf(gf(rendererror, "values"), "display-to-string").app(
                   reasonResult.result,
-                  execRt.namespace.get("torepr"),
+                  cliRender,
                   execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
               },
               function(printResult) {
