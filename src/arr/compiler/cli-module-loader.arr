@@ -116,9 +116,6 @@ fun get-cached-if-available(basedir, loc) block:
       method get-globals(_):
         CS.standard-globals
       end,
-      method get-namespace(_, some-runtime):
-        N.make-base-namespace(some-runtime)
-      end,
 
       method uri(_): uri end,
       method name(_): saved-path end,

@@ -163,7 +163,6 @@ fun string-locator(uri :: URI, s :: String):
     method get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
     method get-extra-imports(self): CS.standard-imports end,
     method get-globals(self): CS.standard-globals end,
-    method get-namespace(self, r): N.make-base-namespace(r) end,
     method uri(self): uri end,
     method name(self): uri end,
     method set-compiled(self, _, _): nothing end,
@@ -439,26 +438,8 @@ end
 type PyretAnswer = Any
 type PyretMod = Any
 
-fun compile-and-run-worklist(ws :: List<ToCompile>, runtime :: R.Runtime, options):
-  compile-and-run-worklist-with(ws, runtime, SD.make-mutable-string-dict(), options)
-end
-
 fun is-error-compilation(cr):
   is-module-as-string(cr) and CS.is-err(cr.result-printer)
-end
-
-fun compile-and-run-worklist-with(ws :: List<ToCompile>, runtime :: R.Runtime, initial :: SD.MutableStringDict<Loadable>, options):
-  compiled-mods = compile-program-with(ws, initial, options).loadables
-  errors = compiled-mods.filter(is-error-compilation)
-  cases(List) errors:
-    | empty =>
-      load-infos = for map2(tc from ws, cm from compiled-mods):
-        { to-compile: tc, compiled-mod: cm }
-      end
-      right(load-worklist(load-infos, SD.make-string-dict(), L.make-loader(runtime), runtime))
-    | link(_, _) =>
-      left(errors.map(_.result-printer))
-  end
 end
 
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):
@@ -475,38 +456,6 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm
     | link(_, _) =>
       left(errors.map(_.result-printer))
   end
-end
-
-
-fun load-worklist(ws, modvals :: SD.StringDict<PyretMod>, loader, runtime) -> PyretAnswer:
-  doc: "Assumes topo-sorted worklist in ws"
-  cases(List) ws block:
-    | empty =>
-      raise("Didn't get anything to run in run-worklist")
-    | link(load-info, r) =>
-      depmap = load-info.to-compile.dependency-map
-      dependencies = load-info.to-compile.locator.get-dependencies()
-      depnames = dependencies.map(lam(d): d.key() end).sort()
-      depvals = for map(d from depnames):
-        { modval: modvals.get-value(depmap.get-value-now(d).uri()), key: d }
-      end
-      m = load-info.compiled-mod
-      when is-module-as-string(m) and CS.is-err(m):
-        raise(m.result-printer.problems)
-      end
-      ans = loader.load(m, depvals, load-info.to-compile.locator.get-namespace(runtime), load-info.to-compile.locator)
-      modvals-new = modvals.set(load-info.to-compile.locator.uri(), ans)
-      answer = loader.run(ans, m, load-info.to-compile.locator.uri())
-      cases(List) r:
-        | empty => answer
-        | link(_, _) => load-worklist(r, modvals-new, loader, runtime)
-      end
-  end
-end
-
-fun _compile-and-run-locator(locator, finder, context, runtime, options):
-  wl = compile-worklist(finder, locator, context)
-  compile-and-run-worklist(wl, runtime, options)
 end
 
 fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-modules, options) block:

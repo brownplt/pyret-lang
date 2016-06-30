@@ -43,9 +43,6 @@ fun make-jsfile-locator(path):
     method get-globals(_):
       CM.standard-globals
     end,
-    method get-namespace(_, some-runtime):
-      N.make-base-namespace(some-runtime)
-    end,
 
     method uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,
     method name(_): path end,
