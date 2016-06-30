@@ -3,7 +3,6 @@ import file("../../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../../src/arr/compiler/compile-structs.arr") as CM
 import load-lib as L
 import string-dict as SD
-import namespace-lib as N
 import runtime-lib as R
 
 print("Running builtin-locator tests: " + tostring(time-now()) + "\n")

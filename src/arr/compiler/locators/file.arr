@@ -1,7 +1,6 @@
 provide *
 
 import builtin-modules as B
-import namespace-lib as N
 import parse-pyret as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS

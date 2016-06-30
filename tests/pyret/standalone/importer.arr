@@ -12,7 +12,6 @@ import image as I
 import s-exp as S
 import load-lib as LL
 import world as W
-import namespace-lib as NL
 import runtime-lib as RL
 import particle as PART
 import pathlib as PATH
@@ -45,8 +44,6 @@ print("An sexp: " + torepr(S.read-s-exp("(a 5 \"str\" (nested (list 1 2 3)))")))
 print("Load-lib.render-check-results: " + torepr(LL.render-check-results))
 
 print("BigBang: " + torepr(W.big-bang))
-
-print("Empty namespace: " + torepr(NL.make-empty-namespace(RL.make-runtime())))
 
 print("Particle.D7 is " + torepr(PART.D7))
 

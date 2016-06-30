@@ -1,5 +1,4 @@
 provide *
-import namespace-lib as N
 import builtin-modules as B
 import string-dict as SD
 import file as F

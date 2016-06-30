@@ -1,5 +1,4 @@
 provide *
-import namespace-lib as N
 import runtime-lib as R
 import builtin-modules as B
 import make-standalone as MS

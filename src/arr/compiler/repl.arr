@@ -4,7 +4,6 @@ import ast as A
 import base as _
 import either as E
 import load-lib as L
-import namespace-lib as N
 import parse-pyret as P
 import string-dict as SD
 import runtime-lib as R

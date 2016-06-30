@@ -5,7 +5,6 @@ import either as E
 import parse-pyret as P
 import ast as A
 import load-lib as L
-import namespace-lib as N
 import render-error-display as RED
 import runtime-lib as R
 import sets as S
@@ -93,7 +92,6 @@ mtd = [SD.string-dict:]
 
 # for re-export
 standard-builtins = CS.standard-builtins
-make-base-namespace = N.make-base-namespace
 
 type URI = String
 
