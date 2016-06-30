@@ -49,7 +49,7 @@
               } else {
                 return [];
               }
-            }),
+            }, "get-raw-dependencies"),
           "get-raw-native-modules":
             F(function() {
               var m = getData(content);
@@ -58,7 +58,7 @@
               } else {
                 return [];
               }
-            }),
+            }, "get-raw-native-modules"),
           "get-raw-datatype-provides":
             F(function() {
               var m = getData(content);
@@ -84,7 +84,7 @@
                 }
               }
               return [];
-            }),
+            }, "get-raw-datatype-provides"),
           "get-raw-alias-provides":
             F(function() {
               var m = getData(content);
@@ -106,7 +106,7 @@
                 }
               }
               return [];
-            }),
+            }, "get-raw-alias-provides"),
           "get-raw-value-provides":
             F(function() {
               var m = getData(content);
@@ -129,11 +129,11 @@
                 }
               }
               return [];
-            }),
+            }, "get-raw-value-provides"),
           "get-raw-compiled":
             F(function() {
               return content;
-            })
+            }, "get-raw-compiled")
         });
     }
 
@@ -150,8 +150,8 @@
       "provide-plus-types": O({
         types: { },
         values: O({
-          "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator),
-          "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString)
+          "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
+          "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")
         })
       }),
       "answer": RUNTIME.nothing

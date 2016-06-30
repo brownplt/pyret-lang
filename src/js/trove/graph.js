@@ -862,8 +862,8 @@
           Tree: typeFromStructs("Tree")
         }),
         values: RUNTIME.makeObject({
-          "show-tree": RUNTIME.makeFunction(treeDiagram),
-          "show-graph": RUNTIME.makeFunction(forceLayout),
+          "show-tree": RUNTIME.makeFunction(treeDiagram, "show-tree"),
+          "show-graph": RUNTIME.makeFunction(forceLayout, "show-graph"),
           "graph": valFromStructs("graph"),
           "node": valFromStructs("node"),
           "vertex": valFromStructs("vertex"),
@@ -872,11 +872,11 @@
             "vertex-printer": RUNTIME.makeFunction(function(vertex){
               // TODO: check if it's a vertex
               return tostring(gf(vertex, "value"))
-            }),
+            }, "vertex-printer"),
             "edge-printer": RUNTIME.makeFunction(function(edge){
               // TODO: check if it's an edge
               return tostring(gf(edge, "value"))
-            })
+            }, "edge-printer")
           }),
           "vertex-options": RUNTIME.makeObject({
             "color": PyretGray
@@ -890,7 +890,7 @@
             "node-printer": RUNTIME.makeFunction(function(tree){
               // TODO: check if it's a tree
               return tostring(gf(tree, "value"));
-            })
+            }, "node-printer")
           })
         })
       })

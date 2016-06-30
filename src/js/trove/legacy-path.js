@@ -13,15 +13,15 @@
             "get-raw-dependencies":
             F(function() {
               return [];
-            }),
+            }, "get-raw-dependencies"),
             "get-raw-provides":
             F(function() {
               return [];
-            }),
+            }, "get-raw-provides"),
             "get-raw-compiled":
             F(function() {
               return RUNTIME.makeOpaque(function() { return m; });
-            })
+            }, "get-raw-compiled")
           }));
         });
 
@@ -32,7 +32,7 @@
       "provide-plus-types": O({
         types: { },
         values: O({
-          "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath)
+          "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
         })
       }),
       "answer": RUNTIME.nothing

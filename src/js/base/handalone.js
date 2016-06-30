@@ -57,7 +57,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       var locList = runtime.ffi.makeList(locArray);
       return locList;
     };
-    var getStackP = runtime.makeFunction(getStack);
+    var getStackP = runtime.makeFunction(getStack, "get-stack");
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     runtime.safeCall(function() {

@@ -23,7 +23,7 @@
                   RUNTIME.checkString(filename);
                   var s = RUNTIME.unwrap(filename);
                   return RUNTIME.makeOpaque(new InputFile(s));
-                }),
+                }, "open-input-file"),
               "open-output-file": RUNTIME.makeFunction(function(filename, append) {
                   RUNTIME.ffi.checkArity(2, arguments, "open-output-file");
                   RUNTIME.checkString(filename);
@@ -31,7 +31,7 @@
                   var s = RUNTIME.unwrap(filename);
                   var b = RUNTIME.unwrap(append);
                   return RUNTIME.makeOpaque(new OutputFile(s, b));
-                }),
+                }, "open-output-file"),
               "read-file": RUNTIME.makeFunction(function(file) {
                   RUNTIME.ffi.checkArity(1, arguments, "read-file");
                   RUNTIME.checkOpaque(file);
@@ -46,7 +46,7 @@
                   else {
                     throw Error("Expected file in read-file, but got something else");
                   }
-                }),
+                }, "read-file"),
               "display": RUNTIME.makeFunction(function(file, val) {
                   RUNTIME.ffi.checkArity(2, arguments, "display");
                   RUNTIME.checkOpaque(file);
@@ -65,7 +65,7 @@
                   else {
                     throw Error("Expected file in display, but got something else");
                   }
-                }),
+                }, "display"),
               "flush-output-file": RUNTIME.makeFunction(function(file) {
                   RUNTIME.ffi.checkArity(1, arguments, "flush-output-file");
                   RUNTIME.checkOpaque(file);
@@ -81,7 +81,7 @@
                   else {
                     throw Error("Expected file in read-file, but got something else");
                   }
-                }),                  
+                }, "flush-output-file"),                  
               "file-times": RUNTIME.makeFunction(function(file) {
                   RUNTIME.ffi.checkArity(1, arguments, "file-times");
                   RUNTIME.checkOpaque(file);
@@ -98,7 +98,7 @@
                     atime: Number(stats.atime),
                     ctime: Number(stats.ctime)
                   });
-                }),
+                }, "file-times"),
               "real-path": RUNTIME.makeFunction(function(path) {
                   RUNTIME.ffi.checkArity(1, arguments, "real-path");
                   RUNTIME.checkString(path);
@@ -110,14 +110,14 @@
                     newpath = s; // should this be an error instead?
                   }
                   return RUNTIME.makeString(newpath);
-                }),
+                }, "real-path"),
               "exists": RUNTIME.makeFunction(function(path) {
                   RUNTIME.ffi.checkArity(1, arguments, "exists");
                   RUNTIME.checkString(path);
                   var s = RUNTIME.unwrap(path);
                   var e = fs.existsSync(s);
                   return RUNTIME.makeBoolean(e);
-                }),
+                }, "exists"),
               "close-output-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-output-file");
                   RUNTIME.checkOpaque(file);
@@ -134,7 +134,7 @@
                   else {
                     throw Error("Expected file in close-output-file, but got something else");
                   }                  
-                }),
+                }, "close-output-file"),
               "close-input-file": RUNTIME.makeFunction(function(file) { 
                   RUNTIME.ffi.checkArity(1, arguments, "close-input-file");
                   RUNTIME.checkOpaque(file);
@@ -151,20 +151,20 @@
                   else {
                     throw Error("Expected file in close-input-file, but got something else");
                   }                  
-                }),
+                }, "close-input-file"),
               "create-dir": RUNTIME.makeFunction(function(directory) {
                 RUNTIME.ffi.checkArity(1, arguments, "create-dir");
                 RUNTIME.checkString(directory);
                 fs.mkdirSync(directory);
                 return true;
-              }),
+              }, "create-dir"),
               "list-files": RUNTIME.makeFunction(function(directory) {
                   RUNTIME.ffi.checkArity(1, arguments, "list-files");
                   RUNTIME.checkString(directory);
                   var dir = RUNTIME.unwrap(directory);
                   var contents = fs.readdirSync(dir)
                   return RUNTIME.ffi.makeList(contents.map(RUNTIME.makeString))
-                })
+                }, "list-files")
               })
             }),
           answer: NAMESPACE.get("nothing")

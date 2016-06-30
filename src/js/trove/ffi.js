@@ -97,12 +97,12 @@
       var pyretObj = {}
       var els = runtime.makeFunction(function(v) {
         throwMessageException("No cases matched");
-      });
+      }, "cases-else");
       Object.keys(casesObj).forEach(function(k) {
         if(k !== "else") {
-          pyretObj[k] = runtime.makeFunction(casesObj[k]);
+          pyretObj[k] = runtime.makeFunction(casesObj[k], "cases-" + k);
         } else {
-          els = runtime.makeFunction(casesObj[k]);
+          els = runtime.makeFunction(casesObj[k], "cases-else");
         }
       });
       return runtime.safeTail(function() {

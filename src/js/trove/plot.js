@@ -900,9 +900,9 @@
         }),
         values: RUNTIME.makeObject({
           // TODO: provide is-...?
-          "plot-multi": RUNTIME.makeFunction(plotMulti),
-          "histogram": RUNTIME.makeFunction(histogram),
-          "pie-chart": RUNTIME.makeFunction(pieChart),
+          "plot-multi": RUNTIME.makeFunction(plotMulti, "plot-multi"),
+          "histogram": RUNTIME.makeFunction(histogram, "histogram"),
+          "pie-chart": RUNTIME.makeFunction(pieChart, "pie-chart"),
           "plot-window-options": RUNTIME.makeObject({
             "x-min": -10,
             "x-max": 10,

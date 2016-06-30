@@ -198,7 +198,7 @@
                                  "event");
         options = core_to_options(core);
         return runtime.makeOpaque(new OnParticle(onEvent,eName,options));
-      }),
+      }, "on-particle"),
       "to-particle": makeFunction(function(toEvent,config) {
         runtime.ffi.checkArity(2, arguments, "to-particle");
         runtime.checkFunction(toEvent);
@@ -208,7 +208,7 @@
                                  "event");
         options = core_to_options(core);
         return runtime.makeOpaque(new ToParticle(toEvent,eName,options));
-      }),
+      }, "to-particle"),
       // direct Particle stream access
       "send-event": makeFunction(function(core, event) {
         runtime.ffi.checkArity(2, arguments, "send-event");
@@ -219,7 +219,7 @@
         options = core_to_options(core);
         sendEvent(eName, eData, options);
         return runtime.ffi.makeNone();
-      }),
+      }, "send-event"),
       // core configuration
       "core": runtime.getField(pStruct_vals, "core"),
       "no-core": runtime.getField(pStruct_vals, "no-core"),
@@ -232,7 +232,7 @@
         options = core_to_options(core);
         configCore(config, options);
         return pyConfig.app(core, config);
-      }),
+      }, "configure-core"),
       "clear-core-config": makeFunction(function(core) {
         runtime.ffi.checkArity(1, arguments, "clear-core-config");
         checkCoreObj(core);
@@ -242,7 +242,7 @@
         };
         sendEvent(runtime.getField(core, "name") + "_config", "", options);
         return runtime.ffi.makeNone();
-      }),
+      }, "clear-core-config"),
       "enters": runtime.getField(pStruct_vals, "enters"),
       "exits": runtime.getField(pStruct_vals, "exits"),
       "crosses": runtime.getField(pStruct_vals, "crosses"),

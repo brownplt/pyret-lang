@@ -137,7 +137,7 @@
           var locList = execRt.ffi.makeList(locArray);
           return locList;
         };
-        var getStackP = execRt.makeFunction(getStack);
+        var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks, getStackP); },
           function(printedCheckResult) {
@@ -266,8 +266,8 @@
             });
           }
           return runtime.makeObject({
-            load: runtime.makeFunction(load),
-            run: runtime.makeFunction(run)
+            load: runtime.makeFunction(load, "load"),
+            run: runtime.makeFunction(run, "run")
           });
         });
     }
@@ -345,16 +345,16 @@
     return runtime.makeObject({
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject({
-          "make-loader": runtime.makeFunction(makeLoader),
-          "run-program": runtime.makeFunction(runProgram),
-          "is-success-result": runtime.makeFunction(isSuccessResult),
-          "is-failure-result": runtime.makeFunction(isFailureResult),
-          "get-result-answer": runtime.makeFunction(getAnswerForPyret),
-          "get-result-realm": runtime.makeFunction(getRealm),
-          "get-result-compile-result": runtime.makeFunction(getResultCompileResult),
-          "render-check-results": runtime.makeFunction(renderCheckResults),
-          "render-error-message": runtime.makeFunction(renderErrorMessage),
-          "empty-realm": runtime.makeFunction(emptyRealm)
+          "make-loader": runtime.makeFunction(makeLoader, "make-loader"),
+          "run-program": runtime.makeFunction(runProgram, "run-program"),
+          "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
+          "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
+          "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
+          "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
+          "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
+          "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
+          "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
+          "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
         }),
         types: {
           Module: annModule,

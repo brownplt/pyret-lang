@@ -57,7 +57,7 @@
               return runtime.nothing; 
             };
             runtime.runThunk(function() { 
-              return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut));
+              return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
             }, function(_) {
               fs.writeSync(outFile, "\n});\n");
               fs.writeSync(outFile, handalone);
@@ -73,7 +73,7 @@
       });
     }
     return runtime.makeModuleReturn({
-      "make-standalone": runtime.makeFunction(makeStandalone)
+      "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone")
     }, {})
   }
 })
