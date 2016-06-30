@@ -201,76 +201,6 @@
       checkSuccess(mr, "answer");
       return mr.val.runtime.getField(mr.val.result.result, "answer");
     }
-    function makeLoader(loadRuntimePyret) {
-      runtime.checkArity(1, arguments, "make-loader");
-      runtime.getField(runtimeLib, "internal").checkRuntime(loadRuntimePyret);
-      var loadRuntime = runtime.getField(loadRuntimePyret, "runtime").val;
-      return loadRuntime.loadBuiltinModules([
-        mb("checker")],
-        "load-lib",
-        function(checkerLib) {
-          function load(compileResult, listOfMods, namespace, locator) {
-            // TODO(joe): check for compileResult annotation
-            runtime.checkList(listOfMods);
-            var modArr = runtime.ffi.toArray(listOfMods);
-            var dependencies = modArr.map(function(m) { return runtime.getField(m, "modval").val.moduleFun; });
-            return runtime.safeCall(function() {
-              if (runtime.hasField(compileResult, "result-printer")) {
-                var gf = runtime.getField;
-                return gf(gf(gf(compileResult, "result-printer"), "code"), "pyret-to-js-runnable").app();
-              }
-              else {
-                return runtime.getField(compileResult, "internal-mod");
-              }
-            }, function(toExec) {
-              runtime.pauseStack(function(restart) {
-                if (typeof toExec === "string") {
-                  var loaded = loader.loadSingle(loadRuntime, toExec, dependencies);
-                }
-                else {
-                  
-                  var loaded = loader.loadClosure(loadRuntime, toExec.val, dependencies);
-                }
-                loaded.fail(function(err) {
-                  restart.error(runtime.ffi.makeMessageException(String(err)));
-                });
-                loaded.then(function(modVal) {
-                  restart.resume(makeModule(loadRuntime, modVal, runtime.getField(namespace, "namespace").val));
-                });
-              });
-            });
-          }
-          var cca = [];
-          function setCommandLineArgs(args) {
-            cca = runtime.ffi.toArray(args);
-          }
-          var checkAll = false;
-          function setCheckAll(newCheckAll) {
-            checkAll = newCheckAll;
-          }
-          function run(modval, compileResult, modname) {
-            loadRuntime.setParam("command-line-arguments", cca);
-            var checker = loadRuntime.getField(checkerLib, "values");
-            var currentChecker = loadRuntime.getField(checker, "make-check-context").app(loadRuntime.makeString(modname), loadRuntime.makeBoolean(checkAll));
-            loadRuntime.setParam("current-checker", currentChecker);
-            runtime.pauseStack(function(restarter) {
-              // NOTE(joe): this will b removed once polyglot is done
-              //                console.error("Here: ", modval);
-              //                if(modval.val.oldDependencies) {
-              //                  modval.val.moduleFun = modval.val.moduleFun.apply(null, modval.val.oldDependencies); 
-              //                }
-              loadRuntime.run(modval.val.moduleFun, modval.val.namespace, {}, function(result) {
-                var modResult = makeModuleResult(loadRuntime, result, compileResult);
-                restarter.resume(modResult);
-              });
-            });
-          }
-          return runtime.makeObject({
-            load: runtime.makeFunction(load, "load"),
-            run: runtime.makeFunction(run, "run")
-          });
-        });
-    }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
     function runProgram(otherRuntimeObj, realmObj, programString) {
@@ -336,7 +266,9 @@
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
           else {
-            restarter.resume(makeModuleResult(otherRuntime, otherRuntime.makeSuccessResult(mainResult), makeRealm(realm), runtime.nothing));
+            var finalResult = otherRuntime.makeSuccessResult(mainResult);
+            finalResult.stats = result.stats;
+            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing));
           }
         });
       });
@@ -345,7 +277,6 @@
     return runtime.makeObject({
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject({
-          "make-loader": runtime.makeFunction(makeLoader, "make-loader"),
           "run-program": runtime.makeFunction(runProgram, "run-program"),
           "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
           "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
