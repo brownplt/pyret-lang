@@ -678,7 +678,7 @@ fun desugar-expr(expr :: A.Expr):
       end
 
       fun data-pop-mapfun(first):
-        A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+        A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
           A.s-let-expr(A.dummy-loc,
             columns.map(lam(column):
                 A.s-let-bind(A.dummy-loc, column.val.id-b, 
@@ -749,7 +749,7 @@ fun desugar-expr(expr :: A.Expr):
             A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
             # Data
             A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
-              A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+              A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
                 A.s-let-expr(A.dummy-loc,
                   link(
                     A.s-let-bind(A.dummy-loc, new-row.id-b,
@@ -787,7 +787,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(A.dummy-loc,  columns.map(_.name)),
           # Data
           A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
-            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+            A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
                   A.s-prim-app(A.dummy-loc, "raw_array_get", 
@@ -805,7 +805,7 @@ fun desugar-expr(expr :: A.Expr):
         # Table Construction
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
           A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
-            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+            A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-order(l, table, ordering) =>
@@ -828,7 +828,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-prim-app(A.dummy-loc, "toArray", [list:
           A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, 
             A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list: A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]), "sort-by"), [list:
-              A.s-lam(S.builtin("18"), empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
+              A.s-lam(S.builtin("18"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
                 desugar-expr(A.s-op(S.builtin("19"), A.dummy-loc,
                   cases(A.ColumnSortOrder) ordering.direction:
                     | ASCENDING  => "op<"
@@ -836,7 +836,7 @@ fun desugar-expr(expr :: A.Expr):
                   end,
                   A.s-prim-app(S.builtin("20"), "raw_array_get", [list: row1.id-e, col.id-e]),
                   A.s-prim-app(S.builtin("21"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, true),
-              A.s-lam(S.builtin("22"), empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
+              A.s-lam(S.builtin("22"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
                 desugar-expr(A.s-op(S.builtin("23"), S.builtin(""), "op==",
                   A.s-prim-app(S.builtin("24"), "raw_array_get", [list: row1.id-e, col.id-e]),
                   A.s-prim-app(S.builtin("25"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, true)])])]), true)
@@ -865,7 +865,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
           # Data
           A.s-prim-app(A.dummy-loc, "raw_array_filter", [list:
-            A.s-lam(A.dummy-loc, empty,  [list: row.id-b], A.a-blank, "",
+            A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-let-expr(A.dummy-loc,
                 columns.map(lam(column):
                   A.s-let-bind(A.dummy-loc, column.val.id-b, 
