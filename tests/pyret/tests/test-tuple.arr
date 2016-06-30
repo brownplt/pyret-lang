@@ -107,6 +107,10 @@ check "parse and print tuple-binding":
    x.tosource().pretty(80) is [list: "for each({ k; v } from elts) -> Any: k end"]
 end
 
+data tuples:
+  | tuple1(one)
+  | tuple2(two)
+end
 
 check "tuple decunstruction":
   fun f(elts) block:
@@ -136,6 +140,15 @@ check "tuple decunstruction":
   end
 
   h({10; 12}, {1; 4; 5}) is 32
+  fun cases-test(tup):
+    answer = cases(tuples) tup:
+      | tuple1({k;v;}) => k + v
+      | tuple2(two) => two
+    end
+    answer
+  end
+
+  cases-test(tuple1({"hello"; "there"})) is "hellothere"
 end
 
 
