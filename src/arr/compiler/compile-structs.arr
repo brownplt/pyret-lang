@@ -1026,6 +1026,24 @@ data CompileError:
           ED.loc(self.b),
           ED.text(".")]]
     end
+  | template-same-line(a :: Loc, b :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("You have two "),
+          ED.highlight(ED.text("unfinished template expressions"), [list: self.a, self.b], 0),
+          ED.text(" on the same line.")],
+        ED.cmcode(self.a + self.b),
+        [ED.para:
+          ED.text("Either remove one, or separate them.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("You have two unfinished template expressions on the same line at "),
+          ED.loc(self.a + self.b),
+          ED.text(". Either remove one, or separate them.")]]
+    end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:

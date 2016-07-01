@@ -229,8 +229,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
             | srcloc(_, start-line2, _, _, _, _, _) =>
               when (end-line1 == start-line2):
                 if A.is-s-template(first) and prev-is-template:
-                  wf-error2("Found two adjacent template expressions on the same line: "
-                      + "either remove one or separate them", loc, first.l)
+                  add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
                   add-error(C.same-line(loc, first.l))
                 else:
@@ -256,15 +255,15 @@ end
 
 
 fun wf-last-stmt(stmt :: A.Expr):
-  add-error(cases(A.Expr) stmt:
-    | s-let(l, _, _, _)                => C.block-ending(l, "let-binding")
-    | s-var(l, _, _)                   => C.block-ending(l, "var-binding")
-    | s-rec(l, _, _)                   => C.block-ending(l, "rec-binding")
-    | s-fun(l, _, _, _, _, _, _, _, _) => C.block-ending(l, "fun-binding")
-    | s-data(l, _, _, _, _, _, _)      => C.block-ending(l, "data definition")
-    | s-contract(l, _, _)              => C.block-ending(l, "contract")
+  cases(A.Expr) stmt:
+    | s-let(l, _, _, _)                => add-error(C.block-ending(l, "let-binding"))
+    | s-var(l, _, _)                   => add-error(C.block-ending(l, "var-binding"))
+    | s-rec(l, _, _)                   => add-error(C.block-ending(l, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _)      => add-error(C.block-ending(l, "data definition"))
+    | s-contract(l, _, _)              => add-error(C.block-ending(l, "contract"))
     | else => nothing
-  end)
+  end
 end
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:

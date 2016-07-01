@@ -15,7 +15,7 @@ check:
 
   check:
     cok("fun f(x): ... x ... end") is empty
-    c("fun f(): ... ... end") satisfies CS.is-wf-err-split
+    c("fun f(): ... ... end") satisfies CS.is-template-same-line
     c("fun f(): block: 5 3 end end") satisfies CS.is-same-line
     c("fun f(): 5 \n 3 end") satisfies CS.is-block-needed
     cok("fun f() block: 5 \n 3 end") is empty
