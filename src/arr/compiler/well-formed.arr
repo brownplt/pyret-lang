@@ -670,12 +670,12 @@ top-level-visitor = A.default-iter-visitor.{
   method s-variant(self, l, constr-loc, name, binds, with-members) block:
     ids = fields-to-binds(with-members) + binds.map(_.bind)
     ensure-unique-ids(ids)
-    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
-    when not(is-empty(underscores)):
-      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
-    end
+    #underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
+    #when not(is-empty(underscores)):
+    #  add-error(C.underscore-as(underscores.first.l, "a data variant name"))
+    #end
     check-underscore-name(with-members, "a field name")
-    is-empty(underscores) and
+    #is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   method s-singleton-variant(self, l, name, with-members) block:
