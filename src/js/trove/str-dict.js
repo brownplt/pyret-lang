@@ -718,7 +718,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           } else {
             return runtime.ffi.makeSome(val);
           }
-        });
+        }, "get");
 
         var getValueISD = runtime.makeMethod1(function(_, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-value'], 2, $a); }
@@ -729,7 +729,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             runtime.ffi.throwMessageException('Key ' + key + ' not found');
           }
           return val;
-        });
+        }, "get-value");
 
         var setISD = runtime.makeMethod2(function(_, key, val) {
           if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['set'], 3, $a); }
@@ -737,7 +737,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           runtime.checkPyretVal(val);
           var newMap = underlyingMap.set(key, val);
           return makeImmutableStringDict(newMap);
-        });
+        }, "set");
 
         var mergeISD = runtime.makeMethod1(function(self, other) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a); }
@@ -750,14 +750,14 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             newMap = newMap.set(otherKeysArr[i], runtime.getField(other, "get-value").app(otherKeysArr[i]));
           }
           return makeImmutableStringDict(newMap);
-        });
+        }, "merge");
 
         var removeISD = runtime.makeMethod1(function(_, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['remove'], 2, $a); }
           runtime.checkString(key);
           var newMap = underlyingMap.remove(key);
           return makeImmutableStringDict(newMap);
-        });
+        }, "remove");
 
         var hasKeyISD = runtime.makeMethod1(function(_, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['has-key'], 2, $a); }
@@ -769,7 +769,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           } else {
             return runtime.makeBoolean(true);
           }
-        });
+        }, "has-key");
 
         var keysISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a); }
@@ -777,7 +777,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeTreeSet(keys.map(function(key) {
             return runtime.makeString(key);
           }));
-        });
+        }, "keys");
 
        var itemsISD = runtime.makeMethod0(function(_) {
           var elts = [];
@@ -786,24 +786,24 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             elts.push(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])]));
           }
           return runtime.ffi.makeList(elts);
-        });
+        }, "items");
 
 
 
      //var eachLoopISD = runtime.makeMethod1(eachLoop);
      
-       var eachLoopISD = runtime.makeMethod1(function(self, func) {
+        var eachLoopISD = runtime.makeMethod1(function(self, func) {
           var keys = underlyingMap.keys();
           function callEachLoop() {
             return runtime.eachLoop(runtime.makeFunction(function(i) {
               return func.app(runtime.makeTuple([keys[i], underlyingMap.get(keys[i])])); 
-            }), 0, keys.length);
+            }, "callEachLoop"), 0, keys.length);
           }
-           return callEachLoop();
-       });
+         return callEachLoop();
+        }, "each-loop");
        
 
-       var eachISD = runtime.makeMethod1(function(self, func) {
+        var eachISD = runtime.makeMethod1(function(self, func) {
           var keys = underlyingMap.keys();
            function deepCallTuple(i) {
             return runtime.safeCall(function() {
@@ -813,9 +813,9 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
                 else { return deepCallTuple(i + 1); }
             },
             "deepCallTuple");
-         }
+           }
            return deepCallTuple(0);
-        });
+        }, "each");
 
         var keysListISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a);}
@@ -823,13 +823,13 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeList(keys.map(function(key) {
             return runtime.makeString(key);
           }));
-        });
+        }, "keys-list");
 
         var countISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['count'], 1, $a); }
           var count = underlyingMap.size;
           return runtime.makeNumber(count);
-        });
+        }, "count");
 
         var outputISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
@@ -843,7 +843,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return get(VS, "vs-collection").app(
             runtime.makeString("string-dict"),
             runtime.ffi.makeList(elts));
-        });
+        }, "output");
 
         
 
@@ -872,7 +872,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
                     } else {
                       return equalsHelp();
                     }
-                  });
+                  }, "recursiveEquality");
                 }
               }
             }
@@ -882,7 +882,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               return equalsHelp();
             }
           }
-        });
+        }, "equals");
 
         var unfreezeISD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a); }
@@ -894,7 +894,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             dict[key] = val;
           }
           return makeMutableStringDict(dict);
-        });
+        }, "unfreeze");
 
         obj = O({
           get: getISD,
@@ -928,7 +928,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           } else {
             return runtime.ffi.makeSome(val);
           }
-        });
+        }, "get");
 
         var getValueMSD = runtime.makeMethod1(function(_, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["get-value-now"], 2, $a); }
@@ -938,7 +938,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             runtime.ffi.throwMessageException("Key " + key + " not found");
           }
           return val;
-        });
+        }, "get-value");
 
         var setMSD = runtime.makeMethod2(function(self, key, val) {
           if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["set-now"], 3, $a); }
@@ -949,7 +949,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           runtime.checkPyretVal(val);
           underlyingDict[key] = val;
           return runtime.nothing;
-        });
+        }, "set");
 
         var mergeMSD = runtime.makeMethod1(function(self, other) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a); }
@@ -962,7 +962,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             runtime.getField(self, "set-now").app(key, val);
           }
           return runtime.nothing;
-        });
+        }, "merge");
 
         var removeMSD = runtime.makeMethod1(function(self, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a); }
@@ -972,7 +972,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           runtime.checkString(key);
           delete underlyingDict[key];
           return runtime.nothing;
-        });
+        }, "remove");
 
         var hasKeyMSD = runtime.makeMethod1(function(_, key) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["has-key-now"], 2, $a); }
@@ -982,7 +982,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           } else {
             return runtime.makeBoolean(false);
           }
-        });
+        }, "has-key");
 
         var keysMSD = runtime.makeMethod0(function(self) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["keys-now"], 1, $a); }
@@ -990,7 +990,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
             return runtime.makeString(mkey);
           }));
-        });
+        }, "keys");
 
         var itemsMSD = runtime.makeMethod0(function(self) {
           var elts = [];
@@ -999,17 +999,17 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             elts.push(runtime.makeTuple([keys[i], underlyingDict[keys[i]]]));
           }
           return runtime.ffi.makeList(elts);
-        });
+        }, "items");
 
-     var eachLoopMSD = runtime.makeMethod1(function(self, func) {
+        var eachLoopMSD = runtime.makeMethod1(function(self, func) {
           var keys = Object.keys(underlyingDict);
           function callEachLoop() {
             return runtime.eachLoop(runtime.makeFunction(function(i) {
               return func.app(runtime.makeTuple([keys[i], underlyingDict[keys[i]]])); 
-            }), 0, keys.length);
+            }, "callEachLoop"), 0, keys.length);
           }
-           return callEachLoop();
-       });
+          return callEachLoop();
+        }, "each-loop");
 
         var eachMSD = runtime.makeMethod1(function(self, func) {
           var keys = Object.keys(underlyingDict);
@@ -1021,23 +1021,24 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
                 else { return deepCallTuple(i + 1); }
             },
             "deepCallTuple");
-         }
-           return deepCallTuple(0);
-        });
-
+           }
+          return deepCallTuple(0);
+        }, "each");
+        
         var keysListMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a); }
           var keys = Object.keys(underlyingDict);
           return runtime.ffi.makeList(keys.map(function(mkey) {
             return runtime.makeString(mkey);
           }));
-        });
+        }, "keys-list");
 
         var countMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a); }
           return runtime.makeNumber(Object.keys(underlyingDict).length);
-        });
+        }, "count");
 
+        /*
         var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
           if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["torepr"], 2, $a); }
           var keys = Object.keys(underlyingDict);
@@ -1058,7 +1059,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               return runtime.safeCall(function() {
                 return recursiveToRepr.app(underlyingDict[thisKey]);
               },
-              function(result /* stringification of element */) {
+              function(result / * stringification of element * /) {
                 elts.push(recursiveToRepr.app(thisKey));
                 elts.push(result);
                 return toreprElts();
@@ -1066,7 +1067,8 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             }
           }
           return toreprElts();
-        });
+        }, "torepr");
+       */
 
         var outputMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
@@ -1079,7 +1081,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           return get(VS, "vs-collection").app(
             runtime.makeString("mutable-string-dict"),
             runtime.ffi.makeList(elts));
-        });
+        }, "output");
 
         var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
           if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["equals"], 3, $a); }
@@ -1116,7 +1118,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
               return eqElts();
             }
           }
-        });
+        }, "equals");
 
         var freezeMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['freeze'], 1, $a); }
@@ -1125,12 +1127,12 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             map = map.set(key, underlyingDict[key]);
           }
           return makeImmutableStringDict(map);
-        });
+        }, "freeze");
 
         var sealMSD = runtime.makeMethod0(function(_) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['seal'], 1, $a); }
           return makeMutableStringDict(underlyingDict, true);
-        });
+        }, "seal");
 
         obj = O({
           'get-now': getMSD,
@@ -1531,31 +1533,31 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
             StringDict: annImmutable
           },
           values: O({
-            "make-mutable-string-dict": F(createMutableStringDict),
+            "make-mutable-string-dict": F(createMutableStringDict, "make-mutable-string-dict"),
             "mutable-string-dict": O({
-              make: F(createMutableStringDictFromArray),
-              make0: F(createMutableStringDict0),
-              make1: F(createMutableStringDict1),
-              make2: F(createMutableStringDict2),
-              make3: F(createMutableStringDict3),
-              make4: F(createMutableStringDict4),
-              make5: F(createMutableStringDict5)
+              make: F(createMutableStringDictFromArray, "mutable-string-dict:make"),
+              make0: F(createMutableStringDict0, "mutable-string-dict:make0"),
+              make1: F(createMutableStringDict1, "mutable-string-dict:make1"),
+              make2: F(createMutableStringDict2, "mutable-string-dict:make2"),
+              make3: F(createMutableStringDict3, "mutable-string-dict:make3"),
+              make4: F(createMutableStringDict4, "mutable-string-dict:make4"),
+              make5: F(createMutableStringDict5, "mutable-string-dict:make5")
             }),
-            "is-mutable-string-dict": F(isMutableStringDict),
-            "make-string-dict": F(createImmutableStringDict),
-            "dict-each": F(dictEach),
-            "dict-each-loop": F(dictEachLoop),
+            "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
+            "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
+            "dict-each": F(dictEach, "dict-each"),
+            "dict-each-loop": F(dictEachLoop, "dict-each-loop"),
             "string-dict": O({
-              make: F(createImmutableStringDictFromArray),
-              make0: F(createImmutableStringDict0),
-              make1: F(createImmutableStringDict1),
-              make2: F(createImmutableStringDict2),
-              make3: F(createImmutableStringDict3),
-              make4: F(createImmutableStringDict4),
-              make5: F(createImmutableStringDict5)
+              make: F(createImmutableStringDictFromArray, "string-dict:make"),
+              make0: F(createImmutableStringDict0, "string-dict:make0"),
+              make1: F(createImmutableStringDict1, "string-dict:make1"),
+              make2: F(createImmutableStringDict2, "string-dict:make2"),
+              make3: F(createImmutableStringDict3, "string-dict:make3"),
+              make4: F(createImmutableStringDict4, "string-dict:make4"),
+              make5: F(createImmutableStringDict5, "string-dict:make5")
             }),
-            "string-dict-of": F(createConstImmutableStringDict),
-            "is-string-dict": F(isImmutableStringDict)
+            "string-dict-of": F(createConstImmutableStringDict, "string-dict-of"),
+            "is-string-dict": F(isImmutableStringDict, "is-string-dict")
           }),
           internal: {
             checkISD: jsCheckISD,

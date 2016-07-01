@@ -89,7 +89,7 @@
             RUNTIME.ffi.checkArity(2, arguments, "format");
             RUNTIME.checkString(str);
             return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
-          }),
+          }, "format"),
         }),
         'types': {}
       }),

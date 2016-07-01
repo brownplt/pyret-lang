@@ -89,7 +89,7 @@ data Srcloc:
       if self.start-char <= other.end-char:
         srcloc(self.source,
           self.start-line, self.start-column, self.start-char,
-          other.end-line, other.end-column, other.end-char)
+          other.start-line, other.start-column, other.start-char)
       else:
         self
       end

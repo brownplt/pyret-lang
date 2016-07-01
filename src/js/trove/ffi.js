@@ -97,12 +97,12 @@
       var pyretObj = {}
       var els = runtime.makeFunction(function(v) {
         throwMessageException("No cases matched");
-      });
+      }, "cases-else");
       Object.keys(casesObj).forEach(function(k) {
         if(k !== "else") {
-          pyretObj[k] = runtime.makeFunction(casesObj[k]);
+          pyretObj[k] = runtime.makeFunction(casesObj[k], "cases-" + k);
         } else {
-          els = runtime.makeFunction(casesObj[k]);
+          els = runtime.makeFunction(casesObj[k], "cases-else");
         }
       });
       return runtime.safeTail(function() {
@@ -452,6 +452,14 @@
       return contract("dot-ann-not-present")(name, field);
     }
 
+    function makeFailureAtArg(loc, index, name, args, reason) {
+      checkSrcloc(loc);
+      runtime.checkNumber(index);
+      runtime.checkString(name);
+      runtime.checkList(args);
+      return contract("failure-at-arg")(loc, index, name, args, reason);
+    }
+
     var isOk = contract("is-ok");
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
@@ -517,6 +525,7 @@
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
+      makeFailureAtArg: makeFailureAtArg,
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),
       contractFailArg: contract("fail-arg"),

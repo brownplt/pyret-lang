@@ -26,7 +26,7 @@
           Runtime: annRuntime
         },
         values: runtime.makeObject({
-          "make-runtime": runtime.makeFunction(makeRuntime)
+          "make-runtime": runtime.makeFunction(makeRuntime, "make-runtime")
         }),
         internal: {
           makeRuntime: makeRuntime,

@@ -71,7 +71,7 @@
           "is-j-str": gf(vals, "is-j-str"),
           "is-j-bool": gf(vals, "is-j-bool"),
           "is-j-null": gf(vals, "is-j-null"),
-          "read-json": RUNTIME.makeFunction(readJSON),
+          "read-json": RUNTIME.makeFunction(readJSON, "read-json"),
           "tojson": gf(vals, "tojson")
         }),
         "types": {

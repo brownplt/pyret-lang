@@ -1345,7 +1345,7 @@
     return RUNTIME.makeObject({
       'provide-plus-types': RUNTIME.makeObject({
         'values': RUNTIME.makeObject({
-          'surface-parse': RUNTIME.makeFunction(parsePyret)
+          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
         }),
         'types': {}
       }),

@@ -1000,7 +1000,8 @@ data RuntimeError:
           else if src-available(loc):
             [ED.sequence:
               [ED.para:
-                ED.text("The expression")],
+                ED.text("The "),
+                ED.highlight(ED.text("expression"), [ED.locs: loc], 0)],
               ED.cmcode(loc),
               [ED.para:
                 ED.text("was expected to evaluate to a "),
@@ -1876,17 +1877,48 @@ data RuntimeError:
           end
         
         if src-available(self.fun-def-loc):
+          fun is-underscore(arg):
+            cases(Any) arg:
+              | s-id(_, id) => 
+                cases(Any) id:
+                  | s-underscore(_) => true
+                  | else            => false
+                end
+              | else                => false
+            end
+          end
           cases(O.Option) maybe-ast(self.fun-def-loc):
             | some(ast) =>
+              {args; fun-def-snippet-loc} = cases(Any) ast:
+                | s-op(_,_,_,l,r) =>
+                  l-underscore = is-underscore(l)
+                  r-underscore = is-underscore(r)
+                  {raw-array-to-list(
+                    if l-underscore and r-underscore:
+                      [raw-array: l.id.l, r.id.l]
+                    else if l-underscore:
+                      [raw-array: l.id.l]
+                    else if r-underscore:
+                      [raw-array: r.id.l]
+                    else:
+                      [raw-array:]
+                    end); self.fun-def-loc}
+                | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-update(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-get-bang(_, obj, _) => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+              end
               helper(lam(applicant):
                 [ED.sequence:
                   [ED.para:
                     ED.text("The "),
                     applicant,
                     ED.text(" evaluated to a function defined accepting "),
-                    ED.highlight(ED.ed-args(self.fun-def-arity), ast.args.map(_.l), 2),
+                    ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
                     ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
+                  ED.cmcode(fun-def-snippet-loc)]
               end)
             | none      =>
               helper(lam(applicant):
@@ -2196,7 +2228,7 @@ data RuntimeError:
     method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    method render-reason(self): [ED.para: ED.embed(self.value)] end
+    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end
 end
 
 data ParseError:
