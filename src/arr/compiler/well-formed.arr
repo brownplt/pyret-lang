@@ -310,6 +310,25 @@ fun wf-examples-body(visitor, body):
   end
 end
 
+fun wf-table-headers(loc, headers):
+  num-headers = headers.length()
+  if num-headers == 0 block:
+    add-error(C.table-empty-header(loc))
+    true
+  else:
+    for each(i from range(0, num-headers)):
+      hi = headers.get(i)
+      for each(j from range(i + 1, num-headers)):
+        hj = headers.get(j)
+        when hi.name == hj.name:
+          add-error(C.table-duplicate-column-name(hi, hj))
+        end
+      end
+    end
+    true
+  end
+end
+
 
 fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
@@ -664,6 +683,45 @@ well-formed-visitor = A.default-iter-visitor.{
       end
     end
   end,
+  method s-load-table(self, l, headers, spec) block:
+    this-expr = A.s-load-table(l, headers, spec)
+    wf-table-headers(l, headers)
+    if is-empty(spec) block:
+      add-error(C.load-table-no-body(this-expr))
+      false
+    else:
+      bound-names = S.list-to-tree-set(map(lam(b :: A.FieldName): b.name end, headers))
+      var dup-found = false
+      header-loc =
+        if is-empty(headers):
+          l.upto(spec.first.l)
+        else:
+          headers.first.l + headers.last().l
+        end
+      {num-srcs; _} = for fold(acc from {0; [SD.string-dict:]}, s from spec):
+        cases(A.LoadTableSpec) s block:
+          | s-sanitize(_,name,_) =>
+            namestr = name.toname()
+            when (not(bound-names.member(namestr))):
+              add-error(C.table-sanitizer-bad-column(s, header-loc))
+            end
+            cases(Option) acc.{1}.get(namestr) block:
+              | some(expr) =>
+                add-error(C.load-table-duplicate-sanitizer(
+                    acc.{1}.get-value(namestr), namestr, s))
+                dup-found := true
+                acc
+              | none => {acc.{0}; acc.{1}.set(namestr, s)}
+            end
+          | s-table-src(_,_) => {acc.{0} + 1; acc.{1}}
+        end
+      end
+      when num-srcs <> 1:
+        add-error(C.load-table-bad-number-srcs(this-expr, num-srcs))
+      end
+      (num-srcs == 1) and not(dup-found) and L.all(_.visit(self), spec)
+    end
+  end,
   method a-name(self, l, id) block:
     when A.is-s-underscore(id):
       add-error(C.underscore-as-ann(l))
@@ -744,20 +802,11 @@ top-level-visitor = A.default-iter-visitor.{
       ret and wrap-visit-check(well-formed-visitor, _check)
   end,
   method s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
-    expected-len = header.length()
-    if expected-len == 0 block:
-      add-error(C.table-empty-header(l))
+    wf-table-headers(l, header)
+    if is-empty(header):
       true
     else:
-      for each(i from range(0, header.length())):
-        for each(j from range(i + 1, header.length())):
-          hi = header.get(i)
-          hj = header.get(j)
-          when hi.name == hj.name:
-            add-error(C.table-duplicate-column-name(hi, hj))
-          end
-        end
-      end
+      expected-len = header.length()
       for lists.all(_row from rows) block:
         actual-len = _row.elems.length()
         when actual-len == 0:

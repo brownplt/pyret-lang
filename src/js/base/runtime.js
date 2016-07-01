@@ -3838,6 +3838,42 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return mapFun();
     };
 
+    var raw_array_mapi = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
+    };
+
     var raw_list_map = function(f, lst) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -5293,6 +5329,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_to_list': raw_array_to_list,
       'raw_array_map': raw_array_map,
       'raw_array_map1': raw_array_map1,
+      'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,
 
       'not': bool_not,

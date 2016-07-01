@@ -148,6 +148,30 @@ check "malformed blocks":
   c("{method m(self): nothing where: 5 end}") satisfies CS.is-unwelcome-where
 end
 
+check "table loading checks":
+  c("load-table: h1 end") satisfies CS.is-load-table-no-body
+  c("load-table: source: src end") satisfies CS.is-table-empty-header
+  c("load-table: h1 "
+      + "sanitize h1 using s1 "
+      + "end") satisfies CS.is-load-table-bad-number-srcs
+  c("load-table: h1 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "source: src2 "
+      + "end") satisfies CS.is-load-table-bad-number-srcs
+  c("load-table: h1, h2 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "sanitize h2 using s2 "
+      + "sanitize h1 using s1 "
+      + "end") satisfies CS.is-load-table-duplicate-sanitizer
+  c("load-table: h1 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "sanitize h2 using s2 "
+      + "end") satisfies CS.is-table-sanitizer-bad-column
+end
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {

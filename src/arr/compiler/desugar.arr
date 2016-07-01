@@ -573,6 +573,39 @@ fun desugar-expr(expr :: A.Expr):
       A.s-check(l, name, desugar-expr(body), keyword-check)
     | s-check-test(l, op, refinement, left, right) =>
       A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-load-table(l, headers, spec) =>
+      dummy = A.dummy-loc
+      {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
+        {src; sanitizers} = acc
+        cases(A.LoadTableSpec) s:
+          | s-sanitize(_, name, sanitizer) =>
+            # Convert to loader option
+            as-option = A.s-prim-app(dummy, "asLoaderOption",
+              [list:
+                A.s-str(dummy, "sanitizer"),
+                A.s-str(dummy, name.toname()),
+                sanitizer])
+            {src; link(as-option, sanitizers)}
+          | s-table-src(_, source) =>
+            # Well-formedness ensures that this matches exactly once
+            {some(source); sanitizers}
+        end
+      end
+      
+      shadow src = cases(Option) src:
+        | none =>
+          raise("s-load-table missing source: Well-formedness should have failed")
+        | some(s) => s
+      end
+
+      loaded = A.s-app(l,
+        A.s-dot(l, src, "load"),
+        [list:
+          A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
+          A.s-array(dummy, sanitizers)])
+
+      A.s-prim-app(l, "openTable", [list: loaded])
+
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
       #               to post-type-check desugaring, since the variables used

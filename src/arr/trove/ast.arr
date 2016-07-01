@@ -112,6 +112,9 @@ str-select = PP.str("select")
 str-sieve = PP.str("sieve")
 str-order = PP.str("order")
 str-extract = PP.str("extract")
+str-load-table = PP.str("load-table:")
+str-src = PP.str("source:")
+str-sanitize = PP.str("sanitize")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -1133,6 +1136,16 @@ data Expr:
         PP.flow-map(PP.hardline, _.tosource(), self.rows),
         str-end)
     end
+  | s-load-table(l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>)
+    with:
+    method label(self): "s-load-table" end,
+    method tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-load-table,
+            PP.flow-map(PP.commabreak, _.tosource(), self.headers)]),
+        PP.flow-map(PP.hardline, _.tosource(), self.spec),
+        str-end)
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1318,8 +1331,26 @@ data TableExtendField:
         else:
           str-coloncolon + self.ann.tosource()
         end
-      col-part = PP.str(self.col)
+      col-part = self.col.tosource()
       PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.reducer.tosource() + PP.str(" ") + str-of + col-part)
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data LoadTableSpec:
+  | s-sanitize(l :: Loc, name :: Name, sanitizer :: Expr) with:
+    method label(self): "s-sanitize" end,
+    method tosource(self):
+      name-part = self.name.tosource()
+      PP.flow([list: str-sanitize, name-part, str-using, self.sanitizer.tosource()])
+    end
+  | s-table-src(l :: Loc, src :: Expr) with:
+    method label(self): "s-table-src" end,
+    method tosource(self):
+      PP.flow([list: str-src, self.src.tosource()])
     end
 sharing:
   method visit(self, visitor):
@@ -1955,6 +1986,9 @@ default-map-visitor = {
   method s-table-row(self, l :: Loc, elems :: List<Expr>):
     s-table-row(l, elems.map(_.visit(self)))
   end,
+  method s-load-table(self, l, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
+    s-load-table(l, headers.map(_.visit(self)), spec.map(_.visit(self)))
+  end,
   method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
     s-field-name(l, name, ann.visit(self))
   end,
@@ -2145,6 +2179,12 @@ default-map-visitor = {
   method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
     s-table-extend-reducer(l, name, reducer.visit(self),
       col.visit(self), ann.visit(self))
+  end,
+  method s-sanitize(self, l, name :: Name, sanitizer :: Expr):
+    s-sanitize(l, name.visit(self), sanitizer.visit(self))
+  end,
+  method s-table-src(self, l, src :: Expr):
+    s-table-src(l, src.visit(self))
   end,
 
   method a-blank(self): a-blank end,
@@ -2478,6 +2518,9 @@ default-iter-visitor = {
   method s-table-row(self, l :: Loc, elems :: List<Expr>):
     lists.all(_.visit(self), elems)
   end,
+  method s-load-table(self, l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
+    lists.all(_.visit(self), headers) and lists.all(_.visit(self), spec)
+  end,
   method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
     true
   end,
@@ -2653,6 +2696,12 @@ default-iter-visitor = {
   end,
   method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
     reducer.visit(self) and col.visit(self) and ann.visit(self)
+  end,
+  method s-sanitize(self, l, name, sanitizer):
+    name.visit(self) and sanitizer.visit(self)
+  end,
+  method s-table-src(self, l, src):
+    src.visit(self)
   end,
   method a-blank(self):
     true
@@ -2975,7 +3024,7 @@ dummy-loc-visitor = {
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  method s-table(self, l :: Loc, headers :: List<String>, rows :: List<TableRow>):
+  method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
     s-table(dummy-loc, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
   method s-table-row(self, l :: Loc, elems :: List<Expr>):
@@ -2983,6 +3032,9 @@ dummy-loc-visitor = {
   end,
   method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
     s-field-name(dummy-loc, name, ann.visit(self))
+  end,
+  method s-load-table(self, l, headers, spec :: List<LoadTableSpec>):
+    s-load-table(dummy-loc, headers.map(_.visit(self)), spec.map(_.visit(self)))
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
@@ -3171,6 +3223,12 @@ dummy-loc-visitor = {
   method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
     s-table-extend-reducer(dummy-loc, name.visit(self), reducer.visit(self),
       col.visit(self), ann.visit(self))
+  end,
+  method s-sanitize(self, l, name :: Name, sanitizer :: Expr):
+    s-sanitize(dummy-loc, name.visit(self), sanitizer.visit(self))
+  end,
+  method s-table-src(self, l, src :: Expr):
+    s-table-src(dummy-loc, src.visit(self))
   end,
   method a-blank(self): a-blank end,
   method a-any(self, l): a-any(l) end,

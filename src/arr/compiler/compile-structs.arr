@@ -1711,6 +1711,95 @@ data CompileError:
           ED.loc(self.col-defs),
           ED.text(".")]]
     end
+  | table-sanitizer-bad-column(sanitize-expr :: A.LoadTableSpec, col-defs :: A.Loc) with:
+    method render-fancy-reason(self):
+      
+      bad-column = self.sanitize-expr.name
+      bad-column-name = bad-column.tosource().pretty(80)
+      sanitizer = self.sanitize-expr.sanitizer
+      sanitizer-name = sanitizer.tosource().pretty(80)
+      [ED.error:
+        [ED.para:
+          ED.text("The column "),
+          ED.highlight(ED.text(bad-column-name), [list: bad-column.l], 0),
+          ED.text(" is used with the sanitizer "),
+          ED.highlight(ED.text(sanitizer-name), [list: sanitizer.l], 1),
+          ED.text(", but it is not one of the "),
+          ED.highlight(ED.text("used columns"), [list: self.col-defs], 2),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      bad-column = self.sanitize-expr.name
+      sanitizer = self.sanitize-expr.sanitizer
+      [ED.error:
+        [ED.para:
+          ED.text("The column at "),
+          ED.loc(bad-column.l),
+          ED.text(" is used with the sanitizer at "),
+          ED.loc(sanitizer.l),
+          ED.text(", but it is not one of the used columns listed at "),
+          ED.loc(self.col-defs),
+          ED.text(".")]]
+    end
+  | load-table-bad-number-srcs(lte :: A.Expr#|%(A.is-s-load-table)|#, num-found :: Number) with:
+    method render-fancy-reason(self):
+      load-table-expr = self.lte.tosource().pretty(80)
+      [ED.error:
+        [ED.para:
+          ED.text("The table loader "),
+          ED.highlight(ED.text(load-table-expr), [list: self.lte.l], 0),
+          ED.text(" specifies "
+              + num-to-string(self.num-found)
+              + " sources, but it should only specify one.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table loader at "),
+          ED.loc(self.lte.l),
+          ED.text(" specifies "
+              + num-to-string(self.num-found)
+              + " sources, but it should only specify one.")]]
+    end
+  | load-table-duplicate-sanitizer(original :: A.LoadTableSpec, col-name :: String, duplicate-exp :: A.LoadTableSpec) with:
+    method render-fancy-reason(self):
+      orig-pretty = self.original.tosource().pretty(80)
+      dup-pretty = self.duplicate-exp.tosource().pretty(80)
+      [ED.error:
+        [ED.para:
+          ED.text("The column "),
+          ED.highlight(ED.text(self.col-name), [list: self.duplicate-exp.l], 0),
+          ED.text(" is already sanitized by the sanitizer "),
+          ED.highlight(ED.text(orig-pretty), [list: self.original.l], 1),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The column at "),
+          ED.loc(self.duplicate-exp.l),
+          ED.text(" is already sanitized by the sanitizer at "),
+          ED.loc(self.original.l),
+          ED.text(".")]]
+    end
+  | load-table-no-body(load-table-exp :: A.Expr#|%(A.is-s-load-table)|#) with:
+    method render-fancy-reason(self):
+      pretty = self.load-table-exp.tosource().pretty(80)
+      [ED.error:
+        [ED.para:
+          ED.text("The table loader "),
+          ED.highlight(ED.text(pretty), [list: self.load-table-exp.l], 0),
+          ED.text(" has no information about how to load the table. "
+              + "It should at least contain a source.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The table loader at "),
+          ED.loc(self.load-table-exp.l),
+          ED.text(" has no information about how to load the table. "
+              + "It should at least contain a source.")]]
+    end
 end
 
 type CompileOptions = {

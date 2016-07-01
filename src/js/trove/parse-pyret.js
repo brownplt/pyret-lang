@@ -657,6 +657,13 @@
           return RUNTIME.getField(ast, 's-table')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
         },
+        'load-table-expr': function(node) {
+          // (LOAD-TABLE COLON table-headers load-table-specs END)
+          return RUNTIME.getField(ast, 's-load-table')
+            .app(pos(node.pos), tr(node.kids[2]),
+                 ((node.kids[3].name === "END")
+                  ? makeList([]) : tr(node.kids[3])));
+        },
         'table-headers': function(node) {
           // [list-table-header* table-header]
           return makeList(node.kids.map(tr));
@@ -726,6 +733,25 @@
             return RUNTIME.getField(ast, 's-table-extend-reducer')
               .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
                    name(node.kids[6]), tr(node.kids[2]));
+          }
+        },
+        'load-table-specs': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "load-table-spec") {
+            return makeList(node.kids.slice(0, -1).map(tr));
+          } else {
+            // [list-load-table-spec* load-table-spec COMMA]
+            return makeList(node.kids.map(tr));
+          }
+        },
+        'load-table-spec': function(node) {
+          if (node.kids[0].name === "SANITIZE") {
+            // (SANITIZE NAME USING expr)
+            return RUNTIME.getField(ast, 's-sanitize')
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+          } else {
+            // (SOURCECOLON expr)
+            return RUNTIME.getField(ast, 's-table-src')
+              .app(pos(node.pos), tr(node.kids[1]));
           }
         },
         'sql-expr': function(node) {

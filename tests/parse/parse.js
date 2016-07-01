@@ -653,6 +653,19 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("table: h1, h2 row: 3 + 3, 3 * 3 end")).not.toBe(false);
     });
 
+    it("should parse table loaders", function() {
+      expect(parse("load-table: h1, h2, h3 source: my-src end")).not.toBe(false);
+      expect(parse("load-table: h1 sanitize h1 using s1 source: s sanitize h2 using s2 end")).not.toBe(false);
+
+      // Should be well-formedness errors
+      expect(parse("load-table: end")).not.toBe(false);
+      expect(parse("load-table: source: s end")).not.toBe(false);
+      expect(parse("load-table: h1 sanitize h1 using s1 end")).not.toBe(false);
+
+      expect(parse("load-table: h1 using s1 source: src end")).toBe(false);
+      expect(parse("load-table: h1 h2 source: s end")).toBe(false);
+    });
+
     it("should parse tuples", function() {
       expect(parse("{1; 2; 3}")).not.toBe(false);
       expect(parse("{4 * 3; 3; 10 - 2}")).not.toBe(false);

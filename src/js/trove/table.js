@@ -27,6 +27,51 @@
       return hasBrand(brandTable,  val);
     }
 
+    function openTable(info) {
+      runtime.checkTuple(info);
+      if (info.vals.length != 2) {
+        runtime.ffi.throwMessageException("Expected to find {header; contents} pair, "
+                                          + "but found a tuple of length "
+                                          + info.vals.length);
+      }
+      var headers = info.vals[0];
+      var contents = info.vals[1];
+      runtime.checkArray(headers);
+      runtime.checkArray(contents);
+      var names = [];
+      var sanitizers = [];
+      for(var i = 0; i < headers.length; ++i) {
+        runtime.checkTuple(headers[i]);
+        if (headers[i].vals.length !== 2) {
+          runtime.ffi.throwMessageException("Expected to find {name; sanitizer} pairs "
+                                            + "in header data, but found a tuple of "
+                                            + "length " + headers[i].vals.length);
+        }
+        var header = headers[i].vals;
+        runtime.checkString(header[0]);
+        runtime.checkFunction(header[1]);
+        names.push(header[0]);
+        sanitizers.push(header[1]);
+      }
+      for(var i = 0; i < contents.length; ++i) {
+        runtime.checkArray(contents[i]);
+        if (contents[i].length !== headers.length) {
+          if (i === 0) {
+            runtime.ffi.throwMessageException("Contents must match header size");
+          } else {
+            runtime.ffi.throwMessageException("Contents must be rectangular");
+          }
+        }
+        for (var j = 0; j < contents[i].length; ++j) {
+          runtime.checkCellContent(contents[i][j]);
+        }
+        contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
+          return sanitizers[j].app(contents[i][j]);
+        }), contents[i]);
+      }
+      return makeTable(names, contents);
+    }
+
     function makeTable(headers, rows) {
       ffi.checkArity(2, arguments, "makeTable");
       
@@ -154,6 +199,7 @@
     return runtime.makeJSModuleReturn({
       TableAnn : annTable,
       makeTable: makeTable,
+      openTable: openTable,
       isTable: isTable });
   }
 })

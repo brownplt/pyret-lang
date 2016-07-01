@@ -113,6 +113,7 @@ expr: paren-expr | id-expr | prim-expr
     | table-extract
     | table-update
     | table-expr
+    | load-table-expr
 
 template-expr : DOTDOTDOT
 
@@ -212,6 +213,14 @@ table-extend-field: key [COLONCOLON ann] COLON binop-expr
 # Commenting this out until we know whether or not it makes sense
 #     | REF key [COLONCOLON ann] COLON binop-expr
      | key [COLONCOLON ann] COLON expr OF NAME
+
+# More informative to allow missing load-table-specs to parse and mark it as a
+# well-formedness error than to reject it at parse-time
+load-table-expr: LOAD-TABLE COLON table-headers [load-table-specs] END
+
+load-table-specs: load-table-spec* load-table-spec
+load-table-spec: SOURCECOLON expr
+               | SANITIZE NAME USING expr
 
 user-block-expr: BLOCK block END
 
