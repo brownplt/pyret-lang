@@ -841,7 +841,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, A.a-blank))
             end
         end
-
       end
       
       new-let-body = for fold2(acc3 from body, a from args, at from atoms.reverse()):
@@ -956,15 +955,35 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       with-params = self.{type-env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
-        atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
-        { atom-env.env; link(atom-env.atom, atoms) }
+        cases (A.Bind) a:
+          | s-bind(_,_,_,_) =>
+            atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
+            { atom-env.env; link(atom-env.atom, atoms) }
+          | s-tuple-bind(_,_) =>
+            namet = names.make-atom("tup")
+            atom-env = make-atom-for(namet, false, env, bindings, let-bind(_,_, A.a-blank, none))
+            { atom-env.env; link(atom-env.atom, atoms) }
+        end
       end
       new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
           | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params))
+          | s-tuple-bind(l2, fields) => A.s-bind(l2, false, at, A.a-blank)
         end
       end
-      new-body = body.visit(with-params.{env: env})
+      updated-body = for fold2(acc2 from body, a from args, at from atoms.reverse()):
+        cases(A.Bind) a:
+         | s-bind(_,_,_,_) => acc2
+         | s-tuple-bind(l2, fields) =>
+           {n; new-lets} = for fold(acc3 from {0; [list: ]}, element from fields):
+             {n; new-lets} = acc3
+             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
+             {n + 1; link(t-let-bind, new-lets)}
+           end
+           A.s-let-expr(l2, new-lets, acc2, false)
+        end
+      end
+      new-body = updated-body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
       A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,

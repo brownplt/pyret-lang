@@ -148,7 +148,8 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
 end
 
 fun ensure-unique-ids(bindings :: List<A.Bind>):
-  cases(List) bindings block:
+  nothing
+ #|  cases(List) bindings block:
     | empty => nothing
     | link(f, rest) =>
       cases(A.Bind) f:
@@ -173,7 +174,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
         | s-tuple-bind(l, fields) => nothing
       end
       ensure-unique-ids(rest)
-  end
+  end |#
 end
 
 # NOTE: This is almost exactly the same function as above, but gives a

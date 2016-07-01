@@ -108,7 +108,7 @@ check "parse and print tuple-binding":
 end
 
 data tuples:
-  | tuple1(one)
+  | tuple1(w, one)
   | tuple2(two)
 end
 
@@ -142,14 +142,32 @@ check "tuple decunstruction":
   h({10; 12}, {1; 4; 5}) is 32
   fun cases-test(tup):
     answer = cases(tuples) tup:
-      | tuple1({k;v;}) => k + v
+      | tuple1(w, {k;v;}) => w
       | tuple2(two) => two
     end
     answer
   end
 
-  cases-test(tuple1({"hello"; "there"})) is "hellothere"
+  cases-test(tuple1("hi", {"hello"; "there"})) is "hi"
 
+  point-methods = {
+    method dist(self, {x;y;}):
+      ysquared = num-expt(y - self.pt.{1}, 2)
+      xsquared = num-expt(x - self.pt.{0}, 2)
+      num-sqrt(ysquared + xsquared)
+    end
+  }
+
+  fun make-point(x, y):
+    point-methods.{ pt: {x;y} }
+  end
+
+  check:
+    p1 = make-point(1,2)
+    p2 = {1;5}
+
+    p1.dist(p2) is 3
+  end
 end
 
 
