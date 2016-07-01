@@ -2224,17 +2224,28 @@ end
 
 data ParseError:
   | parse-error-next-token(loc, next-token :: String) with:
-    method render-fancy-reason(self, loc-to-src):
-      [ED.error:
-        [ED.para: ED.text("Pyret didn't understand your program around ")],
-        ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc], 0)),
-        [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
-          ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
-          ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
-          ED.text("), comma ("), ED.code(ED.text(",")),
-          ED.text("), string marker ("), ED.code(ED.text("\"")),
-          ED.text("), or keyword? Is there something there that shouldn’t be?")]
-      ]
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around ")],
+          ED.cmcode(self.loc),
+          [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
+            ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
+            ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
+            ED.text("), comma ("), ED.code(ED.text(",")),
+            ED.text("), string marker ("), ED.code(ED.text("\"")),
+            ED.text("), or keyword? Is there something there that shouldn’t be?")]]
+      else:
+          [ED.error:
+            [ED.para: ED.text("Pyret didn't understand your program around "),
+                      ED.loc(self.loc)],
+            [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
+              ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
+              ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
+              ED.text("), comma ("), ED.code(ED.text(",")),
+              ED.text("), string marker ("), ED.code(ED.text("\"")),
+              ED.text("), or keyword? Is there something there that shouldn’t be?")]]
+      end
     end,
     method render-reason(self):
       [ED.error:
@@ -2252,12 +2263,20 @@ data ParseError:
       ]
     end
   | parse-error-eof(loc) with:
-    method render-fancy-reason(self, loc-to-src):
-      [ED.error: 
-        [ED.para:
-          ED.text("Pyret didn't expect your program to "),
-          ED.code(ED.highlight(ED.text("end"),[ED.locs: self.loc],0)),
-          ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret didn't expect your program to "),
+            ED.highlight(ED.text("end"),[ED.locs: self.loc],-1),
+            ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+      else:
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret didn't expect your program to end (at "),
+            ED.loc(self.loc),
+            ED.text(") as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+      end
     end,
     method render-reason(self):
       [ED.error: [ED.para:
@@ -2265,15 +2284,25 @@ data ParseError:
           ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" right at the end.")]]
     end
   | parse-error-unterminated-string(loc) with:
-    method render-fancy-reason(self, loc-to-src):
-      [ED.error: 
-        [ED.para:
-          ED.text("Pyret thinks the string ")],
-         ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc],0)),
-        [ED.para:
-          ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
-          ED.code(ED.text("```")),
-          ED.text(" instead of quotation marks.")]]
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret thinks the string ")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.code(ED.text("```")),
+            ED.text(" instead of quotation marks.")]]
+      else:
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret thinks the string at "),
+            ED.loc(self.loc),
+            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.code(ED.text("```")),
+            ED.text(" instead of quotation marks.")]]
+      end
     end,
     method render-reason(self):
       [ED.error: [ED.para-nospace:
@@ -2282,12 +2311,22 @@ data ParseError:
           ED.text("; you may be missing closing punctuation.")]]
     end
   | parse-error-bad-operator(loc) with:
-    method render-fancy-reason(self, loc-to-src):
-      [ED.error: 
-        [ED.para:
-          ED.text("The operator "),
-          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc],0)),
-          ED.text(" must have whitespace separating it from its operands.")]]
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("operator"), [ED.locs: self.loc], 0)],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text(" must have whitespace separating it from its operands.")]]
+      else:
+        [ED.error: 
+          [ED.para:
+            ED.text("The operator at "),
+            ED.loc(self.loc),
+            ED.text(" must have whitespace separating it from its operands.")]]
+      end
     end,
     method render-reason(self):
       [ED.error: [ED.para-nospace:
@@ -2296,12 +2335,21 @@ data ParseError:
           ED.text(" has no surrounding whitespace.")]]
     end
   | parse-error-bad-number(loc) with:
-    method render-fancy-reason(self, loc-to-src):
-      [ED.error: 
-        [ED.para:
-          ED.text("Pyret thinks "),
-          ED.code(ED.highlight(ED.text(loc-to-src(self.loc)),[ED.locs: self.loc],0)),
-          ED.text(" is probably a number, but number literals in Pyret require at least one digit before the decimal point.")]]
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret thinks ")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text(" is probably a number, but number literals in Pyret require at least one digit before the decimal point.")]]
+      else:
+        [ED.error: 
+          [ED.para:
+            ED.text("Pyret thinks your program has a number at "),
+            ED.loc(self.loc),
+            ED.text(", but number literals in Pyret require at least one digit before the decimal point.")]]
+      end
     end,
     method render-reason(self):
       [ED.error: [ED.para-nospace:
