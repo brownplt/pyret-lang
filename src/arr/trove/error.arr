@@ -1879,11 +1879,11 @@ data RuntimeError:
           end
           cases(O.Option) maybe-ast(self.fun-def-loc):
             | some(ast) =>
-              args = cases(Any) ast:
+              {args; fun-def-snippet-loc} = cases(Any) ast:
                 | s-op(_,_,_,l,r) =>
                   l-underscore = is-underscore(l)
                   r-underscore = is-underscore(r)
-                  raw-array-to-list(
+                  {raw-array-to-list(
                     if l-underscore and r-underscore:
                       [raw-array: l.id.l, r.id.l]
                     else if l-underscore:
@@ -1892,13 +1892,13 @@ data RuntimeError:
                       [raw-array: r.id.l]
                     else:
                       [raw-array:]
-                    end)
-                | s-app(_,_,args) => args.filter(is-underscore).map(_.l)
-                | s-fun(_, _, _, args, _, _, _, _, _) => args.map(_.l)
-                | s-dot(_, obj, _)      => raw-array-to-list([raw-array: obj.id.l])
-                | s-extend(_, obj, _)   => raw-array-to-list([raw-array: obj.id.l])
-                | s-update(_, obj, _)   => raw-array-to-list([raw-array: obj.id.l])
-                | s-get-bang(_, obj, _) => raw-array-to-list([raw-array: obj.id.l])
+                    end); self.fun-def-loc}
+                | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-update(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-get-bang(_, obj, _) => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
               end
               helper(lam(applicant):
                 [ED.sequence:
@@ -1908,7 +1908,7 @@ data RuntimeError:
                     ED.text(" evaluated to a function defined accepting "),
                     ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
                     ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
+                  ED.cmcode(fun-def-snippet-loc)]
               end)
             | none      =>
               helper(lam(applicant):
