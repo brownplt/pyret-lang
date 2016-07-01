@@ -72,14 +72,14 @@ check "bad-checks":
   cwfs("lam(): 5 raises-other-than 5 end") satisfies (string-contains(_, "Cannot use `raises-other-than` outside of a `check` or `where` block"))
   cwfs("lam(): 5 raises-satisfies 5 end") satisfies (string-contains(_, "Cannot use `raises-satisfies` outside of a `check` or `where` block"))
   cwfs("lam(): 5 raises-violates 5 end") satisfies (string-contains(_, "Cannot use `raises-violates` outside of a `check` or `where` block"))
-  cwfs("check: 5 satisfies%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `satisfies`"))
-  cwfs("check: 5 violates%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `violates`"))
-  cwfs("check: 5 is==%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is==`"))
-  cwfs("check: 5 is=~%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is=~`"))
-  cwfs("check: 5 is<=>%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is<=>`"))
-  cwfs("check: 5 raises%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises`"))
-  cwfs("check: 5 raises-satisfies%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises-satisfies`"))
-  cwfs("check: 5 raises-violates%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises-violates`"))
+  c("check: 5 satisfies%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 violates%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 is==%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 is=~%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 is<=>%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 raises%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 raises-satisfies%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 raises-violates%(5) 5 end") satisfies C.is-unwelcome-test-refinement
 end
 
 check "malformed blocks":

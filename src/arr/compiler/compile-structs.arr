@@ -462,6 +462,26 @@ data CompileError:
           ED.loc(self.l),
           ED.text(" at the top-level.")]]
     end
+  | unwelcome-test-refinement(refinement, op) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("testing operator"),[list: self.op.l], 0)],
+        ED.cmcode(self.op.l + self.refinement.l),
+        [ED.para:
+          ED.text("may not be used with a "),
+          ED.highlight(ED.text("refinement"),[list: self.refinement.l], 1),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The testing operator at "),
+          ED.loc(self.op.l),
+          ED.text(" may not be used with the refinement syntax, "),
+          ED.code(ED.text("%(...)"))]]
+    end
   | underscore-as(l :: Loc, kind) with:
     method render-fancy-reason(self):
       [ED.error:
