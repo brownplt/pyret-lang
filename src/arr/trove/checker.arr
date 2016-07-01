@@ -315,10 +315,8 @@ data TestResult:
                   | on-refinement =>
                     cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
                       | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], -1)]
-                      # this branch shouldn't happen
-                      | none    => [list:
-                                      ED.text("predicate"),
-                                      ED.cmcode(self.loc)]
+                      | none    => 
+                        [list: ED.highlight(ED.text("predicate"),  [ED.locs: rhs-ast.l], -1)]
                     end
                 end + [list: ED.text(" to raise an exception:")]),
               ED.embed(self.actual-exn)]
