@@ -148,6 +148,7 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
 end
 
 fun ensure-unique-ids(bindings :: List<A.Bind>):
+  #TODO: write version of function compatible with s-tuple-binds
   nothing
  #|  cases(List) bindings block:
     | empty => nothing
