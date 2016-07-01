@@ -302,7 +302,6 @@ data TestResult:
         cases(Option) maybe-ast(self.loc):
           | some(test-ast) =>
             lhs-ast = test-ast.left
-            rhs-ast = test-ast.right.value
             [ED.error:
               [ED.para:
                 ED.text("The testing statement")],
@@ -311,12 +310,12 @@ data TestResult:
                 [list: ED.text("reported failure for the test, because it did not expect the evaluation of the ")] +
                 cases(CheckOperand) self.exn-place:
                   | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], -1)]
-                  | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], -1)]
+                  | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: test-ast.right.value.l], -1)]
                   | on-refinement =>
                     cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
                       | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], -1)]
                       | none    => 
-                        [list: ED.highlight(ED.text("predicate"),  [ED.locs: rhs-ast.l], -1)]
+                        [list: ED.highlight(ED.text("predicate"),  [ED.locs: test-ast.right.value.l], -1)]
                     end
                 end + [list: ED.text(" to raise an exception:")]),
               ED.embed(self.actual-exn)]
@@ -582,7 +581,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(
         cases(Either) run-task(thunk):
           | left(v)    => success(loc)
-          | right(exn) => failure-exn(loc, exn-unwrap(exn), true)
+          | right(exn) => failure-exn(loc, exn, on-left)
         end)
       nothing
     end,
