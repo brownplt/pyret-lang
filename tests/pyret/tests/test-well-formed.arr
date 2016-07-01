@@ -83,23 +83,23 @@ check "bad-checks":
 end
 
 check "malformed blocks":
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " x = 10\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a let-binding")
+    satisfies CS.is-block-ending
 
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " var x = 10\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a var-binding")
+    satisfies CS.is-block-ending
 
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " fun f(): nothing end\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a fun-binding")
+    satisfies CS.is-block-ending
 
   c("fun foo():\n" +
        " 123\n" +
@@ -108,11 +108,11 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
-  cwfs("lam(): x = 5 end") satisfies string-contains(_, "Cannot end a block in a let-binding")
-  cwfs("lam(): var x = 5 end") satisfies string-contains(_, "Cannot end a block in a var-binding")
-  cwfs("lam(): fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
-  cwfs("lam(): x = 5\n fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
-  cwfs("lam(): var x = 5\n y = 4\n fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
+  c("lam(): x = 5 end") satisfies CS.is-block-ending
+  c("lam(): var x = 5 end") satisfies CS.is-block-ending
+  c("lam(): fun f(): nothing end end") satisfies CS.is-block-ending
+  c("lam(): x = 5\n fun f(): nothing end end") satisfies CS.is-block-ending
+  c("lam(): var x = 5\n y = 4\n fun f(): nothing end end") satisfies CS.is-block-ending
 
 
   c("lam():\n" + 
@@ -132,11 +132,11 @@ check "malformed blocks":
        "  42\n" +
        "end")
     satisfies CS.is-block-needed
-  cwfs("block:\n" + 
+  c("block:\n" + 
        "  x = 5\n" + 
        "  y = 10\n" + 
        "end")
-    satisfies string-contains(_, "Cannot end a block in a let-binding")
+    satisfies CS.is-block-ending
 
   c("if x < y:\n" + 
        "  print('x less than y')\n" + 
