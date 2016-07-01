@@ -451,8 +451,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-check-test(self, l, op, refinement, left, right) block:
     last-visited-loc := l
     when not(in-check-block):
-      op-name = op.tosource().pretty(80).join-str("\n")
-      wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
+      add-error(C.unwelcome-test(l))
     end
     when is-some(refinement):
       cases(A.CheckOp) op:

@@ -48,30 +48,30 @@ check "pointless underscores":
 end
 
 check "bad-checks":
-  cwfs("5 is 5") satisfies (string-contains(_, "Cannot use `is` outside of a `check` or `where` block"))
-  cwfs("5 is-not 5") satisfies (string-contains(_, "Cannot use `is-not` outside of a `check` or `where` block"))
-  cwfs("5 is== 5") satisfies (string-contains(_, "Cannot use `is==` outside of a `check` or `where` block"))
-  cwfs("5 is=~ 5") satisfies (string-contains(_, "Cannot use `is=~` outside of a `check` or `where` block"))
-  cwfs("5 is<=> 5") satisfies (string-contains(_, "Cannot use `is<=>` outside of a `check` or `where` block"))
-  cwfs("5 satisfies 5") satisfies (string-contains(_, "Cannot use `satisfies` outside of a `check` or `where` block"))
-  cwfs("5 violates 5") satisfies (string-contains(_, "Cannot use `violates` outside of a `check` or `where` block"))
-  cwfs("5 raises 5") satisfies (string-contains(_, "Cannot use `raises` outside of a `check` or `where` block"))
-  cwfs("5 does-not-raise") satisfies (string-contains(_, "Cannot use `does-not-raise` outside of a `check` or `where` block"))
-  cwfs("5 raises-other-than 5") satisfies (string-contains(_, "Cannot use `raises-other-than` outside of a `check` or `where` block"))
-  cwfs("5 raises-satisfies 5") satisfies (string-contains(_, "Cannot use `raises-satisfies` outside of a `check` or `where` block"))
-  cwfs("5 raises-violates 5") satisfies (string-contains(_, "Cannot use `raises-violates` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is 5 end") satisfies (string-contains(_, "Cannot use `is` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is-not 5 end") satisfies (string-contains(_, "Cannot use `is-not` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is== 5 end") satisfies (string-contains(_, "Cannot use `is==` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is=~ 5 end") satisfies (string-contains(_, "Cannot use `is=~` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is<=> 5 end") satisfies (string-contains(_, "Cannot use `is<=>` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 satisfies 5 end") satisfies (string-contains(_, "Cannot use `satisfies` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 violates 5 end") satisfies (string-contains(_, "Cannot use `violates` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises 5 end") satisfies (string-contains(_, "Cannot use `raises` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 does-not-raise end") satisfies (string-contains(_, "Cannot use `does-not-raise` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-other-than 5 end") satisfies (string-contains(_, "Cannot use `raises-other-than` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-satisfies 5 end") satisfies (string-contains(_, "Cannot use `raises-satisfies` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-violates 5 end") satisfies (string-contains(_, "Cannot use `raises-violates` outside of a `check` or `where` block"))
+  c("5 is 5") satisfies C.is-unwelcome-test
+  c("5 is-not 5") satisfies C.is-unwelcome-test
+  c("5 is== 5") satisfies C.is-unwelcome-test
+  c("5 is=~ 5") satisfies C.is-unwelcome-test
+  c("5 is<=> 5") satisfies C.is-unwelcome-test
+  c("5 satisfies 5") satisfies C.is-unwelcome-test
+  c("5 violates 5") satisfies C.is-unwelcome-test
+  c("5 raises 5") satisfies C.is-unwelcome-test
+  c("5 does-not-raise") satisfies C.is-unwelcome-test
+  c("5 raises-other-than 5") satisfies C.is-unwelcome-test
+  c("5 raises-satisfies 5") satisfies C.is-unwelcome-test
+  c("5 raises-violates 5") satisfies C.is-unwelcome-test
+  c("lam(): 5 is 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 is-not 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 is== 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 is=~ 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 is<=> 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 satisfies 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 violates 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 raises 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 does-not-raise end") satisfies C.is-unwelcome-test
+  c("lam(): 5 raises-other-than 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 raises-satisfies 5 end") satisfies C.is-unwelcome-test
+  c("lam(): 5 raises-violates 5 end") satisfies C.is-unwelcome-test
   c("check: 5 satisfies%(5) 5 end") satisfies C.is-unwelcome-test-refinement
   c("check: 5 violates%(5) 5 end") satisfies C.is-unwelcome-test-refinement
   c("check: 5 is==%(5) 5 end") satisfies C.is-unwelcome-test-refinement

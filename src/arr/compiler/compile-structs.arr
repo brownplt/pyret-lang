@@ -462,6 +462,31 @@ data CompileError:
           ED.loc(self.l),
           ED.text(" at the top-level.")]]
     end
+  | unwelcome-test(loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("testing statement"),[list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("is not inside a "),
+          ED.code(ED.text("check")),
+          ED.text(" or "),
+          ED.code(ED.text("where")),
+          ED.text(" block.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The testing statement at "),
+          ED.loc(self.loc),
+          ED.text(" is not inside a "),
+          ED.code(ED.text("check")),
+          ED.text(" or "),
+          ED.code(ED.text("where")),
+          ED.text(" block.")]]
+    end
   | unwelcome-test-refinement(refinement, op) with:
     method render-fancy-reason(self):
       [ED.error:
