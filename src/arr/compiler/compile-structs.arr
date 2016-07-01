@@ -296,18 +296,18 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Pyret disallows the use of "),
+          ED.text("The name "),
           ED.code(ED.highlight(ED.text(self.id), [list: self.loc], 0)),
-          ED.text(" as an identifier because it is reserved.")]]
+          ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Pyret disallows the use of "),
+          ED.text("The name "),
           ED.code(ED.text(self.id)),
-          ED.text(" as an identifier at "),
+          ED.text(" at "),
           ED.loc(self.loc),
-          ED.text(" because it is reserved.")]]
+          ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
     end
   | zero-fraction(loc, numerator) with:
     method render-fancy-reason(self):
