@@ -991,7 +991,8 @@ data RuntimeError:
           else if src-available(loc):
             [ED.sequence:
               [ED.para:
-                ED.text("The expression")],
+                ED.text("The "),
+                ED.highlight(ED.text("expression"), [ED.locs: loc], 0)],
               ED.cmcode(loc),
               [ED.para:
                 ED.text("was expected to evaluate to a "),
