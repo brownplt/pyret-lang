@@ -72,14 +72,14 @@ check "bad-checks":
   c("lam(): 5 raises-other-than 5 end") satisfies CS.is-unwelcome-test
   c("lam(): 5 raises-satisfies 5 end") satisfies CS.is-unwelcome-test
   c("lam(): 5 raises-violates 5 end") satisfies CS.is-unwelcome-test
-  c("check: 5 satisfies%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 violates%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 is==%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 is=~%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 is<=>%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 raises%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 raises-satisfies%(5) 5 end") satisfies C.is-unwelcome-test-refinement
-  c("check: 5 raises-violates%(5) 5 end") satisfies C.is-unwelcome-test-refinement
+  c("check: 5 satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is==%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is=~%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is<=>%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises-satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises-violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
 end
 
 check "malformed blocks":
