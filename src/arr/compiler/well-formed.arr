@@ -542,15 +542,12 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
-    if (index < 0) block: 
-      wf-error(" Index too small  ", l)
-      false
-    else if (index > 1000):
-      wf-error(" Index over maximum allowed index  ", l)
+    if (index < 0) or (index > 1000) block: 
+      add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
       false
     else:
       true
-     end
+    end
   end,
   method s-check(self, l, name, body, keyword-check) block:
     last-visited-loc := l

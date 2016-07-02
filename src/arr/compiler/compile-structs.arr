@@ -428,6 +428,51 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" isn't a testing statement.")]]
     end
+  | tuple-get-bad-index(l, tup, index, index-loc) with:
+    method render-fancy-reason(self):
+      if self.index < 0:
+        [ED.error:
+          [ED.para:
+            ED.text("A "),
+            ED.highlight(ED.text("tuple indexing"), [list: self.l], -1),
+            ED.text(" expression")],
+          ED.cmcode(self.l),
+          [ED.para:
+            ED.text("cannot extract a "),
+            ED.highlight(ED.text("negative position"),[list: self.index-loc],0),
+            ED.text(" from a "),
+            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("A "),
+            ED.highlight(ED.text("tuple indexing"), [list: self.l], -1),
+            ED.text(" expression")],
+          ED.cmcode(self.l),
+          [ED.para:
+            ED.text("cannot extract an "),
+            ED.highlight(ED.text("index"),[list: self.index-loc],0),
+            ED.text(" that large from a "),
+            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
+            ED.text(". There are no tuples that big.")]]
+      end
+    end,
+    method render-reason(self):
+      if self.index < 0:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple indexing expression at "),
+            ED.loc(self.l),
+            ED.text(" was given an invalid, negative index.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple indexing expression at "),
+            ED.loc(self.l),
+            ED.text(" was given an index bigger than any tuple.")]]
+      end
+    end
   | no-arguments(expr) with:
     method render-fancy-reason(self):
       [ED.error:
