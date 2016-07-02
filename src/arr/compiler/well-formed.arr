@@ -320,14 +320,14 @@ well-formed-visitor = A.default-iter-visitor.{
     last-visited-loc := l
     if kind == "my-gdrive":
       if args.length() <> 1 block:
-        wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file"]))
         false
       else:
         true
       end
     else if kind == "shared-gdrive":
       if args.length() <> 2 block:
-        wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id, which you can get from the share URL"]))
         false
       else:
         true
@@ -336,13 +336,9 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else if kind == "gdrive-js":
       if args.length() <> 2:
-        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id"]))
       else:
         true
-      end
-    else if kind == "gdrive-js":
-      when args.length() <> 2:
-        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
       end
     else:
       true

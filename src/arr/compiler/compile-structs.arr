@@ -473,6 +473,33 @@ data CompileError:
             ED.text(" was given an index bigger than any tuple.")]]
       end
     end
+  | import-arity-mismatch(l, kind, args, expected-arity, expected-args) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight([ED.sequence: ED.code(ED.text(self.kind)), ED.text(" import statement")],
+                       [list: self.l], -1),
+          ED.text(":")],
+        ED.cmcode(self.l),
+        [ED.para:
+          ED.text("expects "),
+          ED.ed-args(self.expected-arity),
+          ED.text(":")],
+         ED.bulleted-sequence(self.expected-args.map(ED.text))]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text(self.kind)),
+          ED.text(" import statement at "),
+          ED.loc(self.l),
+          ED.text(" expects "),
+          ED.ed-args(self.expected-arity),
+          ED.text(":")],
+         ED.bulleted-sequence(self.expected-args.map(ED.text))]
+    end
   | no-arguments(expr) with:
     method render-fancy-reason(self):
       [ED.error:
