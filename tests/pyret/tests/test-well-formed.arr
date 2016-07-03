@@ -48,58 +48,58 @@ check "pointless underscores":
 end
 
 check "bad-checks":
-  cwfs("5 is 5") satisfies (string-contains(_, "Cannot use `is` outside of a `check` or `where` block"))
-  cwfs("5 is-not 5") satisfies (string-contains(_, "Cannot use `is-not` outside of a `check` or `where` block"))
-  cwfs("5 is== 5") satisfies (string-contains(_, "Cannot use `is==` outside of a `check` or `where` block"))
-  cwfs("5 is=~ 5") satisfies (string-contains(_, "Cannot use `is=~` outside of a `check` or `where` block"))
-  cwfs("5 is<=> 5") satisfies (string-contains(_, "Cannot use `is<=>` outside of a `check` or `where` block"))
-  cwfs("5 satisfies 5") satisfies (string-contains(_, "Cannot use `satisfies` outside of a `check` or `where` block"))
-  cwfs("5 violates 5") satisfies (string-contains(_, "Cannot use `violates` outside of a `check` or `where` block"))
-  cwfs("5 raises 5") satisfies (string-contains(_, "Cannot use `raises` outside of a `check` or `where` block"))
-  cwfs("5 does-not-raise") satisfies (string-contains(_, "Cannot use `does-not-raise` outside of a `check` or `where` block"))
-  cwfs("5 raises-other-than 5") satisfies (string-contains(_, "Cannot use `raises-other-than` outside of a `check` or `where` block"))
-  cwfs("5 raises-satisfies 5") satisfies (string-contains(_, "Cannot use `raises-satisfies` outside of a `check` or `where` block"))
-  cwfs("5 raises-violates 5") satisfies (string-contains(_, "Cannot use `raises-violates` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is 5 end") satisfies (string-contains(_, "Cannot use `is` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is-not 5 end") satisfies (string-contains(_, "Cannot use `is-not` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is== 5 end") satisfies (string-contains(_, "Cannot use `is==` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is=~ 5 end") satisfies (string-contains(_, "Cannot use `is=~` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 is<=> 5 end") satisfies (string-contains(_, "Cannot use `is<=>` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 satisfies 5 end") satisfies (string-contains(_, "Cannot use `satisfies` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 violates 5 end") satisfies (string-contains(_, "Cannot use `violates` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises 5 end") satisfies (string-contains(_, "Cannot use `raises` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 does-not-raise end") satisfies (string-contains(_, "Cannot use `does-not-raise` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-other-than 5 end") satisfies (string-contains(_, "Cannot use `raises-other-than` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-satisfies 5 end") satisfies (string-contains(_, "Cannot use `raises-satisfies` outside of a `check` or `where` block"))
-  cwfs("lam(): 5 raises-violates 5 end") satisfies (string-contains(_, "Cannot use `raises-violates` outside of a `check` or `where` block"))
-  cwfs("check: 5 satisfies%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `satisfies`"))
-  cwfs("check: 5 violates%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `violates`"))
-  cwfs("check: 5 is==%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is==`"))
-  cwfs("check: 5 is=~%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is=~`"))
-  cwfs("check: 5 is<=>%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `is<=>`"))
-  cwfs("check: 5 raises%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises`"))
-  cwfs("check: 5 raises-satisfies%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises-satisfies`"))
-  cwfs("check: 5 raises-violates%(5) 5 end") satisfies (string-contains(_, "Cannot use refinement syntax `%(...)` with `raises-violates`"))
+  c("5 is 5") satisfies CS.is-unwelcome-test
+  c("5 is-not 5") satisfies CS.is-unwelcome-test
+  c("5 is== 5") satisfies CS.is-unwelcome-test
+  c("5 is=~ 5") satisfies CS.is-unwelcome-test
+  c("5 is<=> 5") satisfies CS.is-unwelcome-test
+  c("5 satisfies 5") satisfies CS.is-unwelcome-test
+  c("5 violates 5") satisfies CS.is-unwelcome-test
+  c("5 raises 5") satisfies CS.is-unwelcome-test
+  c("5 does-not-raise") satisfies CS.is-unwelcome-test
+  c("5 raises-other-than 5") satisfies CS.is-unwelcome-test
+  c("5 raises-satisfies 5") satisfies CS.is-unwelcome-test
+  c("5 raises-violates 5") satisfies CS.is-unwelcome-test
+  c("lam(): 5 is 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 is-not 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 is== 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 is=~ 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 is<=> 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 satisfies 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 violates 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 raises 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 does-not-raise end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 raises-other-than 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 raises-satisfies 5 end") satisfies CS.is-unwelcome-test
+  c("lam(): 5 raises-violates 5 end") satisfies CS.is-unwelcome-test
+  c("check: 5 satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is==%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is=~%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 is<=>%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises-satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  c("check: 5 raises-violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
 end
 
 check "malformed blocks":
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " x = 10\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a let-binding")
+    satisfies CS.is-block-ending
 
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " var x = 10\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a var-binding")
+    satisfies CS.is-block-ending
 
-  cwfs("fun foo():\n" + 
+  c("fun foo():\n" + 
        " fun f(): nothing end\n" + 
        "end\n" + 
        "10")
-    satisfies string-contains(_, "Cannot end a block in a fun-binding")
+    satisfies CS.is-block-ending
 
   c("fun foo():\n" +
        " 123\n" +
@@ -108,11 +108,11 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
-  cwfs("lam(): x = 5 end") satisfies string-contains(_, "Cannot end a block in a let-binding")
-  cwfs("lam(): var x = 5 end") satisfies string-contains(_, "Cannot end a block in a var-binding")
-  cwfs("lam(): fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
-  cwfs("lam(): x = 5\n fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
-  cwfs("lam(): var x = 5\n y = 4\n fun f(): nothing end end") satisfies string-contains(_, "Cannot end a block in a fun-binding")
+  c("lam(): x = 5 end") satisfies CS.is-block-ending
+  c("lam(): var x = 5 end") satisfies CS.is-block-ending
+  c("lam(): fun f(): nothing end end") satisfies CS.is-block-ending
+  c("lam(): x = 5\n fun f(): nothing end end") satisfies CS.is-block-ending
+  c("lam(): var x = 5\n y = 4\n fun f(): nothing end end") satisfies CS.is-block-ending
 
 
   c("lam():\n" + 
@@ -132,11 +132,11 @@ check "malformed blocks":
        "  42\n" +
        "end")
     satisfies CS.is-block-needed
-  cwfs("block:\n" + 
+  c("block:\n" + 
        "  x = 5\n" + 
        "  y = 10\n" + 
        "end")
-    satisfies string-contains(_, "Cannot end a block in a let-binding")
+    satisfies CS.is-block-ending
 
   c("if x < y:\n" + 
        "  print('x less than y')\n" + 

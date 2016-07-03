@@ -233,8 +233,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
             | srcloc(_, start-line2, _, _, _, _, _) =>
               when (end-line1 == start-line2):
                 if A.is-s-template(first) and prev-is-template:
-                  wf-error2("Found two adjacent template expressions on the same line: "
-                      + "either remove one or separate them", loc, first.l)
+                  add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
                   add-error(C.same-line(loc, first.l))
                 else:
@@ -261,12 +260,12 @@ end
 
 fun wf-last-stmt(stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _, _) => wf-error("Cannot end a block in a let-binding", l)
-    | s-var(l, _, _) => wf-error("Cannot end a block in a var-binding", l)
-    | s-rec(l, _, _) => wf-error("Cannot end a block in a rec-binding", l)
-    | s-fun(l, _, _, _, _, _, _, _, _) => wf-error("Cannot end a block in a fun-binding", l)
-    | s-data(l, _, _, _, _, _, _) => wf-error("Cannot end a block with a data definition", l)
-    | s-contract(l, _, _) => add-error(C.block-ending(l, "contract"))
+    | s-let(l, _, _, _)                => add-error(C.block-ending(l, "let-binding"))
+    | s-var(l, _, _)                   => add-error(C.block-ending(l, "var-binding"))
+    | s-rec(l, _, _)                   => add-error(C.block-ending(l, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _)      => add-error(C.block-ending(l, "data definition"))
+    | s-contract(l, _, _)              => add-error(C.block-ending(l, "contract"))
     | else => nothing
   end
 end
@@ -344,14 +343,14 @@ well-formed-visitor = A.default-iter-visitor.{
     last-visited-loc := l
     if kind == "my-gdrive":
       if args.length() <> 1 block:
-        wf-error("Imports with my-gdrive should have one argument, the name of the file", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file"]))
         false
       else:
         true
       end
     else if kind == "shared-gdrive":
       if args.length() <> 2 block:
-        wf-error("Imports with shared-gdrive should have two arguments, the name of the file and the file's id, which you can get from the share URL", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id, which you can get from the share URL"]))
         false
       else:
         true
@@ -360,13 +359,9 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else if kind == "gdrive-js":
       if args.length() <> 2:
-        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
+        add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id"]))
       else:
         true
-      end
-    else if kind == "gdrive-js":
-      when args.length() <> 2:
-        wf-error("Imports with gdrive-js should have two arguments, the name of the file and the file's id", l)
       end
     else:
       true
@@ -475,22 +470,14 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-check-test(self, l, op, refinement, left, right) block:
     last-visited-loc := l
     when not(in-check-block):
-      op-name = op.tosource().pretty(80).join-str("\n")
-      wf-error("Cannot use `" + op-name + "` outside of a `check` or `where` block", l)
+      add-error(C.unwelcome-test(l))
     end
     when is-some(refinement):
       cases(A.CheckOp) op:
         | s-op-is(_)            => nothing
         | s-op-is-not(_)        => nothing
-        | s-op-satisfies(_)     =>
-          wf-error("Cannot use refinement syntax `%(...)` with `satisfies`. "
-              + "Consider changing the predicate instead.", l)
-        | s-op-satisfies-not(_) =>
-          wf-error("Cannot use refinement syntax `%(...)` with `violates`. "
-              + "Consider changing the predicate instead.", l)
-        | else               =>
-          op-name = op.tosource().pretty(80).join-str("\n")
-          wf-error("Cannot use refinement syntax `%(...)` with `" + op-name + "`.", l)
+        | else                  =>
+          add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
     left.visit(self) and self.option(right)
@@ -574,15 +561,12 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
-    if (index < 0) block: 
-      wf-error(" Index too small  ", l)
-      false
-    else if (index > 1000):
-      wf-error(" Index over maximum allowed index  ", l)
+    if (index < 0) or (index > 1000) block: 
+      add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
       false
     else:
       true
-     end
+    end
   end,
   method s-check(self, l, name, body, keyword-check) block:
     last-visited-loc := l

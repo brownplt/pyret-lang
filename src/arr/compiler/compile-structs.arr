@@ -428,6 +428,78 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" isn't a testing statement.")]]
     end
+  | tuple-get-bad-index(l, tup, index, index-loc) with:
+    method render-fancy-reason(self):
+      if self.index < 0:
+        [ED.error:
+          [ED.para:
+            ED.text("A "),
+            ED.highlight(ED.text("tuple indexing"), [list: self.l], -1),
+            ED.text(" expression")],
+          ED.cmcode(self.l),
+          [ED.para:
+            ED.text("cannot extract a "),
+            ED.highlight(ED.text("negative position"),[list: self.index-loc],0),
+            ED.text(" from a "),
+            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("A "),
+            ED.highlight(ED.text("tuple indexing"), [list: self.l], -1),
+            ED.text(" expression")],
+          ED.cmcode(self.l),
+          [ED.para:
+            ED.text("cannot extract an "),
+            ED.highlight(ED.text("index"),[list: self.index-loc],0),
+            ED.text(" that large from a "),
+            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
+            ED.text(". There are no tuples that big.")]]
+      end
+    end,
+    method render-reason(self):
+      if self.index < 0:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple indexing expression at "),
+            ED.loc(self.l),
+            ED.text(" was given an invalid, negative index.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple indexing expression at "),
+            ED.loc(self.l),
+            ED.text(" was given an index bigger than any tuple.")]]
+      end
+    end
+  | import-arity-mismatch(l, kind, args, expected-arity, expected-args) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight([ED.sequence: ED.code(ED.text(self.kind)), ED.text(" import statement")],
+                       [list: self.l], -1),
+          ED.text(":")],
+        ED.cmcode(self.l),
+        [ED.para:
+          ED.text("expects "),
+          ED.ed-args(self.expected-arity),
+          ED.text(":")],
+         ED.bulleted-sequence(self.expected-args.map(ED.text))]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text(self.kind)),
+          ED.text(" import statement at "),
+          ED.loc(self.l),
+          ED.text(" expects "),
+          ED.ed-args(self.expected-arity),
+          ED.text(":")],
+         ED.bulleted-sequence(self.expected-args.map(ED.text))]
+    end
   | no-arguments(expr) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -461,6 +533,51 @@ data CompileError:
           ED.text(" at "),
           ED.loc(self.l),
           ED.text(" at the top-level.")]]
+    end
+  | unwelcome-test(loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("testing statement"),[list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("is not inside a "),
+          ED.code(ED.text("check")),
+          ED.text(" or "),
+          ED.code(ED.text("where")),
+          ED.text(" block.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The testing statement at "),
+          ED.loc(self.loc),
+          ED.text(" is not inside a "),
+          ED.code(ED.text("check")),
+          ED.text(" or "),
+          ED.code(ED.text("where")),
+          ED.text(" block.")]]
+    end
+  | unwelcome-test-refinement(refinement, op) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("testing operator"),[list: self.op.l], 0)],
+        ED.cmcode(self.op.l + self.refinement.l),
+        [ED.para:
+          ED.text("may not be used with a "),
+          ED.highlight(ED.text("refinement"),[list: self.refinement.l], 1),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The testing operator at "),
+          ED.loc(self.op.l),
+          ED.text(" may not be used with the refinement syntax, "),
+          ED.code(ED.text("%(...)"))]]
     end
   | underscore-as(l :: Loc, kind) with:
     method render-fancy-reason(self):
@@ -1025,6 +1142,24 @@ data CompileError:
           ED.text(" is on the same line as the expression at "),
           ED.loc(self.b),
           ED.text(".")]]
+    end
+  | template-same-line(a :: Loc, b :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("You have two "),
+          ED.highlight(ED.text("unfinished template expressions"), [list: self.a, self.b], 0),
+          ED.text(" on the same line.")],
+        ED.cmcode(self.a + self.b),
+        [ED.para:
+          ED.text("Either remove one, or separate them.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("You have two unfinished template expressions on the same line at "),
+          ED.loc(self.a + self.b),
+          ED.text(". Either remove one, or separate them.")]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     method render-fancy-reason(self):
