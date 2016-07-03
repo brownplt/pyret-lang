@@ -7,6 +7,7 @@ import parse-pyret as PP
 import string-dict as SD
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
+import file("resolve-scope.arr") as R
 
 names = A.global-names
 
@@ -39,6 +40,9 @@ end
 fun template-exn(l):
   A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
 end
+
+
+var generated-binds = SD.make-mutable-string-dict()
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -81,15 +85,17 @@ fun desugar(program :: A.Program):
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
-  cases(A.Program) program:
+  cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
-      A.s-program(l, _provide, provided-types, imports, desugar-expr(body))
+      generated-binds := SD.make-mutable-string-dict()
+      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
 
-fun mk-id-ann(loc, base, ann):
+fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
+  generated-binds.set-now(a.key(), R.let-bind(loc, a, ann, none))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 

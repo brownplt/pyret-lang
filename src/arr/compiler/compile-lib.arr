@@ -374,23 +374,25 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           var named-result = RS.resolve-names(scoped, env)
           scoped := nothing
           when options.collect-all: ret := phase("Resolved names", named-result, ret) end
-          var named-ast = named-result.ast
-          named-errors = named-result.errors
           var provides = AU.get-named-provides(named-result, locator.uri(), env)
+          # Once name resolution has happened, any newly-created s-binds must be added to bindings...
+          var desugared = D.desugar(named-result.ast)
+          named-result.bindings.merge-now(desugared.new-binds)
+          # ...in order to be checked for bad assignments here
+          var any-errors = named-result.errors
+            + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
           named-result := nothing
-          var desugared = D.desugar(named-ast)
-          named-ast := nothing
-          when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
+          when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
           var type-checked =
             if options.type-check:
-              type-checked = T.type-check(desugared, env, modules)
+              type-checked = T.type-check(desugared.ast, env, modules)
               if CS.is-ok(type-checked) block:
                 provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                 CS.ok(type-checked.code.ast)
               else:
                 type-checked
               end
-            else: CS.ok(desugared)
+            else: CS.ok(desugared.ast)
             end
           desugared := nothing
           when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
@@ -398,7 +400,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             | ok(_) =>
               var tc-ast = type-checked.code
               type-checked := nothing
-              any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
               var dp-ast = DP.desugar-post-tc(tc-ast, env)
               tc-ast := nothing
               var cleaned = dp-ast
