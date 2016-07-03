@@ -13,7 +13,8 @@ data CellContent<A>:
 end
 
 # Commenting out annotations because phase0 tried and failed to read them
-type Sanitizer#|<A,B>|# = (CellContent<Any> -> Any)
+# (Contents, Column, Row -> Sanitized)
+type Sanitizer#|<A,B>|# = (CellContent<Any>, String, Number -> Any)
 
 type LoadedTable#|<A,B>|# = {
   RawArray<{String; Sanitizer#|<A,B>|#}>;
@@ -29,15 +30,15 @@ type DataSourceLoader#|<A,B>|# = {
 }
 
 fun option-sanitizer(val-sanitizer):
-  lam(x):
+  lam(x, col, row):
     cases(CellContent) x:
       | c-empty => O.none
-      | else => O.some(val-sanitizer(x))
+      | else => O.some(val-sanitizer(x, col, row))
     end
   end
 end
 
-fun string-sanitizer(x):
+fun string-sanitizer(x, col, row):
   cases(CellContent) x:
     | c-empty => ""
     | c-str(s) => s
@@ -47,22 +48,26 @@ fun string-sanitizer(x):
   end
 end
 
-fun num-sanitizer(x):
+fun num-sanitizer(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(O.Option) string-to-number(s):
-        | none => raise('Cannot sanitize the string "' + s + '" as a number')
+        | none => raise('Cannot sanitize the string "' + s
+              + '" at ' + loc + ' as a number')
         | some(n) => n
       end
     | c-num(n) => n
     | c-bool(b) => if b: 1 else: 0 end
     | c-custom(datum) => raise('Cannot sanitize the datum '
-          + torepr(datum) + ' as a number')
-    | c-empty => raise('Cannot sanitize an empty cell as a number')
+          + torepr(datum) + ' at ' + loc + ' as a number')
+    | c-empty => raise('Cannot sanitize the empty cell at '
+          + loc + ' as a number')
   end
 end
 
-fun bool-sanitizer(x):
+fun bool-sanitizer(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | c-num(n) =>
@@ -70,38 +75,43 @@ fun bool-sanitizer(x):
         | n == 0 then: false
         | n == 1 then: true
         | otherwise: raise('Cannot sanitize the number '
-              + num-to-string(n) + ' as a boolean')
+              + num-to-string(n) + ' at ' + loc + ' as a boolean')
       end
     | c-str(s) =>
       ask:
         | string-tolower(s) == "true" then: true
         | string-tolower(s) == "false" then: false
         | otherwise: raise('Cannot sanitize the string "'
-              + s + '" as a boolean')
+              + s + '" at ' + loc + ' as a boolean')
       end
     | c-custom(datum) => raise('Cannot sanitize the datum '
-          + torepr(datum) + ' as a boolean')
-    | c-empty => raise('Cannot sanitize an empty cell as a boolean')
+          + torepr(datum) + ' at ' + loc + ' as a boolean')
+    | c-empty => raise('Cannot sanitize the empty cell at '
+          + loc + ' as a boolean')
   end
 end
 
-fun strict-num-sanitizer(x):
+fun strict-num-sanitizer(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(O.Option) string-to-number(s):
-        | none => raise('Cannot sanitize the string "' + s + '" as a number')
+        | none => raise('Cannot sanitize the string "'
+              + s + '" at ' + loc + ' as a number')
         | some(n) => n
       end
     | c-num(n) => n
     | c-bool(b) => raise('Cannot sanitize the boolean '
-          + torepr(b) + ' as a number in strict mode.')
+          + torepr(b) + ' at ' + loc + ' as a number in strict mode.')
     | c-custom(datum) => raise('Cannot sanitize the datum '
-          + torepr(datum) + ' as a number')
-    | c-empty => raise('Cannot sanitize an empty cell as a number')
+          + torepr(datum) + ' at ' + loc + ' as a number')
+    | c-empty => raise('Cannot sanitize the empty cell at '
+          + loc + ' as a number')
   end
 end
 
-fun strings-only(x):
+fun strings-only(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) => s
     | else =>
@@ -109,13 +119,15 @@ fun strings-only(x):
         | c-num(n) => "the number " + num-to-string(n)
         | c-bool(b) => "the boolean " + torepr(b)
         | c-datum(datum) => "the datum " + torepr(datum)
-        | c-empty => "an empty cell"
+        | c-empty => "the empty cell"
       end
-      raise('Cannot sanitize ' + as-str + ' as a string')
+      raise('Cannot sanitize ' + as-str + ' at '
+          + loc + ' as a string')
   end
 end
 
-fun numbers-only(x):
+fun numbers-only(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-num(n) => n
     | else =>
@@ -125,11 +137,13 @@ fun numbers-only(x):
         | c-datum(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
       end
-      raise('Cannot sanitize ' + as-str + ' as a number')
+      raise('Cannot sanitize ' + as-str + ' at '
+          + loc + ' as a number')
   end
 end
 
-fun booleans-only(x):
+fun booleans-only(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | else =>
@@ -139,11 +153,13 @@ fun booleans-only(x):
         | c-datum(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
       end
-      raise('Cannot sanitize ' + as-str + ' as a boolean')
+      raise('Cannot sanitize ' + as-str + ' at '
+          + loc + ' as a boolean')
   end
 end
 
-fun empty-only(x):
+fun empty-only(x, col, row):
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-empty => O.none
     | else =>
@@ -153,6 +169,7 @@ fun empty-only(x):
         | c-bool(b) => "boolean " + torepr(b)
         | c-datum(datum) => "datum " + torepr(datum)
       end
-      raise('Cannot sanitize the ' + as-str + ' as an empty cell')
+      raise('Cannot sanitize the ' + as-str + ' at '
+          + loc + ' as an empty cell')
   end
 end

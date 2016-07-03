@@ -66,7 +66,7 @@
           runtime.checkCellContent(contents[i][j]);
         }
         contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
-          return sanitizers[j].app(contents[i][j]);
+          return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
         }), contents[i]);
       }
       return makeTable(names, contents);
