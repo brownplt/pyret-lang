@@ -362,6 +362,32 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               k.apply(l, N.a-method-app(l, v, m, vs))
             end)
           end)
+        | s-lam(f-l, _, _, params, ann, _, body, _, blocky) =>
+          ### NOTE: This case implements the inline-lams visitor transformation
+          ### It can be safely eliminated without affecting the semantics of
+          ### the transformation, but does help eliminate some unneeded lambdas
+          if (params.length() == args.length()):
+            let-binds = for lists.map2(p from params, a from args):
+              A.s-let-bind(p.l, p, a)
+            end
+            inlined = cases(A.Ann) ann:
+              | a-blank => A.s-let-expr(l, let-binds, body, blocky)
+              | a-any(_) => A.s-let-expr(l, let-binds, body, blocky)
+              | else =>
+                a = A.global-names.make-atom("inline_body")
+                A.s-let-expr(l,
+                  let-binds
+                    + [list: A.s-let-bind(body.l, A.s-bind(l, false, a, ann), body)],
+                  A.s-id(l, a), false)
+            end
+            anf(inlined, k)
+          else:
+            anf-name(f, "anf_fun", lam(v):
+                anf-name-rec(args, "anf_arg", lam(vs):
+                    k.apply(l, N.a-app(l, v, vs))
+                  end)
+              end)
+          end
         | else =>
           anf-name(f, "anf_fun", lam(v):
               anf-name-rec(args, "anf_arg", lam(vs):

@@ -92,33 +92,6 @@ fun count-apps(expr) block:
   count
 end
 
-inline-lams = A.default-map-visitor.{
-  method s-app(self, loc, f, exps):
-    cases(A.Expr) f:
-      | s-lam(l, _, _, args, ann, _, body, _, blocky) =>
-        if (args.length() == exps.length()):
-          a = A.global-names.make-atom("inline_body")
-          let-binds = for lists.map2(arg from args, exp from exps):
-            A.s-let-bind(arg.l, arg, exp.visit(self))
-          end
-          cases(A.Ann) ann:
-            | a-blank => A.s-let-expr(l, let-binds, body.visit(self), blocky)
-            | a-any(_) => A.s-let-expr(l, let-binds, body.visit(self), blocky)
-            | else =>
-              A.s-let-expr(l,
-                let-binds
-                  + [list: A.s-let-bind(body.l, A.s-bind(l, false, a, ann), body.visit(self))],
-                A.s-id(l, a), false)
-          end
-        else:
-          A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
-        end
-      | else => A.s-app(loc, f.visit(self), exps.map(_.visit(self)))
-    end
-  end
-}
-
-
 fun value-delays-exec-of(name, expr):
   A.is-s-lam(expr) or A.is-s-method(expr)
 end

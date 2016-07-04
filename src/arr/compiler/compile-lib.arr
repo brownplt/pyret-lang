@@ -406,19 +406,16 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               dp-ast := nothing
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-              var inlined = cleaned.visit(AU.inline-lams)
-              cleaned := nothing
-              when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
               cr = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
-                else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)
+                else: phase("Result", CS.ok(JSP.make-compiled-pyret(cleaned, env, provides, options)), ret)
                 end
               else:
-                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
-              inlined := nothing
+              cleaned := nothing
               r = if options.collect-all: cr else: cr.result end
               mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, r)
               mod-result
