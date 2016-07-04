@@ -404,9 +404,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               tc-ast := nothing
               var cleaned = dp-ast
               dp-ast := nothing
-              cleaned := cleaned.visit(AU.flatten-and-merge-blocks)
-              # this visitor no longer works; it may need to be scrapped or reworked
-              # cleaned := cleaned.visit(AU.link-list-visitor(env))
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               var inlined = cleaned.visit(AU.inline-lams)

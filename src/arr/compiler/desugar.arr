@@ -357,10 +357,16 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body, blocky) =>
-      check-bool(test.l, desugar-expr(test), lam(test-id-e):
+      ds-test = desugar-expr(test)
+      g-nothing = gid(l, "nothing")
+      ds-body = desugar-expr(body)
+      check-bool(test.l, ds-test, lam(test-id-e):
           A.s-if-else(l,
-            [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-            A.s-block(l, [list: gid(l, "nothing")]),
+            [list:
+              A.s-if-branch(l, test-id-e, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
+                else: ds-body
+                end)],
+            A.s-block(l, [list: g-nothing]),
             blocky)
         end)
     | s-if(l, branches, blocky) =>
@@ -398,7 +404,11 @@ fun desugar-expr(expr :: A.Expr):
               A.s-app(l, gid(l, field), [list: e1, e2])
             end)
         | none =>
-          fun thunk(e): A.s-lam(l, "", [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none, false) end
+          fun thunk(e):
+            A.s-lam(l, "", [list: ], [list: ], A.a-blank, "",
+              if A.is-s-block(e): e else: A.s-block(l, [list: e]) end,
+              none, false)
+          end
           fun opbool(fld):
             A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
           end

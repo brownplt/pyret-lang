@@ -80,23 +80,6 @@ fun wrap-toplevels(prog :: A.Program) -> A.Program:
   end
 end
 
-
-flatten-and-merge-blocks = A.default-map-visitor.{
-  method s-block(self, l, stmts):
-    if stmts.length() == 1: stmts.first.visit(self)
-    else:
-      merged-stmts = for fold(new-stmts from [list: ], s from stmts):
-        cases(A.Expr) s.visit(self):
-          | s-block(l2, stmts2) => L.reverse-help(stmts2, new-stmts)
-          | else => s ^ link(_, new-stmts)
-        end
-      end
-      A.s-block(l, merged-stmts.reverse())
-    end
-  end
-}
-
-
 fun count-apps(expr) block:
   var count = 0
   visitor = A.default-iter-visitor.{
