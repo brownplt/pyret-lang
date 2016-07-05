@@ -719,9 +719,15 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   method s-variant(self, l, constr-loc, name, binds, with-members) block:
+    for each(one-bind from binds.map(_.bind)):
+      cases(A.Bind) one-bind:
+      | s-bind(_,_,_,_) => nothing
+      | s-tuple-bind(l2, fields) => wf-error("Tuple binding not allowed as variant member ", l2)
+     end
+    end
     ids = fields-to-binds(with-members) + binds.map(_.bind)
     ensure-unique-ids(ids)
-    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
+    underscores = binds.filter(lam(b) block: A.is-s-bind(b.bind) and A.is-s-underscore(b.bind.id) end)
     when not(is-empty(underscores)):
       add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
@@ -949,8 +955,12 @@ top-level-visitor = A.default-iter-visitor.{
   method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)
   end,
-  method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind):
-    well-formed-visitor.s-variant-member(l, member-type, bind)
+  method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
+    print("hi")
+    cases(A.Bind) bind: 
+     | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
+     | s-tuple-bind(l2, _) => wf-error("Tuple binding not allowed as variant member", l2)
+    end
   end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)

@@ -112,9 +112,6 @@ data tuples:
   | tuple2(two)
 end
 
-data MyBox:
-  | my-box(ref {x;y;})
-end
 
 check "tuple decunstruction":
   fun f(elts) block:
@@ -173,16 +170,11 @@ check "tuple decunstruction":
     p1.dist(p2) is 3
   end
 
-  check:
-    b1 = my-box({1;2})
-    b2 = my-box({1;2})
-
-    b1 is%(equal-now) b2
-
-  #b1!{x : 2}
-  #b1 is-not%(equal-now) b2
+  answer = let {x;y;} = {1;2}:
+    x + y
   end
-  
+
+  answer is 3
 end
 
 
