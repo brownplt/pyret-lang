@@ -74,7 +74,7 @@ end
 
 check "pase and print tuple-let":
    x = P.surface-parse("{x;y} = {1;2}", "test")
-   x.tosource().pretty(80) is [list: "{x; y} ={ 1; 2 }"]
+   x.tosource().pretty(80) is [list: "{ x; y } = { 1; 2 }"]
 end
 
 check "tuple binding":

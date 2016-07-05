@@ -754,19 +754,34 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-type-let-expr(l, bs.reverse(), visit-body, blocky)
     end,
     method s-let-expr(self, l, binds, body, blocky):
-      {e; bs} = for fold(acc from { self.env; empty }, b from binds):
-        {e; bs} = acc
+      {e; bs; atoms} = for fold(acc from { self.env; empty; empty}, b from binds):
+        {e; bs; atoms} = acc
         cases(A.LetBind) b block:
           | s-let-bind(l2, bind, expr) =>
-            visited-ann = bind.ann.visit(self.{env: e})
-            atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, let-bind(_, _, visited-ann, none))
-            visit-expr = expr.visit(self.{env: e})
-            update-binding-expr(atom-env.atom, some(visit-expr))
-            new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
-            {
-              atom-env.env;
-              link(new-bind, bs)
-            }
+            cases(A.Bind) bind block:
+            | s-bind(_,_,_,_) =>
+               visited-ann = bind.ann.visit(self.{env: e})
+               atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, let-bind(_, _, visited-ann, none))
+               visit-expr = expr.visit(self.{env: e})
+               update-binding-expr(atom-env.atom, some(visit-expr))
+               new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
+               {
+                atom-env.env;
+                link(new-bind, bs);
+                link(atom-env.atom, atoms)
+               }
+            | s-tuple-bind(l3, fields) =>
+              namet = names.make-atom("tup")
+              atom-env = make-atom-for(namet, false, e, bindings, let-bind(_,_, A.a-blank, none))
+              visit-expr = expr.visit(self.{env: e})
+              update-binding-expr(atom-env.atom, some(visit-expr))
+              new-bind = A.s-let-bind(l2, A.s-bind(l2, false, atom-env.atom, A.a-blank), visit-expr)
+              {
+               atom-env.env;
+               link(new-bind, bs);
+               link(atom-env.atom, atoms)
+              }
+            end
           | s-var-bind(l2, bind, expr) =>
             visited-ann = bind.ann.visit(self.{env: e})
             atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, var-bind(_, _, visited-ann, none))
@@ -775,12 +790,29 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
               atom-env.env;
-              link(new-bind, bs)
+              link(new-bind, bs);
+              link(atom-env.atom, atoms)
             }
         end
       end
+      new-body = for fold2(acc2 from body, b from binds, at from atoms.reverse()):
+        cases(A.LetBind) b block:
+        | s-let-bind(_, bind, _) =>
+          cases(A.Bind) bind block:
+          | s-bind(_,_,_,_) => acc2
+          | s-tuple-bind(l3, fields) =>
+             {n; new-lets} = for fold(acc3 from {0; [list: ]}, element from fields):
+               {n; new-lets} = acc3
+               t-let-bind = A.s-let-bind(l3, element, A.s-tuple-get(l3, A.s-id(l3, at), n))
+               {n + 1; link(t-let-bind, new-lets)}
+             end
+             A.s-let-expr(l3, new-lets, acc2, false)
+            end
+        | s-var-bind(_,_,_) => acc2 
+       end
+      end
       visit-binds = bs.reverse()
-      visit-body = body.visit(self.{env: e})
+      visit-body = new-body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
     end,
     method s-letrec(self, l, binds, body, blocky):

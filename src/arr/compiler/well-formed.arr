@@ -231,8 +231,61 @@ end
 # NOTE: This is almost exactly the same function as above, but gives a
 # different error This is replicating the old behavior; does it still
 # make any sense?
-fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
-  cases(List) rev-bindings block:
+fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
+   for fold(ad from [SD.string-dict:], bind from rev-bindings) block:
+     cases(A.Bind) bind block:
+     | s-bind(l , shadows, id, ann) =>
+        cases(A.Name) id block:
+        | s-underscore(_) => ad
+        | s-name(_, name) =>
+          if (ad.has-key(id.toname())):
+            block:
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
+              ad
+            end
+          else:
+            ad.set(id.toname(), l)
+          end
+       | else =>
+         if (ad.has-key(id.toname())):
+            block:
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
+              ad
+            end
+          else:
+            ad.set(id.toname(), l)
+         end
+      end
+    | s-tuple-bind(l, fields) => 
+      for fold(ad2 from ad, field from fields):
+        cases(A.Name) field.id block:
+          | s-underscore(_) => ad2
+          | s-name(_, name) =>
+            if (ad2.has-key(field.id.toname())):
+              block:
+                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
+                ad2
+              end
+            else:
+              ad2.set(field.id.toname(), field.l)
+            end
+         | else =>
+           if (ad2.has-key(field.id.toname())):
+              block:
+                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
+                ad2
+              end
+            else:
+              ad2.set(field.id.toname(), field.l)
+           end
+        end
+      end
+    end
+  end
+  nothing
+end
+
+#|  cases(List) rev-bindings block:
     | empty => nothing
     | link(f, rest) =>
       cases(A.Bind) f:
@@ -248,7 +301,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>):
       end
       ensure-unique-bindings(rest)
   end
-end
+end |#
 
 fun ensure-unique-fields(rev-fields):
   cases(List) rev-fields block:
@@ -471,11 +524,18 @@ well-formed-visitor = A.default-iter-visitor.{
     bind.visit(self) and val.visit(self)
   end,
   method s-var-bind(self, l, bind, val) block:
-    last-visited-loc := l
-    when A.is-s-underscore(bind.id):
-      add-error(C.pointless-var(l.at-start() + bind.l))
+    cases(A.Bind) bind block:
+    | s-bind(_,_,_,_) =>
+        last-visited-loc := l
+        when A.is-s-underscore(bind.id):
+          add-error(C.pointless-var(l.at-start() + bind.l))
+        end
+       bind.visit(self) and val.visit(self)
+    | s-tuple-bind(l2, _) => 
+      last-visited-loc := l
+      wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
+      true
     end
-    bind.visit(self) and val.visit(self)
   end,
   method s-block(self, l, stmts):
     if is-empty(stmts) block:
@@ -797,7 +857,10 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-var-bind(l, bind, expr)
   end,
   method s-let-bind(_, l, bind, expr):
-    well-formed-visitor.s-let-bind(l, bind, expr)
+    cases(A.Bind) bind:
+    | s-bind(_,_) => well-formed-visitor.s-let-bind(l, bind, expr)
+    | s-tuple-bind(l2, _) => wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
+    end
   end,
   method s-template(self, l):
     well-formed-visitor.s-template(l)
@@ -956,7 +1019,6 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-for-bind(l, bind, value)
   end,
   method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
-    print("hi")
     cases(A.Bind) bind: 
      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
      | s-tuple-bind(l2, _) => wf-error("Tuple binding not allowed as variant member", l2)
