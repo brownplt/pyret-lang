@@ -4,10 +4,11 @@ import file("../test-compile-helper.arr") as C
 check:
   fun c(str) block:
     errs = C.get-compile-errs(str)
-    when is-empty(errs):
-      print-error("Expected at least one error for running \n\n " + str + "\n\n" + " but got none ")
+    if is-empty(errs):
+      "Expected at least one error for running \n\n " + str + "\n\n" + " but got none "
+    else: 
+     errs.first
     end
-    errs.first
   end
   fun cok(str):
     C.get-compile-errs(str)
@@ -61,6 +62,12 @@ check:
     c("data D: n() sharing: method _(self): 5 end end") satisfies CS.is-underscore-as
     c("data D: _() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
     c("data _: d() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
+  end
+
+  check "tuple duplicate names":
+    c("fun f({k;v;}, {a;k;c;}): a + c end") satisfies CS.is-duplicate-id
+    c("fun f({a;a;}, {x;y;z;}): z end") satisfies CS.is-duplicate-id
+    c("fun f(w, {k; w;}): k end") satisfies CS.is-duplicate-id
   end
 
   check "unbound type ids":

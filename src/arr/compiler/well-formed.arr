@@ -147,9 +147,59 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
   end
 end
 
-fun ensure-unique-ids(bindings :: List<A.Bind>):
-  #TODO: write version of function compatible with s-tuple-binds
+fun ensure-unique-ids(bindings :: List<A.Bind>) block:
+   for fold(ad from [SD.string-dict:], bind from bindings):
+     cases(A.Bind) bind:
+     | s-bind(l , shadows, id, ann) =>
+        cases(A.Name) id block:
+        | s-underscore(_) => ad
+        | s-name(_, name) =>
+          if (ad.has-key(id.toname())):
+            block:
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
+              ad
+            end
+          else:
+            ad.set(id.toname(), l)
+          end
+       | else =>
+         if (ad.has-key(id.toname())):
+            block:
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
+              ad
+            end
+          else:
+            ad.set(id.toname(), l)
+         end
+      end
+    | s-tuple-bind(l, fields) => 
+      for fold(ad2 from ad, field from fields):
+        cases(A.Name) field.id block:
+          | s-underscore(_) => ad2
+          | s-name(_, name) =>
+            if (ad2.has-key(field.id.toname())):
+              block:
+                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
+                ad2
+              end
+            else:
+              ad2.set(field.id.toname(), field.l)
+            end
+         | else =>
+           if (ad2.has-key(field.id.toname())):
+              block:
+                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
+                ad2
+              end
+            else:
+              ad2.set(field.id.toname(), field.l)
+           end
+        end
+      end
+    end
+  end
   nothing
+end
  #|  cases(List) bindings block:
     | empty => nothing
     | link(f, rest) =>
@@ -176,7 +226,7 @@ fun ensure-unique-ids(bindings :: List<A.Bind>):
       end
       ensure-unique-ids(rest)
   end |#
-end
+#end
 
 # NOTE: This is almost exactly the same function as above, but gives a
 # different error This is replicating the old behavior; does it still
@@ -671,12 +721,12 @@ top-level-visitor = A.default-iter-visitor.{
   method s-variant(self, l, constr-loc, name, binds, with-members) block:
     ids = fields-to-binds(with-members) + binds.map(_.bind)
     ensure-unique-ids(ids)
-    #underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
-    #when not(is-empty(underscores)):
-    #  add-error(C.underscore-as(underscores.first.l, "a data variant name"))
-    #end
+    underscores = binds.filter(lam(b): A.is-s-underscore(b.bind.id) end)
+    when not(is-empty(underscores)):
+      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
+    end
     check-underscore-name(with-members, "a field name")
-    #is-empty(underscores) and
+    is-empty(underscores) and
       lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
   end,
   method s-singleton-variant(self, l, name, with-members) block:

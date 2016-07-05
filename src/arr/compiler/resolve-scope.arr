@@ -1056,10 +1056,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-bind(l2, shadows, name, ann) =>
           atom-env = make-atom-for(name, true, self.env, bindings, let-bind(_, _, ann.visit(self), none))
           A.s-bind(l2, shadows, atom-env.atom, ann.visit(self))
-        | s-tuple-bind(l2, fields) =>
-          namet = names.make-atom("tup")
-          atom-env = make-atom-for(namet, true, self.env, bindings, let-bind(_,_, A.a-blank, none))
-          A.s-bind(l2, false, atom-env.atom, A.a-blank)
       end
       A.s-variant-member(l, typ, new-bind)
     end,
