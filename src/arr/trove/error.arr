@@ -6,6 +6,7 @@ provide-types *
 import global as _
 import option as O
 import error-display as ED
+import valueskeleton as VS
 
 fun draw-and-highlight(l):
   ED.loc-display(l, "error-highlight", ED.loc(l))
@@ -62,6 +63,9 @@ data RuntimeError:
     end,
     method render-reason(self):
       [ED.error: [ED.para: ED.text(self.message)]]
+    end,
+    method _output(self):
+      VS.vs-value(self.message)
     end
   | update-non-obj(loc, obj, objloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -2219,7 +2223,10 @@ data RuntimeError:
     method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end
+    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end,
+    method _output(self):
+      VS.vs-value(self.value)
+    end
 end
 
 data ParseError:
