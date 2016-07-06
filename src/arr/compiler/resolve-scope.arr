@@ -776,10 +776,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               visit-expr = expr.visit(self.{env: e})
               update-binding-expr(atom-env.atom, some(visit-expr))
               new-bind = A.s-let-bind(l2, A.s-bind(l2, false, atom-env.atom, A.a-blank), visit-expr)
+              new-lst = link(new-bind, bs)
+              new-lst-atom = link(atom-env.atom, atoms)
+              {n; new-env; new-lets; new-atom} = for fold(acc3 from {0; atom-env.env; new-lst; new-lst-atom}, element from fields) block:
+                 {n; new-env; new-lets; new-atom} = acc3
+                 visited-ann = element.ann.visit(self.{env: new-env})
+                 new-atom-env = make-atom-for(element.id, element.shadows, new-env, bindings, let-bind(_,_, visited-ann, none))
+                 #visited-expr = expr.visit(self.{env: new-env})
+                 t-let-bind = A.s-let-bind(l3, A.s-bind(l3, element.shadows, new-atom-env.atom, visited-ann), A.s-tuple-get(l3, A.s-id(l3, namet), n))
+                 update-binding-expr(new-atom-env.atom, some(t-let-bind))
+                 {n + 1; new-atom-env.env; link(t-let-bind, new-lets); link(new-atom-env.atom, new-atom)}
+              end
               {
-               atom-env.env;
-               link(new-bind, bs);
-               link(atom-env.atom, atoms)
+               new-env;
+               new-lets;
+               new-atom
               }
             end
           | s-var-bind(l2, bind, expr) =>
@@ -795,25 +806,32 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             }
         end
       end
-      new-body = for fold2(acc2 from body, b from binds, at from atoms.reverse()):
+      #| new-lets = for fold2(acc2 from [list: ], b from bs, at from atoms.reverse()):
         cases(A.LetBind) b block:
-        | s-let-bind(_, bind, _) =>
+        | s-let-bind(_, bind, _) => 
           cases(A.Bind) bind block:
-          | s-bind(_,_,_,_) => acc2
-          | s-tuple-bind(l3, fields) =>
-             {n; new-lets} = for fold(acc3 from {0; [list: ]}, element from fields):
+          | s-bind(_,_,_,_) => link(b, acc2) #apends b
+          | s-tuple-bind(l3, fields) => #appends b and tuple stuff
+             print(" \n over here! \n")
+             new-lst = link(b, acc2)
+             {n; new-lets} = for fold(acc3 from {0; new-lst}, element from fields):
                {n; new-lets} = acc3
                t-let-bind = A.s-let-bind(l3, element, A.s-tuple-get(l3, A.s-id(l3, at), n))
                {n + 1; link(t-let-bind, new-lets)}
              end
-             A.s-let-expr(l3, new-lets, acc2, false)
+             new-lets
+             #A.s-let-expr(l3, new-lets, acc2, false)
             end
-        | s-var-bind(_,_,_) => acc2 
+        | s-var-bind(_,_,_) => link(b, acc2) 
        end
-      end
+      end |#
+     # block:
+     # print(bs.reverse())
+     # print("\n")
       visit-binds = bs.reverse()
-      visit-body = new-body.visit(self.{env: e})
+      visit-body = body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
+     # end
     end,
     method s-letrec(self, l, binds, body, blocky):
       {new-binds; new-visitor} = resolve-letrec-binds(self, binds)

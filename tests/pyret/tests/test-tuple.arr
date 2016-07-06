@@ -81,6 +81,8 @@ check "tuple binding":
   {a;b;c;d;e} = {10; 214; 124; 62; 12}
   w = {124;624;15}
   {x;y;z} = w
+  m = x + 1
+  m is 125
   a is 10
   b is 214
   c is 124
