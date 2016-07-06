@@ -448,7 +448,7 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm
       #print("Make standalone program\n")
       program = make-standalone(ws, prog, options)
       #print("Run program\n")
-      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
       #print("Done\n")
       ans
     | link(_, _) =>
@@ -471,7 +471,8 @@ fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-mo
       program = make-standalone(wl, compiled, options)
       #print("Run program\n")
 
-      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      # NOTE(joe): program.v OK because no errors above
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
       #print("Done\n")
       ans
     | link(_, _) =>
@@ -485,12 +486,12 @@ fun compile-standalone(wl, starter-modules, options):
 end
 
 # NOTE(joe): I strongly suspect options will be used in the future
-fun make-standalone(wl, compiled, options) block:
+fun make-standalone(wl, compiled, options):
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
   
-  var failure = false
+  var all-compile-problems = empty
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())
       cases(Loadable) loadable:
@@ -499,39 +500,35 @@ fun make-standalone(wl, compiled, options) block:
             | ok(code) =>
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
             | err(problems) =>
-              for lists.each(e from problems) block:
-                print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-                print-error("\n")
-              end
-              failure := true
+              all-compile-problems := problems + all-compile-problems
               j-field(w.locator.uri(), J.j-raw-code("\"error\""))
           end
       end
     end)
-  when failure:
-    raise("There were compilation errors")
+  cases(List) all-compile-problems:
+    | link(_, _) => left(all-compile-problems)
+    | empty =>
+      depmap = j-obj(for C.map_list(w from wl):
+        deps = w.dependency-map
+        j-field(w.locator.uri(),
+          j-obj(for C.map_list(k from deps.keys-now().to-list()):
+            j-field(k, j-str(deps.get-value-now(k).uri()))
+          end))
+      end)
+
+      to-load = j-list(false, for C.map_list(w from wl):
+        j-str(w.locator.uri())
+      end)
+
+      program-as-js = j-obj([C.clist:
+          j-field("staticModules", static-modules),
+          j-field("depMap", depmap),
+          j-field("toLoad", to-load)
+        ])
+
+      right({
+        js-ast: program-as-js,
+        natives: natives
+      })
   end
-
-  depmap = j-obj(for C.map_list(w from wl):
-    deps = w.dependency-map
-    j-field(w.locator.uri(),
-      j-obj(for C.map_list(k from deps.keys-now().to-list()):
-        j-field(k, j-str(deps.get-value-now(k).uri()))
-      end))
-  end)
-
-  to-load = j-list(false, for C.map_list(w from wl):
-    j-str(w.locator.uri())
-  end)
-
-  program-as-js = j-obj([C.clist:
-      j-field("staticModules", static-modules),
-      j-field("depMap", depmap),
-      j-field("toLoad", to-load)
-    ])
-
-  {
-    js-ast: program-as-js,
-    natives: natives
-  }
 end
