@@ -110,7 +110,7 @@ data TestResult:
                   | s-op-is-op(_, op) =>
                     [ED.sequence:
                       ED.text("because it reports success if and only if the predicate "),
-                      get-op-fun-name(op), ED.text(" is satisfied when the "),
+                      ED.code(ED.text(get-op-fun-name(op))), ED.text(" is satisfied when the "),
                       ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
                 end],
                 report-value(ed-lhs, self.refinement, self.left),
@@ -127,8 +127,8 @@ data TestResult:
             | none    => ED.text("Values not equal")
             | some(_) => ED.text("Values not equal (using custom equality):")
           end],
-        [ED.para: ED.embed(self.left)],
-        [ED.para: ED.embed(self.right)]]
+        ED.embed(self.left),
+        ED.embed(self.right)]
     end
   | failure-not-different(loc :: Loc, refinement, left, right) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -169,7 +169,7 @@ data TestResult:
                      ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
                   | s-op-is-not-op(_, op) => [ED.sequence:
                     ED.text("because it reports success if and only if the predicate "),
-                    get-op-fun-name(op), ED.text(" is not satisfied when the "),
+                    ED.code(ED.text(get-op-fun-name(op))), ED.text(" is not satisfied when the "),
                     ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
                 end],
                 report-value(ed-lhs, self.refinement, self.left),
@@ -186,8 +186,8 @@ data TestResult:
             | none    => ED.text("Values not different")
             | some(_) => ED.text("Values not different (using custom equality):")
           end],
-        [ED.para: ED.embed(self.left)],
-        [ED.para: ED.embed(self.right)]]
+        ED.embed(self.left),
+        ED.embed(self.right)]
     end
   | failure-not-satisfied(loc :: Loc, val, pred) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -225,7 +225,7 @@ data TestResult:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate failed for value:")],
-        [ED.para: ED.embed(self.val)]]
+        ED.embed(self.val)]
     end
   | failure-not-dissatisfied(loc :: Loc, val, pred) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -263,37 +263,29 @@ data TestResult:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for value (it should have failed):")],
-        [ED.para: ED.embed(self.val)]]
+        ED.embed(self.val)]
     end
   | failure-wrong-exn(loc :: Loc, exn-expected, actual-exn) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        [ED.para: ED.text("Got unexpected exception ")],
-        [ED.para: ED.embed(self.actual-exn)],
-        [ED.para: ED.text("when expecting ")],
-        [ED.para: ED.embed(self.exn-expected)]]
+      self.render-reason()
     end,
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
-        [ED.para: ED.embed(self.actual-exn)],
+        ED.embed(self.actual-exn),
         [ED.para: ED.text("when expecting ")],
-        [ED.para: ED.embed(self.exn-expected)]]
+        ED.embed(self.exn-expected)]
     end
   | failure-right-exn(loc :: Loc, exn-not-expected, actual-exn) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      [ED.error:
-        [ED.para: ED.text("Got exception ")],
-        [ED.para: ED.embed(self.actual-exn)],
-        [ED.para: ED.text("and expected it not to contain ")],
-        [ED.para: ED.embed(self.exn-not-expected)]]
+      self.render-reason()
     end,
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got exception ")],
-        [ED.para: ED.embed(self.actual-exn)],
+        ED.embed(self.actual-exn),
         [ED.para: ED.text("and expected it not to contain ")],
-        [ED.para: ED.embed(self.exn-not-expected)]]
+        ED.embed(self.exn-not-expected)]
     end
   | failure-exn(loc :: Loc, actual-exn, exn-place :: CheckOperand) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -329,7 +321,7 @@ data TestResult:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
-        [ED.para: ED.embed(self.actual-exn)]]
+        ED.embed(self.actual-exn)]
     end
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

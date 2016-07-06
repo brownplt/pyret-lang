@@ -259,24 +259,18 @@ data FailureReason:
       [ED.error:
         if loc.is-builtin():
           [ED.para:
-            ED.text("A record annotation, "),
-            ED.code(ED.text(self.name)),
-            ED.text(", in "),
+            ED.text("A record annotation in "),
             ED.loc(loc)]
         else if src-available(loc):
           [ED.sequence:
             [ED.para:
-              ED.text("The record annotation "),
-              ED.code(ED.text(self.name)),
-              ED.text(" in the "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
+              ED.text("The "),
+              ED.highlight(ED.text("record annotation"), [ED.locs: loc], -1)],
             ED.cmcode(loc)]
         else:
           [ED.para:
-              ED.text("The record annotation, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", at "),
-              ED.loc(loc)]
+            ED.text("The record annotation at "),
+            ED.loc(loc)]
         end,
         [ED.para:
           ED.text("was not satisfied by the value")],
@@ -300,7 +294,7 @@ data FailureReason:
         else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
-          L.fold_n(lam(n, failure):
+          L.map_n(lam(n, failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
                 if src-available(fl):
@@ -377,7 +371,7 @@ data FailureReason:
         else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
-          L.fold_n(lam(n, failure):
+          L.map_n(lam(n, failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
                 if src-available(fl):
