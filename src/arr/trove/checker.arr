@@ -334,13 +334,13 @@ data TestResult:
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       cases(Option) self.exn-expected:
-        | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
+        | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected")], ED.embed(exn)]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end,
     method render-reason(self):
       cases(Option) self.exn-expected:
-        | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected"), ED.embed(exn)]]
+        | some(exn) => [ED.error: [ED.para: ED.text("No exception raised, expected")], ED.embed(exn)]
         | none      => [ED.error: [ED.para: ED.text("No exception raised")]]
       end
     end
