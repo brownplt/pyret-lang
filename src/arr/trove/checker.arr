@@ -558,7 +558,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           if comparator(exn-unwrap(v), expected):
             add-result(success(loc))
           else:
-            add-result(on-failure(exn-unwrap(v)))
+            add-result(on-failure(v))
           end
       end
       nothing
