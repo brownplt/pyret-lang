@@ -4,6 +4,7 @@ provide *
 provide-types *
 import global as _
 import srcloc as SL
+import error as E
 import error-display as ED
 import render-error-display as RED
 
@@ -590,7 +591,12 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
           | right(exn) =>
-            if pred(exn-unwrap(exn)):
+            if pred(
+              if E.is-user-exception(exn-unwrap(exn)):
+                exn-unwrap(exn).value
+              else:
+                exn-unwrap(exn)
+              end):
               success(loc)
             else:
               failure-raise-not-satisfied(loc, exn-unwrap(exn), pred)
@@ -603,7 +609,12 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
         cases(Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
           | right(exn) =>
-            if not(pred(exn-unwrap(exn).value)):
+            if not(pred(
+              if E.is-user-exception(exn-unwrap(exn)):
+                exn-unwrap(exn).value
+              else:
+                exn-unwrap(exn)
+              end)):
               success(loc)
             else:
               failure-raise-not-dissatisfied(loc, exn-unwrap(exn), pred)
