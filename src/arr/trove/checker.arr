@@ -380,7 +380,7 @@ data TestResult:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate failed for exception:")],
-        [ED.para: ED.embed(self.exn)]]
+        [ED.para: ED.embed(exn-unwrap(self.exn))]]
     end
   | failure-raise-not-dissatisfied(loc :: Loc, exn, pred) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -418,7 +418,7 @@ data TestResult:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
-        [ED.para: ED.embed(self.exn)]]
+        [ED.para: ED.embed(exn-unwrap(self.exn))]]
     end
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
@@ -599,7 +599,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               end):
               success(loc)
             else:
-              failure-raise-not-satisfied(loc, exn-unwrap(exn), pred)
+              failure-raise-not-satisfied(loc, exn, pred)
             end
         end)
       nothing
@@ -617,7 +617,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               end)):
               success(loc)
             else:
-              failure-raise-not-dissatisfied(loc, exn-unwrap(exn), pred)
+              failure-raise-not-dissatisfied(loc, exn, pred)
             end
         end)
       nothing
