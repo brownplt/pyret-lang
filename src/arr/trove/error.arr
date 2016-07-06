@@ -1651,7 +1651,7 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(0, true):
+            cases(O.Option) maybe-stack-loc(0, false):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1768,7 +1768,7 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(0, true,
+      ED.maybe-stack-loc(0, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
@@ -1804,7 +1804,7 @@ data RuntimeError:
                 0 
               else: 
                 1 
-              end, true):
+              end, false):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1946,7 +1946,12 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(0, true,
+      ED.maybe-stack-loc(
+        if self.fun-def-loc.is-builtin():
+          0
+        else:
+          1
+        end, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
