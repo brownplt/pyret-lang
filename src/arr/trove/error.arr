@@ -6,6 +6,7 @@ provide-types *
 import global as _
 import option as O
 import error-display as ED
+import valueskeleton as VS
 
 fun draw-and-highlight(l):
   ED.loc-display(l, "error-highlight", ED.loc(l))
@@ -62,6 +63,9 @@ data RuntimeError:
     end,
     method render-reason(self):
       [ED.error: [ED.para: ED.text(self.message)]]
+    end,
+    method _output(self):
+      VS.vs-value(self.message)
     end
   | update-non-obj(loc, obj, objloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1461,7 +1465,7 @@ data RuntimeError:
               ED.text(" doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
             end],
           please-report-bug()]
-      else if src-available(self.loc):
+      else if src-available(self.branch-loc):
         cases(O.Option) maybe-ast(self.cases-loc):
           | some(ast) =>
             branch = ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
@@ -1647,7 +1651,7 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(0, true):
+            cases(O.Option) maybe-stack-loc(0, false):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1764,7 +1768,7 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(0, true,
+      ED.maybe-stack-loc(0, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
@@ -1800,7 +1804,7 @@ data RuntimeError:
                 0 
               else: 
                 1 
-              end, true):
+              end, false):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1942,7 +1946,12 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(0, true,
+      ED.maybe-stack-loc(
+        if self.fun-def-loc.is-builtin():
+          0
+        else:
+          1
+        end, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
@@ -1980,7 +1989,7 @@ data RuntimeError:
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("function application expression", self.loc),
+              ed-intro("function application expression", self.loc, -1),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("because the "),
@@ -1989,7 +1998,7 @@ data RuntimeError:
                 ED.embed(self.non-fun-val)]
           | none      =>
             [ED.error:
-              ed-intro("function application expression", self.loc),
+              ed-intro("function application expression", self.loc, 0),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("because the applicant evaluated to the non-function value:")],
@@ -2085,8 +2094,8 @@ data RuntimeError:
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
-        ED.maybe-stack-loc(0, true,
-          lam(loc):
+        cases(O.Option) maybe-stack-loc(0, true):
+          | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
                 [ED.para: 
@@ -2122,16 +2131,17 @@ data RuntimeError:
                   ED.text(" is an invalid array index because "),
                   ED.text(self.reason)]]
             end
-          end,
-          [ED.sequence:
-            [ED.para: 
-              ED.text("An array interaction, "),
-              ED.code(ED.text(self.method-name)),
-              ED.text(" expects that the index passed to it is an integer within the bounds of the array. ")],
-            [ED.para:
-              ED.embed(self.index),
-              ED.text(" is an invalid array index because "),
-              ED.text(self.reason)]])]
+          | none =>
+            [ED.sequence:
+              [ED.para: 
+                ED.text("An array interaction, "),
+                ED.code(ED.text(self.method-name)),
+                ED.text(" expects that the index passed to it is an integer within the bounds of the array. ")],
+              [ED.para:
+                ED.embed(self.index),
+                ED.text(" is an invalid array index because "),
+                ED.text(self.reason)]]
+        end]
     end,
     method render-reason(self):
       ED.maybe-stack-loc(0, true,
@@ -2219,7 +2229,10 @@ data RuntimeError:
     method render-fancy-reason(self, _, _):
       self.render-reason()
     end,
-    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end
+    method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end,
+    method _output(self):
+      VS.vs-value(self.value)
+    end
 end
 
 data ParseError:
