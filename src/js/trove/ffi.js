@@ -171,7 +171,7 @@
     function throwBadTupleBind(loc, tup, length, desiredLength) {
       checkSrcloc(loc);
       //runtime.checkPyretVal(tup);
-      raise(err("bad-tuple-bind")(loc, tup, length, desiredLength));
+      raise(err("bad-tuple-bind")(loc, tup, runtime.makeNumber(length), runtime.makeNumber(desiredLength)));
     }
     function throwLookupLargeIndex(loc, tup, index) {
       checkSrcloc(loc);

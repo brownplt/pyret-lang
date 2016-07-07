@@ -822,7 +822,7 @@ data RuntimeError:
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup)]
-      end
+      end 
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

@@ -861,7 +861,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                   t-let-bind = A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n))
                   {n + 1; in-atom-env; link(t-let-bind, in-lets)}
                 end
-                all-lets-expr = A.s-let-expr(l1, new-let-binds, new-body, false)
+                check-expr = A.s-prim-app(l1, "checkTupleBind", [list: A.s-id(l, namet), A.s-num(l1, fields.length()), A.s-srcloc(l1, l1)])
+                bind-check = A.s-let-bind(l1, A.s-bind(l1, false, A.s-underscore(l1), A.a-blank), check-expr) 
+                all-lets-expr = A.s-let-expr(l1, link(bind-check, new-let-binds), new-body, false)
                {new-atom-env; link(tup-bind, fbs); all-lets-expr} 
             end
         end
