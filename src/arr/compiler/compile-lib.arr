@@ -374,23 +374,25 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           var named-result = RS.resolve-names(scoped, env)
           scoped := nothing
           when options.collect-all: ret := phase("Resolved names", named-result, ret) end
-          var named-ast = named-result.ast
-          named-errors = named-result.errors
           var provides = AU.get-named-provides(named-result, locator.uri(), env)
+          # Once name resolution has happened, any newly-created s-binds must be added to bindings...
+          var desugared = D.desugar(named-result.ast)
+          named-result.bindings.merge-now(desugared.new-binds)
+          # ...in order to be checked for bad assignments here
+          var any-errors = named-result.errors
+            + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
           named-result := nothing
-          var desugared = D.desugar(named-ast)
-          named-ast := nothing
-          when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
+          when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
           var type-checked =
             if options.type-check:
-              type-checked = T.type-check(desugared, env, modules)
+              type-checked = T.type-check(desugared.ast, env, modules)
               if CS.is-ok(type-checked) block:
                 provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                 CS.ok(type-checked.code.ast)
               else:
                 type-checked
               end
-            else: CS.ok(desugared)
+            else: CS.ok(desugared.ast)
             end
           desugared := nothing
           when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
@@ -398,29 +400,22 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             | ok(_) =>
               var tc-ast = type-checked.code
               type-checked := nothing
-              any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
               var dp-ast = DP.desugar-post-tc(tc-ast, env)
               tc-ast := nothing
               var cleaned = dp-ast
               dp-ast := nothing
-              cleaned := cleaned.visit(AU.flatten-and-merge-blocks)
-              # this visitor no longer works; it may need to be scrapped or reworked
-              # cleaned := cleaned.visit(AU.link-list-visitor(env))
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-              var inlined = cleaned.visit(AU.inline-lams)
-              cleaned := nothing
-              when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
               cr = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
-                else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)
+                else: phase("Result", CS.ok(JSP.make-compiled-pyret(cleaned, env, provides, options)), ret)
                 end
               else:
-                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
-              inlined := nothing
+              cleaned := nothing
               r = if options.collect-all: cr else: cr.result end
               mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, r)
               mod-result

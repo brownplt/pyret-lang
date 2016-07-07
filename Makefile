@@ -313,6 +313,7 @@ clean:
 	$(call RMDIR,$(PHASEA))
 	$(call RMDIR,$(PHASEB))
 	$(call RMDIR,$(PHASEC))
+	$(call RMDIR,build/show-comp/compiled)
 	$(call RMDIR,$(RELEASE_DIR))
 
 .PHONY : test-clean

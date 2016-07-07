@@ -1246,11 +1246,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         'test': makeFunction(function(obj) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a); }
           return makeBoolean(hasBrand(obj, thisBrandStr));
-        }, name + "-test"),
+        }, "is-" + name),
         'brand': makeFunction(function(obj) {
           if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a); }
           return obj.brand(thisBrandStr);
-        }, name + "-brand")
+        }, "brand-" + name)
       });
       brander._brand = thisBrandStr;
       return brander;
