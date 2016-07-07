@@ -258,6 +258,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
       end
     | s-tuple-bind(l, fields) => 
       for fold(ad2 from ad, field from fields):
+      cases(A.Bind) field:
+      | s-bind(_,_,_,_) =>
         cases(A.Name) field.id block:
           | s-underscore(_) => ad2
           | s-name(_, name) =>
@@ -279,6 +281,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
               ad2.set(field.id.toname(), field.l)
            end
         end
+       | s-tuple-bind(_,_) => nothing
+       end
       end
     end
   end
@@ -546,6 +550,17 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-block-stmts(self, l, stmts)
       true
     end
+  end,
+  method s-tuple-bind(self, l, fields) block:
+    last-visited-loc := l
+    for each(element from fields):
+      cases(A.Bind) element:
+      | s-bind(_,_,_,_) => true
+      | s-tuple-bind(l2, _) =>
+         wf-error("Tuple bindings cannot be nested tuples ", l)
+      end
+    end
+    true
   end,
   method s-bind(self, l, shadows, name, ann) block:
     last-visited-loc := l
