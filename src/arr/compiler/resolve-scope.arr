@@ -776,7 +776,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               visit-expr = expr.visit(self.{env: e})
               update-binding-expr(atom-env.atom, some(visit-expr))
               new-bind = A.s-let-bind(l2, A.s-bind(l2, false, atom-env.atom, A.a-blank), visit-expr)
-              new-lst = link(new-bind, bs)
+              check-expr = A.s-prim-app(l3, "checkTupleBind", [list: A.s-id(l3, namet), A.s-num(l3, fields.length()), A.s-srcloc(l3, l3)])
+              bind-check = A.s-let-bind(l3, A.s-bind(l3, false, A.s-underscore(l3), A.a-blank), check-expr) 
+              new-lst = link(bind-check, link(new-bind, bs))
               new-lst-atom = link(atom-env.atom, atoms)
               {n; new-env; new-lets; new-atom} = for fold(acc3 from {0; atom-env.env; new-lst; new-lst-atom}, element from fields) block:
                  {n; new-env; new-lets; new-atom} = acc3
@@ -806,32 +808,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             }
         end
       end
-      #| new-lets = for fold2(acc2 from [list: ], b from bs, at from atoms.reverse()):
-        cases(A.LetBind) b block:
-        | s-let-bind(_, bind, _) => 
-          cases(A.Bind) bind block:
-          | s-bind(_,_,_,_) => link(b, acc2) #apends b
-          | s-tuple-bind(l3, fields) => #appends b and tuple stuff
-             print(" \n over here! \n")
-             new-lst = link(b, acc2)
-             {n; new-lets} = for fold(acc3 from {0; new-lst}, element from fields):
-               {n; new-lets} = acc3
-               t-let-bind = A.s-let-bind(l3, element, A.s-tuple-get(l3, A.s-id(l3, at), n))
-               {n + 1; link(t-let-bind, new-lets)}
-             end
-             new-lets
-             #A.s-let-expr(l3, new-lets, acc2, false)
-            end
-        | s-var-bind(_,_,_) => link(b, acc2) 
-       end
-      end |#
-     # block:
-     # print(bs.reverse())
-     # print("\n")
       visit-binds = bs.reverse()
       visit-body = body.visit(self.{env: e})
       A.s-let-expr(l, visit-binds, visit-body, blocky)
-     # end
     end,
     method s-letrec(self, l, binds, body, blocky):
       {new-binds; new-visitor} = resolve-letrec-binds(self, binds)
@@ -906,7 +885,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
              t-let-bind = A.s-let-bind(l3, element, A.s-tuple-get(l3, A.s-id(l3, at ), n))
              {n + 1; link(t-let-bind, new-lets)}
              end
-             A.s-let-expr(l2, new-lets, acc3, false)
+             check-expr = A.s-prim-app(l3, "checkTupleBind", [list: A.s-id(l3, at), A.s-num(l3, fields.length()), A.s-srcloc(l3, l3)])
+             bind-check = A.s-let-bind(l3, A.s-bind(l3, false, A.s-underscore(l3), A.a-blank), check-expr) 
+             A.s-let-expr(l2, link(bind-check, new-lets), acc3, false)
            end
            updated-body
          end
@@ -964,7 +945,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
             {n + 1; link(t-let-bind, new-let-binds)}
             end
-          A.s-let-expr(l2, new-let-binds, acc3, false)
+          check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
+          bind-check = A.s-let-bind(l2, A.s-bind(l2, false, A.s-underscore(l2), A.a-blank), check-expr) 
+          A.s-let-expr(l2, link(bind-check, new-let-binds), acc3, false)
         end
         updated-body
       end
@@ -1011,7 +994,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
              t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
              {n + 1; link(t-let-bind, new-lets)}
             end
-            A.s-let-expr(l2, new-lets, acc2, false)
+            check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
+            bind-check = A.s-let-bind(l2, A.s-bind(l2, false, A.s-underscore(l2), A.a-blank), check-expr) 
+            A.s-let-expr(l2, link(bind-check, new-lets), acc2, false)
         end
       end
       new-body = updated-body.visit(with-params.{env: env})
@@ -1052,7 +1037,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
              t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
              {n + 1; link(t-let-bind, new-lets)}
            end
-           A.s-let-expr(l2, new-lets, acc2, false)
+           check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
+           bind-check = A.s-let-bind(l2, A.s-bind(l2, false, A.s-underscore(l2), A.a-blank), check-expr) 
+           A.s-let-expr(l2, link(bind-check, new-lets), acc2, false)
         end
       end
       new-body = updated-body.visit(with-params.{env: env})
