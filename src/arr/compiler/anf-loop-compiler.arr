@@ -1535,7 +1535,10 @@ fun compile-provided-type(typ):
       if T.is-t-data(body): compile-provided-data(body, params)
       else:
         j-list(true,
-          [clist: j-str("forall"), CL.map_list(compile-provided-type, params), compile-provided-type(body)])
+          [clist: j-str("forall"),
+            j-list(false, for CL.map_list(p from params):
+              j-str(tostring(p))
+            end), compile-provided-type(body)])
       end
       # | t-ref(_, _) =>
       # | t-existential(_, _) =>

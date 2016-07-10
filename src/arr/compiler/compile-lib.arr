@@ -374,23 +374,25 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           var named-result = RS.resolve-names(scoped, env)
           scoped := nothing
           when options.collect-all: ret := phase("Resolved names", named-result, ret) end
-          var named-ast = named-result.ast
-          named-errors = named-result.errors
           var provides = AU.get-named-provides(named-result, locator.uri(), env)
+          # Once name resolution has happened, any newly-created s-binds must be added to bindings...
+          var desugared = D.desugar(named-result.ast)
+          named-result.bindings.merge-now(desugared.new-binds)
+          # ...in order to be checked for bad assignments here
+          var any-errors = named-result.errors
+            + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
           named-result := nothing
-          var desugared = D.desugar(named-ast)
-          named-ast := nothing
-          when options.collect-all: ret := phase("Fully desugared", desugared, ret) end
+          when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
           var type-checked =
             if options.type-check:
-              type-checked = T.type-check(desugared, env, modules)
+              type-checked = T.type-check(desugared.ast, env, modules)
               if CS.is-ok(type-checked) block:
                 provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                 CS.ok(type-checked.code.ast)
               else:
                 type-checked
               end
-            else: CS.ok(desugared)
+            else: CS.ok(desugared.ast)
             end
           desugared := nothing
           when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
@@ -398,29 +400,22 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             | ok(_) =>
               var tc-ast = type-checked.code
               type-checked := nothing
-              any-errors = named-errors + AU.check-unbound(env, tc-ast) + AU.bad-assignments(env, tc-ast)
               var dp-ast = DP.desugar-post-tc(tc-ast, env)
               tc-ast := nothing
               var cleaned = dp-ast
               dp-ast := nothing
-              cleaned := cleaned.visit(AU.flatten-and-merge-blocks)
-              # this visitor no longer works; it may need to be scrapped or reworked
-              # cleaned := cleaned.visit(AU.link-list-visitor(env))
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-              var inlined = cleaned.visit(AU.inline-lams)
-              cleaned := nothing
-              when options.collect-all: ret := phase("Inlined lambdas", inlined, ret) end
               cr = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, provides, options)
-                else: phase("Result", CS.ok(JSP.make-compiled-pyret(inlined, env, provides, options)), ret)
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)
+                else: phase("Result", CS.ok(JSP.make-compiled-pyret(cleaned, env, provides, options)), ret)
                 end
               else:
-                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, inlined, env, options)
+                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
                 else: phase("Result", CS.err(any-errors), ret)
                 end
               end
-              inlined := nothing
+              cleaned := nothing
               r = if options.collect-all: cr else: cr.result end
               mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, r)
               mod-result
@@ -448,7 +443,7 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm
       #print("Make standalone program\n")
       program = make-standalone(ws, prog, options)
       #print("Run program\n")
-      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
       #print("Done\n")
       ans
     | link(_, _) =>
@@ -471,7 +466,8 @@ fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-mo
       program = make-standalone(wl, compiled, options)
       #print("Run program\n")
 
-      ans = right(L.run-program(runtime, realm, program.js-ast.to-ugly-source()))
+      # NOTE(joe): program.v OK because no errors above
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
       #print("Done\n")
       ans
     | link(_, _) =>
@@ -485,12 +481,12 @@ fun compile-standalone(wl, starter-modules, options):
 end
 
 # NOTE(joe): I strongly suspect options will be used in the future
-fun make-standalone(wl, compiled, options) block:
+fun make-standalone(wl, compiled, options):
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
   
-  var failure = false
+  var all-compile-problems = empty
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())
       cases(Loadable) loadable:
@@ -499,39 +495,35 @@ fun make-standalone(wl, compiled, options) block:
             | ok(code) =>
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
             | err(problems) =>
-              for lists.each(e from problems) block:
-                print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-                print-error("\n")
-              end
-              failure := true
+              all-compile-problems := problems + all-compile-problems
               j-field(w.locator.uri(), J.j-raw-code("\"error\""))
           end
       end
     end)
-  when failure:
-    raise("There were compilation errors")
+  cases(List) all-compile-problems:
+    | link(_, _) => left(all-compile-problems)
+    | empty =>
+      depmap = j-obj(for C.map_list(w from wl):
+        deps = w.dependency-map
+        j-field(w.locator.uri(),
+          j-obj(for C.map_list(k from deps.keys-now().to-list()):
+            j-field(k, j-str(deps.get-value-now(k).uri()))
+          end))
+      end)
+
+      to-load = j-list(false, for C.map_list(w from wl):
+        j-str(w.locator.uri())
+      end)
+
+      program-as-js = j-obj([C.clist:
+          j-field("staticModules", static-modules),
+          j-field("depMap", depmap),
+          j-field("toLoad", to-load)
+        ])
+
+      right({
+        js-ast: program-as-js,
+        natives: natives
+      })
   end
-
-  depmap = j-obj(for C.map_list(w from wl):
-    deps = w.dependency-map
-    j-field(w.locator.uri(),
-      j-obj(for C.map_list(k from deps.keys-now().to-list()):
-        j-field(k, j-str(deps.get-value-now(k).uri()))
-      end))
-  end)
-
-  to-load = j-list(false, for C.map_list(w from wl):
-    j-str(w.locator.uri())
-  end)
-
-  program-as-js = j-obj([C.clist:
-      j-field("staticModules", static-modules),
-      j-field("depMap", depmap),
-      j-field("toLoad", to-load)
-    ])
-
-  {
-    js-ast: program-as-js,
-    natives: natives
-  }
 end

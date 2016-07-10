@@ -8,6 +8,7 @@ import string-dict as SD
 import srcloc as S
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
+import file("resolve-scope.arr") as R
 
 names = A.global-names
 
@@ -78,6 +79,9 @@ fun template-exn(l):
   A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
 end
 
+
+var generated-binds = SD.make-mutable-string-dict()
+
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
 end
@@ -119,15 +123,17 @@ fun desugar(program :: A.Program):
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
-  cases(A.Program) program:
+  cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
-      A.s-program(l, _provide, provided-types, imports, desugar-expr(body))
+      generated-binds := SD.make-mutable-string-dict()
+      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
 
-fun mk-id-ann(loc, base, ann):
+fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
+  generated-binds.set-now(a.key(), R.let-bind(loc, a, ann, none))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
@@ -389,10 +395,16 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
     | s-when(l, test, body, blocky) =>
-      check-bool(test.l, desugar-expr(test), lam(test-id-e):
+      ds-test = desugar-expr(test)
+      g-nothing = gid(l, "nothing")
+      ds-body = desugar-expr(body)
+      check-bool(test.l, ds-test, lam(test-id-e):
           A.s-if-else(l,
-            [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-            A.s-block(l, [list: gid(l, "nothing")]),
+            [list:
+              A.s-if-branch(l, test-id-e, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
+                else: ds-body
+                end)],
+            A.s-block(l, [list: g-nothing]),
             blocky)
         end)
     | s-if(l, branches, blocky) =>
@@ -450,7 +462,11 @@ fun desugar-expr(expr :: A.Expr):
               A.s-app(l, gid(l, field), [list: e1, e2])
             end)
         | none =>
-          fun thunk(e): A.s-lam(l, "", [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none, false) end
+          fun thunk(e):
+            A.s-lam(l, "", [list: ], [list: ], A.a-blank, "",
+              if A.is-s-block(e): e else: A.s-block(l, [list: e]) end,
+              none, false)
+          end
           fun opbool(fld):
             A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
           end
