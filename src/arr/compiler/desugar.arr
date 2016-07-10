@@ -21,6 +21,7 @@ data Pair:
 end
 
 mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
+var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
@@ -41,27 +42,27 @@ end
 fun get-table-column(l, e, column):
   A.s-app(A.dummy-loc,
     A.s-dot(A.dummy-loc, e, "_column-index"),
-    [list: 
+    [list:
       A.s-srcloc(A.dummy-loc, l),
-      column.name, 
+      column.name,
       A.s-srcloc(A.dummy-loc, column.l)])
 end
 
 fun check-has-column(tbl, tbl-l, col, col-l):
   A.s-app(A.dummy-loc,
     A.s-dot(A.dummy-loc, tbl, "_column-index"),
-    [list: 
+    [list:
       A.s-srcloc(A.dummy-loc, tbl-l),
-      A.s-str(A.dummy-loc, tbl-l), 
+      A.s-str(A.dummy-loc, tbl-l),
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
 fun check-no-column(tbl, tbl-l, col, col-l):
   A.s-app(A.dummy-loc,
     A.s-dot(A.dummy-loc, tbl, "_no-column"),
-    [list: 
+    [list:
       A.s-srcloc(A.dummy-loc, tbl-l),
-      A.s-str(A.dummy-loc, col), 
+      A.s-str(A.dummy-loc, col),
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
@@ -78,9 +79,6 @@ end
 fun template-exn(l):
   A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
 end
-
-
-var generated-binds = SD.make-mutable-string-dict()
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -437,8 +435,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-for-do(l, from-clause, dos) =>
       for fold(shadow expr from desugar-expr(from-clause.value), fdo from dos):
         A.s-app(l, desugar-expr(fdo.iterator),
-          link(A.s-lam(l, [list: ], 
-                link(desugar-bind(from-clause.bind), fdo.bindings.map(_.bind).map(desugar-bind)), 
+          link(A.s-lam(l, [list: ],
+                link(desugar-bind(from-clause.bind), fdo.bindings.map(_.bind).map(desugar-bind)),
                 desugar-ann(fdo.ann), "", desugar-expr(fdo.body), none),
                fdo.bindings.map(_.value).map(desugar-expr) + [list: expr])) end
     | s-sql(l, inspect-clause, where-clause, project-clause) =>
@@ -607,7 +605,7 @@ fun desugar-expr(expr :: A.Expr):
             {some(source); sanitizers}
         end
       end
-      
+
       shadow src = cases(Option) src:
         | none =>
           raise("s-load-table missing source: Well-formedness should have failed")
@@ -628,8 +626,8 @@ fun desugar-expr(expr :: A.Expr):
       #               by reducers is not well-typed
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(A.dummy-loc, "table")
-            
-      columns = 
+
+      columns =
         column-binds.binds.map(lam(c):
           {name: A.s-str(A.dummy-loc, c.id.base),
            l:  c.l,
@@ -730,7 +728,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
           A.s-let-expr(A.dummy-loc,
             columns.map(lam(column):
-                A.s-let-bind(A.dummy-loc, column.val.id-b, 
+                A.s-let-bind(A.dummy-loc, column.val.id-b,
                   A.s-prim-app(A.dummy-loc, "raw_array_get",
                     [list: row.id-e, column.idx.id-e])) end),
               A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
@@ -744,7 +742,7 @@ fun desugar-expr(expr :: A.Expr):
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
         # Column Index Bindings
-        columns.map(lam(column): 
+        columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
             get-table-column(column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
@@ -766,30 +764,30 @@ fun desugar-expr(expr :: A.Expr):
       row = mk-id(A.dummy-loc, "row")
       new-row = mk-id(A.dummy-loc, "new-row-row")
       tbl = mk-id(l, "table")
-            
-      columns = 
+
+      columns =
         column-binds.binds.map(lam(c):
           {name: A.s-str(A.dummy-loc, c.id.base),
            l:  c.l,
            idx:  mk-id(A.dummy-loc, c.id.base),
            val: {id-b: c,
                  id-e: A.s-id(c.l, c.id)}} end)
-                
-      shadow updates = 
+
+      shadow updates =
         updates.map(lam(u):
           {name: A.s-str(A.dummy-loc, u.name),
            l:  u.l,
            idx:  mk-id(A.dummy-loc, u.name),
            val:  desugar-expr(u.value)} end)
-                 
+
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
         # Column Index Bindings
-        columns.map(lam(column): 
+        columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
             get-table-column(column-binds.table.l, tbl.id-e, column)) end))
-        .append(updates.map(lam(update): 
+        .append(updates.map(lam(update):
             A.s-let-bind(A.dummy-loc, update.idx.id-b,
               get-table-column(column-binds.table.l, tbl.id-e, update)) end)),
         # Table Construction
@@ -805,12 +803,12 @@ fun desugar-expr(expr :: A.Expr):
                       A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
                         row.id-e, A.s-array(A.dummy-loc, empty)])),
                     columns.map(lam(column):
-                      A.s-let-bind(A.dummy-loc, column.val.id-b, 
+                      A.s-let-bind(A.dummy-loc, column.val.id-b,
                         A.s-prim-app(A.dummy-loc, "raw_array_get",
                             [list: new-row.id-e, column.idx.id-e])) end)),
                     A.s-let-expr(A.dummy-loc,
                       updates.map(lam(update):
-                        A.s-let-bind(A.dummy-loc, new-row.id-b, 
+                        A.s-let-bind(A.dummy-loc, new-row.id-b,
                           A.s-prim-app(A.dummy-loc, "raw_array_set", [list:
                             new-row.id-e, update.idx.id-e, update.val])) end),
                       new-row.id-e, true), true), none, true),
@@ -818,16 +816,16 @@ fun desugar-expr(expr :: A.Expr):
     | s-table-select(l, columns, table) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
-      shadow columns = 
+      shadow columns =
         columns.map(lam(c):
           { l: c.l,
-            idx:  mk-id(c.l, c.s), 
+            idx:  mk-id(c.l, c.s),
             name: A.s-str(c.l, c.s)} end)
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(table.l, desugar-expr(table), lam(t): t end)),
         # Column Index Bindings
-        columns.map(lam(column): 
+        columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
             get-table-column(table.l, tbl.id-e, column)) end)),
         # Table Construction
@@ -839,7 +837,7 @@ fun desugar-expr(expr :: A.Expr):
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
-                  A.s-prim-app(A.dummy-loc, "raw_array_get", 
+                  A.s-prim-app(A.dummy-loc, "raw_array_get",
                       [list: row.id-e, c.idx.id-e]) end)), none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-extract(l, column, table) =>
@@ -875,7 +873,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
           # Data
           A.s-prim-app(A.dummy-loc, "toArray", [list:
-          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc, 
+          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc,
             A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list: A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]), "sort-by"), [list:
               A.s-lam(S.builtin("18"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
                 desugar-expr(A.s-op(S.builtin("19"), A.dummy-loc,
@@ -892,20 +890,20 @@ fun desugar-expr(expr :: A.Expr):
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
-            
-      columns = 
+
+      columns =
         column-binds.binds.map(lam(c):
           {name: A.s-str(A.dummy-loc, c.id.base),
            l:  c.l,
            idx:  mk-id(A.dummy-loc, c.id.base),
            val: {id-b: c,
                  id-e: A.s-id(c.l, c.id)}} end)
-                 
+
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
         # Column Index Bindings
-        columns.map(lam(column): 
+        columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
             get-table-column(column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
@@ -917,7 +915,7 @@ fun desugar-expr(expr :: A.Expr):
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-let-expr(A.dummy-loc,
                 columns.map(lam(column):
-                  A.s-let-bind(A.dummy-loc, column.val.id-b, 
+                  A.s-let-bind(A.dummy-loc, column.val.id-b,
                     A.s-prim-app(A.dummy-loc, "raw_array_get",
                         [list: row.id-e, column.idx.id-e])) end),
                     desugar-expr(predicate), true), none, true),
