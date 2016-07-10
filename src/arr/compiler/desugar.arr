@@ -135,7 +135,15 @@ fun mk-id-ann(loc, base, ann) block:
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
+fun mk-id-var-ann(loc, base, ann) block:
+  a = names.make-atom(base)
+  generated-binds.set-now(a.key(), R.var-bind(loc, a, ann, none))
+  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
+end
+
 fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
+
+fun mk-id-var(loc, base): mk-id-var-ann(loc, base, A.a-blank) end
 
 fun get-arith-op(str):
   if str == "op+": some("_plus")
@@ -654,7 +662,7 @@ fun desugar-expr(expr :: A.Expr):
             "reducer" + extension.name,
             mk-reducer-ann(extension.l, extension.ann))
 
-          acc-id = mk-id(A.dummy-loc, "acc" + extension.name)
+          acc-id = mk-id-var(A.dummy-loc, "acc" + extension.name)
 
           pair(acc.left.set(extension.name, reducer-id),
             acc.right.set(extension.name, acc-id))
