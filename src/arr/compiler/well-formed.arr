@@ -298,7 +298,7 @@ fun wf-examples-body(visitor, body):
   for lists.all(b from body.stmts):
     if not(A.is-s-check-test(b)) block:
       add-error(C.non-example(b))
-      false
+      true
     else:
       true
     end
@@ -540,7 +540,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-tuple-get(self, l, tup, index, index-loc):
     if (index < 0) or (index > 1000) block: 
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
-      false
+      true
     else:
       true
     end
