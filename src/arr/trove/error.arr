@@ -849,8 +849,7 @@ data RuntimeError:
               [ED.para:
                 ED.text("failed because the "),
                 ED.highlight(ED.text("left hand side"),[ED.locs: ast.obj.l], 0),
-                ED.text(" evaluated to a non-object value:"),
-                ED.text(":")],
+                ED.text(" evaluated to a non-object value:")],
                ED.embed(self.non-obj)]
           | none =>
             [ED.error:
