@@ -1026,8 +1026,9 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
       method s-assign(self, loc, id, value) block:
         id-k = id.key()
         if bindings.has-key-now(id-k):
-          when not(is-var-bind(bindings.get-value-now(id-k))):
-            add-error(C.bad-assignment(A.s-assign(loc, id, value), loc))
+          binding = bindings.get-value-now(id-k)
+          when not(is-var-bind(binding)):
+            add-error(C.bad-assignment(A.s-assign(loc, id, value), binding.loc))
           end
         else:
           add-error(C.unbound-var(id.toname(), loc))
