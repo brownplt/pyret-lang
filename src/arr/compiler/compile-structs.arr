@@ -642,7 +642,7 @@ data CompileError:
         [ED.para:
           ED.text("The underscore "),
           ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
-          ED.text("cannot be used where a type annotation is expected.")]]
+          ED.text(" cannot be used where a type annotation is expected.")]]
     end,
     method render-reason(self):
       [ED.error:
