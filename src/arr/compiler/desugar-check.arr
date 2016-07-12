@@ -164,7 +164,7 @@ check-visitor = A.default-map-visitor.{
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
             [list: 
-              A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr, false),
+              A.s-let(l, A.s-bind(l, true, id-result, A.a-blank), last-expr, false),
               do-checks,
               A.s-id(l, id-result)
             ]
