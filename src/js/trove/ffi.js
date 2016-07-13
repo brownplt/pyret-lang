@@ -403,6 +403,10 @@
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
     }
+  
+    function makeTupleAnnsFail(value, failures) {
+      return contract("tuple-anns-fail")(value, failures);
+    }
 
     function makeFieldFailure(loc, field, reason) {
       checkSrcloc(loc);
@@ -410,10 +414,22 @@
       return contract("field-failure")(loc, field, reason);
     }
 
+    function makeAnnFailure(loc, ann, reason) {
+      checkSrcloc(loc);
+      return contract("ann-failure")(loc, ann, reason);
+    }
+
     function makeMissingField(loc, field) {
       checkSrcloc(loc);
       runtime.checkString(field);
       return contract("missing-field")(loc, field);
+    }
+
+    function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+      checkSrcloc(loc);
+      runtime.checkNumber(annLength);
+      runtime.checkNumber(tupLength);
+      return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
     }
 
     function makeTypeMismatch(val, name) {
@@ -504,8 +520,11 @@
       throwParseErrorBadOper: throwParseErrorBadOper,
 
       makeRecordFieldsFail: makeRecordFieldsFail,
+      makeTupleAnnsFail: makeTupleAnnsFail,
       makeFieldFailure: makeFieldFailure,
+      makeAnnFailure: makeAnnFailure,
       makeMissingField: makeMissingField,
+      makeTupleLengthMismatch: makeTupleLengthMismatch,
       makeTypeMismatch: makeTypeMismatch,
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
