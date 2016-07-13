@@ -31,7 +31,7 @@ end
 
 check "multiple statements on a line":
   msg =  "on the same line"
-  c("5-2") satisfies CS.is-same-line
+  c("(5) (-2)") satisfies CS.is-same-line
   c("'ab''de'") satisfies CS.is-same-line
   c("a\"abc\"") satisfies CS.is-same-line
   c("a=3b=4") satisfies CS.is-same-line
