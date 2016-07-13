@@ -42,6 +42,24 @@
           n(p2.endChar)
         );
     }
+    function isSignedNumberAsStmt(stmt) {
+      var node = stmt;
+      if (node.name !== "stmt") return false;       node = node.kids[0];
+      if (node.name !== "check-test") return false; node = node.kids[0];
+      if (node.name !== "binop-expr") return false; node = node.kids[0];
+      if (node.name !== "expr") return false;       node = node.kids[0];
+      if (node.name !== "prim-expr") return false;  node = node.kids[0];
+      if (node.name !== "num-expr") return false;   node = node.kids[0];
+      if (node.name !== "NUMBER") return false; 
+      return node.value[0] === '-' || node.value[0] === '+';
+    }
+    function detectAndComplainAboutOperatorWhitespace(stmts, fileName) {
+      for (var i = 1; i < stmts.length; i++) {
+        if (isSignedNumberAsStmt(stmts[i]) &&
+            stmts[i].pos.startRow === stmts[i - 1].pos.endRow)
+          RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, stmts[i].pos));
+      }
+    }
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
       // We might have to rewrite the whole algorithm
@@ -185,6 +203,7 @@
         },
         'block': function(node) {
           // (block stmts ...)
+          detectAndComplainAboutOperatorWhitespace(node.kids, fileName);
           return RUNTIME.getField(ast, 's-block')
             .app(pos(node.pos), makeListTr(node.kids));
         },
