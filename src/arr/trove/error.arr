@@ -1994,7 +1994,11 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("because the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: ast._fun.l], 0),
+                ED.highlight(ED.text("applicant"), [ED.locs: 
+                  cases(Any) ast:
+                    | s-app(_, _fun, _) => _fun.l
+                    | else  => ast.l
+                  end], 0),
                 ED.text(" evaluated to the non-function value:")],
                 ED.embed(self.non-fun-val)]
           | none      =>
