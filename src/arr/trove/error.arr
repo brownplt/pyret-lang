@@ -730,7 +730,7 @@ data RuntimeError:
       if self.loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("The tuple binding at "),
+            ED.text("The tuple binding statement in "),
             ED.loc(self.loc),
             ED.text(" failed because the right hand side did not evaluate to a tuple:")],
           ED.embed(self.non-tup),
@@ -788,7 +788,7 @@ data RuntimeError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The tuple binding at "),
+            ED.text("The tuple binding in"),
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),

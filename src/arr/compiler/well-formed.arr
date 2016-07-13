@@ -238,7 +238,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
         cases(A.Name) id block:
         | s-underscore(_) => ad
         | s-name(_, name) =>
-          if (ad.has-key(id.toname())):
+          if (shadows): ad
+          else if (ad.has-key(id.toname())):
             block:
               add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
               ad
@@ -247,7 +248,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
             ad.set(id.toname(), l)
           end
        | else =>
-         if (ad.has-key(id.toname())):
+         if (shadows): ad
+         else if (ad.has-key(id.toname())):
             block:
               add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
               ad
@@ -263,7 +265,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
         cases(A.Name) field.id block:
           | s-underscore(_) => ad2
           | s-name(_, name) =>
-            if (ad2.has-key(field.id.toname())):
+            if (field.shadows): ad2
+            else if (ad2.has-key(field.id.toname())):
               block:
                 add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
                 ad2
@@ -272,7 +275,8 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
               ad2.set(field.id.toname(), field.l)
             end
          | else =>
-           if (ad2.has-key(field.id.toname())):
+           if (field.shadows): ad2
+           else if (ad2.has-key(field.id.toname())):
               block:
                 add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
                 ad2

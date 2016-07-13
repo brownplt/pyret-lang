@@ -867,7 +867,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-cases-bind(l2, typ, binding) =>
             cases(A.Bind) binding:
               | s-bind(l3, shadows, id, ann) =>
-                A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, ann.visit(self.{env: env})))
+                A.s-cases-bind(l2, typ, A.s-bind(l3, shadows, at, ann.visit(self.{env: env})))
               | s-tuple-bind(l3, fields) =>
                 A.s-cases-bind(l2, typ, A.s-bind(l3, false, at, A.a-blank))
             end
@@ -932,7 +932,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-args = for map2(a from args, at from atoms.reverse()):
         cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, false, at, ann2.visit(with-params))
+          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params))
           | s-tuple-bind(l2, fields) => A.s-bind(l2, false, at, A.a-blank)
         end
       end
