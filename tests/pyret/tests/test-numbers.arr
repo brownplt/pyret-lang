@@ -1,10 +1,38 @@
 #lang pyret
 
+
 provide *
 
 check:
   fun negate(f): lam(x): not(f(x)) end end
-  fun around(n, delta): lam(other): num-abs(other - n) < delta;;
+  fun around(n, delta): lam(other): num-abs(other - n) < delta end end
+
+  3 / (4 - 4) raises "division by zero"
+
+  within-abs(-3)(1, 2) raises "negative tolerance"
+  within(-3)(2, 3) raises "negative relative tolerance"
+  within-rel(-3)(2, 3) raises "negative relative tolerance"
+
+  min-number = ~0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005
+  within-abs(min-number)(0, min-number) raises "roughnum tolerance too small"
+
+  num-expt(0, -1) raises "expt: division by zero"
+
+  num-exp(5000) raises "exp: argument too large"
+
+  num-modulo(0.5, 5) raises "first argument 1/2 is not an integer"
+  num-modulo(5, 0.5) raises "second argument 1/2 is not an integer"
+  num-modulo(6, 0) raises "second argument is zero"
+
+  num-sqrt(-3) raises "negative argument"
+
+  num-acos(-2) raises "acos: out of domain"
+  num-acos(2) raises "acos: out of domain"
+
+  num-asin(-2) raises "asin: out of domain"
+  num-asin(2) raises "asin: out of domain"
+
+  num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
   num-max("not-a-num", 3) raises ""
@@ -22,7 +50,7 @@ check:
 
   1 / 10 is 0.1
   3 is 3
-  # TODO(joe): Something is up with parsing bignums; these fail
+  # TODO(joe): Something is up with parsing bignums end these fail
   # 3.000000000000000000000000000000000001 == 3 is false
   1000000000000000000000000000000000000000000000000000000001
     == 1000000000000000000000000000000000000000000000000000000000
@@ -38,7 +66,7 @@ check:
   num-abs(0) is 0
   num-abs(1) is 1
 
-  # These are just sanity; the js-nums library has more rigorous tests
+  # These are just sanity end the js-nums library has more rigorous tests
   # for the accuracy of the trig functions.  Here we just make sure the
   # Pyret functions are bound to plausible underlying operations
   num-sin(0) is 0
@@ -83,12 +111,11 @@ check:
 
   num-log(0) raises "non-positive argument"
   num-log(1) is 0
-  # num-log(num-exp(1)) is 1  # can't compare rough with exact!
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
-  # NOTE(joe): This seems a big algorithm-dependent; mainly here
+  # NOTE(joe): This seems a big algorithm-dependent end mainly here
   # as a regression test so we know if this changes
   #num-exact(num-sqrt(2)) is 1767766952966369 / 1250000000000000
   num-exact(num-sqrt(2)) is 14142135623730951/10000000000000000

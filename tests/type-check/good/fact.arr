@@ -4,7 +4,7 @@ fun fact-rec(n :: Number):
   if n == 0:
     1
   else:
-    n * fact-rec(n)
+    n * fact-rec(n - 1)
   end
 end
 

@@ -1,4 +1,4 @@
-define(["../../../lib/jglr/jglr"], function(E) {
+define(["jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
@@ -91,7 +91,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
     var strLen = str.length;
     while (nestingDepth > 0 && commentLen < strLen) {
-      if (str.substr(commentLen, 2) === "#|") { 
+      if (str.substr(commentLen, 2) === "#|") {
         nestingDepth++;
         commentLen += 2;
       } else if (str.substr(commentLen, 2) === "|#") {
@@ -114,7 +114,9 @@ define(["../../../lib/jglr/jglr"], function(E) {
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
   const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
-  const badNumber = new RegExp("^[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
   const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
   const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
@@ -132,6 +134,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
   const lparen = new RegExp("^\\(", STICKY_REGEXP);
   const rparen = new RegExp("^\\)", STICKY_REGEXP);
   const period = new RegExp("^\\.", STICKY_REGEXP);
+  const dotdotdot = new RegExp("^\\.\\.\\.", STICKY_REGEXP);
   const bang = new RegExp("^!", STICKY_REGEXP);
   const percent = new RegExp("^%", STICKY_REGEXP);
   const comma = new RegExp("^,", STICKY_REGEXP);
@@ -234,7 +237,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
-    {name: "ASKCOLON", val: new RegExp(colonKw("ask:"), STICKY_REGEXP), parenIsForExp: true},
+    {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
@@ -246,8 +249,6 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
     {name: "REF", val: new RegExp(kw("ref"), STICKY_REGEXP)},
-    {name: "DATATYPE", val: new RegExp(kw("datatype"), STICKY_REGEXP)},
-    {name: "WITHCONSTRUCTOR", val: new RegExp(kw("with constructor"), STICKY_REGEXP)},
     {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
@@ -255,6 +256,7 @@ define(["../../../lib/jglr/jglr"], function(E) {
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
+    {name: "DOTDOTDOT", val: dotdotdot},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
     {name: "PERCENT", val: percent},

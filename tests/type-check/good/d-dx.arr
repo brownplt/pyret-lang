@@ -1,6 +1,6 @@
 
-fun square(x :: Number) -> Number: x * x;
-fun double(x :: Number) -> Number: 2 * x;
+fun square(x :: Number) -> Number: x * x end
+fun double(x :: Number) -> Number: 2 * x end
 
 epsilon = 0.001
 

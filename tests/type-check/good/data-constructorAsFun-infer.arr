@@ -26,4 +26,4 @@ one-list-synth                     = my-map(succ, zero-list-synth)
 one-list-check :: My-List<Natural> = my-map(succ, zero-list-check)
 
 zero-list-list-synth                              = my-map(my-singleton<Natural>, zero-list-synth)
-zero-list-list-check :: My-List<My-List<Natural>> = my-map(my-singleton<Natural>, zero-list-check)
+zero-list-list-check :: My-List<My-List<Natural>> = my-map(my-singleton, zero-list-check)

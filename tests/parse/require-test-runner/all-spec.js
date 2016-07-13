@@ -1,13 +1,14 @@
 var r = require("requirejs");
 
-var build = process.env["PHASE"] || "build/phase1";
+var build = process.env["PHASE"] || "build/phaseA";
 
 r.config({
   waitSeconds: 15000,
   paths: {
     trove: "../../../" + build + "/trove",
     js: "../../../" + build + "/js",
-    compiler: "../../../" + build + "/arr/compiler"
+    compiler: "../../../" + build + "/arr/compiler",
+    jglr: "../../../lib/jglr"
   }
 });
 

@@ -1,9 +1,10 @@
 ({
     optimize: "none",
     paths: {
-        'q': 'empty:',
+        'crypto': 'empty:',
         'fs': 'empty:',
         'path': 'empty:',
+        'q': 'empty:',
         'requirejs': 'empty:',
         's-expression': 'empty:',
         'seedrandom': 'empty:'

@@ -5,8 +5,9 @@ provide-types *
 import ast as A
 import parse-pyret as PP
 import string-dict as SD
-import "compiler/compile-structs.arr" as C
-import "compiler/ast-util.arr" as U
+import file("compile-structs.arr") as C
+import file("ast-util.arr") as U
+import file("resolve-scope.arr") as R
 
 names = A.global-names
 
@@ -20,8 +21,8 @@ end
 
 mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 
-fun g(id): A.s-global(id);
-fun gid(l, id): A.s-id(l, g(id));
+fun g(id): A.s-global(id) end
+fun gid(l, id): A.s-id(l, g(id)) end
 
 fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
@@ -36,6 +37,12 @@ end
 fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
 end
+fun template-exn(l):
+  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
+end
+
+
+var generated-binds = SD.make-mutable-string-dict()
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -43,7 +50,7 @@ end
 fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
-    | a-any => a
+    | a-any(_) => a
     | a-name(_, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
@@ -55,6 +62,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
       A.a-app(l, desugar-ann(base), args.map(desugar-ann))
     | a-record(l, fields) =>
       A.a-record(l, fields.map(desugar-afield))
+    | a-tuple(l, fields) =>
+      A.a-tuple(l, fields.map(desugar-ann))
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -76,19 +85,21 @@ fun desugar(program :: A.Program):
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
-  cases(A.Program) program:
+  cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
-      A.s-program(l, _provide, provided-types, imports, desugar-expr(body))
+      generated-binds := SD.make-mutable-string-dict()
+      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
 
-fun mk-id-ann(loc, base, ann):
+fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
+  generated-binds.set-now(a.key(), R.let-bind(loc, a, ann, none))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
-fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank);
+fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
 
 fun get-arith-op(str):
   if str == "op+": some("_plus")
@@ -103,12 +114,12 @@ fun get-arith-op(str):
   end
 end
 
-fun desugar-if(l, branches, _else :: A.Expr):
+fun desugar-if(l, branches, _else :: A.Expr, blocky):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    check-bool(branch.l, desugar-expr(branch.test), lam(test-id):
+    check-bool(branch.test.l, desugar-expr(branch.test), lam(test-id):
         A.s-if-else(l,
           [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
-          acc)
+          acc, blocky)
       end)
   end
 end
@@ -122,18 +133,8 @@ end
 fun desugar-case-branch(c):
   cases(A.CasesBranch) c:
     | s-cases-branch(l, pat-loc, name, args, body) =>
-      # desugar-member(
-      #   A.s-data-field(
-      #     pat-loc,
-      #     name,
-      #     A.s-lam(pat-loc, [list: ], args.map(desugar-bind), A.a-blank, "", body, none)))
       A.s-cases-branch(l, pat-loc, name, args.map(desugar-cases-bind), desugar-expr(body))
     | s-singleton-cases-branch(l, pat-loc, name, body) =>
-      # desugar-member(
-      #   A.s-data-field(
-      #     pat-loc,
-      #     name,
-      #     A.s-lam(pat-loc, [list: ], empty, A.a-blank, "", body, none)))
       A.s-singleton-cases-branch(l, pat-loc, name, desugar-expr(body))
   end
 end
@@ -147,8 +148,8 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, params, args, ann, doc, body, _check)))
+    | s-method-field(l, name, params, args, ann, doc, body, _check, blocky) =>
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check, blocky)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -175,7 +176,7 @@ end
 fun ds-curry-nullary(rebuild-node, l, obj, m):
   if is-underscore(obj):
     curried-obj = mk-id(l, "recv_")
-    A.s-lam(l, [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none)
+    A.s-lam(l, "", [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, false)
   else:
     rebuild-node(l, desugar-expr(obj), m)
   end
@@ -193,7 +194,7 @@ fun ds-curry-binop(s, e1, e2, rebuild):
     | empty => rebuild(e1, e2)
     | link(f, r) =>
       curry-args = params-and-args.right
-      A.s-lam(s, [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none)
+      A.s-lam(s, "", [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, false)
   end
 end
 
@@ -203,11 +204,11 @@ fun ds-curry(l, f, args):
     params = params-and-args.left
     if is-underscore(f):
       f-id = mk-id(l, "f_")
-      A.s-lam(l, empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none)
+      A.s-lam(l, "", empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, false)
     else:
       ds-f = desugar-expr(f)
       if is-empty(params): A.s-app(l, ds-f, args)
-      else: A.s-lam(l, [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none)
+      else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, false)
       end
     end
   end
@@ -217,8 +218,8 @@ fun ds-curry(l, f, args):
         curried-obj = mk-id(l, "recv_")
         params-and-args = ds-curry-args(l, args)
         params = params-and-args.left
-        A.s-lam(l, [list: ], link(curried-obj.id-b, params), A.a-blank, "",
-            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none)
+        A.s-lam(l, "", [list: ], link(curried-obj.id-b, params), A.a-blank, "",
+            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, false)
       else:
         fallthrough()
       end
@@ -227,7 +228,7 @@ fun ds-curry(l, f, args):
 where:
   d = A.dummy-loc
   n = A.s-global
-  id = lam(s): A.s-id(d, A.s-global(s));
+  id = lam(s): A.s-id(d, A.s-global(s)) end
   under = A.s-id(d, A.s-underscore(d))
   ds-ed = ds-curry(
       d,
@@ -312,29 +313,30 @@ fun desugar-expr(expr :: A.Expr):
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
       desugar-expr(body)
+    | s-template(l) => template-exn(l)
     | s-app(l, f, args) =>
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-lam(l, params, args, ann, doc, body, _check) =>
-      A.s-lam(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-method(l, params, args, ann, doc, body, _check) =>
-      A.s-method(l, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check))
-    | s-type(l, name, ann) => A.s-type(l, name, desugar-ann(ann))
+    | s-lam(l, name, params, args, ann, doc, body, _check, blocky) =>
+      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
+    | s-method(l, name, params, args, ann, doc, body, _check, blocky) =>
+      A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
+    | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
-    | s-type-let-expr(l, binds, body) =>
+    | s-type-let-expr(l, binds, body, blocky) =>
       fun desugar-type-bind(tb):
         cases(A.TypeLetBind) tb:
-          | s-type-bind(l2, name, ann) => A.s-type-bind(l2, name, desugar-ann(ann))
+          | s-type-bind(l2, name, params, ann) => A.s-type-bind(l2, name, params, desugar-ann(ann))
           | s-newtype-bind(l2, name, nameb) => tb
         end
       end
-      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body))
-    | s-let-expr(l, binds, body) =>
+      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body), blocky)
+    | s-let-expr(l, binds, body, blocky) =>
       new-binds = desugar-let-binds(binds)
-      A.s-let-expr(l, new-binds, desugar-expr(body))
-    | s-letrec(l, binds, body) =>
-      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body))
+      A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
+    | s-letrec(l, binds, body, blocky) =>
+      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body), blocky)
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
       fun extend-variant(v):
         cases(A.Variant) v:
@@ -354,38 +356,47 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), desugar-opt(desugar-expr, _check))
-    | s-when(l, test, body) =>
-      check-bool(l, desugar-expr(test), lam(test-id-e):
+    | s-when(l, test, body, blocky) =>
+      ds-test = desugar-expr(test)
+      g-nothing = gid(l, "nothing")
+      ds-body = desugar-expr(body)
+      check-bool(test.l, ds-test, lam(test-id-e):
           A.s-if-else(l,
-            [list: A.s-if-branch(l, test-id-e, A.s-block(l, [list: desugar-expr(body), gid(l, "nothing")]))],
-            A.s-block(l, [list: gid(l, "nothing")]))
+            [list:
+              A.s-if-branch(l, test-id-e, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
+                else: ds-body
+                end)],
+            A.s-block(l, [list: g-nothing]),
+            blocky)
         end)
-    | s-if(l, branches) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]))
-    | s-if-else(l, branches, _else) =>
-      desugar-if(l, branches, _else)
-    | s-if-pipe(l, branches) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]))
-    | s-if-pipe-else(l, branches, _else) =>
-      desugar-if(l, branches, _else)
-    | s-cases(l, typ, val, branches) =>
-      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch))
+    | s-if(l, branches, blocky) =>
+      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
+    | s-if-else(l, branches, _else, blocky) =>
+      desugar-if(l, branches, _else, blocky)
+    | s-if-pipe(l, branches, blocky) =>
+      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]), blocky)
+    | s-if-pipe-else(l, branches, _else, blocky) =>
+      desugar-if(l, branches, _else, blocky)
+    | s-cases(l, typ, val, branches, blocky) =>
+      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch), blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
-    | s-cases-else(l, typ, val, branches, _else) =>
+    | s-cases-else(l, typ, val, branches, _else, blocky) =>
       A.s-cases-else(l, desugar-ann(typ), desugar-expr(val),
         branches.map(desugar-case-branch),
-        desugar-expr(_else))
+        desugar-expr(_else),
+        blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body) =>
+    | s-for(l, iter, bindings, ann, body, blocky) =>
       values = bindings.map(_.value).map(desugar-expr)
-      the-function = A.s-lam(l, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none)
+      name = "for-body<" + l.format(false) + ">"
+      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-op(l, op, left, right) =>
+    | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
           ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
@@ -393,7 +404,11 @@ fun desugar-expr(expr :: A.Expr):
               A.s-app(l, gid(l, field), [list: e1, e2])
             end)
         | none =>
-          fun thunk(e): A.s-lam(l, [list: ], [list: ], A.a-blank, "", A.s-block(l, [list: e]), none) end
+          fun thunk(e):
+            A.s-lam(l, "", [list: ], [list: ], A.a-blank, "",
+              if A.is-s-block(e): e else: A.s-block(l, [list: e]) end,
+              none, false)
+          end
           fun opbool(fld):
             A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
           end
@@ -426,12 +441,12 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper): or-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper): or-oper end)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(or-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
-                        helper(operands.rest))
+                        helper(operands.rest), false)
                     end)
               end
             end
@@ -441,12 +456,12 @@ fun desugar-expr(expr :: A.Expr):
             fun helper(operands):
               cases(List) operands.rest:
                 | empty =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper): and-oper;)
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper): and-oper end)
                 | link(_, _) =>
-                  check-bool(l, desugar-expr(operands.first), lam(and-oper):
+                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper):
                       A.s-if-else(l,
                         [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
-                        A.s-bool(l, false))
+                        A.s-bool(l, false), false)
                     end)
               end
             end
@@ -470,16 +485,25 @@ fun desugar-expr(expr :: A.Expr):
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
+    | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
+    | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
     | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
-          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
-            [list: A.s-array(l, elts.map(desugar-expr))])
+          len = elts.length()
+          desugared-elts = elts.map(desugar-expr)
+          if len <= 5:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make" + tostring(len))),
+              desugared-elts)
+          else:
+            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
+              [list: A.s-array(l, desugared-elts)])
+          end
         | s-construct-lazy =>
           A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, empty, empty, A.a-blank, "", elt, none)) end))])
+                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, false)) end))])
       end
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened
@@ -495,12 +519,12 @@ fun desugar-expr(expr :: A.Expr):
 where:
   d = A.dummy-loc
   unglobal = A.default-map-visitor.{
-    s-global(self, s): A.s-name(d, s) end,
-    s-atom(self, base, serial): A.s-name(d, base) end
+    method s-global(self, s): A.s-name(d, s) end,
+    method s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor);
+  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
-  id = lam(s): A.s-id(d, A.s-name(d, s));
+  id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
@@ -513,11 +537,19 @@ where:
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
-    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
-        [list:  A.s-array(d, [list: one, two, A.s-app(d, id("_plus"), [list: one, two])])])])
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make3"),
+        [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
-  prog3 = p("for map(elt from l): elt + 1 end")
-  ds(prog3) is p("map(lam(elt): _plus(elt, 1) end, l)")
+  prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
+  ds(prog3)
+    is A.s-block(d,
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+        [list:  A.s-array(d,
+            [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
+              one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
+
+  prog4 = p("for map(elt from l): elt + 1 end")
+  ds(prog4) is p("map(lam(elt): _plus(elt, 1) end, l)")
 
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")

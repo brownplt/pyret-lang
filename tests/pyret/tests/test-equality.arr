@@ -89,8 +89,8 @@ check "lists":
   equal-now(l1, l3) is false
 end
 
-eq-all = { _equals(_, _, _): E.Equal end }
-eq-none = { _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
+eq-all = { method _equals(_, _, _): E.Equal end }
+eq-none = { method _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
 
 check "identical pre-check overrides method in true case, but not in false case":
   identical(eq-none, eq-none) is true
@@ -189,11 +189,11 @@ check:
   var called = false
   var long-equals = {}
   long-equals := {
-    _equals(_, _, eq):
+    method _equals(_, _, eq) block:
       for each(i from range(0, 10000)):
         i + i
       end
-      if called:
+      if called block:
         E.Equal
       else:
         called := true
@@ -209,6 +209,6 @@ check:
 end
 
 check "non-equality result from equals":
-  o = { _equals(_, _, _): true end }
+  o = { method _equals(_, _, _): true end }
   o == {} raises "EqualityResult"
 end

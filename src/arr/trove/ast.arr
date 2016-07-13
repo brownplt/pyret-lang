@@ -6,6 +6,22 @@ import pprint as PP
 import srcloc as S
 import contracts as C
 import valueskeleton as VS
+import lists as lists
+import option as option
+import global as _
+import base as _
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+is-link = lists.is-link
+fold = lists.fold
+
+type Option = option.Option
+some = option.some
+none = option.none
 
 type Loc = S.Srcloc
 
@@ -35,7 +51,6 @@ str-comment = PP.str("# ")
 str-constructor = PP.str("with constructor")
 str-data = PP.str("data ")
 str-data-expr = PP.str("data-expr ")
-str-datatype = PP.str("datatype ")
 str-deriving = PP.str("deriving ")
 str-doc = PP.str("doc: ")
 str-elsebranch = PP.str("| else =>")
@@ -49,7 +64,7 @@ str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
 str-if = PP.str("if ")
-str-askcolon = PP.str("ask:")
+str-ask = PP.str("ask")
 str-import = PP.str("import")
 str-include = PP.str("include")
 str-method = PP.str("method")
@@ -89,63 +104,64 @@ str-percent = PP.str("%")
 
 data Name:
   | s-underscore(l :: Loc) with:
-    to-compiled-source(self): raise("Cannot compile underscores") end,
-    to-compiled(self): raise("Cannot compile underscores") end,
-    tosource(self): PP.str("_") end,
-    tosourcestring(self): "_" end,
-    toname(self): "_" end,
-    key(self): "underscore#" end
+    method to-compiled-source(self): raise("Cannot compile underscores") end,
+    method to-compiled(self): raise("Cannot compile underscores") end,
+    method tosource(self): PP.str("_") end,
+    method tosourcestring(self): "_" end,
+    method toname(self): "_" end,
+    method key(self): "underscore#" end
 
   | s-name(l :: Loc, s :: String) with:
-    to-compiled-source(self): raise("Cannot compile local name " + self.s) end,
-    to-compiled(self): raise("Cannot compile local name " + self.s) end,
-    tosource(self): PP.str(self.s) end,
-    tosourcestring(self): self.s end,
-    toname(self): self.s end,
-    key(self): "name#" + self.s end
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): self.s end,
+    method tosource(self): PP.str(self.s) end,
+    method tosourcestring(self): self.s end,
+    method toname(self): self.s end,
+    method key(self): "name#" + self.s end
 
   | s-global(s :: String) with:
-    to-compiled-source(self): PP.str(self.to-compiled()) end,
-    to-compiled(self): self.s end,
-    tosource(self): PP.str(self.s) end,
-    tosourcestring(self): self.s end,
-    toname(self): self.s end,
-    key(self): "global#" + self.s end
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): self.s end,
+    method tosource(self): PP.str(self.s) end,
+    method tosourcestring(self): self.s end,
+    method toname(self): self.s end,
+    method key(self): "global#" + self.s end
 
   | s-type-global(s :: String) with:
-    to-compiled-source(self): PP.str(self.to-compiled()) end,
-    to-compiled(self): "$type$" + self.s end,
-    tosource(self): PP.str(self.s) end,
-    tosourcestring(self): "$type$" + self.s end,
-    toname(self): self.s end,
-    key(self): "tglobal#" + self.s end
-
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): "$type$" + self.s end,
+    method tosource(self): PP.str(self.s) end,
+    method tosourcestring(self): "$type$" + self.s end,
+    method toname(self): self.s end,
+    method key(self): "tglobal#" + self.s end
+    
   | s-atom(base :: String, serial :: Number) with:
-    to-compiled-source(self): PP.str(self.to-compiled()) end,
-    to-compiled(self): self.base + tostring(self.serial) end,
-    tosource(self): PP.str(self.to-compiled()) end,
-    tosourcestring(self): self.to-compiled() end,
-    toname(self): self.base end,
-    key(self): "atom#" + self.base + "#" + tostring(self.serial) end
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): self.base + tostring(self.serial) end,
+    method tosource(self): PP.str(self.toname()) end,
+    method tosourcestring(self): self.to-compiled() end,
+    method toname(self): self.base end,
+    method key(self): "atom#" + self.base + "#" + tostring(self.serial) end
 sharing:
-  _lessthan(self, other): self.key() < other.key() end,
-  _lessequal(self, other): self.key() <= other.key() end,
-  _greaterthan(self, other): self.key() > other.key() end,
-  _greaterequal(self, other): self.key() >= other.key() end,
-  _equals(self, other, eq): eq(self.key(), other.key()) end,
-  _output(self): VS.vs-str(self.tosourcestring()) end,
-  visit(self, visitor):
+  method _lessthan(self, other): self.key() < other.key() end,
+  method _lessequal(self, other): self.key() <= other.key() end,
+  method _greaterthan(self, other): self.key() > other.key() end,
+  method _greaterequal(self, other): self.key() >= other.key() end,
+  method _equals(self, other, eq): eq(self.key(), other.key()) end,
+  method _output(self): VS.vs-str(self.tosourcestring()) end,
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
 fun MakeName(start):
   var count = start
-  fun atom(base :: String):
+  fun atom(base :: String) block:
     count := 1 + count
     s-atom(base, count)
   end
   {
+    reset: lam(): count := start end,
     s-underscore: s-underscore,
     s-name: s-name,
     s-global: s-global,
@@ -161,7 +177,7 @@ end
 global-names = MakeName(0)
 
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
-    ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>) -> PP.PPrintDoc:
+    ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
   typarams =
     if is-nothing(params): PP.mt-doc
     else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
@@ -170,17 +186,19 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
   arg-list = PP.nest(INDENT,
     PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
       args.map(lam(a): a.tosource() end)))
-  ftype = funtype + typarams
   fname =
-    if is-nothing(name): ftype
-    else if PP.is-mt-doc(ftype): PP.str(name)
-    else: ftype + PP.str(" " + name)
+    if PP.is-mt-doc(name): funtype + typarams
+    else: PP.group(funtype + break-one + name + typarams)
     end
   fann =
     if is-a-blank(ann) or is-nothing(ann): PP.mt-doc
     else: break-one + str-arrowspace + ann.tosource()
     end
-  header = PP.group(fname + arg-list + fann + str-colon)
+  fblockycolon =
+    if blocky: break-one + str-block
+    else: str-colon
+    end
+  header = PP.group(fname + arg-list + fann + fblockycolon)
   checker = cases(Option) _check:
     | none => PP.mt-doc
     | some(chk) => chk.tosource()
@@ -196,10 +214,14 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
 
+fun blocky-colon(blocky):
+  if blocky: break-one + str-block else: str-colon end
+end
+
 data Program:
   | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
-    label(self): "s-program" end,
-    tosource(self):
+    method label(self): "s-program" end,
+    method tosource(self):
       PP.group(
         PP.vert(
           [list:
@@ -210,30 +232,30 @@ data Program:
           ))
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data Import:
   | s-include(l :: Loc, mod :: ImportType) with:
-    label(self): "s-include" end,
-    tosource(self):
+    method label(self): "s-include" end,
+    method tosource(self):
       PP.flow([list: str-include, self.mod.tosource()])
     end
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
-    label(self): "s-import" end,
-    tosource(self):
+    method label(self): "s-import" end,
+    method tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
   | s-import-types(l :: Loc, file :: ImportType, name :: Name, types :: Name) with:
-    label(self): "s-import-types" end,
-    tosource(self):
+    method label(self): "s-import-types" end,
+    method tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource(), PP.comma, self.types.tosource()])
     end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
-    label(self): "s-import-fields" end,
-    tosource(self):
+    method label(self): "s-import-fields" end,
+    method tosource(self):
       PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
           str-from, self.file.tosource()])
@@ -245,8 +267,8 @@ data Import:
       import-type :: ImportType,
       vals-name :: Name,
       types-name :: Name) with:
-    label(self): "s-import-complete" end,
-    tosource(self):
+    method label(self): "s-import-complete" end,
+    method tosource(self):
       PP.flow([list: str-import,
           PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
           str-from,
@@ -256,144 +278,191 @@ data Import:
           self.types-name.tosource()])
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
+data ProvidedValue:
+  # INVARIANT(joe): all a-names in Ann are defined in the lists of
+  # ProvidedAlias or ProvidedDatatype
+  | p-value(l :: Loc, v :: Name, ann :: Ann) with:
+    method label(self):
+      "p-value"
+    end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
+    end
+end
+
+data ProvidedAlias:
+  | p-alias(l :: Loc, in-name :: Name, out-name :: Name, mod :: Option<ImportType>) with:
+    method label(self):
+      "p-alias"
+    end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-as, PP.str(self.in-name.toname()), PP.str(self.out-name.toname()))
+    end
+end
+
+data ProvidedDatatype:
+  | p-data(l :: Loc, d :: Name, mod :: Option<ImportType>) with:
+    method label(self):
+      "p-data"
+    end,
+    method tosource(self):
+      PP.str(self.d.toname())
+    end
+end
+
 data Provide:
   | s-provide(l :: Loc, block :: Expr) with:
-    label(self): "s-provide" end,
-    tosource(self):
+    method label(self): "s-provide" end,
+    method tosource(self):
       PP.soft-surround(INDENT, 1, str-provide,
         self.block.tosource(), str-end)
     end
+  | s-provide-complete(
+      l :: Loc,
+      values :: List<ProvidedValue>,
+      aliases :: List<ProvidedAlias>,
+      data-definitions :: List<ProvidedDatatype>
+    ) with:
+    method label(self): "s-provide" end,
+    method tosource(self):
+      PP.str("provide-complete") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
+            PP.infix(INDENT, 1, str-colon,PP.str("Values"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.values))),
+            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
+            PP.infix(INDENT, 1, str-colon,PP.str("Data"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
+    end
   | s-provide-all(l :: Loc) with:
-    label(self): "s-provide-all" end,
-    tosource(self): str-provide-star end
+    method label(self): "s-provide-all" end,
+    method tosource(self): str-provide-star end
   | s-provide-none(l :: Loc) with:
-    label(self): "s-provide-none" end,
-    tosource(self): PP.mt-doc end
+    method label(self): "s-provide-none" end,
+    method tosource(self): PP.mt-doc end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data ProvideTypes:
   | s-provide-types(l :: Loc, ann :: List<AField>) with:
-    label(self): "a-provide-type" end,
-    tosource(self):
+    method label(self): "a-provide-type" end,
+    method tosource(self):
       PP.surround-separate(INDENT, 1, str-provide-types + break-one + PP.lbrace + PP.rbrace,
         str-provide-types + break-one + PP.lbrace, PP.commabreak, PP.rbrace,
         self.ann.map(_.tosource()))
     end
   | s-provide-types-all(l :: Loc) with:
-    label(self): "s-provide-types-all" end,
-    tosource(self): str-provide-types-star end
+    method label(self): "s-provide-types-all" end,
+    method tosource(self): str-provide-types-star end
   | s-provide-types-none(l :: Loc) with:
-    label(self): "s-provide-types-none" end,
-    tosource(self): PP.mt-doc end
+    method label(self): "s-provide-types-none" end,
+    method tosource(self): PP.mt-doc end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
-  
-  
+
+
 data ImportType:
-  | s-file-import(l :: Loc, file :: String) with:
-    label(self): "s-file-import" end,
-    tosource(self): PP.str(torepr(self.file)) end
   | s-const-import(l :: Loc, mod :: String) with:
-    label(self): "s-const-import" end,
-    tosource(self): PP.str(self.mod) end
+    method label(self): "s-const-import" end,
+    method tosource(self): PP.str(self.mod) end
   | s-special-import(l :: Loc, kind :: String, args :: List<String>) with:
-    label(self): "s-special-import" end,
-    tosource(self): 
+    method label(self): "s-special-import" end,
+    method tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(PP.str)))))
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data Hint:
   | h-use-loc(l :: Loc) with:
-    tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
+    method tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data LetBind:
   | s-let-bind(l :: Loc, b :: Bind, value :: Expr) with:
-    tosource(self):
+    method tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-var-bind(l :: Loc, b :: Bind, value :: Expr) with:
-    tosource(self):
+    method tosource(self):
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data LetrecBind:
   | s-letrec-bind(l :: Loc, b :: Bind, value :: Expr) with:
-    tosource(self):
+    method tosource(self):
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data TypeLetBind:
-  | s-type-bind(l :: Loc, name :: Name, ann :: Ann) with:
-    label(self): "s-type-bind" end,
-    tosource(self):
-      PP.group(PP.nest(INDENT, self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
+  | s-type-bind(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
+    method label(self): "s-type-bind" end,
+    method tosource(self):
+      params = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+        self.params.map(_.tosource()))
+      PP.group(PP.nest(INDENT, self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype-bind(l :: Loc, name :: Name, namet :: Name) with:
-    label(self): "s-newtype-bind" end,
-    tosource(self):
+    method label(self): "s-newtype-bind" end,
+    method tosource(self):
       PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
           + break-one + str-as
           + break-one + self.namet.tosource()))
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data DefinedValue:
   | s-defined-value(name :: String, value :: Expr) with:
-    label(self): "s-defined-value" end,
-    tosource(self):
+    method label(self): "s-defined-value" end,
+    method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 data DefinedType:
   | s-defined-type(name :: String, typ :: Ann) with:
-    label(self): "s-defined-type" end,
-    tosource(self):
+    method label(self): "s-defined-type" end,
+    method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
@@ -407,64 +476,67 @@ data Expr:
       provided-values :: Expr,
       provided-types :: List<AField>,
       checks :: Expr) with:
-    label(self): "s-module" end,
-    tosource(self):
+    method label(self): "s-module" end,
+    method tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
             PP.infix(INDENT, 1, str-colon, PP.str("Answer"), self.answer.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedValues"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"), 
+            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
-  | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr) with:
-    label(self): "s-type-let" end,
-    tosource(self):
+  | s-template(l :: Loc) with:
+    method label(self): "s-template" end,
+    method tosource(self): PP.str("...") end
+  | s-type-let-expr(l :: Loc, binds :: List<TypeLetBind>, body :: Expr, blocky :: Boolean) with:
+    method label(self): "s-type-let" end,
+    method tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-type-let, str-type-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
-          + str-colon
+        + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
-  | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr) with:
-    label(self): "s-let" end,
-    tosource(self):
+  | s-let-expr(l :: Loc, binds :: List<LetBind>, body :: Expr, blocky :: Boolean) with:
+    method label(self): "s-let" end,
+    method tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-let, str-let + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
-          + str-colon
+          + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
-  | s-letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr) with:
-    label(self): "s-letrec" end,
-    tosource(self):
+  | s-letrec(l :: Loc, binds :: List<LetrecBind>, body :: Expr, blocky :: Boolean) with:
+    method label(self): "s-letrec" end,
+    method tosource(self):
       header = PP.surround-separate(2 * INDENT, 1, str-letrec, str-letrec + PP.str(" "), PP.commabreak, PP.mt-doc,
           self.binds.map(_.tosource()))
-          + str-colon
+          + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
-    label(self): "s-hint-exp" end,
-    tosource(self):
+    method label(self): "s-hint-exp" end,
+    method tosource(self):
       PP.flow-map(PP.hardline, lam(h): str-comment + h.tosource() end, self.hints) + PP.hardline
         + self.e.tosource()
     end
   | s-instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
-    label(self): "s-instantiate" end,
-    tosource(self):
+    method label(self): "s-instantiate" end,
+    method tosource(self):
       PP.group(self.expr.tosource() +
         PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
             self.params.map(_.tosource())))
     end
   | s-block(l :: Loc, stmts :: List<Expr>) with:
-    label(self): "s-block" end,
-    tosource(self):
+    method label(self): "s-block" end,
+    method tosource(self):
       PP.flow-map(PP.hardline, _.tosource(), self.stmts)
     end
   | s-user-block(l :: Loc, body :: Expr) with:
-    label(self): "s-user-block" end,
-    tosource(self):
+    method label(self): "s-user-block" end,
+    method tosource(self):
       PP.surround(INDENT, 1, str-block, self.body.tosource(), str-end)
     end
   | s-fun(
@@ -475,50 +547,53 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ) with:
-      label(self): "s-fun" end,
-    tosource(self):
+      method label(self): "s-fun" end,
+    method tosource(self):
       funlam-tosource(str-fun,
-        self.name, self.params, self.args, self.ann, self.doc, self.body, self._check)
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
-  | s-type(l :: Loc, name :: Name, ann :: Ann) with:
-    label(self): "s-type" end,
-    tosource(self):
+  | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
+    method label(self): "s-type" end,
+    method tosource(self):
+      params = PP.surround-separaate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+        self.params.map(_.tosource()))
       PP.group(PP.nest(INDENT,
-          str-type + self.name.tosource() + str-spaceequal + break-one + self.ann.tosource()))
+          str-type + self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
     end
   | s-newtype(l :: Loc, name :: Name, namet :: Name) with:
-    label(self): "s-newtype" end,
-    tosource(self):
+    method label(self): "s-newtype" end,
+    method tosource(self):
       PP.group(PP.nest(INDENT, str-newtype + self.name.tosource()
           + break-one + str-as
           + break-one + self.namet.tosource()))
     end
   | s-var(l :: Loc, name :: Bind, value :: Expr) with:
-    label(self): "s-var" end,
-    tosource(self):
+    method label(self): "s-var" end,
+    method tosource(self):
       str-var
         + PP.group(PP.nest(INDENT, self.name.tosource()
             + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-rec(l :: Loc, name :: Bind, value :: Expr) with:
-    label(self): "s-rec" end,
-    tosource(self):
+    method label(self): "s-rec" end,
+    method tosource(self):
       str-rec
         + PP.group(PP.nest(INDENT, self.name.tosource()
             + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-let(l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean) with:
-    label(self): "s-let" end,
-    tosource(self):
+    method label(self): "s-let" end,
+    method tosource(self):
       PP.group(PP.nest(INDENT,
           if self.keyword-val: str-val else: PP.mt-doc end
             + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
   | s-ref(l :: Loc, ann :: Option<Ann>) with:
-    label(self): "s-ref" end,
-    tosource(self):
+    method label(self): "s-ref" end,
+    method tosource(self):
       cases(Option) self.ann:
         | none => PP.str("bare-ref")
         | some(ann) =>
@@ -526,74 +601,102 @@ data Expr:
       end
     end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
-    label(self): "s-contract" end,
-    tosource(self):
+    method label(self): "s-contract" end,
+    method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource())
     end
-  | s-when(l :: Loc, test :: Expr, block :: Expr) with:
-    label(self): "s-when" end,
-    tosource(self):
+  | s-when(l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean) with:
+    method label(self): "s-when" end,
+    method tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-when + PP.parens(self.test.tosource()) + str-colon,
+        str-when + PP.parens(self.test.tosource()) + blocky-colon(self.blocky),
         self.block.tosource(),
         str-end)
     end
   | s-assign(l :: Loc, id :: Name, value :: Expr) with:
-    label(self): "s-assign" end,
-    tosource(self):
+    method label(self): "s-assign" end,
+    method tosource(self):
       PP.group(PP.nest(INDENT, self.id.tosource() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | s-if-pipe(l :: Loc, branches :: List<IfPipeBranch>) with:
-    label(self): "s-if-pipe" end,
-    tosource(self):
-      PP.surround-separate(INDENT, 1, str-askcolon + str-space + str-end,
-        PP.group(str-askcolon), break-one, str-end,
+  | s-if-pipe(l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean) with:
+    method label(self): "s-if-pipe" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, str-ask + blocky-colon(self.blocky) + str-space + str-end,
+        PP.group(str-ask + blocky-colon(self.blocky)), break-one, str-end,
         self.branches.map(lam(b): PP.group(b.tosource()) end))
     end
-  | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr) with:
-    label(self): "s-if-pipe-else" end,
-    tosource(self):
+  | s-if-pipe-else(l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean) with:
+    method label(self): "s-if-pipe-else" end,
+    method tosource(self):
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-pipespace + str-otherwisecolon + break-one + self._else.tosource())
-      PP.surround(INDENT, 1, PP.group(str-askcolon), body, str-end)
+      PP.surround(INDENT, 1, PP.group(str-ask + blocky-colon(self.blocky)), body, str-end)
     end
-  | s-if(l :: Loc, branches :: List<IfBranch>) with:
-    label(self): "s-if" end,
-    tosource(self):
+  | s-if(l :: Loc, branches :: List<IfBranch>, blocky :: Boolean) with:
+    method label(self): "s-if" end,
+    method tosource(self):
+      first-branch =
+        if self.blocky: self.branches.first.tosource-blocky()
+        else: self.branches.first.tosource()
+        end
+      first-sep =
+        if is-link(self.branches.rest): break-one + str-elsespace
+        else: PP.mt-doc
+        end
       branches = PP.separate(break-one + str-elsespace,
-        self.branches.map(lam(b): b.tosource() end))
-      PP.group(branches + break-one + str-end)
+        self.branches.rest.map(lam(b): b.tosource() end))
+      PP.group(first-branch + first-sep + branches + break-one + str-end)
     end
-  | s-if-else(l :: Loc, branches :: List<IfBranch>, _else :: Expr) with:
-    label(self): "s-if-else" end,
-    tosource(self):
+  | s-if-else(l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean) with:
+    method label(self): "s-if-else" end,
+    method tosource(self):
+      first-branch =
+        if self.blocky: self.branches.first.tosource-blocky()
+        else: self.branches.first.tosource()
+        end
+      first-sep =
+        if is-link(self.branches.rest): break-one + str-elsespace
+        else: PP.mt-doc
+        end
       branches = PP.separate(break-one + str-elsespace,
-        self.branches.map(lam(b): b.tosource() end))
+        self.branches.rest.map(lam(b): b.tosource() end))
       _else = str-elsecolon + PP.nest(INDENT, break-one + self._else.tosource())
-      PP.group(branches + break-one + _else + break-one + str-end)
+      PP.group(first-branch + first-sep + branches + break-one + _else + break-one + str-end)
     end
-  | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>) with:
-    label(self): "s-cases" end,
-    tosource(self):
+  | s-cases(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean) with:
+    method label(self): "s-cases" end,
+    method branches-loc(self):
+      first-loc = self.branches.first.l
+      last-loc = self.branches.last().l
+      S.srcloc(
+        self.l.source,
+        first-loc.start-line,
+        first-loc.start-column,
+        first-loc.start-char,
+        last-loc.end-line,
+        last-loc.end-column,
+        last-loc.end-char)
+    end,
+    method tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
-        + self.val.tosource() + str-colon
+        + self.val.tosource() + blocky-colon(self.blocky)
       PP.surround-separate(INDENT, 1, header + str-space + str-end,
         PP.group(header), break-one, str-end,
         self.branches.map(lam(b): PP.group(b.tosource()) end))
     end
-  | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr) with:
-    label(self): "s-cases-else" end,
-    tosource(self):
+  | s-cases-else(l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean) with:
+    method label(self): "s-cases-else" end,
+    method tosource(self):
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
-        + self.val.tosource() + str-colon
+        + self.val.tosource() + blocky-colon(self.blocky)
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
         + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
-  | s-op(l :: Loc, op :: String, left :: Expr, right :: Expr) with:
+  | s-op(l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr) with:
     # This should be left-associated, always.
-    label(self): "s-op" end,
-    tosource(self):
+    method label(self): "s-op" end,
+    method tosource(self):
       fun collect-same-operands(exp):
         if is-s-op(exp) and (exp.op == self.op):
           collect-same-operands(exp.left) + collect-same-operands(exp.right)
@@ -619,8 +722,8 @@ data Expr:
   | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>) with:
     # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
     # Only 's-op-raises-not' can lack a RHS. (Guaranteed by parsing; maintain this invariant!)
-    label(self): "s-check-test" end,
-    tosource(self):
+    method label(self): "s-check-test" end,
+    method tosource(self):
       fun option-tosource(opt):
         cases(Option) opt:
           | none     => PP.mt-doc
@@ -637,70 +740,99 @@ data Expr:
       end
     end
   | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
-    label(self): "s-check-expr" end,
-    tosource(self):
+    method label(self): "s-check-expr" end,
+    method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, self.expr.tosource(), self.ann.tosource())
     end
   | s-paren(l :: Loc, expr :: Expr) with:
-    label(self): "s-paren" end,
-    tosource(self): PP.parens(self.expr.tosource()) end
+    method label(self): "s-paren" end,
+    method tosource(self): PP.parens(self.expr.tosource()) end
   | s-lam(
       l :: Loc,
+      name :: String, # Declared function name, or "" if anonymous lambda
       params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ) with:
-    label(self): "s-lam" end,
-    tosource(self):
+    method label(self): "s-lam" end,
+    method tosource(self):
       funlam-tosource(str-lam,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-method(
       l :: Loc,
+      name :: String, # Declared method name, or "" if anonymous method
       params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ) with:
-    label(self): "s-method" end,
-    tosource(self):
+    method label(self): "s-method" end,
+    method tosource(self):
       funlam-tosource(str-method,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
+        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
-    label(self): "s-extend" end,
-    tosource(self):
+    method label(self): "s-extend" end,
+    method tosource(self):
       PP.group(self.supe.tosource() + str-period
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
-    end
+    end,
+    method field-loc(self):
+      S.srcloc(
+      self.l.source,
+      self.supe.l.end-line,
+      self.supe.l.end-column + 1,
+      self.supe.l.end-char + 1,
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+    end,
   | s-update(l :: Loc, supe :: Expr, fields :: List<Member>) with:
-    label(self): "s-update" end,
-    tosource(self):
+    method label(self): "s-update" end,
+    method tosource(self):
       PP.group(self.supe.tosource() + str-bang
           + PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
           PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource())))
     end
-  | s-obj(l :: Loc, fields :: List<Member>) with:
-    label(self): "s-obj" end,
-    tosource(self):
+  | s-tuple(l :: Loc, fields :: List<Expr>) with:
+    method label(self): "s-tuple" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+        PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
+  | s-tuple-get(l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc) with:
+    method label(self): "s-tuple-get" end,
+    method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
+    end 
+  | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
+    method label(self): "s-tuple-let" end,
+    method tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
+                   + str-spaceequal + self.tup.tosource()
+    end
+   | s-obj(l :: Loc, fields :: List<Member>) with:
+    method label(self): "s-obj" end,
+    method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
         PP.lbrace, PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s-array(l :: Loc, values :: List<Expr>) with:
-    label(self): "s-array" end,
-    tosource(self):
+    method label(self): "s-array" end,
+    method tosource(self):
       PP.surround-separate(INDENT, 0, PP.str("[raw-array: ]"), PP.str("[raw-array: "), PP.commabreak, PP.rbrack,
         self.values.map(_.tosource()))
     end
   | s-construct(l :: Loc, modifier :: ConstructModifier, constructor :: Expr, values :: List<Expr>) with:
-    label(self): "s-construct" end,
-    tosource(self):
+    method label(self): "s-construct" end,
+    method tosource(self):
       prefix = PP.lbrack
         + PP.group(PP.separate(PP.sbreak(1), [list: self.modifier.tosource(), self.constructor.tosource()]))
         + str-colonspace
@@ -710,58 +842,92 @@ data Expr:
       end
     end
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
-    label(self): "s-app" end,
-    tosource(self):
+    method label(self): "s-app" end,
+    method args-loc(self):
+      if is-empty(self.args):
+        S.srcloc(
+          self.l.source,
+          self._fun.l.end-line,
+          self._fun.l.end-column,
+          self._fun.l.end-char,
+          self.l.end-line,
+          self.l.end-column,
+          self.l.end-char)
+      else:
+        first = self.args.first.l
+        last = self.args.last().l
+        S.srcloc(
+          self.l.source,
+          first.start-line,
+          first.start-column,
+          first.start-char,
+          last.end-line,
+          last.end-column,
+          last.end-char)
+      end
+    end,
+    method tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
-    label(self): "s-prim-app" end,
-    tosource(self):
+    method label(self): "s-prim-app" end,
+    method tosource(self):
       PP.group(PP.str(self._fun)
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
   | s-prim-val(l :: Loc, name :: String) with:
-    label(self): "s-prim-val" end,
-    tosource(self): PP.str(self.name) end
+    method label(self): "s-prim-val" end,
+    method tosource(self): PP.str(self.name) end
   | s-id(l :: Loc, id :: Name) with:
-    label(self): "s-id" end,
-    tosource(self): self.id.tosource() end
+    method label(self): "s-id" end,
+    method tosource(self): self.id.tosource() end
   | s-id-var(l :: Loc, id :: Name) with:
-    label(self): "s-id-var" end,
-    tosource(self): PP.str("!") + self.id.tosource() end
+    method label(self): "s-id-var" end,
+    method tosource(self): PP.str("!") + self.id.tosource() end
   | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
-    label(self): "s-id-letrec" end,
-    tosource(self): PP.str("~") + self.id.tosource() end
+    method label(self): "s-id-letrec" end,
+    method tosource(self): PP.str("~") + self.id.tosource() end
   | s-undefined(l :: Loc) with:
-    label(self): "s-undefined" end,
-    tosource(self): PP.str("undefined") end
+    method label(self): "s-undefined" end,
+    method tosource(self): PP.str("undefined") end
   | s-srcloc(l :: Loc, loc :: Loc) with:
-    label(self): "s-srcloc" end,
-    tosource(self): PP.str(torepr(self.loc)) end
+    method label(self): "s-srcloc" end,
+    method tosource(self): PP.str(torepr(self.loc)) end
   | s-num(l :: Loc, n :: Number) with:
-    label(self): "s-num" end,
-    tosource(self): PP.number(self.n) end
+    method label(self): "s-num" end,
+    method tosource(self): PP.number(self.n) end
   | s-frac(l :: Loc, num :: Number, den :: Number) with:
-    label(self): "s-frac" end,
-    tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+    method label(self): "s-frac" end,
+    method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
-    label(self): "s-bool" end,
-    tosource(self): PP.str(tostring(self.b)) end
+    method label(self): "s-bool" end,
+    method tosource(self): PP.str(tostring(self.b)) end
   | s-str(l :: Loc, s :: String) with:
-    label(self): "s-str" end,
-    tosource(self): PP.str(torepr(self.s)) end
+    method label(self): "s-str" end,
+    method tosource(self): PP.str(torepr(self.s)) end
   | s-dot(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s-dot" end,
-    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end
+    method label(self): "s-dot" end,
+    method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end,
+    method field-loc(self):
+      S.srcloc(
+      self.obj.l.source,
+      self.l.end-line,
+      self.l.end-column - string-length(self.field),
+      self.l.end-char - string-length(self.field),
+      self.l.end-line,
+      self.l.end-column,
+      self.l.end-char)
+
+    end
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
-    label(self): "s-get-bang" end,
-    tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
+    method label(self): "s-get-bang" end,
+    method tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
   | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
-    label(self): "s-bracket" end,
-    tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
+    method label(self): "s-bracket" end,
+    method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
     end
   | s-data(
@@ -773,8 +939,8 @@ data Expr:
       shared-members :: List<Member>,
       _check :: Option<Expr>
       ) with:
-    label(self): "s-data" end,
-    tosource(self):
+    method label(self): "s-data" end,
+    method tosource(self):
       fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
@@ -806,8 +972,8 @@ data Expr:
       shared-members :: List<Member>,
       _check :: Option<Expr>
     ) with:
-      label(self): "s-data-expr" end,
-    tosource(self):
+    method label(self): "s-data-expr" end,
+    method tosource(self):
       fun optional-section(lbl, section):
         if PP.is-mt-doc(section): PP.mt-doc
         else: break-one + PP.group(PP.nest(INDENT, lbl + break-one + section))
@@ -834,16 +1000,17 @@ data Expr:
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      blocky
     ) with:
-      label(self): "s-for" end,
-    tosource(self):
+    method label(self): "s-for" end,
+    method tosource(self):
       header = PP.group(str-for
           + self.iterator.tosource()
           + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
           self.bindings.map(lam(b): b.tosource() end))
           + PP.group(PP.nest(2 * INDENT,
-            break-one + str-arrow + break-one + self.ann.tosource() + str-colon)))
+            break-one + str-arrow + break-one + self.ann.tosource() + blocky-colon(self.blocky))))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-check(
@@ -852,8 +1019,8 @@ data Expr:
       body :: Expr,
       keyword-check :: Boolean
     ) with:
-      label(self): "s-check" end,
-    tosource(self):
+    method label(self): "s-check" end,
+    method tosource(self):
       cases(Option) self.name:
         | none => PP.surround(INDENT, 1,
             if self.keyword-check: str-checkcolon else: str-examplescolon end,
@@ -865,28 +1032,28 @@ data Expr:
       end
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data ConstructModifier:
   | s-construct-normal with:
-    label(self): "s-construct-normal" end,
-    tosource(self): PP.mt-doc end
+    method label(self): "s-construct-normal" end,
+    method tosource(self): PP.mt-doc end
   | s-construct-lazy with:
-    label(self): "s-construct-lazy" end,
-    tosource(self): PP.str("lazy") end
+    method label(self): "s-construct-lazy" end,
+    method tosource(self): PP.str("lazy") end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
-    
+
 
 data Bind:
   | s-bind(l :: Loc, shadows :: Boolean, id :: Name, ann :: Ann) with:
-    tosource(self):
+    method tosource(self):
       if is-a-blank(self.ann):
         if self.shadows: PP.str("shadow ") + self.id.tosource()
         else: self.id.tosource()
@@ -898,23 +1065,29 @@ data Bind:
         end
       end
     end,
-    label(self): "s_bind" end
+    method label(self): "s_bind" end
+  | s-tuple-bind(l :: Loc, fields :: List<Name>) with:
+    method label(self): "s-tuple-bind" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data Member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) with:
-    label(self): "s-data-field" end,
-    tosource(self):
+    method label(self): "s-data-field" end,
+    method tosource(self):
       name-part = PP.str(self.name)
       PP.nest(INDENT, name-part + str-colonspace + self.value.tosource())
     end,
   | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) with:
-    label(self): "s-mutable-field" end,
-    tosource(self):
+    method label(self): "s-mutable-field" end,
+    method tosource(self):
       name-part = PP.str(self.name)
       PP.nest(INDENT, str-mutable + name-part + str-coloncolon + self.ann.tosource() + str-colonspace + self.value.tosource())
     end,
@@ -926,53 +1099,53 @@ data Member:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ) with:
-      label(self): "s-method-field" end,
-    tosource(self):
-      name-part = PP.str(self.name)
-      funlam-tosource(name-part,
-        nothing, self.params, self.args, self.ann, self.doc, self.body, self._check)
+      method label(self): "s-method-field" end,
+    method tosource(self):
+      funlam-tosource(str-method,
+        PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data ForBind:
   | s-for-bind(l :: Loc, bind :: Bind, value :: Expr) with:
-    label(self): "s-for-bind" end,
-    tosource(self):
+    method label(self): "s-for-bind" end,
+    method tosource(self):
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data VariantMemberType:
   | s-normal with:
-    label(self): "s-normal" end,
-    tosource(self): PP.mt-doc end
+    method label(self): "s-normal" end,
+    method tosource(self): PP.mt-doc end
   | s-mutable with:
-    label(self): "s-mutable" end,
-    tosource(self): PP.str("mutable ") end
+    method label(self): "s-mutable" end,
+    method tosource(self): PP.str("mutable ") end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data VariantMember:
   | s-variant-member(l :: Loc, member-type :: VariantMemberType, bind :: Bind) with:
-    label(self): "s-variant-member" end,
-    tosource(self):
+    method label(self): "s-variant-member" end,
+    method tosource(self):
       self.member-type.tosource() + self.bind.tosource()
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
@@ -985,8 +1158,8 @@ data Variant:
       members :: List<VariantMember>,
       with-members :: List<Member>
     ) with:
-    label(self): "s-variant" end,
-    tosource(self):
+    method label(self): "s-variant" end,
+    method tosource(self):
       header-nowith =
         PP.str(self.name)
         + PP.surround-separate(INDENT, 0, PP.mt-doc, PP.lparen, PP.commabreak, PP.rparen,
@@ -1002,8 +1175,8 @@ data Variant:
       name :: String,
       with-members :: List<Member>
     ) with:
-    label(self): "s-singleton-variant" end,
-    tosource(self):
+    method label(self): "s-singleton-variant" end,
+    method tosource(self):
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(lam(m): m.tosource() end)
@@ -1012,106 +1185,70 @@ data Variant:
       end
     end
 sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
-data DatatypeVariant:
-  | s-datatype-variant(
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-  | s-datatype-singleton-variant(
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ) with:
-    label(self): "s-datatype-singleton-variant" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
-data Constructor:
-  | s-datatype-constructor(
-      l :: Loc,
-      self :: String,
-      body :: Expr
-      ) with:
-    label(self): "s-datatype-constructor" end,
-    tosource(self):
-      PP.str("FIXME 10/24/2013: dbp doesn't understand this pp stuff")
-    end
-sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data IfBranch:
   | s-if-branch(l :: Loc, test :: Expr, body :: Expr) with:
-    label(self): "s-if-branch" end,
-    tosource(self):
+    method label(self): "s-if-branch" end,
+    method tosource(self):
       str-if
         + PP.nest(2 * INDENT, self.test.tosource() + str-colon)
         + PP.nest(INDENT, break-one + self.body.tosource())
+    end,
+    method tosource-blocky(self):
+      str-if
+        + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-block)
+        + PP.nest(INDENT, break-one + self.body.tosource())
     end
+
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data IfPipeBranch:
   | s-if-pipe-branch(l :: Loc, test :: Expr, body :: Expr) with:
-    label(self): "s-if-pipe-branch" end,
-    tosource(self):
+    method label(self): "s-if-pipe-branch" end,
+    method tosource(self):
       str-pipespace
         + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-thencolon)
         + PP.nest(INDENT, break-one + self.body.tosource())
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data CasesBindType:
   | s-cases-bind-ref with:
-    label(self): "s-cases-bind-ref" end,
-    tosource(self): PP.str("ref") end
+    method label(self): "s-cases-bind-ref" end,
+    method tosource(self): PP.str("ref") end
   | s-cases-bind-normal with:
-    label(self): "s-cases-bind-normal" end,
-    tosource(self): PP.str("") end
+    method label(self): "s-cases-bind-normal" end,
+    method tosource(self): PP.str("") end
 end
 
 data CasesBind:
   | s-cases-bind(l :: Loc, field-type :: CasesBindType, bind :: Bind) with:
-    label(self): "s-cases-bind" end,
-    tosource(self):
+    method label(self): "s-cases-bind" end,
+    method tosource(self):
       self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data CasesBranch:
   | s-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr) with:
-    label(self): "s-cases-branch" end,
-    tosource(self):
+    method label(self): "s-cases-branch" end,
+    method tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
@@ -1119,19 +1256,19 @@ data CasesBranch:
         self.body.tosource())
     end
   | s-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: Expr) with:
-    label(self): "s-singleton-cases-branch" end,
-    tosource(self):
+    method label(self): "s-singleton-cases-branch" end,
+    method tosource(self):
       PP.nest(INDENT,
         PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 fun ann-loc(ann):
-  if is-a-blank(ann) or is-a-any(ann): dummy-loc
+  if is-a-blank(ann): dummy-loc
   else: ann.l
   end
 end
@@ -1146,61 +1283,61 @@ fun get-op-fun-name(opname):
 end
 
 data CheckOp:
-  | s-op-is with:
-    label(self): "s-op-is" end,
-    tosource(self): str-is end
-  | s-op-is-op(op :: String) with:
-    label(self): "s-op-is-op" end,
-    tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-is-not with:
-    label(self): "s-op-is-not" end,
-    tosource(self): str-is-not end
-  | s-op-is-not-op(op :: String) with:
-    label(self): "s-op-is-not-op" end,
-    tosource(self): str-is-not + PP.str(string-substring(self.op, 2, string-length(self.op))) end
-  | s-op-satisfies with:
-    label(self): "s-op-satisfies" end,
-    tosource(self): str-satisfies end
-  | s-op-satisfies-not with:
-    label(self): "s-op-satisfies-not" end,
-    tosource(self): str-satisfies-not end
-  | s-op-raises with:
-    label(self): "s-op-raises" end,
-    tosource(self): str-raises end
-  | s-op-raises-other with:
-    label(self): "s-op-raises-other" end,
-    tosource(self): str-raises-other end
-  | s-op-raises-not with:
-    label(self): "s-op-raises-not" end,
-    tosource(self): str-raises-not end
-  | s-op-raises-satisfies with:
-    label(self): "s-op-raises-satisfies" end,
-    tosource(self): str-raises-satisfies end
-  | s-op-raises-violates with:
-    label(self): "s-op-raises-violates" end,
-    tosource(self): str-raises-violates end
+  | s-op-is(l :: Loc) with:
+    method label(self): "s-op-is" end,
+    method tosource(self): str-is end
+  | s-op-is-op(l :: Loc, op :: String) with:
+    method label(self): "s-op-is-op" end,
+    method tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
+  | s-op-is-not(l :: Loc) with:
+    method label(self): "s-op-is-not" end,
+    method tosource(self): str-is-not end
+  | s-op-is-not-op(l :: Loc, op :: String) with:
+    method label(self): "s-op-is-not-op" end,
+    method tosource(self): str-is-not + PP.str(string-substring(self.op, 2, string-length(self.op))) end
+  | s-op-satisfies(l :: Loc) with:
+    method label(self): "s-op-satisfies" end,
+    method tosource(self): str-satisfies end
+  | s-op-satisfies-not(l :: Loc) with:
+    method label(self): "s-op-satisfies-not" end,
+    method tosource(self): str-satisfies-not end
+  | s-op-raises(l :: Loc) with:
+    method label(self): "s-op-raises" end,
+    method tosource(self): str-raises end
+  | s-op-raises-other(l :: Loc) with:
+    method label(self): "s-op-raises-other" end,
+    method tosource(self): str-raises-other end
+  | s-op-raises-not(l :: Loc) with:
+    method label(self): "s-op-raises-not" end,
+    method tosource(self): str-raises-not end
+  | s-op-raises-satisfies(l :: Loc) with:
+    method label(self): "s-op-raises-satisfies" end,
+    method tosource(self): str-raises-satisfies end
+  | s-op-raises-violates(l :: Loc) with:
+    method label(self): "s-op-raises-violates" end,
+    method tosource(self): str-raises-violates end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data Ann:
   | a-blank with:
-    label(self): "a-blank" end,
-    tosource(self): str-any end,
-  | a-any with:
-    label(self): "a-any" end,
-    tosource(self): str-any end,
+    method label(self): "a-blank" end,
+    method tosource(self): str-any end,
+  | a-any(l :: Loc) with:
+    method label(self): "a-any" end,
+    method tosource(self): str-any end,
   | a-name(l :: Loc, id :: Name) with:
-    label(self): "a-name" end,
-    tosource(self): self.id.tosource() end,
+    method label(self): "a-name" end,
+    method tosource(self): self.id.tosource() end,
   | a-type-var(l :: Loc, id :: Name) with:
-    label(self): "a-type-var" end,
-    tosource(self): self.id.tosource() end,
+    method label(self): "a-type-var" end,
+    method tosource(self): self.id.tosource() end,
   | a-arrow(l :: Loc, args :: List<Ann>, ret :: Ann, use-parens :: Boolean) with:
-    label(self): "a-arrow" end,
-    tosource(self):
+    method label(self): "a-arrow" end,
+    method tosource(self):
       ann = PP.separate(str-space,
         [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
       if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
@@ -1208,51 +1345,57 @@ data Ann:
       end
     end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
-    label(self): "a-method" end,
-    tosource(self): PP.str("NYI: A-method") end,
+    method label(self): "a-method" end,
+    method tosource(self): PP.str("NYI: A-method") end,
   | a-record(l :: Loc, fields :: List<AField>) with:
-    label(self): "a-record" end,
-    tosource(self):
+    method label(self): "a-record" end,
+    method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
+  | a-tuple(l :: Loc, fields :: List<AField>) with:
+    method label(self): "a-tuple" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+        self.fields.map(_.tosource()))
+    end,
   | a-app(l :: Loc, ann :: Ann, args :: List<Ann>) with:
-    label(self): "a-app" end,
-    tosource(self):
+    method label(self): "a-app" end,
+    method tosource(self):
       PP.group(self.ann.tosource()
           + PP.group(PP.langle + PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource()))) + PP.rangle))
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
-    label(self): "a-pred" end,
-    tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
+    method label(self): "a-pred" end,
+    method tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
-    label(self): "a-dot" end,
-    tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
+    method label(self): "a-dot" end,
+    method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
   | a-checked(checked :: Ann, residual :: Ann) with:
-    label(self): "a-checked" end,
-    tosource(self): self.residual.tosource() end
+    method label(self): "a-checked" end,
+    method tosource(self): self.residual.tosource() end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
 data AField:
   | a-field(l :: Loc, name :: String, ann :: Ann) with:
-    label(self): "a-field" end,
-    tosource(self):
+    method label(self): "a-field" end,
+    method tosource(self):
       if is-a-blank(self.ann): PP.str(self.name)
       else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())
       end
     end
 sharing:
-  visit(self, visitor):
+  method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
 end
 
-fun make-checker-name(name): "is-" + name;
+fun make-checker-name(name): "is-" + name end
 
 fun flatten(list-of-lists :: List):
   for fold(biglist from [list: ], piece from list-of-lists):
@@ -1263,7 +1406,7 @@ end
 fun binding-type-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
     | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
-    | s-type(l, name, _) => [list: {bind-type: "normal", name: name}]
+    | s-type(l, name, params,  _) => [list: {bind-type: "normal", name: name}]
     | s-data(l, name, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
     | else => empty
   end
@@ -1285,11 +1428,12 @@ fun binding-ids(stmt) -> List<Name>:
   end
   cases(Expr) stmt:
     | s-let(_, b, _, _) => [list: b.id]
+    | s-tuple-let(_, names, _) => names.map(_.id)
     | s-var(_, b, _) => [list: b.id]
     | s-rec(_, b, _) => [list: b.id]
-    | s-fun(l, name, _, _, _, _, _, _) => [list: s-name(l, name)]
+    | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-data(l, name, _, _, variants, _, _) =>
-      s-name(l, name) ^ link(_, s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids))))
+      s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
     | else => [list: ]
   end
 end
@@ -1309,55 +1453,55 @@ fun toplevel-ids(program :: Program) -> List<Name>:
 end
 
 default-map-visitor = {
-  option(self, opt):
+  method option(self, opt):
     cases(Option) opt:
       | none => none
       | some(v) => some(v.visit(self))
     end
   end,
 
-  s-underscore(self, l):
+  method s-underscore(self, l):
     s-underscore(l)
   end,
 
-  s-name(self, l, s):
+  method s-name(self, l, s):
     s-name(l, s)
   end,
 
-  s-type-global(self, s):
+  method s-type-global(self, s):
     s-type-global(s)
   end,
 
-  s-global(self, s):
+  method s-global(self, s):
     s-global(s)
   end,
 
-  s-atom(self, base, serial):
+  method s-atom(self, base, serial):
     s-atom(base, serial)
   end,
 
-  s-defined-value(self, name, val):
+  method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
-  s-defined-type(self, name, typ):
+  method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
   end,
 
-  s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
-  
-  s-program(self, l, _provide, provided-types, imports, body):
+
+  method s-program(self, l, _provide, provided-types, imports, body):
     s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  s-include(self, l, import-type):
+  method s-include(self, l, import-type):
     s-include(l, import-type.visit(self))
   end,
-  s-import(self, l, import-type, name):
+  method s-import(self, l, import-type, name):
     s-import(l, import-type.visit(self), name.visit(self))
   end,
-  s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
     s-import-complete(
       l,
       values.map(_.visit(self)),
@@ -1366,268 +1510,289 @@ default-map-visitor = {
       vals-name.visit(self),
       types-name.visit(self))
   end,
-  s-file-import(self, l, file):
-    s-file-import(l, file)
-  end,
-  s-const-import(self, l, mod):
+  method s-const-import(self, l, mod):
     s-const-import(l, mod)
   end,
-  s-special-import(self, l, kind, args):
+  method s-special-import(self, l, kind, args):
     s-special-import(l, kind, args)
   end,
-  s-import-types(self, l, import-type, name, types):
+  method s-import-types(self, l, import-type, name, types):
     s-import-types(l, import-type, name.visit(self), types.visit(self))
   end,
-  s-import-fields(self, l, fields, import-type):
+  method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
-  s-provide(self, l, expr):
+  method s-provide-complete(self, l, vals, typs, datas):
+    s-provide-complete(l, vals, typs, datas)
+  end,
+  method s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
   end,
-  s-provide-all(self, l):
+  method s-provide-all(self, l):
     s-provide-all(l)
   end,
-  s-provide-none(self, l):
+  method s-provide-none(self, l):
     s-provide-none(l)
   end,
-  s-provide-types(self, l, anns):
+  method s-provide-types(self, l, anns):
     s-provide-types(l, anns.map(_.visit(self)))
   end,
-  s-provide-types-all(self, l):
+  method s-provide-types-all(self, l):
     s-provide-types-all(l)
   end,
-  s-provide-types-none(self, l):
+  method s-provide-types-none(self, l):
     s-provide-types-none(l)
   end,
 
-  s-bind(self, l, shadows, name, ann):
+  method s-bind(self, l, shadows, name, ann):
     s-bind(l, shadows, name.visit(self), ann.visit(self))
   end,
 
-  s-var-bind(self, l, bind, expr):
+  method s-tuple-bind(self, l, fields):
+    s-tuple-bind(l, fields.map(_.visit(self)))
+  end,
+
+  method s-var-bind(self, l, bind, expr):
     s-var-bind(l, bind.visit(self), expr.visit(self))
   end,
-  s-let-bind(self, l, bind, expr):
+  method s-let-bind(self, l, bind, expr):
     s-let-bind(l, bind.visit(self), expr.visit(self))
   end,
 
-  s-type-bind(self, l, name, ann):
-    s-type-bind(l, name.visit(self), ann.visit(self))
+  method s-type-bind(self, l, name, params, ann):
+    s-type-bind(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
-  s-newtype-bind(self, l, name, namet):
+  method s-newtype-bind(self, l, name, namet):
     s-newtype-bind(l, name.visit(self), namet.visit(self))
   end,
 
-  s-type-let-expr(self, l, binds, body):
-    s-type-let-expr(l, binds.map(_.visit(self)), body.visit(self))
+  method s-type-let-expr(self, l, binds, body, blocky):
+    s-type-let-expr(l, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
-  s-let-expr(self, l, binds, body):
-    s-let-expr(l, binds.map(_.visit(self)), body.visit(self))
+  method s-template(self, l):
+    s-template(l)
   end,
 
-  s-letrec-bind(self, l, bind, expr):
+  method s-let-expr(self, l, binds, body, blocky):
+    s-let-expr(l, binds.map(_.visit(self)), body.visit(self), blocky)
+  end,
+
+  method s-letrec-bind(self, l, bind, expr):
     s-letrec-bind(l, bind.visit(self), expr.visit(self))
   end,
 
-  s-letrec(self, l, binds, body):
-    s-letrec(l, binds.map(_.visit(self)), body.visit(self))
+  method s-letrec(self, l, binds, body, blocky):
+    s-letrec(l, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
-  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
     s-hint-exp(l, hints, exp.visit(self))
   end,
 
-  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+  method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     s-instantiate(l, expr.visit(self), params.map(_.visit(self)))
   end,
 
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     s-block(l, stmts.map(_.visit(self)))
   end,
 
-  s-user-block(self, l :: Loc, body :: Expr):
+  method s-user-block(self, l :: Loc, body :: Expr):
     s-user-block(l, body.visit(self))
   end,
 
-  s-fun(self, l, name, params, args, ann, doc, body, _check):
-    s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
+    s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    s-type(l, name.visit(self), ann.visit(self))
+  method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    s-type(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
-  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+  method s-newtype(self, l :: Loc, name :: Name, namet :: Name):
     s-newtype(l, name.visit(self), namet.visit(self))
   end,
 
-  s-var(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-var(self, l :: Loc, name :: Bind, value :: Expr):
     s-var(l, name.visit(self), value.visit(self))
   end,
 
-  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-rec(self, l :: Loc, name :: Bind, value :: Expr):
     s-rec(l, name.visit(self), value.visit(self))
   end,
 
-  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
-    s-let(l, name.visit(self), value.visit(self), keyword-val) 
+  method s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
+    s-let(l, name.visit(self), value.visit(self), keyword-val)
   end,
 
-  s-ref(self, l :: Loc, ann :: Option<Ann>):
+  method s-ref(self, l :: Loc, ann :: Option<Ann>):
     s-ref(l, self.option(ann))
   end,
 
-  s-when(self, l :: Loc, test :: Expr, block :: Expr):
-    s-when(l, test.visit(self), block.visit(self))
+  method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
+    s-when(l, test.visit(self), block.visit(self), blocky)
   end,
 
-  s-contract(self, l, name, ann):
+  method s-contract(self, l, name, ann):
     s-contract(l, name.visit(self), ann.visit(self))
   end,
 
-  s-assign(self, l :: Loc, id :: Name, value :: Expr):
+  method s-assign(self, l :: Loc, id :: Name, value :: Expr):
     s-assign(l, id.visit(self), value.visit(self))
   end,
 
-  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+  method s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
     s-if-branch(l, test.visit(self), body.visit(self))
   end,
 
-  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+  method s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
     s-if-pipe-branch(l, test.visit(self), body.visit(self))
   end,
 
-  s-if(self, l :: Loc, branches :: List<IfBranch>):
-    s-if(l, branches.map(_.visit(self)))
+  method s-if(self, l :: Loc, branches :: List<IfBranch>, blocky :: Boolean):
+    s-if(l, branches.map(_.visit(self)), blocky)
   end,
-  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    s-if-else(l, branches.map(_.visit(self)), _else.visit(self))
-  end,
-  
-  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    s-if-pipe(l, branches.map(_.visit(self)))
-  end,
-  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    s-if-pipe-else(l, branches.map(_.visit(self)), _else.visit(self))
+  method s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean):
+    s-if-else(l, branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+  method s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean):
+    s-if-pipe(l, branches.map(_.visit(self)), blocky)
+  end,
+  method s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean):
+    s-if-pipe-else(l, branches.map(_.visit(self)), _else.visit(self), blocky)
+  end,
+
+  method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(l, typ, bind.visit(self))
   end,
-  s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     s-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
+  method s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
     s-singleton-cases-branch(l, pat-loc, name, body.visit(self))
   end,
 
-  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)))
+  method s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean):
+    s-cases(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), blocky)
   end,
-  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(l, op, left.visit(self), right.visit(self))
+  method s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean):
+    s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
+  method s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(l, op-l, op, left.visit(self), right.visit(self))
+  end,
+
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
-  s-paren(self, l :: Loc, expr :: Expr):
+  method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
 
-  s-lam(
+  method s-lam(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
-    s-lam(l, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-lam(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
-  s-method(
+  method s-method(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
-    s-method(l, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-method(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
-  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-update(l, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-obj(self, l :: Loc, fields :: List<Member>):
+  method s-tuple(self, l :: Loc, fields :: List<Expr>):
+    s-tuple(l, fields.map(_.visit(self)))
+  end,
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+    s-tuple-get(l, tup.visit(self), index, index-loc)
+  end,
+  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
+  end,
+  method s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
-  s-array(self, l :: Loc, values :: List<Expr>):
+  method s-array(self, l :: Loc, values :: List<Expr>):
     s-array(l, values.map(_.visit(self)))
   end,
-  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
+  method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+  method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s-prim-app(l, _fun, args.map(_.visit(self)))
   end,
-  s-prim-val(self, l :: Loc, name :: String):
+  method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(l, name)
   end,
-  s-id(self, l :: Loc, id :: Name):
+  method s-id(self, l :: Loc, id :: Name):
     s-id(l, id.visit(self))
   end,
-  s-id-var(self, l :: Loc, id :: Name):
+  method s-id-var(self, l :: Loc, id :: Name):
     s-id-var(l, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+  method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(l, id.visit(self), safe)
   end,
-  s-undefined(self, l :: Loc):
+  method s-undefined(self, l :: Loc):
     s-undefined(self)
   end,
-  s-srcloc(self, l, shadow loc):
+  method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
-  s-num(self, l :: Loc, n :: Number):
+  method s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
   end,
-  s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(l, num, den)
   end,
-  s-bool(self, l :: Loc, b :: Boolean):
+  method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
   end,
-  s-str(self, l :: Loc, s :: String):
+  method s-str(self, l :: Loc, s :: String):
     s-str(l, s)
   end,
-  s-dot(self, l :: Loc, obj :: Expr, field :: String):
+  method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(l, obj.visit(self), field)
   end,
-  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+  method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(l, obj.visit(self), field)
   end,
-  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     s-bracket(l, obj.visit(self), field.visit(self))
   end,
-  s-data(
+  method s-data(
       self,
       l :: Loc,
       name :: String,
@@ -1647,7 +1812,7 @@ default-map-visitor = {
         self.option(_check)
       )
   end,
-  s-data-expr(
+  method s-data-expr(
       self,
       l :: Loc,
       name :: String,
@@ -1669,27 +1834,28 @@ default-map-visitor = {
         self.option(_check)
       )
   end,
-  s-for(
+  method s-for(
       self,
       l :: Loc,
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      blocky :: Boolean
     ):
-    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+    s-for(l, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self), blocky)
   end,
-  s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
+  method s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     s-check(l, name, body.visit(self), keyword-check)
   end,
 
-  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+  method s-data-field(self, l :: Loc, name :: String, value :: Expr):
     s-data-field(l, name, value.visit(self))
   end,
-  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+  method s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(l, name, ann.visit(self), value.visit(self))
   end,
-  s-method-field(
+  method s-method-field(
       self,
       l :: Loc,
       name :: String,
@@ -1698,27 +1864,29 @@ default-map-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
     s-method-field(
-        l,
-        name,
-        params.map(_.visit(self)),
-        args.map(_.visit(self)),
-        ann.visit(self),
-        doc,
-        body.visit(self),
-        self.option(_check)
+      l,
+      name,
+      params.map(_.visit(self)),
+      args.map(_.visit(self)),
+      ann.visit(self),
+      doc,
+      body.visit(self),
+      self.option(_check),
+      blocky
       )
   end,
 
-  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s-for-bind(l, bind.visit(self), value.visit(self))   
+  method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s-for-bind(l, bind.visit(self), value.visit(self))
   end,
-  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+  method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
   end,
-  s-variant(
+  method s-variant(
       self,
       l :: Loc,
       constr-loc :: Loc,
@@ -1728,7 +1896,7 @@ default-map-visitor = {
     ):
     s-variant(l, constr-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
-  s-singleton-variant(
+  method s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
@@ -1736,379 +1904,378 @@ default-map-visitor = {
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(l, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(l, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(l, self-arg, body.visit(self))
-  end,
 
-  a-blank(self): a-blank end,
-  a-any(self): a-any end,
-  a-name(self, l, id): a-name(l, id.visit(self)) end,
-  a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
-  a-arrow(self, l, args, ret, use-parens):
+  method a-blank(self): a-blank end,
+  method a-any(self, l): a-any(l) end,
+  method a-name(self, l, id): a-name(l, id.visit(self)) end,
+  method a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
+  method a-arrow(self, l, args, ret, use-parens):
     a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
-  a-method(self, l, args, ret):
+  method a-method(self, l, args, ret):
     a-method(l, args.map(_.visit(self)), ret.visit(self))
   end,
-  a-record(self, l, fields):
+  method a-record(self, l, fields):
     a-record(l, fields.map(_.visit(self)))
   end,
-  a-app(self, l, ann, args):
+  method a-tuple(self, l, fields):
+    a-tuple(l, fields.map(_.visit(self)))
+  end,
+  method a-app(self, l, ann, args):
     a-app(l, ann.visit(self), args.map(_.visit(self)))
   end,
-  a-pred(self, l, ann, exp):
+  method a-pred(self, l, ann, exp):
     a-pred(l, ann.visit(self), exp.visit(self))
   end,
-  a-dot(self, l, obj, field):
+  method a-dot(self, l, obj, field):
     a-dot(l, obj.visit(self), field)
   end,
-  a-field(self, l, name, ann):
+  method a-field(self, l, name, ann):
     a-field(l, name, ann.visit(self))
   end
 }
 
 
 default-iter-visitor = {
-  option(self, opt):
+  method option(self, opt):
     cases(Option) opt:
       | none => true
       | some(v) => v.visit(self)
     end
   end,
 
-  s-underscore(self, l):
+  method s-underscore(self, l):
     true
   end,
-  s-name(self, l, s):
+  method s-name(self, l, s):
     true
   end,
-  s-global(self, s):
+  method s-global(self, s):
     true
   end,
-  s-type-global(self, s):
+  method s-type-global(self, s):
     true
   end,
-  s-atom(self, base, serial):
+  method s-atom(self, base, serial):
     true
   end,
-  
-  s-defined-value(self, name, val):
+
+  method s-defined-value(self, name, val):
     val.visit(self)
   end,
-  s-defined-type(self, name, typ):
+  method s-defined-type(self, name, typ):
     typ.visit(self)
   end,
 
-  s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dv, dt, provides, types, checks):
     answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
-  
-  s-program(self, l, _provide, provided-types, imports, body):
+
+  method s-program(self, l, _provide, provided-types, imports, body):
     _provide.visit(self)
-    and lists.all(_.visit(self), provided-types)
+    and provided-types.visit(self)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
-  
-  s-import(self, l, import-type, name):
+
+  method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
-  s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
     lists.all(_.visit(self), values) and
       lists.all(_.visit(self), types) and
       mod.visit(self) and
       vals-name.visit(self) and
       types-name.visit(self)
   end,
-  s-include(self, l, import-type):
+  method s-include(self, l, import-type):
     import-type.visit(self)
   end,
-  s-file-import(self, l, file):
+  method s-const-import(self, l, mod):
     true
   end,
-  s-const-import(self, l, mod):
+  method s-special-import(self, l, kind, args):
     true
   end,
-  s-special-import(self, l, kind, args):
-    true
-  end,
-  s-import-types(self, l, import-type, name, types):
+  method s-import-types(self, l, import-type, name, types):
     name.visit(self) and types.visit(self)
   end,
-  s-import-fields(self, l, fields, import-type):
+  method s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
-  s-provide(self, l, expr):
+  method s-provide-complete(self, l, vals, typs, datas):
+    true
+  end,
+  method s-provide(self, l, expr):
     expr.visit(self)
   end,
-  s-provide-all(self, l):
+  method s-provide-all(self, l):
     true
   end,
-  s-provide-none(self, l):
+  method s-provide-none(self, l):
     true
   end,
-  s-provide-types(self, l, anns):
+  method s-provide-types(self, l, anns):
     lists.all(_.visit(self), anns)
   end,
-  s-provide-types-all(self, l):
+  method s-provide-types-all(self, l):
     true
   end,
-  s-provide-types-none(self, l):
+  method s-provide-types-none(self, l):
     true
   end,
-  
-  s-bind(self, l, shadows, name, ann):
-    name.visit(self) and ann.visit(self)
+
+  method s-template(self, l):
+    true
   end,
-  
-  s-var-bind(self, l, bind, expr):
-    bind.visit(self) and expr.visit(self)
-  end,
-  s-let-bind(self, l, bind, expr):
-    bind.visit(self) and expr.visit(self)
-  end,
-  
-  s-type-bind(self, l, name, ann):
+
+  method s-bind(self, l, shadows, name, ann):
     name.visit(self) and ann.visit(self)
   end,
 
-  s-newtype-bind(self, l, name, namet):
+  method s-tuple-bind(self, l, fields):
+    lists.all(_.visit(self), fields)
+  end,
+
+  method s-var-bind(self, l, bind, expr):
+    bind.visit(self) and expr.visit(self)
+  end,
+  method s-let-bind(self, l, bind, expr):
+    bind.visit(self) and expr.visit(self)
+  end,
+
+  method s-type-bind(self, l, name, params, ann):
+    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
+  end,
+
+  method s-newtype-bind(self, l, name, namet):
     name.visit(self) and namet.visit(self)
   end,
 
-  s-type-let-expr(self, l, binds, body):
+  method s-type-let-expr(self, l, binds, body, blocky):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
 
-  s-let-expr(self, l, binds, body):
+  method s-let-expr(self, l, binds, body, blocky):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  
-  s-letrec-bind(self, l, bind, expr):
+
+  method s-letrec-bind(self, l, bind, expr):
     bind.visit(self) and expr.visit(self)
   end,
-  
-  s-letrec(self, l, binds, body):
+
+  method s-letrec(self, l, binds, body, blocky):
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
-  
-  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+
+  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
     exp.visit(self)
   end,
-  
-  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+
+  method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     expr.visit(self) and lists.all(_.visit(self), params)
   end,
-  
-  s-block(self, l, stmts):
+
+  method s-block(self, l, stmts):
     lists.all(_.visit(self), stmts)
   end,
-  
-  s-user-block(self, l :: Loc, body :: Expr):
+
+  method s-user-block(self, l :: Loc, body :: Expr):
     body.visit(self)
   end,
-  
-  s-fun(self, l, name, params, args, ann, doc, body, _check):
+
+  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
     lists.app(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    name.visit(self) and ann.visit(self)
+  method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
   end,
-  
-  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+
+  method s-newtype(self, l :: Loc, name :: Name, namet :: Name):
     name.visit(self) and namet.visit(self)
   end,
 
-  s-var(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-var(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
 
-  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-rec(self, l :: Loc, name :: Bind, value :: Expr):
     name.visit(self) and value.visit(self)
   end,
-  
-  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
+
+  method s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
     name.visit(self) and value.visit(self)
   end,
-  
-  s-ref(self, l :: Loc, ann :: Option<Ann>):
+
+  method s-ref(self, l :: Loc, ann :: Option<Ann>):
     self.option(ann)
   end,
 
-  s-when(self, l :: Loc, test :: Expr, block :: Expr):
+  method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
     test.visit(self) and block.visit(self)
   end,
 
-  s-contract(self, l :: Loc, name :: Name, ann :: Ann):
+  method s-contract(self, l :: Loc, name :: Name, ann :: Ann):
     name.visit(self) and ann.visit(self)
   end,
-  
-  s-assign(self, l :: Loc, id :: Name, value :: Expr):
+
+  method s-assign(self, l :: Loc, id :: Name, value :: Expr):
     id.visit(self) and value.visit(self)
   end,
-  
-  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+
+  method s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
-  
-  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+
+  method s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
     test.visit(self) and body.visit(self)
   end,
-  
-  s-if(self, l :: Loc, branches :: List<IfBranch>):
+
+  method s-if(self, l :: Loc, branches :: List<IfBranch>, blocky :: Boolean):
     lists.all(_.visit(self), branches)
   end,
-  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
+  method s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean):
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
-  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
+
+  method s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean):
     lists.all(_.visit(self), branches)
   end,
-  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
+  method s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean):
     lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
-  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+
+  method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     bind.visit(self)
   end,
-  s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     lists.all(_.visit(self), args) and body.visit(self)
   end,
-  
-  s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
+
+  method s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
     body.visit(self)
   end,
-  
-  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
+
+  method s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
   end,
-  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
+  method s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean):
     typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
   end,
-  
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
+
+  method s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
-  
-  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
+
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     self.option(refinement) and left.visit(self) and self.option(right)
   end,
-  
-  s-paren(self, l :: Loc, expr :: Expr):
+
+  method s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
-  
-  s-lam(
+
+  method s-lam(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
       ):
     lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  s-method(
+  method s-method(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
       ):
     lists.all(_.visit(self), params) and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and lists.all(_.visit(self), fields)
   end,
-  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and lists.all(_.visit(self), fields)
   end,
-  s-obj(self, l :: Loc, fields :: List<Member>):
+  method s-tuple(self, l :: Loc, fields :: List<Expr>):
     lists.all(_.visit(self), fields)
   end,
-  s-array(self, l :: Loc, values :: List<Expr>):
+  method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+    tup.visit(self)
+  end,
+  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
+    lists.all(_.visit(self), names) and tup.visit(self)
+  end,
+  method s-obj(self, l :: Loc, fields :: List<Member>):
+    lists.all(_.visit(self), fields)
+  end,
+  method s-array(self, l :: Loc, values :: List<Expr>):
     lists.all(_.visit(self), values)
   end,
-  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
+  method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+  method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     lists.all(_.visit(self), args)
   end,
-  s-prim-val(self, l :: Loc, name :: String):
+  method s-prim-val(self, l :: Loc, name :: String):
     true
   end,
-  s-id(self, l :: Loc, id :: Name):
+  method s-id(self, l :: Loc, id :: Name):
     id.visit(self)
   end,
-  s-id-var(self, l :: Loc, id :: Name):
+  method s-id-var(self, l :: Loc, id :: Name):
     id.visit(self)
   end,
-  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+  method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     id.visit(self)
   end,
-  s-undefined(self, l :: Loc):
+  method s-undefined(self, l :: Loc):
     true
   end,
-  s-srcloc(self, l, shadow loc):
+  method s-srcloc(self, l, shadow loc):
     true
   end,
-  s-num(self, l :: Loc, n :: Number):
+  method s-num(self, l :: Loc, n :: Number):
     true
   end,
-  s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: Number, den :: Number):
     true
   end,
-  s-bool(self, l :: Loc, b :: Boolean):
+  method s-bool(self, l :: Loc, b :: Boolean):
     true
   end,
-  s-str(self, l :: Loc, s :: String):
+  method s-str(self, l :: Loc, s :: String):
     true
   end,
-  s-dot(self, l :: Loc, obj :: Expr, field :: String):
+  method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+  method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     obj.visit(self) and field.visit(self)
   end,
-  s-data(
+  method s-data(
       self,
       l :: Loc,
       name :: String,
@@ -2119,12 +2286,12 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), mixins) 
+    and lists.all(_.visit(self), mixins)
     and lists.all(_.visit(self), variants)
     and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
-  s-data-expr(
+  method s-data-expr(
       self,
       l :: Loc,
       name :: String,
@@ -2142,27 +2309,28 @@ default-iter-visitor = {
     and lists.all(_.visit(self), shared-members)
     and self.option(_check)
   end,
-  s-for(
+  method s-for(
       self,
       l :: Loc,
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      blocky :: Boolean
       ):
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
+  method s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
   end,
-  
-  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+
+  method s-data-field(self, l :: Loc, name :: String, value :: Expr):
     value.visit(self)
   end,
-  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+  method s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     ann.visit(self) and value.visit(self)
   end,
-  s-method-field(
+  method s-method-field(
       self,
       l :: Loc,
       name :: String,
@@ -2171,7 +2339,8 @@ default-iter-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
       ):
     lists.all(_.visit(self), args)
     and lists.all(_.visit(self), args)
@@ -2179,14 +2348,14 @@ default-iter-visitor = {
     and body.visit(self)
     and self.option(_check)
   end,
-  
-  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+
+  method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
-  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+  method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
-  s-variant(
+  method s-variant(
       self,
       l :: Loc,
       constr-loc :: Loc,
@@ -2196,7 +2365,7 @@ default-iter-visitor = {
       ):
     lists.all(_.visit(self), members) and lists.all(_.visit(self), with-members)
   end,
-  s-singleton-variant(
+  method s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
@@ -2204,119 +2373,94 @@ default-iter-visitor = {
       ):
     lists.all(_.visit(self), with-members)
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-      ):
-    lists.all(_.visit(self), members) and constructor.visit(self)
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-      ):
-    constructor.visit(self)
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    body.visit(self)
-  end,
-  a-blank(self):
+  method a-blank(self):
     true
   end,
-  a-any(self):
+  method a-any(self, l):
     true
   end,
-  a-name(self, l, id):
+  method a-name(self, l, id):
     true
   end,
-  a-type-var(self, l, id):
+  method a-type-var(self, l, id):
     true
   end,
-  a-arrow(self, l, args, ret, _):
+  method a-arrow(self, l, args, ret, _):
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
-  a-method(self, l, args, ret):
+  method a-method(self, l, args, ret):
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
-  a-record(self, l, fields):
+  method a-record(self, l, fields):
     lists.all(_.visit(self), fields)
   end,
-  a-app(self, l, ann, args):
+  method a-tuple(self, l, fields):
+    lists.all(_.visit(self), fields)
+  end,
+  method a-app(self, l, ann, args):
     ann.visit(self) and lists.all(_.visit(self), args)
   end,
-  a-pred(self, l, ann, exp):
+  method a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
   end,
-  a-dot(self, l, obj, field):
+  method a-dot(self, l, obj, field):
     obj.visit(self)
   end,
-  a-field(self, l, name, ann):
+  method a-field(self, l, name, ann):
     ann.visit(self)
   end
 }
 
 dummy-loc-visitor = {
-  option(self, opt):
+  method option(self, opt):
     cases(Option) opt:
       | none => none
       | some(v) => some(v.visit(self))
     end
   end,
 
-  s-underscore(self, l):
+  method s-underscore(self, l):
     s-underscore(dummy-loc)
   end,
-  s-name(self, l, s):
+  method s-name(self, l, s):
     s-name(dummy-loc, s)
   end,
-  s-global(self, s):
+  method s-global(self, s):
     s-global(s)
   end,
-  s-type-global(self, s):
+  method s-type-global(self, s):
     s-type-global(s)
   end,
-  s-atom(self, base, serial):
+  method s-atom(self, base, serial):
     s-atom(base, serial)
   end,
-  
-  s-defined-value(self, name, val):
+
+  method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
-  s-defined-type(self, name, typ):
+  method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
   end,
 
-  s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dv, dt, provides, types, checks):
     s-module(dummy-loc,
       answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
-  
-  s-program(self, l, _provide, provided-types, imports, body):
+
+  method s-program(self, l, _provide, provided-types, imports, body):
     s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  s-file-import(self, l :: Loc, file :: String):
-    s-file-import(dummy-loc, file)
-  end,
-  s-const-import(self, l :: Loc, mod :: String):
+  method s-const-import(self, l :: Loc, mod :: String):
     s-const-import(dummy-loc, mod)
   end,
-  s-special-import(self, l, kind, args):
+  method s-special-import(self, l, kind, args):
     s-special-import(dummy-loc, kind, args)
   end,
-  s-import(self, l, import-type, name):
+  method s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
   end,
-  s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
     s-import-complete(
       dummy-loc,
       values.map(_.visit(self)),
@@ -2325,262 +2469,277 @@ dummy-loc-visitor = {
       vals-name.visit(self),
       types-name.visit(self))
   end,
-  s-include(self, l, import-type):
+  method s-include(self, l, import-type):
     s-include(dummy-loc, import-type.visit(self))
   end,
-  s-import-types(self, l, import-type, name, types):
+  method s-import-types(self, l, import-type, name, types):
     s-import-types(dummy-loc, import-type.visit(self), name.visit(self), types.visit(self))
   end,
-  s-import-fields(self, l, fields, import-type):
+  method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
   end,
-  s-provide(self, l, expr):
+  method s-provide-complete(self, l, vals, typs, datas):
+    s-provide-complete(dummy-loc, vals, typs, datas)
+  end,
+  method s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))
   end,
-  s-provide-all(self, l):
+  method s-provide-all(self, l):
     s-provide-all(dummy-loc)
   end,
-  s-provide-none(self, l):
+  method s-provide-none(self, l):
     s-provide-none(dummy-loc)
   end,
-  s-provide-types(self, l, anns):
+  method s-provide-types(self, l, anns):
     s-provide(dummy-loc, anns.map(_.visit(self)))
   end,
-  s-provide-types-all(self, l):
+  method s-provide-types-all(self, l):
     s-provide-types-all(dummy-loc)
   end,
-  s-provide-types-none(self, l):
+  method s-provide-types-none(self, l):
     s-provide-types-none(dummy-loc)
   end,
 
-  s-bind(self, l, shadows, name, ann):
+  method s-bind(self, l, shadows, name, ann):
     s-bind(dummy-loc, shadows, name.visit(self), ann.visit(self))
   end,
 
-  s-var-bind(self, l, bind, expr):
+  method s-tuple-bind(self, l, fields):
+    s-tuple-bind(dummy-loc, fields.map(_.visit(self)))
+  end,
+
+  method s-var-bind(self, l, bind, expr):
     s-var-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
-  s-let-bind(self, l, bind, expr):
+  method s-let-bind(self, l, bind, expr):
     s-let-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
-  s-type-bind(self, l, name, ann):
-    s-type-bind(dummy-loc, name, ann)
+  method s-type-bind(self, l, name, params, ann):
+    s-type-bind(dummy-loc, name, params, ann)
   end,
 
-  s-newtype-bind(self, l, name, namet):
+  method s-newtype-bind(self, l, name, namet):
     s-newtype-bind(l, name.visit(self), namet.visit(self))
   end,
 
-  s-type-let-expr(self, l, binds, body):
-    s-type-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  method s-template(self, l):
+    s-template(dummy-loc)
   end,
 
-  s-let-expr(self, l, binds, body):
-    s-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  method s-type-let-expr(self, l, binds, body, blocky):
+    s-type-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
-  s-letrec-bind(self, l, bind, expr):
+  method s-let-expr(self, l, binds, body, blocky):
+    s-let-expr(dummy-loc, binds.map(_.visit(self)), body.visit(self), blocky)
+  end,
+
+  method s-letrec-bind(self, l, bind, expr):
     s-letrec-bind(dummy-loc, bind.visit(self), expr.visit(self))
   end,
 
-  s-letrec(self, l, binds, body):
-    s-letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self))
+  method s-letrec(self, l, binds, body, blocky):
+    s-letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
-  s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
     s-hint-exp(dummy-loc, hints, exp.visit(self))
   end,
 
-  s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+  method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     s-instantiate(dummy-loc, expr.visit(self), params.map(_.visit(self)))
   end,
 
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     s-block(dummy-loc, stmts.map(_.visit(self)))
   end,
 
-  s-user-block(self, l :: Loc, body :: Expr):
+  method s-user-block(self, l :: Loc, body :: Expr):
     s-user-block(dummy-loc, body.visit(self))
   end,
 
-  s-fun(self, l, name, params, args, ann, doc, body, _check):
-    s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
+    s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
 
-  s-type(self, l :: Loc, name :: Name, ann :: Ann):
-    s-type(dummy-loc, name.visit(self), ann.visit(self))
+  method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    s-type(dummy-loc, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
-  s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+  method s-newtype(self, l :: Loc, name :: Name, namet :: Name):
     s-newtype(dummy-loc, name.visit(self), namet.visit(self))
   end,
 
-  s-var(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-var(self, l :: Loc, name :: Bind, value :: Expr):
     s-var(dummy-loc, name.visit(self), value.visit(self))
   end,
 
-  s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+  method s-rec(self, l :: Loc, name :: Bind, value :: Expr):
     s-rec(dummy-loc, name.visit(self), value.visit(self))
   end,
 
-  s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
-    s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val) 
+  method s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
+    s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val)
   end,
 
-  s-ref(self, l :: Loc, ann :: Option<Ann>):
+  method s-ref(self, l :: Loc, ann :: Option<Ann>):
     s-ref(self, dummy-loc, self.option(ann))
   end,
 
-  s-when(self, l :: Loc, test :: Expr, block :: Expr):
-    s-when(dummy-loc, test.visit(self), block.visit(self))
+  method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
+    s-when(dummy-loc, test.visit(self), block.visit(self), blocky)
   end,
 
-  s-contract(self, l, name, ann):
+  method s-contract(self, l, name, ann):
     s-contract(dummy-loc, name.visit(self), ann.visit(self))
   end,
 
-  s-assign(self, l :: Loc, id :: Name, value :: Expr):
+  method s-assign(self, l :: Loc, id :: Name, value :: Expr):
     s-assign(dummy-loc, id.visit(self), value.visit(self))
   end,
 
-  s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+  method s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
     s-if-branch(dummy-loc, test.visit(self), body.visit(self))
   end,
 
-  s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+  method s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
     s-if-pipe-branch(dummy-loc, test.visit(self), body.visit(self))
   end,
 
-  s-if(self, l :: Loc, branches :: List<IfBranch>):
-    s-if(dummy-loc, branches.map(_.visit(self)))
+  method s-if(self, l :: Loc, branches :: List<IfBranch>, blocky :: Boolean):
+    s-if(dummy-loc, branches.map(_.visit(self)), blocky)
   end,
-  s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr):
-    s-if-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
-  end,
-  
-  s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>):
-    s-if-pipe(dummy-loc, branches.map(_.visit(self)))
-  end,
-  s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr):
-    s-if-pipe-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self))
+  method s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean):
+    s-if-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+  method s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean):
+    s-if-pipe(dummy-loc, branches.map(_.visit(self)), blocky)
+  end,
+  method s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean):
+    s-if-pipe-else(dummy-loc, branches.map(_.visit(self)), _else.visit(self), blocky)
+  end,
+
+  method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(dummy-loc, l, typ, bind.visit(self))
   end,
-  s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
     s-cases-branch(dummy-loc, dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
-  s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
+  method s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
     s-singleton-cases-branch(dummy-loc, dummy-loc, name, body.visit(self))
   end,
 
-  s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>):
-    s-cases(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)))
+  method s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean):
+    s-cases(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), blocky)
   end,
-  s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr):
-    s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self))
-  end,
-
-  s-op(self, l :: Loc, op :: String, left :: Expr, right :: Expr):
-    s-op(dummy-loc, op, left.visit(self), right.visit(self))
+  method s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean):
+    s-cases-else(dummy-loc, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
   end,
 
-  s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
+  method s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+    s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
+  end,
+
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
-  s-paren(self, l :: Loc, expr :: Expr):
+  method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(dummy-loc, expr.visit(self))
   end,
 
-  s-lam(
+  method s-lam(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>,
       ann :: Ann,
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
-    s-lam(dummy-loc, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-lam(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
-  s-method(
+  method s-method(
       self,
       l :: Loc,
+      name :: String,
       params :: List<Name>,
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
-    s-method(dummy-loc, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check))
+    s-method(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
   end,
-  s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+  method s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-update(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
   end,
-  s-obj(self, l :: Loc, fields :: List<Member>):
+  method s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(dummy-loc, fields.map(_.visit(self)))
   end,
-  s-array(self, l :: Loc, values :: List<Expr>):
+  method s-array(self, l :: Loc, values :: List<Expr>):
     s-array(dummy-loc, values.map(_.visit(self)))
   end,
-  s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
+  method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
+  method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
   end,
-  s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s-prim-app(dummy-loc, _fun, args.map(_.visit(self)))
   end,
-  s-prim-val(self, l :: Loc, name :: String):
+  method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(dummy-loc, name)
   end,
-  s-id(self, l :: Loc, id :: Name):
+  method s-id(self, l :: Loc, id :: Name):
     s-id(dummy-loc, id.visit(self))
   end,
-  s-id-var(self, l :: Loc, id :: Name):
+  method s-id-var(self, l :: Loc, id :: Name):
     s-id-var(dummy-loc, id.visit(self))
   end,
-  s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+  method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(dummy-loc, id.visit(self), safe)
   end,
-  s-undefined(self, l :: Loc):
+  method s-undefined(self, l :: Loc):
     s-undefined(self)
   end,
-  s-srcloc(self, l, shadow loc):
+  method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  s-num(self, l :: Loc, n :: Number):
+  method s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
-  s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(dummy-loc, num, den)
   end,
-  s-bool(self, l :: Loc, b :: Boolean):
+  method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
   end,
-  s-str(self, l :: Loc, s :: String):
+  method s-str(self, l :: Loc, s :: String):
     s-str(dummy-loc, s)
   end,
-  s-dot(self, l :: Loc, obj :: Expr, field :: String):
+  method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(dummy-loc, obj.visit(self), field)
   end,
-  s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+  method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(dummy-loc, obj.visit(self), field)
   end,
-  s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
+  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
     s-bracket(dummy-loc, obj.visit(self), field.visit(self))
   end,
-  s-data(
+  method s-data(
       self,
       l :: Loc,
       name :: String,
@@ -2600,7 +2759,7 @@ dummy-loc-visitor = {
         self.option(_check)
       )
   end,
-  s-data-expr(
+  method s-data-expr(
       self,
       l :: Loc,
       name :: String,
@@ -2622,27 +2781,28 @@ dummy-loc-visitor = {
         self.option(_check)
       )
   end,
-  s-for(
+  method s-for(
       self,
       l :: Loc,
       iterator :: Expr,
       bindings :: List<ForBind>,
       ann :: Ann,
-      body :: Expr
+      body :: Expr,
+      blocky :: Boolean
     ):
-    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self))
+    s-for(dummy-loc, iterator.visit(self), bindings.map(_.visit(self)), ann.visit(self), body.visit(self), blocky)
   end,
-  s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
+  method s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     s-check(dummy-loc, name, body.visit(self), keyword-check)
   end,
 
-  s-data-field(self, l :: Loc, name :: String, value :: Expr):
+  method s-data-field(self, l :: Loc, name :: String, value :: Expr):
     s-data-field(dummy-loc, name, value.visit(self))
   end,
-  s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+  method s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
     s-mutable-field(dummy-loc, name, ann.visit(self), value.visit(self))
   end,
-  s-method-field(
+  method s-method-field(
       self,
       l :: Loc,
       name :: String,
@@ -2651,27 +2811,29 @@ dummy-loc-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
-      _check :: Option<Expr>
+      _check :: Option<Expr>,
+      blocky :: Boolean
     ):
     s-method-field(
-        dummy-loc,
-        name,
-        params.map(_.visit(self)),
-        args.map(_.visit(self)),
-        ann.visit(self),
-        doc,
-        body.visit(self),
-        self.option(_check)
+      dummy-loc,
+      name,
+      params.map(_.visit(self)),
+      args.map(_.visit(self)),
+      ann.visit(self),
+      doc,
+      body.visit(self),
+      self.option(_check),
+      blocky
       )
   end,
 
-  s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
-    s-for-bind(dummy-loc, bind.visit(self), value.visit(self))   
+  method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+    s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
   end,
-  s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+  method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))
   end,
-  s-variant(
+  method s-variant(
       self,
       l :: Loc,
       constr-loc :: Loc,
@@ -2681,7 +2843,7 @@ dummy-loc-visitor = {
     ):
     s-variant(dummy-loc, dummy-loc, name, members.map(_.visit(self)), with-members.map(_.visit(self)))
   end,
-  s-singleton-variant(
+  method s-singleton-variant(
       self,
       l :: Loc,
       name :: String,
@@ -2689,55 +2851,33 @@ dummy-loc-visitor = {
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-  s-datatype-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      members :: List<VariantMember>,
-      constructor :: Constructor
-    ):
-    s-datatype-variant(dummy-loc, name, members.map(_.visit(self)), constructor.visit(self))
-  end,
-  s-datatype-singleton-variant(
-      self,
-      l :: Loc,
-      name :: String,
-      constructor :: Constructor
-    ):
-    s-datatype-singleton-variant(dummy-loc, name, constructor.visit(self))
-  end,
-  s-datatype-constructor(
-      self,
-      l :: Loc,
-      self-arg :: String,
-      body :: Expr
-      ):
-    s-datatype-constructor(dummy-loc, self-arg, body.visit(self))
-  end,
 
-  a-blank(self): a-blank end,
-  a-any(self): a-any end,
-  a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
-  a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
-  a-arrow(self, l, args, ret, use-parens):
+  method a-blank(self): a-blank end,
+  method a-any(self, l): a-any(l) end,
+  method a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
+  method a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
+  method a-arrow(self, l, args, ret, use-parens):
     a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
-  a-method(self, l, args, ret):
+  method a-method(self, l, args, ret):
     a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
   end,
-  a-record(self, l, fields):
+  method a-record(self, l, fields):
     a-record(dummy-loc, fields.map(_.visit(self)))
   end,
-  a-app(self, l, ann, args):
+  method a-tuple(self, l, fields):
+    a-tuple(dummy-loc, fields.map(_.visit(self)))
+  end,
+  method a-app(self, l, ann, args):
     a-app(dummy-loc, ann.visit(self), args.map(_.visit(self)))
   end,
-  a-pred(self, l, ann, exp):
+  method a-pred(self, l, ann, exp):
     a-pred(dummy-loc, ann.visit(self), exp.visit(self))
   end,
-  a-dot(self, l, obj, field):
+  method a-dot(self, l, obj, field):
     a-dot(dummy-loc, obj, field)
   end,
-  a-field(self, l, name, ann):
+  method a-field(self, l, name, ann):
     a-field(dummy-loc, name.visit(self), ann.visit(self))
   end
 }

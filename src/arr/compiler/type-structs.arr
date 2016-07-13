@@ -3,265 +3,16 @@ provide-types *
 
 import ast as A
 import string-dict as SD
-import "compiler/list-aux.arr" as LA
+import lists as LISTS
+import file("list-aux.arr") as LA
 import equality as E
 import valueskeleton as VS
 
-all2-strict  = LA.all2-strict
-map2-strict  = LA.map2-strict
-fold2-strict = LA.fold2-strict
-
 type Name = A.Name
 
-fun dict-to-string(dict :: SD.StringDict):
-  items = for sets.fold(acc from empty, key from dict.keys()):
-    if is-empty(acc):
-      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value(key))]
-    else:
-      link(VS.vs-value(key),
-        link(VS.vs-str(" => "),
-          link(VS.vs-value(dict.get-value(key)),
-            link(VS.vs-str(", "),
-              acc))))
-    end
-  end
-  VS.vs-seq([list: VS.vs-str("{")] + items + [list: VS.vs-str("}")])
-end
+all = LISTS.all
 
-fun mut-dict-to-string(dict :: SD.MutableStringDict) -> String:
-  items = for sets.fold(acc from empty, key from dict.keys-now()):
-    if is-empty(acc):
-      [list: VS.vs-value(key), VS.vs-str(" => "), VS.vs-value(dict.get-value(key))]
-    else:
-      link(VS.vs-value(key),
-        link(VS.vs-str(" => "),
-          link(VS.vs-value(dict.get-value(key)),
-            link(VS.vs-str(", "),
-              acc))))
-    end
-  end
-  VS.vs-seq([list: VS.vs-str("{")] + items + [list: VS.vs-str("}")])
-end
-
-data Pair<L,R>:
-  | pair(left :: L, right :: R)
-sharing:
-  on-left(self, f :: (L -> L)) -> Pair<L,R>:
-    pair(f(self.left), self.right)
-  end,
-  on-right(self, f :: (R -> R)) -> Pair<L,R>:
-    pair(self.left, f(self.right))
-  end
-end
-
-data Comparison:
-  | less-than
-  | equal
-  | greater-than
-sharing:
-  _comp(self, other):
-    cases(Comparison) other:
-      | less-than    =>
-        cases(Comparison) self:
-          | less-than    => equal
-          | equal        => greater-than
-          | greater-than => greater-than
-        end
-      | equal       => self
-      | greater-than =>
-        cases(Comparison) self:
-          | less-than    => less-than
-          | equal        => less-than
-          | greater-than => equal
-        end
-    end
-  end
-end
-
-fun std-compare(a, b) -> Comparison:
-  if a < b: less-than
-  else if a > b: greater-than
-  else: equal;
-end
-
-fun list-compare<T>(a :: List<T>, b :: List<T>) -> Comparison:
-  cases(List<T>) a:
-    | empty => cases(List<T>) b:
-        | empty   => equal
-        | link(_) => less-than
-      end
-    | link(a-f, a-r) => cases(List<T>) b:
-        | empty          => greater-than
-        | link(b-f, b-r) => cases (Comparison) a-f._comp(b-f):
-            | less-than    => less-than
-            | greater-than => greater-than
-            | equal        => list-compare(a-r, b-r)
-          end
-      end
-  end
-end
-
-fun fold-comparisons(l :: List<Comparison>) -> Comparison:
-  cases (List<Comparison>) l:
-    | empty      => equal
-    | link(f, r) => cases (Comparison) f:
-        | equal  => fold-comparisons(r)
-        | else   => f
-      end
-  end
-end
-
-data Variance:
-  | constant with:
-    join(self, other :: Variance):
-      other
-    end,
-    flip(self):
-      constant
-    end
-  | bivariant with:
-    join(self, other :: Variance):
-      cases(Variance) other:
-        | constant => bivariant
-        | else => other
-      end
-    end,
-    flip(self):
-      bivariant
-    end
-  | covariant with:
-    join(self, other :: Variance):
-      cases(Variance) other:
-        | constant      => covariant
-        | bivariant     => covariant
-        | covariant     => covariant
-        | contravariant => invariant
-        | invariant     => invariant
-      end
-    end,
-    flip(self):
-      contravariant
-    end
-  | contravariant with:
-    join(self, other :: Variance):
-      cases(Variance) other:
-        | constant      => contravariant
-        | bivariant     => contravariant
-        | covariant     => invariant
-        | contravariant => contravariant
-        | invariant     => invariant
-      end
-    end,
-    flip(self):
-      covariant
-    end
-  | invariant with:
-    join(self, other :: Variance):
-      invariant
-    end,
-    flip(self):
-      invariant
-    end
-end
-
-data TypeVariable:
-  | t-variable(l :: A.Loc, id :: Name, upper-bound :: Type, variance :: Variance) # bound = Top is effectively unbounded
-sharing:
-  _output(self):
-    VS.vs-seq([list: VS.vs-str(self.id.toname()), VS.vs-str(" <: "), VS.vs-value(self.upper-bound)])
-  end,
-  key(self) -> String:
-    self.id.key() + " <: " + self.upper-bound.key()
-  end
-end
-
-data TypeMember:
-  | t-member(field-name :: String, typ :: Type) with:
-    _output(self):
-      VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
-    end,
-    key(self):
-      self.field-name + " : " + self.typ.key()
-    end,
-    substitute(self, x :: Type, r :: Type):
-      t-member(self.field-name, self.typ.substitute(x, r))
-    end
-sharing:
-  _comp(a, b :: TypeMember) -> Comparison:
-    fold-comparisons([list:
-        std-compare(a.field-name, b.field-name),
-        a.typ._comp(b.typ)
-      ])
-  end
-end
-
-type TypeMembers = List<TypeMember>
-empty-type-members = empty
-
-fun type-members-lookup(type-members :: TypeMembers, field-name :: String) -> Option<TypeMember>:
-  fun same-field(tm):
-    tm.field-name == field-name
-  end
-  type-members.find(same-field)
-end
-
-data TypeVariant:
-  | t-variant(l           :: A.Loc,
-              name        :: String,
-              fields      :: TypeMembers,
-              with-fields :: TypeMembers) with:
-    substitute(self, x :: Type, r :: Type):
-      substitute = _.substitute(x, r)
-      t-variant(self.l, self.name, self.fields.map(substitute), self.with-fields.map(substitute))
-    end
-  | t-singleton-variant(l           :: A.Loc,
-                        name        :: String,
-                        with-fields :: TypeMembers) with:
-    fields: empty-type-members,
-    substitute(self, x :: Type, r :: Type):
-      substitute = _.substitute(x, r)
-      t-singleton-variant(self.l, self.name, self.with-fields.map(substitute))
-    end
-end
-
-fun type-variant-fields(tv :: TypeVariant) -> TypeMembers:
-  cases(TypeVariant) tv:
-    | t-variant(_, _, variant-fields, with-fields) => with-fields + variant-fields
-    | t-singleton-variant(_, _, with-fields)       => with-fields
-  end
-end
-
-data DataType:
-  | t-datatype(name     :: String,
-               params   :: List<TypeVariable>,
-               variants :: List<TypeVariant>,
-               fields   :: TypeMembers) with: # common (with-)fields, shared methods, etc
-    lookup-variant(self, variant-name :: String) -> Option<TypeVariant>:
-      fun same-name(tv):
-        tv.name == variant-name
-      end
-      self.variants.find(same-name)
-    end,
-    introduce(self, args :: List<Type>) -> Option<DataType>:
-      for fold2-strict(curr from self, arg from args, param from self.params):
-        substitute = _.substitute(t-var(param.id), arg)
-        t-datatype(curr.name, empty, curr.variants.map(substitute), curr.fields.map(substitute))
-      end
-    end
-end
-
-data ModuleType:
-  | t-module(name :: String, provides :: Type, types :: SD.StringDict<DataType>, aliases :: SD.StringDict<Type>)
-sharing:
-  _output(self):
-    VS.vs-constr("t-module",
-      [list:
-        VS.vs-value(torepr(self.name)),
-        VS.vs-value(self.provides),
-        VS.vs-value(dict-to-string(self.types)),
-        VS.vs-value(dict-to-string(self.aliases))])
-  end
-end
+all2-strict  = LA.all2-strict
 
 fun interleave(lst, item):
   if is-empty(lst): lst
@@ -270,227 +21,490 @@ fun interleave(lst, item):
   end
 end
 
-data Type:
-  | t-name(module-name :: Option<String>, id :: Name)
-  | t-var(id :: Name)
-  | t-arrow(args :: List<Type>, ret :: Type)
-  | t-app(onto :: Type % (is-t-name), args :: List<Type> % (is-link))
-  | t-top
-  | t-bot
-  | t-record(fields :: TypeMembers)
-  | t-forall(introduces :: List<TypeVariable>, onto :: Type)
-  | t-ref(typ :: Type)
+fun compare-lists(xs, ys):
+  all2-strict(lam(x, y): x == y end, xs, ys)
+end
+
+# BEGIN MAYBE KEEP
+
+fun type-members-lookup(type-members :: List<TypeMember>, field-name :: String) -> Option<TypeMember>:
+  fun same-field(tm):
+    tm.field-name == field-name
+  end
+  type-members.find(same-field)
+end
+
+data Pair<L,R>:
+  | pair(left :: L, right :: R)
 sharing:
-  _output(self):
-    cases(Type) self:
-      | t-name(module-name, id) =>
-        cases(Option<String>) module-name:
-          | none    => VS.vs-str(id.toname())
-          | some(m) => VS.vs-str(m + "." + id.toname())
-        end
-      | t-var(id) => VS.vs-str(id.toname())
-      | t-arrow(args, ret) =>
-        VS.vs-seq([list: VS.vs-str("(")]
-            + interleave(args.map(VS.vs-value), VS.vs-str(", "))
-            + [list: VS.vs-str(" -> "), VS.vs-value(ret), VS.vs-str(")")])
-      | t-app(onto, args) =>
-        VS.vs-seq([list: VS.vs-value(onto), VS.vs-str("<")] + interleave(args.map(VS.vs-value), VS.vs-str(", "))
-            + [list: VS.vs-str(">")])
-      | t-top => VS.vs-str("Any")
-      | t-bot => VS.vs-str("Bot")
-      | t-record(fields) =>
-        VS.vs-seq([list: VS.vs-str("{")]
-            + interleave(fields.map(VS.vs-value), VS.vs-value(", "))
-            + [list: VS.vs-str("}")])
-      | t-forall(introduces, onto) =>
-        VS.vs-value(onto)
-      | t-ref(typ) =>
-        VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
+  method on-left(self, f :: (L -> L)) -> Pair<L,R>:
+    pair(f(self.left), self.right)
+  end,
+  method on-right(self, f :: (R -> R)) -> Pair<L,R>:
+    pair(self.left, f(self.right))
+  end
+end
+
+# END MAYBE KEEP
+
+data ModuleType:
+  | t-module(name :: String, provides :: Type, types :: SD.StringDict<Type>, aliases :: SD.StringDict<Type>)
+sharing:
+  method _output(self):
+    VS.vs-constr("t-module",
+      [list:
+        VS.vs-value(torepr(self.name)),
+        VS.vs-value(self.provides),
+        VS.vs-value(self.types),
+        VS.vs-value(self.aliases)])
+  end
+end
+
+data TypeMember:
+  | t-member(field-name :: String, typ :: Type)
+sharing:
+  method _output(self):
+    VS.vs-seq([list: VS.vs-str(self.field-name), VS.vs-str(" : "), VS.vs-value(self.typ)])
+  end,
+  method key(self) -> String:
+    self.field-name + " : " + self.typ.key()
+  end,
+  method substitute(self, new-type :: Type, old-type :: Type):
+    t-member(self.field-name, self.typ.substitute(new-type, old-type))
+  end,
+  method free-variable(self, var-type :: Type) -> Boolean:
+    self.typ.free-variable(var-type)
+  end,
+  method _equals(self, other :: TypeMember, _) -> E.EqualityResult:
+    ask:
+      | not(self.field-name == other.field-name) then: E.NotEqual("field names", self, other)
+      | not(self.typ == other.typ) then: E.NotEqual("typs", self, other)
+      | otherwise: E.Equal
+    end
+  end
+end
+
+type TypeMembers = List<TypeMember>
+
+data TypeVariant:
+  | t-variant(name        :: String,
+              fields      :: List<TypeMember>,
+              with-fields :: List<TypeMember>)
+  | t-singleton-variant(name        :: String,
+                        with-fields :: List<TypeMember>) with:
+    fields: empty
+sharing:
+  method substitute(self, new-type :: Type, old-type :: Type):
+    cases(TypeVariant) self:
+      | t-variant(name, fields, with-fields) =>
+        new-fields = fields.map(_.substitute(new-type, old-type))
+        new-with-fields = with-fields.map(_.substitute(new-type, old-type))
+        t-variant(name, new-fields, new-with-fields)
+      | t-singleton-variant(name, with-fields) =>
+        new-with-fields = with-fields.map(_.substitute(new-type, old-type))
+        t-singleton-variant(name, new-with-fields)
     end
   end,
-  key(self) -> String:
-    cases(Type) self:
-      | t-name(module-name, id) =>
-        cases(Option<String>) module-name:
-          | none    => id.key()
-          | some(m) => m + "." + id.key()
-        end
-      | t-var(id) => id.key()
-      | t-arrow(args, ret) =>
-        "("
-          + args.map(_.key()).join-str(", ")
-          + " -> " + ret.key() + ")"
-      | t-app(onto, args) =>
-        onto.key() + "<" + args.map(_.key()).join-str(", ") + ">"
-      | t-top => "Top"
-      | t-bot => "Bot"
-      | t-record(fields) =>
-        "{"
-          + for map(field from fields):
-              field.key()
-            end.join-str(", ")
-          + "}"
-      | t-forall(introduces, onto) =>
-        "<" + introduces.map(_.key()).join-str(",") + ">"
-          + onto.key()
-      | t-ref(typ) =>
-        "ref " + typ.key()
+  method free-variable(self, var-type :: Type) -> Boolean:
+    cases(TypeVariant) self:
+      | t-variant(_, fields, with-fields) =>
+        all(_.free-variable(var-type), fields) and
+        all(_.free-variable(var-type), with-fields)
+      | t-singleton-variant(_, with-fields) =>
+        all(_.free-variable(var-type), with-fields)
     end
   end,
-  substitute(self, orig-typ :: Type, new-typ :: Type) -> Type:
-    if self == orig-typ:
-      new-typ
-    else:
-      cases(Type) self:
-        | t-arrow(args, ret) =>
-          new-args = args.map(_.substitute(orig-typ, new-typ))
-          new-ret  = ret.substitute(orig-typ, new-typ)
-          t-arrow(new-args, new-ret)
-        | t-app(onto, args) =>
-          new-onto = onto.substitute(orig-typ, new-typ)
-          new-args = args.map(_.substitute(orig-typ, new-typ))
-          t-app(new-onto, new-args)
-        | t-forall(introduces, onto) =>
-          new-onto = onto.substitute(orig-typ, new-typ)
-          t-forall(introduces, new-onto)
-        | t-ref(arg-typ) =>
-          new-arg-typ = arg-typ.substitute(orig-typ, new-typ)
-          t-ref(new-arg-typ)
-        | else => self
-      end
-    end
-  end,
-  _lessthan(self, other :: Type) -> Boolean: self._comp(other) == less-than    end,
-  _lessequal(self, other :: Type) -> Boolean: self._comp(other) <> greater-than end,
-  _greaterthan(self, other :: Type) -> Boolean: self._comp(other) == greater-than end,
-  _greaterequal(self, other :: Type) -> Boolean: self._comp(other) <> less-than    end,
-  _equals(self, other :: Type, _) -> E.EqualityResult: E.from-boolean(self._comp(other) == equal) end,
-  _comp(self, other :: Type) -> Comparison:
-    cases(Type) self:
-      | t-bot =>
-        cases(Type) other:
-          | t-bot => equal
-          | else  => less-than
+  method _equals(self, other :: TypeVariant, _) -> E.EqualityResult:
+    cases(TypeVariant) self:
+      | t-variant(a-name, a-fields, a-with-fields) =>
+        cases(TypeVariant) other:
+          | t-variant(b-name, b-fields, b-with-fields) =>
+            ask:
+              | not(a-name == b-name) then: E.NotEqual("names", self, other)
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("fields", self, other)
+              | not(compare-lists(a-with-fields, b-with-fields)) then: E.NotEqual("with-fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different type variants", self, other)
         end
-      | t-name(a-module-name, a-id) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(b-module-name, b-id) =>
-            fold-comparisons([list:
-              std-compare(a-module-name.or-else(""), b-module-name.or-else("")),
-              std-compare(a-id, b-id)
-            ])
-          | t-var(_)            => less-than
-          | t-arrow(_, _)       => less-than
-          | t-app(_, _)         => less-than
-          | t-record(_)         => less-than
-          | t-forall(_, _)      => less-than
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-var(a-id) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(b-id) => 
-            if a-id < b-id: less-than
-            else if a-id > b-id: greater-than
-            else: equal;
-          | t-arrow(_, _)       => less-than
-          | t-app(_, _)         => less-than
-          | t-record(_)         => less-than
-          | t-forall(_, _)      => less-than
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-arrow(a-args, a-ret) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(_)            => greater-than
-          | t-arrow(b-args, b-ret) =>
-            fold-comparisons([list:
-              list-compare(a-args, b-args),
-              a-ret._comp(b-ret)
-            ])
-          | t-app(_, _)         => less-than
-          | t-record(_)         => less-than
-          | t-forall(_, _)      => less-than
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-app(a-onto, a-args) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(_)            => greater-than
-          | t-arrow(_, _)       => greater-than
-          | t-app(b-onto, b-args) =>
-            fold-comparisons([list:
-              list-compare(a-args, b-args),
-              a-onto._comp(b-onto)
-            ])
-          | t-record(_)         => less-than
-          | t-forall(_, _)      => less-than
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-record(a-fields) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(_)            => greater-than
-          | t-arrow(_, _)       => greater-than
-          | t-app(_, _)         => greater-than
-          | t-record(b-fields)  =>
-            list-compare(a-fields, b-fields)
-          | t-forall(_, _)      => less-than
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-forall(a-introduces, a-onto) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(_)            => greater-than
-          | t-arrow(_, _)       => greater-than
-          | t-app(_, _)         => greater-than
-          | t-record(_)         => greater-than
-          | t-forall(b-introduces, b-onto) =>
-            fold-comparisons([list:
-              list-compare(a-introduces, b-introduces),
-              a-onto._comp(b-onto)
-            ])
-          | t-ref(_)            => less-than
-          | t-top               => less-than
-        end
-      | t-ref(a-typ) =>
-        cases(Type) other:
-          | t-bot               => greater-than
-          | t-name(_, _)        => greater-than
-          | t-var(_)            => greater-than
-          | t-arrow(_, _)       => greater-than
-          | t-app(_, _)         => greater-than
-          | t-record(_)         => greater-than
-          | t-forall(_, _)      => greater-than
-          | t-ref(b-typ)        =>
-            a-typ._comp(b-typ)
-          | t-top               => less-than
-        end
-      | t-top =>
-        cases(Type) other:
-          | t-top => equal
-          | else  => greater-than
+      | t-singleton-variant(a-name, a-with-fields) =>
+        cases(TypeVariant) other:
+          | t-singleton-variant(b-name, b-with-fields) =>
+            ask:
+              | not(a-name == b-name) then: E.NotEqual("names", self, other)
+              | not(compare-lists(a-with-fields, b-with-fields)) then: E.NotEqual("with-fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different type variants", self, other)
         end
     end
   end
 end
 
-t-array-name = t-name(none, A.s-type-global("RawArray"))
 
-t-number  = t-name(none, A.s-type-global("Number"))
-t-string  = t-name(none, A.s-type-global("String"))
-t-boolean = t-name(none, A.s-type-global("Boolean"))
-t-nothing = t-name(none, A.s-type-global("Nothing"))
-t-srcloc  = t-name(none, A.s-global("Loc"))
-t-array   = lam(v): t-app(t-array-name, [list: v]);
+data NameOrigin:
+  | local
+  | module-uri(uri :: String)
+  | dependency(dep :: String) # Dependency in key form
+end
+
+fun name-comp(no):
+  cases(NameOrigin) no:
+    | local => ""
+    | module-uri(uri) => uri
+    | dependency(d) => d
+  end
+end
+
+fun dep-error(no):
+  raise("Should not get dependency in typechecker: " + torepr(no))
+end
+
+data Type:
+  | t-name(module-name :: NameOrigin, id :: Name, l :: A.Loc)
+  | t-var(id :: Name, l :: A.Loc)
+  | t-arrow(args :: List<Type>, ret :: Type, l :: A.Loc)
+  | t-app(onto :: Type, args :: List<Type>, l :: A.Loc)
+  | t-top(l :: A.Loc)
+  | t-bot(l :: A.Loc)
+  | t-record(fields :: List<TypeMember>, l :: A.Loc)
+  | t-tuple(elts :: List<Type>, l :: A.Loc)
+  | t-forall(introduces :: List<Type>, onto :: Type, l :: A.Loc)
+  | t-ref(typ :: Type, l :: A.Loc)
+  | t-existential(id :: Name, l :: A.Loc)
+  | t-data(name :: String, variants :: List<TypeVariant>, fields :: List<TypeMember>, l :: A.Loc)
+  | t-data-refinement(data-type :: Type, variant-name :: String, l :: A.Loc)
+sharing:
+  method _output(self):
+    cases(Type) self:
+      | t-name(module-name, id, _) => VS.vs-value(id.toname() + "@" + torepr(module-name))
+      | t-var(id, _) => VS.vs-str(id.toname())
+      | t-arrow(args, ret, _) =>
+        VS.vs-seq([list: VS.vs-str("(")]
+          + interleave(args.map(VS.vs-value), VS.vs-str(", "))
+          + [list: VS.vs-str(" -> "), VS.vs-value(ret), VS.vs-str(")")])
+      | t-app(onto, args, _) =>
+        VS.vs-seq([list: VS.vs-value(onto), VS.vs-str("<")]
+          + interleave(args.map(VS.vs-value), VS.vs-str(", "))
+          + [list: VS.vs-str(">")])
+      | t-top(_) => VS.vs-str("Top")
+      | t-bot(_) => VS.vs-str("Bot")
+      | t-record(fields, _) =>
+        VS.vs-seq([list: VS.vs-str("{")]
+          + interleave(fields.map(VS.vs-value), VS.vs-value(", "))
+          + [list: VS.vs-str("}")])
+      | t-tuple(elts, _) =>
+        VS.vs-seq([list: VS.vs-str("{")]
+          + interleave(elts.map(VS.vs-value), VS.vs-value("; "))
+          + [list: VS.vs-str("}")])
+      | t-forall(introduces, onto, _) =>
+        VS.vs-seq([list: VS.vs-str("forall ")]
+          + interleave(introduces.map(VS.vs-value), VS.vs-str(", "))
+          + [list: VS.vs-str(" . "), VS.vs-value(onto)])
+      | t-ref(typ, _) =>
+        VS.vs-seq([list: VS.vs-str("ref "), VS.vs-value(typ)])
+      | t-existential(id, _) => VS.vs-str(id.key())
+      | t-data(name, variants, fields, _) =>
+        VS.vs-str(name)
+      | t-data-refinement(data-type, variant-name, _) =>
+        VS.vs-seq([list: VS.vs-value("("),
+                         VS.vs-value(data-type),
+                         VS.vs-str(" % is-" + variant-name + ")")])
+    end
+  end,
+  method key(self) -> String:
+    cases(Type) self:
+      | t-name(module-name, id, _) =>
+        cases(NameOrigin) module-name:
+          | local => id.key()
+          | module-uri(m) => m + "." + id.key()
+          | dependency(_) => dep-error(module-name)
+        end
+      | t-var(id, _) => id.key()
+      | t-arrow(args, ret, _) =>
+        "("
+          + args.map(_.key()).join-str(", ")
+          + " -> " + ret.key() + ")"
+      | t-app(onto, args, _) =>
+        onto.key() + "<" + args.map(_.key()).join-str(", ") + ">"
+      | t-top(_) => "Top"
+      | t-bot(_) => "Bot"
+      | t-record(fields, _) =>
+        "{"
+          + for map(field from fields):
+              field.key()
+            end.join-str(", ")
+          + "}"
+      | t-tuple(elts, _) =>
+        "{"
+          + for map(elt from elts):
+              elt.key()
+            end.join-str("; ")
+          + "}"
+      | t-forall(introduces, onto, _) =>
+        "<" + introduces.map(_.key()).join-str(", ") + ">"
+          + onto.key()
+      | t-ref(typ, _) =>
+        "ref " + typ.key()
+      | t-existential(id, _) => id.key()
+      | t-data(name, variants, fields, _) => name
+      | t-data-refinement(data-type, variant-name, _) =>
+        "("
+          + data-type.key()
+          + " %is-" + variant-name
+          + ")"
+    end
+  end,
+  method substitute(self, new-type :: Type, old-type :: Type):
+    if self == old-type:
+      new-type
+    else:
+      cases(Type) self:
+        | t-arrow(args, ret, l) =>
+          new-args = args.map(_.substitute(new-type, old-type))
+          new-ret = ret.substitute(new-type, old-type)
+          t-arrow(new-args, new-ret, l)
+        | t-app(onto, args, l) =>
+          new-onto = onto.substitute(new-type, old-type)
+          new-args = args.map(_.substitute(new-type, old-type))
+          t-app(new-onto, new-args, l)
+        | t-record(fields, l) =>
+          t-record(fields.map(_.substitute(new-type, old-type)), l)
+        | t-tuple(elts, l) =>
+          t-tuple(elts.map(_.substitute(new-type, old-type)), l)
+        | t-forall(introduces, onto, l) =>
+          # doesn't need to be capture avoiding due to resolve-names
+          new-onto = onto.substitute(new-type, old-type)
+          t-forall(introduces, new-onto, l)
+        | t-ref(typ, l) =>
+          t-ref(typ.substitute(new-type, old-type), l)
+        | t-data(name, variants, fields, l) =>
+          t-data(name,
+                 variants.map(_.substitute(new-type, old-type)),
+                 fields.map(_.substitute(new-type, old-type)),
+                 l)
+        | t-data-refinement(data-type, variant-name, l) =>
+          t-data-refinement(data-type.substitute(new-type, old-type),
+                            variant-name,
+                            l)
+        | else => self
+      end
+    end
+  end,
+  method introduce(self, args :: List<Type>) -> Type:
+    cases(Type) self:
+      | t-forall(introduces, onto, l) =>
+        fold2(lam(new-type, param-type, arg-type):
+          new-type.substitute(arg-type, param-type)
+        end, onto, self.introduces, args)
+      | else => self
+    end
+  end,
+  method free-variable(self, var-type :: Type) -> Boolean:
+    if self == var-type:
+      false
+    else:
+      cases(Type) self:
+        | t-name(_, _, _) =>
+          true
+        | t-var(_, _) =>
+          true
+        | t-arrow(args, ret, _) =>
+          all(_.free-variable(var-type), args) and
+          ret.free-variable(var-type)
+        | t-app(onto, args, _) =>
+          onto.free-variable(var-type) and
+          all(_.free-variable(var-type), args)
+        | t-top(_) =>
+          true
+        | t-bot(_) =>
+          true
+        | t-record(fields, _) =>
+          all(_.free-variable(var-type), fields)
+        | t-tuple(elts, _) =>
+          all(_.free-variable(var-type), elts)
+        | t-forall(_, onto, _) =>
+          onto.free-variable(var-type)
+        | t-ref(typ, _) =>
+          typ.free-variable(var-type)
+        | t-existential(_, _) =>
+          true
+        | t-data(_, variants, fields, _) =>
+          all(_.free-variable(var-type), variants) and
+          all(_.free-variable(var-type), fields)
+        | t-data-refinement(data-type, _, _) =>
+          data-type.free-variable(var-type)
+      end
+    end
+  end,
+  method lookup-variant(self, name :: String) -> Option<TypeVariant>:
+    cases(Type) self:
+      | t-data(_, variants, _, _) =>
+        variants.find(lam(tv): tv.name == name end)
+      | else => none
+    end
+  end,
+  method set-loc(self, loc :: A.Loc):
+    cases(Type) self:
+      | t-name(module-name, id, _) =>
+        t-name(module-name, id, loc)
+      | t-var(id, _) =>
+        t-var(id, loc)
+      | t-arrow(args, ret, _) =>
+        t-arrow(args, ret, loc)
+      | t-app(onto, args, _) =>
+        t-app(onto, args, loc)
+      | t-top(_) =>
+        t-top(loc)
+      | t-bot(_) =>
+        t-bot(loc)
+      | t-record(fields, _) =>
+        t-record(fields, loc)
+      | t-tuple(elts, _) =>
+        t-tuple(elts, loc)
+      | t-forall(introduces, onto, _) =>
+        t-forall(introduces, onto, loc)
+      | t-ref(typ, _) =>
+        t-ref(typ, loc)
+      | t-existential(id, _) =>
+        t-existential(id, loc)
+      | t-data(name, variants, fields, _) =>
+        t-data(name, variants, fields, loc)
+      | t-data-refinement(data-type, variant-name, _) =>
+        t-data-refinement(data-type, variant-name, loc)
+    end
+  end,
+
+  method _equals(self, other :: Type, _) -> E.EqualityResult:
+    cases(Type) self:
+      | t-name(a-module-name, a-id, _) =>
+        cases(Type) other:
+          | t-name(b-module-name, b-id, _) =>
+            ask:
+              | not(a-module-name == b-module-name) then: E.NotEqual("Module names", self, other)
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-var(a-id, _) =>
+        cases(Type) other:
+          | t-var(b-id, _) =>
+            ask:
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-arrow(a-args, a-ret, _) =>
+        cases(Type) other:
+          | t-arrow(b-args, b-ret, _) =>
+            ask:
+              | not(compare-lists(a-args, b-args)) then: E.NotEqual("Arguments", self, other)
+              | not(a-ret == b-ret) then: E.NotEqual("Return types", self, other)
+              | otherwise: E.Equal
+            end
+         | else => E.NotEqual("Different types", self, other)
+        end
+      | t-app(a-onto, a-args, _) =>
+        cases(Type) other:
+          | t-app(b-onto, b-args, _) =>
+            ask:
+              | not(a-onto == b-onto) then: E.NotEqual("Onto", self, other)
+              | not(compare-lists(a-args, b-args)) then: E.NotEqual("Arguments", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-top(_) =>
+        cases(Type) other:
+          | t-top(_) => E.Equal
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-bot(_) =>
+        cases(Type) other:
+          | t-bot(_) => E.Equal
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-record(a-fields, _) =>
+        cases(Type) other:
+          | t-record(b-fields, _) =>
+            ask:
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("Fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-tuple(a-elts, _) =>
+        cases(Type) other:
+          | t-tuple(b-elts, _) =>
+            ask:
+              | not(compare-lists(a-elts, b-elts)) then: E.NotEqual("Elements", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-forall(a-introduces, a-onto, _) =>
+        cases(Type) other:
+          | t-forall(b-introduces, b-onto, _) =>
+            ask:
+              | not(compare-lists(a-introduces, b-introduces)) then: E.NotEqual("Introductions", self, other)
+              | not(a-onto == b-onto) then: E.NotEqual("Onto", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-ref(a-typ, _) =>
+        cases(Type) other:
+          | t-ref(b-typ, _) =>
+            ask:
+              | not(a-typ == b-typ) then: E.NotEqual("Typs", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-existential(a-id, _) =>
+        cases(Type) other:
+          | t-existential(b-id, _) =>
+            ask:
+              | not(a-id == b-id) then: E.NotEqual("Ids", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-data(a-name, a-variants, a-fields, _) =>
+        cases(Type) other:
+          | t-data(b-name, b-variants, b-fields, _) =>
+            ask:
+              | not(compare-lists(a-variants, b-variants)) then: E.NotEqual("Variants", self, other)
+              | not(compare-lists(a-fields, b-fields)) then: E.NotEqual("Fields", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+      | t-data-refinement(a-data-type, a-field-name, _) =>
+        cases(Type) other:
+          | t-data-refinement(b-data-type, b-field-name, _) =>
+            ask:
+              | not(a-data-type == b-data-type) then: E.NotEqual("Data type", self, other)
+              | not(a-field-name == b-field-name) then: E.NotEqual("Field name", self, other)
+              | otherwise: E.Equal
+            end
+          | else => E.NotEqual("Different types", self, other)
+        end
+    end
+  end
+end
+
+# TODO(MATT): which of these should be kept
+builtin-uri = module-uri("builtin://global")
+
+t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"), A.dummy-loc)
+
+t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l) end
+t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end
+t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l) end
+t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l) end
+t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l) end
+t-array   = lam(v, l): t-app(t-array-name, [list: v], l) end
+t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l), [list: v], l) end

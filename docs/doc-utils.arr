@@ -134,7 +134,7 @@ fun lookup-value(value, bindings):
           | s-id(_, id) => help(item ^ link(_, seen), id)
           | s-id-letrec(_, id, _) => help(item ^ link(_, seen), id)
           | s-id-var(_, id) => help(item ^ link(_, seen), id)
-          | s-type(_, id, ann) => help(item ^ link(_, seen), id)
+          | s-type(_, id, params, ann) => help(item ^ link(_, seen), id)
           | s-newtype(_, id, _) => help(item ^ link(_, seen), id)
           | s-block(_, stmts) => help(seen, stmts.last())
           | s-user-block(_, body) => help(seen, body)
@@ -168,7 +168,7 @@ fun lookup-value(value, bindings):
                             else: "a "
                             end
                           A.s-lam(new-v.l, empty,
-                            [list: A.s-bind(new-v.l, false, A.s-name(new-v.l, "val"), A.a-any)],
+                            [list: A.s-bind(new-v.l, false, A.s-name(new-v.l, "val"), A.a-any(new-v.l))],
                             A.a-name(new-v.l, A.s-global("Boolean")),
                             "Checks whether the provided argument is in fact " + a-an + new-v.name,
                             A.s-undefined(new-v.l), none)

@@ -67,7 +67,7 @@ check:
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s):
+  fun test-constructor(s) block:
 # SKIP(wating for predicates/annotations)
 #    Set(s([list: 1, 2])) is true
 #    Set(s([list: ])) is true
@@ -86,13 +86,13 @@ check:
     [s: 1, 2].intersect([s: 4]) is [s: ]
     [s: 1, 2].difference([s: 2, 3]) is [s: 1]
     [s: 1, 2].difference([s: 4]) is [s: 1, 2]
-    [s: 1, 2].symmetric_difference([s: 1, 2]) is [s: ]
-    c([s: 1, 2].symmetric_difference([s: 2, 3])) is c([s: 1, 3])
-    c([s: 1, 2].symmetric_difference([s: 3, 4])) is c([s: 1, 2, 3, 4])
+    [s: 1, 2].symmetric-difference([s: 1, 2]) is [s: ]
+    c([s: 1, 2].symmetric-difference([s: 2, 3])) is c([s: 1, 3])
+    c([s: 1, 2].symmetric-difference([s: 3, 4])) is c([s: 1, 2, 3, 4])
     ([s: 1, 2.1, 3] <> [s: 1, 2.2, 3]) is true
     c([s: 1, 2, 4]) is c([s: 2, 1, 4])
 
-    for each(n from range(1,21)):
+    for each(n from range(1,21)) block:
       check-random-adds(n * 5, s) is true
       check-random-removes(n * 5, s) is true
     end
@@ -108,16 +108,16 @@ check "Different constructors should work well together":
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s-a, s-b):
+  fun test-constructor(s-a, s-b) block:
     [s-a: 1, 2].union([s-b: 2, 3]) is [s-a: 1, 2, 3]
     [s-a: 1, 2].union([s-b: 4]) is [s-a: 1, 2, 4]
     [s-a: 1, 2].intersect([s-b: 2, 3]) is [s-a: 2]
     [s-a: 1, 2].intersect([s-b: 4]) is [s-a: ]
     [s-a: 1, 2].difference([s-b: 2, 3]) is [s-a: 1]
     [s-a: 1, 2].difference([s-b: 4]) is [s-a: 1, 2]
-    [s-a: 1, 2].symmetric_difference([s-b: 1, 2]) is [s-a: ]
-    c([s-a: 1, 2].symmetric_difference([s-b: 2, 3])) is c([s-a: 1, 3])
-    c([s-a: 1, 2].symmetric_difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
+    [s-a: 1, 2].symmetric-difference([s-b: 1, 2]) is [s-a: ]
+    c([s-a: 1, 2].symmetric-difference([s-b: 2, 3])) is c([s-a: 1, 3])
+    c([s-a: 1, 2].symmetric-difference([s-b: 3, 4])) is c([s-a: 1, 2, 3, 4])
     ([s-a: 1, 2.1, 3] <> [s-b: 1, 2.2, 3]) is true
     c([s-a: 1, 2, 4]) is c([s-b: 2, 1, 4])
     [s-a: 1, 2, 4].size() is 3

@@ -30,4 +30,6 @@ examples in Pyret.}
 
 @include-section["libraries.scrbl"]
 
+@include-section["internal.scrbl"]
+
 

@@ -1,0 +1,8 @@
+{
+	"strict"   : "implied",
+	"multistr" : true,
+	"node"     : true,
+	"globals"  : {
+		"define" : false // => read-only
+	}
+}

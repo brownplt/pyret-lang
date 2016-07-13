@@ -1,10 +1,10 @@
-define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
+define(["require", "q", "./runtime-util"], function(rjs, Q, util) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {
       return function(env) {
         var define = env.define;
-        Function("define", src)(define);
+        return Function("define", src)(define);
       }
     };
     ourCajaVM = { compileExpr: compileExpr };
@@ -49,7 +49,7 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
 
   function safeEval(string, env) {
     var f = ourCajaVM.compileExpr(string);
-    f(env);
+    return f(env);
   }
 
   function loadClosure(runtime, mod, dependencies) {
@@ -70,8 +70,17 @@ define(["require", "q", "js/runtime-util"], function(rjs, Q, util) {
       safeEval(src, {
         define: function(_, body) {
           try {
-            var answer = body.apply(null, dependencies);
-            deferred.resolve(answer);
+            // NOTE(joe): dependencies should be empty list, or the whole
+            // object should just be passed in here
+            var moduleAsObject = body.apply(null, dependencies);
+            // NOTE(joe): modules should be objects, but old ones are
+            // functions
+            if(typeof moduleAsObject === "function") {
+              deferred.resolve(moduleAsObject);
+            }
+            else {
+              deferred.resolve(moduleAsObject.theModule.apply(null, dependencies));
+            }
           } catch(e) {
             deferred.reject(e);
           }

@@ -3,6 +3,11 @@
 provide *
 provide-types *
 
+import base as _
+import global as _
+import lists as lists
+type List = lists.List
+
 data S-Exp:
   | s-list(exps :: List<S-Exp>)
   | s-num(n :: Number)

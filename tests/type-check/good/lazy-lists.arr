@@ -1,10 +1,5 @@
 import lists as L
 
-type List = L.List
-empty = L.empty
-link = L.link
-map = L.map
-
 fun d-dx(f :: (Number -> Number)) -> (Number -> (Number -> Number)):
   lam(x :: Number) -> (Number -> Number):
     lam(epsilon :: Number) -> Number:
@@ -39,7 +34,7 @@ fun take<T>(n :: Number, s :: Stream<T>) -> List<T>:
   end
 end
 
-fun lz-map<T,U>(f :: (T -> U), s :: Stream<T>): 
+fun lz-map<T,U>(f :: (T -> U), s :: Stream<T>):
   lz-link(f(lz-first(s)), lam(): lz-map(f, lz-rest(s)) end)
 end
 
@@ -57,4 +52,4 @@ take(5, lz-map(d-dx-square-at-10, tenths))
 
 approximations-of-d-dx-square = lz-map(d-dx-square(10), tenths)
 print(take(5, approximations-of-d-dx-square))
-print(map(lam(x :: Number): x * 1.0;, take(5, lz-map(d-dx-square(10), tenths))))
+print(map(lam(x :: Number): x * 1.0 end, take(5, lz-map(d-dx-square(10), tenths))))

@@ -1,7 +1,7 @@
 #lang pyret
 
 
-fun negate(f): lam(x): not(f(x));;
+fun negate(f): lam(x): not(f(x)) end end
 
 check:
   a1 = [array: 1, 2, 3]
@@ -10,7 +10,7 @@ check:
   a1.get-now(1 / 2) raises "integer"
 
   non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, method(self): 10 end]
-  for each(n from non-nums): a1.get-now(n) raises "Number";
+  for each(n from non-nums): a1.get-now(n) raises "Number" end
 end
 
 check:
@@ -139,8 +139,38 @@ check:
   raw-array-set(a1, 0, "update")
   a1 satisfies _ <> a2
   raw-array-get(a1, 0) is "update"
-  for each(i from range(1, 4)): raw-array-get(a1, i) is "init";
+  for each(i from range(1, 4)): raw-array-get(a1, i) is "init" end
 
+end
+
+check:
+  arr = for raw-array-build-opt(i from 100):
+    if num-modulo(i, 5) == 0:
+      some(i * i)
+    else:
+      none
+    end
+  end
+  
+  arr is=~ [raw-array: 0, 25, 100, 225, 400, 625, 900, 1225, 1600, 2025, 2500, 3025, 3600, 4225, 4900, 5625, 6400, 7225, 8100, 9025]
+
+  fun slowly(n):
+    if n <= 0: nothing
+    else: slowly(n - 1)
+    end
+  end
+  
+  fun slow(i) block:
+    slowly(3000)
+    if num-modulo(i, 2) == 0:
+      some(i)
+    else:
+      none
+    end
+  end
+  arr2 = raw-array-build-opt(slow, 1000)
+  raw-array-length(arr2) is 500
+  for each(i from range(0, 500)): raw-array-get(arr2, i) is i * 2 end
 end
 
 check:
@@ -150,7 +180,7 @@ check:
 end
 
 check:
-  fun f(v :: Array<Number>):
+  fun f(v :: Array<Number>) block:
     when not(is-array(v)): raise("not an Array") end
     v
   end

@@ -49,14 +49,14 @@ check "reverse where: block":
 end
 
 check "filter where: block":
-  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
+  filter(lam(e): e > 5 end, [list: -1, 1]) is [list: ]
+  filter(lam(e): e > 0 end, [list: -1, 1]) is [list: 1]
 end
 
 check "partition where: block":
-  partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
-  partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
-  partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
+  partition(lam(e): e > 0 end, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
+  partition(lam(e): e > 5 end, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
+  partition(lam(e): e < 5 end, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
 check "find where: block":
@@ -103,24 +103,24 @@ check "all2 where: block":
 end
 
 check "map where: block":
-  map(lam(_): raise("shipwrecked!");, [list: ]) is [list: ]
-  map(lam(_): 2;, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
-  map(lam(x): x + 1;, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
+  map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
+  map(lam(_): 2 end, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
+  map(lam(x): x + 1 end, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
 end
 
 check "map2 where: block":
-  map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
-  map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
+  map2(lam(_, _): raise("shipwrecked!") end, [list: ], [list: ]) is [list: ]
+  map2(lam(x, y): x or y end, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 check "map_n where: block":
-  map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
+  map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 check "fold where: block":
-  fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
-  fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
-  fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
+  fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
+  fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
+  fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
   fold(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 3, 2, 1]
 end
 
@@ -129,7 +129,7 @@ check "foldr":
 end
 
 check "fold2 where: block":
-  fold2(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
+  fold2(lam(x, y, z): x - y - z end, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
 end
 
 check "fold_n where: block":

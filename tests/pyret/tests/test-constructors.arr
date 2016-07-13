@@ -2,7 +2,7 @@ import string-dict as SD
 
 check:
   every-other = {
-    make: lam(arr):
+    make: lam(arr) block:
       var l = empty
       len = raw-array-length(arr)
       for each(i from range(0, len)):
@@ -11,30 +11,79 @@ check:
         end
       end
       l.reverse()
-    end
+    end,
+    make0: lam(): empty end,
+    make1: lam(a): [list: a] end,
+    make2: lam(a, b): [list: a] end,
+    make3: lam(a, b, c): [list: a, c] end,
+    make4: lam(a, b, c, d): [list: a, c] end,
+    make5: lam(a, b, c, d, e): [list: a, c, e] end
   }
 
+  [every-other: 1, 2, 3, 4, 5, 6, 7] is link(1, link(3, link(5, link(7, empty))))
   [every-other: 1, 2, 3, 4] is link(1, link(3, empty))
   [every-other: ] is [list: ]
 
   
   dictkv = {
-    make: lam(arr):
-      d = SD.make-mutable-string-dict()
-      for each(i from range(0, raw-array-length(arr))):
+    make: lam(arr) block:
+      ret = SD.make-mutable-string-dict()
+      for each(i from range(0, raw-array-length(arr))) block:
         elt = raw-array-get(arr, i)
-        d.set-now(elt.k, elt.v)
+        ret.set-now(elt.k, elt.v)
       end
-      d
-    end
+      ret
+    end,
+    make0: lam(): SD.make-mutable-string-dict() end,
+    make1: lam(a) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a.k, a.v)
+        ret
+      end,
+    make2: lam(a, b) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a.k, a.v)
+        ret.set-now(b.k, b.v)
+        ret
+      end,
+    make3: lam(a, b, c) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a.k, a.v)
+        ret.set-now(b.k, b.v)
+        ret.set-now(c.k, c.v)
+        ret
+      end,
+    make4: lam(a, b, c, d) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a.k, a.v)
+        ret.set-now(b.k, b.v)
+        ret.set-now(c.k, c.v)
+        ret.set-now(d.k, d.v)
+        ret
+      end,
+    make5: lam(a, b, c, d, e) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a.k, a.v)
+        ret.set-now(b.k, b.v)
+        ret.set-now(c.k, c.v)
+        ret.set-now(d.k, d.v)
+        ret.set-now(e.k, e.v)
+        ret
+      end
   }
   kv = {
-    make: lam(arr):
+    make: lam(arr) block:
       when raw-array-length(arr) <> 2:
         raise("Bad key-value pair")
       end
       { k: raw-array-get(arr, 0), v: raw-array-get(arr, 1) }
-    end
+    end,
+    make0: lam(): raise("Bad key-value pair") end,
+    make1: lam(a): raise("Bad key-value pair") end,
+    make2: lam(k, v): {k : k, v : v} end,
+    make3: lam(a, b, c): raise("Bad key-value pair") end,
+    make4: lam(a, b, c, d): raise("Bad key-value pair") end,
+    make5: lam(a, b, c, d, e): raise("Bad key-value pair") end,
   }
 
   d1 = [dictkv:
@@ -50,7 +99,7 @@ check:
   [kv: "a", 1, 2] raises "Bad key-value"
 
   dict-list = {
-    make: lam(arr):
+    make: lam(arr) block:
       len = raw-array-length(arr)
       when num-modulo(len, 2) <> 0: raise("Odd number of arguments to dict-list") end
       d = SD.make-mutable-string-dict()
@@ -59,7 +108,22 @@ check:
         d.set-now(raw-array-get(arr, ix), raw-array-get(arr, ix + 1))
       end
       d
-    end
+    end,
+    make0: lam(): SD.make-mutable-string-dict() end,
+    make1: lam(a): raise("Odd number of arguments to dict-list") end,
+    make2: lam(a, b) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a, b)
+        ret
+      end,
+    make3: lam(a, b, c): raise("Odd number of arguments to dict-list") end,
+    make4: lam(a, b, c, d) block:
+        ret = SD.make-mutable-string-dict()
+        ret.set-now(a, b)
+        ret.set-now(c, d)
+        ret
+      end,
+    make5: lam(a, b, c, d, e): raise("Odd number of arguments to dict-list") end
   }
 
   d2 = [dict-list:

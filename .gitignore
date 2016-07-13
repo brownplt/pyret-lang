@@ -6,6 +6,7 @@
 *.bak
 .DS_Store
 *.log
+*.jarr
 
 # benchmark
 tools/benchmark/TODO
@@ -23,18 +24,41 @@ docs/generated/
 docs/skeleton/
 docs/test-harness/
 docs/written/test-harness/
+docs/written/index/
 docs/*.arr.js
 
 build/docs
+build/phaseA
+build/phaseB
+build/phaseC
 build/phase1
 build/phase2
 build/phase3
+build/bootstrapA
+build/bootstrapB
+build/bootstrapC
+build/pyretA.jarr
+build/pyretB.jarr
 build/release
+build/phaseA/program-require.js
+build/phaseA/program.js
 deps/closure-compiler
 node_modules/
 *#
 pyret.plt
 tests/pyret/*.arr.js
+tests/pyret/*.jarr
 tests/pyret/tests/*.arr.js
+tests/type-check/*/*.arr.js
 tests/pyret/regression/*.arr.js
 tests/pyret/bootstrap-tests/*.arr.js
+
+src/arr/compilerA/pyret-require.js
+src/arr/compilerA/pyret.jarr
+
+tests/pyret/standalone/importer-require.js
+tests/pyret/standalone/importer.jarr
+
+*.arr.js
+
+compiled/

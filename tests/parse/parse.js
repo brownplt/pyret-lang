@@ -1,5 +1,5 @@
 const R = require("requirejs");
-var build = process.env["PHASE"] || "build/phase1";
+var build = process.env["PHASE"] || "build/phaseA";
 R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret-parser", "fs"], function(T, G, fs) {
   _ = require("jasmine-node");
   function parse(str) {
@@ -326,6 +326,57 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("provide-types { List :: List } end")).toBe(false);
     });
 
+    it("should parse all comma-separated things", function() {
+      expect(parse('import foo from quuz')).not.toBe(false);
+      expect(parse('import foo, bar, baz from quuz')).not.toBe(false);
+      expect(parse('import foo("bar") as floo')).not.toBe(false);
+      expect(parse('import foo("bar", "baz", "quuz") as floo')).not.toBe(false);
+      expect(parse('let x = 5: true end')).not.toBe(false);
+      expect(parse('let x = 5, y = 4,z=2: true end')).not.toBe(false);
+      expect(parse('letrec x = 5: true end')).not.toBe(false);
+      expect(parse('letrec x = 5, y = 4,z=2: true end')).not.toBe(false);
+      expect(parse('type-let foo=Any: true end')).not.toBe(false);
+      expect(parse('type-let Foo=Any, Bar = Foo<Number>: true end')).not.toBe(false);
+      expect(parse('fun foo<A>(): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A, B, C>(): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A>(a): 5 end')).not.toBe(false);
+      expect(parse('fun foo<A, B, C>(a, b, c): 5 end')).not.toBe(false);
+      expect(parse('data Foo: var1() end')).not.toBe(false);
+      expect(parse('data Foo: var1(a) end')).not.toBe(false);
+      expect(parse('data Foo: var1(a, b, c) end')).not.toBe(false);
+      expect(parse('foo()')).not.toBe(false);
+      expect(parse('foo(1)')).not.toBe(false);
+      expect(parse('foo(1, 2, 3)')).not.toBe(false);
+      expect(parse('foo<>')).toBe(false);
+      expect(parse('foo<A>')).not.toBe(false);
+      expect(parse('foo<A, B, C>')).not.toBe(false);
+      expect(parse('{}')).not.toBe(false);
+      expect(parse('{foo: 5}')).not.toBe(false);
+      expect(parse('{foo: 5, bar: 6, baz: 7}')).not.toBe(false);
+      expect(parse('{foo: 5, bar: 6, baz: 7,}')).not.toBe(false);
+      expect(parse('a.{}')).toBe(false);
+      expect(parse('a.{foo: 5}')).not.toBe(false);
+      expect(parse('a.{foo: 5, bar: 6, baz: 7}')).not.toBe(false);
+      expect(parse('a.{foo: 5, bar: 6, baz: 7,}')).not.toBe(false);
+      expect(parse('[foo: ]')).not.toBe(false);
+      expect(parse('[foo: 5]')).not.toBe(false);
+      expect(parse('[foo: 5, 6, 7]')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo() => true end')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo(a) => true end')).not.toBe(false);
+      expect(parse('cases(Foo) bar: | foo(a, ref b, c) => true end')).not.toBe(false);
+      expect(parse('for map(): 5 end')).not.toBe(false);
+      expect(parse('for map(a from b): 5 end')).not.toBe(false);
+      expect(parse('for map(a from b, c from d, e from f): 5 end')).not.toBe(false);
+      expect(parse('x :: {} = 5')).not.toBe(false);
+      expect(parse('x :: {foo:: A} = 5')).not.toBe(false);
+      expect(parse('x :: {foo:: A, bar :: B, baz:: C} = 5')).not.toBe(false);
+      expect(parse('x :: -> A')).not.toBe(false);
+      expect(parse('x :: A -> A')).not.toBe(false);
+      expect(parse('x :: A, A -> A')).not.toBe(false);
+      expect(parse('x :: A<( -> A)>')).not.toBe(false);
+      expect(parse('x :: A<( -> A), B>')).not.toBe(false);
+    });
+
     it("should parse angle brackets without whitespace only as type instantiations", function() {
       expect(parse("map<A>")).not.toBe(false);
       expect(parse("(map<A>)")).not.toBe(false);
@@ -364,14 +415,14 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("(true) > (false)")).not.toBe(false);
     });
 
-    it("should not mind ; at EOF", function() {
-      expect(parse("lam<T>(x :: T) -> T: x;")).not.toBe(false);
+    it("should not mind end at EOF", function() {
+      expect(parse("lam<T>(x :: T) -> T: x end")).not.toBe(false);
     });
 
-    it("should not mind ; at EOL, and then another statement", function() {
-      var a = "  fun x<T>(x :: T) -> T: x;";
-      expect(parse("block:\n" + a + "\n" + a + "end")).not.toBe(false);
-      expect(parse("block:\n" + a + " \n" + a + "end")).not.toBe(false);
+    it("should not mind end at EOL, and then another statement", function() {
+      var a = "  fun x<T>(x :: T) -> T: x end";
+      expect(parse("block:\n" + a + "\n" + a + " end")).not.toBe(false);
+      expect(parse("block:\n" + a + " \n" + a + " end")).not.toBe(false);
     });
 
     it("should require whitespace after :: and =>", function() {
@@ -415,9 +466,9 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     });
 
     it("should treat (...) as grouping after ;", function() {
-      expect(parse("block: lam(x): x;(x);")).not.toBe(false);
-      expect(parse("block: lam(x): x ; (x);")).not.toBe(false);
-      expect(parse("block: lam(x): x ;\n(x);")).not.toBe(false);
+      expect(parse("block: lam(x): x end(x)end")).not.toBe(false);
+      expect(parse("block: lam(x): x end (x)end")).not.toBe(false);
+      expect(parse("block: lam(x): x end\n(x)end")).not.toBe(false);
     });
 
     it("should parse get-bang", function() {
@@ -452,7 +503,8 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
 
     it("should parse imports", function() {
       expect(parse('import modname as G')).not.toBe(false);
-      expect(parse('import "modname.arr" as G')).not.toBe(false);
+      expect(parse('import file("modname.arr") as G')).not.toBe(false);
+      expect(parse('import file-is-not-special("modname.arr") as G')).not.toBe(false);
       expect(parse('import gdrive(a) as G')).toBe(false);
       expect(parse('import gdrive("a") as G')).not.toBe(false);
       expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
@@ -461,7 +513,8 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     
     it("should parse includes", function() {
       expect(parse('include modname')).not.toBe(false);
-      expect(parse('include "modname.arr"')).not.toBe(false);
+      expect(parse('include file("modname.arr")')).not.toBe(false);
+      expect(parse('include file-is-not-special("modname.arr")')).not.toBe(false);
       expect(parse('include gdrive(a)')).toBe(false);
       expect(parse('include gdrive("a")')).not.toBe(false);
       expect(parse('include gdrive("a", "b")')).not.toBe(false);
@@ -476,19 +529,19 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('o =~ o2')).not.toBe(false);
       expect(parse('o == o2')).not.toBe(false);
 
-      expect(parse('check: o is== o2;')).not.toBe(false);
-      expect(parse('check: o is == o2;')).toBe(false);
-      expect(parse('check: o is=~ o2;')).not.toBe(false);
-      expect(parse('check: o is =~ o2;')).toBe(false);
-      expect(parse('check: o is<=> o2;')).not.toBe(false);
-      expect(parse('check: o is <=> o2;')).toBe(false);
+      expect(parse('check: o is== o2 end')).not.toBe(false);
+      expect(parse('check: o is == o2 end')).toBe(false);
+      expect(parse('check: o is=~ o2 end')).not.toBe(false);
+      expect(parse('check: o is =~ o2 end')).toBe(false);
+      expect(parse('check: o is<=> o2 end')).not.toBe(false);
+      expect(parse('check: o is <=> o2 end')).toBe(false);
       
-      expect(parse('check: o is-not== o2;')).not.toBe(false);
-      expect(parse('check: o is-not == o2;')).toBe(false);
-      expect(parse('check: o is-not=~ o2;')).not.toBe(false);
-      expect(parse('check: o is-not =~ o2;')).toBe(false);
-      expect(parse('check: o is-not<=> o2;')).not.toBe(false);
-      expect(parse('check: o is-not <=> o2;')).toBe(false);
+      expect(parse('check: o is-not== o2 end')).not.toBe(false);
+      expect(parse('check: o is-not == o2 end')).toBe(false);
+      expect(parse('check: o is-not=~ o2 end')).not.toBe(false);
+      expect(parse('check: o is-not =~ o2 end')).toBe(false);
+      expect(parse('check: o is-not<=> o2 end')).not.toBe(false);
+      expect(parse('check: o is-not <=> o2 end')).toBe(false);
     });
 
     it("should parse examples", function() {
@@ -511,12 +564,12 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('method<a>(self): self end')).not.toBe(false);
       expect(parse('method<a,b>(self): self end')).not.toBe(false);
       expect(parse('method<a,b,c>(self): self end')).not.toBe(false);
-      expect(parse('{ m<a>(self): self end }')).not.toBe(false);
-      expect(parse('{ m<a,b>(self): self end }')).not.toBe(false);
-      expect(parse('{ m<a,b,c>(self): self end }')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a>(self): 5 end sharing: m2<a>(self): 5 end end')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a,b>(self): 5 end sharing: m2<a,b>(self): 5 end end')).not.toBe(false);
-      expect(parse('data D: | var1 with: m<a,b,c>(self): 5 end sharing: m2<a,b,c>(self): 5 end end')).not.toBe(false);
+      expect(parse('{ method m<a>(self): self end }')).not.toBe(false);
+      expect(parse('{ method m<a,b>(self): self end }')).not.toBe(false);
+      expect(parse('{ method m<a,b,c>(self): self end }')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a>(self): 5 end sharing: method m2<a>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a,b>(self): 5 end sharing: method m2<a,b>(self): 5 end end')).not.toBe(false);
+      expect(parse('data D: | var1 with: method m<a,b,c>(self): 5 end sharing: method m2<a,b,c>(self): 5 end end')).not.toBe(false);
     });
 
     it("should parse rec statements", function() {
@@ -582,7 +635,49 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('#\n1')).not.toBe(false);
       expect(parse('#\n{1:2}')).toBe(false);
     });
+
+    it("should parse tuples", function() {
+      expect(parse("{1; 2; 3}")).not.toBe(false);
+      expect(parse("{4 * 3; 3; 10 - 2}")).not.toBe(false);
+      expect(parse("{12; 2 + 3; 14;}")).not.toBe(false);
+      expect(parse("{{124; 124; 12}")).toBe(false);
+      expect(parse("{word; hello; there; pyret")).toBe(false);
+      expect(parse("234; hi; bad}")).toBe(false);
+      expect(parse("{one}")).not.toBe(false);
+    });
+
+    it("should parse tuple-get", function() {
+      expect(parse("tup.{2}")).not.toBe(false);
+      expect(parse("one.{3 + 4}")).toBe(false);
+      expect(parse("two.{4")).toBe(false);
+      expect(parse("two.{two}")).toBe(false);
+      expect(parse("hello.5}")).toBe(false);
+      expect(parse("tup. {2}")).not.toBe(false);
+      expect(parse("tup\n\n\n\n\n    \n\n\n.{2}")).not.toBe(false);
+      expect(parse("{1;2;3}.{2}")).not.toBe(false);
+      expect(parse("(5 + 6).{2}")).not.toBe(false);
+      expect(parse("f().{2}")).not.toBe(false);
+    });
+
+    it("should parse tuple binding", function() {
+     expect(parse("{x;y} = {1;2}")).not.toBe(false);
+     expect(parse("{x;y;z = } {1;2}")).toBe(false);
+     expect(parse("{1 + 3; hello} = t")).toBe(false);
+     expect(parse("{v;v;b;u} = t")).not.toBe(false);
+    });
+
+    it("should parse tuple annotations", function(){
+     expect(parse("fun f(tup:: {Number; String; Number}): tup.{0} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; String; Number): tup.{0} end")).toBe(false);
+     expect(parse("fun f(tup:: {hello; there}): hello end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number}): tup.{1} end")).not.toBe(false);
+     expect(parse("fun f(tup:: {Number; {String; Number; {hello; there}}; {hi; what}}): tup.{1} end")).not.toBe(false);
+    });
+
+  it("should parse tuple binding", function() {
+    expect(parse("for each({k;v}; from elts): k end")).not.toBe(false);
+  });
   });
 
-
+  
 });
