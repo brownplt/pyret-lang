@@ -4568,7 +4568,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return d["import-type"] + "(" + d.name + ")";
       }
       else if(d["import-type"] === "dependency") {
-        return d["protocol"] + "(" + d["args"].join(",") + ")";
+        return d["protocol"] + "(" + d["args"].join(", ") + ")";
       }
       else {
         throw new Error("Unknown dependency description: ", d);
