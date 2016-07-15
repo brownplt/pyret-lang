@@ -693,9 +693,7 @@ data RuntimeError:
           [ED.para:
             ED.text("The tuple binding statement in "),
             ED.loc(self.loc),
-            ED.text(" failed because the right hand side did not evaluate to a tuple with a value at position "),
-            ED.embed(self.index),
-            ED.text(":")],
+            ED.text(" failed because the binding was given a non-tuple value: ")],
           ED.embed(self.non-tup),
           please-report-bug()]
       else if src-available(self.loc):
@@ -704,17 +702,14 @@ data RuntimeError:
             [ED.error:
               ed-intro("tuple binding statement", self.loc, -1),
               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("right hand side"), [ED.locs: ast.tup.l], 0),
-                ED.text(" did not evaluate to a tuple:")],
+              [ED.para: ED.text("failed because the binding was given a non-tuple value:")],
               ED.embed(self.non-tup)]
           | none      =>
             [ED.error:
               [ED.para:
                 ED.text("The tuple binding statement in "),
                 ED.loc(self.loc),
-                ED.text(" failed because the right hand side did not evaluate to a tuple:")],
+                ED.text(" failed because the binding was given a non-tuple value:")],
               ED.embed(self.non-tup)]
         end
       else:
@@ -722,7 +717,7 @@ data RuntimeError:
           [ED.para:
             ED.text("The tuple binding statement in "),
             ED.loc(self.loc),
-            ED.text(" failed because the right hand side did not evaluate to a tuple:")],
+            ED.text(" failed because the binding was given a non-tuple value:")],
           ED.embed(self.non-tup)]
       end
     end,
