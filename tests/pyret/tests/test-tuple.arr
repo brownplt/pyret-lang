@@ -145,13 +145,13 @@ check "tuple decunstruction":
   h({10; 12}, {1; 4; 5}) is 32
   fun cases-test(tup):
     answer = cases(tuples) tup:
-      | tuple1(w, {k;v;}) => w
+      | tuple1(w, {k;v;}) => k + v
       | tuple2(two) => two
     end
     answer
   end
 
-  cases-test(tuple1("hi", {"hello"; "there"})) is "hi"
+  cases-test(tuple1("hi", {"hello"; "there"})) is "hellothere"
 
   point-methods = {
     method dist(self, {x;y;}):

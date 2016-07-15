@@ -494,17 +494,17 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               cases(Option<FoldResult<List<Expr>>>) result:
                 | none =>
                    #todo: add better error
-                   typing-error([list: C.incorrect-type("a tuple type with length " + tostring(elts.length()), l, tostring(expect-type), expect-type.l)])
+                   typing-error([list: C.incorrect-type("tuple type with length " + tostring(elts.length()), l, tostring(expect-type), expect-type.l)])
                 | some(folded) =>
                    folded.typing-bind(lam(exprs, shadow context):
                    typing-result(A.s-tuple(l, exprs), expect-type, context)  
                   end)
               end
             | else => 
-              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "a tuple type", l)])
+              typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "tuple type", l)])
             end
         | s-tuple-get(l, tup, index, index-loc) =>
-          raise("checking for s-tuple-get not yet implemented")
+          check-synthesis(e, expect-type, top-level, context)
         | s-tuple-let(l, names, tup) =>
           raise("checking for s-tuple-let not yet implemented")
         | s-obj(l, fields) =>
@@ -762,7 +762,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         typing-result(A.s-tuple(l, elts), t-tuple(typs, l), context)
       end)
     | s-tuple-get(l, tup, index, index-loc) =>
-      raise("synthesis for s-tuple-get not yet implemented")
+      synthesis(tup, top-level, context).bind(lam(new-ast, new-type, shadow context):
+        synthesis-tuple-index(l, new-ast, new-type.l, new-type, index, A.s-tuple-get(_, _, _, index-loc), context)
+      end)
     | s-tuple-let(l, names, tup) =>
       raise("synthesis for s-tuple-let not yet implemented")
     | s-obj(l, fields) =>
@@ -2006,6 +2008,42 @@ fun record-view(access-loc :: Loc, obj-type-loc :: Loc, obj-type :: Type,
           record-view(access-loc, obj-type-loc, data-type, handle, context)
         | none => non-obj-err
       end
+  end
+end
+
+fun synthesis-tuple-index(access-loc :: Loc, tup :: Expr, tup-type-loc :: Loc, tup-type :: Type, index :: Number, recreate :: (Loc, Expr, Number -> Expr), context :: Context) -> TypingResult:
+  non-tup-err = typing-error([list: C.incorrect-type(tostring(tup-type), tup-type-loc, "a tuple type", access-loc)])
+  tuple-view(access-loc, tup-type-loc, tup-type,
+  lam(l, maybe-tup-members):
+    cases(Option<List<Type>>) maybe-tup-members:
+      | some(tup-members) =>
+        if index >= tup-members.length():
+          typing-error([list: C.tuple-too-small(index, tup-members.length(), "{" + tup-members.map(tostring).join-str("; ") + "}", l, access-loc)])
+        else:
+          typing-result(recreate(l, tup, index), tup-members.get(index), context)
+        end
+      | none =>
+        non-tup-err
+        # TODO(MATT): decide about this
+    end
+  end, context)
+end
+
+fun tuple-view(access-loc :: Loc, tup-type-loc :: Loc, tup-type :: Type,
+                handle :: (Loc, Option<List<Type>> -> TypingResult),
+                context :: Context) -> TypingResult:
+  non-tup-err = typing-error([list: C.incorrect-type(tostring(tup-type), tup-type-loc, "a tuple type", access-loc)])
+  cases(Type) tup-type:
+    | t-tuple(fields, _) =>
+      handle(tup-type-loc, some(fields))
+    | t-forall(introduces, onto, l) =>
+      new-tup-type = introduces.foldr(lam(type-var, new-type):
+        new-type.substitute(new-existential(l), type-var)
+      end, onto)
+      tuple-view(access-loc, tup-type-loc, new-tup-type, handle, context)
+    | t-bot(_) =>
+      handle(tup-type-loc, none)
+    | else => non-tup-err
   end
 end
 

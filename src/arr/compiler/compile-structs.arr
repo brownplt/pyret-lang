@@ -1329,6 +1329,29 @@ data CompileError:
           ED.text(" expects the applicant to evaluate to a function value. However, the type of the applicant is "),
           ED.embed(self.typ)]]
     end
+  | tuple-too-small(index :: Number, tup-length :: Number, tup :: String, tup-loc :: A.Loc, access-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the tuple type")],
+         ED.highlight(ED.embed(self.tup), [list: self.tup-loc], 0),
+        [ED.para:
+          ED.text(" has only " + tostring(self.tup-length) + " elements, so the index"),
+          ED.code(ED.highlight(ED.text(tostring(self.index)), [list: self.access-loc], 1)),
+          ED.text(" is too large")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker rejected your program because the tuple type ")],
+          ED.embed(self.tup),
+          ED.text(" at "),
+          ED.loc(self.tup-loc),
+          ED.text(" does not have a value at index "),
+          ED.code(ED.text(self.index)),
+          ED.text(" as indicated by the access of at "),
+          ED.loc(self.access-loc)]
+    end
   | object-missing-field(field-name :: String, obj :: String, obj-loc :: A.Loc, access-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
