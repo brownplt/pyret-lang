@@ -1426,15 +1426,17 @@ fun binding-ids(stmt) -> List<Name>:
       | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
+  fun tuple-bind-ids(b):
+    cases(Bind) b:
+      | s-bind(_,_,_,_) => [list: b.id]
+      | s-tuple-bind(_, fields) => fields.map(tuple-bind-ids).foldr(_ + _, empty)
+    end
+  end
   cases(Expr) stmt:
-    | s-let(_, b, _, _) => 
-       cases(Bind) b:
-       | s-bind(_,_,_,_) => [list: b.id]
-       | s-tuple-bind(_, fields) => fields.map(_.id)
-       end
+    | s-let(_, b, _, _) => tuple-bind-ids(b)
     | s-tuple-let(_, names, _) => names.map(_.id)
-    | s-var(_, b, _) => [list: b.id]
-    | s-rec(_, b, _) => [list: b.id]
+    | s-var(_, b, _) => tuple-bind-ids(b)
+    | s-rec(_, b, _) => tuple-bind-ids(b)
     | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))

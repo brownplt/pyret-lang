@@ -200,33 +200,6 @@ fun ensure-unique-ids(bindings :: List<A.Bind>) block:
   end
   nothing
 end
- #|  cases(List) bindings block:
-    | empty => nothing
-    | link(f, rest) =>
-      cases(A.Bind) f:
-        | s-bind(l, shadows, id, ann) =>
-          cases(A.Name) id:
-            | s-underscore(_) => nothing
-            | s-name(_, name) =>
-              elt = lists.find(lam(b): A.is-s-name(b.id) and (b.id.s == name) end, rest)
-              cases(Option) elt:
-                | some(found) =>
-                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
-                | none => nothing
-              end
-            | else =>
-              elt = lists.find(lam(b): b.id == id end, rest)
-              cases(Option) elt:
-                | some(found) =>
-                  add-error(C.duplicate-id(id.tosourcestring(), found.l, l))
-                | none => nothing
-              end
-          end
-        | s-tuple-bind(l, fields) => nothing
-      end
-      ensure-unique-ids(rest)
-  end |#
-#end
 
 # NOTE: This is almost exactly the same function as above, but gives a
 # different error This is replicating the old behavior; does it still
@@ -285,7 +258,7 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
               ad2.set(field.id.toname(), field.l)
            end
         end
-       | s-tuple-bind(_,_) => nothing
+       | s-tuple-bind(_,_) => ad2
        end
       end
     end
@@ -293,23 +266,6 @@ fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
   nothing
 end
 
-#|  cases(List) rev-bindings block:
-    | empty => nothing
-    | link(f, rest) =>
-      cases(A.Bind) f:
-        | s-bind(l, shadows, id, ann) =>
-          if A.is-s-underscore(id): nothing
-          else if shadows: nothing
-          else:
-            cases(Option) lists.find(lam(b): b.id == id end, rest):
-              | some(found) => duplicate-id(id.tosourcestring(), l, found.l)
-              | none => nothing
-            end
-          end
-      end
-      ensure-unique-bindings(rest)
-  end
-end |#
 
 fun ensure-unique-fields(rev-fields):
   cases(List) rev-fields block:
@@ -486,6 +442,16 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
+  method s-letrec-bind(self, l, bind, expr) block:
+    cases(A.Bind) bind block:
+      | s-bind(_,_,_,_) => nothing
+      | s-tuple-bind(l2, _) => 
+        last-visited-loc := l
+        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
+        nothing
+    end
+    bind.visit(self) and expr.visit(self)
+  end,
   method s-letrec(self, l, binds, body, blocky) block:
     last-visited-loc := l
     when not(blocky): 
@@ -519,17 +485,33 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-var(self, l, bind, val) block:
     last-visited-loc := l
-    when A.is-s-underscore(bind.id):
-      add-error(C.pointless-var(l.at-start() + bind.l))
+    cases(A.Bind) bind block:
+      | s-bind(_,_,_,_) =>
+        last-visited-loc := l
+        when A.is-s-underscore(bind.id):
+          add-error(C.pointless-var(l.at-start() + bind.l))
+        end
+        bind.visit(self) and val.visit(self)
+      | s-tuple-bind(l2, _) => 
+        last-visited-loc := l
+        wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
+        true
     end
-    bind.visit(self) and val.visit(self)
   end,
   method s-rec(self, l, bind, val) block:
     last-visited-loc := l
-    when A.is-s-underscore(bind.id):
-      add-error(C.pointless-rec(l.at-start() + bind.l))
+    cases(A.Bind) bind block:
+      | s-bind(_,_,_,_) =>
+        last-visited-loc := l
+        when A.is-s-underscore(bind.id):
+          add-error(C.pointless-rec(l.at-start() + bind.l))
+        end
+        bind.visit(self) and val.visit(self)
+      | s-tuple-bind(l2, _) => 
+        last-visited-loc := l
+        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
+        true
     end
-    bind.visit(self) and val.visit(self)
   end,
   method s-var-bind(self, l, bind, val) block:
     cases(A.Bind) bind block:
@@ -887,7 +869,13 @@ top-level-visitor = A.default-iter-visitor.{
   method s-let-expr(_, l, binds, body, blocky):
     well-formed-visitor.s-let-expr(l, binds, body, blocky)
   end,
-  method s-letrec-bind(_, l, bind, expr):
+  method s-letrec-bind(_, l, bind, expr) block:
+    cases(A.Bind) bind block:
+      | s-bind(_,_,_,_) => nothing
+      | s-tuple-bind(l2, _) => 
+        last-visited-loc := l
+        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
+    end
     well-formed-visitor.s-letrec-bind(l, bind, expr)
   end,
   method s-letrec(_, l, binds, body, blocky):

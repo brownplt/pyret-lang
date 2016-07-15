@@ -753,7 +753,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.els),
             ED.text(":")],
           ED.embed(self.tup),
@@ -766,10 +766,9 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because "),
-                ED.highlight(ED.ed-names(self.desiredLength), ast.names.map(_.l), 0),
-                ED.text(" are expected to be bound to values, but the "),
-                ED.highlight(ED.text("right hand side"), [ED.locs: ast.tup.l], 1),
-                ED.text(" evaluated to a tuple containing "),
+                ED.highlight(ED.ed-names(self.desiredLength), ast.fields.map(_.l), 0),
+                ED.text(" are expected to be bound to values, but the binding was given "),
+                ED.text(" a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
@@ -780,7 +779,7 @@ data RuntimeError:
               [ED.para:
                 ED.text("failed because "),
                 ED.embed(self.desiredLength),
-                ED.ed-components(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+                ED.ed-components(" are expected to be bound to values, but the binding was given a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
@@ -792,7 +791,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup)]
@@ -806,7 +805,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup),
