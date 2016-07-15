@@ -858,10 +858,7 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-var-bind(l, bind, expr)
   end,
   method s-let-bind(_, l, bind, expr):
-    cases(A.Bind) bind:
-    | s-bind(_,_) => well-formed-visitor.s-let-bind(l, bind, expr)
-    | s-tuple-bind(l2, _) => wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
-    end
+    well-formed-visitor.s-let-bind(l, bind, expr)
   end,
   method s-template(self, l):
     well-formed-visitor.s-template(l)
@@ -870,12 +867,6 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-let-expr(l, binds, body, blocky)
   end,
   method s-letrec-bind(_, l, bind, expr) block:
-    cases(A.Bind) bind block:
-      | s-bind(_,_,_,_) => nothing
-      | s-tuple-bind(l2, _) => 
-        last-visited-loc := l
-        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
-    end
     well-formed-visitor.s-letrec-bind(l, bind, expr)
   end,
   method s-letrec(_, l, binds, body, blocky):
