@@ -5050,36 +5050,78 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if(!thisRuntime.hasParam("makeReactor")) { thisRuntime.ffi.throwMessageException("No reactor constructor provided"); }
       return thisRuntime.getParam("makeReactor")(init, handlersDict);
     }
+    // MUST BE CALLED WHILE ON PYRET STACK
+    function toReprArray(vals, reprMethod) {
+      // vals should be an array of {name: String, val: PyretValue, [method: ReprMethod]} objects
+      // return is an array of either {name: String, val: rendered} objects (on success)
+      // or {name: String, exn: exn} objects (on failure)
+      // but all will run.
+      // Each item can specify its own reprmethod, or the default one can be used
+      var results = [];
+      return thisRuntime.safeCall(function() {
+        return thisRuntime.eachLoop(makeFunction(function(i) {
+          thisRuntime.pauseStack(function(restarter) {
+            thisRuntime.runThunk(function() {
+              return thisRuntime.toReprJS(vals[i].val, vals[i].method || reprMethod);
+            }, function(res) {
+              if (thisRuntime.isSuccessResult(res)) {
+                results.push({name: vals[i].name, val: res.result, exn: undefined});
+              } else {
+                results.push({name: vals[i].name, val: undefined, exn: res.exn});
+              }
+              restarter.resume(thisRuntime.nothing);
+            });
+          });
+        }, "toReprArray-helper"), 0, vals.length);
+      }, function(_) {
+        return results;
+      }, "toReprArray");
+    }
+    
     function spy(loc, message, locs, names, vals) {
       var callback = undefined;
       if (thisRuntime.hasParam("onSpy")) { callback = thisRuntime.getParam("onSpy"); }
       if (typeof callback === "function") {
-        return thisRuntime.safeCall(function() {
-          return callback(loc, optMessage, locs, names, vals);
-        }, function(_) { return val; }, "custom spy");
+        return callback(loc, message, locs, names, vals);
       } else {
         var prologue = "Spying";
         return thisRuntime.safeCall(function() {
-          return toReprJS(message, thisRuntime.ReprMethods._tostring);
-        }, function(message) {
-          if (message !== "")
-            prologue += " " + message;
+          var toBeRepred = [];
+          toBeRepred.push({name: "Message", val: message, method: thisRuntime.ReprMethods._tostring});
+          for (var i = 0; i < names.length; i++)
+            toBeRepred.push({name: names[i], val: vals[i]});
+          return toReprArray(toBeRepred, thisRuntime.ReprMethods._torepr);
+        }, function(rendered) {
+          var anyErrors = false;
+          if (rendered[0].val !== undefined) {
+            if (rendered[0].val !== "")
+              prologue += " " + rendered[0].val;
+          } else {
+            anyErrors = true;
+            prologue += " <could not render spy message; details below>";
+          }
           prologue += " (at " + thisRuntime.getField(makeSrcloc(loc), "format").app(true) + ")";
           theOutsideWorld.stdout(prologue + "\n");
-          return thisRuntime.safeCall(function() {
-            return thisRuntime.eachLoop(makeFunction(function(i) {
-              return thisRuntime.safeCall(function() {
-                return toReprJS(vals[i], thisRuntime.ReprMethods._torepr);
-              }, function(val_i) {
-                theOutsideWorld.stdout("  " + names[i] + ": " + val_i + "\n");
-                return thisRuntime.nothing;
-              }, "torepr-each-spy-val");
-            }, "spy-display-fields-each"), 0, vals.length);
-          }, function(_) {
-            return thisRuntime.nothing;
-          }, "spy-display-fields");
+          for (var i = 1; i < rendered.length; i++) {
+            if (rendered[i].val !== undefined) {
+              theOutsideWorld.stdout("  " + rendered[i].name + ": " + rendered[i].val + "\n");
+            } else {
+              anyErrors = true;
+              theOutsideWorld.stdout("  " + rendered[i].name + ": <could not render value; details below>\n");
+            }
+          }
+          if (anyErrors) {
+            theOutsideWorld.stdout("Errors while rendering spy block:\n");
+            for (var i = 0; i < rendered.length; i++) {
+              if (rendered[i].exn !== undefined) {
+                theOutsideWorld.stdout("  For " + rendered[i].name + ":\n");
+                theOutsideWorld.stdout(String(rendered[i].exn) + "\n");
+              }
+            }
+          }
+          return thisRuntime.nothing;
         }, "spy");
-      }        
+      }
     }
 
     var runtimeNamespaceBindings = {
@@ -5472,6 +5514,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'toReprJS' : toReprJS,
       'toRepr' : function(val) { return toReprJS(val, ReprMethods._torepr); },
+      'toReprArray' : toReprArray,
       'ReprMethods' : ReprMethods,
 
       'wrap' : wrap,
