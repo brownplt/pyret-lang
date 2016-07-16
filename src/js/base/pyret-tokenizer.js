@@ -234,6 +234,7 @@ define(["jglr/jglr"], function(E) {
     {name: "VAR", val: new RegExp(kw("var"), STICKY_REGEXP)},
     {name: "REC", val: new RegExp(kw("rec"), STICKY_REGEXP)},
     {name: "LETREC", val: new RegExp(kw("letrec"), STICKY_REGEXP)},
+    {name: "SPY", val: new RegExp(kw("spy"), STICKY_REGEXP)},
     {name: "LET", val: new RegExp(kw("let"), STICKY_REGEXP)},
     {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
     {name: "LAM", val: new RegExp(kw("lam"), STICKY_REGEXP)},

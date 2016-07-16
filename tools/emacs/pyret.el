@@ -106,7 +106,7 @@
 (defconst pyret-keywords-test
   '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
-   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check"
+   '("fun" "lam" "method" "spy" "var" "when" "include" "import" "provide" "type" "newtype" "check"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
@@ -360,6 +360,7 @@
 (defsubst pyret-FOR () (pyret-keyword "for"))
 (defsubst pyret-FROM () (pyret-keyword "from"))
 (defsubst pyret-TRY () (pyret-keyword "try:"))
+(defsubst pyret-SPY () (pyret-keyword "spy"))
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing:"))
@@ -672,6 +673,11 @@
             (push 'ifcond opens)
             (push 'wantcolonorblock opens)
             (forward-char 3))
+           ((pyret-SPY)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'spy opens)
+            (push 'wantcolon opens)
+            (forward-char 3))
            ((pyret-IF)
             (incf (pyret-indent-fun defered-opened))
             (push 'if opens)
@@ -948,7 +954,8 @@
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
-                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
+                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if)
+                      (equal h 'block) (equal h 'let) (equal h 'spy))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))

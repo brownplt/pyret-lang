@@ -164,7 +164,7 @@ sharing:
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
   method _output(self): VS.vs-str(self.tosourcestring()) end,
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + tostring(self)) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -247,7 +247,7 @@ data Program:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -293,7 +293,7 @@ data Import:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -360,7 +360,7 @@ data Provide:
     method tosource(self): PP.mt-doc end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -380,7 +380,7 @@ data ProvideTypes:
     method tosource(self): PP.mt-doc end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -398,7 +398,7 @@ data ImportType:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -407,7 +407,7 @@ data Hint:
     method tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -422,7 +422,7 @@ data LetBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -433,7 +433,7 @@ data LetrecBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -454,7 +454,7 @@ data TypeLetBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -466,7 +466,7 @@ data DefinedValue:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 data DefinedType:
@@ -477,7 +477,7 @@ data DefinedType:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1166,10 +1166,37 @@ data TableRow:
     method tosource(self):
       PP.flow([list: str-rowcolon,
           PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
+  | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<SpyField>) with:
+    method label(self): "s-spy-block" end,
+    method tosource(self):
+      cases(Option<Expr>) self.message:
+        | none =>
+          PP.surround-separate(INDENT, 1, PP.str("spy: end"),
+            PP.str("spy:"), PP.commabreak, str-end, self.contents.map(_.tosource()))
+        | some(msg) =>
+          msg-source = msg.tosource()
+          PP.surround-separate(INDENT, 1, PP.str("spy ") + msg-source + PP.str(": end"),
+            PP.str("spy ") + msg-source + str-colon, PP.commabreak, str-end, self.contents.map(_.tosource()))
+      end
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data SpyField:
+  | s-spy-name(l :: Loc, name :: Expr%(is-s-id)) with:
+    method label(self): "s-spy-name" end,
+    method tosource(self): self.name.tosource() end
+  | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
+    method label(self): "s-spy-expr" end,
+    method tosource(self): 
+      PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1182,7 +1209,7 @@ data ConstructModifier:
     method tosource(self): PP.str("lazy") end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1214,7 +1241,7 @@ data Bind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1249,7 +1276,7 @@ data Member:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1275,7 +1302,7 @@ data ForBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1376,7 +1403,7 @@ data VariantMemberType:
     method tosource(self): PP.str("mutable ") end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1388,7 +1415,7 @@ data VariantMember:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1428,7 +1455,7 @@ data Variant:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1448,7 +1475,7 @@ data IfBranch:
 
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1462,7 +1489,7 @@ data IfPipeBranch:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1483,7 +1510,7 @@ data CasesBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1505,7 +1532,7 @@ data CasesBranch:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1563,7 +1590,7 @@ data CheckOp:
     method tosource(self): str-raises-violates end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1622,7 +1649,7 @@ data Ann:
     method tosource(self): self.residual.tosource() end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1636,7 +1663,7 @@ data AField:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -2210,6 +2237,15 @@ default-map-visitor = {
   end,
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
+  
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    s-spy-block(l, self.option(message), contents.map(_.visit(self)))
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    s-spy-name(l, name.visit(self))
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    s-spy-expr(l, name, value.visit(self))
   end,
 
   method a-blank(self): a-blank end,
@@ -2728,6 +2764,17 @@ default-iter-visitor = {
   method s-table-src(self, l, src):
     src.visit(self)
   end,
+    
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    self.option(message) and lists.all(_.visit(self), contents)
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    name.visit(self)
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    value.visit(self)
+  end,
+  
   method a-blank(self):
     true
   end,
@@ -3258,6 +3305,17 @@ dummy-loc-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(dummy-loc, src.visit(self))
   end,
+
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    s-spy-block(dummy-loc, self.option(message), contents.map(_.visit(self)))
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    s-spy-name(dummy-loc, name.visit(self))
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    s-spy-expr(dummy-loc, name, value.visit(self))
+  end,
+
   method a-blank(self): a-blank end,
   method a-any(self, l): a-any(l) end,
   method a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,

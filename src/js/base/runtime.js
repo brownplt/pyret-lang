@@ -5025,7 +5025,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
         return getParam("current-checker");
       }, "current-checker"),
-      'trace-value': makeFunction(traceValue, "trace-value")
+      'trace-value': makeFunction(traceValue, "trace-value"),
+      'spy': makeFunction(spy, "spy")
     });
 
 
@@ -5038,7 +5039,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return callback(loc, val, uri);
         }, function(_) {
           return val;
-        });
+        }, "custom trace-value");
       }
       else {
         thisRuntime.ffi.throwMessageException("onTrace parameter was not a function: " + callback);
@@ -5048,6 +5049,37 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeReactor(init, handlersDict) {
       if(!thisRuntime.hasParam("makeReactor")) { thisRuntime.ffi.throwMessageException("No reactor constructor provided"); }
       return thisRuntime.getParam("makeReactor")(init, handlersDict);
+    }
+    function spy(loc, message, locs, names, vals) {
+      var callback = undefined;
+      if (thisRuntime.hasParam("onSpy")) { callback = thisRuntime.getParam("onSpy"); }
+      if (typeof callback === "function") {
+        return thisRuntime.safeCall(function() {
+          return callback(loc, optMessage, locs, names, vals);
+        }, function(_) { return val; }, "custom spy");
+      } else {
+        var prologue = "Spying";
+        return thisRuntime.safeCall(function() {
+          return toReprJS(message, thisRuntime.ReprMethods._tostring);
+        }, function(message) {
+          if (message !== "")
+            prologue += " " + message;
+          prologue += " (at " + thisRuntime.getField(makeSrcloc(loc), "format").app(true) + ")";
+          theOutsideWorld.stdout(prologue + "\n");
+          return thisRuntime.safeCall(function() {
+            return thisRuntime.eachLoop(makeFunction(function(i) {
+              return thisRuntime.safeCall(function() {
+                return toReprJS(vals[i], thisRuntime.ReprMethods._torepr);
+              }, function(val_i) {
+                theOutsideWorld.stdout("  " + names[i] + ": " + val_i + "\n");
+                return thisRuntime.nothing;
+              }, "torepr-each-spy-val");
+            }, "spy-display-fields-each"), 0, vals.length);
+          }, function(_) {
+            return thisRuntime.nothing;
+          }, "spy-display-fields");
+        }, "spy");
+      }        
     }
 
     var runtimeNamespaceBindings = {
@@ -5215,6 +5247,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'printPyretStack': printPyretStack,
 
       'traceValue': traceValue,
+      'spy': spy,
 
 
       'traceEnter': traceEnter,

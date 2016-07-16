@@ -211,6 +211,34 @@
           // (stmt s)
           return tr(node.kids[0]);
         },
+        'spy-stmt': function(node) {
+          // (spy [label] COLON contents END)
+          var label, contents;
+          if (node.kids[1].name === "binop-expr") {
+            label = RUNTIME.ffi.makeSome(tr(node.kids[1]));
+          } else {
+            label = RUNTIME.ffi.makeNone();
+          }
+          if (node.kids[node.kids.length - 2].name === "COLON") {
+            contents = empty;
+          } else {
+            contents = tr(node.kids[node.kids.length - 2]);
+          }
+          return RUNTIME.getField(ast, 's-spy-block')
+            .app(pos(node.pos), label, contents);
+        },
+        'spy-contents': function(node) {
+          return makeListComma(node.kids);
+        },
+        'spy-field': function(node) {
+          if (node.kids.length === 1) {
+            return RUNTIME.getField(ast, 's-spy-name')
+              .app(pos(node.pos), tr(node.kids[0]));
+          } else {
+            return RUNTIME.getField(ast, 's-spy-expr')
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+          }
+        },
         'data-with': function(node) {
           if (node.kids.length === 0) {
             // (data-with)

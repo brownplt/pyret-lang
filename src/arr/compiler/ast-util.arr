@@ -61,7 +61,7 @@ end
 
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
-  if ok-last(exp):
+  if ok-last(exp) and not(A.is-s-spy-block(exp)):
     A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
       [list: A.s-srcloc(l, l), exp])
   else: exp

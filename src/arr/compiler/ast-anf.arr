@@ -140,7 +140,7 @@ data AExpr:
         PP.group(
           PP.nest(
             INDENT,
-            PP.group(self.bind.id.tosource() + PP.brackets(PP.number(self.idx))) +
+            PP.group(self.bind.tosource() + PP.brackets(PP.number(self.idx))) +
             str-spaceequal +
             break-one +
             self.e.tosource())) +

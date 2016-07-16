@@ -104,7 +104,9 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   end
 end
 
-is-binder = A.is-binder
+fun is-block-allowed(expr):
+  A.is-binder(expr) or A.is-s-spy-block(expr)
+end
 
 fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var seen-non-let = false
@@ -112,9 +114,9 @@ fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var seen-template = false
   for each(expr from block.stmts):
     ask:
-      | A.is-s-template(expr) then: seen-template := true
-      | seen-non-let          then: is-blocky := true # even if expr is a binder, it's non-consecutive
-      | not(is-binder(expr))  then: seen-non-let := true
+      | A.is-s-template(expr)        then: seen-template := true
+      | seen-non-let                 then: is-blocky := true # even if expr is a binder, it's non-consecutive
+      | not(is-block-allowed(expr))  then: seen-non-let := true
       | otherwise: nothing
     end
   end
