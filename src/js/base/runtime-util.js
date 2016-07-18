@@ -9,7 +9,7 @@ define([], function() {
 
   var suspend;
   if (typeof setImmediate !== 'undefined') {
-    suspend = setImmediate;
+    suspend = function(f) { return setImmediate(f); };
   }
   else if (isBrowser() && (typeof window !== "undefined") && window.postMessage) {
     var origin = String(window.location.origin);
