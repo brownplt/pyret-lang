@@ -818,7 +818,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                {num; new-atom-env; new-let-binds} = 
                 for fold(acc2 from {0; atom-env.env; [list: ]}, element from fields):
                   {n; in-atom-env; in-lets} = acc2
-                  t-let-bind = A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n))
+                  t-let-bind = A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n, l1))
                   {n + 1; in-atom-env; link(t-let-bind, in-lets)}
                 end
                 check-expr = A.s-prim-app(l1, "checkTupleBind", [list: A.s-id(l, namet), A.s-num(l1, fields.length()), A.s-srcloc(l1, l1)])
@@ -923,7 +923,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-tuple-bind(l2, fields) => 
           {n; new-let-binds} = for fold(acc4 from {0; [list: ]}, element from fields):
             {n; new-let-binds} = acc4
-            t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
+            t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n, l2))
             {n + 1; link(t-let-bind, new-let-binds)}
             end
           check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
@@ -972,7 +972,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
          | s-tuple-bind(l2, fields) =>
            {n; new-lets} = for fold(acc3 from {0; [list: ]}, element from fields):
              {n; new-lets} = acc3
-             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
+             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n, l2))
              {n + 1; link(t-let-bind, new-lets)}
             end
             check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
@@ -1015,7 +1015,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
          | s-tuple-bind(l2, fields) =>
            {n; new-lets} = for fold(acc3 from {0; [list: ]}, element from fields):
              {n; new-lets} = acc3
-             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n))
+             t-let-bind = A.s-let-bind(l2, element, A.s-tuple-get(l2, A.s-id(l2, at), n, l2))
              {n + 1; link(t-let-bind, new-lets)}
            end
            check-expr = A.s-prim-app(l2, "checkTupleBind", [list: A.s-id(l2, at), A.s-num(l2, fields.length()), A.s-srcloc(l2, l2)])
