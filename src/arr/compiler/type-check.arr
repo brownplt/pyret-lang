@@ -500,6 +500,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                    typing-result(A.s-tuple(l, exprs), expect-type, context)  
                   end)
               end
+            | t-top(t-l) =>
+              check-synthesis(e, expect-type, top-level, context)
             | else => 
               typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "tuple type", l)])
             end
@@ -1009,7 +1011,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         to-type(elt, context).bind(lam(maybe-new-typ, _):
           cases(Option<Type>) maybe-new-typ:
             | none =>
-              fold-errors([list: C.cant-typecheck("issue with tuple annotation", l)])
+              fold-result(new-existential(l), context)
+#              fold-errors([list: C.cant-typecheck("issue with tuple annotation", l)])
             | some(new-typ) =>
               fold-result(new-typ, context)
           end
@@ -1372,6 +1375,8 @@ fun _instantiate-left(subtype :: Type, supertype :: Type, context :: Context) ->
         | t-bot(_) =>
           context.assign-existential(subtype, supertype)
         | t-record(fields, _) =>
+          context.assign-existential(subtype, supertype)
+        | t-tuple(fields, _) =>
           context.assign-existential(subtype, supertype)
         | t-ref(b-type, _) =>
           context.assign-existential(subtype, supertype)
