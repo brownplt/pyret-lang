@@ -1901,7 +1901,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
               } else if(isTuple(curLeft) && isTuple(curRight)) {
                 if (curLeft.vals.length !== curRight.vals.length) {
-                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.vals.length; i++) {
                     toCompare.stack.push({
@@ -2722,10 +2722,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     PTupleAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
       if(!isTuple(val)) {
-        return ffi.contractFail(
-          makeSrcloc(compilerLoc),
-          ffi.makeTypeMismatch(val, "Tuple")
-        );
+        return thisRuntime.ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+          );
       }
       if(that.anns.length != val.vals.length) {
         //return ffi.throwMessageException("lengths not equal");
@@ -2739,22 +2739,22 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           thisAnn = thisChecker;
           return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
         }, function(result) {
-          if(ffi.isOk(result)) {
-            if(remainingAnns.length === 0) { return ffi.contractOk; }
+          if(thisRuntime.ffi.isOk(result)) {
+            if(remainingAnns.length === 0) { return thisRuntime.ffi.contractOk; }
             else { return deepCheckFields(remainingAnns); }
           }
-          else if(ffi.isFail(result)) {
+          else if(thisRuntime.ffi.isFail(result)) {
             return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
             //return ffi.throwMessageException("types are wrong");
           }
         },
         "PTupleAnn:deepCheckFields");
       }
-      if(that.anns.length === 0) { return ffi.contractOk; }
+      if(that.anns.length === 0) { return thisRuntime.ffi.contractOk; }
       else { return deepCheckFields(that.anns.slice()); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
-      return ffi.contractFail(compilerLoc, ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+      return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
     };
     PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
       var that = this;
@@ -2762,15 +2762,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       for(var i = 0; i < that.anns.length; i++) {
         if(that.anns[i] === ann) { loc = that.locs[i]; }
       }
-      return ffi.contractFail(
+      return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        ffi.makeTupleAnnsFail(val, ffi.makeList([
-          ffi.makeAnnFailure(
-            makeSrcloc(loc),
-            ann,
-            getField(result, "reason")
-          )
-        ]))
+        thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
+            thisRuntime.ffi.makeAnnFailure(
+              makeSrcloc(loc),
+              ann,
+              getField(result, "reason")
+            )
+          ]))
       );
     };
 
@@ -4759,7 +4759,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return d["import-type"] + "(" + d.name + ")";
       }
       else if(d["import-type"] === "dependency") {
-        return d["protocol"] + "(" + d["args"].join(",") + ")";
+        return d["protocol"] + "(" + d["args"].join(", ") + ")";
       }
       else {
         throw new Error("Unknown dependency description: ", d);

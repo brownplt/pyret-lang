@@ -655,7 +655,7 @@ define(function() {
         errbacks.throwGeneralError('exp: argument too large: ' + n);
       return Roughnum.makeInstance(res, errbacks);
     }
-    return n.exp();
+    return n.exp(errbacks);
   };
 
   // modulo: pyretnum pyretnum -> pyretnum

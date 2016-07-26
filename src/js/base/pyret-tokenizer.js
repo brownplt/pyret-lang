@@ -125,8 +125,8 @@ define(["jglr/jglr"], function(E) {
   const comment = new RegExp("^(#((?!\\|).*)?(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
   const blockcommentstart = new RegExp("^(#\\|)", STICKY_REGEXP);
   const bar = new RegExp("^\\|", STICKY_REGEXP);
-  const langle = new RegExp("^<", STICKY_REGEXP);
-  const rangle = new RegExp("^>", STICKY_REGEXP);
+  const langle = new RegExp("^<(?![>=])", STICKY_REGEXP);
+  const rangle = new RegExp("^>(?!=)", STICKY_REGEXP);
   const lbrack = new RegExp("^\\[", STICKY_REGEXP);
   const rbrack = new RegExp("^\\]", STICKY_REGEXP);
   const lbrace = new RegExp("^\\{", STICKY_REGEXP);
@@ -142,7 +142,7 @@ define(["jglr/jglr"], function(E) {
   const thickarrow = new RegExp("^=>" + ws_after, STICKY_REGEXP);
   const coloncolon = new RegExp("^::" + ws_after, STICKY_REGEXP);
   const colon = new RegExp("^:", STICKY_REGEXP);
-  const equals = new RegExp("^=", STICKY_REGEXP);
+  const equals = new RegExp("^=(?!~)", STICKY_REGEXP);
   const colonequals = new RegExp("^:=", STICKY_REGEXP);
   const semi = new RegExp("^;", STICKY_REGEXP);
   const backslash = new RegExp("^\\\\", STICKY_REGEXP);

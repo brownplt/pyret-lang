@@ -1,112 +1,86 @@
-define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"], function(util, t, Namespace, valueskeleton) {
-  var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
-  var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
-  return util.definePyretModule(
-    "string-dict",
-    [],
-    {
-      values:
-      {
-        "make-string-dict": t.forall(["a"], sdOfA),
-        "string-dict":
-          t.record({
-            "make":
-              // NOTE(joe): any for RawArray instantiation until we have tuples
-              t.forall(["a"],
-                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA)),
-            "make0": t.forall(["a"], t.arrow([], sdOfA)),
-            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], sdOfA)),
-            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make5": 
-              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
-                                      sdOfA))
-          }),
-        "dict-each": t.any,
-        "string-dict-of":
-          t.forall(["a"],
-            t.arrow(
-              [
-                t.tyapp(t.libName("lists", "List"), [t.builtinName("String")]),
-                t.tyvar("a")
-              ],
-              sdOfA)),
-        "make-mutable-string-dict": t.forall(["a"], t.arrow([], msdOfA)),
-        "mutable-string-dict":
-          t.record({
-            "make":
-              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA)),
-            "make0": t.forall(["a"], t.arrow([], msdOfA)),
-            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], msdOfA)),
-            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make5": 
-              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
-                                      msdOfA))
-          })
-      },
-      aliases: {},
-      datatypes: {
-        StringDict: t.dataType(
-          "StringDict",
-          ["a"],
-          [],
-          {
-            "get": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
-            "get-value": t.arrow([t.string], t.tyvar("a")),
-            "set": t.arrow([t.string, t.tyvar("a")], sdOfA),
-            "merge": t.arrow([sdOfA], sdOfA),
-            "remove": t.arrow([t.string], sdOfA),
-            "keys": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
-            "keys-list": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
-            "count": t.arrow([], t.number),
-            "has-key": t.arrow([t.string], t.boolean),
-            "unfreeze": t.arrow([], msdOfA),
-            // TODO(joe): _output and _equals
-          }
-        ),
-        MutableStringDict: t.dataType(
-          "MutableStringDict",
-          ["a"],
-          [],
-          {
-            "get-now": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
-            "get-value-now": t.arrow([t.string], t.tyvar("a")),
-            "set-now": t.arrow([t.string, t.tyvar("a")], t.nothing),
-            "merge-now": t.arrow([msdOfA], t.nothing),
-            "remove-now": t.arrow([t.string], t.nothing),
-            "keys-now": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
-            "keys-list-now": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
-            "count-now": t.arrow([], t.number),
-            "has-key-now": t.arrow([t.string], t.boolean),
-            "freeze": t.arrow([], sdOfA),
-            "seal": t.arrow([], msdOfA),
-            // TODO(joe): _output and _equals
-          }
-        )
-      }
+({
+  requires:
+    [
+      { "import-type": "builtin", name: "valueskeleton" }
+    ],
+  nativeRequires: ["pyret-base/js/namespace"],
+  provides: {
+    shorthands: {
+      "sdOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],
+      "msdOfA": ["tyapp", ["local", "MutableStringDict"], [["tid", "a"]]],
+
+      "Equality": { tag: "name",
+                    origin: { "import-type": "uri", uri: "builtin://equality" },
+                    name: "EqualityResult" },
+      "VS": { tag: "name",
+                    origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+                    name: "ValueSkeleton" },
+      "SetOfA": ["tyapp", { tag: "name",
+               origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+               name: "ValueSkeleton" }, [["tid", "a"]]]
     },
-    function(runtime, namespace /* no pyret dependencies */) {
-    return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
+    values: {
+      "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
+      "make-mutable-string-dict": ["forall", ["a"], ["arrow", [], "msdOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", ["tuple", ["String", ["tid", "a"]]], "sdOfA"]],
+      "mutable-string-dict": ["forall", ["a"], ["Maker", ["tuple", ["String", ["tid", "a"]]], "msdOfA"]],
+      "is-mutable-string-dict": ["arrow", ["Any"], "Boolean"],
+      "is-string-dict": ["arrow", ["Any"], "Boolean"],
+      "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]
+    },
+    aliases: {
 
-      var O = runtime.makeObject;
-      var F = runtime.makeFunction;
-      var arity = runtime.checkArity;
-      var get = runtime.getField;
+    },
+    datatypes: {
+      "StringDict": ["data", "StringDict", ["a"], [], {
+        "get": ["arrow", ["String"], ["Option", ["tid", "a"]]],
+        "get-value": ["arrow", ["String"], ["tid", "a"]],
+        "set": ["arrow", ["String", ["tid", "a"]], "sdOfA"],
+        "merge": ["arrow", ["sdOfA"], "sdOfA"],
+        "remove": ["arrow", ["String"], "sdOfA"],
+        "keys": ["arrow", [], "SetOfA"],
+        "keys-list": ["arrow", [], ["List", ["tid", "a"]]],
+        "items": ["arrow", [], ["List", ["tuple", ["String", ["tid", "a"]]]]],
+        "count": ["arrow", [], "Number"],
+        "has-key": ["arrow", ["String"], "Boolean"],
+        "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        "unfreeze": ["arrow", [], "msdOfA"]
+      }],
+      "MutableStringDict": ["data", "MutableStringDict", ["a"], [], {
+        "get-now": ["arrow", ["String"], ["Option", ["tid", "a"]]],
+        "get-value-now": ["arrow", ["String"], ["tid", "a"]],
+        "set-now": ["arrow", ["String", ["tid", "a"]], "Nothing"],
+        "merge-now": ["arrow", ["msdOfA"], "Nothing"],
+        "remove-now": ["arrow", ["String"], "Nothing"],
+        "keys-now": ["arrow", [], "SetOfA"],
+        "keys-list-now": ["arrow", [], ["List", ["tid", "a"]]],
+        "items-now": ["arrow", [], ["List", ["tuple", ["String", ["tid", "a"]]]]],
+        "count-now": ["arrow", [], "Number"],
+        "has-key-now": ["arrow", ["String"], "Boolean"],
+        "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        "freeze": ["arrow", [], "sdOfA"],
+        "seal": ["arrow", [], "msdOfA"]
+      }],
+    }
+  },
+  theModule: function(runtime, namespace, uri, VSlib){
+    var O = runtime.makeObject;
+    var F = runtime.makeFunction;
+    var arity = runtime.checkArity;
+    var get = runtime.getField;
 
-      var VS = get(VSlib, "values");
+    var VS = get(VSlib, "values");
 
-      var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
-      var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
+    var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+    var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
 
-      var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
-      var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
+    var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
+    var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
 
-      var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
-      var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
-
+    var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
+    var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
       function applyBrand(brand, val) {
         return get(brand, "brand").app(val);
       }
@@ -1144,7 +1118,7 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
           'keys-list-now': keysListMSD,
           'count-now': countMSD,
           'has-key-now': hasKeyMSD,
-          'items': itemsMSD,
+          'items-now': itemsMSD,
           'each' : eachMSD,
           'each-loop' : eachLoopMSD,
           _equals: equalsMSD,
@@ -1566,7 +1540,6 @@ define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"
         }),
         "answer": runtime.nothing
       });
+    }
+  })
 
-    });
-    });
-});

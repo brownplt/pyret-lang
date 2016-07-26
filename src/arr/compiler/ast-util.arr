@@ -292,7 +292,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       | a-record(l, fields) =>
         T.t-record(map(field-to-typ, fields), l)
       | a-tuple(l, fields) =>
-        T.t-top(l)
+        T.t-tuple(map(ann-to-typ, fields), l)
       | a-app(l, ann, args) =>
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l)
       | a-pred(l, ann, exp) =>

@@ -1,8 +1,8 @@
 #lang pyret
 
-import exec as X
-import "compiler/compile-structs.arr" as CS
-import "../test-compile-helper.arr" as C
+import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../test-compile-helper.arr") as C
+import load-lib as L
 
 compile-str = C.compile-str
 
@@ -10,16 +10,27 @@ exec-result = lam(result):
   str = result.code.pyret-to-js-runnable()
   X.exec(str, "test", ".", true, [list:])
 end
-run-str = lam(str):
-  compiled = C.compile-str(str)
-  cases(CS.CompileResult) compiled:
-    | ok(code) => exec-result(compiled)
-    | err(errs) => raise("Compilation failure when a run was expected " + torepr(errs) + "\n Program was:\n " + str)
+
+run-str = lam(str): 
+  result = run-to-result(str)
+  cases(Either) result:
+    | left(err) => 
+      print-error("expected an answer, but got compilation errors:")
+      for lists.each(e from err):
+        print-error(tostring(e))
+      end
+    | right(ans) => ans
   end
 end
+#  compiled = C.compile-str(str)
+#  cases(CS.CompileResult) compiled:
+#    | ok(code) => exec-result(compiled)
+#    | err(errs) => raise("Compilation failure when a run was expected " + torepr(errs) + "\n Program was:\n " + str)
+#  end
+#end
 
 fun is-contract-error(result):
-  (result.success == false) and result.is-contract-error
+  L.is-failure-result(result) and result.is-contract-error
 end
 
 fun is-refinement-error-str(result):
@@ -351,7 +362,7 @@ check "Number contracts":
 end
 
 check "tuple contracts":
-  run-str("x :: {Number; String; {Number; Number; {String;}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}").success is true
+  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}").success is true
   run-str("x :: {String; String} = {\"sewhwr\"; 4124}") satisfies is-contract-error
   run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{5351}}; \"fqwfq\"}") satisfies is-contract-error
   run-str("x :: {Number; Number; {Number; String}} = {412; 5412; {412; \"fgwdef\"; 5135}}") satisfies is-contract-error

@@ -31,7 +31,7 @@ end
 
 check "multiple statements on a line":
   msg =  "on the same line"
-  c("5-2") satisfies CS.is-same-line
+  c("(5) (-2)") satisfies CS.is-same-line
   c("'ab''de'") satisfies CS.is-same-line
   c("a\"abc\"") satisfies CS.is-same-line
   c("a=3b=4") satisfies CS.is-same-line
@@ -170,6 +170,20 @@ check "table loading checks":
       + "sanitize h1 using s1 "
       + "sanitize h2 using s2 "
       + "end") satisfies CS.is-table-sanitizer-bad-column
+end
+
+check "tuple bindings":
+  sc = lam(test-str): string-contains(_, test-str) end
+  cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
+  cwfs("{ {x;y}; z} = 5") satisfies sc("Tuple bindings cannot be nested")
+  cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
+  cwfs("var {x;y} = 10") satisfies sc("Variable bindings must be names")
+  cwfs("rec {x;y} = 10") satisfies sc("Recursive bindings must be names")
+  cwfs("letrec {x;y} = 10: x end") satisfies sc("Recursive bindings must be names")
+
+  # Now nested in other scopes, since toplevel bindings are special
+  cwfs("lam(): var {x;y} = 10\nx end") satisfies sc("Variable bindings must be names")
+  cwfs("lam(): rec {x;y} = 10\nx end") satisfies sc("Recursive bindings must be names")
 end
 
 #|

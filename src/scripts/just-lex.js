@@ -1,6 +1,11 @@
 const R = require("requirejs");
 
-R(["../../build/phase1/js/pyret-tokenizer", "../../build/phase1/js/pyret-parser", "fs"], function(T, G, fs) {
+R.config({
+  paths: {
+    'jglr': "../../lib/jglr/"
+  }
+});
+R(["../../build/phaseA/js/pyret-tokenizer", "../../build/phaseA/js/pyret-parser", "fs"], function(T, G, fs) {
   const data = fs.readFileSync(process.argv[2], {encoding: "utf-8"});
   const toks = T.Tokenizer;
   toks.tokenizeFrom(data);

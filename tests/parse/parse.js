@@ -673,7 +673,7 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("{{124; 124; 12}")).toBe(false);
       expect(parse("{word; hello; there; pyret")).toBe(false);
       expect(parse("234; hi; bad}")).toBe(false);
-      expect(parse("{one}")).not.toBe(false);
+      //expect(parse("{one}")).not.toBe(false);
     });
 
     it("should parse tuple-get", function() {
@@ -705,7 +705,7 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     });
 
   it("should parse tuple binding", function() {
-    expect(parse("for each({k;v}; from elts): k end")).not.toBe(false);
+    expect(parse("for each({k;v;} from elts): k end")).not.toBe(false);
   });
   });
 

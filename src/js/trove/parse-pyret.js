@@ -42,6 +42,24 @@
         n(p2.endChar)
       );
     }
+    function isSignedNumberAsStmt(stmt) {
+      var node = stmt;
+      if (node.name !== "stmt") return false;       node = node.kids[0];
+      if (node.name !== "check-test") return false; node = node.kids[0];
+      if (node.name !== "binop-expr") return false; node = node.kids[0];
+      if (node.name !== "expr") return false;       node = node.kids[0];
+      if (node.name !== "prim-expr") return false;  node = node.kids[0];
+      if (node.name !== "num-expr") return false;   node = node.kids[0];
+      if (node.name !== "NUMBER") return false; 
+      return node.value[0] === '-' || node.value[0] === '+';
+    }
+    function detectAndComplainAboutOperatorWhitespace(stmts, fileName) {
+      for (var i = 1; i < stmts.length; i++) {
+        if (isSignedNumberAsStmt(stmts[i]) &&
+            stmts[i].pos.startRow === stmts[i - 1].pos.endRow)
+          RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, stmts[i].pos));
+      }
+    }
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
       // We might have to rewrite the whole algorithm
@@ -185,6 +203,7 @@
         },
         'block': function(node) {
           // (block stmts ...)
+          detectAndComplainAboutOperatorWhitespace(node.kids, fileName);
           return RUNTIME.getField(ast, 's-block')
             .app(pos(node.pos), makeListTr(node.kids));
         },
@@ -518,11 +537,11 @@
           }
         },
         'single-tuple-name': function(node) {
-          return name(node.kids[0]); 
+          return tr(node.kids[0]); 
         },
 
         'bind-tuple': function(node) {
-          return name(node.kids[0]);
+          return tr(node.kids[0]);
         }, 
 
         'tuple-bind-list': function(node) {
@@ -532,6 +551,22 @@
             return makeList(node.kids.map(tr));
           }
         },
+
+          /*'tup-name' : function(node) {
+            return tr(node.kids[0]);
+          },
+
+          'tuple-binding' : function(node) {
+              if (node.kids[node.kids.length - 2].name === "SEMI") {
+              //  return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2)); 
+                return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeList(node.kids.slice(1, -2).map(tr)));
+              }
+              else {
+                //return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+                return RUNTIME.getField(ast, 's-tuple-bind').app(pos(node.pos), makeList(node.kids.slice(0, -1).map(tr)));
+              }
+        },*/
+
 
         'tuple-binding' : function(node) {
           return tr(node.kids[1]);
