@@ -1536,6 +1536,9 @@ fun compile-provided-type(typ):
     | t-record(fields, l) =>
       j-list(false,
         [clist: j-str("record"), j-obj(CL.map_list(compile-type-member, fields))])
+    | t-tuple(elts, l) =>
+      j-list(false,
+        [clist: j-str("tuple"), j-list(false, CL.map_list(compile-provided-type, elts))])
     | t-forall(params, body, l) =>
       if T.is-t-data(body): compile-provided-data(body, params)
       else:

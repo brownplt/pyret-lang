@@ -1,111 +1,3 @@
-/*define(["js/runtime-util", "js/type-util", "js/namespace", "trove/valueskeleton"], function(util, t, Namespace, valueskeleton) {
-  var sdOfA = t.tyapp(t.localType("StringDict"), [t.tyvar("a")]);
-  var msdOfA = t.tyapp(t.localType("MutableStringDict"), [t.tyvar("a")]);
-  return util.definePyretModule(
-    "string-dict",
-    [],
-    {
-      values:
-      {
-        "make-string-dict": t.forall(["a"], sdOfA),
-        "string-dict":
-          t.record({
-            "make":
-              // NOTE(joe): any for RawArray instantiation until we have tuples
-              t.forall(["a"],
-                t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], sdOfA)),
-            "make0": t.forall(["a"], t.arrow([], sdOfA)),
-            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], sdOfA)),
-            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], sdOfA)),
-            "make5": 
-              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
-                                      sdOfA))
-          }),
-        "dict-each": t.any,
-        "string-dict-of":
-          t.forall(["a"],
-            t.arrow(
-              [
-                t.tyapp(t.libName("lists", "List"), [t.builtinName("String")]),
-                t.tyvar("a")
-              ],
-              sdOfA)),
-        "make-mutable-string-dict": t.forall(["a"], t.arrow([], msdOfA)),
-        "mutable-string-dict":
-          t.record({
-            "make":
-              t.forall(["a"], t.arrow([t.tyapp(t.builtinName("RawArray"), [t.any])], msdOfA)),
-            "make0": t.forall(["a"], t.arrow([], msdOfA)),
-            "make1": t.forall(["a"], t.arrow([t.tyvar("a")], msdOfA)),
-            "make2": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make3": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make4": t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")], msdOfA)),
-            "make5": 
-              t.forall(["a"], t.arrow([t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a"), t.tyvar("a")],
-                                      msdOfA))
-          })
-      },
-      aliases: {},
-      datatypes: {
-        StringDict: t.dataType(
-          "StringDict",
-          ["a"],
-          [],
-          {
-            "get": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
-            "get-value": t.arrow([t.string], t.tyvar("a")),
-            "set": t.arrow([t.string, t.tyvar("a")], sdOfA),
-            "merge": t.arrow([sdOfA], sdOfA),
-            "remove": t.arrow([t.string], sdOfA),
-            "keys": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
-            "keys-list": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
-            "count": t.arrow([], t.number),
-            "has-key": t.arrow([t.string], t.boolean),
-            "unfreeze": t.arrow([], msdOfA),
-            // TODO(joe): _output and _equals
-          }
-        ),
-        MutableStringDict: t.dataType(
-          "MutableStringDict",
-          ["a"],
-          [],
-          {
-            "get-now": t.arrow([t.string], t.tyapp(t.libName("option", "Option"), [t.tyvar("a")])),
-            "get-value-now": t.arrow([t.string], t.tyvar("a")),
-            "set-now": t.arrow([t.string, t.tyvar("a")], t.nothing),
-            "merge-now": t.arrow([msdOfA], t.nothing),
-            "remove-now": t.arrow([t.string], t.nothing),
-            "keys-now": t.arrow([], t.tyapp(t.libName("sets", "Set"), [t.string])),
-            "keys-list-now": t.arrow([], t.tyapp(t.libName("lists", "List"), [t.string])),
-            "count-now": t.arrow([], t.number),
-            "has-key-now": t.arrow([t.string], t.boolean),
-            "freeze": t.arrow([], sdOfA),
-            "seal": t.arrow([], msdOfA),
-            // TODO(joe): _output and _equals
-          }
-        )
-      }
-    }, 
-    function(runtime, namespace ) { 
-    return runtime.loadModulesNew(namespace, [valueskeleton], function(VSlib) {
-
-      var O = runtime.makeObject;
-      var F = runtime.makeFunction;
-      var arity = runtime.checkArity;
-      var get = runtime.getField;
-
-      var VS = get(VSlib, "values");
-
-      var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
-      var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
-
-      var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
-      var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
-
-      var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
-      var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); }; */
 ({
   requires:
     [
@@ -130,8 +22,8 @@
     values: {
       "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
       "make-mutable-string-dict": ["forall", ["a"], ["arrow", [], "msdOfA"]],
-      "string-dict": ["forall", ["a"], ["Maker", "Any", "sdOfA"]],
-      "mutable-string-dict": ["forall", ["a"], ["Maker", "Any", "msdOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", ["tuple", ["String", ["tid", "a"]]], "sdOfA"]],
+      "mutable-string-dict": ["forall", ["a"], ["Maker", ["tuple", ["String", ["tid", "a"]]], "msdOfA"]],
       "is-mutable-string-dict": ["arrow", ["Any"], "Boolean"],
       "is-string-dict": ["arrow", ["Any"], "Boolean"],
       "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]

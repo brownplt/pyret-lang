@@ -115,6 +115,8 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
     | t == "any" then: T.t-top(l)
     | t == "record" then:
       T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end, l)
+    | t == "tuple" then:
+      T.t-tuple(for map(e from typ.elts): tfr(e) end, l)
     | t == "name" then:
       if typ.origin.import-type == "$ELF":
         T.t-name(T.local, A.s-type-global(typ.name), l)

@@ -497,7 +497,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                    typing-error([list: C.incorrect-type("tuple type with length " + tostring(elts.length()), l, tostring(expect-type), expect-type.l)])
                 | some(folded) =>
                    folded.typing-bind(lam(exprs, shadow context):
-                   typing-result(A.s-tuple(l, exprs), expect-type, context)  
+                   typing-result(A.s-tuple(l, exprs.reverse()), expect-type, context)  
                   end)
               end
             | t-top(t-l) =>
