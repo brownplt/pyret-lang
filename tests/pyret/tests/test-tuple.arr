@@ -1,5 +1,6 @@
 import parse-pyret as P
 import pprint as PP
+import error as E
 
 check "parse and print":
   x = P.surface-parse("{1; 2}", "test")
@@ -91,6 +92,13 @@ check "tuple binding":
   x is 124
   y is 624
   z is 15
+
+  fun bad-bind():
+    {shadow a; shadow b} = {1;2;3;4;5}
+    nothing
+  end
+
+  bad-bind() raises "tup-length-mismatch"
 end
 
 check "parse and print type checker":
@@ -115,7 +123,7 @@ data tuples:
 end
 
 
-check "tuple decunstruction":
+check "tuple deconstruction":
   fun f(elts) block:
     var sum = 0
     for each({k;v;} from elts):

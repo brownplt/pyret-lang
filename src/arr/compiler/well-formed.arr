@@ -443,6 +443,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
   method s-letrec-bind(self, l, bind, expr) block:
+    last-visited-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) => nothing
       | s-tuple-bind(l2, _) => 
