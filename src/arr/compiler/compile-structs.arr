@@ -440,8 +440,6 @@ data CompileError:
           [ED.para:
             ED.text("cannot extract a "),
             ED.highlight(ED.text("non-integer position"),[list: self.index-loc],0),
-            ED.text(" from a "),
-            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
             ED.text(".")]]
       else if self.index < 0:
         [ED.error:
@@ -453,8 +451,6 @@ data CompileError:
           [ED.para:
             ED.text("cannot extract a "),
             ED.highlight(ED.text("negative position"),[list: self.index-loc],0),
-            ED.text(" from a "),
-            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
             ED.text(".")]]
       else:
         [ED.error:
@@ -466,9 +462,7 @@ data CompileError:
           [ED.para:
             ED.text("cannot extract an "),
             ED.highlight(ED.text("index"),[list: self.index-loc],0),
-            ED.text(" that large from a "),
-            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
-            ED.text(". There are no tuples that big.")]]
+            ED.text(" that large. There are no tuples that big.")]]
       end
     end,
     method render-reason(self):
