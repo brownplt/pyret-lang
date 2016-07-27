@@ -507,8 +507,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             end
         | s-tuple-get(l, tup, index, index-loc) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-tuple-let(l, names, tup) =>
-          raise("checking for s-tuple-let not yet implemented")
         | s-obj(l, fields) =>
           cases(Type) expect-type:
             | t-record(t-fields, t-l) =>
@@ -767,8 +765,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       synthesis(tup, top-level, context).bind(lam(new-ast, new-type, shadow context):
         synthesis-tuple-index(l, new-ast, new-type.l, new-type, index, A.s-tuple-get(_, _, _, index-loc), context)
       end)
-    | s-tuple-let(l, names, tup) =>
-      raise("synthesis for s-tuple-let not yet implemented")
     | s-obj(l, fields) =>
       map-fold-result(collect-member(_, false, _), fields, context).typing-bind(lam(field-types, shadow context):
         initial-obj-type = t-record(field-types, l)

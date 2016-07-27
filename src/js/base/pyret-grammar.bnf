@@ -28,12 +28,10 @@ stmt: type-expr | newtype-expr
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
-binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding
+binding: name-binding | tuple-binding
 
-tuple-binding: LBRACE tuple-bind-list RBRACE
-tuple-bind-list: bind-tuple* single-tuple-name [SEMI]
-bind-tuple: binding SEMI
-single-tuple-name: binding
+tuple-binding: LBRACE (binding SEMI)* binding [SEMI] RBRACE [AS name-binding]
+name-binding: [SHADOW] NAME [COLONCOLON ann]
 
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann

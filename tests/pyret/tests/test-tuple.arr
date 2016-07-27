@@ -101,6 +101,16 @@ check "tuple binding":
   bad-bind() raises "tup-length-mismatch"
 end
 
+
+check "nested tuple binding":
+  {{a;b}; {c;d}} = {{1; 2}; {3; 4}}
+  a is 1
+  b is 2
+  c is 3
+  d is 4
+end
+
+
 check "parse and print type checker":
   x = P.surface-parse("fun f(tup:: {Number; String; Number}): tup.{0} end", "test")
   x.tosource().pretty(80) is [list: "fun f(tup :: { Number; String; Number }): tup.{0} end"]
