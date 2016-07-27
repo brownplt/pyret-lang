@@ -343,11 +343,12 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun foo(self): _ end", "The underscore");
         P.checkCompileErrorMsg("check: _ end", "The underscore");
         P.checkCompileErrorMsg("provide _ end", "The underscore");
-        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
         P.wait(done);
       });
         it("tuples", function(done) {
-        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "negative position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{1.1}", "non-integer position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{999999}", "big");
         P.wait(done);
       });
     });

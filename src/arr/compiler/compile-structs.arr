@@ -430,7 +430,20 @@ data CompileError:
     end
   | tuple-get-bad-index(l, tup, index, index-loc) with:
     method render-fancy-reason(self):
-      if self.index < 0:
+      if not(num-is-integer(self.index)):
+        [ED.error:
+          [ED.para:
+            ED.text("A "),
+            ED.highlight(ED.text("tuple indexing"), [list: self.l], -1),
+            ED.text(" expression")],
+          ED.cmcode(self.l),
+          [ED.para:
+            ED.text("cannot extract a "),
+            ED.highlight(ED.text("non-integer position"),[list: self.index-loc],0),
+            ED.text(" from a "),
+            ED.highlight(ED.text("tuple"),[list: self.tup.l],1),
+            ED.text(".")]]
+      else if self.index < 0:
         [ED.error:
           [ED.para:
             ED.text("A "),
@@ -459,7 +472,13 @@ data CompileError:
       end
     end,
     method render-reason(self):
-      if self.index < 0:
+      if not(num-is-integer(self.index)):
+        [ED.error:
+          [ED.para:
+            ED.text("The tuple indexing expression at "),
+            ED.loc(self.l),
+            ED.text(" was given an invalid, non-integer index.")]]
+      else if self.index < 0:
         [ED.error:
           [ED.para:
             ED.text("The tuple indexing expression at "),

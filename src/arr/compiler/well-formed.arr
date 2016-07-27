@@ -653,7 +653,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
-    if (index < 0) or (index > 1000) block: 
+    if not(num-is-integer(index)) or (index < 0) or (index > 1000) block: 
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
       true
     else:
