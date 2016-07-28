@@ -131,16 +131,16 @@
         }),
         _output: runtime.makeMethod0(function(self) {
           if(tracing) {
-            var trace = runtime.ffi.makeSome(runtime.ffi.makeList(trace));
+            var traceVal = runtime.ffi.makeSome(runtime.ffi.makeList(trace));
           }
           else {
-            var trace = runtime.ffi.makeNone();
+            var traceVal = runtime.ffi.makeNone();
           }
           return runtime.getField(VS, "vs-constr").app(
             "reactor",
             runtime.ffi.makeList([
               runtime.getField(VS, "vs-value").app(init),
-              runtime.getField(VS, "vs-value").app(trace)]));
+              runtime.getField(VS, "vs-value").app(traceVal)]));
         })
       });
     }
