@@ -24,7 +24,6 @@ dependency = T.dependency
 fun ok-last(stmt):
   not(
     A.is-s-let(stmt) or
-    A.is-s-tuple-let(stmt) or
     A.is-s-var(stmt) or
     A.is-s-rec(stmt) or
     A.is-s-fun(stmt) or

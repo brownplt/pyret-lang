@@ -121,5 +121,12 @@ check:
   result25 = next-interaction("x + y")
   val(result25) is some(3)
 
+  # try nested tuples and make sure all the bindings appear in the REPL
+  result26 = restart("{{a; b}; {c; d; e} as f; {g; h}} = {{1; 2}; {3; 4; {5; 6}}; {{7; 8}; 9}}\na", false)
+  val(result26) is some(1)
+
+  result27 = next-interaction("a + e.{1} + f.{0} + g.{1} + h")
+  val(result27) is some(27)
+
 end
 

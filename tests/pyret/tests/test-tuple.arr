@@ -2,6 +2,12 @@ import parse-pyret as P
 import pprint as PP
 import error as E
 
+data Tuples:
+  | tuple1(w, one)
+  | tuple2(two)
+end
+
+
 check "parse and print":
   x = P.surface-parse("{1; 2}", "test")
   x.tosource().pretty(80) is [list: "{ 1; 2 }"]
@@ -101,6 +107,51 @@ check "tuple binding":
   bad-bind() raises "tup-length-mismatch"
 end
 
+
+check "nested tuple binding":
+  {{a;b}; {c;d}} = {{1; 2}; {3; 4}}
+  a is 1
+  b is 2
+  c is 3
+  d is 4
+
+  # testing nested bindings, and nested shadowing, and tuples as arguments to functions 
+  fun foo({{shadow a; shadow b}; {shadow c; shadow d; e} as f; {g; h}}):
+    a + e.{1} + f.{0} + g.{1} + h
+  end
+  foo({{1; 2}; {3; 4; {5; 6}}; {{7; 8}; 9}}) is 27
+
+  # nested tuples as arguments to for loops
+  thruples = for map3(
+      x from [list: 1, 2, 3, 4],
+      y from [list: "a", "b", "c", "d"],
+      z from [list: true, false, true, false]):
+    {x; {y; z}}
+  end
+  for fold(sum from 0, {x; {y; z}} from thruples):
+    if z: sum else: sum + x end
+  end is 6
+
+  # tuples in cases
+  cases(Tuples) tuple1(3, {4; true}):
+    | tuple1(x, {y; z} as w) => w.{0} is y
+    | tuple2(_) => nothing
+  end
+  let {{h; i} as j; {k; l; m} as n} = {{1; {2; 3}}; {{4; 5}; 6; {7; 8; 9}}} block:
+    j.{0} is h
+    j.{1} is i
+    n.{0} is k
+    n.{1} is l
+    n.{2} is m
+    n.{0}.{0} is 4
+    n.{0}.{1} is 5
+    m.{0} is 7
+    m.{1} is 8
+    m.{2} is 9
+  end
+end
+
+
 check "parse and print type checker":
   x = P.surface-parse("fun f(tup:: {Number; String; Number}): tup.{0} end", "test")
   x.tosource().pretty(80) is [list: "fun f(tup :: { Number; String; Number }): tup.{0} end"]
@@ -116,12 +167,6 @@ check "parse and print tuple-binding":
   x = P.surface-parse("for each({k;v;} from elts): k end", "test")
   x.tosource().pretty(80) is [list: "for each({ k; v } from elts) -> Any: k end"]
 end
-
-data tuples:
-  | tuple1(w, one)
-  | tuple2(two)
-end
-
 
 check "tuple deconstruction":
   fun f(elts) block:
@@ -152,7 +197,7 @@ check "tuple deconstruction":
 
   h({10; 12}, {1; 4; 5}) is 32
   fun cases-test(tup):
-    answer = cases(tuples) tup:
+    answer = cases(Tuples) tup:
       | tuple1(w, {k;v;}) => k + v
       | tuple2(two) => two
     end

@@ -572,7 +572,7 @@ data Expr:
   | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-type" end,
     method tosource(self):
-      params = PP.surround-separaate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+      params = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(_.tosource()))
       PP.group(PP.nest(INDENT,
           str-type + self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
@@ -827,12 +827,7 @@ data Expr:
     method label(self): "s-tuple-get" end,
     method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
-  | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
-    method label(self): "s-tuple-let" end,
-    method tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
-                   + str-spaceequal + self.tup.tosource()
-    end
-   | s-obj(l :: Loc, fields :: List<Member>) with:
+  | s-obj(l :: Loc, fields :: List<Member>) with:
     method label(self): "s-obj" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -1203,11 +1198,15 @@ data Bind:
       end
     end,
     method label(self): "s_bind" end
-  | s-tuple-bind(l :: Loc, fields :: List<Bind>) with:
+  | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
-      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+      main-pat = PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
         self.fields.map(_.tosource()))
+      cases(Option) self.as-name:
+        | none => main-pat
+        | some(n) => PP.infix(INDENT, 1, str-as, main-pat, n.tosource())
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -1665,17 +1664,24 @@ fun binding-ids(stmt) -> List<Name>:
       | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
-  fun tuple-bind-ids(b):
+  fun bind-ids(b):
     cases(Bind) b:
-      | s-bind(_,_,_,_) => [list: b.id]
-      | s-tuple-bind(_, fields) => fields.map(tuple-bind-ids).foldr(_ + _, empty)
+      | s-bind(_,_,id,_) => [list: id]
+      | s-tuple-bind(_, fields, as-name) =>
+        extra = cases(Option) as-name:
+          | none => empty
+          | some(n) => [list: n.id]
+        end
+        tup-ids = for lists.foldr(acc from extra, f from fields):
+          bind-ids(f) + acc
+        end
+        tup-ids
     end
   end
   cases(Expr) stmt:
-    | s-let(_, b, _, _) => tuple-bind-ids(b)
-    | s-tuple-let(_, names, _) => names.map(_.id)
-    | s-var(_, b, _) => tuple-bind-ids(b)
-    | s-rec(_, b, _) => tuple-bind-ids(b)
+    | s-let(_, b, _, _) => bind-ids(b)
+    | s-var(_, b, _) => bind-ids(b)
+    | s-rec(_, b, _) => bind-ids(b)
     | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
@@ -1793,8 +1799,8 @@ default-map-visitor = {
     s-bind(l, shadows, name.visit(self), ann.visit(self))
   end,
 
-  method s-tuple-bind(self, l, fields):
-    s-tuple-bind(l, fields.map(_.visit(self)))
+  method s-tuple-bind(self, l, fields, as-name):
+    s-tuple-bind(l, fields.map(_.visit(self)), self.option(as-name))
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -1913,7 +1919,7 @@ default-map-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(l, typ, bind.visit(self))
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     s-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
@@ -1979,9 +1985,6 @@ default-map-visitor = {
   end,
   method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     s-tuple-get(l, tup.visit(self), index, index-loc)
-  end,
-  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
-    s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
   end,
   method s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
@@ -2330,8 +2333,8 @@ default-iter-visitor = {
     name.visit(self) and ann.visit(self)
   end,
 
-  method s-tuple-bind(self, l, fields):
-    lists.all(_.visit(self), fields)
+  method s-tuple-bind(self, l, fields, as-name):
+    lists.all(_.visit(self), fields) and self.option(as-name)
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -2447,7 +2450,7 @@ default-iter-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     bind.visit(self)
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     lists.all(_.visit(self), args) and body.visit(self)
   end,
 
@@ -2514,9 +2517,6 @@ default-iter-visitor = {
   end,
   method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     tup.visit(self)
-  end,
-  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
-    lists.all(_.visit(self), names) and tup.visit(self)
   end,
   method s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
@@ -2852,8 +2852,8 @@ dummy-loc-visitor = {
     s-bind(dummy-loc, shadows, name.visit(self), ann.visit(self))
   end,
 
-  method s-tuple-bind(self, l, fields):
-    s-tuple-bind(dummy-loc, fields.map(_.visit(self)))
+  method s-tuple-bind(self, l, fields, as-name):
+    s-tuple-bind(dummy-loc, fields.map(_.visit(self)), self.option(as-name))
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -2972,7 +2972,7 @@ dummy-loc-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(dummy-loc, l, typ, bind.visit(self))
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     s-cases-branch(dummy-loc, dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 

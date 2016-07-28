@@ -105,7 +105,7 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
 end
 
 fun is-binder(expr):
-  A.is-s-let(expr) or A.is-s-tuple-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)
+  A.is-s-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)
 end
 
 fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
@@ -151,123 +151,59 @@ fun ensure-unique-cases(_cases :: List<A.CasesBranch>):
   end
 end
 
+# This function checks that a set of bindings are distinct, regardless of shadowing
+# (e.g. the parameters of a function should never have the same name)
 fun ensure-unique-ids(bindings :: List<A.Bind>) block:
-   for fold(ad from [SD.string-dict:], bind from bindings):
-     cases(A.Bind) bind:
-     | s-bind(l , shadows, id, ann) =>
-        cases(A.Name) id block:
-        | s-underscore(_) => ad
-        | s-name(_, name) =>
-          if (ad.has-key(id.toname())):
-            block:
-              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
-              ad
-            end
-          else:
-            ad.set(id.toname(), l)
-          end
-       | else =>
-         if (ad.has-key(id.toname())):
-            block:
-              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
-              ad
-            end
-          else:
-            ad.set(id.toname(), l)
-         end
-      end
-    | s-tuple-bind(l, fields) => 
-      for fold(ad2 from ad, field from fields):
-        cases(A.Name) field.id block:
-          | s-underscore(_) => ad2
-          | s-name(_, name) =>
-            if (ad2.has-key(field.id.toname())):
-              block:
-                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
-                ad2
-              end
+  ad = SD.make-mutable-string-dict()
+  fun help(bind):
+    cases(A.Bind) bind block:
+      | s-bind(l, shadows, id, ann) =>
+        cases(A.Name) id:
+          | s-underscore(_) => nothing
+          | else =>
+            if ad.has-key-now(id.toname()):
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value-now(id.toname())))
             else:
-              ad2.set(field.id.toname(), field.l)
+              ad.set-now(id.toname(), l)
             end
-         | else =>
-           if (ad2.has-key(field.id.toname())):
-              block:
-                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
-                ad2
-              end
-            else:
-              ad2.set(field.id.toname(), field.l)
-           end
         end
-      end
+      | s-tuple-bind(l, fields, as-name) =>
+        cases(Option) as-name:
+          | none => nothing
+          | some(n) => help(n)
+        end
+        fields.each(help)
     end
   end
-  nothing
+  bindings.each(help)
 end
 
-# NOTE: This is almost exactly the same function as above, but gives a
-# different error This is replicating the old behavior; does it still
-# make any sense?
-fun ensure-unique-bindings(rev-bindings :: List<A.Bind>) block:
-   for fold(ad from [SD.string-dict:], bind from rev-bindings) block:
-     cases(A.Bind) bind block:
-     | s-bind(l , shadows, id, ann) =>
-        cases(A.Name) id block:
-        | s-underscore(_) => ad
-        | s-name(_, name) =>
-          if (shadows): ad
-          else if (ad.has-key(id.toname())):
-            block:
-              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
-              ad
-            end
-          else:
-            ad.set(id.toname(), l)
-          end
-       | else =>
-         if (shadows): ad
-         else if (ad.has-key(id.toname())):
-            block:
-              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value(id.toname())))
-              ad
-            end
-          else:
-            ad.set(id.toname(), l)
-         end
-      end
-    | s-tuple-bind(l, fields) => 
-      for fold(ad2 from ad, field from fields):
-      cases(A.Bind) field:
-      | s-bind(_,_,_,_) =>
-        cases(A.Name) field.id block:
-          | s-underscore(_) => ad2
-          | s-name(_, name) =>
-            if (field.shadows): ad2
-            else if (ad2.has-key(field.id.toname())):
-              block:
-                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
-                ad2
-              end
+# This function checks that the bindings within a block are either distinct
+# or explicitly shadowed -- even before scope-resolution has a chance to kick in
+fun ensure-unique-bindings(bindings :: List<A.Bind>) block:
+  ad = SD.make-mutable-string-dict()
+  fun help(bind):
+    cases(A.Bind) bind block:
+      | s-bind(l , shadows, id, ann) =>
+        cases(A.Name) id:
+          | s-underscore(_) => nothing
+          | else =>
+            if shadows: nothing
+            else if ad.has-key-now(id.toname()):
+              add-error(C.duplicate-id(id.tosourcestring(), l, ad.get-value-now(id.toname())))
             else:
-              ad2.set(field.id.toname(), field.l)
+              ad.set-now(id.toname(), l)
             end
-         | else =>
-           if (field.shadows): ad2
-           else if (ad2.has-key(field.id.toname())):
-              block:
-                add-error(C.duplicate-id(field.id.tosourcestring(), field.l, ad2.get-value(field.id.toname())))
-                ad2
-              end
-            else:
-              ad2.set(field.id.toname(), field.l)
-           end
         end
-       | s-tuple-bind(_,_) => ad2
-       end
-      end
+      | s-tuple-bind(l, fields, as-name) =>
+        cases(Option) as-name:
+          | none => nothing
+          | some(n) => help(n)
+        end
+        fields.each(help)
     end
   end
-  nothing
+  bindings.each(help)
 end
 
 
@@ -363,7 +299,7 @@ end
 
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
-  ensure-unique-bindings(bind-stmts.reverse())
+  ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
   lists.all(_.visit(visitor), stmts)
 end
@@ -469,7 +405,7 @@ well-formed-visitor = A.default-iter-visitor.{
     last-visited-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) => nothing
-      | s-tuple-bind(l2, _) => 
+      | s-tuple-bind(l2, _, _) => 
         last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         nothing
@@ -516,7 +452,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
-      | s-tuple-bind(l2, _) => 
+      | s-tuple-bind(l2, _, _) => 
         last-visited-loc := l
         wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
         true
@@ -531,7 +467,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-rec(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
-      | s-tuple-bind(l2, _) => 
+      | s-tuple-bind(l2, _, _) => 
         last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         true
@@ -545,7 +481,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
        bind.visit(self) and val.visit(self)
-    | s-tuple-bind(l2, _) => 
+    | s-tuple-bind(l2, _, _) => 
       last-visited-loc := l
       wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
       true
@@ -561,15 +497,8 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     end
   end,
-  method s-tuple-bind(self, l, fields) block:
+  method s-tuple-bind(self, l, fields, as-name) block:
     last-visited-loc := l
-    for each(element from fields):
-      cases(A.Bind) element:
-      | s-bind(_,_,_,_) => true
-      | s-tuple-bind(l2, _) =>
-         wf-error("Tuple bindings cannot be nested tuples ", l)
-      end
-    end
     true
   end,
   method s-bind(self, l, shadows, name, ann) block:
@@ -676,7 +605,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
-    if (index < 0) or (index > 1000) block: 
+    if not(num-is-integer(index)) or (index < 0) or (index > 1000) block: 
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
       true
     else:
@@ -885,7 +814,7 @@ top-level-visitor = A.default-iter-visitor.{
     for each(one-bind from binds.map(_.bind)):
       cases(A.Bind) one-bind:
       | s-bind(_,_,_,_) => nothing
-      | s-tuple-bind(l2, fields) => wf-error("Tuple binding not allowed as variant member ", l2)
+      | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member ", l2)
      end
     end
     ids = fields-to-binds(with-members) + binds.map(_.bind)
@@ -1142,7 +1071,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
     cases(A.Bind) bind: 
      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
-     | s-tuple-bind(l2, _) => wf-error("Tuple binding not allowed as variant member", l2)
+     | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member", l2)
     end
   end,
   method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
