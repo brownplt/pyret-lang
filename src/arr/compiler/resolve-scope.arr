@@ -157,7 +157,15 @@ fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.
               end
             end)
           {A.s-id(lb, name); rebuild(lb, A.s-bind(lb, false, name, ann), expr)}
-        | some(b) => {A.s-id(b.l, b.id); rebuild(l, b, expr)}
+        | some(b) =>
+          binding = cases(A.Ann) b.ann:
+            | a-blank =>
+              # just create a tuple of the correct arity; leave the field annotations to be checked later
+              ann = A.a-tuple(b.l, for map(_ from fields): A.a-blank end)
+              A.s-bind(b.l, b.shadows, b.id, ann)
+            | else => b
+          end
+          {A.s-id(b.l, b.id); rebuild(l, binding, expr)}
       end
       for lists.fold_n(n from 0, shadow lbs from binding ^ link(_, lbs), f from fields):
         simplify-let-bind(rebuild, f.l, f, A.s-tuple-get(f.l, bound-expr, n, f.l), lbs)

@@ -151,7 +151,6 @@ end
 check "tuple bindings":
   sc = lam(test-str): string-contains(_, test-str) end
   cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
-  cwfs("{ {x;y}; z} = 5") satisfies sc("Tuple bindings cannot be nested")
   cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
   cwfs("var {x;y} = 10") satisfies sc("Variable bindings must be names")
   cwfs("rec {x;y} = 10") satisfies sc("Recursive bindings must be names")
