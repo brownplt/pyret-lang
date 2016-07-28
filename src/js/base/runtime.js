@@ -5021,6 +5021,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function makeReactor(init, handlersDict) {
+      if(!thisRuntime.hasParam("makeReactor")) { thisRuntime.ffi.throwMessageException("No reactor constructor provided"); }
+      return thisRuntime.getParam("makeReactor")(init, handlersDict);
+    }
+
     var runtimeNamespaceBindings = {
       'torepr': torepr,
       'tostring': tostring,
@@ -5386,6 +5391,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'combineEquality': combineEquality,
 
       'within': equalWithinRel, //?
+
+      'makeReactor': makeReactor,
 
       'raise': raiseJSJS,
 

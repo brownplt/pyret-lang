@@ -135,6 +135,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       runtime["checkCellContent"] = runtime.makeCheckType(
         runtime.getField(ds, "is-CellContent").app, "CellContent");
     },
+    "builtin://reactors": function(reactor) {
+      var r = runtime.getField(runtime.getField(reactor, "provide-plus-types"), "values");
+      runtime.setParam("makeReactor", runtime.getField(r, "make-reactor").app);
+    },
     "builtin://checker": function(checker) {
       checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
       // NOTE(joe): This is the place to add checkAll

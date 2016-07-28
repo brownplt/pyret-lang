@@ -569,6 +569,11 @@ fun desugar-expr(expr :: A.Expr):
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, false)) end))])
       end
+    | s-reactor(l, fields) =>
+      init = for filter(f from fields):
+        f.name == "init"
+      end.first.value
+      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, fields.map(desugar-member))])
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
       column-names = for map(header from headers):

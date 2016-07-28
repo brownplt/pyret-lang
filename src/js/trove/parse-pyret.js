@@ -687,6 +687,11 @@
             return makeListComma(node.kids);
           }
         },
+        'reactor-expr': function(node) {
+          // (LBRACE REACTOR COLON fields RBRACE)
+          return RUNTIME.getField(ast, 's-reactor')
+            .app(pos(node.pos), tr(node.kids[3]));
+        },
         'table-expr': function(node) {
           // (TABLE table-headers table-rows end)
           return RUNTIME.getField(ast, 's-table')

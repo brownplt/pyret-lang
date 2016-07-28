@@ -250,6 +250,7 @@ define(["jglr/jglr"], function(E) {
     {name: "LOAD-TABLE", val: new RegExp(kw("load-table"), STICKY_REGEXP)},
     {name: "SANITIZE", val: new RegExp(kw("sanitize"), STICKY_REGEXP)},
     {name: "SOURCECOLON", val: new RegExp(kw("source:"), STICKY_REGEXP)},
+    {name: "REACTOR", val: new RegExp(kw("reactor"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
     {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},

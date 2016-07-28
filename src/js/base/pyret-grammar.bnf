@@ -114,6 +114,7 @@ expr: paren-expr | id-expr | prim-expr
     | table-update
     | table-expr
     | load-table-expr
+    | reactor-expr
 
 template-expr : DOTDOTDOT
 
@@ -175,6 +176,12 @@ table-rows: [table-row* table-row]
 table-row: ROW table-items
 table-items: [list-table-item* binop-expr]
 list-table-item: binop-expr COMMA
+
+# NOTE(joe): just parsing as "fields" for now, and handling naming in
+# desugaring/well-formed, so that better error messages can be given
+reactor-expr: LBRACE REACTOR COLON
+  fields
+RBRACE
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK

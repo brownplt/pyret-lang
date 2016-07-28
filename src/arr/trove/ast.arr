@@ -1045,6 +1045,12 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
+  | s-reactor(l :: Loc, fields :: List<Member>) with:
+    method label(self): "s-table-extend" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
+        PP.lbrace + PP.str("reactor:"), PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
+    end
   | s-table-extend(l :: Loc,
       column-binds :: ColumnBinds,
       extensions :: List<TableExtendField>) with:
@@ -1197,7 +1203,7 @@ data Bind:
       end
     end,
     method label(self): "s_bind" end
-  | s-tuple-bind(l :: Loc, fields :: List<Name>) with:
+  | s-tuple-bind(l :: Loc, fields :: List<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
@@ -1986,6 +1992,9 @@ default-map-visitor = {
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
+  method s-reactor(self, l :: Loc, fields :: List<Member>):
+    s-reactor(l, fields.map(_.visit(self)))
+  end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
     s-table(l, headers.map(_.visit(self)), rows.map(_.visit(self)))
   end,
@@ -2518,6 +2527,9 @@ default-iter-visitor = {
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
   end,
+  method s-reactor(self, l :: Loc, fields :: List<Member>):
+    lists.all(_.visit(self), fields)
+  end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
     lists.all(_.visit(self), headers) and lists.all(_.visit(self), rows)
   end,
@@ -3029,6 +3041,9 @@ dummy-loc-visitor = {
   end,
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
+  method s-reactor(self, l :: Loc, fields):
+    s-reactor(dummy-loc, fields.map(_.visit(self)))
   end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
     s-table(dummy-loc, headers.map(_.visit(self)), rows.map(_.visit(self)))

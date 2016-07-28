@@ -704,9 +704,16 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
      expect(parse("fun f(tup:: {Number; {String; Number; {hello; there}}; {hi; what}}): tup.{1} end")).not.toBe(false);
     });
 
-  it("should parse tuple binding", function() {
-    expect(parse("for each({k;v;} from elts): k end")).not.toBe(false);
-  });
+    it("should parse tuple binding", function() {
+      expect(parse("for each({k;v;} from elts): k end")).not.toBe(false);
+    });
+
+    it("should parse reactors", function() {
+      expect(parse("{ reactor: start-with: 5, on-tick: lam(x): x + 1 end }")).not.toBe(false);
+      expect(parse("{ reactor: error-later-than-parsing: error }")).not.toBe(false);
+      expect(parse("{ reactor: }")).toBe(false);
+      expect(parse("{ reactor }")).toBe(false); // TODO(joe): confusing overlap w/singleton tuple?
+    });
   });
 
   
