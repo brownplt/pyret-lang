@@ -781,10 +781,15 @@ well-formed-visitor = A.default-iter-visitor.{
       when not(has-init):
         wf-error("A reactor must have a field named init for the initial value", l)
       end
-      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "stop-when", "close-when-stop"]
-      for each(f from fields):
+      fields-dict = SD.make-mutable-string-dict()
+      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "to-draw", "stop-when", "close-when-stop", "seconds-per-tick"]
+      for each(f from fields) block:
         when not(ok-fields.member(f.name)):
-          wf-error("Valid handlers for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name, f.l)
+          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name, f.l)
+        end
+        cases(Option<A.Loc>) fields-dict.get-now(f.name):
+          | none => fields-dict.set-now(f.name, f.l)
+          | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
         end
       end
       true

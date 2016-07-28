@@ -8,3 +8,4 @@ data Event:
   | mouse(x :: Number, y :: Number, kind :: String)
   | keypress(key :: String)
 end
+
