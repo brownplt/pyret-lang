@@ -154,6 +154,9 @@
         }),
         types: {
           Event: gtf(reactorEvents, "Event")
+        },
+        internal: {
+          setInteract: setInteract          
         }
       })
     });
