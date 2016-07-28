@@ -49,7 +49,6 @@ check "pointless underscores":
 end
 
 check "bad-checks":
-  print("Checking bad checks")
   c("5 is 5") satisfies CS.is-unwelcome-test
   c("5 is-not 5") satisfies CS.is-unwelcome-test
   c("5 is== 5") satisfies CS.is-unwelcome-test
@@ -85,7 +84,6 @@ check "bad-checks":
 end
 
 check "malformed blocks":
-  print("Checking malformed blocks")
   c("fun foo():\n" + 
        " x = 10\n" + 
        "end\n" + 
@@ -152,7 +150,6 @@ check "malformed blocks":
 end
 
 check "table loading checks":
-  print("Checking table loading")
   c("load-table: h1 end") satisfies CS.is-load-table-no-body
   c("load-table: source: src end") satisfies CS.is-table-empty-header
   c("load-table: h1 "
@@ -177,7 +174,6 @@ check "table loading checks":
 end
 
 check "tuple bindings":
-  print("Checking tuple bindings")
   cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
   cwfs("{ {x;y}; z} = 5") satisfies sc("Tuple bindings cannot be nested")
   cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
@@ -190,13 +186,11 @@ check "tuple bindings":
   cwfs("lam(): rec {x;y} = 10\nx end") satisfies sc("Recursive bindings must be names")
 end
 
-#|
 check "reactors":
-  cwfs("{reactor: }") satisfies sc("must have a field named init")
+  cwfs("{reactor: todraw: 67}") satisfies sc("must have a field named init")
   cwfs("{reactor: init: 5, todraw: 67}") satisfies sc("but found one named todraw")
   cwfs("{reactor: method f(self): 5 end}") satisfies sc("cannot contain method fields")
 end
-|#
 
 #|
       it("should notice empty blocks", function(done) {
