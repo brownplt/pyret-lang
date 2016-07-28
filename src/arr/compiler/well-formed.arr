@@ -769,6 +769,27 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-provide(self, l, expr):
     true
   end,
+  method s-reactor(self, l, fields):
+    method-fields = for filter(f from fields): A.is-s-method-field(f) end
+    if not(is-empty(method-fields)) block:
+      wf-error("A reactor cannot contain method fields.", method-fields.first.l)
+      true
+    else:
+      has-init = is-link(for filter(f from fields):
+        f.name == "init"
+      end)
+      when not(has-init):
+        wf-error("A reactor must have a field named init for the initial value", l)
+      end
+      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "stop-when", "close-when-stop"]
+      for each(f from fields):
+        when not(ok-fields.member(f.name)):
+          wf-error("Valid handlers for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name, f.l)
+        end
+      end
+      true
+    end
+  end,
   method s-table-extend(self, l, column-binds, extensions) block:
     bound-names = S.list-to-tree-set(map(lam(b :: A.Bind): b.id.toname() end, column-binds.binds))
     for L.all(extension from extensions):
