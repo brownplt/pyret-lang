@@ -161,7 +161,7 @@ fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.
           binding = cases(A.Ann) b.ann:
             | a-blank =>
               # just create a tuple of the correct arity; leave the field annotations to be checked later
-              ann = A.a-tuple(b.l, for map(_ from fields): A.a-blank end)
+              ann = A.a-tuple(lb, for map(_ from fields): A.a-blank end)
               A.s-bind(b.l, b.shadows, b.id, ann)
             | else => b
           end
