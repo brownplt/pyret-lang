@@ -235,7 +235,8 @@
 
         }),
         types: {
-          Event: gtf(reactorEvents, "Event")
+          Event: gtf(reactorEvents, "Event"),
+          Reactor: annReactor
         },
         internal: {
           setInteract: setInteract          

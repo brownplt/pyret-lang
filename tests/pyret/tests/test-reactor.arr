@@ -32,7 +32,7 @@ check "reactors":
 end
 
 check "reactor-functions":
-  r1 = reactor:
+  r1 :: R.Reactor<Number> = reactor:
     init: 5,
     on-mouse: lam(w, x, y, kind): w + x + y end
   end
