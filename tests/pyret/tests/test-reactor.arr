@@ -31,3 +31,20 @@ check "reactors":
 
 end
 
+check "reactor-functions":
+  r1 = reactor:
+    init: 5,
+    on-mouse: lam(w, x, y, kind): w + x + y end
+  end
+
+  R.get-value(r1) is 5
+  R.get-value(R.react(r1, R.mouse(7, 8, "buttondown"))) is 20
+  r1.get-trace() raises "Tried to get trace"
+
+  r2 = R.start-trace(r1)
+  r3 = R.react(r2, R.mouse(11, 13, "buttondown"))
+
+  R.get-trace(r3) is [list: 5, 29]
+
+  R.interact(r3) raises "No interaction set up"
+end

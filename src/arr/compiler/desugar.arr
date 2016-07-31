@@ -573,6 +573,9 @@ fun desugar-expr(expr :: A.Expr):
       init = for filter(f from fields):
         f.name == "init"
       end.first.value
+      non-init-fields = for filter(f from fields):
+        f.name <> "init"
+      end
       A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, fields.map(desugar-member))])
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
