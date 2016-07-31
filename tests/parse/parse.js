@@ -709,10 +709,10 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
     });
 
     it("should parse reactors", function() {
-      expect(parse("{ reactor: start-with: 5, on-tick: lam(x): x + 1 end }")).not.toBe(false);
-      expect(parse("{ reactor: error-later-than-parsing: error }")).not.toBe(false);
-      expect(parse("{ reactor: }")).toBe(false);
-      expect(parse("{ reactor }")).toBe(false); // TODO(joe): confusing overlap w/singleton tuple?
+      expect(parse("reactor: start-with: 5, on-tick: lam(x): x + 1 end end")).not.toBe(false);
+      expect(parse("reactor: error-later-than-parsing: error end")).not.toBe(false);
+      expect(parse("reactor: end")).toBe(false);
+      expect(parse("reactor end")).toBe(false);
     });
   });
 

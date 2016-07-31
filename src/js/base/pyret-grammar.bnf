@@ -177,9 +177,9 @@ list-table-item: binop-expr COMMA
 
 # NOTE(joe): just parsing as "fields" for now, and handling naming in
 # desugaring/well-formed, so that better error messages can be given
-reactor-expr: LBRACE REACTOR COLON
+reactor-expr: REACTOR COLON
   fields
-RBRACE
+END
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK

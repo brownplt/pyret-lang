@@ -3,17 +3,17 @@ import pprint as PP
 import reactors as R
 
 check "parse and print":
-  t1 = P.surface-parse("{reactor: init: 5 }", "test")
-  t1.tosource().pretty(80) is [list: "{reactor: init: 5 }"]
-  t2 = P.surface-parse("{reactor: init: 5, on-tick: ticker }", "test")
-  t2.tosource().pretty(80) is [list: "{reactor: init: 5, on-tick: ticker }"]
+  t1 = P.surface-parse("reactor: init: 5 end", "test")
+  t1.tosource().pretty(80) is [list: "reactor: init: 5 end"]
+  t2 = P.surface-parse("reactor: init: 5, on-tick: ticker end", "test")
+  t2.tosource().pretty(80) is [list: "reactor: init: 5, on-tick: ticker end"]
 end
 
 check "reactors":
-  r1 = { reactor:
+  r1 = reactor:
     init: 5,
     on-tick: lam(x): x + 1 end
-  }
+  end
 
   r1.get-value() is 5
   r2 = r1.react(R.tick)

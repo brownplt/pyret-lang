@@ -1043,8 +1043,8 @@ data Expr:
   | s-reactor(l :: Loc, fields :: List<Member>) with:
     method label(self): "s-table-extend" end,
     method tosource(self):
-      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
-        PP.lbrace + PP.str("reactor:"), PP.commabreak, PP.rbrace, self.fields.map(_.tosource()))
+      PP.surround-separate(INDENT, 1, PP.str("reactor: end"),
+        PP.str("reactor:"), PP.commabreak, PP.str("end"), self.fields.map(_.tosource()))
     end
   | s-table-extend(l :: Loc,
       column-binds :: ColumnBinds,

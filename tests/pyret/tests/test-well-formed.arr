@@ -186,10 +186,10 @@ check "tuple bindings":
 end
 
 check "reactors":
-  cwfs("{reactor: todraw: 67}") satisfies sc("must have a field named init")
-  cwfs("{reactor: init: 5, todraw: 67}") satisfies sc("but found one named todraw")
-  cwfs("{reactor: method f(self): 5 end}") satisfies sc("cannot contain method fields")
-  cwfs("{reactor: init: 5, init: 10}") satisfies sc("Duplicate")
+  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named init")
+  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named todraw")
+  cwfs("reactor: method f(self): 5 end end") satisfies sc("cannot contain method fields")
+  cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
 
 #|

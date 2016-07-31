@@ -670,9 +670,9 @@
           }
         },
         'reactor-expr': function(node) {
-          // (LBRACE REACTOR COLON fields RBRACE)
+          // (REACTOR COLON fields END)
           return RUNTIME.getField(ast, 's-reactor')
-            .app(pos(node.pos), tr(node.kids[3]));
+            .app(pos(node.pos), tr(node.kids[2]));
         },
         'table-expr': function(node) {
           // (TABLE table-headers table-rows end)
