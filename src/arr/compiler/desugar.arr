@@ -570,13 +570,12 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, false)) end))])
       end
     | s-reactor(l, fields) =>
-      init = for filter(f from fields):
+      init-and-non-init = for lists.partition(f from fields):
         f.name == "init"
-      end.first.value
-      non-init-fields = for filter(f from fields):
-        f.name <> "init"
       end
-      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, fields.map(desugar-member))])
+      init = init-and-non-init.is-true.first.value
+      non-init-fields = init-and-non-init.is-false
+      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, non-init-fields.map(desugar-member))])
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
       column-names = for map(header from headers):
