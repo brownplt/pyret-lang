@@ -140,17 +140,31 @@
               runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
             }
           }
-          return runtime.ffi.cases(isEvent, "Event", event, {
-            keypress: function(key) {
-              return callOrError("on-key", [init, key]);
-            },
-            tick: function() {
-              return callOrError("on-tick", [init]);
-            },
-            mouse: function(x, y, kind) {
-              return callOrError("on-mouse", [init, x, y, kind]);
-            }
-          });
+          return runtime.safeCall(function() {
+              if(handlers["stop-when"]) {
+                return handlers["stop-when"].app(init);
+              }
+              else {
+                return false;
+              }
+            }, function(stop) {
+              if(stop) {
+                return self;
+              }
+              else {
+                return runtime.ffi.cases(isEvent, "Event", event, {
+                  keypress: function(key) {
+                    return callOrError("on-key", [init, key]);
+                  },
+                  tick: function() {
+                    return callOrError("on-tick", [init]);
+                  },
+                  mouse: function(x, y, kind) {
+                    return callOrError("on-mouse", [init, x, y, kind]);
+                  }
+                });
+              }
+            });
         }),
         _output: runtime.makeMethod0(function(self) {
           if(tracing) {

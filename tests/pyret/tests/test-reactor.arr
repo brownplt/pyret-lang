@@ -48,3 +48,15 @@ check "reactor-functions":
 
   R.interact(r3) raises "No interaction set up"
 end
+
+
+check "stop-when, manually":
+  r = reactor:
+    init: 10,
+    on-tick: lam(w): w + 1 end,
+    stop-when: lam(x): x > 10 end
+  end
+  r.react(R.tick).get-value() is 11
+  r.react(R.tick).react(R.tick).get-value() is 11
+  r.react(R.tick).react(R.tick).react(R.tick).get-value() is 11
+end
