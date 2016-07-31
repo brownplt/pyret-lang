@@ -23,7 +23,7 @@ var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by
 
 is-s-let = A.is-s-let # ANNOYING WORKAROUND
 
-reserved-names = [SD.string-dict: 
+reserved-names = [SD.string-dict:
   "function", true,
   "break", true,
   "return", true,
@@ -396,7 +396,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-let-expr(self, l, binds, body, blocky) block:
     last-visited-loc := l
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
@@ -405,7 +405,7 @@ well-formed-visitor = A.default-iter-visitor.{
     last-visited-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) => nothing
-      | s-tuple-bind(l2, _, _) => 
+      | s-tuple-bind(l2, _, _) =>
         last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         nothing
@@ -414,7 +414,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-letrec(self, l, binds, body, blocky) block:
     last-visited-loc := l
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(self)
@@ -452,7 +452,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
-      | s-tuple-bind(l2, _, _) => 
+      | s-tuple-bind(l2, _, _) =>
         last-visited-loc := l
         wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
         true
@@ -467,7 +467,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-rec(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
-      | s-tuple-bind(l2, _, _) => 
+      | s-tuple-bind(l2, _, _) =>
         last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         true
@@ -481,7 +481,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
        bind.visit(self) and val.visit(self)
-    | s-tuple-bind(l2, _, _) => 
+    | s-tuple-bind(l2, _, _) =>
       last-visited-loc := l
       wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
       true
@@ -539,7 +539,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(chk) => ensure-empty-block(l, "methods", chk)
     end
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
@@ -568,7 +568,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(chk) => ensure-empty-block(l, "methods", chk)
     end
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
@@ -580,7 +580,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(chk) => ensure-empty-block(l, "anonymous functions", chk)
     end
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), params)
@@ -591,7 +591,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     ensure-unique-ids(args)
@@ -605,7 +605,7 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
-    if not(num-is-integer(index)) or (index < 0) or (index > 1000) block: 
+    if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
       true
     else:
@@ -701,20 +701,18 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-reactor(self, l, fields):
     method-fields = for filter(f from fields): A.is-s-method-field(f) end
     if not(is-empty(method-fields)) block:
-      wf-error("A reactor cannot contain method fields.", method-fields.first.l)
+      wf-error("A reactor cannot contain method fields ", method-fields.first.l)
       true
     else:
-      has-init = is-link(for filter(f from fields):
-        f.name == "init"
-      end)
+      has-init = is-some(for find(f from fields): f.name == "init" end)
       when not(has-init):
-        wf-error("A reactor must have a field named init for the initial value", l)
+        wf-error("A reactor must have a field named init for the initial value ", l)
       end
       fields-dict = SD.make-mutable-string-dict()
-      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "to-draw", "stop-when", "close-when-stop", "seconds-per-tick"]
+      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "to-draw", "stop-when", "close-when-stop", "seconds-per-tick", "title"]
       for each(f from fields) block:
         when not(ok-fields.member(f.name)):
-          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name, f.l)
+          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name + " ", f.l)
         end
         cases(Option<A.Loc>) fields-dict.get-now(f.name):
           | none => fields-dict.set-now(f.name, f.l)
@@ -799,7 +797,7 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   method s-type-let-expr(self, l, binds, body, blocky) block:
-    when not(blocky): 
+    when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
     lists.all(_.visit(self), binds) and body.visit(well-formed-visitor)
@@ -1069,7 +1067,7 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-for-bind(l, bind, value)
   end,
   method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
-    cases(A.Bind) bind: 
+    cases(A.Bind) bind:
      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
      | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member", l2)
     end
