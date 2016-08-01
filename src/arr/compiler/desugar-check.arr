@@ -41,6 +41,8 @@ check-stmts-visitor = A.default-map-visitor.{
           | none                    => check-op("check-is")
           | some(shadow refinement) => check-refinement(refinement, "check-is-refinement")
         end
+      | s-op-is-roughly(_) =>
+        check-op("check-is-roughly")
       | s-op-is-not(_)              =>
         cases(Option) refinement:
           | none                    => check-op("check-is-not")

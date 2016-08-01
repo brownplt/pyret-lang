@@ -2350,6 +2350,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a); }
         return nothing;
       }, "check-is"),
+      "check-is-roughly": makeFunction(function(left, right, loc) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is-roughly"], 3, $a); }
+        return nothing;
+      }, "check-is"),
       "check-satisfies": makeFunction(function(left, pred, loc) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a); }
         return nothing;

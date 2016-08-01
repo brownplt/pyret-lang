@@ -1290,6 +1290,7 @@
       "or":  RUNTIME.makeString("opor"),
 
       "is":                function(l){return RUNTIME.getField(ast, "s-op-is").app(l);},
+      "is-roughly":        function(l){return RUNTIME.getField(ast, "s-op-is-roughly").app(l);},
       "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op==");},
       "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
       "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
