@@ -16,12 +16,12 @@ check "reactors":
   end
 
   r1.get-value() is 5
-  r2 = r1.react(R.tick)
+  r2 = r1.react(R.time-tick)
   r2.get-value() is 6
   r2.get-trace() raises "Tried to get trace"
 
   r3 = r2.start-trace()
-  r4 = r3.react(R.tick)
+  r4 = r3.react(R.time-tick)
   r4.get-trace() is [list: 6, 7]
 
   r4.react(R.mouse(4, 5, "buttondown")) raises "No on-mouse handler defined"
@@ -59,7 +59,7 @@ check "stop-when, manually":
     on-tick: lam(w): w + 1 end,
     stop-when: lam(x): x > 10 end
   end
-  r.react(R.tick).get-value() is 11
-  r.react(R.tick).react(R.tick).get-value() is 11
-  r.react(R.tick).react(R.tick).react(R.tick).get-value() is 11
+  r.react(R.time-tick).get-value() is 11
+  r.react(R.time-tick).react(R.time-tick).get-value() is 11
+  r.react(R.time-tick).react(R.time-tick).react(R.time-tick).get-value() is 11
 end

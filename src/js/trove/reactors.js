@@ -20,7 +20,7 @@
     values: {
       "keypress": ["arrow", ["String"], ["local", "Event"]],
       "mouse": ["arrow", ["Number", "Number", "String"], ["local", "Event"]],
-      "tick": ["local", "Event"],
+      "time-tick": ["local", "Event"],
 
       "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
@@ -156,7 +156,7 @@
                   keypress: function(key) {
                     return callOrError("on-key", [init, key]);
                   },
-                  tick: function() {
+                  "time-tick": function() {
                     return callOrError("on-tick", [init]);
                   },
                   mouse: function(x, y, kind) {
@@ -229,7 +229,7 @@
         values: runtime.makeObject({
           mouse: gmf(reactorEvents, "mouse"),
           keypress: gmf(reactorEvents, "keypress"),
-          tick: gmf(reactorEvents, "tick"),
+          "time-tick": gmf(reactorEvents, "time-tick"),
           "make-reactor": F(makeReactor, "make-reactor"),
 
           "get-value": F(getValue, "get-value"),
