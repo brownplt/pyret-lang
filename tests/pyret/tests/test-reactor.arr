@@ -41,6 +41,7 @@ check "reactor-functions":
   end
 
   R.get-value(r1) is 5
+  R.get-instance(r1) is 5
   R.get-value(R.react(r1, R.mouse(7, 8, "buttondown"))) is 20
   r1.get-trace() raises "Tried to get trace"
 

@@ -23,6 +23,7 @@
       "time-tick": ["local", "Event"],
 
       "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
+      "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
       "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
@@ -233,6 +234,7 @@
           "make-reactor": F(makeReactor, "make-reactor"),
 
           "get-value": F(getValue, "get-value"),
+          "get-instance": F(getValue, "get-instance"),
           "draw": F(draw, "draw"),
           "get-trace": F(getTrace, "get-trace"),
           "start-trace": F(startTrace, "start-trace"),
