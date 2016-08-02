@@ -29,6 +29,9 @@ check "reactors":
 
   r4.interact() raises "No interaction set up"
 
+  torepr(r1) is "reactor(5)"
+  torepr(r4) is "reactor(7)"
+
 end
 
 check "reactor-functions":

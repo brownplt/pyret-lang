@@ -167,17 +167,10 @@
             });
         }),
         _output: runtime.makeMethod0(function(self) {
-          if(tracing) {
-            var traceVal = runtime.ffi.makeSome(runtime.ffi.makeList(trace));
-          }
-          else {
-            var traceVal = runtime.ffi.makeNone();
-          }
           return runtime.getField(VS, "vs-constr").app(
             "reactor",
             runtime.ffi.makeList([
-              runtime.getField(VS, "vs-value").app(init),
-              runtime.getField(VS, "vs-value").app(traceVal)]));
+              runtime.getField(VS, "vs-value").app(init)]));
         })
       });
       return applyBrand(brandReactor, o);
