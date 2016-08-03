@@ -43,6 +43,7 @@
         "stop-trace": ["arrow", [], "RofA"],
         "get-trace": ["arrow", [], ["List", ["tid", "a"]]],
         "react": ["arrow", [["local", "Event"]], "RofA"],
+        "is-stopped": ["arrow", [], "Boolean"],
         "_output": ["arrow", [], "ValueSkeleton"]
       }]
     },
@@ -166,6 +167,14 @@
                 });
               }
             });
+        }),
+        "is-stopped": runtime.makeMethod0(function(self) {
+          if(handlers["stop-when"]) {
+            return handlers["stop-when"].app(init);
+          }
+          else {
+            return false;
+          }
         }),
         _output: runtime.makeMethod0(function(self) {
           return runtime.getField(VS, "vs-constr").app(
