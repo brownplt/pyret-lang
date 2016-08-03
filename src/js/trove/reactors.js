@@ -105,6 +105,8 @@
           runtime.safeCall(function() {
             return externalInteractionHandler(init, handlers, tracer);
           }, function(newVal) {
+            // This unshift prevents duplicate first elements
+            thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
           });
         }),
