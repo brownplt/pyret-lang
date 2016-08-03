@@ -1,7 +1,8 @@
 ({
   requires: [
     { "import-type": "builtin", "name": "reactor-events" },
-    { "import-type": "builtin", "name": "valueskeleton" }
+    { "import-type": "builtin", "name": "valueskeleton" },
+    { "import-type": "builtin", "name": "table" }
   ],
   nativeRequires: [],
   provides: {
@@ -29,6 +30,7 @@
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
+      "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
       "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]],
     },
     aliases: {
@@ -42,13 +44,15 @@
         "start-trace": ["arrow", [], "RofA"],
         "stop-trace": ["arrow", [], "RofA"],
         "get-trace": ["arrow", [], ["List", ["tid", "a"]]],
+        "get-trace-as-table": ["arrow", [], "Any"],
         "react": ["arrow", [["local", "Event"]], "RofA"],
         "is-stopped": ["arrow", [], "Boolean"],
         "_output": ["arrow", [], "ValueSkeleton"]
       }]
     },
   },
-  theModule: function(runtime, _, uri, reactorEvents, VSlib) {
+
+  theModule: function(runtime, _, uri, reactorEvents, VSlib, tables) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
     var gtf = function(m, f) { return gf(m, "types")[f]; }
@@ -121,7 +125,21 @@
             return runtime.ffi.makeList(trace);
           }
           else {
-            runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling get-trace() first");
+            runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
+          }
+        }),
+        "get-trace-as-table": runtime.makeMethod0(function(self) {
+          if(tracing) {
+            var i = 0;
+            var rows = trace.map(function(state) {
+              var ans = [i, state];
+              i += 1;
+              return ans;
+            });
+            return tables.makeTable(["tick", "state"], rows);
+          }
+          else {
+            runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
           }
         }),
         react: runtime.makeMethod1(function(self, event) {
@@ -179,10 +197,11 @@
           }
         }),
         _output: runtime.makeMethod0(function(self) {
-          return runtime.getField(VS, "vs-constr").app(
-            "reactor",
+          return runtime.getField(VS, "vs-seq").app(
             runtime.ffi.makeList([
-              runtime.getField(VS, "vs-value").app(init)]));
+              gf(VS, "vs-str").app("<reactor:"),
+              gf(VS, "vs-value").app(init),
+              gf(VS, "vs-str").app(">")]));
         })
       });
       return applyBrand(brandReactor, o);
