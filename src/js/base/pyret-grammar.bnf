@@ -50,7 +50,7 @@ contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause END
 fun-header: ty-params args return-ann
 ty-params: [(LANGLE|LT) comma-names (RANGLE|GT)]
-args: PARENNOSPACE [binding (COMMA binding)*] RPAREN
+args: (PARENNOSPACE|PARENAFTERBRACE) [binding (COMMA binding)*] RPAREN
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
@@ -120,7 +120,7 @@ bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMB
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
-paren-expr: PARENSPACE binop-expr RPAREN
+paren-expr: (PARENSPACE|PARENAFTERBRACE) binop-expr RPAREN
 
 id-expr: NAME
 

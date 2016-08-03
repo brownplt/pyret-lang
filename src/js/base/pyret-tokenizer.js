@@ -40,13 +40,13 @@ define(["jglr/jglr"], function(E) {
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
   Tokenizer.prototype.tokenizeFrom = function(str) {
     GenTokenizer.prototype.tokenizeFrom.call(this, str);
-    this.parenIsForExp = true;
+    this.parenIsForExp = "PARENSPACE";
   }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
     switch(tok_type) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
-    case "PARENSPACE": case "PARENNOSPACE":
+    case "PARENSPACE": case "PARENNOSPACE": case "PARENAFTERBRACE":
     case "PLUS": case "DASH": case "STAR": case "SLASH":
     case "LT": case "GT": case "CARET":
       // Trim off whitespace
@@ -76,16 +76,16 @@ define(["jglr/jglr"], function(E) {
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
-            tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
+            tok_type = this.parenIsForExp || "PARENNOSPACE";
           break;
         }
       }
     } else if (tok_type === "LPAREN?") {
-      tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
+      tok_type = this.parenIsForExp || "PARENNOSPACE";
     } else if (tok_type === "BLOCKCOMMENT") {
       return this.tokenizeBlockComment(match, str, 1, 2);
     }
-    this.parenIsForExp = !!tok.parenIsForExp;
+    this.parenIsForExp = tok.parenIsForExp || "PARENNOSPACE";
     return tok_type;
   }
   Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
@@ -329,7 +329,7 @@ define(["jglr/jglr"], function(E) {
 
     {name: "LBRACK", val: lbrack},
     {name: "RBRACK", val: rbrack},
-    {name: "LBRACE", val: lbrace},
+    {name: "LBRACE", val: lbrace, parenIsForExp: "PARENAFTERBRACE"},
     {name: "RBRACE", val: rbrace},
     {name: "RPAREN", val: rparen},
     {name: "LANGLE", val: langle},
@@ -353,6 +353,7 @@ define(["jglr/jglr"], function(E) {
   ];
   Tokens.forEach(function(tok) {
     if (!tok.hasOwnProperty("parenIsForExp")) tok.parenIsForExp = false;
+    else if (tok.parenIsForExp == true) tok.parenIsForExp = "PARENSPACE";
   });
 
   return {

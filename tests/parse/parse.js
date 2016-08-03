@@ -471,6 +471,17 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("block: lam(x): x end\n(x)end")).not.toBe(false);
     });
 
+    it("should treat (...) as grouping or as args within {...}", function() {
+      expect(parse("{(): true}")).not.toBe(false);
+      expect(parse("{(a): true}")).not.toBe(false);
+      expect(parse("{(a, b): true}")).not.toBe(false);
+      expect(parse("{ (): true}")).toBe(false);
+      expect(parse("{ (a): true}")).toBe(false);
+      expect(parse("{ (a, b): true}")).toBe(false);
+      expect(parse("{(1 + 2); (3 + 4)}")).not.toBe(false);
+      expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
+    });
+
     it("should parse get-bang", function() {
       expect(parse("o!x")).not.toBe(false);
       expect(parse("y.x!x")).not.toBe(false);
