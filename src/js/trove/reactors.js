@@ -241,6 +241,12 @@
       return runtime.getField(reactor, "get-trace").app();
     }
 
+    function getTraceAsTable(reactor) {
+      checkArity(1, arguments, "reactors");
+      c("get-trace-as-table", [reactor], [annReactor]);
+      return runtime.getField(reactor, "get-trace-as-table").app();
+    }
+
     function startTrace(reactor) {
       checkArity(1, arguments, "reactors");
       c("start-trace", [reactor], [annReactor]);
@@ -267,6 +273,7 @@
           "get-instance": F(getValue, "get-instance"),
           "draw": F(draw, "draw"),
           "get-trace": F(getTrace, "get-trace"),
+          "get-trace-as-table": F(getTraceAsTable, "get-trace-as-table"),
           "start-trace": F(startTrace, "start-trace"),
           "stop-trace": F(stopTrace, "stop-trace"),
           "react": F(react, "react"),
