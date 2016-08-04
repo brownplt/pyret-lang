@@ -1856,9 +1856,9 @@ data CompileError:
   | table-reducer-bad-column(extension :: A.TableExtendField, col-defs :: A.Loc) with:
     method render-fancy-reason(self):
       bad-column = self.extension.col
-      bad-column-name = bad-column.tosource().pretty(80)
+      bad-column-name = bad-column.tosource().pretty(80).join-str("\n")
       reducer = self.extension.reducer
-      reducer-name = reducer.tosource().pretty(80)
+      reducer-name = reducer.tosource().pretty(80).join-str("\n")
       [ED.error:
         [ED.para:
           ED.text("The column "),
