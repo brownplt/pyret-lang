@@ -197,11 +197,9 @@
           }
         }),
         _output: runtime.makeMethod0(function(self) {
-          return runtime.getField(VS, "vs-seq").app(
-            runtime.ffi.makeList([
-              gf(VS, "vs-str").app("<reactor:"),
-              gf(VS, "vs-value").app(init),
-              gf(VS, "vs-str").app(">")]));
+          return runtime.getField(VS, "vs-constr").app(
+            "reactor",
+            runtime.ffi.makeList([ gf(VS, "vs-value").app(init) ]));
         })
       });
       return applyBrand(brandReactor, o);
