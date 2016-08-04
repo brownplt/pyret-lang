@@ -1899,7 +1899,13 @@ define(function() {
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
-  var roughnumRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+
+
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+
+  var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
+
+
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
@@ -1969,7 +1975,12 @@ define(function() {
       return Rational.makeInstance(finalNum, finalDen, errbacks);
     }
 
-    aMatch = x.match(roughnumRegexp);
+    aMatch = x.match(roughnumRatRegexp);
+    if (aMatch) {
+      return Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])).toRoughnum();
+    }
+
+    aMatch = x.match(roughnumDecRegexp);
     if (aMatch) {
       return Roughnum.makeInstance(Number(aMatch[1]), errbacks);
     }
