@@ -32,6 +32,10 @@ check:
   num-asin(-2) raises "asin: out of domain"
   num-asin(2) raises "asin: out of domain"
 
+  num-to-string-digits(3, 1/2) raises "digits should be an integer"
+  num-to-string-digits(3, ~3) raises "digits should be an integer"
+
+
   num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
@@ -155,6 +159,8 @@ check:
   (3 + _)(12) is 15
   (_ / _)(6, 3) is 2
 
+
+  ~2e222 * ~2e222 raises "roughnum overflow"
 end
 
 check:
