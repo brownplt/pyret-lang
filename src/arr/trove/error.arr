@@ -2263,10 +2263,7 @@ data ParseError:
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around "), draw-and-highlight(self.loc)],
         [ED.para: ED.text("You may need to add or remove some text to fix your program.")],
-        [ED.para:
-          ED.text("Look carefully before the "),
-          ED.styled(ED.text("highlighted text"), 'error-highlight'),
-          ED.text(".")],
+        [ED.para: ED.text("Look carefully before the highlighted text.")],
         [ED.para: ED.text("Is there a missing colon ("), ED.code(ED.text(":")),
           ED.text("), comma ("), ED.code(ED.text(",")),
           ED.text("), string marker ("), ED.code(ED.text("\"")),

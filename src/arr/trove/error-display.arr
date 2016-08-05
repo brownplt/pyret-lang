@@ -18,7 +18,6 @@ data ErrorDisplay:
       contents-without-loc :: ErrorDisplay)
   | code(contents :: ErrorDisplay)
   | cmcode(loc #|:: S.Srcloc|#)
-  | styled(contents :: ErrorDisplay, style :: String)
   | loc-display(loc #|:: S.Srcloc|#, style :: String, contents :: ErrorDisplay)
   | optional(contents :: ErrorDisplay)
   | highlight(contents :: ErrorDisplay, locs #|:: List<S.Srcloc>|#, color :: Number)
