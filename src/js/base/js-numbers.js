@@ -805,7 +805,8 @@ define(function() {
   var atan2 = function(y, x, errbacks) {
     if (eqv(x, 0, errbacks)) { // x = 0
       if (eqv(y, 0, errbacks)) { // x = 0, y = 0
-        return Roughnum.makeInstance(Infinity, errbacks);
+        //return Roughnum.makeInstance(Infinity, errbacks);
+        errbacks.throwDomainError('atan2: out of domain argument (0, 0)');
       } else if (greaterThan(y, 0, errbacks)) { // x = 0, y > 0
         return Roughnum.makeInstance(Math.PI/2, errbacks);
       } else { // x = 0, y < 0
@@ -813,16 +814,18 @@ define(function() {
       }
     } else if (greaterThan(x, 0, errbacks)) { // x > 0
       if (greaterThanOrEqual(y, 0, errbacks)) { // x > 0, y >= 0, 1st qdt
+        // atan(y/x) is already in the right qdt
         return atan(divide(y, x, errbacks), errbacks);
       } else { // x > 0, y < 0, 4th qdt
+        // atan(y/x) is the 4th qdt and negative, so make it positive by adding 2pi
         return add(atan(divide(y, x, errbacks), errbacks), 2*Math.PI, errbacks);
       }
     } else { // x < 0
-      if (greaterThanOrEqual(y, 0, errbacks)) { // x < 0, y >= 0, 2nd qdt
-        return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
-      } else { // x < 0, y < 0, 3rd qdt
-        return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
-      }
+      // either x < 0, y >= 0 (2nd qdt), in which case
+      //        atan(y/x) must be reflected from 4th to 2nd qdt, by adding pi
+      //     or x < 0, y < 0  (3rd qdt), in which case
+      //        atan(y/x) must be reflected from 1st to 3rd qdt, again by adding pi
+      return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
     }
   };
 
