@@ -802,6 +802,30 @@ define(function() {
     return n.atan();
   };
 
+  var atan2 = function(y, x, errbacks) {
+    if (eqv(x, 0, errbacks)) { // x = 0
+      if (eqv(y, 0, errbacks)) { // x = 0, y = 0
+        return Roughnum.makeInstance(Infinity, errbacks);
+      } else if (greaterThan(y, 0, errbacks)) { // x = 0, y > 0
+        return Roughnum.makeInstance(Math.PI/2, errbacks);
+      } else { // x = 0, y < 0
+        return Roughnum.makeInstance(3*Math.PI/2, errbacks);
+      }
+    } else if (greaterThan(x, 0, errbacks)) { // x > 0
+      if (greaterThanOrEqual(y, 0, errbacks)) { // x > 0, y >= 0, 1st qdt
+        return atan(divide(y, x, errbacks), errbacks);
+      } else { // x > 0, y < 0, 4th qdt
+        return add(atan(divide(y, x, errbacks), errbacks), 2*Math.PI, errbacks);
+      }
+    } else { // x < 0
+      if (greaterThanOrEqual(y, 0, errbacks)) { // x < 0, y >= 0, 2nd qdt
+        return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
+      } else { // x < 0, y < 0, 3rd qdt
+        return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
+      }
+    }
+  };
+
   // cos: pyretnum -> pyretnum
   var cos = function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 1; }
@@ -3891,6 +3915,7 @@ define(function() {
   Numbers['log'] = log;
   Numbers['tan'] = tan;
   Numbers['atan'] = atan;
+  Numbers['atan2'] = atan2;
   Numbers['cos'] = cos;
   Numbers['sin'] = sin;
   Numbers['tan'] = tan;
