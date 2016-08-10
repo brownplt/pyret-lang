@@ -92,6 +92,7 @@
       "num-asin": "NumUnop",
       "num-acos": "NumUnop",
       "num-atan": "NumUnop",
+      "num-atan2": "NumBinop",
 
       "num-modulo": "NumBinop",
 
