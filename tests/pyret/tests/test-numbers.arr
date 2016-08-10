@@ -93,6 +93,11 @@ check:
   num-atan(0) is 0
   num-atan(1) satisfies around(0.78, 0.01)
 
+  num-atan2( 2,  1) satisfies around(1.107, 0.001)
+  num-atan2( 2, -1) satisfies around(2.034, 0.001)
+  num-atan2(-2, -1) satisfies around(4.249, 0.001)
+  num-atan2(-2,  1) satisfies around(5.176, 0.001)
+
   num-modulo(17, 5) is 2
   num-modulo(15, -2) is -1
   num-modulo(-17, -5) is -2

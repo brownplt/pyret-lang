@@ -4430,6 +4430,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.makeNumberBig(jsnums.atan(n, NumberErrbacks));
     }
 
+    var num_atan2 = function(y, x) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a); }
+      thisRuntime.checkNumber(y);
+      thisRuntime.checkNumber(x);
+      return thisRuntime.makeNumberBig(jsnums.atan2(y, x, NumberErrbacks));
+    };
+
     var num_modulo = function(n, mod) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a); }
       thisRuntime.checkNumber(n);
@@ -5079,6 +5086,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'num-asin': makeFunction(num_asin, "num-asin"),
       'num-acos': makeFunction(num_acos, "num-acos"),
       'num-atan': makeFunction(num_atan, "num-atan"),
+      'num-atan2': makeFunction(num_atan2, "num-atan2"),
       'num-modulo': makeFunction(num_modulo, "num-modulo"),
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
@@ -5340,6 +5348,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'num_asin': num_asin,
       'num_acos': num_acos,
       'num_atan': num_atan,
+      'num_atan2': num_atan2,
       'num_modulo': num_modulo,
       'num_truncate': num_truncate,
       'num_sqrt': num_sqrt,

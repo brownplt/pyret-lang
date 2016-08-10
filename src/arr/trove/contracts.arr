@@ -241,7 +241,7 @@ data FailureReason:
     end,
     method render-reason(self, loc, from-fail-arg):
       message = [ED.para:
-        ED.text("The predicate"), ED.code(ED.text(self.pred-name)),
+        ED.text("The predicate"), ED.code(ED.text(self.name)),
         ED.text("in the annotation at"), draw-and-highlight(loc), ED.text("returned false for this value:")]
       if from-fail-arg:
         ED.maybe-stack-loc(0, true, 
