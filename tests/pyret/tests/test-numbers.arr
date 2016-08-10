@@ -97,6 +97,8 @@ check:
 
   degree = (2 * num-asin(1)) / 180
 
+  num-atan2(                       0,  0) raises "atan2: out of domain"
+
   num-atan2(                       0,  1) satisfies around(           0, 0.001)
 
   num-atan2(    num-tan(30 * degree),  1) satisfies around( 30 * degree, 0.001)
