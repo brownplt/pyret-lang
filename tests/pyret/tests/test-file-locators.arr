@@ -102,9 +102,9 @@ check "File locators":
   floc = file-loc("foo", CM.standard-globals)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is 23
-  wlist.get(22).locator is floc
-  wlist.get(21).locator is file-loc("bar", CM.standard-globals)
+  wlist.length() is 24
+  wlist.get(23).locator is floc
+  wlist.get(22).locator is file-loc("bar", CM.standard-globals)
 
   # TODO(joe): This needs eval() to work
   #ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
