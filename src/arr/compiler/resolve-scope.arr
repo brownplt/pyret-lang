@@ -71,7 +71,6 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
         | some(provides) =>
           val-names = provides.values.keys-list().map(A.s-name(l, _))
           type-names = provides.aliases.keys-list().map(A.s-name(l, _))
-                        + provides.data-definitions.keys-list().map(A.s-name(l, _))
           A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
       end
     | s-import-complete(_, _, _, _, _, _) => imp
