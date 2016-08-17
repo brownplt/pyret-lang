@@ -2,6 +2,7 @@ import parse-pyret as P
 import pprint as PP
 import reactors as R
 
+
 check "parse and print":
   t1 = P.surface-parse("reactor: init: 5 end", "test")
   t1.tosource().pretty(80) is [list: "reactor: init: 5 end"]
@@ -12,7 +13,7 @@ end
 check "reactors":
   r1 = reactor:
     init: 5,
-    on-tick: lam(x): x + 1 end
+    on-tick: lam(x :: Number): x + 1 end
   end
 
   r1.get-value() is 5
@@ -35,9 +36,11 @@ check "reactors":
 end
 
 check "reactor-functions":
+  # NOTE(joe, for matthew): try removing the :: Number on w below, and check
+  # the unification failure
   r1 :: R.Reactor<Number> = reactor:
     init: 5,
-    on-mouse: lam(w, x, y, kind): w + x + y end
+    on-mouse: lam(w :: Number, x, y, kind): w + x + y end
   end
 
   R.get-value(r1) is 5
@@ -57,8 +60,8 @@ end
 check "stop-when, manually":
   r = reactor:
     init: 10,
-    on-tick: lam(w): w + 1 end,
-    stop-when: lam(x): x > 10 end
+    on-tick: lam(w :: Number): w + 1 end,
+    stop-when: lam(x :: Number): x > 10 end
   end
   r.react(R.time-tick).get-value() is 11
   r.react(R.time-tick).react(R.time-tick).get-value() is 11

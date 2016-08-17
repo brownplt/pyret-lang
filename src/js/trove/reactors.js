@@ -34,7 +34,8 @@
       "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]],
     },
     aliases: {
-      "Event": "ReactorEvent"
+      "Event": "ReactorEvent",
+      "Reactor": ["local", "Reactor"]
     },
     datatypes: {
       "Reactor": ["data", "Reactor", ["a"], [], {
@@ -80,7 +81,13 @@
     var makeReactor = function(init, fields) {
       runtime.ffi.checkArity(2, arguments, "reactor");
       runtime.checkObject(fields);
-      return makeReactorRaw(init, fields.dict, false, []);
+      var handlerDict = {};
+      Object.keys(fields.dict).forEach(function(f) {
+        if(runtime.ffi.isSome(gf(fields, f))) {
+          handlerDict[f] = gf(gf(fields, f), "value");
+        }
+      });
+      return makeReactorRaw(init, handlerDict, false, []);
     }
     var makeReactorRaw = function(init, handlers, tracing, trace) {
       var o = runtime.makeObject({

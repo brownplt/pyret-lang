@@ -5482,6 +5482,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'getParamOrSetDefault' : getParamOrSetDefault,
       'setParam' : setParam,
       'hasParam' : hasParam,
+      'makeNone' : function() {
+        return thisRuntime.ffi.makeNone();
+      },
+      'makeSome' : function(v) {
+        return thisRuntime.ffi.makeSome(v);
+      },
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
       'stderr' : theOutsideWorld.stderr,

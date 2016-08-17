@@ -570,12 +570,22 @@ fun desugar-expr(expr :: A.Expr):
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, false)) end))])
       end
     | s-reactor(l, fields) =>
-      init-and-non-init = for lists.partition(f from fields):
+      fields-by-name = SD.make-mutable-string-dict()
+      init-and-non-init = for lists.partition(f from fields) block:
+        when f.name <> "init": fields-by-name.set-now(f.name, f.value) end
         f.name == "init"
       end
       init = init-and-non-init.is-true.first.value
       non-init-fields = init-and-non-init.is-false
-      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, non-init-fields.map(desugar-member))])
+      field-names = C.reactor-optional-fields
+      option-fields = for map(f from field-names):
+        if fields-by-name.has-key-now(f):
+          A.s-data-field(l, f, A.s-prim-app(l, "makeSome", [list: desugar-expr(fields-by-name.get-value-now(f))]))
+        else:
+          A.s-data-field(l, f, A.s-prim-app(l, "makeNone", [list:]))
+        end
+      end
+      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, option-fields)])
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
       column-names = for map(header from headers):

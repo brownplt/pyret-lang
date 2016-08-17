@@ -709,7 +709,7 @@ well-formed-visitor = A.default-iter-visitor.{
         wf-error("A reactor must have a field named init for the initial value ", l)
       end
       fields-dict = SD.make-mutable-string-dict()
-      ok-fields = [list: "init", "on-tick", "on-mouse", "on-key", "to-draw", "stop-when", "close-when-stop", "seconds-per-tick", "title"]
+      ok-fields = C.reactor-fields
       for each(f from fields) block:
         when not(ok-fields.member(f.name)):
           wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name + " ", f.l)

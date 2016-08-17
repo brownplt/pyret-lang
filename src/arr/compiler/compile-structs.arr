@@ -2279,3 +2279,6 @@ standard-imports = extra-imports(
         ],
         [list: "Set"])
     ])
+
+reactor-fields = [list: "init", "on-tick", "to-draw", "on-key", "on-mouse", "seconds-per-tick", "stop-when", "title", "close-when-stop"]
+reactor-optional-fields = reactor-fields.rest

@@ -43,6 +43,16 @@ s-atom                    = A.s-atom
 
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
+t-image = t-name(module-uri("builtin://image"), A.s-type-global("Image"))
+
+t-option = lam(param :: Type):
+  t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: param])
+end
+
+t-reactor = lam(param :: Type):
+  t-app(t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor")), [list: param])
+end
+
 eq-EqualityResult = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
 
 # TODO(MATT): does this break things?
@@ -113,11 +123,25 @@ fun make-default-types() block:
   default-typs.set-now(A.s-global("string-to-code-points").key(), t-top)
   default-typs.set-now(A.s-global("string-from-code-points").key(), t-top)
   default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
+  default-typs.set-now("makeSome", t-forall([list: tva], t-arrow([list: tva], t-option(tva))))
+  default-typs.set-now("makeNone", t-forall([list: tva], t-arrow([list: ], t-option(tva))))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now("checkTupleBind", t-arrow([list: t-top, t-number, t-srcloc], t-bot))
   default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
   default-typs.set-now("throwUnfinishedTemplate", t-arrow([list: t-srcloc], t-bot))
+  default-typs.set-now("makeReactor", t-forall([list: tva], t-arrow([list:
+      tva,
+      t-record([list:
+        t-member("on-tick", t-option(t-arrow([list: tva], tva))),
+        t-member("on-mouse", t-option(t-arrow([list: tva, t-number, t-number, t-string], tva))),
+        t-member("on-key", t-option(t-arrow([list: tva, t-string], tva))),
+        t-member("to-draw", t-option(t-arrow([list: tva], t-image))),
+        t-member("stop-when", t-option(t-arrow([list: tva], t-boolean))),
+        t-member("seconds-per-tick", t-option(t-number)),
+        t-member("close-when-stop", t-option(t-boolean)),
+        t-member("title", t-option(t-string))])],
+    t-reactor(tva))))
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
   default-typs.set-now("hasField", t-arrow([list: t-record(empty), t-string], t-boolean))
@@ -369,9 +393,6 @@ module-const-lists = t-module("builtin://lists",
   SD.make-string-dict()
     .set("List", t-name(module-uri("builtin://lists"), A.s-name(A.dummy-loc, "List"))))
 
-t-option = lam(param :: Type):
-  t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: param])
-end
 
 t-and-then =
   t-forall(
