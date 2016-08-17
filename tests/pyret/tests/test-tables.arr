@@ -1,4 +1,5 @@
 import data-source as DS
+import tables as TS
 
 tbl = table: name, age
   row: "Bob", 12
@@ -20,17 +21,22 @@ check "Per-row extensions":
 end
 
 check "Reducer extensions":
-  running-sum = {
-    one: lam(n): n end,
-    reduce: lam(acc, cur): acc + cur end
-  }
   with-ages = extend tbl using age:
-    total-age: running-sum of age
+    total-age: TS.running-sum of age
   end
   with-ages is table: name, age, total-age
     row: "Bob", 12, 12
     row: "Alice", 15, 27
     row: "Eve", 13, 40
+  end
+
+  with-difference = extend tbl using age:
+    diff: TS.difference-from(10) of age
+  end
+  with-difference is table: name, age, diff
+    row: "Bob", 12, 2
+    row: "Alice", 15, 3
+    row: "Eve", 13, -2
   end
 end
 

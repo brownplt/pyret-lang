@@ -726,14 +726,14 @@ fun desugar-expr(expr :: A.Expr):
                   [list:
                     A.s-assign(l, acc.id,
                       A.s-app(l, A.s-dot(l, reducer.id-e, "one"), [list: col-id.id-e])),
-                    acc-id-e])
+                    A.s-tuple-get(l, acc-id-e, 1, l)])
               else:
                 A.s-block(A.dummy-loc,
                   [list:
                     A.s-assign(l, acc.id,
                       A.s-app(l, A.s-dot(l, reducer.id-e, "reduce"),
-                        [list: acc-id-e, col-id.id-e])),
-                    acc-id-e])
+                        [list: A.s-tuple-get(l, acc-id-e, 0, l), col-id.id-e])),
+                    A.s-tuple-get(l, acc-id-e, 1, l)])
               end
           end
         end

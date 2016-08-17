@@ -17,6 +17,7 @@
     { "import-type": "builtin", name: "checker" },
     { "import-type": "builtin", name: "ffi" },
     { "import-type": "builtin", name: "table" },
+    { "import-type": "builtin", name: "tables" },
     { "import-type": "builtin", name: "reactors" },
     { "import-type": "builtin", name: "data-source" }
   ],
