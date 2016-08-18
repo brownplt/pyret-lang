@@ -93,10 +93,40 @@ check:
   num-atan(0) is 0
   num-atan(1) satisfies around(0.78, 0.01)
 
+
   num-atan2( 2,  1) satisfies around(1.107, 0.001)
   num-atan2( 2, -1) satisfies around(2.034, 0.001)
   num-atan2(-2, -1) satisfies around(4.249, 0.001)
   num-atan2(-2,  1) satisfies around(5.176, 0.001)
+
+  degree = (2 * num-asin(1)) / 180
+
+  num-atan2(                       0,  0) raises "atan2: out of domain"
+
+  num-atan2(                       0,  1) satisfies around(           0, 0.001)
+
+  num-atan2(    num-tan(30 * degree),  1) satisfies around( 30 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree),  1) satisfies around( 45 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree),  1) satisfies around( 60 * degree, 0.001)
+  num-atan2(    num-tan(88 * degree),  1) satisfies around( 88 * degree, 0.001)
+
+  num-atan2(    num-tan(88 * degree), -1) satisfies around( 92 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree), -1) satisfies around(120 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree), -1) satisfies around(135 * degree, 0.001)
+  num-atan2(    num-tan(30 * degree), -1) satisfies around(150 * degree, 0.001)
+
+  num-atan2(                       0, -1) satisfies around(180 * degree, 0.001)
+
+  num-atan2(0 - num-tan(30 * degree), -1) satisfies around(210 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree), -1) satisfies around(225 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree), -1) satisfies around(240 * degree, 0.001)
+  num-atan2(0 - num-tan(88 * degree), -1) satisfies around(268 * degree, 0.001)
+
+  num-atan2(0 - num-tan(88 * degree),  1) satisfies around(272 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree),  1) satisfies around(300 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree),  1) satisfies around(315 * degree, 0.001)
+  num-atan2(0 - num-tan(30 * degree),  1) satisfies around(330 * degree, 0.001)
+
 
   num-modulo(17, 5) is 2
   num-modulo(15, -2) is -1
