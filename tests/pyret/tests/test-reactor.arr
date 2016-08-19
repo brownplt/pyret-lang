@@ -67,3 +67,24 @@ check "stop-when, manually":
   r.react(R.time-tick).react(R.time-tick).get-value() is 11
   r.react(R.time-tick).react(R.time-tick).react(R.time-tick).get-value() is 11
 end
+
+check "simulate-trace":
+  r = reactor:
+    init: 10,
+    on-tick: lam(w :: Number): w + 10 end,
+    stop-when: lam(w :: Number): w > 1000 end
+  end
+  r.simulate-trace(1000).length() is 101
+  r.simulate-trace(50).length() is 51
+  (extract state from r.simulate-trace(1000) end).get(4) is 50
+  (extract tick from r.simulate-trace(50) end).last() is 50
+  r.simulate-trace(4) is table: tick, state
+    row: 0, 10
+    row: 1, 20
+    row: 2, 30
+    row: 3, 40
+    row: 4, 50
+  end
+
+
+end

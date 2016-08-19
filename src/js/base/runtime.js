@@ -2954,6 +2954,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return fun();
     }
 
+    function safeThen(fun, stackFrame) {
+      return {
+        then: function(after) {
+          return safeThen(function() {
+            return safeCall(fun, after, stackFrame);
+          });
+        },
+        start: function() {
+          return fun();
+        }
+      };
+    }
+
     function safeCall(fun, after, stackFrame) {
       var $ans = undefined;
       var $step = 0;
@@ -5196,6 +5209,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'runThunk': runThunk,
       'execThunk': execThunk,
       'safeCall': safeCall,
+      'safeThen': safeThen,
       'safeTail': safeTail,
       'eachLoop': eachLoop,
       'printPyretStack': printPyretStack,

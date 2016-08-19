@@ -27,6 +27,9 @@
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
       "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
+      //"interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
+      //"simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Any"]],
+      //"replay-trace": ["forall", ["a"], ["arrow", ["RofA", ["arrow", [["tid", "a"]], "Image"], "Number"], "Any"]],
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
@@ -42,6 +45,8 @@
         "get-value": ["arrow", [], ["tid", "a"]],
         "draw": ["arrow", [], "Image"],
         "interact": ["arrow", [], "RofA"],
+        "interact-trace": ["forall", ["a"], ["arrow", [], "Any"]],
+        "simulate-trace": ["forall", ["a"], ["arrow", ["Number"], "Any"]],
         "start-trace": ["arrow", [], "RofA"],
         "stop-trace": ["arrow", [], "RofA"],
         "get-trace": ["arrow", [], ["List", ["tid", "a"]]],
@@ -53,7 +58,7 @@
     },
   },
 
-  theModule: function(runtime, _, uri, reactorEvents, VSlib, tables) {
+  theModule: function(runtime, _, uri, reactorEvents, VSlib, tables, reactorLib) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
     var gtf = function(m, f) { return gf(m, "types")[f]; }
@@ -100,6 +105,42 @@
           }
           var drawer = handlers["to-draw"];
           return drawer.app(init);
+        }),
+        "interact-trace": runtime.makeMethod0(function(self) {
+          return runtime.safeThen(function() {
+            return gf(self, "start-trace").app();
+          }).then(function(val) {
+            return gf(val, "interact").app();
+          }).then(function(val) {
+            return gf(val, "get-trace-as-table").app(); 
+          }).start();
+        }),
+        "simulate-trace": runtime.makeMethod1(function(self, limit) {
+          function help(r, i) {
+            return r.then(function(rval) {
+              if(i <= 0) {
+                return gf(rval, "get-trace-as-table").app()
+              }
+              else {
+                return runtime.safeThen(function() {
+                  return gf(rval, "is-stopped").app();
+                }).then(function(isStopped) {
+                  if(isStopped) {
+                    return gf(rval, "get-trace-as-table").app()
+                  }
+                  else {
+                    return help(runtime.safeThen(function() {
+                      return gf(rval, "react").app(gmf(reactorEvents, "time-tick"));
+                    }), i - 1).start();
+                  }
+                }).start()
+              }
+            });
+          }
+          var withTracing = runtime.safeThen(function() {
+            return gf(self, "start-trace").app();
+          });
+          return help(withTracing, limit).start();
         }),
         interact: runtime.makeMethod0(function(self) {
           if(externalInteractionHandler === null) {
