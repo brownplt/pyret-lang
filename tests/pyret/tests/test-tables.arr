@@ -7,6 +7,11 @@ tbl = table: name, age
   row: "Eve", 13
 end
 
+check "Annotation and predicate":
+  t :: Table = tbl
+  t satisfies is-table
+end
+
 check "Per-row extensions":
   ids = extend tbl using name:
     is-alice: (name == "Alice")
@@ -56,3 +61,4 @@ check "Basic Table Loading":
    end)
   is table: name, age row: "Bob", 12 row: "Alice", 15 end
 end
+

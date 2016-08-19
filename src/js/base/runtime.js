@@ -5057,6 +5057,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'is-object': makeFunction(isObject, "is-object"),
       'is-raw-array': makeFunction(isArray, "is-raw-array"),
       'is-tuple': makeFunction(isTuple, "is-tuple"),
+      // NOTE(joe): this one different because the predicate is added when Table is loaded
+      // (see handalone.js)
+      'is-table': makeFunction(function(v) {
+        return thisRuntime.isTable(v); 
+      }, "is-tuple"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 
@@ -5491,7 +5496,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
       'stderr' : theOutsideWorld.stderr,
-      'console' : CONSOLE
+      'console' : CONSOLE,
+
+      'makePrimAnn': makePrimAnn
     };
 
     makePrimAnn("Number", isNumber);

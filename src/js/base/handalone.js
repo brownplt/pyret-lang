@@ -53,6 +53,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
         runtime.checkTable(val);
         return val;
       };
+      runtime.makePrimAnn("Table", table.isTable);
     },
     "builtin://data-source": function(ds) {
       ds = runtime.getField(runtime.getField(ds, "provide-plus-types"), "values");
