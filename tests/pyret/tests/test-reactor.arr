@@ -76,8 +76,10 @@ check "simulate-trace":
   end
   r.simulate-trace(1000).length() is 101
   r.simulate-trace(50).length() is 51
+  r.simulate-trace(50) is R.simulate-trace(r, 50)
   (extract state from r.simulate-trace(1000) end).get(4) is 50
   (extract tick from r.simulate-trace(50) end).last() is 50
+  R.simulate-trace(r, 4) is r.simulate-trace(4)
   r.simulate-trace(4) is table: tick, state
     row: 0, 10
     row: 1, 20

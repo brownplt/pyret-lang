@@ -27,9 +27,8 @@
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
       "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
-      //"interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
-      //"simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Any"]],
-      //"replay-trace": ["forall", ["a"], ["arrow", ["RofA", ["arrow", [["tid", "a"]], "Image"], "Number"], "Any"]],
+      "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
+      "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Any"]],
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
@@ -299,6 +298,18 @@
       return runtime.getField(reactor, "start-trace").app();
     }
 
+    function interactTrace(reactor) {
+      checkArity(1, arguments, "reactors");
+      c("interact-trace", [reactor], [annReactor]);
+      return runtime.getField(reactor, "interact-trace").app();
+    }
+
+    function simulateTrace(reactor, limit) {
+      checkArity(2, arguments, "reactors");
+      c("simulate-trace", [reactor, limit], [annReactor, runtime.NumInteger]);
+      return runtime.getField(reactor, "simulate-trace").app(limit);
+    }
+
     function stopTrace(reactor) {
       checkArity(1, arguments, "reactors");
       c("stop-trace", [reactor], [annReactor]);
@@ -322,6 +333,8 @@
           "get-trace-as-table": F(getTraceAsTable, "get-trace-as-table"),
           "start-trace": F(startTrace, "start-trace"),
           "stop-trace": F(stopTrace, "stop-trace"),
+          "interact-trace": F(interactTrace, "interact-trace"),
+          "simulate-trace": F(simulateTrace, "simulate-trace"),
           "react": F(react, "react"),
           "interact": F(interact, "interact")
 
