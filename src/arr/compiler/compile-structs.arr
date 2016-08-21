@@ -38,6 +38,8 @@ type URI = String
 type StringDict = SD.StringDict
 string-dict = SD.string-dict
 
+is-s-block = A.is-s-block
+
 type Loc = SL.Srcloc
 
 data Dependency:
@@ -668,16 +670,16 @@ data CompileError:
           ED.loc(self.l),
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
-  | block-needed(expr-loc :: Loc, block-locs :: List<Loc>) with:
+  | block-needed(expr-loc :: Loc, blocks :: List<A.Expr % (is-s-block)>) with:
     method render-fancy-reason(self):
-      if self.block-locs.length() > 1:
+      if self.blocks.length() > 1:
         [ED.error:
           [ED.para:
             ED.text("The expression")],
           ED.cmcode(self.expr-loc),
           [ED.para:
             ED.text("contains several blocks that each contain "),
-            ED.highlight(ED.text("multiple expressions"), self.block-locs, 0),
+            ED.highlight(ED.text("multiple expressions"), self.blocks.map(_.l), 0),
             ED.text(".")],
           [ED.para:
             ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with"),
@@ -689,7 +691,7 @@ data CompileError:
           ED.cmcode(self.expr-loc),
           [ED.para:
             ED.text("contains a block that contains "),
-            ED.highlight(ED.text("multiple expressions"), self.block-locs, 0),
+            ED.highlight(ED.text("multiple expressions"), self.blocks.map(_.l), 0),
             ED.text(".")],
           [ED.para:
             ED.text("Either simplify this block to a single expression, or mark the outer expression with "),
@@ -697,11 +699,11 @@ data CompileError:
       end
     end,
     method render-reason(self):
-      if self.block-locs.length() > 1:
+      if self.blocks.length() > 1:
         [ED.error:
           [ED.para: ED.text("The expression at "), draw-and-highlight(self.expr-loc),
             ED.text(" contains several blocks that each contain multiple expressions:")],
-          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          ED.v-sequence(self.blocks.map(_.l).map(draw-and-highlight)),
           [ED.para:
             ED.text("Either simplify each of these blocks to a single expression, or mark the outer expression with "),
             ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
@@ -709,7 +711,7 @@ data CompileError:
         [ED.error:
           [ED.para: ED.text("The expression at "), draw-and-highlight(self.expr-loc),
             ED.text(" contains a block that contains multiple expressions:")],
-          ED.v-sequence(self.block-locs.map(draw-and-highlight)),
+          ED.v-sequence(self.blocks.map(_.l).map(draw-and-highlight)),
           [ED.para:
             ED.text("Either simplify this block to a single expression, or mark the outer expression with "),
             ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]

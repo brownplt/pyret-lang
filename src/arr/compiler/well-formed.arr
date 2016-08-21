@@ -127,7 +127,7 @@ end
 fun wf-blocky-blocks(l :: Loc, blocks :: List<A.Expr % (is-s-block)>):
   explicitly-blocky-blocks = blocks.filter(explicitly-blocky-block)
   when not(is-empty(explicitly-blocky-blocks)):
-    add-error(C.block-needed(l, explicitly-blocky-blocks.map(_.l)))
+    add-error(C.block-needed(l, explicitly-blocky-blocks))
   end
 end
 
