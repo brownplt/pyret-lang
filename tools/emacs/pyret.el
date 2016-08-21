@@ -166,6 +166,8 @@
   (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
   (defconst pyret-font-lock-keywords-1
     (list
+     `("\\(^~[+-]?[0-9]+\\(?:\\.[0-9]+\\)?\\(?:[eE][-+]?[0-9]+\\)\\)"
+       (1 font-lock-negation-char-face))
      `("\\(```\\(?:\\\\[`\\]\\|[^`\\]\\|``?[^`]\\)*?```\\)" 
        (1 '(face font-lock-string-face font-lock-multiline t) t))
      `(,(concat 

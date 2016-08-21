@@ -442,6 +442,16 @@ fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: L
   { prefix: prefix, suffix: suffix }
 end
 
+fun take<a>(n :: Number, lst :: List<a>) -> List<a>:
+  doc: "Returns a list containing the first n elements of the given list"
+  split-at(n, lst).prefix
+end
+
+fun drop<a>(n :: Number, lst :: List<a>) -> List<a>:
+  doc: "Returns a list containing all but the first n elements of the given list"
+  split-at(n, lst).suffix
+end
+
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
   lst.any(f)
