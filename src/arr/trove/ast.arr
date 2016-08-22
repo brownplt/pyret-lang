@@ -481,6 +481,10 @@ sharing:
   end
 end
 
+fun is-binder(expr):
+  is-s-let(expr) or is-s-fun(expr) or is-s-var(expr) or is-s-rec(expr)
+end
+
 data Expr:
   | s-module(
       l :: Loc,

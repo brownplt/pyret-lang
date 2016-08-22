@@ -97,16 +97,14 @@ fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
     if block.stmts.length() == 0: nothing
     else:
-      add-error(C.unwelcome-where(tostring(typ), loc))
+      add-error(C.unwelcome-where(tostring(typ), loc, block.l))
     end
   else:
     nothing
   end
 end
 
-fun is-binder(expr):
-  A.is-s-let(expr) or A.is-s-fun(expr) or A.is-s-var(expr) or A.is-s-rec(expr)
-end
+is-binder = A.is-binder
 
 fun explicitly-blocky-block(block :: A.Expr % (is-s-block)) -> Boolean block:
   var seen-non-let = false
@@ -264,14 +262,14 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>):
 end
 
 
-fun wf-last-stmt(stmt :: A.Expr):
+fun wf-last-stmt(block-loc, stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _, _)                => add-error(C.block-ending(l, "let-binding"))
-    | s-var(l, _, _)                   => add-error(C.block-ending(l, "var-binding"))
-    | s-rec(l, _, _)                   => add-error(C.block-ending(l, "rec-binding"))
-    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, "fun-binding"))
-    | s-data(l, _, _, _, _, _, _)      => add-error(C.block-ending(l, "data definition"))
-    | s-contract(l, _, _)              => add-error(C.block-ending(l, "contract"))
+    | s-let(l, _, _, _)                => add-error(C.block-ending(l, block-loc, "let-binding"))
+    | s-var(l, _, _)                   => add-error(C.block-ending(l, block-loc, "var-binding"))
+    | s-rec(l, _, _)                   => add-error(C.block-ending(l, block-loc, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
+    | s-contract(l, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -375,23 +373,23 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   method s-data(self, l, name, params, mixins, variants, shares, _check) block:
+    add-error(C.non-toplevel("data declaration", l, last-visited-loc))
     last-visited-loc := l
-    add-error(C.non-toplevel("data declaration", l))
     true
   end,
   method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
+    add-error(C.non-toplevel("data declaration", l, last-visited-loc))
     last-visited-loc := l
-    add-error(C.non-toplevel("data declaration", l))
     true
   end,
   method s-type(self, l, name, params, ann) block:
+    add-error(C.non-toplevel("type alias", l, last-visited-loc))
     last-visited-loc := l
-    add-error(C.non-toplevel("type alias", l))
     true
   end,
   method s-newtype(self, l, name, namet) block:
+    add-error(C.non-toplevel("newtype", l, last-visited-loc))
     last-visited-loc := l
-    add-error(C.non-toplevel("newtype", l))
     true
   end,
   method s-let-expr(self, l, binds, body, blocky) block:
@@ -420,8 +418,8 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), binds) and body.visit(self)
   end,
   method s-type-let-expr(self, l, binds, body, blocky) block:
+    add-error(C.non-toplevel("type alias", l, last-visited-loc))
     last-visited-loc := l
-    add-error(C.non-toplevel("type alias", l))
     true
   end,
   method s-op(self, l, op-l, op, left, right) block:
@@ -492,7 +490,7 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.wf-empty-block(last-visited-loc))
       true
     else:
-      wf-last-stmt(stmts.last())
+      wf-last-stmt(l, stmts.last())
       wf-block-stmts(self, l, stmts)
       true
     end
