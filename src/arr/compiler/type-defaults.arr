@@ -339,6 +339,16 @@ module-const-lists = t-module("builtin://lists",
     t-member("fold3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd)], tva))),
     t-member("fold4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd, tve], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd), mk-list(tve)], tva))),
     t-member("fold_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], tva), t-number, tva, mk-list(tvb)], tva))),
+    
+    t-member("length", t-forall([list: tva], t-arrow([list: mk-list(tva)], t-number))),
+    t-member("sum", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("max", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("min", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("mean", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("median", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("stdev", t-arrow([list: mk-list(t-number)], t-number)),
+    t-member("distinct", t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-list(tva)))),
+
     t-member("list",
         t-record([list:
               t-member("make", t-forall([list: tva], t-arrow([list: t-array(tva)], mk-list(tva)))),
