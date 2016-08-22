@@ -356,7 +356,7 @@ data CompileError:
           ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
           ED.text(" operation.")],
         [ED.para:
-          ED.text("Use parentheses to group the operations and to make the order of operations.")]]
+          ED.text("Use parentheses to group the operations and to make the order of operations clear.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -369,7 +369,7 @@ data CompileError:
           ED.code(ED.text(self.op-b-name)),
           ED.text(" at "),
           ED.loc(self.op-b-loc),
-          ED.text(". Use parentheses to group the operations and to make the order of operations.")]]
+          ED.text(". Use parentheses to group the operations and to make the order of operations clear.")]]
     end
   | block-ending(l :: Loc, block-loc :: Loc, kind) with:
     method render-fancy-reason(self):
