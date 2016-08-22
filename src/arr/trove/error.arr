@@ -255,19 +255,19 @@ data RuntimeError:
           ed-intro(self.expression + " expression", self.loc, 0, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text(" errored. It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
+            ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
       else:
         [ED.error:
           ed-simple-intro(self.expression + " expression", self.loc),
           [ED.para:
-            ED.text(" errored. It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
+            ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro(self.expression + " expression", self.loc),
         [ED.para:
-          ED.text(" errored. It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
+          ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
     end
   | internal-error(message, info-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
