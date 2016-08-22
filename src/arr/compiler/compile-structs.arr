@@ -282,7 +282,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Pyret rejected your program becayse there is an empty block at")],
+          ED.text("Pyret rejected your program because there is an empty block at")],
         [ED.para: draw-and-highlight(self.loc)]]
     end
   | wf-err-split(msg :: String, loc :: List<A.Loc>) with:
