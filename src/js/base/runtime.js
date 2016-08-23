@@ -1609,7 +1609,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.safeCall(function() {
           display.app(val);
         }, function(_) {
-          return val;
+          return nothing;
         }, "print");
       }, "print");
 
@@ -1624,14 +1624,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a); }
         if (isString(val)) {
           theOutsideWorld.stdout(val);
-          return val;
+          return nothing;
         }
         else {
           return thisRuntime.safeCall(function() {
             return toReprJS(val, ReprMethods._tostring);
           }, function(repr) {
             theOutsideWorld.stdout(repr);
-            return val;
+            return nothing;
           }, "display");
         }
       }, "display");
@@ -1649,7 +1649,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.safeCall(function() {
           display_error.app(val);
         }, function(_) {
-          return val;
+          return nothing;
         }, "print-error");
       }, "print-error");
 
@@ -1664,14 +1664,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a); }
         if (isString(val)) {
           theOutsideWorld.stderr(val);
-          return val;
+          return nothing;
         }
         else {
           return thisRuntime.safeCall(function() {
             return toReprJS(val, ReprMethods._tostring);
           }, function(repr) {
             theOutsideWorld.stderr(repr);
-            return val;
+            return nothing;
           }, "display-error");
         }
       }, "display-error");
