@@ -1151,6 +1151,19 @@ data Expr:
         PP.flow-map(PP.hardline, _.tosource(), self.spec),
         str-end)
     end
+  | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<SpyField>) with:
+    method label(self): "s-spy-block" end,
+    method tosource(self):
+      cases(Option<Expr>) self.message:
+        | none =>
+          PP.surround-separate(INDENT, 1, PP.str("spy: end"),
+            PP.str("spy:"), PP.commabreak, str-end, self.contents.map(_.tosource()))
+        | some(msg) =>
+          msg-source = msg.tosource()
+          PP.surround-separate(INDENT, 1, PP.str("spy ") + msg-source + PP.str(": end"),
+            PP.str("spy ") + msg-source + str-colon, PP.commabreak, str-end, self.contents.map(_.tosource()))
+      end
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1166,19 +1179,6 @@ data TableRow:
     method tosource(self):
       PP.flow([list: str-rowcolon,
           PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
-    end
-  | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<SpyField>) with:
-    method label(self): "s-spy-block" end,
-    method tosource(self):
-      cases(Option<Expr>) self.message:
-        | none =>
-          PP.surround-separate(INDENT, 1, PP.str("spy: end"),
-            PP.str("spy:"), PP.commabreak, str-end, self.contents.map(_.tosource()))
-        | some(msg) =>
-          msg-source = msg.tosource()
-          PP.surround-separate(INDENT, 1, PP.str("spy ") + msg-source + PP.str(": end"),
-            PP.str("spy ") + msg-source + str-colon, PP.commabreak, str-end, self.contents.map(_.tosource()))
-      end
     end
 sharing:
   method visit(self, visitor):
