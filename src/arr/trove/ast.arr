@@ -1166,6 +1166,7 @@ data TableRow:
     method tosource(self):
       PP.flow([list: str-rowcolon,
           PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
+    end
   | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<SpyField>) with:
     method label(self): "s-spy-block" end,
     method tosource(self):
@@ -2237,6 +2238,7 @@ default-map-visitor = {
   end,
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
+  end,
   
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(l, self.option(message), contents.map(_.visit(self)))
