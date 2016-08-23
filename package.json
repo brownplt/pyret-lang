@@ -19,8 +19,9 @@
     "lodash": "~2.4.1",
     "s-expression": "~2.2.0",
     "seedrandom": "~2.3.10",
-    "CodeMirror": "git://github.com/jpolitz/CodeMirror",
+    "codemirror": "git://github.com/jpolitz/CodeMirror",
     "benchmark": "2.0.0",
+    "ascii-table": "~0.0.9",
     "d3": "~3",
     "d3-tip": "git://github.com/sorawee/d3-tip"
   },

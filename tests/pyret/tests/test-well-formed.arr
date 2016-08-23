@@ -1,6 +1,7 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import file("../test-compile-helper.arr") as C
 
+sc = lam(test-str): string-contains(_, test-str) end
 fun c(str) block:
   errs = C.get-compile-errs(str)
   when is-empty(errs):
@@ -146,6 +147,49 @@ check "malformed blocks":
   c("lam(): true where: 5 end") satisfies CS.is-unwelcome-where
   c("method(self): nothing where: 5 end") satisfies CS.is-unwelcome-where
   c("{method m(self): nothing where: 5 end}") satisfies CS.is-unwelcome-where
+end
+
+check "table loading checks":
+  c("load-table: h1 end") satisfies CS.is-load-table-no-body
+  c("load-table: source: src end") satisfies CS.is-table-empty-header
+  c("load-table: h1 "
+      + "sanitize h1 using s1 "
+      + "end") satisfies CS.is-load-table-bad-number-srcs
+  c("load-table: h1 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "source: src2 "
+      + "end") satisfies CS.is-load-table-bad-number-srcs
+  c("load-table: h1, h2 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "sanitize h2 using s2 "
+      + "sanitize h1 using s1 "
+      + "end") satisfies CS.is-load-table-duplicate-sanitizer
+  c("load-table: h1 "
+      + "source: src1 "
+      + "sanitize h1 using s1 "
+      + "sanitize h2 using s2 "
+      + "end") satisfies CS.is-table-sanitizer-bad-column
+end
+
+check "tuple bindings":
+  cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
+  cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
+  cwfs("var {x;y} = 10") satisfies sc("Variable bindings must be names")
+  cwfs("rec {x;y} = 10") satisfies sc("Recursive bindings must be names")
+  cwfs("letrec {x;y} = 10: x end") satisfies sc("Recursive bindings must be names")
+
+  # Now nested in other scopes, since toplevel bindings are special
+  cwfs("lam(): var {x;y} = 10\nx end") satisfies sc("Variable bindings must be names")
+  cwfs("lam(): rec {x;y} = 10\nx end") satisfies sc("Recursive bindings must be names")
+end
+
+check "reactors":
+  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named init")
+  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named todraw")
+  cwfs("reactor: method f(self): 5 end end") satisfies sc("cannot contain method fields")
+  cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
 
 #|

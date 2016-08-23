@@ -15,10 +15,30 @@ fun vert-list-values(vals):
   ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
 end
 
-fun ed-intro(name, loc, color):
+fun ed-simple-intro(name, loc):
+  if loc.is-builtin():
+    [ED.para:
+      ED.text("Evaluating a " + name + " in "),
+      ED.loc(loc),
+      ED.text(" errored.")]
+  else:
+    [ED.para:
+      ED.text("Evaluating the " + name + " at "),
+      ED.loc(loc),
+      ED.text(" errored.")]
+  end
+end
+
+fun ed-intro(name, loc, color, followed-by-embed):
   [ED.para:
-    ED.text("The "),
-    ED.highlight(ED.text(name), [ED.locs: loc], color)]
+    ED.text("Evaluating this "),
+    ED.highlight(ED.text(name), [ED.locs: loc], color),
+    ED.text(
+      if followed-by-embed:
+        " errored:"
+      else:
+        " errored."
+      end)]
 end
 
 fun please-report-bug():
@@ -26,6 +46,15 @@ fun please-report-bug():
 end
 
 data RuntimeError:
+  | multi-error(errors #|:: List<RuntimeError>|#) with:
+    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+      rendered = self.errors.map(_.render-fancy-reason(loc-to-ast, loc-to-src))
+      ED.v-sequence(rendered)
+    end,
+    method render-reason(self):
+      rendered = self.errors.map(_.render-reason())
+      ED.v-sequence(rendered)
+    end
   | sample-error(loc, some-info) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
@@ -71,280 +100,174 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non object value:")],
-           ED.embed(self.obj),
-           please-report-bug()]
+          ed-simple-intro("reference update expression", self.loc),
+          [ED.para: ED.text("It was given a non-object value:")],
+           ED.embed(self.obj)]
       else:
         [ED.error:
-          ed-intro("reference update expression", self.loc, -1),
+          ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("failed because the "),
-            ED.highlight(ED.text("left hand side"), [ED.locs: self.objloc], 0),
+            ED.text("The "),
+            ED.highlight(ED.text("left side"), [ED.locs: self.objloc], 0),
             ED.text(" is expected to evaluate to an object, but its value was: ")],
           ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non object value:")],
-           ED.embed(self.obj),
-           please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non object value:")],
-           ED.embed(self.obj)]
-      end
+      [ED.error:
+        ed-simple-intro("reference update expression", self.loc),
+        [ED.para: ED.text("It was given a non-object value:")],
+         ED.embed(self.obj)]
     end
   | update-frozen-ref(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if not(self.loc.is-builtin()) and src-available(self.loc):
         [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" is frozen in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
-      else:
-        [ED.error:
-          ed-intro("reference update expression", self.loc, -1),
+          ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("failed because the "),
+            ED.text("The "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
             ED.text(" is frozen in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
-      end
-    end,
-    method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" is frozen in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
       else:
         [ED.error:
+          ed-simple-intro("reference update expression", self.loc),
           [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
+            ED.text("The field "),
             ED.code(ED.text(self.field)),
             ED.text(" is frozen in the object:")],
           ED.embed(self.obj)]
       end
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("reference update expression", self.loc),
+        [ED.para:
+          ED.text("The field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" is frozen in the object:")],
+          ED.embed(self.obj)]
     end
   | update-non-ref(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if not(self.loc.is-builtin()) and src-available(self.loc):
         [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" is not a reference in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The reference update expression")],
+          ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("failed because the "),
+            ED.text("The "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
             ED.text(" is not a reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
+      else:
+        [ED.error:
+        ed-simple-intro("reference update expression", self.loc),
+        [ED.para:
+          ED.text("The field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" is frozen in the object:")],
+          ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" is not a reference in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" is not a reference in the object:")],
+      [ED.error:
+        ed-simple-intro("reference update expression", self.loc),
+        [ED.para:
+          ED.text("The field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" is frozen in the object:")],
           ED.embed(self.obj)]
-      end
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if self.loc.is-builtin():        
         [ED.error:
+          ed-simple-intro("reference update expression", self.loc),
           [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
+            ED.text("The field "),
             ED.code(ED.text(self.field)),
             ED.text(" does not exist in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
+          ED.embed(self.obj)]
       else:
         [ED.error:
-          ed-intro("reference update expression", self.loc, -1),
+          ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("failed because the "),
+            ED.text("The "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
-            ED.text(" is does not exist in the "),
+            ED.text(" does not exist in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the fieldv"),
-            ED.code(ED.text(self.field)),
-            ED.text(" does not exist in the object:")],
-          ED.embed(self.obj),
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A reference update expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the fieldv"),
-            ED.code(ED.text(self.field)),
-            ED.text(" does not exist in the object:")],
-          ED.embed(self.obj)]
-      end
+      [ED.error:
+        ed-simple-intro("reference update expression", self.loc),
+        [ED.para:
+          ED.text("The field "),
+          ED.code(ED.text(self.field)),
+          ED.text(" does not exist in the object:")],
+        ED.embed(self.obj)]
     end
   | no-cases-matched(loc, val) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if self.loc.is-builtin() or not(src-available(self.loc)):
         [ED.error:
-          [ED.para:
-            ED.text("A cases expression in "),
-            ED.loc(self.loc),
-            ED.text(" does not have a branch that matches the value:")],
-           ED.embed(self.val),
-           please-report-bug()]
-      else:
+          ed-simple-intro("cases expression", self.loc),
+          [ED.para: ED.text("No branch matched the value:")],
+          ED.embed(self.val)]
+      else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast-cse) =>
             [ED.error:
+              ed-intro("cases expression", self.loc, -1, true),
+              ED.cmcode(self.loc),
               [ED.para:
-                ED.text("The "),
-                ED.highlight(ED.text("cases expression"), [ED.locs: self.loc],0),
-                ED.text(" expects there to always be a branch matching the value of the "),
+                ED.text("None of the "),
+                ED.highlight(ED.text("branch patterns"), ast-cse.branches.map(_.pat-loc), 0),
+                ED.text(" matched the value of the "),
                 ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l],1),
-                ED.text(".")],
-              [ED.para:
-                ED.text("The value of the "),
-                ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l],1),
-                ED.text(" was:")],
+                ED.text(":")],
                ED.embed(self.val)]
           | none =>
             [ED.error:
-              [ED.para:
-                ED.text("The cases expression")],
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text(" does not have a branch that matches the value of the argument:")],
+              ed-intro("cases expression", self.loc, 0, true),
+              ED.cmcode(self.loc),
+              [ED.para: ED.text("No branch matched the value of the argument:")],
                ED.embed(self.val)]
         end
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A cases expression in "),
-            ED.loc(self.loc),
-            ED.text(" does not have a branch that matches the value:")],
-           ED.embed(self.val),
-           please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A cases expression in "),
-            ED.loc(self.loc),
-            ED.text(" does not have a branch that matches the value:")],
-           ED.embed(self.val)]
-      end
+      [ED.error:
+        ed-simple-intro("cases expression", self.loc),
+        [ED.para: ED.text("No branch matched the value:")],
+        ED.embed(self.val)]
     end
   | no-branches-matched(loc, expression :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if not(self.loc.is-builtin()) and src-available(self.loc):
         [ED.error:
-          [ED.para:
-            ED.text("An "),
-            ED.text(self.expression),
-            ED.text(" expression in "),
-            ED.loc(self.loc),
-            ED.text(" expected that the condition of at least one branch could be statisfied, but no branch conditions were satisfied, so no branch could be entered.")],
-          please-report-bug()]
-      else if src-available(self.loc):
-        [ED.error:
-          ed-intro(self.expression + " expression", self.loc, 0),
+          ed-intro(self.expression + " expression", self.loc, 0, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text(" expects that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
+            ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
       else:
         [ED.error:
+          ed-simple-intro(self.expression + " expression", self.loc),
           [ED.para:
-            ED.text("The "),
-            ED.text(self.expression),
-            ED.text(" expression in "),
-            ED.loc(self.loc),
-            ED.text(" expected that the condition of at least one branch could be statisfied, but no branch conditions were satisfied, so no branch could be entered.")]]
+            ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("An "),
-            ED.text(self.expression),
-            ED.text(" expression in "),
-            ED.loc(self.loc),
-            ED.text(" expected that the condition of at least one branch could be statisfied, but no branch conditions were satisfied, so no branch could be entered.")],
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The "),
-            ED.text(self.expression),
-            ED.text(" expression in "),
-            ED.loc(self.loc),
-            ED.text(" expected that the condition of at least one branch could be statisfied, but no branch conditions were satisfied, so no branch could be entered.")]]
-      end
+      [ED.error:
+        ed-simple-intro(self.expression + " expression", self.loc),
+        [ED.para:
+          ED.text("It expected that the condition of at least one branch be satisfied. No branch conditions were satisfied, so no branch could be entered.")]]
     end
   | internal-error(message, info-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -358,45 +281,27 @@ data RuntimeError:
     end
   | template-not-finished(loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if self.loc.is-builtin() or not(src-available(self.loc)):
         [ED.error:
-          [ED.para: 
-            ED.text("The program tried to evaluate an unfinished template expression in "),
-            ED.loc(self.loc),
-            ED.text(".")],
-            please-report-bug()]
+          ed-simple-intro("unfinished template expression", self.loc),
+          [ED.para: ED.text("Template expressions cannot be evaluated.")]]
       else:
         [ED.error:
-          [ED.para: 
-            ED.text("The program tried to evaluate an "),
-            ED.highlight(ED.text("unfinished template expression"), [ED.locs: self.loc], 0)]]
+          ed-intro("unfinished template expression", self.loc, 1, true),
+          ED.cmcode(self.loc),
+          [ED.para: ED.text("Template expressions cannot be evaluated.")]]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para: 
-            ED.text("The program tried to evaluate an unfinished template expression in "),
-            ED.loc(self.loc),
-            ED.text(".")],
-            please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para: 
-            ED.text("The program tried to evaluate an unfinished template expression in "),
-            ED.loc(self.loc),
-            ED.text(".")]]
-      end
+      [ED.error:
+        ed-simple-intro("unfinished template expression", self.loc),
+        [ED.para: ED.text("Template expressions cannot be evaluated.")]]
     end
   | field-not-found(loc, obj, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if self.loc.is-builtin() or not(src-available(self.loc)):
         [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the object")],
-           ED.embed(self.obj),
+          ed-simple-intro("field lookup expression", self.loc),
           [ED.para:
             ED.text("does not have a field named "),
             ED.code(ED.text(self.field))],
@@ -409,14 +314,12 @@ data RuntimeError:
               | s-app(_,f,_) => f
             end
             [ED.error:
+              ed-intro("field lookup expression", self.loc, -1, true),
+              ED.cmcode(self.loc),
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("field lookup expression"), [ED.locs: self.loc], -1)],
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"),[ED.locs: ast.obj.l], 0),
-                ED.text(" evaluated to an object that did not have a "),
+                ED.highlight(ED.text("left side"),[ED.locs: ast.obj.l], 0),
+                ED.text(" was an object that did not have a "),
                 ED.highlight([ED.sequence: ED.text("field named "),
                                            ED.code(ED.text(self.field))],
                              [ED.locs: ast.field-loc()], 1),
@@ -424,267 +327,148 @@ data RuntimeError:
                ED.embed(self.obj)]
           | none =>
             [ED.error:
+              ed-intro("field lookup expression", self.loc, -1, true),
+              ED.cmcode(self.loc),
               [ED.para:
-                ED.text("The field lookup expression"),
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the left hand side evaluated to an object that did not have a field named "),
+                ED.text("The left side was an object that did not have a field named "),
                 ED.code(ED.text(self.field)),
                 ED.text(":")],
-               ED.embed(self.obj)]]
+               ED.embed(self.obj)]
         end
       else:
         [ED.error:
+          ed-simple-intro("field lookup expression", self.loc),
           [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the object")],
-           ED.embed(self.obj),
-          [ED.para:
-            ED.text("does not have a field named "),
-            ED.code(ED.text(self.field))]]
+            ED.text("The left side was an object that did not have a field named "),
+            ED.code(ED.text(self.field)),
+            ED.text(":")],
+           ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the object")],
-           ED.embed(self.obj),
-          [ED.para:
-            ED.text("does not have a field named "),
-            ED.code(ED.text(self.field))],
-           please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the object")],
-           ED.embed(self.obj),
-          [ED.para:
-            ED.text("does not have a field named "),
-            ED.code(ED.text(self.field))],
-          ED.embed(self.obj)]
-      end
+      [ED.error:
+        ed-simple-intro("field lookup expression", self.loc),
+        [ED.para:
+          ED.text("The left side was an object that did not have a field named "),
+          ED.code(ED.text(self.field)),
+          ED.text(":")],
+         ED.embed(self.obj)]
     end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.loc.is-builtin():
+      if self.loc.is-builtin() or not(src-available(self.loc)):
         [ED.error:
+          ed-simple-intro("field lookup expression", self.loc),
           [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" could not be looked up in the constructor "),
-            ED.code(ED.text(self.constr-name))],
-          please-report-bug()]
-      else if src-available(self.loc):
-        cases(O.Option) maybe-ast(self.loc):
-          | some(ast) =>
-            shadow ast = cases(Any) ast:
-              | s-dot(_,_,_) => ast
-              | s-app(_,f,_) => f
-            end
-            [ED.error:
-              [ED.para:
-                ED.text("The "),
-                ED.highlight(ED.text("field lookup expression"), [ED.locs: self.loc], -1)],
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"), [ED.locs: ast.obj.l], 0),
-                ED.text(" evaluated to a constructor ("),
-                ED.code(ED.text(self.constr-name)),
-                ED.text("), which is not an object.")]]
-          | none      =>
-            [ED.error:
-              [ED.para:
-                ED.text("The "),
-                ED.highlight(ED.text("field lookup expression"), [ED.locs: self.loc], 0)],
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the left hand side evaluated to a constructor ("),
-                ED.code(ED.text(self.constr-name)),
-                ED.text("), which is not an object that has a field named "),
-                ED.code(ED.text(self.field))]]
-        end
+            ED.text("The left side was a constructor, not an object.")]]
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left hand side evaluated to a constructor ("),
-            ED.code(ED.text(self.constr-name)),
-            ED.text("), which is not an object that has a field named "),
-            ED.code(ED.text(self.field))]]
+          ed-intro("field lookup expression", self.loc, 0, true),
+          ED.cmcode(self.loc),
+          [ED.para: ED.text("The left side was a constructor, not an object.")]]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in the builtin location "), 
-            ED.loc(self.loc),
-            ED.text(" failed because the field "),
-            ED.code(ED.text(self.field)),
-            ED.text(" could not be looked up in a constructor ("),
-            ED.code(ED.text(self.constr-name)),
-            ED.text(").")],
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left hand side evaluated to a constructor ("),
-            ED.code(ED.text(self.constr-name)),
-            ED.text("), which is not an object that has a field named "),
-            ED.code(ED.text(self.field))]]
-      end
+      [ED.error:
+        ed-simple-intro("field lookup expression", self.loc),
+        [ED.para:
+          ED.text("The left side was a constructor, not an object.")]]
     end
   | lookup-non-tuple(loc, non-tup, index :: Number) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("The tuple lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left-hand-side did not evaluate to a tuple with a value at position "),
-            ED.embed(self.index),
-            ED.text(":")],
-          ED.embed(self.non-tup),
-          please-report-bug()]
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: ED.text("The left side was not a tuple value:")],
+          ED.embed(self.non-tup)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("tuple lookup expression", self.loc, -1),
+              ed-intro("tuple lookup expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"), [ED.locs: ast.tup.l], 0),
-                ED.text(" did not evaluate to a tuple:")],
+                ED.text("The "),
+                ED.highlight(ED.text("left side"), [ED.locs: ast.tup.l], 0),
+                ED.text(" was not a tuple value:")],
               ED.embed(self.non-tup)]
           | none      =>
             [ED.error:
-              [ED.para:
-                ED.text("The tuple lookup expression in "),
-                ED.loc(self.loc),
-                ED.text(" failed because the left hand side did not evaluate to a tuple:")],
+              ed-intro("tuple lookup expression", self.loc, 0, true),
+              ED.cmcode(self.loc),
+              [ED.para: ED.text("The left side was not a tuple value:")],
               ED.embed(self.non-tup)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left hand side did not evaluate to a tuple:")],
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: ED.text("The left side was not a tuple value:")],
           ED.embed(self.non-tup)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left-hand-side did not evaluate to a tuple with a value at position "),
-            ED.embed(self.index),
-            ED.text(":")],
-          ED.embed(self.non-tup),
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because the left hand side did not evaluate to a tuple:")],
-          ED.embed(self.non-tup)]
-      end
+      [ED.error:
+        ed-simple-intro("tuple lookup expression", self.loc),
+        [ED.para: ED.text("The left side was not a tuple value:")],
+        ED.embed(self.non-tup)]
     end
   | lookup-large-index(loc, tup, len, index :: Number) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("The tuple lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because a value could not be found at the given position, "),
-            ED.embed(self.index),
-            ED.text(", because the left hand side evaluated to a tuple containing "),
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: 
+            ED.text("The left side was a tuple of "),
             ED.ed-components(self.len),
-            ED.text(":")],
-          ED.embed(self.tup),
-          please-report-bug()]
+            ED.text(", smaller than the given position ("),
+            ED.text(num-to-string(self.index) + "):")],
+          ED.embed(self.tup)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("tuple lookup expression", self.loc, -1),
+              ed-intro("tuple lookup expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text(" failed because a value could not be found at the given "),
-                ED.highlight(ED.text("position"), [ED.locs: ast.index-loc], 1),
-                ED.text(" because the "),
-                ED.highlight(ED.text("left hand side"), [ED.locs: ast.tup.l], 0),
-                ED.text(" evaluated to a tuple containing "),
+                ED.text("The "),
+                ED.highlight(ED.text("left side"), [ED.locs: ast.tup.l], 0),
+                ED.text(" was a tuple of "),
                 ED.ed-components(self.len),
-                ED.text(":")],
+                ED.text(", smaller than the given "),
+                ED.highlight(ED.text("position"), [ED.locs: ast.index-loc], 1),
+                ED.text(" (" + num-to-string(self.index) + "):")],
               ED.embed(self.tup)]
           | none      =>
             [ED.error:
-              ed-intro("tuple lookup expression", self.loc, 0),
+              ed-intro("tuple lookup expression", self.loc, 0, true),
               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text(" failed because a value could not be found at the given position, "),
-                ED.embed(self.index),
-                ED.text(", because the left hand side evaluated to a tuple containing "),
+              [ED.para: 
+                ED.text("The left side was a tuple of "),
                 ED.ed-components(self.len),
-                ED.text(":")],
+                ED.text(", smaller than the given position ("),
+                ED.text(num-to-string(self.index) + "):")],
               ED.embed(self.tup)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The tuple lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because a value could not be found at the given position, "),
-            ED.embed(self.index),
-            ED.text(", because the left hand side evaluated to a tuple containing "),
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: 
+            ED.text(" failed because the left side was a tuple of "),
             ED.ed-components(self.len),
-            ED.text(":")],
+            ED.text(", smaller than the given position ("),
+            ED.text(num-to-string(self.index) + "):")],
           ED.embed(self.tup)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("The tuple lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because a value could not be found at the given position, "),
-            ED.embed(self.index),
-            ED.text(", because the left hand side evaluated to a tuple containing "),
-            ED.embed(self.els),
-            ED.text(" components:")],
-          ED.embed(self.tup),
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The tuple lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because a value could not be found at the given position, "),
-            ED.embed(self.index),
-            ED.text(", because the left hand side evaluated to a tuple containing "),
-            ED.embed(self.els),
-            ED.text(" components:")],
-          ED.embed(self.tup)]
-      end
+      [ED.error:
+        ed-simple-intro("tuple lookup expression", self.loc),
+        [ED.para: 
+          ED.text(" failed because the left side was a tuple of "),
+          ED.ed-components(self.len),
+          ED.text(", smaller than the given position ("),
+          ED.text(num-to-string(self.index) + "):")],
+        ED.embed(self.tup)]
     end
   | non-tuple-bind(loc, non-tup) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -693,28 +477,23 @@ data RuntimeError:
           [ED.para:
             ED.text("The tuple binding statement in "),
             ED.loc(self.loc),
-            ED.text(" failed because the right hand side did not evaluate to a tuple with a value at position "),
-            ED.embed(self.index),
-            ED.text(":")],
+            ED.text(" failed because the binding was given a non-tuple value: ")],
           ED.embed(self.non-tup),
           please-report-bug()]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("tuple binding statement", self.loc, -1),
+              ed-intro("tuple binding statement", self.loc, -1, true),
               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("right hand side"), [ED.locs: ast.tup.l], 0),
-                ED.text(" did not evaluate to a tuple:")],
+              [ED.para: ED.text("failed because the binding was given a non-tuple value:")],
               ED.embed(self.non-tup)]
           | none      =>
             [ED.error:
               [ED.para:
                 ED.text("The tuple binding statement in "),
                 ED.loc(self.loc),
-                ED.text(" failed because the right hand side did not evaluate to a tuple:")],
+                ED.text(" failed because the binding was given a non-tuple value:")],
               ED.embed(self.non-tup)]
         end
       else:
@@ -722,7 +501,7 @@ data RuntimeError:
           [ED.para:
             ED.text("The tuple binding statement in "),
             ED.loc(self.loc),
-            ED.text(" failed because the right hand side did not evaluate to a tuple:")],
+            ED.text(" failed because the binding was given a non-tuple value:")],
           ED.embed(self.non-tup)]
       end
     end,
@@ -753,7 +532,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.els),
             ED.text(":")],
           ED.embed(self.tup),
@@ -762,25 +541,24 @@ data RuntimeError:
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("tuple binding", self.loc, -1),
+              ed-intro("tuple binding", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because "),
-                ED.highlight(ED.ed-names(self.desiredLength), ast.names.map(_.l), 0),
-                ED.text(" are expected to be bound to values, but the "),
-                ED.highlight(ED.text("right hand side"), [ED.locs: ast.tup.l], 1),
-                ED.text(" evaluated to a tuple containing "),
+                ED.highlight(ED.ed-names(self.desiredLength), ast.fields.map(_.l), 0),
+                ED.text(" are expected to be bound to values, but the binding was given "),
+                ED.text(" a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
           | none      =>
             [ED.error:
-              ed-intro("tuple binding", self.loc, 0),
+              ed-intro("tuple binding", self.loc, 0, true),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because "),
                 ED.embed(self.desiredLength),
-                ED.ed-components(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+                ED.ed-components(" are expected to be bound to values, but the binding was given a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
@@ -792,7 +570,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup)]
@@ -806,7 +584,7 @@ data RuntimeError:
             ED.loc(self.loc),
             ED.text("  failed because "),
             ED.ed-components(self.desiredLength),
-            ED.text(" are expected to be bound to values, but the right hand side evaluated to a tuple containing "),
+            ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup),
@@ -822,20 +600,15 @@ data RuntimeError:
             ED.ed-components(self.length),
             ED.text(":")],
           ED.embed(self.tup)]
-      end
+      end 
     end
   | lookup-non-object(loc, non-obj, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
-            ED.code(ED.text(self.field)),
-            ED.text(":")],
-           ED.embed(self.non-obj),
-           please-report-bug()]
+          ed-simple-intro("object lookup", self.loc),
+          [ED.para: ED.text("It was given a non-object value:")],
+           ED.embed(self.obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -844,110 +617,76 @@ data RuntimeError:
               | s-app(_,f,_) => f
             end
             [ED.error:
-              ed-intro("field lookup expression", self.loc, -1),
+              ed-intro("reference update expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"),[ED.locs: ast.obj.l], 0),
-                ED.text(" evaluated to a non-object value:")],
-               ED.embed(self.non-obj)]
+                ED.text("The "),
+                ED.highlight(ED.text("left side"), [ED.locs: ast.obj.l], 0),
+                ED.text(" was not an object:")],
+              ED.embed(self.non-obj)]
           | none =>
             [ED.error:
-              ed-intro("field lookup expression", self.loc, 0),
+              ed-intro("reference update expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("failed because the left hand side evaluated to a non-object value:")],
-               ED.embed(self.non-obj)]
+                ED.text("The left side was not an object:")],
+              ED.embed(self.non-obj)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.non-obj)]
+          ed-simple-intro("object lookup", self.loc),
+          [ED.para: ED.text("The left side was not an object:")],
+          ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
-            ED.code(ED.text(self.field)),
-            ED.text(":")],
-           ED.embed(self.non-obj),
-           please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.non-obj)]
-      end
+      [ED.error:
+        ed-simple-intro("object lookup", self.loc),
+        [ED.para: ED.text("The left side was not an object:")],
+        ED.embed(self.obj)]
     end
   | extend-non-object(loc, non-obj) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("An object extension expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
-            ED.code(ED.text(self.field)),
-            ED.text(":")],
-           ED.embed(self.non-obj),
-           please-report-bug()]
+          ed-simple-intro("object extension expression", self.loc),
+          [ED.para: ED.text("It was given a non-object value:")],
+           ED.embed(self.non-obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
+            shadow ast = cases(Any) ast:
+              | s-extend(_,_,_) => ast
+              | s-app(_,f,_) => f
+            end
             [ED.error:
-               ed-intro("object extension expression", self.loc, -1),
-               ED.cmcode(self.loc),
-              [ED.para:
-                ED.text("failed because the "),
-                ED.highlight(ED.text("left hand side"),[ED.locs: ast.supe.l], 0),
-                ED.text(" evaluated to a non-object value:"),
-                ED.text(":")],
-               ED.embed(self.non-obj)]
-          | none =>
-            [ED.error:
-              ed-intro("object extension expression", self.loc, -1),
+              ed-intro("object extension expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("failed because the left hand side evaluated to a non-object value:")],
-               ED.embed(self.non-obj)]
+                ED.text("The "),
+                ED.highlight(ED.text("left side"), [ED.locs: ast.supe.l], 0),
+                ED.text(" was not an object:")],
+              ED.embed(self.non-obj)]
+          | none =>
+            [ED.error:
+              ed-intro("object extension expression", self.loc, -1, true),
+              ED.cmcode(self.loc),
+              [ED.para:
+                ED.text("The left side was not an object:")],
+              ED.embed(self.non-obj)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The object extension expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.non-obj)]
+          ed-simple-intro("object extension expression", self.loc),
+          [ED.para: ED.text("The left side was not an object:")],
+          ED.embed(self.non-obj)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("An object extension expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value that did not have a field named "),
-            ED.code(ED.text(self.field)),
-            ED.text(":")],
-           ED.embed(self.non-obj),
-           please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("An object extension expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its left-hand-side evaluated to a non-object value:")],
-           ED.embed(self.non-obj)]
-      end
+      [ED.error:
+        ed-simple-intro("object extension expression", self.loc),
+        [ED.para: ED.text("The left side was not an object:")],
+        ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
     method render-fancy-reason(self, _, _):
@@ -981,37 +720,32 @@ data RuntimeError:
         | some(loc) =>
           if loc.is-builtin():
             [ED.sequence:
+              ed-simple-intro("expression", loc),
               [ED.para:
-                ED.text("An expression in "),
-                ED.loc(loc),
-                ED.text(" was expected to evaluate to a "),
+                ED.text("It was expected to produce a "),
                 ED.embed(self.typ),
-                ED.text(". It evaluated to the non-"),
+                ED.text(", but it produced a non-"),
                 ED.embed(self.typ),
                 ED.text(" value:")],
-              ED.embed(self.val),
-              please-report-bug()]
+              ED.embed(self.val)]
           else if src-available(loc):
             [ED.sequence:
-              [ED.para:
-                ED.text("The "),
-                ED.highlight(ED.text("expression"), [ED.locs: loc], 0)],
+              ed-intro("expression", loc, 0, true),
               ED.cmcode(loc),
               [ED.para:
-                ED.text("was expected to evaluate to a "),
+                ED.text("It was expected to produce a "),
                 ED.embed(self.typ),
-                ED.text(". It evaluated to the non-"),
+                ED.text(", but it produced a non-"),
                 ED.embed(self.typ),
                 ED.text(" value:")],
               ED.embed(self.val)]
           else:
             [ED.sequence:
+              ed-simple-intro("expression", loc),
               [ED.para:
-                ED.text("The expression in "),
-                ED.loc(loc),
-                ED.text(" was expected to evaluate to a "),
+                ED.text("It was expected to produce a "),
                 ED.embed(self.typ),
-                ED.text(". It evaluated to the non-"),
+                ED.text(", but it produced a non-"),
                 ED.embed(self.typ),
                 ED.text(" value:")],
               ED.embed(self.val)]
@@ -1019,53 +753,35 @@ data RuntimeError:
         | none =>
           [ED.sequence:
             [ED.para:
-                ED.text("An expression was expected to evaluate to a "),
-                ED.embed(self.typ),
-                ED.text(". It evaluated to the non-"),
-                ED.embed(self.typ),
-                ED.text(" value:")],
-              ED.embed(self.val),
-              please-report-bug()]
+              ED.text("Evaluating an expression failed. It was expected to evaluate to a "),
+              ED.embed(self.typ),
+              ED.text(". It evaluated to the non-"),
+              ED.embed(self.typ),
+              ED.text(" value:")],
+            ED.embed(self.val)]
       end]
     end, 
     method render-reason(self):
       [ED.error:
         ED.maybe-stack-loc(0, true,
           lam(loc):
-            if loc.is-builtin():
-              [ED.sequence:
-                [ED.para:
-                  ED.text("An expression in "),
-                  ED.loc(loc),
-                  ED.text(" was expected to evaluate to a "),
-                  ED.embed(self.typ),
-                  ED.text(". It evaluated to the non-"),
-                  ED.embed(self.typ),
-                  ED.text(" value:")],
-                ED.embed(self.val),
-                please-report-bug()]
-            else:
-              [ED.sequence:
-                [ED.para:
-                  ED.text("The expression in "),
-                  ED.loc(loc),
-                  ED.text(" was expected to evaluate to a "),
-                  ED.embed(self.typ),
-                  ED.text(". It evaluated to the non-"),
-                  ED.embed(self.typ),
-                  ED.text(" value:")],
-                ED.embed(self.val)]
-            end
-          end,
-          [ED.sequence:
-            [ED.para:
-                ED.text("An expression was expected to evaluate to a "),
+            [ED.sequence:
+              ed-simple-intro("expression", loc),
+              [ED.para:
+                ED.text("It was expected to evaluate to a "),
                 ED.embed(self.typ),
                 ED.text(". It evaluated to the non-"),
                 ED.embed(self.typ),
-                ED.text(" value:")],
-              ED.embed(self.val),
-              please-report-bug()])]
+                ED.text(" value:")]]
+          end,
+          [ED.sequence:
+            [ED.para:
+              ED.text("Evaluating an expression failed. It was expected to evaluate to a "),
+              ED.embed(self.typ),
+              ED.text(". It evaluated to the non-"),
+              ED.embed(self.typ),
+              ED.text(" value:")]]),
+        ED.embed(self.val)]
     end
   | num-string-binop-error(val1, val2, opname, opdesc, methodname) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1074,194 +790,120 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
+                ed-simple-intro(self.opname + " expression", loc),
                 [ED.para:
-                  ED.text("A binary "),
-                  ED.code(ED.text(self.opdesc)),
-                  ED.text(" operator expression in "),
-                  ED.loc(loc),
-                  ED.text(" failed because the left hand side evaluated to")],
+                  ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para:
-                  ED.text("and the right hand side evaluated to")],
+                  ED.text("The right side was:")],
                 ED.embed(self.val2),
-                please-report-bug(),
                 [ED.para:
-                  ED.text("The expression expects to be given:"),
+                  ED.text("The " + self.opname + " operator expects to be given:"),
                   [ED.bulleted:
                     ED.text("two Numbers, or"),
-                    ED.text("two Strings, or"),
-                    [ED.sequence: 
-                      ED.text("a left hand side that has a method named "), 
-                      ED.code(ED.text(self.methodname))]]]]
+                    ED.text("two Strings")]]]
             else if src-available(loc):
               cases(O.Option) maybe-ast(loc):
                 | some(ast) =>
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(
-                        [ED.sequence:
-                          ED.text("binary "),
-                          ED.code(ED.text(self.opdesc)),
-                          ED.text(" operator expression")],
-                        [ED.locs: loc], -1)],
-                     ED.cmcode(loc),
-                     [ED.para:
-                        ED.text("failed because the "),
-                        ED.highlight(ED.text("left hand side"), [ED.locs: left-loc],0),
-                        ED.text(" evaluated to")],
-                      ED.embed(self.val1),
-                      [ED.para:
-                        ED.text("and the "),
-                        ED.highlight(ED.text("right hand side"), [ED.locs: right-loc],1),
-                        ED.text(" evaluated to")],
-                      ED.embed(self.val2),
-                    [ED.para:
-                      ED.text("The expression expects to be given:"),
-                      [ED.bulleted:
-                        ED.text("two Numbers, or"),
-                        ED.text("two Strings, or"),
-                        [ED.sequence: 
-                          ED.text("a "),
-                          ED.highlight(ED.text("left hand side"), [ED.locs: left-loc], 0),
-                          ED.text(" that has a method named "), 
-                          ED.code(ED.text(self.methodname))]]]]
-                | none      =>
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(
-                        [ED.sequence:
-                          ED.text("binary "),
-                          ED.code(ED.text(self.opdesc)),
-                          ED.text(" operator expression")],
-                        [ED.locs: loc], 0)],
+                    ed-intro(self.opname + " expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
-                      ED.text("failed because the left hand side evaluated to")],
+                       ED.text("The "),
+                       ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                       ED.text(" was:")],
                     ED.embed(self.val1),
                     [ED.para:
-                      ED.text("and the right hand side evaluated to")],
+                      ED.text("The "),
+                      ED.highlight(ED.text("right side"), [ED.locs: right-loc],1),
+                      ED.text(" was:")],
                     ED.embed(self.val2),
                     [ED.para:
-                      ED.text("The expression expects to be given:"),
+                      ED.text("The " + self.opname + " operator expects to be given:"),
                       [ED.bulleted:
                         ED.text("two Numbers, or"),
-                        ED.text("two Strings, or"),
-                        [ED.sequence: 
-                          ED.text("a left hand side that has a method named "), 
-                          ED.code(ED.text(self.methodname))]]],
-                    please-report-bug()]
+                        ED.text("two Strings")]]]
+                | none      =>
+                  [ED.sequence:
+                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ED.cmcode(loc),
+                    [ED.para: ED.text("The left side was:")],
+                    ED.embed(self.val1),
+                    [ED.para: ED.text("The right side was:")],
+                    ED.embed(self.val2),
+                    [ED.para:
+                      ED.text("The " + self.opname + " operator expects to be given:"),
+                      [ED.bulleted:
+                        ED.text("two Numbers, or"),
+                        ED.text("two Strings")]]]
               end
             else:
               [ED.sequence:
-                [ED.para:
-                  ED.text("The binary "),
-                  ED.code(ED.text(self.opdesc)),
-                  ED.text(" operator expression in "),
-                  ED.loc(loc),
-                  ED.text(" failed because the left hand side evaluated to")],
+                ed-simple-intro(self.opname + " expression", loc),
+                [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
-                [ED.para:
-                  ED.text("and the right hand side evaluated to")],
+                [ED.para: ED.text("The right side was:")],
                 ED.embed(self.val2),
                 [ED.para:
-                  ED.text("The expression expects to be given:"),
+                  ED.text("The " + self.opname + " operator expects to be given:"),
                   [ED.bulleted:
                     ED.text("two Numbers, or"),
-                    ED.text("two Strings, or"),
-                    [ED.sequence: 
-                      ED.text("a left hand side that has a method named "), 
-                      ED.code(ED.text(self.methodname))]]],
-                please-report-bug()]
+                    ED.text("two Strings")]]]
             end
         | none =>
           [ED.sequence:
             [ED.para:
-              ED.text("A binary "),
-              ED.code(ED.text(self.opdesc)),
-              ED.text(" operator expression failed because the left hand side evaluated to")],
+              ED.text("A "),
+              ED.code(self.opname),
+              ED.text(" expression errored.")],
+            [ED.para:
+              ED.text("The left side was:")],
             ED.embed(self.val1),
             [ED.para:
-              ED.text("and the right hand side evaluated to")],
+              ED.text("The right side was:")],
             ED.embed(self.val2),
             [ED.para:
-              ED.text("The expression expects to be given:"),
+              ED.text("The " + self.opname + " operator expects to be given:"),
               [ED.bulleted:
                 ED.text("two Numbers, or"),
-                ED.text("two Strings, or"),
-                [ED.sequence: 
-                  ED.text("a left hand side that has a method named "), 
-                  ED.code(ED.text(self.methodname))]]],
-            please-report-bug()]
+                ED.text("two Strings")]]]
       end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
-          if loc.is-builtin():
-            [ED.sequence:
-              [ED.para:
-                ED.text("A binary "),
-                ED.code(ED.text(self.opdesc)),
-                ED.text(" operator expression in "),
-                ED.loc(loc),
-                ED.text(" failed because the left hand side evaluated to")],
-              ED.embed(self.val1),
-              [ED.para:
-                ED.text("and the right hand side evaluated to")],
-              ED.embed(self.val2),
-              please-report-bug(),
-              [ED.para:
-                ED.text("The expression expects to be given:"),
-                [ED.bulleted:
-                  ED.text("two Numbers, or"),
-                  ED.text("two Strings, or"),
-                  [ED.sequence: 
-                    ED.text("a left hand side that has a method named "), 
-                    ED.code(ED.text(self.methodname))]]]]
-          else:
-            [ED.sequence:
-              [ED.para:
-                ED.text("A binary "),
-                ED.code(ED.text(self.opdesc)),
-                ED.text(" operator expression in "),
-                ED.loc(loc),
-                ED.text(" failed because the left hand side evaluated to")],
-              ED.embed(self.val1),
-              [ED.para:
-                ED.text("and the right hand side evaluated to")],
-              ED.embed(self.val2),
-              [ED.para:
-                ED.text("The expression expects to be given:"),
-                [ED.bulleted:
-                  ED.text("two Numbers, or"),
-                  ED.text("two Strings, or"),
-                  [ED.sequence: 
-                    ED.text("a left hand side that has a method named "), 
-                    ED.code(ED.text(self.methodname))]]]]
-          end
+          [ED.sequence:
+            ed-simple-intro(self.opname + " expression", loc),
+            [ED.para:
+              ED.text("The left side was:")],
+            ED.embed(self.val1),
+            [ED.para:
+              ED.text("The right side was:")],
+            ED.embed(self.val2),
+            [ED.para:
+              ED.text("The " + self.opname + " operator expects to be given:"),
+              [ED.bulleted:
+                ED.text("two Numbers, or"),
+                ED.text("two Strings")]]]
         end,
         [ED.sequence:
           [ED.para:
-            ED.text("A binary "),
-            ED.code(ED.text(self.opdesc)),
-            ED.text(" operator expression failed because the left hand side evaluated to")],
+            ED.text("A "),
+            ED.code(self.opname),
+            ED.text(" expression errored.")],
+          [ED.para:
+            ED.text("The left side was:")],
           ED.embed(self.val1),
           [ED.para:
-            ED.text("and the right hand side evaluated to")],
+            ED.text("The right side was:")],
           ED.embed(self.val2),
           [ED.para:
-            ED.text("The expression expects to be given:"),
+            ED.text("The " + self.opname + " operator expects to be given:"),
             [ED.bulleted:
               ED.text("two Numbers, or"),
-              ED.text("two Strings, or"),
-              [ED.sequence: 
-                ED.text("a left hand side that has a method named "), 
-                ED.code(ED.text(self.methodname))]]],
-          please-report-bug()])]
+              ED.text("two Strings")]]])]
     end
   | numeric-binop-error(val1, val2, opname, opdesc, methodname) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1270,186 +912,99 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
+                ed-simple-intro(self.opname + " expression", loc),
                 [ED.para:
-                  ED.text("A binary "),
-                  ED.code(ED.text(self.opdesc)),
-                  ED.text(" operator expression in "),
-                  ED.loc(loc),
-                  ED.text(" failed because the left hand side evaluated to")],
+                  ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para:
-                  ED.text("and the right hand side evaluated to")],
+                  ED.text("The right side was:")],
                 ED.embed(self.val2),
-                please-report-bug(),
                 [ED.para:
-                  ED.text("The expression expects to be given:"),
-                  [ED.bulleted:
-                    ED.text("two Numbers, or"),
-                    [ED.sequence: 
-                      ED.text("a left hand side that has a method named "), 
-                      ED.code(ED.text(self.methodname))]]]]
+                  ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
             else if src-available(loc):
               cases(O.Option) maybe-ast(loc):
                 | some(ast) =>
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(
-                        [ED.sequence:
-                          ED.text("binary "),
-                          ED.code(ED.text(self.opdesc)),
-                          ED.text(" operator expression")],
-                        [ED.locs: loc], -1)],
+                    ed-intro(self.opname + " expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
-                        ED.text("failed because the "),
-                        ED.highlight(ED.text("left hand side"), [ED.locs: left-loc],0),
-                        ED.text(" evaluated to")],
-                      ED.embed(self.val1),
-                      [ED.para:
-                        ED.text("and the "),
-                        ED.highlight(ED.text("right hand side"), [ED.locs: right-loc],1),
-                        ED.text(" evaluated to")],
-                      ED.embed(self.val2),
-                    [ED.para:
-                      ED.text("The expression expects to be given:"),
-                      [ED.bulleted:
-                        ED.text("two Numbers, or"),
-                        [ED.sequence: 
-                          ED.text("a "),
-                          ED.highlight(ED.text("left hand side"), [ED.locs: left-loc], 0),
-                          ED.text(" that has a method named "), 
-                          ED.code(ED.text(self.methodname))]]]]
-                | none      =>
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(
-                        [ED.sequence:
-                          ED.text("binary "),
-                          ED.code(ED.text(self.opdesc)),
-                          ED.text(" operator expression")],
-                        [ED.locs: loc], 0)],
-                    ED.cmcode(loc),
-                    [ED.para:
-                      ED.text("failed because the left hand side evaluated to")],
+                       ED.text("The "),
+                       ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                       ED.text(" was:")],
                     ED.embed(self.val1),
                     [ED.para:
-                      ED.text("and the right hand side evaluated to")],
+                      ED.text("The "),
+                      ED.highlight(ED.text("right side"), [ED.locs: right-loc],1),
+                      ED.text(" was:")],
                     ED.embed(self.val2),
                     [ED.para:
-                      ED.text("The expression expects to be given:"),
-                      [ED.bulleted:
-                        ED.text("two Numbers, or"),
-                        [ED.sequence: 
-                          ED.text("a left hand side that has a method named "), 
-                          ED.code(ED.text(self.methodname))]]],
-                    please-report-bug()]
+                      ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+                | none      =>
+                  [ED.sequence:
+                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ED.cmcode(loc),
+                    [ED.para: ED.text("The left side was:")],
+                    ED.embed(self.val1),
+                    [ED.para: ED.text("The right side was:")],
+                    ED.embed(self.val2),
+                    [ED.para:
+                      ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
               end
             else:
               [ED.sequence:
-                [ED.para:
-                  ED.text("The binary "),
-                  ED.code(ED.text(self.opdesc)),
-                  ED.text(" operator expression in "),
-                  ED.loc(loc),
-                  ED.text(" failed because the left hand side evaluated to")],
+                ed-simple-intro(self.opname + " expression", loc),
+                [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
-                [ED.para:
-                  ED.text("and the right hand side evaluated to")],
+                [ED.para: ED.text("The right side was:")],
                 ED.embed(self.val2),
                 [ED.para:
-                  ED.text("The expression expects to be given:"),
-                  [ED.bulleted:
-                    ED.text("two Numbers, or"),
-                    [ED.sequence: 
-                      ED.text("a left hand side that has a method named "), 
-                      ED.code(ED.text(self.methodname))]]],
-                please-report-bug()]
+                  ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
             end
-          | none =>
-            [ED.sequence:
-              [ED.para:
-                ED.text("A binary "),
-                ED.code(ED.text(self.opdesc)),
-                ED.text(" operator expression failed because the left hand side evaluated to")],
-              ED.embed(self.val1),
-              [ED.para:
-                ED.text("and the right hand side evaluated to")],
-              ED.embed(self.val2),
-              [ED.para:
-                ED.text("The expression expects to be given:"),
-                [ED.bulleted:
-                  ED.text("two Numbers, or"),
-                  [ED.sequence: 
-                    ED.text("a left hand side that has a method named "), 
-                    ED.code(ED.text(self.methodname))]]],
-              please-report-bug()]
+        | none =>
+          [ED.sequence:
+            [ED.para:
+              ED.text("A "),
+              ED.code(self.opname),
+              ED.text(" expression errored.")],
+            [ED.para:
+              ED.text("The left side was:")],
+            ED.embed(self.val1),
+            [ED.para:
+              ED.text("The right side was:")],
+            ED.embed(self.val2),
+            [ED.para:
+              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
       end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
-          if loc.is-builtin():
-            [ED.sequence:
-              [ED.para:
-                ED.text("A binary "),
-                ED.code(ED.text(self.opdesc)),
-                ED.text(" operator expression in "),
-                ED.loc(loc),
-                ED.text(" failed because the left hand side evaluated to")],
-              ED.embed(self.val1),
-              [ED.para:
-                ED.text("and the right hand side evaluated to")],
-              ED.embed(self.val2),
-              please-report-bug(),
-              [ED.para:
-                ED.text("The expression expects to be given:"),
-                [ED.bulleted:
-                  ED.text("two Numbers, or"),
-                  [ED.sequence: 
-                    ED.text("a left hand side that has a method named "), 
-                    ED.code(ED.text(self.methodname))]]]]
-          else:
-            [ED.sequence:
-              [ED.para:
-                ED.text("A binary "),
-                ED.code(ED.text(self.opdesc)),
-                ED.text(" operator expression in "),
-                ED.loc(loc),
-                ED.text(" failed because the left hand side evaluated to")],
-              ED.embed(self.val1),
-              [ED.para:
-                ED.text("and the right hand side evaluated to")],
-              ED.embed(self.val2),
-              [ED.para:
-                ED.text("The expression expects to be given:"),
-                [ED.bulleted:
-                  ED.text("two Numbers, or"),
-                  [ED.sequence: 
-                    ED.text("a left hand side that has a method named "), 
-                    ED.code(ED.text(self.methodname))]]]]
-          end
+          [ED.sequence:
+            ed-simple-intro(self.opname + " expression", loc),
+            [ED.para:
+              ED.text("The left side was:")],
+            ED.embed(self.val1),
+            [ED.para:
+              ED.text("The right side was:")],
+            ED.embed(self.val2),
+            [ED.para:
+              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
         end,
         [ED.sequence:
           [ED.para:
-            ED.text("A binary "),
-            ED.code(ED.text(self.opdesc)),
-            ED.text(" operator expression failed because the left hand side evaluated to")],
+            ED.text("A "),
+            ED.code(self.opname),
+            ED.text(" expression errored.")],
+          [ED.para:
+            ED.text("The left side was:")],
           ED.embed(self.val1),
           [ED.para:
-            ED.text("and the right hand side evaluated to")],
+            ED.text("The right side was:")],
           ED.embed(self.val2),
           [ED.para:
-            ED.text("The expression expects to be given:"),
-            [ED.bulleted:
-              ED.text("two Numbers, or"),
-              [ED.sequence: 
-                ED.text("a left hand side that has a method named "), 
-                ED.code(ED.text(self.methodname))]]],
-          please-report-bug()])]
+            ED.text("The " + self.opname + " operator expects to be given two Numbers.")]])]
     end
   | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1459,51 +1014,56 @@ data RuntimeError:
             ED.text("A cases branch in "),
             ED.loc(self.branch-loc),
             if self.should-be-singleton:
-              ED.text(" has an argument list but the corresponding variant is a singleton.")
+              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
             else:
-              ED.text(" doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
-            end],
-          please-report-bug()]
+              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
+            end]]
       else if src-available(self.branch-loc):
         cases(O.Option) maybe-ast(self.cases-loc):
           | some(ast) =>
             branch = ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
             [ED.error:
-              ed-intro("cases branch", self.branch-loc, -1),
+              [ED.para:
+                ED.text("Matching the pattern of this "),
+                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
+                ED.text(" errored:")],
               ED.cmcode(self.branch-loc),
               if self.should-be-singleton:
                 [ED.para:
-                  ED.text("has an "),
+                  ED.text("The "),
+                  ED.highlight(ED.text("branch"), [ED.locs: self.branch-loc], -1),
+                  ED.text(" has an "),
                   ED.highlight(ED.text("argument list"), branch.args.map(_.l), 0),
                   ED.text(" but the corresponding variant is a singleton.")]
               else:
                 [ED.para:
-                  ED.text("doesn't have an argument list in its "),
+                  ED.text("The branch doesn't have an argument list in its "),
                   ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
                   ED.text(", but the corresponding variant is not a singleton.")]
               end]
           | none      =>
             [ED.error:
-              ed-intro("cases branch", self.branch-loc, -1),
-              ED.cmcode(self.branch-loc),
+              [ED.para:
+                ED.text("Matching a patten of this "),
+                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], 0),
+                ED.text(" errored.")],
               if self.should-be-singleton:
                 [ED.para:
-                  ED.text("has an argument list but the corresponding variant is a singleton.")]
+                  ED.text("The branch has an argument list but the corresponding variant is a singleton.")]
               else:
                 [ED.para:
-                  ED.text("doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")]
-              end,
-              please-report-bug()]
+                  ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")]
+              end]
         end
       else:
         [ED.error:
           [ED.para:
-            ED.text("The cases branch in "),
+            ED.text("The cases branch at "),
             ED.loc(self.branch-loc),
             if self.should-be-singleton:
-              ED.text(" has an argument list but the corresponding variant is a singleton.")
+              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
             else:
-              ED.text(" doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
+              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
             end]]
       end
     end,
@@ -1536,42 +1096,34 @@ data RuntimeError:
       if self.branch-loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("A cases branch in "),
+            ED.text("Matching a cases branch in "),
+            ED.loc(self.cases-loc),
+            ED.text(" errored because of a problem with the branch pattern in "),
             ED.loc(self.branch-loc),
-            ED.text(" expects that the pattern has has exactly the same number of field bindings as the variant of has fields.")],
+            ED.text(".")],
           [ED.para:
-            ED.text("The cases pattern for has "),
+            ED.text("The cases pattern had "),
             ED.ed-field-bindings(self.num-args),
             ED.text(".")],
           [ED.para:
-            ED.text("The corresponding variant of the datatype has "),
+            ED.text("The corresponding variant of the datatype had "),
             ED.ed-fields(self.actual-arity)],
-          please-report-bug()]
+          [ED.para:
+            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
       else if src-available(self.branch-loc):
         cases(O.Option) maybe-ast(self.cases-loc):
           | some(cases-ast) =>
             branch = cases-ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
             [ED.error:
-              ed-intro("cases branch", self.branch-loc, -1),
-              ED.cmcode(self.branch-loc),
               [ED.para:
-                ED.text("expects that the "),
-                ED.code(ED.highlight(ED.text(branch.name), [ED.locs: branch.pat-loc],0)),
-                ED.text(" pattern has has exactly the same number of "),
-                cases(Any) branch:
-                  | s-cases-branch(_, _, _, args, _) =>
-                      ED.highlight(ED.text("field bindings"),args.map(_.l),1)
-                  | s-singleton-cases-branch(_, _, _, _) => ED.text("arguments")
-                end,
-                ED.text(" as the "),
-                ED.code(ED.text(branch.name)),
-                ED.text(" variant of "),
-                ED.embed(cases-ast.typ.id),
-                ED.text(" has fields.")],
+                ED.text("Matching the "),
+                ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
+                ED.text(" of this "),
+                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
+                ED.text(" errored.")],
+              ED.cmcode(branch.pat-loc),
               [ED.para:
-                ED.text("The cases pattern for "),
-                ED.code(ED.highlight(ED.text(branch.name), [ED.locs: branch.pat-loc],0)),
-                ED.text(" has "),
+                ED.text("The cases pattern had "),
                 cases(Any) branch:
                   | s-cases-branch(_, _, _, args, _) =>
                       ED.highlight(ED.ed-field-bindings(self.num-args),args.map(_.l),1)
@@ -1579,221 +1131,66 @@ data RuntimeError:
                 end,
                 ED.text(".")],
               [ED.para:
-                ED.text("The "),
-                ED.code(ED.text(branch.name)),
-                ED.text(" variant of the "),
-                ED.embed(cases-ast.typ.id),
-                ED.text(" datatype has "),
-                ED.ed-fields(self.actual-arity)]]
+                ED.text("The corresponding variant is declared with "),
+                ED.ed-fields(self.actual-arity)],
+              [ED.para:
+                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
           | none      =>
             [ED.error:
-              ed-intro("cases branch", self.branch-loc, 0),
-              ED.cmcode(self.branch-loc),
               [ED.para:
-                ED.text("expects that the pattern has has exactly the same number of field bindings as the variant of has fields.")],
+                ED.text("Matching the pattern of a "),
+                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
+                ED.text(" errored.")],
+              ED.cmcode(self.pat-loc),
               [ED.para:
-                ED.text("The cases pattern for has "),
+                ED.text("The cases pattern had "),
                 ED.ed-field-bindings(self.num-args),
                 ED.text(".")],
               [ED.para:
-                ED.text("The corresponding variant of the datatype has "),
-                ED.ed-fields(self.actual-arity)]]
+                ED.text("The corresponding variant is declared with "),
+                ED.ed-fields(self.actual-arity)],
+              [ED.para:
+                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
         end
       else:
         [ED.error:
           [ED.para:
-            ED.text("A cases branch in "),
+            ED.text("Matching a cases branch in "),
+            ED.loc(self.cases-loc),
+            ED.text(" errored because of a problem with the branch pattern in "),
             ED.loc(self.branch-loc),
-            ED.text(" expects that the pattern has has exactly the same number of field bindings as the corresponding variant has fields.")],
+            ED.text(".")],
           [ED.para:
-            ED.text("The cases pattern for has "),
+            ED.text("The cases pattern had "),
             ED.ed-field-bindings(self.num-args),
             ED.text(".")],
           [ED.para:
-            ED.text("The corresponding variant of the datatype has "),
-            ED.ed-fields(self.actual-arity)]]
+            ED.text("The corresponding variant of the datatype had "),
+            ED.ed-fields(self.actual-arity)],
+          [ED.para:
+            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
       end
     end,
     method render-reason(self):
-      if self.branch-loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A cases branch in "),
-            ED.loc(self.branch-loc),
-            ED.text(" expects that the pattern has has exactly the same number of field bindings as the corresponding variant has fields.")],
-          [ED.para:
-            ED.text("The cases pattern for has "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype has "),
-            ED.ed-fields(self.actual-arity)],
-          please-report-bug()]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("A cases branch in "),
-            ED.loc(self.branch-loc),
-            ED.text(" expects that the pattern has has exactly the same number of field bindings as the corresponding variant has fields.")],
-          [ED.para:
-            ED.text("The cases pattern for has "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype has "),
-            ED.ed-fields(self.actual-arity)]]
-      end
+      [ED.error:
+        [ED.para:
+          ED.text("Matching a cases branch in "),
+          ED.loc(self.cases-loc),
+          ED.text(" errored because of a problem with the branch pattern in "),
+          ED.loc(self.branch-loc),
+          ED.text(".")],
+        [ED.para:
+          ED.text("The cases pattern had "),
+          ED.ed-field-bindings(self.num-args),
+          ED.text(".")],
+        [ED.para:
+          ED.text("The corresponding variant of the datatype had "),
+          ED.ed-fields(self.actual-arity)],
+        [ED.para:
+          ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
     end
   | constructor-arity-mismatch(fun-def-loc, constructor-name, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      fun-app-arity = self.fun-app-args.length()
-      helper =
-        lam(rest):
-          [ED.error: 
-            cases(O.Option) maybe-stack-loc(0, false):
-              | some(fun-app-loc) =>
-                if fun-app-loc.is-builtin():
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("The function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" applied to it.")],
-                    rest(ED.text("applicant"))]
-                else if src-available(fun-app-loc):
-                  cases(O.Option) maybe-ast(fun-app-loc):
-                    | some(ast) =>
-                      applicant = ED.highlight(ED.text("applicant"), [ED.locs: ast._fun.l], 0)
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.text("expected the "),
-                          applicant,
-                          ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                        [ED.para:
-                          ED.text("The "),
-                          applicant,
-                          ED.text(" had "),
-                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
-                          ED.text(" applied to it.")],
-                        rest(applicant)]
-                    | none      =>
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.text("expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                        [ED.para:
-                          ED.text("The applicant had "),
-                          ED.ed-args(fun-app-arity),
-                          ED.text(" applied to it.")],
-                        rest(ED.text("applicant"))]
-                  end
-                else:
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("The function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" applied to it.")],
-                      rest(ED.text("applicant"))]
-                end
-            | none =>
-              [ED.sequence:
-                [ED.para:
-                  ED.text("A function application expects its applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                [ED.para:
-                  ED.text("The applicant had "),
-                  ED.ed-args(fun-app-arity),
-                  ED.text(" applied to it.")],
-                  rest(ED.text("applicant"))]
-            end]
-          end
-        
-        if src-available(self.fun-def-loc):
-          cases(O.Option) maybe-ast(self.fun-def-loc):
-            | some(ast) =>
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" evaluated to the "),
-                    ED.code(ED.text(self.constructor-name)),
-                    ED.text(" constructor, which accepts "),
-                    ED.highlight(ED.ed-args(self.fun-def-arity), ast.args.map(_.l), 2),
-                    ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
-              end)
-            | none      =>
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" evaluated to the "),
-                    ED.code(ED.text(self.constructor-name)),
-                    ED.text(" constructor, which accepts "),
-                    ED.ed-args(self.fun-def-arity),
-                    ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
-              end)
-          end
-        else:
-          helper(lam(applicant):
-            [ED.para:
-              ED.text("The "),
-              applicant,
-              ED.text(" evaluated to the "),
-              ED.code(ED.text(self.constructor-name)),
-              ED.text(" constructor, defined in "),
-              ED.loc(self.fun-def-loc),
-              ED.text(", which accepts "),
-              ED.ed-args(self.fun-def-arity),
-              ED.text(".")]
-          end)
-        end
-    end,
-    method render-reason(self):
-      num-args = self.fun-app-args.length()
-      this-str = if num-args == 1: "this " else: "these " end
-      arg-str = if num-args == 1: " argument:" else: " arguments:" end
-      exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
-      
-      ED.maybe-stack-loc(0, false,
-        lam(caller-loc):
-          if self.fun-def-loc.is-builtin():
-            [ED.error:
-              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
-              draw-and-highlight(caller-loc),
-              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              vert-list-values(self.fun-app-args)]
-          else:
-            [ED.error:
-              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity),
-                ED.text(exp-arg-str + " when calling the function at ")],
-              draw-and-highlight(self.fun-def-loc),
-              [ED.para: ED.text("from")],
-              draw-and-highlight(caller-loc),
-              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-              vert-list-values(self.fun-app-args)]
-          end
-        end,
-        [ED.error:
-          [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at ")],
-          draw-and-highlight(self.fun-def-loc),
-          [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
-          vert-list-values(self.fun-app-args)])
-    end
-  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
-    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
       helper =
         lam(rest):
@@ -1808,65 +1205,53 @@ data RuntimeError:
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
                     [ED.para:
-                      ED.text("The function application in "),
+                      ED.text("Evaluating the function application in "),
                       ED.loc(fun-app-loc),
-                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                      ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
-                      ED.text("The applicant had "),
                       ED.ed-args(fun-app-arity),
-                      ED.text(" applied to it.")],
-                    rest(ED.text("applicant"))]
+                      ED.text(" were passed to the left side.")],
+                    rest(ED.text("left side"))]
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
                     | some(ast) =>
-                      applicant = ED.highlight(ED.text("applicant"), [ED.locs: ast._fun.l], 0)
+                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
                       [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1),
+                        ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.text("expected the "),
-                          applicant,
-                          ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                        [ED.para:
-                          ED.text("The "),
-                          applicant,
-                          ED.text(" had "),
                           ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
-                          ED.text(" applied to it.")],
+                          ED.text(" were passed to the "),
+                          applicant,
+                          ED.text(".")],
                         rest(applicant)]
                     | none      =>
                       [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1),
+                        ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.text("expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                        [ED.para:
-                          ED.text("The applicant had "),
                           ED.ed-args(fun-app-arity),
-                          ED.text(" applied to it.")],
+                          ED.text(" were passed to the left side.")],
                         rest(ED.text("applicant"))]
                   end
                 else:
                   [ED.sequence:
-                    [ED.para:
-                      ED.text("The function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                    ed-simple-intro("function application expression", fun-app-loc), 
                     [ED.para:
                       ED.text("The applicant had "),
                       ED.ed-args(fun-app-arity),
-                      ED.text(" applied to it.")],
-                      rest(ED.text("applicant"))]
+                      ED.text(" passed to it.")],
+                      rest(ED.text("left side"))]
                 end
             | none =>
               [ED.sequence:
                 [ED.para:
-                  ED.text("A function application expects its applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                  ED.text("A function application expression failed.")],
                 [ED.para:
                   ED.text("The applicant had "),
                   ED.ed-args(fun-app-arity),
-                  ED.text(" applied to it.")],
-                  rest(ED.text("applicant"))]
+                  ED.text(" passed to it.")],
+                  rest(ED.text("left side"))]
             end]
           end
         
@@ -1911,7 +1296,7 @@ data RuntimeError:
                   [ED.para:
                     ED.text("The "),
                     applicant,
-                    ED.text(" evaluated to a function defined accepting "),
+                    ED.text(" was a constructor accepting "),
                     ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
                     ED.text(":")],
                   ED.cmcode(fun-def-snippet-loc)]
@@ -1922,7 +1307,7 @@ data RuntimeError:
                   [ED.para:
                     ED.text("The "),
                     applicant,
-                    ED.text(" evaluated to a function defined accepting "),
+                    ED.text(" was a constructor defined accepting "),
                     ED.ed-args(self.fun-def-arity),
                     ED.text(":")],
                   ED.cmcode(self.fun-def-loc)]
@@ -1933,7 +1318,180 @@ data RuntimeError:
             [ED.para:
               ED.text("The "),
               applicant,
-              ED.text(" evaluated to a function defined in "),
+              ED.text(" was a constructor defined in "),
+              ED.loc(self.fun-def-loc),
+              ED.text(" accepting "),
+              ED.ed-args(self.fun-def-arity),
+              ED.text(".")]
+          end)
+        end
+    end,
+    method render-reason(self):
+      num-args = self.fun-app-args.length()
+      this-str = if num-args == 1: "this " else: "these " end
+      arg-str = if num-args == 1: " argument:" else: " arguments:" end
+      exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
+      
+      ED.maybe-stack-loc(
+        if self.fun-def-loc.is-builtin():
+          0
+        else:
+          1
+        end, false,
+        lam(caller-loc):
+          if self.fun-def-loc.is-builtin():
+            [ED.error:
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              vert-list-values(self.fun-app-args)]
+          else:
+            [ED.error:
+              [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity),
+                ED.text(exp-arg-str + " when calling the function at ")],
+              draw-and-highlight(self.fun-def-loc),
+              [ED.para: ED.text("from")],
+              draw-and-highlight(caller-loc),
+              [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+              vert-list-values(self.fun-app-args)]
+          end
+        end,
+        [ED.error:
+          [ED.para: ED.text("Expected to get "), ED.embed(self.fun-def-arity), ED.text(exp-arg-str + " at ")],
+          draw-and-highlight(self.fun-def-loc),
+          [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
+          vert-list-values(self.fun-app-args)])
+    end
+  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
+      fun-app-arity = self.fun-app-args.length()
+      helper =
+        lam(rest):
+          [ED.error: 
+            cases(O.Option) maybe-stack-loc(
+              if self.fun-def-loc.is-builtin(): 
+                0 
+              else: 
+                1 
+              end, false):
+              | some(fun-app-loc) =>
+                if fun-app-loc.is-builtin():
+                  [ED.sequence:
+                    [ED.para:
+                      ED.text("Evaluating the function application in "),
+                      ED.loc(fun-app-loc),
+                      ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                    [ED.para:
+                      ED.ed-args(fun-app-arity),
+                      ED.text(" were passed to the left side.")],
+                    rest(ED.text("left side"))]
+                else if src-available(fun-app-loc):
+                  cases(O.Option) maybe-ast(fun-app-loc):
+                    | some(ast) =>
+                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
+                      [ED.sequence:
+                        ed-intro("function application expression", fun-app-loc, -1, true),
+                        ED.cmcode(fun-app-loc),
+                        [ED.para:
+                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
+                          ED.text(" were passed to the "),
+                          applicant,
+                          ED.text(".")],
+                        rest(applicant)]
+                    | none      =>
+                      [ED.sequence:
+                        ed-intro("function application expression", fun-app-loc, -1, true),
+                        ED.cmcode(fun-app-loc),
+                        [ED.para:
+                          ED.ed-args(fun-app-arity),
+                          ED.text(" were passed to the left side.")],
+                        rest(ED.text("applicant"))]
+                  end
+                else:
+                  [ED.sequence:
+                    ed-simple-intro("function application expression", fun-app-loc), 
+                    [ED.para:
+                      ED.text("The applicant had "),
+                      ED.ed-args(fun-app-arity),
+                      ED.text(" passed to it.")],
+                      rest(ED.text("left side"))]
+                end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("A function application expression failed.")],
+                [ED.para:
+                  ED.text("The applicant had "),
+                  ED.ed-args(fun-app-arity),
+                  ED.text(" passed to it.")],
+                  rest(ED.text("left side"))]
+            end]
+          end
+        
+        if src-available(self.fun-def-loc):
+          fun is-underscore(arg):
+            cases(Any) arg:
+              | s-id(_, id) => 
+                cases(Any) id:
+                  | s-underscore(_) => true
+                  | else            => false
+                end
+              | else                => false
+            end
+          end
+          cases(O.Option) maybe-ast(self.fun-def-loc):
+            | some(ast) =>
+              {args; fun-def-snippet-loc} = cases(Any) ast:
+                | s-op(_,_,_,l,r) =>
+                  l-underscore = is-underscore(l)
+                  r-underscore = is-underscore(r)
+                  {raw-array-to-list(
+                    if l-underscore and r-underscore:
+                      [raw-array: l.id.l, r.id.l]
+                    else if l-underscore:
+                      [raw-array: l.id.l]
+                    else if r-underscore:
+                      [raw-array: r.id.l]
+                    else:
+                      [raw-array:]
+                    end); self.fun-def-loc}
+                | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-lam(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-update(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+                | s-get-bang(_, obj, _) => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+              end
+              helper(lam(applicant):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("The "),
+                    applicant,
+                    ED.text(" was a function accepting "),
+                    ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
+                    ED.text(":")],
+                  ED.cmcode(fun-def-snippet-loc)]
+              end)
+            | none      =>
+              helper(lam(applicant):
+                [ED.sequence:
+                  [ED.para:
+                    ED.text("The "),
+                    applicant,
+                    ED.text(" was a function defined accepting "),
+                    ED.ed-args(self.fun-def-arity),
+                    ED.text(":")],
+                  ED.cmcode(self.fun-def-loc)]
+              end)
+          end
+        else:
+          helper(lam(applicant):
+            [ED.para:
+              ED.text("The "),
+              applicant,
+              ED.text(" was a function defined in "),
               ED.loc(self.fun-def-loc),
               ED.text(" accepting "),
               ED.ed-args(self.fun-def-arity),
@@ -1981,59 +1539,44 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          [ED.para:
-            ED.text("A function application expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its applicant evaluated to the non-function value:")],
+          ed-simple-intro("function application expression", self.loc),
+          [ED.para: ED.text("The left side was not a function value:")],
           ED.embed(self.non-fun-val)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
             [ED.error:
-              ed-intro("function application expression", self.loc, -1),
+              ed-intro("function application expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because the "),
-                ED.highlight(ED.text("applicant"), [ED.locs: 
+                ED.text("The "),
+                ED.highlight(ED.text("left side"), [ED.locs: 
                   cases(Any) ast:
                     | s-app(_, _fun, _) => _fun.l
                     | else  => ast.l
                   end], 0),
-                ED.text(" evaluated to the non-function value:")],
+                ED.text(" was not a function value:")],
                 ED.embed(self.non-fun-val)]
           | none      =>
             [ED.error:
-              ed-intro("function application expression", self.loc, 0),
+              ed-intro("function application expression", self.loc, 0, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because the applicant evaluated to the non-function value:")],
+                ED.text("The left side was not a function value:")],
                 ED.embed(self.non-fun-val)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The function application expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its applicant evaluated to the non-function value:")],
+          ed-simple-intro("function application expression", self.loc),
+          [ED.para: ED.text("The left side was not a function value:")],
           ED.embed(self.non-fun-val)]
       end
     end,
     method render-reason(self):
-      if self.loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A function application expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its applicant evaluated to the non-function value:")],
-          ED.embed(self.non-fun-val)]
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The function application expression in "),
-            ED.loc(self.loc),
-            ED.text(" failed because its applicant evaluated to the non-function value:")],
-          ED.embed(self.non-fun-val)]
-      end
+      [ED.error:
+        ed-simple-intro("function application expression", self.loc),
+        [ED.para: ED.text("The left side was not a function value:")],
+        ED.embed(self.non-fun-val)]
     end
   | uninitialized-id(loc, name) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -2116,10 +1659,10 @@ data RuntimeError:
                 please-report-bug()]
             else if src-available(loc):
               [ED.sequence:
-                ed-intro(self.method-name, loc, 0),
+                ed-intro(self.method-name, loc, 0, true),
                 ED.cmcode(loc),
                 [ED.para:
-                  ED.text("expects that the index passed to it is an integer within the bounds of the array. "),
+                  ED.text("It. expects that the index passed to it is an integer within the bounds of the array. "),
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
                   ED.text(self.reason)]]
@@ -2130,7 +1673,7 @@ data RuntimeError:
                   ED.code(ED.text(self.method-name)),
                   ED.text(", in "),
                   ED.loc(loc),
-                  ED.text(" expects that the index passed to it is an integer within the bounds of the array. ")],
+                  ED.text("It expects that the index passed to it is an integer within the bounds of the array. ")],
                 [ED.para:
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
@@ -2141,7 +1684,7 @@ data RuntimeError:
               [ED.para: 
                 ED.text("An array interaction, "),
                 ED.code(ED.text(self.method-name)),
-                ED.text(" expects that the index passed to it is an integer within the bounds of the array. ")],
+                ED.text("It expects that the index passed to it is an integer within the bounds of the array. ")],
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
@@ -2269,10 +1812,7 @@ data ParseError:
       [ED.error:
         [ED.para: ED.text("Pyret didn't understand your program around "), draw-and-highlight(self.loc)],
         [ED.para: ED.text("You may need to add or remove some text to fix your program.")],
-        [ED.para:
-          ED.text("Look carefully before the "),
-          ED.styled(ED.text("highlighted text"), 'error-highlight'),
-          ED.text(".")],
+        [ED.para: ED.text("Look carefully before the highlighted text.")],
         [ED.para: ED.text("Is there a missing colon ("), ED.code(ED.text(":")),
           ED.text("), comma ("), ED.code(ED.text(",")),
           ED.text("), string marker ("), ED.code(ED.text("\"")),

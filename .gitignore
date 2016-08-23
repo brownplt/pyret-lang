@@ -45,6 +45,7 @@ build/phaseA/program.js
 deps/closure-compiler
 node_modules/
 *#
+.#*
 pyret.plt
 tests/pyret/*.arr.js
 tests/pyret/*.jarr

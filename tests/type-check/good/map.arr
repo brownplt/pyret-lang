@@ -14,8 +14,8 @@ end
 
 input = my-link(5, my-link(6, my-empty))
 
-fun transform(n :: Number) -> String:
+fun tranzform(n :: Number) -> String:
   "hello"
 end
 
-result :: MyList<String> = test-map(input, transform)
+result :: MyList<String> = test-map(input, tranzform)

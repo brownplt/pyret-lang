@@ -262,7 +262,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "function",
           "break",
           "return",
-          "do",
           "yield",
           "throw",
           "continue",
@@ -343,11 +342,22 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.checkCompileErrorMsg("fun foo(self): _ end", "The underscore");
         P.checkCompileErrorMsg("check: _ end", "The underscore");
         P.checkCompileErrorMsg("provide _ end", "The underscore");
-        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
         P.wait(done);
       });
         it("tuples", function(done) {
-        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "Index too small");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "negative position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{1.1}", "non-integer position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{999999}", "big");
+        P.wait(done);
+      });
+      it("tables", function(done) {
+        P.checkCompileErrorMsg("table: row: end", "table");
+        P.checkCompileErrorMsg("table: row: 1 end", "table");
+        P.checkCompileErrorMsg("table: h1 row: end", "row");
+        P.checkCompileErrorMsg("table: h1, h2 row: 1 end", "row");
+        P.checkCompileErrorMsg("table: h1 row: 1, 2 end", "row");
+        P.checkCompileErrorMsg("table: a, b, c, d, b, e end", "column");
+        P.checkCompileErrorMsg("extend t using A: C: running-sum of B end", "used with reducer");
         P.wait(done);
       });
     });

@@ -162,6 +162,23 @@
       runtime.checkString(field);
       raise(err("lookup-non-object")(loc, nonObject, runtime.makeString(field)));
     }
+    function throwLookupNonTuple(loc, nonTuple, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(nonTuple);
+      runtime.checkNumber(index);
+      raise(err("lookup-non-tuple")(loc, nonTuple, runtime.makeNumber(index)));
+    }
+    function throwBadTupleBind(loc, tup, length, desiredLength) {
+      checkSrcloc(loc);
+      //runtime.checkPyretVal(tup);
+      raise(err("bad-tuple-bind")(loc, tup, runtime.makeNumber(length), runtime.makeNumber(desiredLength)));
+    }
+    function throwLookupLargeIndex(loc, tup, index) {
+      checkSrcloc(loc);
+      runtime.checkPyretVal(tup);
+      runtime.checkNumber(index);
+      raise(err("lookup-large-index")(loc, tup, runtime.makeNumber(index)));
+    }
     function throwExtendNonObject(loc, nonObject) {
       checkSrcloc(loc);
       runtime.checkPyretVal(nonObject);
@@ -204,6 +221,11 @@
       return err("message-exception")(message);
     }
 
+    function throwMultiErrorException(errs) {
+      runtime.checkList(errs);
+      raise(err("multi-error")(errs));
+    }
+
     function throwUserException(errVal) {
       runtime.checkPyretVal(errVal);
       raise(err("user-exception")(errVal));
@@ -236,6 +258,14 @@
       runtime.checkNumber(index);
       runtime.checkString(reason);
       raise(err("invalid-array-index")(methodName, array, index, reason));
+    }
+
+    function throwInvalidTableColumn(table, table_loc, column, column_loc) {
+      runtime.checkTable(table);
+      runtime.checkString(column);
+      checkSrcloc(table_loc);
+      checkSrcloc(column_loc);
+      raise(err("invalid-table-column")(table, table_loc, column, column_loc));
     }
 
     function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
@@ -408,6 +438,10 @@
       return contract("tuple-anns-fail")(value, failures);
     }
 
+    function makeTupleAnnsFail(value, failures) {
+      return contract("tuple-anns-fail")(value, failures);
+    }
+
     function makeFieldFailure(loc, field, reason) {
       checkSrcloc(loc);
       runtime.checkString(field);
@@ -494,6 +528,7 @@
       throwTypeMismatch: throwTypeMismatch,
       throwInvalidArrayIndex: throwInvalidArrayIndex,
       throwMessageException: throwMessageException,
+      throwMultiErrorException: throwMultiErrorException,
       throwUserException: throwUserException,
       throwEqualityException: throwEqualityException,
       throwUninitializedId: throwUninitializedId,
@@ -512,6 +547,7 @@
       throwNonFunApp: throwNonFunApp,
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
+      throwInvalidTableColumn: throwInvalidTableColumn,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorEOF: throwParseErrorEOF,
@@ -526,6 +562,9 @@
       makeMissingField: makeMissingField,
       makeTupleLengthMismatch: makeTupleLengthMismatch,
       makeTypeMismatch: makeTypeMismatch,
+      makeTupleAnnsFail: makeTupleAnnsFail,
+      makeTupleLengthMismatch: makeTupleLengthMismatch,
+      makeAnnFailure: makeAnnFailure,
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
@@ -562,6 +601,8 @@
 
       makeList: makeList,
       makeTreeSet: makeTreeSet,
+
+      isOption: runtime.getField(O, "is-Option"),
       isNone: function(v) { return runtime.getField(O, "is-none").app(v); },
       isSome: function(v) { return runtime.getField(O, "is-some").app(v); },
       makeNone: function() { return runtime.getField(O, "none"); },
@@ -587,6 +628,7 @@
 
       isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
+      isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
       isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
@@ -607,6 +649,7 @@
       skeletonValues: function(skel) {
         var isValueSkeleton = runtime.getField(VS, "is-ValueSkeleton");
         var isValue = runtime.getField(VS, "is-vs-value");
+        var isTable = runtime.getField(VS, "is-vs-table");
         var isCollection = runtime.getField(VS, "is-vs-collection");
         var isConstr = runtime.getField(VS, "is-vs-constr");
         var isStr = runtime.getField(VS, "is-vs-str");
@@ -623,6 +666,9 @@
               arr.push(runtime.getField(cur, "v"));
             } else if (runtime.unwrap(isCollection.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+            } else if (runtime.unwrap(isTable.app(cur)) === true) {
+              runtime.getField(cur, "rows").forEach(function(row){
+                Array.prototype.push.apply(worklist, row); });
             } else if (runtime.unwrap(isConstr.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
             } else if (runtime.unwrap(isStr.app(cur)) === true) {

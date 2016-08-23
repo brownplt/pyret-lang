@@ -47,7 +47,6 @@ fun display-to-string(e :: ED.ErrorDisplay, embed-display, stack):
         | else => help(contents) + " (at " + tostring(l) + ")"
       end
     | code(contents) => "`" + help(contents) + "`"
-    | styled(contents, style) => help(contents)
     | h-sequence(contents, sep) =>
       contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str(sep)
     | v-sequence(contents) =>

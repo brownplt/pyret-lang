@@ -8,6 +8,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     var require = requirejs.nodeRequire("requirejs");
   }
 
+  var AsciiTable;
+
   function copyArgs(args) {
     return Array.prototype.slice.call(args);
   }
@@ -228,6 +230,35 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           s += renderValueSkeleton(items[i], values);
         }
         return s;
+      } else if (thisRuntime.ffi.isVSTable(val)) {
+        // Do this for now until we decide on a string
+        // representation
+        if (util.isBrowser()) {
+          return "<table>";
+        }
+        if (!AsciiTable){
+          AsciiTable = require("ascii-table");
+        }
+        var headers = thisRuntime.getField(val, "headers");
+        var rowSkel = thisRuntime.getField(val, "rows");
+        headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
+        var rows = [];
+        for (var i = 0; i < rowSkel.length; i++) {
+          var curRow = [];
+          for (var j = 0; j < headers.length; j++) {
+            var v = renderValueSkeleton(rowSkel[i][j], values);
+            if (v.length > 40) {
+              curRow.push(v.substr(0, 35) + "[...]");
+            } else {
+              curRow.push(v);
+            }
+          }
+          rows.push(curRow);
+        }
+        return new AsciiTable().fromJSON({
+          heading: headers,
+          rows: rows
+        }).toString();
       }
     }
 
@@ -1870,7 +1901,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
               } else if(isTuple(curLeft) && isTuple(curRight)) {
                 if (curLeft.vals.length !== curRight.vals.length) {
-                  toCompare.curAns = ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.vals.length; i++) {
                     toCompare.stack.push({
@@ -2319,6 +2350,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a); }
         return nothing;
       }, "check-is"),
+      "check-is-roughly": makeFunction(function(left, right, loc) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is-roughly"], 3, $a); }
+        return nothing;
+      }, "check-is"),
       "check-satisfies": makeFunction(function(left, pred, loc) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a); }
         return nothing;
@@ -2692,9 +2727,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var that = this;
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
-          makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
-        );
+            makeSrcloc(compilerLoc),
+            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+          );
       }
       if(that.anns.length != val.vals.length) {
         //return ffi.throwMessageException("lengths not equal");
@@ -2734,12 +2769,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
         thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
-          thisRuntime.ffi.makeAnnFailure(
-            makeSrcloc(loc),
-            ann,
-            getField(result, "reason")
-          )
-        ]))
+            thisRuntime.ffi.makeAnnFailure(
+              makeSrcloc(loc),
+              ann,
+              getField(result, "reason")
+            )
+          ]))
       );
     };
 
@@ -2917,6 +2952,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     function safeTail(fun) {
       return fun();
+    }
+
+    function safeThen(fun, stackFrame) {
+      return {
+        then: function(after) {
+          return safeThen(function() {
+            return safeCall(fun, after, stackFrame);
+          });
+        },
+        start: function() {
+          return fun();
+        }
+      };
     }
 
     function safeCall(fun, after, stackFrame) {
@@ -3710,11 +3758,24 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     var raw_array_get = function(arr, ix) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a); }
       thisRuntime.checkArray(arr);
       thisRuntime.checkNumber(ix);
       checkArrayIndex("raw-array-get", arr, ix);
       return arr[ix];
+    };
+
+    var raw_array_obj_destructure = function(arr, keys) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkArray(keys);
+      
+      var obj = {}
+      for(var i = 0; i < keys.length; i++) {
+        obj[keys[i]] = arr[i];
+      }
+      
+      return makeObject(obj);
     };
 
     var raw_array_set = function(arr, ix, newVal) {
@@ -3742,6 +3803,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array"], 1, $a); }
       thisRuntime.checkArray(arr);
       return arr;
+    };
+
+    var raw_array_concat = function(arr, other) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-concat"], 2, $a); }
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkArray(other);
+      return arr.concat(other);
     };
 
     var raw_array_maker = makeObject({
@@ -3792,6 +3860,78 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return foldFun();
     };
 
+    var raw_array_map = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex]);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
+    };
+
+    var raw_array_mapi = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
+    };
+
     var raw_list_map = function(f, lst) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -3828,6 +3968,49 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
       }
       return foldFun();
+    };
+
+    /**
+     * Similar to `raw_array_map`, but applies a specific function to
+     * the first item in the array
+     */
+    var raw_array_map1 = function(f1, f, arr) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map1"], 3, $a); }
+      thisRuntime.checkFunction(f1);
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array(length);
+      function mapHelp() {
+        if (length === 0) { return newArray; }
+        newArray[++currentIndex] = f1.app(arr[currentIndex]);
+        while(++currentIndex < length) {
+          newArray[currentIndex] = f.app(arr[currentIndex]);
+        }
+        return newArray;
+      }
+      function mapFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray[currentIndex] = $ar.ans;
+          }
+          return mapHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map1"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-map1"]);
+          }
+          throw $e;
+        }
+      }
+      return mapFun();
     };
 
     var raw_list_filter = function(f, lst) {
@@ -3872,6 +4055,43 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return foldFun();
     };
 
+    var raw_array_filter = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      var newArray = new Array();
+      function filterHelp() {
+        while(++currentIndex < length) {
+          if(isPyretTrue(f.app(arr[currentIndex]))){
+            newArray.push(arr[currentIndex]);
+          }
+        }
+        return newArray;
+      }
+      function filterFun($ar) {
+        try {
+          if (thisRuntime.isActivationRecord($ar)) {
+            newArray = $ar.ans;
+          }
+          return filterHelp();
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-filter"],
+              filterFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-filter"]);
+          }
+          throw $e;
+        }
+      }
+      return filterFun();
+    };
 
     var raw_list_fold = function(f, init, lst) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-fold"], 3, $a); }
@@ -4005,7 +4225,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       for(var i = 0; i < jsnums.toFixnum(n, NumberErrbacks); i++) {
         resultStr += s;
       }
-      return makeString(resultStr);
+      return thisRuntime.makeString(resultStr);
     }
     var string_split_all = function(s, splitstr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split-all"], 2, $a); }
@@ -4223,6 +4443,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.makeNumberBig(jsnums.atan(n, NumberErrbacks));
     }
 
+    var num_atan2 = function(y, x) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a); }
+      thisRuntime.checkNumber(y);
+      thisRuntime.checkNumber(x);
+      return thisRuntime.makeNumberBig(jsnums.atan2(y, x, NumberErrbacks));
+    };
+
     var num_modulo = function(n, mod) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a); }
       thisRuntime.checkNumber(n);
@@ -4347,25 +4574,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     var num_tostring = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a); }
       thisRuntime.checkNumber(n);
-      return makeString(String(n));
+      return thisRuntime.makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring-digits"], 2, $a); }
       thisRuntime.checkNumber(n);
       thisRuntime.checkNumber(digits);
-      var d = jsnums.toFixnum(digits, NumberErrbacks);
-      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
-      if (n != n) { return thisRuntime.makeString("NaN"); }
-      else if (jsnums.equals(n, Number.POSITIVE_INFINITY, NumberErrbacks)) { return thisRuntime.makeString("+inf"); }
-      else if (jsnums.equals(n, Number.NEGATIVE_INFINITY, NumberErrbacks)) { return thisRuntime.makeString("-inf"); }
-      else if (jsnums.isReal(n)) {
-        n = jsnums.divide(jsnums.round(jsnums.multiply(n, tenDigits, NumberErrbacks), NumberErrbacks), tenDigits, NumberErrbacks)
-        var s = jsnums.toFixnum(n, NumberErrbacks).toString().split(".");
-        s[1] = (s[1] || "").substring(0, d);
-        for (var i = s[1].length; i < d; i++)
-          s[1] += "0";
-        return thisRuntime.makeString(s[0] + "." + s[1]);
-      }
+      return thisRuntime.makeString(jsnums.toStringDigits(n, digits, NumberErrbacks));
     }
     function random(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a); }
@@ -4830,6 +5045,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function makeReactor(init, handlersDict) {
+      if(!thisRuntime.hasParam("makeReactor")) { thisRuntime.ffi.throwMessageException("No reactor constructor provided"); }
+      return thisRuntime.getParam("makeReactor")(init, handlersDict);
+    }
+
     var runtimeNamespaceBindings = {
       'torepr': torepr,
       'tostring': tostring,
@@ -4850,6 +5070,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'is-object': makeFunction(isObject, "is-object"),
       'is-raw-array': makeFunction(isArray, "is-raw-array"),
       'is-tuple': makeFunction(isTuple, "is-tuple"),
+      // NOTE(joe): this one different because the predicate is added when Table is loaded
+      // (see handalone.js)
+      'is-table': makeFunction(function(v) {
+        return thisRuntime.isTable(v); 
+      }, "is-tuple"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 
@@ -4879,6 +5104,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'num-asin': makeFunction(num_asin, "num-asin"),
       'num-acos': makeFunction(num_acos, "num-acos"),
       'num-atan': makeFunction(num_atan, "num-atan"),
+      'num-atan2': makeFunction(num_atan2, "num-atan2"),
       'num-modulo': makeFunction(num_modulo, "num-modulo"),
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
@@ -4938,6 +5164,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
+      'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
+      'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
 
@@ -4981,6 +5209,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'runThunk': runThunk,
       'execThunk': execThunk,
       'safeCall': safeCall,
+      'safeThen': safeThen,
       'safeTail': safeTail,
       'eachLoop': eachLoop,
       'printPyretStack': printPyretStack,
@@ -5094,6 +5323,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'makeObject'   : makeObject,
       'makeArray' : makeArray,
       'makeArrayN' : function(n) { return new Array(n); },
+      'checkArrayIndex': checkArrayIndex,
       'makeBrandedObject'   : makeBrandedObject,
       'makeGraphableRef' : makeGraphableRef,
       'makeRef' : makeRef,
@@ -5137,6 +5367,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'num_asin': num_asin,
       'num_acos': num_acos,
       'num_atan': num_atan,
+      'num_atan2': num_atan2,
       'num_modulo': num_modulo,
       'num_truncate': num_truncate,
       'num_sqrt': num_sqrt,
@@ -5149,6 +5380,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'num_expt': num_expt,
       'num_tostring': num_tostring,
       'num_to_string': num_tostring,
+      'num_tostring_digits': num_tostring_digits,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -5169,9 +5401,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'raw_array_of': raw_array_of,
       'raw_array_get': raw_array_get,
+      'raw_array_obj_destructure': raw_array_obj_destructure,
       'raw_array_set': raw_array_set,
+      'raw_array_concat': raw_array_concat,
       'raw_array_length': raw_array_length,
       'raw_array_to_list': raw_array_to_list,
+      'raw_array_map': raw_array_map,
+      'raw_array_map1': raw_array_map1,
+      'raw_array_mapi': raw_array_mapi,
+      'raw_array_filter': raw_array_filter,
 
       'not': bool_not,
 
@@ -5185,6 +5423,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'combineEquality': combineEquality,
 
       'within': equalWithinRel, //?
+
+      'makeReactor': makeReactor,
 
       'raise': raiseJSJS,
 
@@ -5261,10 +5501,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'getParamOrSetDefault' : getParamOrSetDefault,
       'setParam' : setParam,
       'hasParam' : hasParam,
+      'makeNone' : function() {
+        return thisRuntime.ffi.makeNone();
+      },
+      'makeSome' : function(v) {
+        return thisRuntime.ffi.makeSome(v);
+      },
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
       'stderr' : theOutsideWorld.stderr,
-      'console' : CONSOLE
+      'console' : CONSOLE,
+
+      'makePrimAnn': makePrimAnn
     };
 
     makePrimAnn("Number", isNumber);

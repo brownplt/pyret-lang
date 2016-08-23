@@ -40,13 +40,13 @@ define(["jglr/jglr"], function(E) {
   Tokenizer.prototype = Object.create(GenTokenizer.prototype);
   Tokenizer.prototype.tokenizeFrom = function(str) {
     GenTokenizer.prototype.tokenizeFrom.call(this, str);
-    this.parenIsForExp = true;
+    this.parenIsForExp = "PARENSPACE";
   }
   Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
     switch(tok_type) {
     case "STRING": s = fixEscapes(s); break;
     case "LONG_STRING": tok_type = "STRING"; break;
-    case "PARENSPACE": case "PARENNOSPACE":
+    case "PARENSPACE": case "PARENNOSPACE": case "PARENAFTERBRACE":
     case "PLUS": case "DASH": case "STAR": case "SLASH":
     case "LT": case "GT": case "CARET":
       // Trim off whitespace
@@ -76,16 +76,16 @@ define(["jglr/jglr"], function(E) {
         if (op !== null) {
           tok_type = this.Tokens[j].name;
           if (tok_type == "LPAREN?")
-            tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
+            tok_type = this.parenIsForExp || "PARENNOSPACE";
           break;
         }
       }
     } else if (tok_type === "LPAREN?") {
-      tok_type = this.parenIsForExp ? "PARENSPACE" : "PARENNOSPACE";
+      tok_type = this.parenIsForExp || "PARENNOSPACE";
     } else if (tok_type === "BLOCKCOMMENT") {
       return this.tokenizeBlockComment(match, str, 1, 2);
     }
-    this.parenIsForExp = !!tok.parenIsForExp;
+    this.parenIsForExp = tok.parenIsForExp || "PARENNOSPACE";
     return tok_type;
   }
   Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
@@ -113,12 +113,18 @@ define(["jglr/jglr"], function(E) {
   function op(str) { return "^\\s+" + str + ws_after; }
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
-  const number = new RegExp("^[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
+  const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+
+  const number = new RegExp("^[-+]?" + unsigned_decimal_part, STICKY_REGEXP);
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
-  const roughnum = new RegExp("^~[-+]?[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
-  const rational = new RegExp("^[-+]?[0-9]+/[0-9]+", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+
+  const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
   const ws = new RegExp("^\\s+", STICKY_REGEXP);
@@ -160,8 +166,9 @@ define(["jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
+  
 
-  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>)", STICKY_REGEXP);
+  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", STICKY_REGEXP);
 
   // English ops don't require whitespace. That way it is possible to catch them in ID position
   const opand = new RegExp(kw("and"), STICKY_REGEXP);
@@ -170,6 +177,7 @@ define(["jglr/jglr"], function(E) {
   const opiseqnow = new RegExp(kw("is=~"), STICKY_REGEXP);
   const opisidentical = new RegExp(kw("is<=>"), STICKY_REGEXP);
   const opis = new RegExp(kw("is"), STICKY_REGEXP);
+  const opisroughly = new RegExp(kw("is-roughly"), STICKY_REGEXP);
   const opisnoteq = new RegExp(kw("is-not=="), STICKY_REGEXP);
   const opisnoteqnow = new RegExp(kw("is-not=~"), STICKY_REGEXP);
   const opisnotidentical = new RegExp(kw("is-not<=>"), STICKY_REGEXP);
@@ -218,6 +226,8 @@ define(["jglr/jglr"], function(E) {
     {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
     {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
     {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
+    {name: "ASCENDING", val: new RegExp(kw("ascending"), STICKY_REGEXP)},
+    {name: "DESCENDING", val: new RegExp(kw("descending"), STICKY_REGEXP)},
     {name: "NEWTYPE", val: new RegExp(kw("newtype"), STICKY_REGEXP)},
     {name: "TYPE-LET", val: new RegExp(kw("type-let"), STICKY_REGEXP)},
     {name: "TYPE", val: new RegExp(kw("type"), STICKY_REGEXP)},
@@ -235,11 +245,25 @@ define(["jglr/jglr"], function(E) {
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
+    {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
+    {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
+    {name: "USING", val: new RegExp(colonKw("using"), STICKY_REGEXP)},
+    {name: "TABLE-EXTEND", val: new RegExp(kw("extend"), STICKY_REGEXP)},
+    {name: "TABLE-UPDATE", val: new RegExp(kw("transform"), STICKY_REGEXP)},
+    {name: "TABLE-SELECT", val: new RegExp(kw("select"), STICKY_REGEXP)},
+    {name: "TABLE-FILTER", val: new RegExp(kw("sieve"), STICKY_REGEXP)},
+    {name: "TABLE-ORDER",  val: new RegExp(kw("order"), STICKY_REGEXP)},
+    {name: "TABLE-EXTRACT",  val: new RegExp(kw("extract"), STICKY_REGEXP)},
+    {name: "LOAD-TABLE", val: new RegExp(kw("load-table"), STICKY_REGEXP)},
+    {name: "SANITIZE", val: new RegExp(kw("sanitize"), STICKY_REGEXP)},
+    {name: "SOURCECOLON", val: new RegExp(kw("source:"), STICKY_REGEXP)},
+    {name: "REACTOR", val: new RegExp(kw("reactor"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
     {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
     {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
+    {name: "OF", val: new RegExp(kw("of"), STICKY_REGEXP)},
     {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
@@ -252,8 +276,10 @@ define(["jglr/jglr"], function(E) {
     {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
     {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
+    {name: "DO", val: new RegExp(kw("do"), STICKY_REGEXP)},
     {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
+    {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
     {name: "DOTDOTDOT", val: dotdotdot},
@@ -297,6 +323,7 @@ define(["jglr/jglr"], function(E) {
     {name: "ISEQUALEQUAL", val: opiseq, parenIsForExp: true},
     {name: "ISEQUALTILDE", val: opiseqnow, parenIsForExp: true},
     {name: "ISSPACESHIP", val: opisidentical, parenIsForExp: true},
+    {name: "ISROUGHLY", val: opisroughly, parenIsForExp: true},
     {name: "IS", val: opis, parenIsForExp: true},
     {name: "SATISFIESNOT", val: opsatisfiesnot, parenIsForExp: true},
     {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
@@ -308,7 +335,7 @@ define(["jglr/jglr"], function(E) {
 
     {name: "LBRACK", val: lbrack},
     {name: "RBRACK", val: rbrack},
-    {name: "LBRACE", val: lbrace},
+    {name: "LBRACE", val: lbrace, parenIsForExp: "PARENAFTERBRACE"},
     {name: "RBRACE", val: rbrace},
     {name: "RPAREN", val: rparen},
     {name: "LANGLE", val: langle},
@@ -332,6 +359,7 @@ define(["jglr/jglr"], function(E) {
   ];
   Tokens.forEach(function(tok) {
     if (!tok.hasOwnProperty("parenIsForExp")) tok.parenIsForExp = false;
+    else if (tok.parenIsForExp == true) tok.parenIsForExp = "PARENSPACE";
   });
 
   return {

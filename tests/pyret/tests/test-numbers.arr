@@ -32,6 +32,10 @@ check:
   num-asin(-2) raises "asin: out of domain"
   num-asin(2) raises "asin: out of domain"
 
+  num-to-string-digits(3, 1/2) raises "digits should be an integer"
+  num-to-string-digits(3, ~3) raises "digits should be an integer"
+
+
   num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
@@ -88,6 +92,41 @@ check:
 
   num-atan(0) is 0
   num-atan(1) satisfies around(0.78, 0.01)
+
+
+  num-atan2( 2,  1) satisfies around(1.107, 0.001)
+  num-atan2( 2, -1) satisfies around(2.034, 0.001)
+  num-atan2(-2, -1) satisfies around(4.249, 0.001)
+  num-atan2(-2,  1) satisfies around(5.176, 0.001)
+
+  degree = (2 * num-asin(1)) / 180
+
+  num-atan2(                       0,  0) raises "atan2: out of domain"
+
+  num-atan2(                       0,  1) satisfies around(           0, 0.001)
+
+  num-atan2(    num-tan(30 * degree),  1) satisfies around( 30 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree),  1) satisfies around( 45 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree),  1) satisfies around( 60 * degree, 0.001)
+  num-atan2(    num-tan(88 * degree),  1) satisfies around( 88 * degree, 0.001)
+
+  num-atan2(    num-tan(88 * degree), -1) satisfies around( 92 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree), -1) satisfies around(120 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree), -1) satisfies around(135 * degree, 0.001)
+  num-atan2(    num-tan(30 * degree), -1) satisfies around(150 * degree, 0.001)
+
+  num-atan2(                       0, -1) satisfies around(180 * degree, 0.001)
+
+  num-atan2(0 - num-tan(30 * degree), -1) satisfies around(210 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree), -1) satisfies around(225 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree), -1) satisfies around(240 * degree, 0.001)
+  num-atan2(0 - num-tan(88 * degree), -1) satisfies around(268 * degree, 0.001)
+
+  num-atan2(0 - num-tan(88 * degree),  1) satisfies around(272 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree),  1) satisfies around(300 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree),  1) satisfies around(315 * degree, 0.001)
+  num-atan2(0 - num-tan(30 * degree),  1) satisfies around(330 * degree, 0.001)
+
 
   num-modulo(17, 5) is 2
   num-modulo(15, -2) is -1
@@ -155,6 +194,8 @@ check:
   (3 + _)(12) is 15
   (_ / _)(6, 3) is 2
 
+
+  ~2e222 * ~2e222 raises "roughnum overflow"
 end
 
 check:
@@ -183,7 +224,7 @@ check:
   num-to-string-digits(5432.1234, 2) is "5432.12"
   num-to-string-digits(0.123456789, 2) is "0.12"
   num-to-string-digits(5, 2) is "5.00"
-  num-to-string-digits(555, -2) is "600."
+  num-to-string-digits(555, -2) is "600"
   # NOTE(joe): This test is awaiting a fixed numeric library for rounding
   # num-to-string-digits(100000000000000000000000000000000000000001234 / 10000, 2) is
   #  "10000000000000000000000000000000000000000.12"

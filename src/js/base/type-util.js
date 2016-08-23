@@ -172,6 +172,11 @@ define([], function() {
           args: L(typ.args.map(tp)),
           ret: tp(typ.ret)
         });
+      case "tuple":
+        return O({
+          tag: "tuple",
+          elts: L(typ.elts.map(tp)),
+        });
       case "tyapp":
         return O({
           tag: "tyapp",
@@ -343,6 +348,12 @@ define([], function() {
             tag: "arrow",
             args: typ[1].map(function(t) { return expandType(t, shorthands); }),
             ret: expandType(typ[2], shorthands)
+          };
+        }
+        else if(head === "tuple" && typ.length === 2 && iA(typ[1])) {
+          return {
+            tag: "tuple",
+            elts: typ[1].map(function(t) { return expandType(t, shorthands); })
           };
         }
         else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {

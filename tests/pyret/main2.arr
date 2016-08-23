@@ -32,3 +32,6 @@ import file("./tests/test-include.arr") as _
 import file("./tests/test-examples.arr") as _
 import file("./tests/test-string-dict.arr") as _
 import file("./tests/test-dup-names.arr") as _
+import file("./tests/test-tables.arr") as _
+import file("./tests/test-tuple.arr") as _
+import file("./tests/test-reactor.arr") as _

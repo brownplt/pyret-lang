@@ -143,12 +143,48 @@ fun add-letrec-binds(bg :: BindingGroup, lrbs :: List<A.LetrecBind>, stmts :: Li
   end
 end
 
+fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.LetBind>:
+  cases(A.Bind) bind:
+    | s-bind(_,_,_,_) => rebuild(l, bind, expr) ^ link(_, lbs)
+    | s-tuple-bind(lb, fields, as-name) =>
+      {bound-expr; binding} = cases(Option) as-name:
+        | none =>
+          name = names.make-atom("tup")
+          ann = A.a-tuple(lb, for map(f from fields):
+              cases(A.Bind) f:
+                | s-bind(_, _, _, a) => a
+                | s-tuple-bind(_, _, _) => A.a-blank
+              end
+            end)
+          {A.s-id(lb, name); rebuild(lb, A.s-bind(lb, false, name, ann), expr)}
+        | some(b) =>
+          binding = cases(A.Ann) b.ann:
+            | a-blank =>
+              # just create a tuple of the correct arity; leave the field annotations to be checked later
+              ann = A.a-tuple(lb, for map(_ from fields): A.a-blank end)
+              A.s-bind(b.l, b.shadows, b.id, ann)
+            | else => b
+          end
+          {A.s-id(b.l, b.id); rebuild(l, binding, expr)}
+      end
+      for lists.fold_n(n from 0, shadow lbs from binding ^ link(_, lbs), f from fields):
+        simplify-let-bind(rebuild, f.l, f, A.s-tuple-get(f.l, bound-expr, n, f.l), lbs)
+      end
+  end
+end
+
 fun add-let-binds(bg :: BindingGroup, lbs :: List<A.LetBind>, stmts :: List<A.Expr>) -> A.Expr:
- cases(BindingGroup) bg:
+  simplified-lbs = for fold(acc from empty, lb from lbs):
+    cases(A.LetBind) lb:
+      | s-let-bind(l, b, value) => simplify-let-bind(A.s-let-bind, l, b, value, acc)
+      | s-var-bind(l, b, value) => simplify-let-bind(A.s-var-bind, l, b, value, acc)
+    end
+  end
+  cases(BindingGroup) bg:
     | let-binds(binds) =>
-      desugar-scope-block(stmts, let-binds(lbs + binds))
+      desugar-scope-block(stmts, let-binds(simplified-lbs + binds))
     | else =>
-      bind-wrap(bg, desugar-scope-block(stmts, let-binds(lbs)))
+      bind-wrap(bg, desugar-scope-block(stmts, let-binds(simplified-lbs)))
   end
 end
 
@@ -182,26 +218,6 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
         | s-rec(l, bind, expr) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
-        | s-tuple-let(l, binds, tup) =>
-         # note: reversed binds
-          namet = names.make-atom("tup")
-          tup-name = A.s-let-bind(l, A.s-bind(l, false, namet, A.a-blank), tup)
-          check-expr = A.s-prim-app(l, "checkTupleBind", [list: A.s-id(l, namet), A.s-num(l, binds.length()), A.s-srcloc(l, l)])
-          bind-check = A.s-let-bind(l, A.s-bind(l, false, A.s-underscore(l), A.a-blank), check-expr)
-          get-binds =
-            for map_n(n from 0, element from binds):
-              A.s-let-bind(l, element, A.s-tuple-get(l, A.s-id(l, namet), n, A.dummy-loc))
-            end
-           add-let-binds(binding-group, link(tup-name, link(bind-check, get-binds)).reverse(), rest-stmts) 
-         #| cases(List) binds:
-          | empty => desugar-scope-block(rest-stmts, binding-group)
-          | link(first, rest) =>
-          new-rst-stmts = link(A.s-tuple-let(l, rest, tup), rest-stmts)
-          new-let-exp =  A.s-tuple-get(l, tup, (binds.length() - 1), A.dummy-loc)
-          new-block-list = [list: add-let-bind(binding-group, A.s-let-bind(l, first, new-let-exp), new-rst-stmts)]
-          A.s-block(l, new-block-list) 
-          end |#
-        
         | s-fun(l, name, params, args, ann, doc, body, _check, blocky) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
@@ -337,22 +353,90 @@ where:
 
 end
 
+fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check, blocky):
+  v-params = params.map(_.visit(visitor))
+  v-ann = ann.visit(visitor)
+  v-body = body.visit(visitor)
+  v-check = visitor.option(_check)
+  placeholder = A.s-str(l, "placeholder")
+  {new-binds; new-body} = for fold(acc from {empty; v-body}, a from args):
+    {new-binds; new-body} = acc
+    lbs = simplify-let-bind(A.s-let-bind, a.l, a.visit(visitor), placeholder, empty).reverse()
+    arg-bind = lbs.first
+    shadow new-binds = arg-bind.b ^ link(_, new-binds)
+    cases(List) lbs.rest:
+      | empty => {new-binds; new-body}
+      | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
+    end
+  end  
+  rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, v-check, blocky)
+end
+
 desugar-scope-visitor = A.default-map-visitor.{
   method s-block(self, l, stmts):
     desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty))
+  end,
+  method s-let-expr(self, l, binds, body, blocky):
+    v-body = body.visit(self)
+    new-binds = for fold(new-binds from empty, b from binds):
+      simplify-let-bind(A.s-let-bind, b.l, b.b.visit(self), b.value.visit(self), new-binds)
+    end
+    A.s-let-expr(l, new-binds.reverse(), v-body, blocky)
+  end,
+  method s-for(self, l, iterator, bindings, ann, body, blocky):
+    v-iterator = iterator.visit(self)
+    v-ann = ann.visit(self)
+    v-body = body.visit(self)
+    {new-binds; new-body} = for fold(acc from {empty; v-body}, b from bindings):
+      {new-binds; new-body} = acc
+      lbs = simplify-let-bind(A.s-let-bind, b.l, b.bind.visit(self), b.value.visit(self), empty).reverse()
+      arg-bind = lbs.first
+      shadow new-binds = A.s-for-bind(b.l, arg-bind.b, arg-bind.value) ^ link(_, new-binds)
+      cases(List) lbs.rest:
+        | empty => {new-binds; new-body}
+        | link(_, _) => {new-binds; A.s-let-expr(b.l, lbs.rest, new-body, false)}
+      end
+    end
+    A.s-for(l, v-iterator, new-binds.reverse(), v-ann, new-body, blocky)
+  end,
+  method s-cases-branch(self, l, pat-loc, name, args, body):
+    v-body = body.visit(self)
+    {new-binds; new-body} = for fold(acc from {empty; v-body}, b from args):
+      {new-binds; new-body} = acc
+      lbs = simplify-let-bind(A.s-let-bind, b.l, b.bind.visit(self), A.s-str(b.l, "placeholder"), empty).reverse()
+      arg-bind = lbs.first
+      shadow new-binds = A.s-cases-bind(b.l, b.field-type, arg-bind.b) ^ link(_, new-binds)
+      cases(List) lbs.rest:
+        | empty => {new-binds; new-body}
+        | link(_, _) => {new-binds; A.s-let-expr(b.l, lbs.rest, new-body, false)}
+      end
+    end
+    A.s-cases-branch(l, pat-loc, name, new-binds.reverse(), new-body)
+  end,
+  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
+    rebuild-fun(A.s-fun, self, l, name, params, args, ann, doc, body, _check, blocky)
+  end,
+  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
+    rebuild-fun(A.s-lam, self, l, name, params, args, ann, doc, body, _check, blocky)
+  end,
+  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
+    rebuild-fun(A.s-method, self, l, name, params, args, ann, doc, body, _check, blocky)
+  end,
+  method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
+    rebuild-fun(A.s-method-field, self, l, name, params, args, ann, doc, body, _check, blocky)
   end
 }
 
 fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
   doc: ```
-       Remove x = e, var x = e, and fun f(): e end
+       Remove x = e, var x = e, tuple bindings, and fun f(): e end
        and turn them into explicit let and letrec expressions.
        Do this recursively through the whole program.
        Preconditions on prog:
          - well-formed
        Postconditions on prog:
          - contains no s-provide in headers
-         - contains no s-let, s-var, s-data
+         - contains no s-let, s-var, s-data, s-tuple-bind
        ```
   cases(A.Program) prog:
     | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
@@ -588,6 +672,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | else => A.a-name(l, id)
     end
   end
+  
+  fun handle-column-binds(column-binds :: A.ColumnBinds, visitor):
+    env-and-binds = for fold(acc from { env: visitor.env, cbs: [list: ] }, cb from column-binds.binds):
+        atom-env = make-atom-for(cb.id, cb.shadows, acc.env, bindings, let-bind(_, _, cb.ann, none))
+        new-cb = A.s-bind(cb.l, cb.shadows, atom-env.atom, cb.ann.visit(visitor.{env: acc.env}))
+        { env: atom-env.env, cbs: link(new-cb, acc.cbs) }
+      end
+    { column-binds: A.s-column-binds(column-binds.l, env-and-binds.cbs, column-binds.table.visit(visitor)),
+               env: env-and-binds.env }
+  end
+      
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
@@ -754,8 +849,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-type-let-expr(l, bs.reverse(), visit-body, blocky)
     end,
     method s-let-expr(self, l, binds, body, blocky):
-      {e; bs} = for fold(acc from { self.env; empty }, b from binds):
-        {e; bs} = acc
+      {e; bs; atoms} = for fold(acc from { self.env; empty; empty}, b from binds):
+        {e; bs; atoms} = acc
         cases(A.LetBind) b block:
           | s-let-bind(l2, bind, expr) =>
             visited-ann = bind.ann.visit(self.{env: e})
@@ -765,8 +860,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
               atom-env.env;
-              link(new-bind, bs)
-            }
+              link(new-bind, bs);
+              link(atom-env.atom, atoms)
+               }
           | s-var-bind(l2, bind, expr) =>
             visited-ann = bind.ann.visit(self.{env: e})
             atom-env = make-atom-for(bind.id, bind.shadows, e, bindings, var-bind(_, _, visited-ann, none))
@@ -775,7 +871,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
               atom-env.env;
-              link(new-bind, bs)
+              link(new-bind, bs);
+              link(atom-env.atom, atoms)
             }
         end
       end
@@ -802,6 +899,33 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
+    end,
+    method s-for-do(self, l, from-clause, dos) block:
+      {env; fb} = cases(A.ForBind) from-clause block:
+        | s-for-bind(l2, bind, val) => 
+          atom-env = make-atom-for(bind.id, bind.shadows, self.env, bindings, let-bind(_, _, bind.ann, none))
+          new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self))
+          visit-val = val.visit(self)
+          update-binding-expr(atom-env.atom, some(visit-val))
+          new-fb = A.s-for-bind(l2, new-bind, visit-val)
+          { atom-env.env; new-fb }
+      end
+      A.s-for-do(l, fb, dos.map(_.visit(self.{env: env})))
+    end,
+    method s-do(self, l, iter, binds, ann, body) block:
+      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
+        cases(A.ForBind) fb block:
+          | s-for-bind(l2, bind, val) =>
+            {env; fbs} = acc
+            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings, let-bind(_, _, bind.ann, none))
+            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
+            visit-val = val.visit(self)
+            update-binding-expr(atom-env.atom, some(visit-val))
+            new-fb = A.s-for-bind(l2, new-bind, visit-val)
+            { atom-env.env; link(new-fb, acc.fbs) }
+        end
+      end
+      A.s-do(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}))
     end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
@@ -836,13 +960,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       result
     end,
     method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+     {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings, type-var-bind(_, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
-      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args) block:
+      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings, let-bind(_, _, a.ann.visit(with-params), none))
         { atom-env.env; link(atom-env.atom, atoms) }
@@ -901,8 +1025,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
-    end,
+      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)    end,
     method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>
@@ -959,7 +1082,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(A.Name) id:
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
         | else => 
-          raise("Should not reach non-underscore bindings in resolve-names" + torepr(l) + torepr(id))
+          raise("Should not reach non-underscore bindings in resolve-names: " + id.key() + " at " + torepr(l))
       end
     end,
     method a-blank(self): A.a-blank end,
@@ -979,7 +1102,31 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           A.a-blank
       end
     end,
-    method a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end
+    method a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
+    method s-table-select(self, l, columns, table):
+      A.s-table-select(l, columns.map(_.visit(self)), table.visit(self))
+    end,
+    method s-table-extend(self, l, column-binds, extensions):
+      column-binds-and-env = handle-column-binds(column-binds, self)
+      A.s-table-extend(l, column-binds-and-env.column-binds,
+        extensions.map(_.visit(self.{env: column-binds-and-env.env})))
+    end,
+    method s-table-update(self, l, column-binds, updates):
+      column-binds-and-env = handle-column-binds(column-binds, self)
+      A.s-table-update(l, column-binds-and-env.column-binds,
+        updates.map(_.visit(self.{env: column-binds-and-env.env})))
+    end,
+    method s-table-filter(self, l, column-binds, pred):
+      column-binds-and-env = handle-column-binds(column-binds, self)
+      A.s-table-filter(l, column-binds-and-env.column-binds,
+        pred.visit(self.{env: column-binds-and-env.env}))
+    end,
+    method s-table-order(self, l, table, ordering):
+      A.s-table-order(l, table.visit(self), ordering)
+    end,
+    method s-table-extent(self, l, column, table):
+      A.s-table-extent(l, column.visit(self), table)
+    end,
   }
   C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end

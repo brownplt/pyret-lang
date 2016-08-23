@@ -99,6 +99,10 @@ data TestResult:
                ED.cmcode(self.loc),
               [ED.para:
                 cases(Any) test-ast.op:
+                  | s-op-is-roughly(_) =>
+                    [ED.sequence:
+                    ED.text("because it reports success if and only if the "),
+                   ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are equal (allowing for rough equality).")]
                   | s-op-is(_) => [ED.sequence:
                     ED.text("because it reports success if and only if the predicate "),
                     cases(Option) test-ast.refinement:
@@ -479,6 +483,14 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
           lv == rv,
+          lam(): failure-not-equal(loc, none, lv, rv) end)
+      end
+      nothing
+    end,
+    method check-is-roughly(self, left, right, loc) block:
+      for left-right-check(loc)(lv from left, rv from right):
+        check-bool(loc,
+          within(~0.0)(lv, rv),
           lam(): failure-not-equal(loc, none, lv, rv) end)
       end
       nothing

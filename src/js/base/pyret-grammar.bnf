@@ -23,17 +23,15 @@ block: stmt*
 stmt: type-expr | newtype-expr
     | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
-    | contract-stmt | tuple-bind-expr | tuple-binding-expr
+    | contract-stmt
 
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
 let-expr: toplevel-binding EQUALS binop-expr
-binding: [SHADOW] NAME [COLONCOLON ann] | tuple-binding
+binding: name-binding | tuple-binding
 
-tuple-binding: LBRACE tuple-bind-list RBRACE SEMI
-tuple-bind-list: bind-tuple* single-tuple-name [SEMI]
-bind-tuple: NAME SEMI
-single-tuple-name: NAME
+tuple-binding: LBRACE (binding SEMI)* binding [SEMI] RBRACE [AS name-binding]
+name-binding: [SHADOW] NAME [COLONCOLON ann]
 
 toplevel-binding: binding 
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
@@ -52,7 +50,7 @@ contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause END
 fun-header: ty-params args return-ann
 ty-params: [(LANGLE|LT) comma-names (RANGLE|GT)]
-args: PARENNOSPACE [binding (COMMA binding)*] RPAREN
+args: (PARENNOSPACE|PARENAFTERBRACE) [binding (COMMA binding)*] RPAREN
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
@@ -84,7 +82,7 @@ binop-expr: expr (binop expr)*
 binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL | SPACESHIP | EQUALTILDE
      | NEQ  | LT  | GT | AND | OR | CARET
 
-check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP
+check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP | ISROUGHLY
         | ISNOT | ISNOTEQUALEQUAL | ISNOTEQUALTILDE | ISNOTSPACESHIP
         | RAISES | RAISESOTHER
         | SATISFIES | SATISFIESNOT
@@ -106,6 +104,15 @@ expr: paren-expr | id-expr | prim-expr
     | multi-let-expr | letrec-expr
     | type-let-expr
     | construct-expr
+    | table-select
+    | table-extend
+    | table-filter
+    | table-order
+    | table-extract
+    | table-update
+    | table-expr
+    | load-table-expr
+    | reactor-expr
 
 template-expr : DOTDOTDOT
 
@@ -113,7 +120,7 @@ bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMB
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application
-paren-expr: PARENSPACE binop-expr RPAREN
+paren-expr: (PARENSPACE|PARENAFTERBRACE) binop-expr RPAREN
 
 id-expr: NAME
 
@@ -144,9 +151,6 @@ tuple-fields: binop-expr (SEMI binop-expr)* [SEMI]
 
 tuple-get: expr DOT LBRACE NUMBER RBRACE
 
-tuple-bind-expr: LBRACE tuple-name-list RBRACE EQUALS binop-expr
-tuple-binding-expr: LBRACE tuple-name-list RBRACE SEMI
-tuple-name-list: binding (SEMI binding)* [SEMI]
 
 obj-expr: LBRACE obj-fields RBRACE | LBRACE RBRACE
 obj-fields: obj-field (COMMA obj-field)* [COMMA]
@@ -161,6 +165,21 @@ key: NAME
 
 construct-expr: LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
 construct-modifier: | LAZY
+
+table-expr: TABLE table-headers table-rows END
+table-headers: [list-table-header* table-header]
+list-table-header: table-header COMMA
+table-header: NAME [COLONCOLON ann]
+table-rows: [table-row* table-row]
+table-row: ROW table-items
+table-items: [list-table-item* binop-expr]
+list-table-item: binop-expr COMMA
+
+# NOTE(joe): just parsing as "fields" for now, and handling naming in
+# desugaring/well-formed, so that better error messages can be given
+reactor-expr: REACTOR COLON
+  fields
+END
 
 dot-expr: expr DOT NAME
 bracket-expr: expr DOT LBRACK binop-expr RBRACK
@@ -182,6 +201,28 @@ cases-branch: BAR NAME [cases-args] THICKARROW block
 
 for-bind: binding FROM binop-expr
 for-expr: FOR expr PARENNOSPACE [for-bind (COMMA for-bind)*] RPAREN return-ann (BLOCK|COLON) block END
+
+column-order : NAME (ASCENDING|DESCENDING)
+table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr END
+table-filter : TABLE-FILTER expr [USING binding (COMMA binding)*] COLON binop-expr END
+table-order  : TABLE-ORDER  expr COLON column-order END
+table-extract: TABLE-EXTRACT NAME FROM expr END
+table-update : TABLE-UPDATE expr [USING binding (COMMA binding)*] COLON obj-fields END
+table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON table-extend-fields END
+table-extend-fields: list-table-extend-field* table-extend-field [COMMA]
+list-table-extend-field: table-extend-field COMMA
+table-extend-field: key [COLONCOLON ann] COLON binop-expr
+# Commenting this out until we know whether or not it makes sense
+#     | REF key [COLONCOLON ann] COLON binop-expr
+     | key [COLONCOLON ann] COLON expr OF NAME
+
+# More informative to allow missing load-table-specs to parse and mark it as a
+# well-formedness error than to reject it at parse-time
+load-table-expr: LOAD-TABLE COLON table-headers [load-table-specs] END
+
+load-table-specs: load-table-spec* load-table-spec
+load-table-spec: SOURCECOLON expr
+               | SANITIZE NAME USING expr
 
 user-block-expr: BLOCK block END
 

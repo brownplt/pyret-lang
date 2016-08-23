@@ -471,6 +471,17 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("block: lam(x): x end\n(x)end")).not.toBe(false);
     });
 
+    it("should treat (...) as grouping or as args within {...}", function() {
+      expect(parse("{(): true}")).not.toBe(false);
+      expect(parse("{(a): true}")).not.toBe(false);
+      expect(parse("{(a, b): true}")).not.toBe(false);
+      expect(parse("{ (): true}")).toBe(false);
+      expect(parse("{ (a): true}")).toBe(false);
+      expect(parse("{ (a, b): true}")).toBe(false);
+      expect(parse("{(1 + 2); (3 + 4)}")).not.toBe(false);
+      expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
+    });
+
     it("should parse get-bang", function() {
       expect(parse("o!x")).not.toBe(false);
       expect(parse("y.x!x")).not.toBe(false);
@@ -636,6 +647,36 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse('#\n{1:2}')).toBe(false);
     });
 
+    it("should parse tables", function() {
+      expect(parse("table 3: row 3 end")).toBe(false);
+
+      expect(parse("table: h1 row: end")).not.toBe(false);
+      expect(parse("table: row: 3 end")).not.toBe(false);
+
+      expect(parse("table: h1 h2 row: 3 row: 4 end")).toBe(false);
+      expect(parse("table: h1 row: 3 3 row: 4 end")).toBe(false);
+      expect(parse("table: h1 row: 3 row: 4 4 end")).toBe(false);
+      expect(parse("table: h1 h2 row 3, 4 end")).toBe(false);
+      
+      expect(parse("table: h1 row: 3 end")).not.toBe(false);
+      expect(parse("table: h1 row: 3 row: 4 end")).not.toBe(false);
+      expect(parse("table: h1, h2 row: 3, 3 row: 4, 4 end")).not.toBe(false);
+      expect(parse("table: h1, h2 row: 3 + 3, 3 * 3 end")).not.toBe(false);
+    });
+
+    it("should parse table loaders", function() {
+      expect(parse("load-table: h1, h2, h3 source: my-src end")).not.toBe(false);
+      expect(parse("load-table: h1 sanitize h1 using s1 source: s sanitize h2 using s2 end")).not.toBe(false);
+
+      // Should be well-formedness errors
+      expect(parse("load-table: end")).not.toBe(false);
+      expect(parse("load-table: source: s end")).not.toBe(false);
+      expect(parse("load-table: h1 sanitize h1 using s1 end")).not.toBe(false);
+
+      expect(parse("load-table: h1 using s1 source: src end")).toBe(false);
+      expect(parse("load-table: h1 h2 source: s end")).toBe(false);
+    });
+
     it("should parse tuples", function() {
       expect(parse("{1; 2; 3}")).not.toBe(false);
       expect(parse("{4 * 3; 3; 10 - 2}")).not.toBe(false);
@@ -643,7 +684,7 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("{{124; 124; 12}")).toBe(false);
       expect(parse("{word; hello; there; pyret")).toBe(false);
       expect(parse("234; hi; bad}")).toBe(false);
-      expect(parse("{one}")).not.toBe(false);
+      //expect(parse("{one}")).not.toBe(false);
     });
 
     it("should parse tuple-get", function() {
@@ -674,9 +715,16 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
      expect(parse("fun f(tup:: {Number; {String; Number; {hello; there}}; {hi; what}}): tup.{1} end")).not.toBe(false);
     });
 
-  it("should parse tuple binding", function() {
-    expect(parse("for each({k;v}; from elts): k end")).not.toBe(false);
-  });
+    it("should parse tuple binding", function() {
+      expect(parse("for each({k;v;} from elts): k end")).not.toBe(false);
+    });
+
+    it("should parse reactors", function() {
+      expect(parse("reactor: start-with: 5, on-tick: lam(x): x + 1 end end")).not.toBe(false);
+      expect(parse("reactor: error-later-than-parsing: error end")).not.toBe(false);
+      expect(parse("reactor: end")).toBe(false);
+      expect(parse("reactor end")).toBe(false);
+    });
   });
 
   

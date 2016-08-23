@@ -38,7 +38,7 @@ check "basics":
 
   var long-torepr = nothing
   long-torepr := {
-    _output(self):
+    method _output(self) block:
       var str = ""
       for each(i from range(0, 10000)):
         str := tostring(i)
@@ -65,7 +65,7 @@ check "basics":
     is-not [SD.mutable-string-dict: {"b"; 5}, {"c"; 5}]
   sd-many-as = [SD.mutable-string-dict:]
   sd-almost-many-as = [SD.mutable-string-dict: {"a"; 10}]
-  for each(i from range(0, 100)):
+  for each(i from range(0, 100)) block:
     sd-many-as.set-now("a" + tostring(i), i)
     when not(i == 54):
       sd-almost-many-as.set-now("a" + tostring(i), i)
@@ -169,10 +169,6 @@ fun one-of(ans, elts):
     ans == elt
   end)
 end 
-
-check "merge":
- 2 + 2 is 4
-end
 
 check "merge":
   s1 = [SD.string-dict: {"a"; 5}, {"c"; 4}]
@@ -312,7 +308,7 @@ check "all forms of fors":
      end
    end
   
-  fun createMutableDict(dict):
+  fun createMutableDict(dict) block:
     key_lst = dict.keys-list()
     mutDict = [SD.mutable-string-dict:]
     for each(key from key_lst):
@@ -330,7 +326,7 @@ check "all forms of fors":
  mutDict = createMutableDict(dict)
 
  
- fun sum_old_each_old_dict(shadow dict):
+ fun sum_old_each_old_dict(shadow dict) block:
   var sum = 0
   for each(name from dict.keys-list()):
     values = dict.get-value(name)
@@ -343,7 +339,7 @@ check "all forms of fors":
   sum
  end
 
- fun sum_old_each(shadow dict):
+ fun sum_old_each(shadow dict) block:
    var sum = 0
    for each(name from dict.keys-list()):
      sum := sum + dict.get-value(name)
@@ -351,7 +347,7 @@ check "all forms of fors":
    sum
  end
 
-  fun sum_old_each_mut(shadow dict):
+  fun sum_old_each_mut(shadow dict) block:
    var sum = 0
    for each(name from dict.keys-list-now()):
      sum := sum + dict.get-value-now(name)
@@ -359,7 +355,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_new_each(shadow dict):
+ fun sum_new_dict_new_each(shadow dict) block:
    var sum = 0
    for each(tup from dict.items()):
      sum := sum + tup.{1}
@@ -367,7 +363,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_each(shadow dict):
+ fun sum_new_dict_each(shadow dict) block:
    var sum = 0
    for SD.dict-each(tup from dict):
      sum := sum + tup.{1}
@@ -375,7 +371,7 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_loop(shadow dict):
+ fun sum_new_dict_loop(shadow dict) block:
   var sum = 0
   for SD.dict-each-loop(tup from dict):
     sum := sum + tup.{1}
@@ -397,9 +393,9 @@ check "all forms of fors":
   range(0, x)
   end 
 
- fun sum_old_each_old_dict_b(shadow dict):
+ fun sum_old_each_old_dict_b(shadow dict) block:
   var sum = 0
-  for each(name from dict.keys-list()):
+  for each(name from dict.keys-list()) block:
     values = dict.get-value(name)
     num = cases(Option) values:
     | none => 0
@@ -413,9 +409,9 @@ check "all forms of fors":
   sum
  end
 
- fun sum_old_each_b(shadow dict):
+ fun sum_old_each_b(shadow dict) block:
    var sum = 0
-   for each(name from dict.keys-list()):
+   for each(name from dict.keys-list()) block:
      sum := sum + dict.get-value(name)
      when num-modulo(dict.get-value(name), 337) == 0:
   	dostuff(1000)
@@ -424,9 +420,9 @@ check "all forms of fors":
    sum
  end
 
-  fun sum_old_each_mut_b(shadow dict):
+  fun sum_old_each_mut_b(shadow dict) block:
    var sum = 0
-   for each(name from dict.keys-list-now()):
+   for each(name from dict.keys-list-now()) block:
      sum := sum + dict.get-value-now(name)
       when num-modulo(dict.get-value-now(name), 337) == 0:
   	dostuff(1000)
@@ -435,9 +431,9 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_new_each_b(shadow dict):
+ fun sum_new_dict_new_each_b(shadow dict) block:
    var sum = 0
-   for each(tup from dict.items()):
+   for each(tup from dict.items()) block:
      sum := sum + tup.{1}
      when num-modulo(tup.{1}, 337) == 0:
   	dostuff(1000)
@@ -446,9 +442,9 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_each_b(shadow dict):
+ fun sum_new_dict_each_b(shadow dict) block:
    var sum = 0
-   for SD.dict-each(tup from dict):
+   for SD.dict-each(tup from dict) block:
      sum := sum + tup.{1}
      when num-modulo(tup.{1}, 337) == 0:
   	dostuff(1000)
@@ -457,9 +453,9 @@ check "all forms of fors":
    sum
  end
 
- fun sum_new_dict_loop_b(shadow dict):
+ fun sum_new_dict_loop_b(shadow dict) block:
   var sum = 0
-  for SD.dict-each-loop(tup from dict):
+  for SD.dict-each-loop(tup from dict) block:
     sum := sum + tup.{1}
     when num-modulo(tup.{1}, 337) == 0:
   	dostuff(1000)
@@ -480,9 +476,9 @@ check "all forms of fors":
 
   
 
- fun set_old_each_old_dict(shadow dict):
+ fun set_old_each_old_dict(shadow dict) block:
     var val-set = [list-set: ]
-    for each(name from dict.keys-list()):
+    for each(name from dict.keys-list()) block:
       values = dict.get-value(name)
       num = cases(Option) values:
         | none => 0
@@ -493,41 +489,41 @@ check "all forms of fors":
     val-set
   end
 
-  fun set_old_each(shadow dict):
+  fun set_old_each(shadow dict) block:
     var val-set = [list-set: ]
-    for each(name from dict.keys-list()):
+    for each(name from dict.keys-list()) block:
       val-set := val-set.add(dict.get-value(name))
     end
     val-set
   end
 
-  fun set_old_each_mut(shadow dict):
+  fun set_old_each_mut(shadow dict) block:
     var val-set = [list-set: ]
-    for each(name from dict.keys-list-now()):
+    for each(name from dict.keys-list-now()) block:
       val-set := val-set.add(dict.get-value-now(name))
     end
     val-set
   end
 
-  fun set_new_dict_new_each(shadow dict):
+  fun set_new_dict_new_each(shadow dict) block:
     var val-set = [list-set: ]
-    for each(tup from dict.items()):
+    for each(tup from dict.items()) block:
       val-set := val-set.add(tup.{1})
     end
     val-set
   end
 
-  fun set_new_dict_each(shadow dict):
+  fun set_new_dict_each(shadow dict) block:
     var val-set = [list-set: ]
-    for SD.dict-each(tup from dict):
+    for SD.dict-each(tup from dict) block:
       val-set := val-set.add(tup.{1})
     end
     val-set
   end
 
-  fun set_new_dict_loop(shadow dict):
+  fun set_new_dict_loop(shadow dict) block:
     var val-set = [list-set: ]
-    for SD.dict-each-loop(tup from dict):
+    for SD.dict-each-loop(tup from dict) block:
       val-set := val-set.add(tup.{1})
     end 
     val-set
@@ -550,9 +546,9 @@ check "all forms of fors":
  
 
 
- fun set_old_each_old_dict_b(shadow dict):
+ fun set_old_each_old_dict_b(shadow dict) block:
      var val-set = [list-set: ]
-     for each(name from dict.keys-list()):
+     for each(name from dict.keys-list()) block:
        values = dict.get-value(name)
        num = cases(Option) values:
        | none => 0
@@ -566,9 +562,9 @@ check "all forms of fors":
     val-set
   end
 
- fun set_old_each_b(shadow dict):
+ fun set_old_each_b(shadow dict) block:
    var val-set = [list-set: ]
-   for each(name from dict.keys-list()):
+   for each(name from dict.keys-list()) block:
      val-set := val-set.add(dict.get-value(name))
      when num-modulo(dict.get-value(name), 339) == 0:
   	dostuff(1000)
@@ -577,9 +573,9 @@ check "all forms of fors":
    val-set
  end
 
-  fun set_old_each_mut_b(shadow dict):
+  fun set_old_each_mut_b(shadow dict) block:
    var val-set = [list-set: ]
-   for each(name from dict.keys-list-now()):
+   for each(name from dict.keys-list-now()) block:
      val-set := val-set.add(dict.get-value-now(name))
      when num-modulo(dict.get-value-now(name), 339) == 0:
   	dostuff(1000)
@@ -588,9 +584,9 @@ check "all forms of fors":
    val-set
  end
 
- fun set_new_dict_new_each_b(shadow dict):
+ fun set_new_dict_new_each_b(shadow dict) block:
    var val-set = [list-set: ]
-   for each(tup from dict.items()):
+   for each(tup from dict.items()) block:
      val-set := val-set.add(tup.{1})
      when num-modulo(tup.{1}, 339) == 0:
   	dostuff(1000)
@@ -599,9 +595,9 @@ check "all forms of fors":
    val-set
  end
 
- fun set_new_dict_each_b(shadow dict):
+ fun set_new_dict_each_b(shadow dict) block:
    var val-set = [list-set: ]
-   for SD.dict-each(tup from dict):
+   for SD.dict-each(tup from dict) block:
      val-set := val-set.add(tup.{1})
      when num-modulo(tup.{1}, 339) == 0:
   	dostuff(1000)
@@ -610,9 +606,9 @@ check "all forms of fors":
    val-set
  end
 
- fun set_new_dict_loop_b(shadow dict):
+ fun set_new_dict_loop_b(shadow dict) block:
   var val-set = [list-set: ]
-  for SD.dict-each-loop(tup from dict):
+  for SD.dict-each-loop(tup from dict) block:
     val-set := val-set.add(tup.{1})
     when num-modulo(tup.{1}, 339) == 0:
   	dostuff(1000)
@@ -632,9 +628,9 @@ end
  set_from_old_b is set_new_dict_loop_b(smalldict)
  set_from_old_b is set_new_dict_loop_b(smallmutDict)
 
- fun mut_sub_from_all(mutdict, toSub):
+ fun mut_sub_from_all(mutdict, toSub) block:
     key_lst = mutdict.keys-list-now()
-    for each(key from key_lst):
+    for each(key from key_lst) block:
       num = cases(Option) mutdict.get-now(key):
        | none => 0
        | some(v) => v

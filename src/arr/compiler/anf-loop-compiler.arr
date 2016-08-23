@@ -208,6 +208,11 @@ is-c-exp = DAG.is-c-exp
 is-c-field = DAG.is-c-field
 is-c-block = DAG.is-c-block
 
+fun ann-loc(ann):
+  if A.is-a-blank(ann): A.dummy-loc
+  else: ann.l
+  end
+end
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
@@ -241,7 +246,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
          field from tuple-fields):
        compiled = compile-ann(field, visitor)
        {
-          locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
+          locs: cl-snoc(acc.locs, visitor.get-loc(ann-loc(field))),
           fields: cl-snoc(acc.fields, compiled.exp),
           others: acc.others + compiled.other-stmts
        }
@@ -1531,6 +1536,9 @@ fun compile-provided-type(typ):
     | t-record(fields, l) =>
       j-list(false,
         [clist: j-str("record"), j-obj(CL.map_list(compile-type-member, fields))])
+    | t-tuple(elts, l) =>
+      j-list(false,
+        [clist: j-str("tuple"), j-list(false, CL.map_list(compile-provided-type, elts))])
     | t-forall(params, body, l) =>
       if T.is-t-data(body): compile-provided-data(body, params)
       else:

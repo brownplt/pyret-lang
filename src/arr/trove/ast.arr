@@ -60,10 +60,12 @@ str-elsespace = PP.str("else ")
 str-end = PP.str("end")
 str-except = PP.str("except")
 str-for = PP.str("for ")
+str-do = PP.str("do ")
 str-from = PP.str("from")
 str-fun = PP.str("fun")
 str-lam = PP.str("lam")
 str-if = PP.str("if ")
+str-of = PP.str("of ")
 str-ask = PP.str("ask")
 str-import = PP.str("import")
 str-include = PP.str("include")
@@ -101,6 +103,18 @@ str-raises-not = PP.str("does-not-raise")
 str-raises-satisfies = PP.str("raises-satisfies")
 str-raises-violates = PP.str("raises-violates")
 str-percent = PP.str("%")
+str-tablecolon = PP.str("table:")
+str-rowcolon = PP.str("row:")
+str-extend = PP.str("extend")
+str-transform = PP.str("transform")
+str-using = PP.str("using")
+str-select = PP.str("select")
+str-sieve = PP.str("sieve")
+str-order = PP.str("order")
+str-extract = PP.str("extract")
+str-load-table = PP.str("load-table:")
+str-src = PP.str("source:")
+str-sanitize = PP.str("sanitize")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -467,6 +481,10 @@ sharing:
   end
 end
 
+fun is-binder(expr):
+  is-s-let(expr) or is-s-fun(expr) or is-s-var(expr) or is-s-rec(expr)
+end
+
 data Expr:
   | s-module(
       l :: Loc,
@@ -558,7 +576,7 @@ data Expr:
   | s-type(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-type" end,
     method tosource(self):
-      params = PP.surround-separaate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+      params = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(_.tosource()))
       PP.group(PP.nest(INDENT,
           str-type + self.name.tosource() + params + str-spaceequal + break-one + self.ann.tosource()))
@@ -813,12 +831,7 @@ data Expr:
     method label(self): "s-tuple-get" end,
     method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
     end 
-  | s-tuple-let(l :: Loc, names :: List<Bind>, tup :: Expr) with:
-    method label(self): "s-tuple-let" end,
-    method tosource(self): PP.lbrace + PP.group(PP.separate(PP.semibreak, self.names.map(_.tosource()))) + PP.rbrace 
-                   + str-spaceequal + self.tup.tosource()
-    end
-   | s-obj(l :: Loc, fields :: List<Member>) with:
+  | s-obj(l :: Loc, fields :: List<Member>) with:
     method label(self): "s-obj" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace,
@@ -1031,6 +1044,129 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
+  | s-reactor(l :: Loc, fields :: List<Member>) with:
+    method label(self): "s-table-extend" end,
+    method tosource(self):
+      PP.surround-separate(INDENT, 1, PP.str("reactor: end"),
+        PP.str("reactor:"), PP.commabreak, PP.str("end"), self.fields.map(_.tosource()))
+    end
+  | s-table-extend(l :: Loc,
+      column-binds :: ColumnBinds,
+      extensions :: List<TableExtendField>) with:
+    method label(self): "s-table-extend" end,
+    method tosource(self):
+      maybe-using =
+        cases(List) self.column-binds.binds:
+          | empty => empty
+          | link(_, _) => link(str-using,
+              [list: PP.flow-map(PP.commabreak, _.tosource(),
+                  self.column-binds.binds) + str-colon])
+        end
+      tbl-src =
+        cases(List) maybe-using:
+          | empty => self.column-binds.table.tosource() + str-colon
+          | link(_,_) => self.column-binds.table.tosource()
+        end
+      header = PP.flow([list: str-extend, tbl-src] + maybe-using)
+      PP.surround(INDENT, 1,
+        header,
+        PP.flow-map(PP.hardline, _.tosource(), self.extensions),
+        str-end)
+    end
+    # s-table-update not yet implemented
+  | s-table-update(l :: Loc,
+      column-binds :: ColumnBinds,
+      updates :: List<Member>)
+  | s-table-select(l :: Loc,
+      columns :: List<Name>,
+      table   :: Expr) with:
+    method label(self): "s-table-select" end,
+    method tosource(self):
+      PP.flow([list: str-select,
+          PP.flow-map(PP.commabreak, _.tosource(), self.columns),
+          str-from,
+          self.table.tosource(),
+          str-end])
+    end
+  | s-table-order(l :: Loc,
+      table   :: Expr,
+      ordering :: ColumnSort) with:
+    method label(self): "s-table-order" end,
+    method tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-order, self.table.tosource() + str-colon]),
+        self.ordering.tosource(),
+        str-end)
+    end
+  | s-table-filter(l :: Loc,
+      column-binds :: ColumnBinds,
+      predicate :: Expr) with:
+    method label(self): "s-table-filter" end,
+    method tosource(self):
+      maybe-using =
+        cases(List) self.column-binds.binds:
+          | empty => empty
+          | link(_, _) => link(str-using,
+              [list: PP.flow-map(PP.commabreak, _.tosource(),
+                  self.column-binds.binds) + str-colon])
+        end
+      tbl-src =
+        cases(List) maybe-using:
+          | empty => self.column-binds.table.tosource() + str-colon
+          | link(_,_) => self.column-binds.table.tosource()
+        end
+      header = PP.flow([list: str-sieve, tbl-src] + maybe-using)
+      PP.surround(INDENT, 1, header,
+        self.predicate.tosource(),
+        str-end)
+    end
+  | s-table-extract(l :: Loc,
+      column :: Name,
+      table   :: Expr) with:
+    method label(self): "s-table-extract" end,
+    method tosource(self):
+      PP.flow([list: str-extract, self.column.tosource(),
+          str-from, self.table.tosource(), str-end])
+    end
+  | s-table(
+      l :: Loc,
+      headers :: List<FieldName>,
+      rows :: List<TableRow>)
+    with:
+    method label(self): "s-table" end,
+    method tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-tablecolon,
+            PP.flow-map(PP.commabreak, _.tosource(), self.headers)]),
+        PP.flow-map(PP.hardline, _.tosource(), self.rows),
+        str-end)
+    end
+  | s-load-table(l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>)
+    with:
+    method label(self): "s-load-table" end,
+    method tosource(self):
+      PP.surround(INDENT, 1,
+        PP.flow([list: str-load-table,
+            PP.flow-map(PP.commabreak, _.tosource(), self.headers)]),
+        PP.flow-map(PP.hardline, _.tosource(), self.spec),
+        str-end)
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data TableRow:
+  | s-table-row(
+      l :: Loc,
+      elems :: List<Expr>)
+    with:
+    method label(self): "s-table-row" end,
+    method tosource(self):
+      PP.flow([list: str-rowcolon,
+          PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1066,11 +1202,15 @@ data Bind:
       end
     end,
     method label(self): "s_bind" end
-  | s-tuple-bind(l :: Loc, fields :: List<Name>) with:
+  | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
-      PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
+      main-pat = PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
         self.fields.map(_.tosource()))
+      cases(Option) self.as-name:
+        | none => main-pat
+        | some(n) => PP.infix(INDENT, 1, str-as, main-pat, n.tosource())
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -1113,6 +1253,20 @@ sharing:
   end
 end
 
+data FieldName:
+  | s-field-name(l :: Loc, name :: String, ann :: Ann) with:
+    method label(self): "s-field-name" end,
+    method tosource(self):
+      if is-a-blank(self.ann): PP.str(self.name)
+      else: PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.ann.tosource())
+      end
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data ForBind:
   | s-for-bind(l :: Loc, bind :: Bind, value :: Expr) with:
     method label(self): "s-for-bind" end,
@@ -1122,6 +1276,94 @@ data ForBind:
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ColumnBinds:
+  | s-column-binds(l :: Loc, binds :: List<Bind>, table :: Expr)
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ColumnSortOrder:
+  | ASCENDING with:
+    method tosource(self):
+      PP.str("ascending")
+    end
+  | DESCENDING with:
+    method tosource(self):
+      PP.str("descending")
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data ColumnSort:
+  | s-column-sort(
+      l         :: Loc,
+      column    :: Name,
+      direction :: ColumnSortOrder) with:
+    method label(self): "s-column-sort" end,
+    method tosource(self):
+      PP.flow([list: self.column.tosource(), self.direction.tosource()])
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data TableExtendField:
+  | s-table-extend-field(l :: Loc, name :: String, value :: Expr, ann :: Ann) with:
+    method label(self): "s-table-extend-field" end,
+    method tosource(self):
+      name-part = PP.str(self.name)
+      maybe-ann =
+        if is-a-blank(self.ann):
+          PP.mt-doc
+        else:
+          str-coloncolon + self.ann.tosource()
+        end
+      PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.value.tosource())
+    end
+  | s-table-extend-reducer(l :: Loc, name :: String, reducer :: Expr, col :: Name, ann :: Ann) with:
+    method label(self): "s-table-extend-reducer" end,
+    method tosource(self):
+      name-part = PP.str(self.name)
+      maybe-ann =
+        if is-a-blank(self.ann):
+          PP.mt-doc
+        else:
+          str-coloncolon + self.ann.tosource()
+        end
+      col-part = self.col.tosource()
+      PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.reducer.tosource() + PP.str(" ") + str-of + col-part)
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
+  end
+end
+
+data LoadTableSpec:
+  | s-sanitize(l :: Loc, name :: Name, sanitizer :: Expr) with:
+    method label(self): "s-sanitize" end,
+    method tosource(self):
+      name-part = self.name.tosource()
+      PP.flow([list: str-sanitize, name-part, str-using, self.sanitizer.tosource()])
+    end
+  | s-table-src(l :: Loc, src :: Expr) with:
+    method label(self): "s-table-src" end,
+    method tosource(self):
+      PP.flow([list: str-src, self.src.tosource()])
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
 end
 
@@ -1286,6 +1528,9 @@ data CheckOp:
   | s-op-is(l :: Loc) with:
     method label(self): "s-op-is" end,
     method tosource(self): str-is end
+  | s-op-is-roughly(l :: Loc) with:
+    method label(self): "s-op-is-roughly" end,
+    method tosource(self): PP.str("is-roughly") end
   | s-op-is-op(l :: Loc, op :: String) with:
     method label(self): "s-op-is-op" end,
     method tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end
@@ -1426,11 +1671,24 @@ fun binding-ids(stmt) -> List<Name>:
       | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
     end
   end
+  fun bind-ids(b):
+    cases(Bind) b:
+      | s-bind(_,_,id,_) => [list: id]
+      | s-tuple-bind(_, fields, as-name) =>
+        extra = cases(Option) as-name:
+          | none => empty
+          | some(n) => [list: n.id]
+        end
+        tup-ids = for lists.foldr(acc from extra, f from fields):
+          bind-ids(f) + acc
+        end
+        tup-ids
+    end
+  end
   cases(Expr) stmt:
-    | s-let(_, b, _, _) => [list: b.id]
-    | s-tuple-let(_, names, _) => names.map(_.id)
-    | s-var(_, b, _) => [list: b.id]
-    | s-rec(_, b, _) => [list: b.id]
+    | s-let(_, b, _, _) => bind-ids(b)
+    | s-var(_, b, _) => bind-ids(b)
+    | s-rec(_, b, _) => bind-ids(b)
     | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
     | s-data(l, name, _, _, variants, _, _) =>
       s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
@@ -1451,7 +1709,7 @@ fun toplevel-ids(program :: Program) -> List<Name>:
     | else => raise("Non-program given to toplevel-ids")
   end
 end
-
+    
 default-map-visitor = {
   method option(self, opt):
     cases(Option) opt:
@@ -1548,8 +1806,8 @@ default-map-visitor = {
     s-bind(l, shadows, name.visit(self), ann.visit(self))
   end,
 
-  method s-tuple-bind(self, l, fields):
-    s-tuple-bind(l, fields.map(_.visit(self)))
+  method s-tuple-bind(self, l, fields, as-name):
+    s-tuple-bind(l, fields.map(_.visit(self)), self.option(as-name))
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -1668,7 +1926,7 @@ default-map-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(l, typ, bind.visit(self))
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     s-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
@@ -1735,9 +1993,6 @@ default-map-visitor = {
   method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     s-tuple-get(l, tup.visit(self), index, index-loc)
   end,
-  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
-    s-tuple-let(l, names.map(_.visit(self)), tup.visit(self))
-  end,
   method s-obj(self, l :: Loc, fields :: List<Member>):
     s-obj(l, fields.map(_.visit(self)))
   end,
@@ -1746,6 +2001,21 @@ default-map-visitor = {
   end,
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
+  method s-reactor(self, l :: Loc, fields :: List<Member>):
+    s-reactor(l, fields.map(_.visit(self)))
+  end,
+  method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+    s-table(l, headers.map(_.visit(self)), rows.map(_.visit(self)))
+  end,
+  method s-table-row(self, l :: Loc, elems :: List<Expr>):
+    s-table-row(l, elems.map(_.visit(self)))
+  end,
+  method s-load-table(self, l, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
+    s-load-table(l, headers.map(_.visit(self)), spec.map(_.visit(self)))
+  end,
+  method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+    s-field-name(l, name, ann.visit(self))
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
@@ -1883,6 +2153,9 @@ default-map-visitor = {
   method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(l, bind.visit(self), value.visit(self))
   end,
+  method s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    s-column-binds(l, binds.map(_.visit(self)), table.visit(self))
+  end,
   method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(l, member-type, bind.visit(self))
   end,
@@ -1903,6 +2176,40 @@ default-map-visitor = {
       with-members :: List<Member>
     ):
     s-singleton-variant(l, name, with-members.map(_.visit(self)))
+  end,
+  method s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    s-column-sort(l, column.visit(self), direction)
+  end,
+  method s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    s-table-extend(l, column-binds.visit(self), extensions.map(_.visit(self)))
+  end,
+  method s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    s-table-update(l, column-binds.visit(self), updates.map(_.visit(self)))
+  end,
+  method s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    s-table-filter(l, column-binds.visit(self), predicate.visit(self))
+  end,
+  method s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    s-table-select(l, columns.map(_.visit(self)), table.visit(self))
+  end,
+  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
+    s-table-order(l, table.visit(self), ordering)
+  end,
+  method s-table-extract(self, l, column :: Name, table :: Expr):
+    s-table-extract(l, column.visit(self), table.visit(self))
+  end,
+  method s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    s-table-extend-field(l, name, value.visit(self), ann.visit(self))
+  end,
+  method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
+    s-table-extend-reducer(l, name, reducer.visit(self),
+      col.visit(self), ann.visit(self))
+  end,
+  method s-sanitize(self, l, name :: Name, sanitizer :: Expr):
+    s-sanitize(l, name.visit(self), sanitizer.visit(self))
+  end,
+  method s-table-src(self, l, src :: Expr):
+    s-table-src(l, src.visit(self))
   end,
 
   method a-blank(self): a-blank end,
@@ -2033,8 +2340,8 @@ default-iter-visitor = {
     name.visit(self) and ann.visit(self)
   end,
 
-  method s-tuple-bind(self, l, fields):
-    lists.all(_.visit(self), fields)
+  method s-tuple-bind(self, l, fields, as-name):
+    lists.all(_.visit(self), fields) and self.option(as-name)
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -2150,7 +2457,7 @@ default-iter-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     bind.visit(self)
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     lists.all(_.visit(self), args) and body.visit(self)
   end,
 
@@ -2218,9 +2525,6 @@ default-iter-visitor = {
   method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     tup.visit(self)
   end,
-  method s-tuple-let(self, l :: Loc, names :: List<Bind>, tup :: Expr):
-    lists.all(_.visit(self), names) and tup.visit(self)
-  end,
   method s-obj(self, l :: Loc, fields :: List<Member>):
     lists.all(_.visit(self), fields)
   end,
@@ -2229,6 +2533,21 @@ default-iter-visitor = {
   end,
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and lists.all(_.visit(self), values)
+  end,
+  method s-reactor(self, l :: Loc, fields :: List<Member>):
+    lists.all(_.visit(self), fields)
+  end,
+  method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+    lists.all(_.visit(self), headers) and lists.all(_.visit(self), rows)
+  end,
+  method s-table-row(self, l :: Loc, elems :: List<Expr>):
+    lists.all(_.visit(self), elems)
+  end,
+  method s-load-table(self, l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
+    lists.all(_.visit(self), headers) and lists.all(_.visit(self), spec)
+  end,
+  method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+    true
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
@@ -2352,6 +2671,9 @@ default-iter-visitor = {
   method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     bind.visit(self) and value.visit(self)
   end,
+  method s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    binds.all(_.visit(self)) and table.visit(self)
+  end,
   method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     bind.visit(self)
   end,
@@ -2372,6 +2694,39 @@ default-iter-visitor = {
       with-members :: List<Member>
       ):
     lists.all(_.visit(self), with-members)
+  end,
+  method s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    column.visit(self)
+  end,
+  method s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    column-binds.visit(self) and extensions.all(_.visit(self))
+  end,
+  method s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    column-binds.visit(self) and updates.all(_.visit(self))
+  end,
+  method s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    column-binds.visit(self) and predicate.visit(self)
+  end,
+  method s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    columns.all(_.visit(self)) and table.visit(self)
+  end,
+  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
+    table.visit(self)
+  end,
+  method s-table-extract(self, l, column :: Name, table :: Expr):
+    column.visit(self) and table.visit(self)
+  end,
+  method s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    value.visit(self) and ann.visit(self)
+  end,
+  method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
+    reducer.visit(self) and col.visit(self) and ann.visit(self)
+  end,
+  method s-sanitize(self, l, name, sanitizer):
+    name.visit(self) and sanitizer.visit(self)
+  end,
+  method s-table-src(self, l, src):
+    src.visit(self)
   end,
   method a-blank(self):
     true
@@ -2504,8 +2859,8 @@ dummy-loc-visitor = {
     s-bind(dummy-loc, shadows, name.visit(self), ann.visit(self))
   end,
 
-  method s-tuple-bind(self, l, fields):
-    s-tuple-bind(dummy-loc, fields.map(_.visit(self)))
+  method s-tuple-bind(self, l, fields, as-name):
+    s-tuple-bind(dummy-loc, fields.map(_.visit(self)), self.option(as-name))
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -2624,7 +2979,7 @@ dummy-loc-visitor = {
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     s-cases-bind(dummy-loc, l, typ, bind.visit(self))
   end,
-  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<Bind>, body :: Expr):
+  method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     s-cases-branch(dummy-loc, dummy-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
 
@@ -2693,6 +3048,21 @@ dummy-loc-visitor = {
   end,
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(dummy-loc, mod, constructor.visit(self), values.map(_.visit(self)))
+  end,
+  method s-reactor(self, l :: Loc, fields):
+    s-reactor(dummy-loc, fields.map(_.visit(self)))
+  end,
+  method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+    s-table(dummy-loc, headers.map(_.visit(self)), rows.map(_.visit(self)))
+  end,
+  method s-table-row(self, l :: Loc, elems :: List<Expr>):
+    s-table-row(dummy-loc, elems.map(_.visit(self)))
+  end,
+  method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+    s-field-name(dummy-loc, name, ann.visit(self))
+  end,
+  method s-load-table(self, l, headers, spec :: List<LoadTableSpec>):
+    s-load-table(dummy-loc, headers.map(_.visit(self)), spec.map(_.visit(self)))
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
@@ -2830,6 +3200,9 @@ dummy-loc-visitor = {
   method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
     s-for-bind(dummy-loc, bind.visit(self), value.visit(self))
   end,
+  method s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+    s-column-binds(dummy-loc, binds.map(_.visit(self)), table.visit(self))
+  end,
   method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
     s-variant-member(dummy-loc, member-type, bind.visit(self))
   end,
@@ -2851,7 +3224,40 @@ dummy-loc-visitor = {
     ):
     s-singleton-variant(dummy-loc, name, with-members.map(_.visit(self)))
   end,
-
+  method s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+    s-column-sort(dummy-loc, column.visit(self), direction)
+  end,
+  method s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+    s-table-extend(dummy-loc, column-binds.visit(self), extensions.map(_.visit(self)))
+  end,
+  method s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+    s-table-update(dummy-loc, column-binds.visit(self), updates.map(_.visit(self)))
+  end,
+  method s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+    s-table-filter(dummy-loc, column-binds.visit(self), predicate.visit(self))
+  end,
+  method s-table-select(self, l, columns :: List<Name>, table :: Expr):
+    s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
+  end,
+  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
+    s-table-order(dummy-loc, table.visit(self), ordering)
+  end,
+  method s-table-extract(self, l, column :: Name, table :: Expr):
+    s-table-extract(dummy-loc, column.visit(self), table.visit(self))
+  end,
+  method s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+    s-table-extend-field(dummy-loc, name.visit(self), value.visit(self), ann.visit(self))
+  end,
+  method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
+    s-table-extend-reducer(dummy-loc, name.visit(self), reducer.visit(self),
+      col.visit(self), ann.visit(self))
+  end,
+  method s-sanitize(self, l, name :: Name, sanitizer :: Expr):
+    s-sanitize(dummy-loc, name.visit(self), sanitizer.visit(self))
+  end,
+  method s-table-src(self, l, src :: Expr):
+    s-table-src(dummy-loc, src.visit(self))
+  end,
   method a-blank(self): a-blank end,
   method a-any(self, l): a-any(l) end,
   method a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,

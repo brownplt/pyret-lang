@@ -21,26 +21,26 @@
     function makePyretPos(fileName, p) {
       var n = RUNTIME.makeNumber;
       return RUNTIME.getField(srcloc, "srcloc").app(
-          RUNTIME.makeString(fileName),
-          n(p.startRow),
-          n(p.startCol),
-          n(p.startChar),
-          n(p.endRow),
-          n(p.endCol),
-          n(p.endChar)
-        );
+        RUNTIME.makeString(fileName),
+        n(p.startRow),
+        n(p.startCol),
+        n(p.startChar),
+        n(p.endRow),
+        n(p.endCol),
+        n(p.endChar)
+      );
     }
     function combinePyretPos(fileName, p1, p2) {
       var n = RUNTIME.makeNumber;
       return RUNTIME.getField(srcloc, "srcloc").app(
-          RUNTIME.makeString(fileName),
-          n(p1.startRow),
-          n(p1.startCol),
-          n(p1.startChar),
-          n(p2.endRow),
-          n(p2.endCol),
-          n(p2.endChar)
-        );
+        RUNTIME.makeString(fileName),
+        n(p1.startRow),
+        n(p1.startCol),
+        n(p1.startChar),
+        n(p2.endRow),
+        n(p2.endCol),
+        n(p2.endChar)
+      );
     }
     function isSignedNumberAsStmt(stmt) {
       var node = stmt;
@@ -193,8 +193,8 @@
         // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
         'import-special': function(node) {
           return RUNTIME.getField(ast, 's-special-import')
-             .app(pos(node.pos), symbol(node.kids[0]),
-                  makeListComma(node.kids, 2, node.kids.length - 1, string))
+            .app(pos(node.pos), symbol(node.kids[0]),
+                 makeListComma(node.kids, 2, node.kids.length - 1, string))
         },
         'import-name': function(node) {
           // (import-name NAME)
@@ -536,31 +536,29 @@
             return tr(node.kids[1]);
           }
         },
-        'single-tuple-name': function(node) {
-          return name(node.kids[0]); 
+        
+        'binding': function(node) {
+          return tr(node.kids[0]);
         },
-
-        'bind-tuple': function(node) {
-          return name(node.kids[0]);
-        }, 
-
-        'tuple-bind-list': function(node) {
-          if (node.kids[node.kids.length - 1].name !== "single-tuple-name") {
-            return makeList(node.kids.slice(0, -1).map(tr));
-          } else {
-            return makeList(node.kids.map(tr));
-          }
-        },
-
+        
         'tuple-binding' : function(node) {
-          return tr(node.kids[1]);
+          var lastBinding = node.kids.length - 1;
+          var optAsBinding;
+          if (node.kids[lastBinding - 1].name === "AS") {
+            optAsBinding = RUNTIME.ffi.makeSome(tr(node.kids[lastBinding]));
+            lastBinding -= 2;
+          } else {
+            optAsBinding = RUNTIME.ffi.makeNone();
+          }
+          if (node.kids[lastBinding - 1].name === "SEMI") {
+            lastBinding--;
+          }
+          return RUNTIME.getField(ast, 's-tuple-bind')
+            .app(pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
         },
            
-        'binding': function(node) {
-          if (node.kids[0].name == "tuple-binding") {
-            return RUNTIME.getField(ast, 's-tuple-bind')
-              .app(pos(node.pos), tr(node.kids[0]));
-          } else if (node.kids.length === 1) {
+        'name-binding': function(node) {
+          if (node.kids.length === 1) {
             // (binding name)
             return RUNTIME.getField(ast, 's-bind')
               .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
@@ -671,6 +669,148 @@
             return makeListComma(node.kids);
           }
         },
+        'reactor-expr': function(node) {
+          // (REACTOR COLON fields END)
+          return RUNTIME.getField(ast, 's-reactor')
+            .app(pos(node.pos), tr(node.kids[2]));
+        },
+        'table-expr': function(node) {
+          // (TABLE table-headers table-rows end)
+          return RUNTIME.getField(ast, 's-table')
+            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
+        },
+        'load-table-expr': function(node) {
+          // (LOAD-TABLE COLON table-headers load-table-specs END)
+          return RUNTIME.getField(ast, 's-load-table')
+            .app(pos(node.pos), tr(node.kids[2]),
+                 ((node.kids[3].name === "END")
+                  ? makeList([]) : tr(node.kids[3])));
+        },
+        'table-headers': function(node) {
+          // [list-table-header* table-header]
+          return makeList(node.kids.map(tr));
+        },
+        'list-table-header': function(node) {
+          // (table-header COMMA)
+          return tr(node.kids[0]);
+        },
+        'table-header': function(node) {
+          // NAME [:: ann]
+          if (node.kids.length === 3) {
+            return RUNTIME.getField(ast, 's-field-name')
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]))
+          } else {
+            return RUNTIME.getField(ast, 's-field-name')
+              .app(pos(node.pos), symbol(node.kids[0]), RUNTIME.getField(ast, 'a-blank'))
+          }
+        },
+        'table-rows': function(node) {
+          // [table-row* table-row]
+          return makeList(node.kids.map(tr));
+        },
+        'table-row': function(node) {
+          // (ROW table-items)
+          return RUNTIME.getField(ast, 's-table-row')
+            .app(pos(node.pos), tr(node.kids[1]));
+        },
+        'table-items': function(node) {
+          // [list-table-item* binop-expr]
+          return makeList(node.kids.map(tr));
+        },
+        'list-table-item': function(node) {
+          // (binop-expr COMMA)
+          return tr(node.kids[0]);
+        },
+        'table-extend-fields': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "table-extend-field") {
+            return makeList(node.kids.slice(0, -1).map(tr));
+          } else {
+            // [list-table-extend-field* table-extend-field COMMA]
+            return makeList(node.kids.map(tr));
+          }
+        },
+        'list-table-extend-field': function(node) {
+          // (table-extend-field COMMA)
+          return tr(node.kids[0]);
+        },
+        'table-extend-field': function(node) {
+          if (node.kids.length === 3) {
+            // (key COLON binop-expr)
+            return RUNTIME.getField(ast, 's-table-extend-field')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+                   RUNTIME.getField(ast, 'a-blank'));
+          } else if ((node.kids.length === 5)
+                     && (node.kids[1].name === "COLONCOLON")){
+            // (key COLONCOLON ann COLON binop-expr)
+            return RUNTIME.getField(ast, 's-table-extend-field')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+                   tr(node.kids[2]));
+          } else if (node.kids.length === 5) {
+            // (key COLON expr OF NAME)
+            return RUNTIME.getField(ast, 's-table-extend-reducer')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+                   name(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
+          } else if (node.kids.length === 7) {
+            // (key COLONCOLON ann COLON expr OF NAME)
+            return RUNTIME.getField(ast, 's-table-extend-reducer')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+                   name(node.kids[6]), tr(node.kids[2]));
+          }
+        },
+        'load-table-specs': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "load-table-spec") {
+            return makeList(node.kids.slice(0, -1).map(tr));
+          } else {
+            // [list-load-table-spec* load-table-spec COMMA]
+            return makeList(node.kids.map(tr));
+          }
+        },
+        'load-table-spec': function(node) {
+          if (node.kids[0].name === "SANITIZE") {
+            // (SANITIZE NAME USING expr)
+            return RUNTIME.getField(ast, 's-sanitize')
+              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+          } else {
+            // (SOURCECOLON expr)
+            return RUNTIME.getField(ast, 's-table-src')
+              .app(pos(node.pos), tr(node.kids[1]));
+          }
+        },
+        'sql-expr': function(node) {
+          var inspect = tr(node.kids[1]);
+          var where = node.kids.length == 5
+                ? RUNTIME.ffi.makeNone()
+                : RUNTIME.ffi.makeSome(tr(node.kids[3]));
+          var project = tr(node.kids[node.kids.length - 2]);
+          return RUNTIME.getField(ast, 's-sql')
+            .app( pos(node.pos), 
+                  inspect, // from
+                  where, // where
+                  project); // project
+        },
+        'do-expr': function(node) {
+          // (do FOR iter binds ... return COLON body END)
+          return RUNTIME.getField(ast, 's-do')
+            .app(pos(node.pos), 
+                 tr(node.kids[1]),                         // iterator
+                 makeList(node.kids.slice(3, -4).map(tr)), // bindings
+                 tr(node.kids[node.kids.length - 3]),      // return-ann
+                 tr(node.kids[node.kids.length - 1]));     // body
+        },
+        'for-do': function(node) {
+          return RUNTIME.getField(ast, 's-for-do')
+            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
+        },
+        'for-then': function(node) {
+          // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
+          return RUNTIME.getField(ast, 's-for')
+            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
+                 tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
+        },
+        'for-bind-elt': function(node) {
+          // (for-bind-elt b COMMA)
+          return tr(node.kids[0]);
+        },
         'obj-fields': function(node) {
           if (node.kids[node.kids.length - 1].name !== "obj-field") {
             // (obj-fields objField (COMMA obj-field)* lastField COMMA)
@@ -713,7 +853,7 @@
           }
         },
         'app-args': function(node) {
-            // (app-args LPAREN opt-comma-binops RPAREN)
+          // (app-args LPAREN opt-comma-binops RPAREN)
           return tr(node.kids[1]);
         },
         'opt-comma-binops': function(node) {
@@ -791,11 +931,6 @@
           return RUNTIME.getField(ast, 's-tuple')
               .app(pos(node.pos), tr(node.kids[1]))
         },
-        'tuple-bind-expr': function(node) {
-          return RUNTIME.getField(ast, 's-tuple-let')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[4]))
-        },
-        //changes here
         'tuple-get': function(node) {
           return RUNTIME.getField(ast, 's-tuple-get')
               .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
@@ -1018,6 +1153,77 @@
                    RUNTIME.pyretFalse);
           }
         },
+        //TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON obj-fields end
+        //           0    1      3       4                -4    -3         -2  -1 
+        'table-extend': function(node) {
+          var columns = new Array();
+          for (var i = 3; i < node.kids.length - 3; i+=2)
+            columns.push(tr(node.kids[i]));
+          var table = tr(node.kids[1]);
+          var extensions = tr(node.kids[node.kids.length - 2]);
+          return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos),
+                                                             RUNTIME.getField(ast, 's-column-binds').app(
+                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                               makeList(columns),
+                                                               table),
+                                                             extensions);
+        },
+        'table-update': function(node) {
+          var columns = new Array();
+          for (var i = 3; i < node.kids.length - 3; i+=2)
+            columns.push(tr(node.kids[i]));
+          var table = tr(node.kids[1]);
+          var extensions = tr(node.kids[node.kids.length - 2]);
+          return RUNTIME.getField(ast, 's-table-update').app(pos(node.pos),
+                                                             RUNTIME.getField(ast, 's-column-binds').app(
+                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                               makeList(columns),
+                                                               table),
+                                                             extensions);
+        },
+        //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
+        'table-select': function(node) {
+          var columns = new Array();
+          for (var i = 1; i < node.kids.length - 3; i+=2)
+            columns.push(name(node.kids[i]));
+          var table = tr(node.kids[node.kids.length - 2]);
+          return RUNTIME.getField(ast, 's-table-select').app(
+            pos(node.pos), makeList(columns), table);
+        },
+        'column-order': function(node) {
+          console.log(node);
+          var column = name(node.kids[0]);
+          var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ASCENDING')
+                : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
+                : undefined;
+          console.log(direction);
+          return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
+                                                            column,
+                                                            direction);
+        },
+        'table-order': function(node) {
+          // TABLE-ORDER NAME COLON column-orderings end
+          return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos),
+                                                            tr(node.kids[1]),
+                                                            tr(node.kids[3]));
+        },
+        'table-filter': function(node) {
+          var columns = new Array();
+          for (var i = 3; i < node.kids.length - 3; i+=2)
+            columns.push(tr(node.kids[i]));
+          var table = tr(node.kids[1]);
+          var predicate = tr(node.kids[node.kids.length - 2]);
+          return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
+                                                             RUNTIME.getField(ast, 's-column-binds').app(
+                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                               makeList(columns),
+                                                               table),
+                                                             predicate);
+        },
+        'table-extract': function(node) {
+          return RUNTIME.getField(ast, 's-table-extract').app(pos(node.pos),
+                                                              name(node.kids[1]), tr(node.kids[3]));
+        },
         'arrow-ann': function(node) {
           if (node.kids.length === 4) {
             // (arrow-ann LPAREN THINARROW result RPAREN)
@@ -1084,6 +1290,7 @@
       "or":  RUNTIME.makeString("opor"),
 
       "is":                function(l){return RUNTIME.getField(ast, "s-op-is").app(l);},
+      "is-roughly":        function(l){return RUNTIME.getField(ast, "s-op-is-roughly").app(l);},
       "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op==");},
       "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
       "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
@@ -1145,7 +1352,7 @@
         throw e;
       }
     }
-    
+
     function parsePyret(data, fileName) {
       RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
       RUNTIME.checkString(data);

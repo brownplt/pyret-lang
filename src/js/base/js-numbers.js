@@ -376,7 +376,7 @@ define(function() {
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
-     onXSpecialCase: function(x, y, errbacks) { return negate(y); },
+     onXSpecialCase: function(x, y, errbacks) { return negate(y, errbacks); },
      isYSpecialCase: function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
      onYSpecialCase: function(x, y, errbacks) { return x; }
@@ -399,13 +399,13 @@ define(function() {
     function(x, y, errbacks) {
       var prod = x * y;
       if (isOverflow(prod)) {
-        return (makeBignum(x)).multiply(makeBignum(y));
+        return (makeBignum(x)).multiply(makeBignum(y), errbacks);
       } else {
         return prod;
       }
     },
     function(x, y, errbacks) {
-      return x.multiply(y);
+      return x.multiply(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return (isInteger(x) &&
@@ -416,7 +416,7 @@ define(function() {
        if (_integerIsOne(x))
          return y;
        if (_integerIsNegativeOne(x))
-         return negate(y);
+         return negate(y, errbacks);
      },
      isYSpecialCase: function(y, errbacks) {
        return (isInteger(y) &&
@@ -427,7 +427,7 @@ define(function() {
        if (_integerIsOne(y))
          return x;
        if (_integerIsNegativeOne(y))
-         return negate(x);
+         return negate(x, errbacks);
      }
     });
 
@@ -639,7 +639,7 @@ define(function() {
         if (eqv(y, 0, errbacks)) {
           return 1;
         } else { // i.e., y is negative
-          return expt(divide(1, x, errbacks), negate(y), errbacks);
+          return expt(divide(1, x, errbacks), negate(y, errbacks), errbacks);
         }
       }
     });
@@ -729,7 +729,7 @@ define(function() {
         return Roughnum.makeInstance(result, errbacks);
       }
     }
-    return n.sqrt();
+    return n.sqrt(errbacks);
   };
 
   // abs: pyretnum -> pyretnum
@@ -781,7 +781,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n), errbacks);
     }
-    return n.log();
+    return n.log(errbacks);
   };
 
   // tan: pyretnum -> pyretnum
@@ -790,7 +790,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.tan(n), errbacks);
     }
-    return n.tan();
+    return n.tan(errbacks);
   };
 
   // atan: pyretnum -> pyretnum
@@ -799,7 +799,34 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.atan(n), errbacks);
     }
-    return n.atan();
+    return n.atan(errbacks);
+  };
+
+  var atan2 = function(y, x, errbacks) {
+    if (eqv(x, 0, errbacks)) { // x = 0
+      if (eqv(y, 0, errbacks)) { // x = 0, y = 0
+        //return Roughnum.makeInstance(Infinity, errbacks);
+        errbacks.throwDomainError('atan2: out of domain argument (0, 0)');
+      } else if (greaterThan(y, 0, errbacks)) { // x = 0, y > 0
+        return Roughnum.makeInstance(Math.PI/2, errbacks);
+      } else { // x = 0, y < 0
+        return Roughnum.makeInstance(3*Math.PI/2, errbacks);
+      }
+    } else if (greaterThan(x, 0, errbacks)) { // x > 0
+      if (greaterThanOrEqual(y, 0, errbacks)) { // x > 0, y >= 0, 1st qdt
+        // atan(y/x) is already in the right qdt
+        return atan(divide(y, x, errbacks), errbacks);
+      } else { // x > 0, y < 0, 4th qdt
+        // atan(y/x) is the 4th qdt and negative, so make it positive by adding 2pi
+        return add(atan(divide(y, x, errbacks), errbacks), 2*Math.PI, errbacks);
+      }
+    } else { // x < 0
+      // either x < 0, y >= 0 (2nd qdt), in which case
+      //        atan(y/x) must be reflected from 4th to 2nd qdt, by adding pi
+      //     or x < 0, y < 0  (3rd qdt), in which case
+      //        atan(y/x) must be reflected from 1st to 3rd qdt, again by adding pi
+      return add(atan(divide(y, x, errbacks), errbacks), Math.PI, errbacks);
+    }
   };
 
   // cos: pyretnum -> pyretnum
@@ -808,7 +835,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.cos(n), errbacks);
     }
-    return n.cos();
+    return n.cos(errbacks);
   };
 
   // sin: pyretnum -> pyretnum
@@ -817,7 +844,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.sin(n), errbacks);
     }
-    return n.sin();
+    return n.sin(errbacks);
   };
 
   // acos: pyretnum -> pyretnum
@@ -829,7 +856,7 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.acos(n), errbacks);
     }
-    return n.acos();
+    return n.acos(errbacks);
   };
 
   // asin: pyretnum -> pyretnum
@@ -841,12 +868,12 @@ define(function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.asin(n), errbacks);
     }
-    return n.asin();
+    return n.asin(errbacks);
   };
 
   // sqr: pyretnum -> pyretnum
   var sqr = function(x, errbacks) {
-    return multiply(x, x);
+    return multiply(x, x, errbacks);
   };
 
   // integerSqrt: pyretnum -> pyretnum
@@ -947,11 +974,11 @@ define(function() {
 
   // negate: pyretnum -> pyretnum
   // multiplies a number times -1.
-  var negate = function(n) {
+  var negate = function(n, errbacks) {
     if (typeof(n) === 'number') {
       return -n;
     }
-    return n.negate();
+    return n.negate(errbacks);
   };
 
   // halve: pyretnum -> pyretnum
@@ -1326,8 +1353,8 @@ define(function() {
     if (d === undefined) { d = 1; }
 
     if (_integerLessThan(d, 0)) {
-      n = negate(n);
-      d = negate(d);
+      n = negate(n, errbacks);
+      d = negate(d, errbacks);
     }
 
     var divisor = _integerGcd(abs(n, errbacks), abs(d, errbacks));
@@ -1409,7 +1436,7 @@ define(function() {
   };
 
   Rational.prototype.negate = function(errbacks) {
-    return Rational.makeInstance(negate(this.n), this.d, errbacks)
+    return Rational.makeInstance(negate(this.n, errbacks), this.d, errbacks)
   };
 
   Rational.prototype.multiply = function(other, errbacks) {
@@ -1899,7 +1926,13 @@ define(function() {
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
-  var roughnumRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+
+
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+
+  var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
+
+
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
@@ -1969,7 +2002,12 @@ define(function() {
       return Rational.makeInstance(finalNum, finalDen, errbacks);
     }
 
-    aMatch = x.match(roughnumRegexp);
+    aMatch = x.match(roughnumRatRegexp);
+    if (aMatch) {
+      return Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])).toRoughnum();
+    }
+
+    aMatch = x.match(roughnumDecRegexp);
     if (aMatch) {
       return Roughnum.makeInstance(Number(aMatch[1]), errbacks);
     }
@@ -3742,7 +3780,7 @@ define(function() {
   // If this happens, the third argument returned becomes '...' to indicate
   // that the search was prematurely cut off.
   var toRepeatingDecimal = (function() {
-    var getResidue = function(r, d, limit) {
+    var getResidue = function(r, d, limit, errbacks) {
       var digits = [];
       var seenRemainders = {};
       seenRemainders[r] = true;
@@ -3752,10 +3790,10 @@ define(function() {
         }
 
         var nextDigit = quotient(
-          multiply(r, 10), d);
+          multiply(r, 10, errbacks), d, errbacks);
         var nextRemainder = remainder(
-          multiply(r, 10),
-          d);
+          multiply(r, 10, errbacks),
+          d, errbacks);
         digits.push(nextDigit.toString());
         if (seenRemainders[nextRemainder]) {
           r = nextRemainder;
@@ -3769,10 +3807,10 @@ define(function() {
       var firstRepeatingRemainder = r;
       var repeatingDigits = [];
       while (true) {
-        var nextDigit = quotient(multiply(r, 10), d);
+        var nextDigit = quotient(multiply(r, 10, errbacks), d, errbacks);
         var nextRemainder = remainder(
-          multiply(r, 10),
-          d);
+          multiply(r, 10, errbacks),
+          d, errbacks);
         repeatingDigits.push(nextDigit.toString());
         if (equals(nextRemainder, firstRepeatingRemainder)) {
           break;
@@ -3819,10 +3857,47 @@ define(function() {
       var sign = (lessThan(n, 0) ? "-" : "");
       n = abs(n, errbacks);
       var beforeDecimalPoint = sign + quotient(n, d, errbacks);
-      var afterDecimals = getResidue(remainder(n, d, errbacks), d, limit);
+      var afterDecimals = getResidue(remainder(n, d, errbacks), d, limit, errbacks);
       return [beforeDecimalPoint].concat(afterDecimals);
     };
   })();
+  //////////////////////////////////////////////////////////////////////
+  // toStringDigits: jsnum jsnum -> string
+  // Converts the number to a string, providing digits precision in the
+  // output.  If digits is positive, provides that many digits to the right
+  // of the decimal point (including adding zeroes beyond the actual precision of
+  // the number).  If digits is negative, rounds that many positions to the
+  // left of the decimal, replacing them with zeroes.
+  //
+  // Note that num-to-string-digits is only for formatting, and its
+  // output's apparent precision may be unrelated to the actual precision of the
+  // input number, which may have been an approximation, or unrepresentable in
+  // decimal.
+  function toStringDigits(n, digits, errbacks) {
+    if (!isInteger(digits)) {
+      errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
+    }
+    var tenDigits = expt(10, digits, errbacks);
+    var d = toFixnum(digits);
+    n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
+    if (isInteger(n)) {
+      var ans = n.toString();
+      if (d >= 1) {
+        ans += '.';
+        for (var i = 0; i < d; i++) {
+          ans += '0';
+        }
+      }
+      return ans;
+    }
+    // n is not an integer implies that d >= 1
+    var decimal = toRepeatingDecimal(n.numerator(), n.denominator(), undefined, errbacks);
+    var ans = decimal[1].toString();
+    while (ans.length < d) {
+      ans += decimal[2];
+    }
+    return decimal[0] + '.' + ans.substring(0, d);
+  }
   //////////////////////////////////////////////////////////////////////
 
   // External interface of js-numbers:
@@ -3880,6 +3955,7 @@ define(function() {
   Numbers['log'] = log;
   Numbers['tan'] = tan;
   Numbers['atan'] = atan;
+  Numbers['atan2'] = atan2;
   Numbers['cos'] = cos;
   Numbers['sin'] = sin;
   Numbers['tan'] = tan;
@@ -3890,6 +3966,7 @@ define(function() {
   Numbers['lcm'] = lcm;
 
   Numbers['toRepeatingDecimal'] = toRepeatingDecimal;
+  Numbers['toStringDigits'] = toStringDigits;
 
   // The following exposes the class representations for easier
   // integration with other projects.
