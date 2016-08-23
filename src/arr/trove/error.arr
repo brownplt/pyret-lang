@@ -360,26 +360,26 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup expression", self.loc),
           [ED.para:
-            ED.text("The left side was a constuctor, not an object.")]]
+            ED.text("The left side was a constructor, not an object.")]]
       else:
         [ED.error:
           ed-intro("field lookup expression", self.loc, 0, true),
           ED.cmcode(self.loc),
-          [ED.para: ED.text("The left side was a constuctor, not an object.")]]
+          [ED.para: ED.text("The left side was a constructor, not an object.")]]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro("field lookup expression", self.loc),
         [ED.para:
-          ED.text("The left side was a constuctor, not an object.")]]
+          ED.text("The left side was a constructor, not an object.")]]
     end
   | lookup-non-tuple(loc, non-tup, index :: Number) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          ed-simple-intro("tuple lookup expression"),
-          [ED.para: ED.text("The left side did not evaluate to a tuple:")],
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: ED.text("The left side was not a tuple value:")],
           ED.embed(self.non-tup)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
@@ -390,28 +390,26 @@ data RuntimeError:
               [ED.para:
                 ED.text("The "),
                 ED.highlight(ED.text("left side"), [ED.locs: ast.tup.l], 0),
-                ED.text(" did not evaluate to a tuple:")],
+                ED.text(" was not a tuple value:")],
               ED.embed(self.non-tup)]
           | none      =>
             [ED.error:
               ed-intro("tuple lookup expression", self.loc, 0, true),
               ED.cmcode(self.loc),
-              [ED.para: ED.text("The left side did not evaluate to a tuple:")],
+              [ED.para: ED.text("The left side was not a tuple value:")],
               ED.embed(self.non-tup)]
         end
       else:
         [ED.error:
-          [ED.para:
-            ED.text("The field lookup expression in "),
-            ED.loc(self.loc),
-            ED.text("The left side did not evaluate to a tuple:")],
+          ed-simple-intro("tuple lookup expression", self.loc),
+          [ED.para: ED.text("The left side was not a tuple value:")],
           ED.embed(self.non-tup)]
       end
     end,
     method render-reason(self):
       [ED.error:
-        ed-simple-intro("tuple lookup expression"),
-        [ED.para: ED.text("The left side did not evaluate to a tuple:")],
+        ed-simple-intro("tuple lookup expression", self.loc),
+        [ED.para: ED.text("The left side was not a tuple value:")],
         ED.embed(self.non-tup)]
     end
   | lookup-large-index(loc, tup, len, index :: Number) with:
