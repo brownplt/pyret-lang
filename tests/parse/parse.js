@@ -725,6 +725,13 @@ R(["../../../" + build + "/js/pyret-tokenizer", "../../../" + build + "/js/pyret
       expect(parse("reactor: end")).toBe(false);
       expect(parse("reactor end")).toBe(false);
     });
+
+    it("should parse spy", function() {
+      expect(parse("spy: x end")).not.toBe(false);
+      expect(parse("spy: 5 end")).toBe(false);
+      expect(parse("spy \"five\": x end")).not.toBe(false);
+      expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
+    });
   });
 
   
