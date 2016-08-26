@@ -1219,7 +1219,7 @@ data CompileError:
           ED.text("The type constraint "),
           ED.highlight(ED.text(tostring(self.type-1)), [list: self.type-1.l], 0),
           ED.text(" was incompatible with the type constraint "),
-          ED.highlight(ED.text(tostring(self.type-2)), [list: self.type2.l], 1)]]
+          ED.highlight(ED.text(tostring(self.type-2)), [list: self.type-2.l], 1)]]
     end,
     method render-reason(self):
       [ED.error:
