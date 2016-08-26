@@ -54,6 +54,7 @@ fun display-to-string(e :: ED.ErrorDisplay, embed-display, stack):
     | bulleted-sequence(contents) =>
       contents.map(lam(elt): "* " + help(elt) end).join-str("\n")
     | optional(_) => ""
-    | highlight(contents, locs, _) => help(ED.loc-display(contents, "", locs.first))
+    | cmcode(loc) => tostring(loc)
+    | highlight(contents, locs, _) => help(ED.loc-display(locs.first, "", contents))
   end
 end

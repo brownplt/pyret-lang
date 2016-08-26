@@ -26,13 +26,13 @@ t-var = T.t-var(_, A.dummy-loc)
 t-array = T.t-array(_, A.dummy-loc)
 t-string = T.t-string(A.dummy-loc)
 t-option = T.t-option(_, A.dummy-loc)
-t-data = T.t-data(_, _, _, A.dummy-loc)
-t-variant = T.t-variant(_, _, _)
-t-singleton-variant = T.t-variant(_, _)
+t-data = T.t-data(_, _, _, _, A.dummy-loc)
+t-variant = T.t-variant(_, _, _, A.dummy-loc)
+t-singleton-variant = T.t-singleton-variant(_, _, A.dummy-loc)
 t-app = T.t-app(_, _, A.dummy-loc)
 t-name = T.t-name(_, _, A.dummy-loc)
 
-
+is-t-app = T.is-t-app
 
 type URI = String
 type StringDict = SD.StringDict
@@ -107,7 +107,7 @@ end
 
 rag = raw-array-get
 
-fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
+fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>):
   tfr = type-from-raw(uri, _, tyvar-env)
   # TODO(joe): Make this do something intelligent when location information
   # is available
@@ -116,7 +116,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
   ask:
     | t == "any" then: T.t-top(l)
     | t == "record" then:
-      T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end, l)
+      T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l)
     | t == "tuple" then:
       T.t-tuple(for map(e from typ.elts): tfr(e) end, l)
     | t == "name" then:
@@ -154,13 +154,12 @@ fun tvariant-from-raw(uri, tvariant, env):
   t = tvariant.tag
   ask:
     | t == "variant" then:
-      members = for map(tm from tvariant.vmembers):
-        # TODO(joe): Exporting ref fields?
-        T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
-      end
-      T.t-variant(tvariant.name, members, empty)
+      members = tvariant.vmembers.foldl(lam(tm, members):
+        members.set(tm.name, type-from-raw(uri, tm.typ, env))
+      end, [string-dict: ])
+      t-variant(tvariant.name, members, [string-dict: ])
     | t == "singleton-variant" then:
-      T.t-singleton-variant(tvariant.name, empty)
+      t-singleton-variant(tvariant.name, [string-dict: ])
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
@@ -180,20 +179,12 @@ fun datatype-from-raw(uri, datatyp):
       T.t-var(pdict.get-value(k), l)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
-    members = for map(tm from datatyp.methods):
-      # TODO(joe): Exporting ref fields?
-      T.t-member(tm.name, type-from-raw(uri, tm.value, pdict))
-    end
-    temp-data = t-data(datatyp.name, variants, members)
-    if is-empty(params):
-      temp-data
-    else:
-      t-forall(params, temp-data)
-    end
+    members = datatyp.methods.foldl(lam(tm, members):
+      members.set(tm.name, type-from-raw(uri, tm.value, pdict))
+    end, [string-dict: ])
+    t-data(datatyp.name, params, variants, members)
   end
 end
-
-
 
 fun provides-from-raw-provides(uri, raw):
   values = raw.values
@@ -1219,6 +1210,29 @@ data CompileError:
           ED.loc(self.a + self.b),
           ED.text(". Either remove one, or separate them.")]]
     end
+  | type-mismatch(type-1 :: T.Type, type-2 :: T.Type) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Type checking failed because of a type inconsistency.")],
+        [ED.para:
+          ED.text("The type constraint "),
+          ED.highlight(ED.text(tostring(self.type-1)), [list: self.type-1.l], 0),
+          ED.text(" was incompatible with the type constraint "),
+          ED.highlight(ED.text(tostring(self.type-2)), [list: self.type2.l], 1)]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Type checking failed because of a type inconsistency.")],
+        [ED.para:
+          ED.text("The type constraint "),
+          ED.code(ED.text(tostring(self.type-1))),
+          ED.text(" at "), draw-and-highlight(self.type-1.l),
+          ED.text(" was incompatible with the type constraint "),
+          ED.code(ED.text(tostring(self.type-2))),
+          ED.text(" at "), draw-and-highlight(self.type-2.l)]]
+    end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -1246,7 +1260,7 @@ data CompileError:
         [ED.para:
           ED.cmcode(self.e.l)],
         [ED.para:
-          ED.text("becuase it found a "),
+          ED.text("because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
           ED.text(" but it "),
           ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
@@ -1264,39 +1278,22 @@ data CompileError:
           ED.text(" but it was expected to be of type "), ED.code(ED.text(self.expected-name)),
           ED.text(" because of "), draw-and-highlight(self.expected-loc)]]
     end
-  | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
+  | bad-type-instantiation(app-type :: T.Type%(is-t-app), expected-length :: Any) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the type instantiation")],
-       [ED.para:
-          ED.code([ED.sequence:
-              ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], 0),
-              ED.text("<"),
-              ED.h-sequence(self.ann.args.map(lam(ann):
-                  ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], 1) end), ","),
-              ED.text(">")])],
-        [ED.para:
-          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), 1),
-          ED.text(", but the type accepts "),
-          ED.embed(self.expected.length()),
-          ED.text(" parameters.")]]
+          ED.text("The type checker rejected your program because the type application "),
+          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
+          ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the type instantiation")],
-       [ED.para:
-          ED.code(ED.v-sequence(self.ann.tosource().pretty(80).map(ED.text)))],
-        [ED.para:
-          ED.text(" at "),
-          ED.loc(self.ann.l),
-          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.ed-params(self.given.length()),
-          ED.text(", but the type accepts "),
-          ED.embed(self.expected.length()),
-          ED.text(" parameters.")]]
+          ED.text("The type checker rejected your program because the type application "),
+          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
+          ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end
   | incorrect-number-of-args(app-expr, fun-typ) with:
     method render-fancy-reason(self):
@@ -1488,7 +1485,7 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
-  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.Type, cases-loc :: A.Loc) with:
+  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -2082,25 +2079,23 @@ runtime-provides = provides("builtin://global",
     "brander", t-top,
     "raise", t-arrow([list: t-top], t-bot),
     "nothing", t-nothing,
-    "builtins", t-record([list:
-        t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
-        t-member("trace-value", t-arrow([list: t-top, t-top], t-bot)),
-        t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
-            t-member("run-checks", t-bot),
-            t-member("check-is", t-bot),
-            t-member("check-is-refinement", t-bot),
-            t-member("check-is-not", t-bot),
-            t-member("check-is-not-refinement", t-bot),
-            t-member("check-is-refinement", t-bot),
-            t-member("check-is-not-refinement", t-bot),
-            t-member("check-satisfies", t-bot),
-            t-member("check-satisfies-not", t-bot),
-            t-member("check-raises-str", t-bot),
-            t-member("check-raises-not", t-bot),
-            t-member("check-raises-other-str", t-bot),
-            t-member("check-raises-satisfies", t-bot),
-            t-member("check-raises-violates" , t-bot)
-        ])))
+    "builtins", t-record([string-dict:
+        "has-field", t-arrow([list: t-record([string-dict: ])], t-boolean),
+        "trace-value", t-arrow([list: t-top, t-top], t-bot),
+        "current-checker", t-arrow([list: ], t-record([string-dict: # Cheat on these types for now.
+            "run-checks", t-bot,
+            "check-is", t-bot,
+            "check-is-not", t-bot,
+            "check-is-not-refinement", t-bot,
+            "check-is-refinement", t-bot,
+            "check-satisfies", t-bot,
+            "check-satisfies-not", t-bot,
+            "check-raises-str", t-bot,
+            "check-raises-not", t-bot,
+            "check-raises-other-str", t-bot,
+            "check-raises-satisfies", t-bot,
+            "check-raises-violates" , t-bot
+        ]))
     ]),
     "not", t-arrow([list: t-boolean], t-boolean),
     "is-nothing", t-pred,
@@ -2199,14 +2194,14 @@ runtime-provides = provides("builtin://global",
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
     "raw-array", t-record(
-      [list:
-        t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),
-        t-member("make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end)),
-        t-member("make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end)),
-        t-member("make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end)),
-        t-member("make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end)),
-        t-member("make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end)),
-        t-member("make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end))
+      [string-dict:
+        "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),
+        "make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end),
+        "make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end),
+        "make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end),
+        "make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end),
+        "make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end),
+        "make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end)
       ]),
     "ref-get", t-top,
     "ref-set", t-top,

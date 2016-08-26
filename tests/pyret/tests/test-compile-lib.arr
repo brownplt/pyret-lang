@@ -445,7 +445,7 @@ check:
     [string-dict:
       "builtin(global)", CM.provides("builtin://global", mt, mt,
         [SD.string-dict:
-          "Number", T.t-data("Number", empty, empty, A.dummy-loc)])])
+          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)])])
 
   canon = AU.canonicalize-provides(ps, ce)
 

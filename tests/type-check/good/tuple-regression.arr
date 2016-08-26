@@ -90,7 +90,7 @@ check "tuple decunstruction":
   f(elts) is 18 
 
   fun g(shadow elts) block:
-    {sum; prod} = for fold({sum;prod;} from {0;1}, elt from elts):
+    {sum; prod} = for fold({sum :: Number;prod :: Number;} from {0;1}, elt from elts):
       { sum + elt; prod * elt }
     end
     [list: sum, prod]
@@ -99,25 +99,26 @@ check "tuple decunstruction":
   lst = [list: 513, 642, 51, 64, 14]
   g(lst) is [list: 1284, 15049794816]
 
-  fun h({k;v;}, {a;b;c;}) block:
+  fun h({k :: Number;v :: Number;}, {a :: Number;b :: Number;c :: Number;}) block:
     k + v + a + b + c
   end
 
   h({10; 12}, {1; 4; 5}) is 32
-  fun cases-test(tup):
-    answer = cases(tuples) tup:
-      | tuple1(w, {k;v;}) => k + v
-      | tuple2(two) => two
-    end
-    answer
-  end
 
-  cases-test(tuple1("hi", {"hello"; "there"})) is "hellothere"
+  #fun cases-test(tup):
+  #  answer = cases(tuples) tup:
+  #    | tuple1(w, {k;v;}) => k + v
+  #    | tuple2(two) => two
+  #  end
+  #  answer
+  #end
+
+  #cases-test(tuple1("hi", {"hello"; "there"})) is "hellothere"
 
 
-  fun make-point(x, y):
+  fun make-point(x :: Number, y :: Number):
     {
-      method dist(self, {shadow x; shadow y;}):
+      method dist(self, {shadow x :: Number; shadow y :: Number;}):
         ysquared = num-expt(y - self.pt.{1}, 2)
         xsquared = num-expt(x - self.pt.{0}, 2)
         num-sqrt(ysquared + xsquared)
