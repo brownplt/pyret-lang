@@ -253,11 +253,11 @@ check "linear regression":
   lists.lin-reg-2V([list: 0], [list: ]) raises "lists must have equal lengths"
   lists.lin-reg-2V([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
 
-  f = lin-reg-2V([list: 0, 1, 2], [list: -5,- 3,- 1])
+  f = lin-reg-2V([list: 0, 1, 2], [list: -5, -3, -1])
   f(0) is -5
   f(2.5) is 0
 
-  g = lin-reg-2V([list: -3, 1, 2, 4], [list: ~4, ~1.5, ~, -2.2])
+  g = lin-reg-2V([list: -3, 1, 2, 4], [list: ~4, ~1.5, ~0, -2.2])
   g(0) is%(within(0.001)) 1.69423
   g(1.94911) is%(within(0.001)) 0
 end
