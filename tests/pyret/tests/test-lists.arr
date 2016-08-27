@@ -250,8 +250,8 @@ check "numeric helpers":
 end
 
 check "linear regression":
-  lists.lin-reg-2V([list: 0], [list: ]) raises "lists must have equal lengths")
-  lists.lin-reg-2V([list: 0], [list: 1]) raises "lists must have at least 2 elements each")
+  lists.lin-reg-2V([list: 0], [list: ]) raises "lists must have equal lengths"
+  lists.lin-reg-2V([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
 
   f = lin-reg-2V([list: 0, 1, 2], [list: -5,- 3,- 1])
   f(0) is -5
