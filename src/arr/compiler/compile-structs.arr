@@ -1308,7 +1308,7 @@ data CompileError:
           ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
         [ED.para:
           ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1),
-          ED.text(" " + if self.app-expr.args.length() == 1: "is" else: "are" end 
+          ED.text(" " + if self.app-expr.args.length() == 1: "is" else: "are " end 
                 + "given, but the type signature of the "),
           ed-applicant],
         [ED.para:
