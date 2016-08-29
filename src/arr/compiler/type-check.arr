@@ -418,7 +418,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-method(l, name, params, args, ann, doc, body, _check, b) =>
           raise("checking for s-method not implemented")
         | s-extend(l, supe, fields) =>
-          raise("checking for s-extend not implemented")
+          check-synthesis(e, expect-type, top-level, context)
         | s-update(l, obj, fields) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-tuple(l, elts) =>
@@ -665,7 +665,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-method(l, name, params, args, ann, doc, body, _check, b) =>
       raise("synthesis for s-method not implemented")
     | s-extend(l, supe, fields) =>
-      raise("synthesis for s-extend not implemented")
+      synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
     | s-update(l, obj, fields) =>
       synthesis(obj, top-level, context).bind(synthesis-update(l, _, _, fields, _))
     | s-tuple(l, elts) =>
@@ -1625,7 +1625,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
   end.solve-bind()
 end
 
-fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
+fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
@@ -1633,7 +1633,37 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
           final-fields = new-members.keys-list().foldl(lam(key, final-fields):
             final-fields.set(key, new-members.get-value(key))
           end, t-fields)
-          typing-result(A.s-update(update-loc, obj, new-members), t-record(final-fields, update-loc), context)
+          typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc), context)
+        | t-existential(_, l) =>
+          typing-error([list: C.unable-to-infer(l)])
+        | else =>
+          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+      end
+    end)
+  end)
+end
+
+fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
+  collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
+    instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
+      cases(Type) obj-type:
+        | t-record(t-fields, _) =>
+          foldr-fold-result(lam(key, shadow context, final-fields):
+            cases(Option<Type>) t-fields.get(key):
+              | none =>
+                fold-errors([list: C.object-missing-field(key, tostring(obj-type), obj-type.l, update-loc)])
+              | some(old-type) =>
+                cases(Type) old-type:
+                  | t-ref(onto, l) =>
+                    new-type = new-members.get-value(key)
+                    fold-result(final-fields.set(key, t-ref(new-type, new-type.l)), context)
+                  | else =>
+                    fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc)), update-loc)])
+                end
+            end
+          end, new-members.keys-list(), context, t-fields).typing-bind(lam(final-fields, shadow context):
+            typing-result(A.s-update(update-loc, obj, fields), t-record(final-fields, update-loc), context)
+          end)
         | t-existential(_, l) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
