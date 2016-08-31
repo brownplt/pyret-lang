@@ -1,11 +1,16 @@
 import pick as P
 
-check "regression":
+check "regression for small constructors":
+  [set: 1, 2, 1].member(2) is true
+
   [set: 1, 2, 3, 2].member(3) is true
   [set: 1, 2, 3, 3].member(3) is true
   [set: 1, 2, 3, 2].member(2) is true
   [set: 1, 2, 3, 4].member(3) is true
   [set: 1, 2, 3, 2].member(5) is false
+
+  [set: 1, 2, 1, 3].member(2) is true
+  [set: 1, 2, 1, 3, 4].member(2) is true
 end
 
 check "member":

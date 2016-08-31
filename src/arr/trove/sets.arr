@@ -654,14 +654,14 @@ fun makeSet3(a, b, c):
 end
 fun makeSet4(a, b, c, d):
   if      a == b: makeSet3(b, c, d)
-  else if a == c: makeSet3(a, c, d)
+  else if a == c: makeSet3(a, b, d)
   else if a == d: makeSet3(a, b, c)
   else:           link(a, makeSet3(b, c, d))
   end
 end
 fun makeSet5(a, b, c, d, e):
   if      a == b: makeSet4(b, c, d, e)
-  else if a == c: makeSet4(a, c, d, e)
+  else if a == c: makeSet4(a, b, d, e)
   else if a == d: makeSet4(a, b, c, e)
   else if a == e: makeSet4(a, b, c, d)
   else:           link(a, makeSet4(b, c, d, e))
