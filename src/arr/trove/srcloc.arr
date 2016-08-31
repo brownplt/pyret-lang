@@ -96,6 +96,5 @@ data Srcloc:
     end,
     method is-builtin(self): false end
 sharing:
-  method _output(self): VS.vs-value(self.format(true)) end,
   method after(self, other): other.before(self) end
 end
