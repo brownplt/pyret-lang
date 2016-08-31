@@ -526,7 +526,7 @@ fun scope-env-from-env(initial :: C.CompileEnvironment) block:
   end
   acc.freeze()
 where:
-  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top(A.dummy-loc)], mtd), mtd))
+  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top(A.dummy-loc, false)], mtd), mtd))
     .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
 end
 

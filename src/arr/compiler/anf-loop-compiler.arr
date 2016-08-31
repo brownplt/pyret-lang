@@ -1506,7 +1506,7 @@ end
 
 fun compile-provided-type(typ):
   cases(T.Type) typ:
-    | t-name(mod-name, id, l) =>
+    | t-name(mod-name, id, l, _) =>
       cases(T.NameOrigin) mod-name:
         | local => j-obj([clist:
               j-field("tag", j-str("name")),
@@ -1520,24 +1520,24 @@ fun compile-provided-type(typ):
         | dependency(dep) =>
           raise("Dependency-origin names in provided-types shouldn't be possible")
       end
-    | t-var(name, l) => j-list(true, [clist: j-str("tid"), j-str(name.toname())])
-    | t-arrow(args, ret, l) =>
+    | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.toname())])
+    | t-arrow(args, ret, l, _) =>
       j-list(true,
         [clist: j-str("arrow"),
           j-list(true, CL.map_list(compile-provided-type, args)), compile-provided-type(ret)])
-    | t-app(base, args, l) =>
+    | t-app(base, args, l, _) =>
       j-list(false,
         [clist: j-str("tyapp"), compile-provided-type(base),
           j-list(true, CL.map_list(compile-provided-type, args))])
-    | t-top(_) => j-str("tany")
+    | t-top(_, _) => j-str("tany")
       # | t-bot(_) =>
-    | t-record(fields, l) =>
+    | t-record(fields, l, _) =>
       j-list(false,
         [clist: j-str("record"), j-obj(CL.map_list(lam(key): compile-type-member(key, fields.get-value(key)) end, fields.keys-list()))])
-    | t-tuple(elts, l) =>
+    | t-tuple(elts, l, _) =>
       j-list(false,
         [clist: j-str("tuple"), j-list(false, CL.map_list(compile-provided-type, elts))])
-    | t-forall(params, body, l) =>
+    | t-forall(params, body, l, _) =>
       j-list(true,
         [clist: j-str("forall"),
           j-list(false, for CL.map_list(p from params):

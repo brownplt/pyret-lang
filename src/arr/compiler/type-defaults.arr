@@ -11,15 +11,15 @@ dependency                = TS.dependency
 local                     = TS.local
 
 type Type                 = TS.Type
-t-name                    = TS.t-name(_, _, A.dummy-loc)
-t-var                     = TS.t-var(_, A.dummy-loc)
-t-arrow                   = TS.t-arrow(_, _, A.dummy-loc)
-t-top                     = TS.t-top(A.dummy-loc)
-t-bot                     = TS.t-bot(A.dummy-loc)
-t-app                     = TS.t-app(_, _, A.dummy-loc)
-t-record                  = TS.t-record(_, A.dummy-loc)
-t-forall                  = TS.t-forall(_, _, A.dummy-loc)
-t-data-refinement         = TS.t-data-refinement(_, _, A.dummy-loc)
+t-name                    = TS.t-name(_, _, A.dummy-loc, false)
+t-var                     = TS.t-var(_, A.dummy-loc, false)
+t-arrow                   = TS.t-arrow(_, _, A.dummy-loc, false)
+t-top                     = TS.t-top(A.dummy-loc, false)
+t-bot                     = TS.t-bot(A.dummy-loc, false)
+t-app                     = TS.t-app(_, _, A.dummy-loc, false)
+t-record                  = TS.t-record(_, A.dummy-loc, false)
+t-forall                  = TS.t-forall(_, _, A.dummy-loc, false)
+t-data-refinement         = TS.t-data-refinement(_, _, A.dummy-loc, false)
 
 t-data                    = TS.t-data(_, _, _, _, A.dummy-loc)
 

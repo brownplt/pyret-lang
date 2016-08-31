@@ -405,7 +405,7 @@ check "raw-provide-syntax":
   l = SL.builtin("test-raw-provides")
 
   bn = lam(modname, name):
-    T.t-name(T.module-uri("builtin://" + modname), A.s-type-global(name), l)
+    T.t-name(T.module-uri("builtin://" + modname), A.s-type-global(name), l, false)
   end
   g = lam(name):
     bn("global", name)
@@ -419,13 +419,13 @@ check "raw-provide-syntax":
         T.t-app(
           bn("option", "Option"),
           [list: g("Number")],
-          l),
-        l),
+          l, false),
+        l, false),
       "num-greater",
       T.t-arrow(
         [list: g("Number"), g("Number")],
         g("Boolean"),
-        l)
+        l, false)
     ]
 
   #NOTE(joe): tough to test the case for Ither datatype because of generativity
@@ -436,7 +436,7 @@ end
 check:
   ps = CM.provides("test-provides1",
     [string-dict:
-      "x", T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc)
+      "x", T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false)
     ],
     mt,
     mt)
@@ -451,7 +451,7 @@ check:
 
   canon is CM.provides("test-provides1",
     [string-dict:
-      "x", T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc)
+      "x", T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false)
     ],
     mt,
     mt)
