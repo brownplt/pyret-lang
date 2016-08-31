@@ -29,11 +29,15 @@ check "Reducer extensions":
   with-ages = extend tbl using age:
     total-age: TS.running-sum of age
   end
+  with-ages2 = extend tbl using age:
+    total-age: TS.running-reduce(_ + _) of age
+  end
   with-ages is table: name, age, total-age
     row: "Bob", 12, 12
     row: "Alice", 15, 27
     row: "Eve", 13, 40
   end
+  with-ages is with-ages2
 
   with-difference = extend tbl using age:
     diff: TS.difference-from(10) of age
@@ -44,6 +48,33 @@ check "Reducer extensions":
     row: "Eve", 13, -2
   end
 end
+
+check:
+
+  my-table = table: name :: String, age :: Number, favorite-color :: String
+    row: "Bob", 12, "blue"
+    row: "Alice", 17, "green"
+    row: "Eve", 13, "red"
+  end
+
+  can-drive-col = extend my-table using age:
+    can-drive: age >= 16
+  end
+
+  sum-of-true = TS.running-fold(0,
+    {(acc, cur): acc + (if cur: 1 else: 0 end)})
+
+  num-can-drive-col = extend can-drive-col using can-drive:
+    num-can-drive: sum-of-true of can-drive
+  end
+
+  num-can-drive-col is table: name, age, favorite-color, can-drive, num-can-drive
+    row: "Bob", 12, "blue", false, 0
+    row: "Alice", 17, "green", true, 1
+    row: "Eve", 13, "red", false, 1
+  end
+end
+
 
 check "Basic Table Loading":
   fun with-tl(name, titles, sanitizer):

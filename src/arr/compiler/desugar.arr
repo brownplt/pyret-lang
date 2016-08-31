@@ -698,7 +698,7 @@ fun desugar-expr(expr :: A.Expr):
                       reducer = reducers.get-value(name)
                       acc = accs.get-value(name)
                       nothing-expr = A.s-id(l, A.s-global("nothing"))
-                      link(A.s-let-bind(l, reducer.id-b, reducer-expr),
+                      link(A.s-let-bind(l, reducer.id-b, desugar-expr(reducer-expr)),
                         link(A.s-var-bind(l, acc.id-b, nothing-expr),
                           reducers-acc))
                   end
