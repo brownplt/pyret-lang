@@ -109,7 +109,7 @@ end
 # if a t-name refers to a polymorphic data type convert it to a t-app with existentials
 fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult<Type>:
   cases(Type) typ:
-    | t-name(_, _, _) =>
+    | t-name(_, _, _, inferred) =>
       cases(Option<DataType>) context.get-data-type(typ):
         | none =>
           fold-errors([list: C.cant-typecheck("Expected a data type but got " + tostring(typ), typ.l)])
@@ -117,8 +117,8 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
           if data-type.params.length() == 0:
             fold-result(typ, context)
           else:
-            new-existentials = data-type.params.map(lam(a-var): new-existential(a-var.l) end)
-            new-type = t-app(typ, new-existentials, typ.l)
+            new-existentials = data-type.params.map(lam(a-var): new-existential(a-var.l, false) end)
+            new-type = t-app(typ, new-existentials, typ.l, inferred)
             new-context = context.add-variable-set(list-to-list-set(new-existentials))
             fold-result(new-type, new-context)
           end
@@ -167,7 +167,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     else:
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
-      val-provides = t-record(mod.values, program.l)
+      val-provides = t-record(mod.values, program.l, false)
       module-type = t-module(key,
                              val-provides,
                              mod.data-definitions,
@@ -192,7 +192,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             thismod-provides = thismod.provides.fields
             new-global-types = context.global-types.set(vname.key(), thismod.provides)
-            new-aliases = context.aliases.set(tname.key(), t-top(l))
+            new-aliases = context.aliases.set(tname.key(), t-top(l, false))
             shadow new-aliases = types.foldl(lam(a, shadow new-aliases):
               cases(Option) thismod.aliases.get(a.toname()):
                 | none => raise("Alias key " + a.toname() + " not found on " + torepr(thismod))
@@ -217,7 +217,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       #  print("\n")
       #end, body.tosource().pretty(72))
 
-      tc-result = checking(body, t-top(l), true, context)
+      tc-result = checking(body, t-top(l, false), true, context)
       cases(TypingResult) tc-result:
         | typing-result(new-body, _, shadow context) =>
           folded-info = gather-provides(_provide, context)
@@ -253,7 +253,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
   shadow context = context.add-level()
   shadow expect-type = resolve-alias(expect-type, context)
   cases(Type) expect-type:
-    | t-app(onto, _, _) =>
+    | t-app(onto, _, _, _) =>
       if is-t-app(onto) or is-t-forall(onto):
         introduce-onto(expect-type, context)
       else:
@@ -275,7 +275,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                     cases(A.Member) field:
                       | s-data-field(data-l, name, value) =>
                         synthesis(value, false, context).fold-bind(lam(_, field-type, shadow context):
-                          fold-result(TCS.tc-info(info.types.set(name, field-type),
+                          fold-result(TCS.tc-info(info.types.set(name, field-type.set-inferred(false)),
                                                   info.aliases,
                                                   info.data-types),
                                       context)
@@ -345,7 +345,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-block(l, stmts) =>
           fun gen(curr, base):
-            {link({curr; base.{1}}, base.{0}); t-top(l)}
+            {link({curr; base.{1}}, base.{0}); t-top(l, false)}
           end
           paired-stmts = stmts.foldr(gen, {empty; expect-type}).{0}
           fold-typing(lam(stmt-type-pair, shadow context):
@@ -376,10 +376,10 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-assign(l, id, value) =>
           lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
             cases(Type) id-type:
-              | t-ref(arg-type, _) =>
+              | t-ref(arg-type, _, _) =>
                 checking(value, arg-type, top-level, context)
               | else =>
-                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
+                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
             end
           end)
         | s-if-pipe(l, branches) =>
@@ -423,7 +423,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-tuple(l, elts) =>
           cases(Type) expect-type:
-            | t-tuple(t-elts, t-l) =>
+            | t-tuple(t-elts, t-l, _) =>
               if not(elts.length() == t-elts.length()):
                 # TODO(MATT): better error
                 typing-error([list: C.incorrect-type("a tuple type with length " + tostring(elts.length()), l, tostring(expect-type), expect-type.l)])
@@ -448,9 +448,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-obj(l, fields) =>
           instantiate-object-type(expect-type, context).typing-bind(lam(shadow expect-type, shadow context):
             cases(Type) expect-type:
-              | t-record(t-fields, t-l) =>
+              | t-record(t-fields, t-l, _) =>
                 collect-members(fields, true, context).typing-bind(lam(field-types, shadow context):
-                  temp-object-type = t-record(field-types, l)
+                  temp-object-type = t-record(field-types, l, false)
                   shadow context = context.add-constraint(temp-object-type, expect-type)
                   fold-new-field-types = foldr-fold-result(lam(field, shadow context, member-types):
                     to-type-member(field, field-types.get-value(field.name), temp-object-type, true, context).bind(lam(field-type, shadow context):
@@ -467,7 +467,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end)
         | s-array(l, values) =>
           wrapped = cases(Type) expect-type:
-            | t-app(rarray, args, tl) =>
+            | t-app(rarray, args, tl, _) =>
               if TS.t-array-name == rarray:
                 param-type = args.first
                 for fold-typing(value from values, shadow context from context):
@@ -552,7 +552,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         .map-expr(A.s-module(l, _, defined-values, defined-types, provided-values, provided-types, checks))
         .map-type(_.set-loc(l))
     | s-template(l) =>
-      new-exists = new-existential(l)
+      new-exists = new-existential(l, false)
       shadow context = context.add-variable(new-exists)
       typing-result(e, new-exists, context)
     | s-type-let-expr(l, binds, body, b) =>
@@ -587,7 +587,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-instantiate(l, expr, params) =>
       synthesis-instantiation(l, expr, params, top-level, context)
     | s-block(l, stmts) =>
-      var typ = t-top(l)
+      var typ = t-top(l, false)
       fold-typing(lam(stmt, shadow context):
         synthesis(stmt, top-level, context).bind(
           lam(stmt-expr, stmt-typ, shadow context) block:
@@ -620,12 +620,12 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-assign(l, id, value) =>
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         cases(Type) id-type:
-          | t-ref(arg-type, tl) =>
+          | t-ref(arg-type, tl, _) =>
             checking(value, arg-type, top-level, context).bind(lam(new-value, _, shadow context):
               typing-result(A.s-assign(l, id, new-value), arg-type.set-loc(l), context)
             end)
           | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l)), l, e)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
         end
       end)
     | s-if-pipe(l, branches) =>
@@ -653,7 +653,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op, l, r) =>
       raise("synthesis for s-op not implemented")
     | s-check-test(loc, op, refinement, l, r) =>
-      result-type = new-existential(loc)
+      result-type = new-existential(loc, false)
       shadow context = context.add-variable(result-type)
       typing-result(e, result-type, context)
     | s-check-expr(l, expr, ann) =>
@@ -678,7 +678,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           end)
       end, elts, context)
       result.typing-bind(lam(typs, shadow context):
-        typing-result(A.s-tuple(l, elts), t-tuple(typs, l), context)
+        typing-result(A.s-tuple(l, elts), t-tuple(typs, l, false), context)
       end)
     | s-tuple-get(l, tup, index, index-loc) =>
       synthesis(tup, top-level, context).bind(lam(new-ast, new-type, shadow context):
@@ -686,14 +686,14 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       end)
     | s-obj(l, fields) =>
       collect-members(fields, false, context).typing-bind(lam(field-types, shadow context):
-        initial-obj-type = t-record(field-types, l)
+        initial-obj-type = t-record(field-types, l, false)
         fold-new-field-types = foldr-fold-result(lam(field, shadow context, new-field-types):
           to-type-member(field, field-types.get-value(field.name), initial-obj-type, false, context).bind(lam(new-field-type, shadow context):
             fold-result(new-field-types.set(field.name, new-field-type), context)
           end)
         end, fields, context, [string-dict: ])
         fold-new-field-types.typing-bind(lam(new-field-types, shadow context):
-          typing-result(A.s-obj(l, fields), t-record(new-field-types, l), context)
+          typing-result(A.s-obj(l, fields), t-record(new-field-types, l, false), context)
         end)
       end)
     | s-array(l, values) =>
@@ -731,10 +731,10 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-id-var(l, id) =>
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         cases(Type) id-type:
-          | t-ref(arg-type, _) =>
+          | t-ref(arg-type, _, _) =>
             typing-result(e, arg-type.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l)), l, e)])
+            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l, false)), l, e)])
         end
       end)
     | s-id-letrec(l, id, safe) =>
@@ -762,7 +762,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         synthesis-field(l, new-ast, new-type, field, A.s-get-bang, context)
       end).bind(lam(new-get-bang, field-type, shadow context):
         cases(Type) field-type:
-          | t-ref(typ, _) =>
+          | t-ref(typ, _, _) =>
             typing-result(new-get-bang, typ.set-loc(l), context)
           | else =>
             typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
@@ -777,7 +777,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-for(l, iterator, bindings, ann, body, blocky) =>
       raise("s-for should have already been desugared")
     | s-check(l, name, body, keyword-check) =>
-      result-type = new-existential(l)
+      result-type = new-existential(l, false)
       shadow context = context.add-variable(result-type)
       typing-result(e, result-type, context)
   end.solve-bind()
@@ -787,7 +787,7 @@ fun synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: 
   shadow context = context.add-level()
   instantiate-forall(fun-type, context).typing-bind(lam(shadow fun-type, shadow context):
     cases(Type) fun-type:
-      | t-arrow(arg-types, ret-type, _) =>
+      | t-arrow(arg-types, ret-type, _, _) =>
         if not(args.length() == arg-types.length()):
           typing-error([list: C.incorrect-number-of-args(recreate(args), fun-type)])
         else:
@@ -802,11 +802,11 @@ fun synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: 
             typing-result(recreate(exprs), ret-type, context)
           end)
         end
-      | t-existential(id, l) =>
-        existential-args = args.map(lam(_): new-existential(l) end)
-        existential-ret = new-existential(l)
+      | t-existential(id, l, _) =>
+        existential-args = args.map(lam(_): new-existential(l, false) end)
+        existential-ret = new-existential(l, false)
         shadow context = context.add-variable-set(list-to-list-set(link(existential-ret, existential-args)))
-        new-arrow = t-arrow(existential-args, existential-ret, l)
+        new-arrow = t-arrow(existential-args, existential-ret, l, false)
         shadow context = context.add-constraint(fun-type, new-arrow)
         result = foldr2(lam(acc, arg, arg-type):
           acc.bind(lam(current-exprs, shadow context):
@@ -820,15 +820,15 @@ fun synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: 
         result.typing-bind(lam(new-exprs, shadow context):
           typing-result(recreate(new-exprs), existential-ret, context)
         end)
-      | t-app(onto, type-args, _) =>
+      | t-app(onto, type-args, _, _) =>
         introduce-onto(fun-type, context).typing-bind(lam(shadow onto, shadow context):
           synthesis-spine(onto, recreate, args, app-loc, context)
         end)
-      | t-bot(l) =>
+      | t-bot(l, inferred) =>
         fold-typing(lam(arg, shadow context):
-          checking(arg, t-top(l), false, context)
+          checking(arg, t-top(l, false), false, context)
         end, args, context).typing-bind(lam(new-args, shadow context):
-          typing-result(recreate(new-args), t-bot(l), context)
+          typing-result(recreate(new-args), t-bot(l, inferred), context)
         end)
       | else =>
         typing-error([list: C.apply-non-function(recreate(args), fun-type)])
@@ -861,13 +861,13 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
   cases(Expr) data-expr:
     | s-data-expr(l, name, namet, params, mixins, variants, fields, _check) =>
       shadow context = context.add-level()
-      brander-type = t-name(local, namet, l)
-      t-vars = params.map(t-var(_, l))
+      brander-type = t-name(local, namet, l, false)
+      t-vars = params.map(t-var(_, l, false))
       map-fold-result(collect-variants, variants, context).bind(lam(initial-variant-types, shadow context):
         predicate-type = if is-empty(t-vars):
-          t-arrow([list: brander-type], t-boolean(l), l)
+          t-arrow([list: brander-type], t-boolean(l), l, false)
         else:
-          t-forall(t-vars, t-arrow([list: t-app(brander-type, t-vars, l)], t-boolean(l), l), l)
+          t-forall(t-vars, t-arrow([list: t-app(brander-type, t-vars, l, false)], t-boolean(l), l, false), l, false)
         end
         initial-data-fields = SD.make-string-dict()
           .set(name, predicate-type)
@@ -876,7 +876,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
             .set(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars))
             .set("is-" + variant-type.name, predicate-type)
         end, initial-data-fields)
-        shadow context = context.add-binding(data-type-bind.b.id.key(), t-record(data-fields, l))
+        shadow context = context.add-binding(data-type-bind.b.id.key(), t-record(data-fields, l, false))
         map-fold-result(lam(binding, shadow context):
           synthesis(binding.value, false, context).fold-bind(lam(new-value, result-type, shadow context):
             fold-result(A.s-letrec-bind(binding.l, binding.b, new-value), context.add-binding(binding.b.id.key(), result-type))
@@ -932,7 +932,7 @@ end
 
 # Checks with-members on a variant
 fun check-variant(variant :: A.Variant, variant-type :: TS.TypeVariant, data-type :: Type, t-vars :: List<Type>, context :: Context) -> FoldResult<TypeVariant>:
-  refined-type = t-data-refinement(if is-empty(t-vars): data-type else: t-app(data-type, t-vars, data-type.l) end, variant.name, data-type.l)
+  refined-type = t-data-refinement(if is-empty(t-vars): data-type else: t-app(data-type, t-vars, data-type.l, false) end, variant.name, data-type.l, false)
 
   foldr-fold-result(lam(member, shadow context, member-types):
     member-type = variant-type.with-fields.get-value(member.name)
@@ -958,12 +958,12 @@ end
 fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-check-functions :: Boolean, context :: Context) -> FoldResult<Type>:
   fun add-self-type(fun-type :: Type) -> Type:
     cases(Type) fun-type:
-      | t-arrow(args, ret, l) =>
-        t-arrow(link(self-type, args), ret, l)
-      | t-forall(introduces, onto-arrow, l) =>
+      | t-arrow(args, ret, l, inferred) =>
+        t-arrow(link(self-type, args), ret, l, inferred)
+      | t-forall(introduces, onto-arrow, l, inferred) =>
         cases(Type) onto-arrow:
-        | t-arrow(args, ret, inner-l) =>
-          t-forall(introduces, t-arrow(link(self-type, args), ret, inner-l), l)
+        | t-arrow(args, ret, inner-l, inner-inferred) =>
+          t-forall(introduces, t-arrow(link(self-type, args), ret, inner-l, inner-inferred), l, inferred)
         | else =>
           raise("method type is not a function (this shouldn't happen")
         end
@@ -974,12 +974,12 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
 
   fun remove-self-type(fun-type :: Type) -> Type:
     cases(Type) fun-type:
-      | t-arrow(args, ret, l) =>
-        t-arrow(args.rest, ret, l)
-      | t-forall(introduces, onto-arrow, l) =>
+      | t-arrow(args, ret, l, inferred) =>
+        t-arrow(args.rest, ret, l, inferred)
+      | t-forall(introduces, onto-arrow, l, inferred) =>
         cases(Type) onto-arrow:
-        | t-arrow(args, ret, inner-l) =>
-          t-forall(introduces, t-arrow(args.rest, ret, inner-l), l)
+        | t-arrow(args, ret, inner-l, inner-inferred) =>
+          t-forall(introduces, t-arrow(args.rest, ret, inner-l, inner-inferred), l, inferred)
         | else =>
           raise("method type is not a function (this shouldn't happen")
         end
@@ -1026,7 +1026,7 @@ fun collect-variants(variant :: A.Variant, context :: Context) -> FoldResult<Typ
       fun process-member(member, shadow context):
         wrap = cases(A.VariantMemberType) member.member-type:
           | s-normal => lam(x): x.set-loc(member.l) end
-          | s-mutable => lam(x): t-ref(x.set-loc(member.l), member.l) end
+          | s-mutable => lam(x): t-ref(x.set-loc(member.l), member.l, false) end
         end
         to-type(member.bind.ann, context).bind(lam(maybe-type, shadow context):
           cases(Option<Type>) maybe-type:
@@ -1060,28 +1060,28 @@ fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params 
   inner-type = if is-empty(params):
     brander-typ
   else:
-    t-app(brander-typ, params, variant-typ.l)
+    t-app(brander-typ, params, variant-typ.l, false)
   end
-  refined-type = t-data-refinement(inner-type, variant-typ.name, variant-typ.l).set-loc(variant-typ.l)
+  refined-type = t-data-refinement(inner-type, variant-typ.name, variant-typ.l, false).set-loc(variant-typ.l)
   cases(TypeVariant) variant-typ:
     | t-variant(name, fields, _, l) =>
       field-types = fields.keys-list().map(lam(field-key):
         field-type = fields.get-value(field-key)
         cases(Type) field-type:
-          | t-ref(ref-typ, _) => ref-typ
+          | t-ref(ref-typ, _, _) => ref-typ
           | else => field-type
         end
       end)
       if is-empty(params):
-        t-arrow(field-types, refined-type, l)
+        t-arrow(field-types, refined-type, l, false)
       else:
-        t-forall(params, t-arrow(field-types, refined-type, l), l)
+        t-forall(params, t-arrow(field-types, refined-type, l, false), l, false)
       end
     | t-singleton-variant(name, _, l) =>
       if is-empty(params):
         refined-type
       else:
-        t-forall(params, refined-type, l)
+        t-forall(params, refined-type, l, false)
       end
   end
 end
@@ -1313,18 +1313,18 @@ end
 fun synthesis-field(access-loc :: Loc, obj :: Expr, obj-type :: Type, field-name :: String, recreate :: (Loc, Expr, String -> Expr), context :: Context) -> TypingResult:
   instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
     cases(Type) obj-type:
-      | t-record(fields, _) =>
+      | t-record(fields, _, _) =>
         cases(Option<Type>) fields.get(field-name):
           | some(field-typ) =>
             typing-result(recreate(access-loc, obj, field-name), field-typ, context)
           | none =>
-            synthesized-type = new-existential(access-loc)
+            synthesized-type = new-existential(access-loc, false)
             shadow context = context.add-variable(synthesized-type)
                                     .add-field-constraint(obj-type, field-name, synthesized-type)
             typing-result(recreate(access-loc, obj, field-name), synthesized-type, context)
         end
-      | t-existential(_, _) =>
-        synthesized-type = new-existential(access-loc)
+      | t-existential(_, _, _) =>
+        synthesized-type = new-existential(access-loc, false)
         shadow context = context.add-variable(synthesized-type)
                                 .add-field-constraint(obj-type, field-name, synthesized-type)
         typing-result(recreate(access-loc, obj, field-name), synthesized-type, context)
@@ -1344,11 +1344,11 @@ end
 fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:
   fun choose-type(method-name :: String) -> FoldResult<Type>:
     # there should be two args here because its a binop
-    obj-exists = new-existential(args.get(0).l)
-    other-type = new-existential(args.get(1).l)
-    ret-type = new-existential(app-loc)
-    arrow-type = t-arrow([list: obj-exists, other-type], ret-type, app-loc)
-    shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc))
+    obj-exists = new-existential(args.get(0).l, false)
+    other-type = new-existential(args.get(1).l, false)
+    ret-type = new-existential(app-loc, false)
+    arrow-type = t-arrow([list: obj-exists, other-type], ret-type, app-loc, false)
+    shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc, false))
     fold-result(arrow-type, context)
   end
   cases(Expr) _fun:
@@ -1387,20 +1387,20 @@ fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -
                 if is-empty(params):
                   typ
                 else:
-                  forall = for map(param from params): t-var(param, l) end
-                  t-forall(forall, typ, l)
+                  forall = for map(param from params): t-var(param, l, false) end
+                  t-forall(forall, typ, l, false)
                 end
               shadow context = context.set-aliases(context.aliases.set(name.key(), alias-type))
               fold-result(nothing, context)
           end
         end)
       | s-newtype-bind(l, name, namet) =>
-        typ = t-name(local, namet, l)
+        typ = t-name(local, namet, l, false)
         namet-key = namet.key()
         shadow context = context.set-aliases(context.aliases.set(name.key(), typ))
         shadow context = context.add-binding(namet-key, t-record([string-dict:
-          "test", t-arrow([list: typ], t-boolean(l), l),
-          "brand", t-arrow([list: typ], typ, l)], l))
+          "test", t-arrow([list: typ], t-boolean(l), l, false),
+          "brand", t-arrow([list: t-top(l, false)], typ, l, false)], l, false))
         fold-result(nothing, context)
     end
   end, bindings, context)
@@ -1508,12 +1508,12 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
               if base == "$underscore":
-                t-top(binding.l)
+                t-top(binding.l, false)
               else:
-                new-existential(binding.l)
+                new-existential(binding.l, true)
               end
             | else =>
-              new-existential(binding.l)
+              new-existential(binding.l, true)
           end
       end
       shadow context = context.add-variable(new-type)
@@ -1527,7 +1527,7 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
   to-type(ret-ann, context).bind(lam(maybe-type, shadow context):
     ret-type = cases(Option<Type>) maybe-type:
       | some(typ) => typ
-      | none => new-existential(l)
+      | none => new-existential(l, true)
     end
     shadow context = context.add-variable(ret-type)
     fold-arg-types = map-fold-result(lam(arg, shadow context):
@@ -1541,13 +1541,13 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end, args, context)
 
     fold-arg-types.bind(lam(arg-types, shadow context):
-      arrow-type = t-arrow(arg-types, ret-type, l)
+      arrow-type = t-arrow(arg-types, ret-type, l, false)
       lam-type =
         if is-empty(params):
           arrow-type
         else:
-          forall = for map(param from params): t-var(param, l) end
-          t-forall(forall, arrow-type, l)
+          forall = for map(param from params): t-var(param, l, false) end
+          t-forall(forall, arrow-type, l, false)
         end
       fold-result(lam-type, context)
     end)
@@ -1558,12 +1558,12 @@ end
 fun synthesis-fun(l :: Loc, body :: Expr, params :: List<A.Name>, args :: List<A.Bind>, ret-ann :: A.Ann, recreate :: (List<A.Bind>, A.Ann, A.Expr -> A.Expr), top-level :: Boolean, context :: Context) -> TypingResult:
   fun set-ret-type(lam-type :: Type, ret-type :: Type) -> Type:
     cases(Type) lam-type:
-      | t-arrow(arg-types, _, a-l) =>
-        t-arrow(arg-types, ret-type, a-l)
-      | t-forall(introduces, onto, f-l) =>
+      | t-arrow(arg-types, _, a-l, inferred) =>
+        t-arrow(arg-types, ret-type, a-l, inferred)
+      | t-forall(introduces, onto, f-l, inferred) =>
         cases(Type) onto:
-          | t-arrow(arg-types, _, a-l) =>
-            t-forall(introduces, t-arrow(arg-types, ret-type, a-l), f-l)
+          | t-arrow(arg-types, _, a-l, inner-inferred) =>
+            t-forall(introduces, t-arrow(arg-types, ret-type, a-l, inner-inferred), f-l, inferred)
           | else => raise("This shouldn't happen (non-function type lambda)")
         end
       | else => raise("This shouldn't happen (non-function type lambda)")
@@ -1576,11 +1576,11 @@ fun synthesis-fun(l :: Loc, body :: Expr, params :: List<A.Name>, args :: List<A
     fold-lam-type = lam-to-type(coll, l, params, args, ret-ann, top-level, context)
     fold-lam-type.typing-bind(lam(lam-type, shadow context):
       fold-ret-type = cases(Type) lam-type:
-        | t-arrow(_, ret-type, _) =>
+        | t-arrow(_, ret-type, _, _) =>
           fold-result(ret-type, context)
-        | t-forall(_, onto, _) =>
+        | t-forall(_, onto, _, _) =>
           cases(Type) onto:
-            | t-arrow(_, ret-type, _) =>
+            | t-arrow(_, ret-type, _, _) =>
               fold-result(ret-type, context)
             | else => raise("This shouldn't happen (non-function type lambda)")
           end
@@ -1605,7 +1605,7 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
       to-type(b.ann, context).typing-bind(lam(maybe-type, shadow context):
         ann-type = cases(Option<Type>) maybe-type:
           | some(typ) => typ
-          | none => new-existential(l)
+          | none => new-existential(l, true)
         end
         shadow context = context.add-variable(ann-type)
         checking(value, ann-type, false, context)
@@ -1617,12 +1617,12 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
       to-type(b.ann, context).typing-bind(lam(maybe-type, shadow context):
         ann-type = cases(Option<Type>) maybe-type:
           | some(typ) => typ
-          | none => new-existential(l)
+          | none => new-existential(l, true)
         end
         shadow context = context.add-variable(ann-type)
         checking(value, ann-type, false, context)
           .bind(lam(new-value, new-type, shadow context):
-            typing-result(new-value, t-ref(new-type, l), context.add-binding(b.id.key(), t-ref(new-type, l)))
+            typing-result(new-value, t-ref(new-type, l, false), context.add-binding(b.id.key(), t-ref(new-type, l, false)))
           end)
       end)
   end.solve-bind()
@@ -1632,12 +1632,12 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
-        | t-record(t-fields, _) =>
+        | t-record(t-fields, _, inferred) =>
           final-fields = new-members.keys-list().foldl(lam(key, final-fields):
             final-fields.set(key, new-members.get-value(key))
           end, t-fields)
-          typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc), context)
-        | t-existential(_, l) =>
+          typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
+        | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
           typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
@@ -1650,24 +1650,24 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
-        | t-record(t-fields, _) =>
+        | t-record(t-fields, _, inferred) =>
           foldr-fold-result(lam(key, shadow context, final-fields):
             cases(Option<Type>) t-fields.get(key):
               | none =>
                 fold-errors([list: C.object-missing-field(key, tostring(obj-type), obj-type.l, update-loc)])
               | some(old-type) =>
                 cases(Type) old-type:
-                  | t-ref(onto, l) =>
+                  | t-ref(onto, l, ref-inferred) =>
                     new-type = new-members.get-value(key)
-                    fold-result(final-fields.set(key, t-ref(new-type, new-type.l)), context)
+                    fold-result(final-fields.set(key, t-ref(new-type, new-type.l, ref-inferred)), context)
                   | else =>
-                    fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc)), update-loc)])
+                    fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
                 end
             end
           end, new-members.keys-list(), context, t-fields).typing-bind(lam(final-fields, shadow context):
-            typing-result(A.s-update(update-loc, obj, fields), t-record(final-fields, update-loc), context)
+            typing-result(A.s-update(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
           end)
-        | t-existential(_, l) =>
+        | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
           typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
@@ -1683,7 +1683,7 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
   # TODO(MATT): checking when polymorphic lambda but non-polymorphic type
 
   cases(Type) expect-type:
-    | t-arrow(expect-args, ret-type, _) =>
+    | t-arrow(expect-args, ret-type, _, _) =>
       lam-bindings.typing-bind(lam(temp-lam-binds, shadow context):
         if not(temp-lam-binds.count() == expect-args.length()):
           expected = "a function with " + tostring(expect-args.length()) + " arguments"
@@ -1700,10 +1700,10 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
             end
           end, temp-lam-binds, args, expect-args)
           {lam-binds; shadow context} = params.foldr(lam(param, {lam-binds; shadow context}):
-            new-exists = new-existential(fun-loc)
+            new-exists = new-existential(fun-loc, false)
             lam-keys = lam-binds.keys-list()
             new-binds = lam-keys.foldl(lam(key, binds):
-              binds.set(key, binds.get-value(key).substitute(new-exists, t-var(param, fun-loc)))
+              binds.set(key, binds.get-value(key).substitute(new-exists, t-var(param, fun-loc, false)))
             end, lam-binds)
             {new-binds; context.add-variable(new-exists)}
           end, {temp-lam-binds; context})
@@ -1717,17 +1717,17 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
           end)
         end
       end)
-    | t-forall(introduces, onto, l) =>
+    | t-forall(introduces, onto, l, inferred) =>
       check-fun(fun-loc, body, params, args, ret-ann, onto, recreate, context)
-        .map-type(t-forall(introduces, _, l))
-    | t-existential(id, _) =>
+        .map-type(t-forall(introduces, _, l, inferred))
+    | t-existential(id, _, _) =>
       check-synthesis(recreate(args, ret-ann, body), expect-type, false, context)
-    | t-app(onto, type-args, _) =>
+    | t-app(onto, type-args, _, _) =>
       fold-onto = introduce-onto(expect-type, context)
       fold-onto.typing-bind(lam(shadow onto, shadow context):
         check-fun(fun-loc, body, params, args, ret-ann, onto, recreate, context)
       end)
-    | t-top(l) =>
+    | t-top(l, _) =>
       lam-bindings.typing-bind(lam(new-binds, shadow context):
         body-result = checking(body, expect-type, false, context.add-dict-to-bindings(new-binds))
         body-result.bind(lam(new-body, new-type, shadow context):
@@ -1750,7 +1750,7 @@ fun synthesis-instantiation(l :: Loc, expr :: Expr, params :: List<A.Ann>, top-l
       tmp-type
     end
     cases(Type) tmp-type:
-      | t-forall(introduces, onto, _) =>
+      | t-forall(introduces, onto, _, _) =>
         map-fold-result(to-type, params, context).typing-bind(lam(new-maybe-types, shadow context):
           maybe-new-types = new-maybe-types.foldr(lam(maybe-type, new-types):
             for option-bind(typ from maybe-type):
@@ -1773,7 +1773,7 @@ fun synthesis-instantiation(l :: Loc, expr :: Expr, params :: List<A.Ann>, top-l
               end
           end
         end)
-      | t-existential(_, exists-l) =>
+      | t-existential(_, exists-l, _) =>
         typing-error([list: C.unable-to-infer(exists-l)])
       | else => typing-error([list: C.incorrect-type(tostring(tmp-type), tmp-type.l, "a polymorphic type", l)])
     end
@@ -1814,23 +1814,23 @@ fun tuple-view(access-loc :: Loc, tup-type-loc :: Loc, tup-type :: Type,
                 context :: Context) -> TypingResult:
   non-tup-err = typing-error([list: C.incorrect-type(tostring(tup-type), tup-type-loc, "a tuple type", access-loc)])
   cases(Type) tup-type:
-    | t-tuple(fields, _) =>
+    | t-tuple(fields, _, _) =>
       handle(tup-type-loc, some(fields))
-    | t-forall(introduces, onto, l) =>
-      new-existentials = introduces.map(lam(a-var): new-existential(a-var.l) end)
+    | t-forall(introduces, onto, l, _) =>
+      new-existentials = introduces.map(lam(a-var): new-existential(a-var.l, false) end)
       new-tup-type = foldr2(lam(new-onto, a-var, a-exists):
         new-onto.substitute(a-exists, a-var)
       end, onto, introduces, new-existentials)
       shadow context = context.add-variable-set(list-to-list-set(new-existentials))
       tuple-view(access-loc, tup-type-loc, new-tup-type, handle, context)
-    | t-existential(_, exists-l) =>
+    | t-existential(_, exists-l, _) =>
       typing-error([list: C.unable-to-infer(exists-l)])
     | else => non-tup-err
   end
 end
 
 fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context) -> FoldResult<Type> block:
-  new-exists = new-existential(loc)
+  new-exists = new-existential(loc, false)
   shadow context = context.add-level().add-variable(new-exists)
   shadow context = branch-types.foldr(lam(branch-type, shadow context):
     context.add-constraint(new-exists, branch-type)
@@ -1844,8 +1844,8 @@ end
 fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, context :: Context) -> TypeMembers:
   fun introduce(typ :: Type, temp-context :: Context) -> {Type; Context}:
     cases(Type) typ:
-      | t-forall(introduces, onto, _) =>
-        new-existentials = introduces.map(lam(a-var): new-existential(a-var.l) end)
+      | t-forall(introduces, onto, _, _) =>
+        new-existentials = introduces.map(lam(a-var): new-existential(a-var.l, false) end)
         new-onto = foldr2(lam(new-onto, a-var, a-exists):
           new-onto.substitute(a-exists, a-var)
         end, onto, introduces, new-existentials)
@@ -1859,7 +1859,7 @@ fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, co
       | none => meet-members
       | some(b-type) =>
         a-type = a-fields.get-value(a-field-name)
-        temp-existential = new-existential(loc)
+        temp-existential = new-existential(loc, false)
         temp-context = context.add-level().add-variable(temp-existential)
         {shadow a-type; shadow temp-context} = introduce(a-type, temp-context)
         {shadow b-type; shadow temp-context} = introduce(b-type, temp-context)
@@ -1883,7 +1883,7 @@ fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCI
         if info.types.has-key(value-key):
           fold-result(info, context)
         else:
-          typ = context.binds.get-value(value-key)
+          typ = context.binds.get-value(value-key).set-inferred(false)
           fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
         end
       end, values, context, context.info)
@@ -1918,7 +1918,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
     | a-blank =>
       fold-result(none, context)
     | a-any(l) =>
-      fold-result(some(t-top(l)), context)
+      fold-result(some(t-top(l, false)), context)
     | a-name(l, id) =>
       typ = context.aliases.get(id.key())
       cases(Option<Type>) typ:
@@ -1928,7 +1928,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         | none => fold-errors([list: C.unbound-type-id(in-ann)])
       end
     | a-type-var(l, id) =>
-      fold-result(some(t-var(id, l)), context)
+      fold-result(some(t-var(id, l, false)), context)
     | a-arrow(l, args, ret, _) =>
       fold-arg-typs = map-fold-result(lam(arg, shadow context):
         to-type(arg, context).bind(lam(maybe-new-typ, shadow context):
@@ -1947,7 +1947,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
             | none =>
               fold-errors([list: C.cant-typecheck("no annotation provided on " + tostring(ret), l)])
             | some(ret-typ) =>
-              fold-result(some(t-arrow(arg-typs, ret-typ, l)), context)
+              fold-result(some(t-arrow(arg-typs, ret-typ, l, false)), context)
           end
         end)
       end)
@@ -1966,14 +1966,14 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end, fields, context, SD.make-string-dict())
 
       fields-result.bind(lam(members, shadow context):
-        fold-result(some(t-record(members, l)), context)
+        fold-result(some(t-record(members, l, false)), context)
       end)
     | a-tuple(l, elts) =>
       fold-elt-typs = map-fold-result(lam(elt, shadow context):
         to-type(elt, context).bind(lam(maybe-new-typ, shadow context):
           cases(Option<Type>) maybe-new-typ:
             | none =>
-              new-exists = new-existential(l)
+              new-exists = new-existential(l, true)
               shadow context = context.add-variable(new-exists)
               fold-result(new-exists, context)
             | some(new-typ) =>
@@ -1982,7 +1982,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
         end)
       end, elts, context)
       fold-elt-typs.bind(lam(new-elts, shadow context):
-        fold-result(some(t-tuple(new-elts, l)), context)
+        fold-result(some(t-tuple(new-elts, l, false)), context)
       end)
     | a-app(l, ann, args) =>
       to-type(ann, context).bind(lam(maybe-typ, shadow context):
@@ -2001,7 +2001,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
                 end
               end, maybe-arg-types, context)
               fold-arg-typs.bind(lam(arg-typs, shadow context):
-                fold-result(some(t-app(typ, arg-typs, l)), context)
+                fold-result(some(t-app(typ, arg-typs, l, false)), context)
               end)
             end)
         end
@@ -2010,7 +2010,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       to-type(ann, context).bind(lam(maybe-typ, shadow context):
         cases(Option<Type>) maybe-typ:
           | some(typ) =>
-            expect-type = t-arrow([list: typ], t-boolean(l), l)
+            expect-type = t-arrow([list: typ], t-boolean(l), l, false)
             checking(exp, expect-type, false, context).fold-bind(lam(_, _, shadow context):
               fold-result(some(typ), context)
             end)

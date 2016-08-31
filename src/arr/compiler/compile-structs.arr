@@ -16,21 +16,20 @@ t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)
 t-boolean = T.t-boolean(A.dummy-loc)
 t-number = T.t-number(A.dummy-loc)
-t-arrow = T.t-arrow(_, _, A.dummy-loc)
-t-top = T.t-top(A.dummy-loc)
-t-member = T.t-member(_, _)
-t-bot = T.t-bot(A.dummy-loc)
-t-record = T.t-record(_, A.dummy-loc)
-t-forall = T.t-forall(_, _, A.dummy-loc)
-t-var = T.t-var(_, A.dummy-loc)
+t-arrow = T.t-arrow(_, _, A.dummy-loc, false)
+t-top = T.t-top(A.dummy-loc, false)
+t-bot = T.t-bot(A.dummy-loc, false)
+t-record = T.t-record(_, A.dummy-loc, false)
+t-forall = T.t-forall(_, _, A.dummy-loc, false)
+t-var = T.t-var(_, A.dummy-loc, false)
 t-array = T.t-array(_, A.dummy-loc)
 t-string = T.t-string(A.dummy-loc)
 t-option = T.t-option(_, A.dummy-loc)
 t-data = T.t-data(_, _, _, _, A.dummy-loc)
 t-variant = T.t-variant(_, _, _, A.dummy-loc)
 t-singleton-variant = T.t-singleton-variant(_, _, A.dummy-loc)
-t-app = T.t-app(_, _, A.dummy-loc)
-t-name = T.t-name(_, _, A.dummy-loc)
+t-app = T.t-app(_, _, A.dummy-loc, false)
+t-name = T.t-name(_, _, A.dummy-loc, false)
 
 is-t-app = T.is-t-app
 
@@ -114,23 +113,23 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>):
   l = SL.builtin(uri)
   t = typ.tag
   ask:
-    | t == "any" then: T.t-top(l)
+    | t == "any" then: T.t-top(l, false)
     | t == "record" then:
-      T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l)
+      T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l, false)
     | t == "tuple" then:
-      T.t-tuple(for map(e from typ.elts): tfr(e) end, l)
+      T.t-tuple(for map(e from typ.elts): tfr(e) end, l, false)
     | t == "name" then:
       if typ.origin.import-type == "$ELF":
-        T.t-name(T.local, A.s-type-global(typ.name), l)
+        T.t-name(T.local, A.s-type-global(typ.name), l, false)
       else if typ.origin.import-type == "uri":
-        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l)
+        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l, false)
       else:
-        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l)
+        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l, false)
       end
     | t == "tyvar" then:
-      cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
+      cases(Option<T.Type>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
-        | some(tv) => T.t-var(tv, l)
+        | some(tv) => T.t-var(tv, l, false)
       end
     | t == "forall" then:
       new-env = for fold(new-env from tyvar-env, a from typ.args):
@@ -138,13 +137,13 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>):
         new-env.set(a, tvn)
       end
       params = for map(k from new-env.keys-list()):
-        T.t-var(new-env.get-value(k), l)
+        T.t-var(new-env.get-value(k), l, false)
       end
-      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l)
+      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l, false)
     | t == "tyapp" then:
-      T.t-app(tfr(typ.onto), map(tfr, typ.args), l)
+      T.t-app(tfr(typ.onto), map(tfr, typ.args), l, false)
     | t == "arrow" then:
-      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l)
+      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l, false)
     | otherwise: raise("Unknown raw tag for type: " + t)
   end
 end
@@ -176,7 +175,7 @@ fun datatype-from-raw(uri, datatyp):
       pdict.set(a, tvn)
     end
     params = for map(k from pdict.keys-list()):
-      T.t-var(pdict.get-value(k), l)
+      T.t-var(pdict.get-value(k), l, false)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
     members = datatyp.methods.foldl(lam(tm, members):
@@ -1212,26 +1211,28 @@ data CompileError:
     end
   | type-mismatch(type-1 :: T.Type, type-2 :: T.Type) with:
     method render-fancy-reason(self):
+      {type-1; type-2} = if self.type-1.l.before(self.type-2.l): {self.type-1; self.type-2} else: {self.type-2; self.type-1} end
       [ED.error:
         [ED.para:
           ED.text("Type checking failed because of a type inconsistency.")],
         [ED.para:
           ED.text("The type constraint "),
-          ED.highlight(ED.text(tostring(self.type-1)), [list: self.type-1.l], 0),
+          ED.highlight(ED.text(tostring(type-1)), [list: type-1.l], 0),
           ED.text(" was incompatible with the type constraint "),
-          ED.highlight(ED.text(tostring(self.type-2)), [list: self.type-2.l], 1)]]
+          ED.highlight(ED.text(tostring(type-2)), [list: type-2.l], 1)]]
     end,
     method render-reason(self):
+      {type-1; type-2} = if self.type-1.l.before(self.type-2.l): {self.type-1; self.type-2} else: {self.type-2; self.type-1} end
       [ED.error:
         [ED.para:
           ED.text("Type checking failed because of a type inconsistency.")],
         [ED.para:
           ED.text("The type constraint "),
-          ED.code(ED.text(tostring(self.type-1))),
-          ED.text(" at "), draw-and-highlight(self.type-1.l),
+          ED.code(ED.text(tostring(type-1))),
+          ED.text(" at "), draw-and-highlight(type-1.l),
           ED.text(" was incompatible with the type constraint "),
-          ED.code(ED.text(tostring(self.type-2))),
-          ED.text(" at "), draw-and-highlight(self.type-2.l)]]
+          ED.code(ED.text(tostring(type-2))),
+          ED.text(" at "), draw-and-highlight(type-2.l)]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     method render-fancy-reason(self):
@@ -1239,10 +1240,8 @@ data CompileError:
         [ED.para:
           ED.text("The type checker rejected your program because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
-          ED.text(" but it "),
-          ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
-          ED.text(" a "),
-          ED.text(self.expected-name)]]
+          ED.text(" but it expected a "),
+          ED.highlight(ED.text(self.expected-name), [list: self.expected-loc], 1)]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1262,9 +1261,8 @@ data CompileError:
         [ED.para:
           ED.text("because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
-          ED.text(" but it "),
-          ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
-          ED.text(" a "), ED.text(self.expected-name)]]
+          ED.text(" but it expected a "),
+          ED.highlight(ED.text(self.expected-name), [list: self.expected-loc], 1)]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1620,7 +1618,7 @@ data CompileError:
           ED.text(". However, the branch pattern binds "),
           ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), 1),
           ED.text(" and the variant is declared as having "),
-          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], 3)]]
+          ED.highlight(ed-fields(self.variant.fields.count()), [list: A.dummy-loc], 3)]]
     end,
     method render-reason(self):
       fun ed-fields(n):
@@ -1701,7 +1699,11 @@ data CompileError:
     end
   | unable-to-infer(loc :: A.Loc) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Unable to infer the type of "), 
+          ED.highlight(ED.text("this"), [list: self.loc], 0),
+          ED.text(". Please add an annotation.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1797,9 +1799,11 @@ data CompileError:
           ED.text(")")]]
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
-    #### TODO ###
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("There is no module imported with the name "),
+          ED.highlight(ED.text(self.mod-name), [list: self.loc], 0)]]
     end,
     method render-reason(self):
       [ED.error:
