@@ -524,8 +524,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-check(l, name, body, keyword-check) =>
           typing-result(e, expect-type, context)
       end
-    end
-  end).solve-bind()
+    end.solve-bind()
+  end)
 end
 
 fun synthesis(e, top-level, context) block:
@@ -666,8 +666,10 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-method not implemented")
     | s-extend(l, supe, fields) =>
       synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
+        .map-type(_.set-loc(l))
     | s-update(l, obj, fields) =>
       synthesis(obj, top-level, context).bind(synthesis-update(l, _, _, fields, _))
+        .map-type(_.set-loc(l))
     | s-tuple(l, elts) =>
       result = map-fold-result(lam(elt, shadow context):
         synthesis(elt, false, context)
@@ -711,7 +713,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-construct(l, modifier, constructor, values) =>
       raise("synthesis for s-construct not implemented")
     | s-app(l, _fun, args) =>
-      synthesis-app-fun(l, _fun, context)
+      synthesis-app-fun(l, _fun, args, context)
         .typing-bind(lam(fun-type, shadow context):
           synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
         end)
@@ -842,9 +844,9 @@ end
 
 fun lookup-id(blame-loc :: A.Loc, id-key :: String, id-expr :: Expr, context :: Context) -> FoldResult<Type>:
   if context.binds.has-key(id-key):
-    fold-result(context.binds.get-value(id-key), context)
+    fold-result(context.binds.get-value(id-key).set-loc(blame-loc), context)
   else if context.global-types.has-key(id-key):
-    fold-result(context.global-types.get-value(id-key), context)
+    fold-result(context.global-types.get-value(id-key).set-loc(blame-loc), context)
   else:
     fold-errors([list: C.unbound-id(id-expr)])
   end
@@ -1060,7 +1062,7 @@ fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params 
   else:
     t-app(brander-typ, params, variant-typ.l)
   end
-  refined-type = t-data-refinement(inner-type, variant-typ.name, variant-typ.l)
+  refined-type = t-data-refinement(inner-type, variant-typ.name, variant-typ.l).set-loc(variant-typ.l)
   cases(TypeVariant) variant-typ:
     | t-variant(name, fields, _, l) =>
       field-types = fields.keys-list().map(lam(field-key):
@@ -1339,10 +1341,11 @@ fun synthesis-field(access-loc :: Loc, obj :: Expr, obj-type :: Type, field-name
   end)
 end
 
-fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, context :: Context) -> FoldResult<Type>:
+fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:
   fun choose-type(method-name :: String) -> FoldResult<Type>:
-    obj-exists = new-existential(app-loc)
-    other-type = new-existential(app-loc)
+    # there should be two args here because its a binop
+    obj-exists = new-existential(args.get(0).l)
+    other-type = new-existential(args.get(1).l)
     ret-type = new-existential(app-loc)
     arrow-type = t-arrow([list: obj-exists, other-type], ret-type, app-loc)
     shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc))
@@ -1361,12 +1364,12 @@ fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, context :: Context) -> FoldR
         | id == A.s-global("_greaterequal") then: choose-type("_greaterequal")
         | otherwise:
           synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-            fold-result(new-type.set-loc(app-loc), context)
+            fold-result(new-type, context)
           end)
       end
     | else =>
       synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-        fold-result(new-type.set-loc(app-loc), context)
+        fold-result(new-type, context)
       end)
   end
 end

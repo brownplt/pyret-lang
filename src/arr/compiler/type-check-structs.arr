@@ -707,7 +707,8 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
                 else:
                   shadow system = intersection.fold(lam(shadow system, field-name):
                     field-mappings.get-value(field-name).foldl(lam(field-type, shadow system):
-                      system.add-constraint(fields.get-value(field-name), field-type)
+                      object-field-type = fields.get-value(field-name)
+                      system.add-constraint(object-field-type, field-type)
                     end, system)
                   end, system)
                   system.solve-level-helper(solution, context)
@@ -929,7 +930,7 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
           end
         | module-uri(mod) =>
           if mod == "builtin":
-            cases(Option<Type>) context.aliass.get(a-id.key()):
+            cases(Option<Type>) context.aliases.get(a-id.key()):
               | none => t
               | some(aliased) => aliased.set-loc(l)
             end

@@ -301,27 +301,28 @@ sharing:
     end
   end,
   method set-loc(self, loc :: Loc):
+    sl = _.set-loc(loc)
     cases(Type) self:
       | t-name(module-name, id, _) =>
         t-name(module-name, id, loc)
       | t-arrow(args, ret, _) =>
-        t-arrow(args, ret, loc)
+        t-arrow(args.map(sl), sl(ret), loc)
       | t-app(onto, args, _) =>
-        t-app(onto, args, loc)
+        t-app(sl(onto), args.map(sl), loc)
       | t-top(_) =>
         t-top(loc)
       | t-bot(_) =>
         t-bot(loc)
       | t-record(fields, _) =>
-        t-record(fields, loc)
+        t-record(type-member-map(fields, {(_, field-type): sl(field-type)}), loc)
       | t-tuple(elts, _) =>
-        t-tuple(elts, loc)
+        t-tuple(elts.map(sl), loc)
       | t-forall(introduces, onto, _) =>
-        t-forall(introduces, onto, loc)
+        t-forall(introduces.map(sl), sl(onto), loc)
       | t-ref(typ, _) =>
-        t-ref(typ, loc)
+        t-ref(sl(typ), loc)
       | t-data-refinement(data-type, variant-name, _) =>
-        t-data-refinement(data-type, variant-name, loc)
+        t-data-refinement(sl(data-type), variant-name, loc)
       | t-var(id, _) =>
         t-var(id, loc)
       | t-existential(id, _) =>
@@ -503,10 +504,6 @@ fun new-type-var(l :: Loc):
   t-var(A.global-names.make-atom("%tyvar"), l)
 end
 
-fun new-row-var(l :: Loc):
-  t-var(A.global-names.make-atom("%rowvar"), empty, l)
-end
-
 # TODO(MATT): which of these should be kept
 builtin-uri = module-uri("builtin://global")
 
@@ -517,5 +514,5 @@ t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l) end
 t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l) end
 t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l) end
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l) end
-t-array   = lam(v, l): t-app(t-array-name, [list: v], l) end
+t-array   = lam(v, l): t-app(t-array-name.set-loc(l), [list: v], l) end
 t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l), [list: v], l) end
