@@ -1,5 +1,13 @@
 import pick as P
 
+check "regression":
+  [set: 1, 2, 3, 2].member(3) is true
+  [set: 1, 2, 3, 3].member(3) is true
+  [set: 1, 2, 3, 2].member(2) is true
+  [set: 1, 2, 3, 4].member(3) is true
+  [set: 1, 2, 3, 2].member(5) is false
+end
+
 check "member":
   [tree-set: 1, 2, 3].member(2) is true
   [tree-set: 1, 2, 3].member(4) is false

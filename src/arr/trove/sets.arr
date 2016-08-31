@@ -648,7 +648,7 @@ fun makeSet2(a, b):
 end
 fun makeSet3(a, b, c):
   if      a == b: makeSet2(b, c)
-  else if a == c: makeSet2(a, c)
+  else if a == c: makeSet2(a, b)
   else:           link(a, makeSet2(b, c))
   end
 end
