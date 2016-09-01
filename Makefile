@@ -215,7 +215,7 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 		--compiled-dir tests/compiled/
 
 .PHONY : old-test
-old-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
 
 .PHONY : old-test-all
 old-test-all: test docs-test benchmark-test
@@ -233,10 +233,6 @@ runtime-test : $(PYRET_TEST_PREREQ)
 .PHONY : evaluator-test
 evaluator-test: $(PYRET_TEST_PREREQ)
 	cd tests/evaluator/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
-
-.PHONY : repl-test
-repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
-	cd tests/repl/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
 
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
