@@ -31,7 +31,7 @@ check:
   repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, CLI.module-finder)
   fun restart(src, type-check):
     i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
-    repl.restart-interactions(i, type-check)
+    repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
   end
   fun next-interaction(src):
     i = repl.make-interaction-locator(lam(): src end)
