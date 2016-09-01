@@ -166,7 +166,7 @@ fun make-repl<a>(
     modules :: SD.MutableStringDict<CL.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
-    finder :: (a, CS.Dependency -> CL.Located<a>)):
+    make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
   var globals = CS.standard-globals
   var current-compile-options = CS.default-compile-options
@@ -175,15 +175,16 @@ fun make-repl<a>(
   var current-realm = realm
   var locator-cache = SD.make-mutable-string-dict()
   var current-interaction = 0
+  var current-finder = make-finder()
 
-  shadow finder = lam(context, dep):
-    if CS.is-dependency(dep) and (dep.protocol == "repl"):
+  finder = lam(context, dep):
+    if CS.is-dependency(dep):
       cases(Option) locator-cache.get-now(dep.arguments.first):
         | some(l) => CL.located(l, context)
-        | none => raise("Cannot find module: " + torepr(dep))
+        | none => current-finder(context, dep)
       end
     else:
-      finder(context, dep)
+      current-finder(context, dep)
     end
   end
 
@@ -219,6 +220,7 @@ fun make-repl<a>(
     locator-cache := SD.make-mutable-string-dict()
     current-modules := SD.make-mutable-string-dict()
     extra-imports := CS.standard-imports
+    current-finder := make-finder()
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)

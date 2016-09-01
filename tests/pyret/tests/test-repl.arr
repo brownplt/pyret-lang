@@ -28,7 +28,7 @@ msg = lam(str): L.render-error-message(get-run-answer(str)) end
 check:
   r = RT.make-runtime()
 
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, CLI.module-finder)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
   fun restart(src, type-check):
     i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
     repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
