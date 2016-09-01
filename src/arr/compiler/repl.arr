@@ -166,24 +166,25 @@ fun make-repl<a>(
     modules :: SD.MutableStringDict<CL.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
-    finder :: (a, CS.Dependency -> CL.Located<a>)):
+    make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
   var globals = CS.standard-globals
-  var current-type-check = false
+  var current-compile-options = CS.default-compile-options
   var extra-imports = CS.standard-imports
   var current-modules = modules
   var current-realm = realm
   var locator-cache = SD.make-mutable-string-dict()
   var current-interaction = 0
+  var current-finder = make-finder()
 
-  shadow finder = lam(context, dep):
-    if CS.is-dependency(dep) and (dep.protocol == "repl"):
+  finder = lam(context, dep):
+    if CS.is-dependency(dep):
       cases(Option) locator-cache.get-now(dep.arguments.first):
         | some(l) => CL.located(l, context)
-        | none => raise("Cannot find module: " + torepr(dep))
+        | none => current-finder(context, dep)
       end
     else:
-      finder(context, dep)
+      current-finder(context, dep)
     end
   end
 
@@ -212,20 +213,21 @@ fun make-repl<a>(
     current-realm := L.get-result-realm(result)
 
   end
-  fun restart-interactions(defs-locator :: CL.Locator, type-check :: Boolean) block:
+  fun restart-interactions(defs-locator :: CL.Locator, options :: CS.CompileOptions) block:
     current-interaction := 0
-    current-type-check := type-check
+    current-compile-options := options
     current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
     current-modules := SD.make-mutable-string-dict()
     extra-imports := CS.standard-imports
+    current-finder := make-finder()
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
-    compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for each(k from compiled.modules.keys-list-now()):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
-    result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check})
+    result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):
@@ -239,11 +241,11 @@ fun make-repl<a>(
 
   fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
-    compiled = CL.compile-program-with(worklist, current-modules, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for each(k from compiled.modules.keys-list-now()):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
-    result = CL.run-program(worklist, compiled, current-realm, runtime, CS.default-compile-options.{type-check: current-type-check, compile-module: true})
+    result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)
     cases(Either) result:
       | right(answer) =>
         when L.is-success-result(answer):
