@@ -248,3 +248,43 @@ check "numeric helpers":
   lists.distinct([list: ~1, ~2, ~3]) is-roughly [list: ~1, ~2, ~3]
 
 end
+
+check "string helper":
+  lists.join-str([list: "a", "b"], ",") is "a,b"
+  lists.join-str([list: "", "", ""], "") is ""
+  lists.join-str([list: "", "a", ""], ",") is ",a,"
+  lists.join-str([list:], ",") is ""
+  lists.join-str([list: "a"], ",") is "a"
+  lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+end
+
+check "sort as a function":
+  lists.sort([list: 1, 5, 6, 2, 3]) is [list: 1, 2, 3, 5, 6]
+
+  lists.sort([list: "dog", "Dog", "DOG"]) is [list: "DOG", "Dog", "dog"]
+
+  lists.sort-by([list:
+      { name: "Bob", age: 22 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Joan", age: 43 },
+      { name: "Alex", age: 3 }],
+    lam(p1, p2): p1.age < p2.age end,
+    lam(p1, p2): p1.age == p2.age end)
+    is
+    [list:
+      { name: "Alex", age: 3 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Bob", age: 22 },
+      { name: "Joan", age: 43 }]
+end
+
+check "more utility functions":
+  lists.last([list: 1]) is 1
+  lists.last([list: 1, 2, 3, 4, 5, 6, 7]) is 7
+
+  lists.append([list: 1, 2, 3], [list: 4, 5, 6]) is [list: 1, 2, 3, 4, 5, 6]
+
+  lists.push(empty, 1) is link(1, empty)
+end
