@@ -106,3 +106,7 @@ check "run-task printing should be internal":
   torepr(run-task(lam(): 1 / 1 end)) is "left(1)"
 end
 
+check "hyphenated bindings":
+  to-repr("a") is "\"a\""
+  to-string("a") is "a"
+end

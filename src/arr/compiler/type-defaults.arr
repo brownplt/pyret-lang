@@ -149,6 +149,7 @@ fun make-default-types() block:
   default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
   default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
+  default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-option(t-number)))
 
   default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
   default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
