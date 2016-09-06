@@ -820,6 +820,27 @@ fun join-str(l :: List<String>, s :: String) -> String:
   l.join-str(s)
 end
 
+# Linear Regression
+fun lin-reg-2V(x :: List<Number>, y :: List<Number>) -> (Number -> Number):
+  doc: "returns a linear function that is a line of best between two lists of numbers"
+  if x.length() <> y.length():
+    raise("lin-reg-2V: input lists must have equal lengths")
+  else if x.length() < 2:
+    raise("lin-reg-2V: input lists must have at least 2 elements each")
+  else:
+    xpt_xy = sum(map2(lam(xi, yi): xi * yi end, x, y))
+    xpt_x_xpt_y = (sum(x) * sum(y)) / x.length()
+    covariance = xpt_xy - xpt_x_xpt_y
+    v1 = sum(map(lam(n): n * n end, x))
+    v2 = (sum(x) * sum(x)) / x.length()
+    variance = v1 - v2
+    beta = covariance / variance
+    alpha = mean(y) - (beta * mean(x))
+
+    lam(X): (beta * X) + alpha end
+  end
+end
+
 list = {
   make: raw-array-to-list,
   make0: lam(): empty end,
