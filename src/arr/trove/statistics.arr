@@ -7,6 +7,17 @@ import option as O
 import either as E
 import equality as equality
 import valueskeleton as VS
+import lists as lists
+
+type List = lists.List
+List = lists.is-List
+empty = lists.empty
+link = lists.link
+is-empty = lists.is-empty
+fold = lists.fold
+length = lists.length
+member3 = lists.member3
+
 
 fun sum(l :: List<Number>) -> Number:
 	lists.fold(lam(a,b): a + b end, 0, l)
