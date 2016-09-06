@@ -320,6 +320,10 @@ fun set<a>(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
+fun push<a>(l :: List<a>, elt :: a) -> List<a>:
+  link(elt, l)
+end
+
 fun reverse-help<a>(lst :: List<a>, tail :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   builtins.raw-list-fold(lam(acc, elt): link(elt, acc) end, tail, lst)
@@ -329,6 +333,14 @@ where:
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
+
+fun sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+  lst.sort-by(cmp, eq)
+end
+
+fun sort<a>(lst :: List<a>) -> List<a>:
+  lst.sort()
+end
 
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
@@ -371,6 +383,13 @@ end
 fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
   builtins.raw-list-filter(f, lst)
+end
+
+fun append<a>(front :: List<a>, back :: List<a>) -> List<a>:
+  cases(List<a>) front:
+    | empty => back
+    | link(f, r) => link(f, append(r, back))
+  end
 end
 
 fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
@@ -450,6 +469,10 @@ end
 fun drop<a>(n :: Number, lst :: List<a>) -> List<a>:
   doc: "Returns a list containing all but the first n elements of the given list"
   split-at(n, lst).suffix
+end
+
+fun last<a>(l :: List<a>) -> a:
+  l.last()
 end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
@@ -791,6 +814,10 @@ end
 
 fun length(l :: List) -> Number:
   l.length()
+end
+
+fun join-str(l :: List<String>, s :: String) -> String:
+  l.join-str(s)
 end
 
 fun sum(l :: List<Number>) -> Number:
