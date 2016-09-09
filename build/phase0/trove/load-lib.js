@@ -125,7 +125,7 @@
       return mr.val.runtime.getField(mr.val.result.result, "checks");
     }
     function renderCheckResults(mr) {
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         var checkerMod = execRt.modules["builtin://checker"];
@@ -156,7 +156,7 @@
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
@@ -249,7 +249,7 @@
       };
 
 
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
