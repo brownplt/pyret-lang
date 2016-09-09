@@ -1171,7 +1171,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -1822,36 +1821,22 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: thisRuntime.ffi.equal };
-      var cache = {left: [], right: [], equal: []};
+      var cache = {left: [], right: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
-            return cache.equal[i];
+            return true;
         }
         return false;
-      }
-      function setCachePair(obj1, obj2, val) {
-        for (var i = 0; i < cache.left.length; i++) {
-          if (cache.left[i] === obj1 && cache.right[i] === obj2) {
-            cache.equal[i] = val;
-            return;
-          }
-        }
-// throw new Error("Internal error: tried to 
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
         cache.right.push(obj2);
-        cache.equal.push(thisRuntime.ffi.equal);
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
-          if(current.setCache) {
-            setCachePair(current.left, current.right, toCompare.curAns);
-            continue;
-          }
           curLeft = current.left;
           curRight = current.right;
 
@@ -1890,14 +1875,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
-            var curPair = findPair(curLeft, curRight);
-            if (curPair !== false) {
-              // Already checked this pair of objects
-              toCompare.curAns = curPair
-              continue;
+            if (findPair(curLeft, curRight)) {
+              continue; // Already checked this pair of objects
             } else {
               cachePair(curLeft, curRight);
-              toCompare.stack.push({ setCache: true, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -2016,17 +1997,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             switch($step) {
             case 0:
               $step = 1;
-              $ans = equalHelp();
-              if(isContinuation($ans)) {
-                debugger;
-                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                  stackFrameDesc,
-                  reenterEqualFun,
-                  $step,
-                  [],
-                  []);
-              }
-              return $ans;
+              return equalHelp();
             case 1:
               toCompare.curAns = combineEquality(toCompare.curAns, $ans);
               $step = 0;
@@ -2064,25 +2035,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
               $step = 1;
               $ans = equalFun();
-              if(isContinuation($ans)) {
-                debugger;
-                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                  stackFrameDesc,
-                  reenterEqualFun,
-                  $step,
-                  [],
-                  []);
-                return $ans;
-              }
               break;
             case 1:
-              for(var i = 0; i < toCompare.stack.length; i++) {
-                var current = toCompare.stack[i];
-                if(current.setCache) {
-                  setCachePair(current.left, current.right, $ans);
-                }
-              }
-              setCachePair(left, right, $ans);
               toCompare = stackOfToCompare.pop();
               return $ans;
             }
@@ -2972,7 +2926,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
-    function isContinuation(v) { return typeof v === "object" && v instanceof Cont; }
     Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
@@ -3029,33 +2982,21 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          throw thisRuntime.makeCont();
         }
         while(true) {
           switch($step) {
           case 0:
             $step = 1;
             $ans = fun();
-            if(isContinuation($ans)) { break;}
-            continue;
+            break;
           case 1:
             var $fun_ans = $ans;
             $step = 2;
             $ans = after($fun_ans);
-            if(isContinuation($ans)) { break;}
-            continue;
-          case 2:
-            return $ans;
+            break;
+          case 2: return $ans;
           }
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(
-              "safeCall for " + stackFrame,
-              safeCall,
-              $step,
-              [ fun, after, stackFrame ],
-              [ $fun_ans ]
-            );
-          return $ans;
         }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
@@ -3092,7 +3033,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          throw thisRuntime.makeCont();
         }
         while(true) {
           started = true;
@@ -3101,7 +3042,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
+            throw thisRuntime.makeCont();
           }  
           else { i = i + 1; }
         }
@@ -3249,7 +3190,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             if (manualPause !== null) {
               var thePause = manualPause;
               manualPause = null;
-              return pauseStack(function(restarter) {
+              pauseStack(function(restarter) {
                 thePause.setHandlers({
                   resume: function() { restarter.resume(val); },
                   break: restarter.break,
@@ -3273,8 +3214,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               next.ans = val;
               // CONSOLE.log("GAS = ", thisRuntime.GAS);
 
-
-
               if (next.fun instanceof Function) {
                 val = next.fun(next);
               }
@@ -3283,39 +3222,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 CONSOLE.log(JSON.stringify(next));
                 CONSOLE.log(theOneTrueStack);
                 throw false;
-              }
-              if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
-                // console.log("BOUNCING");
-                BOUNCES++;
-                thisRuntime.GAS = initialGas;
-                for(var i = val.stack.length - 1; i >= 0; i--) {
-    //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
-                  theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
-                }
-                // console.log("The new stack height is ", theOneTrueStackHeight);
-                // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
-                //   if (f && f.from) { return f.from.toString(); }
-                //   else { return f; }
-                // }));
-
-                if(isPause(val)) {
-                  thisThread.pause();
-                  val.pause.setHandlers(thisThread.handlers);
-                  if(val.resumer) { val.resumer(val.pause); }
-                  return;
-                }
-                else if(thisRuntime.isCont(val)) {
-                  if(sync) {
-                    loop = true;
-                    // DON'T return; we synchronously loop back to the outer while loop
-                    continue;
-                  }
-                  else {
-                    TOS++;
-                    util.suspend(iter);
-                    return;
-                  }
-                }
               }
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
@@ -3550,7 +3456,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return;
         }
       }
-      return thisRuntime.pauseStack(function(restarter) {
+      thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3567,7 +3473,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function runWhileRunning(thunk) {
-      return thisRuntime.pauseStack(function(restarter) {
+      thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3584,7 +3490,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1143;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
 
     var DEBUGLOG = true;
     /**
@@ -3769,13 +3675,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          throw thisRuntime.makeCont();
         }
         
         while (curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
+            throw thisRuntime.makeCont();
           }
           switch($step) {
           case 0:
@@ -3820,13 +3726,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          throw thisRuntime.makeCont();
         }
         
         while (curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
+            throw thisRuntime.makeCont();
           }
           switch($step) {
           case 0:
@@ -4167,7 +4073,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function filterFun($ar) {
         try {
           if (thisRuntime.isActivationRecord($ar)) {
-            if($ar.ans) { newArray.push(arr[currentIndex]); }
+            newArray = $ar.ans;
           }
           return filterHelp();
         } catch ($e) {
@@ -4927,7 +4833,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             // CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            return thisRuntime.pauseStack(function(restarter) {
+            thisRuntime.pauseStack(function(restarter) {
               // CONSOLE.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
@@ -4938,7 +4844,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           }
         }, function(natives) {
           function continu() {
-            return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+            return thisRuntime.safeTail(function() {
+              return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+            });
           }
           if(realm[uri]) {
             return continu();
@@ -5343,7 +5251,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'makeCont'    : makeCont,
       'isCont'      : isCont,
-      'isContinuation'      : isContinuation,
       'makePause'   : makePause,
       'isPause'     : isPause,
 

@@ -125,7 +125,7 @@
       return mr.val.runtime.getField(mr.val.result.result, "checks");
     }
     function renderCheckResults(mr) {
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         var checkerMod = execRt.modules["builtin://checker"];
@@ -156,7 +156,7 @@
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
@@ -203,8 +203,7 @@
     }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
-    function runProgram(otherRuntimeObj, realmObj, programString, options) {
-      var checkAll = runtime.getField(options, "check-all");
+    function runProgram(otherRuntimeObj, realmObj, programString) {
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
@@ -218,7 +217,7 @@
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
@@ -244,13 +243,13 @@
         "builtin://checker": function(checker) {
           var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       };
 
 
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {

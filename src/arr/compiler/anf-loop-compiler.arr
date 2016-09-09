@@ -82,6 +82,7 @@ j-switch = J.j-switch
 j-case = J.j-case
 j-default = J.j-default
 j-label = J.j-label
+j-continue = J.j-continue
 j-break = J.j-break
 j-while = J.j-while
 j-for = J.j-for
@@ -429,7 +430,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
   apploc = fresh-id(compiler-name("al"))
-  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
+  doloop = fresh-id(compiler-name("skiploop"))
+  local-compiler = compiler.{make-label: make-label, cur-ret: ret-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
   visited-body = body.visit(local-compiler)
   # To avoid penalty for assigning to formal parameters and also using the arguments object,
   # we create a shadow set of formal arguments, and immediately assign them to the "real" ones
@@ -465,19 +467,6 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     all-needed-vars.remove-now(d)
   end
   vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
-  switch-cases =
-    main-body-cases
-  ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
-        if show-stack-trace:
-          [clist: j-expr(rt-method("traceExit", [clist: j-str(tostring(l)), j-num(vars.length())]))]
-        else:
-          cl-empty
-        end + [clist:
-          j-expr(j-unop(rt-field("GAS"), j-incr)),
-          j-return(j-id(local-compiler.cur-ans))])))
-  ^ cl-snoc(_, j-default(j-block1(
-          j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
-              j-str(" in " + fun-name.tosourcestring()))))))
   # fun check-no-dups(seen, kases):
   #   cases(List) kases:
   #     | empty => nothing
@@ -544,28 +533,79 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   end
   stack-attach-guard =
     if compiler.options.proper-tail-calls:
-      j-binop(rt-method("isCont", [clist: j-id(e)]),
+      j-binop(rt-method("isCont", [clist: j-id(ans)]),
         j-and,
         j-parens(j-binop(j-id(step), j-neq, ret-label)))
     else:
       rt-method("isCont", [clist: j-id(e)])
     end
 
+  switch-cases =
+    main-body-cases
+  ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
+        if show-stack-trace:
+          [clist: j-expr(rt-method("traceExit", [clist: j-str(tostring(l)), j-num(vars.length())]))]
+        else:
+          cl-empty
+        end + [clist:
+          j-expr(j-unop(rt-field("GAS"), j-incr)),
+          j-return(j-id(local-compiler.cur-ans))])))
+  ^ cl-snoc(_, j-default(j-block([clist:
+          j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
+              j-str(" in " + fun-name.tosourcestring())))])))
+
+  # If we exit the while loop, we must have used "break" because of a continuation
+  after-loop =
+            [clist:
+                j-if1(stack-attach-guard,
+                  j-block([clist: 
+                      j-expr(j-bracket-assign(j-dot(j-id(local-compiler.cur-ans), "stack"),
+                          j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
+                  ])),
+                #|
+                if should-report-error-frame:
+                  [clist:
+                    j-if1(rt-method("isPyretException", [clist: j-id(e)]),
+                      j-block(
+                        [clist: j-expr(add-stack-frame(e, j-id(apploc)))] +
+                        if show-stack-trace:
+                          [clist: j-expr(rt-method("traceErrExit", entryExit))]
+                        else:
+                          cl-empty
+                        end
+                        ))]
+                else if show-stack-trace:
+                  [clist:
+                    j-if1(rt-method("isPyretException", [clist: j-id(e)]),
+                      j-block([clist: 
+                          j-expr(add-stack-frame(e, j-id(apploc)))
+                      ]))]
+                else:
+                  cl-empty
+                end +
+                |#
+                j-return(j-id(local-compiler.cur-ans))]
 
   j-block([clist:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
-      j-try-catch(
-        j-block([clist:
-            preamble,
-            j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
-              j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
-                  # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
-                  # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
-                  j-throw(rt-method("makeCont", cl-empty))])),
-            j-while(j-true,
-              j-block1(j-switch(j-id(step), switch-cases)))]),
+      j-var(doloop, j-true),
+      #j-try-catch(
+      #j-block([clist:
+          preamble,
+          j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+            j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+                # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
+                # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+                j-expr(j-assign(doloop, j-false)),
+                j-expr(j-assign(local-compiler.cur-ans, rt-method("makeCont", cl-empty)))])),
+          j-while(j-id(doloop),
+            j-block([clist:
+                # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
+                j-switch(j-id(step), switch-cases),
+                j-break]))] + after-loop)
+      #|
         e,
         j-block(
           [clist:
@@ -593,7 +633,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
             cl-empty
           end +
           [clist: j-throw(j-id(e))]))
-  ])
+      |#
 end
 
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
@@ -611,7 +651,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
             j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
             j-expr(rt-method("_checkAnn",
               [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
-            j-break]))
+            j-continue]))
       cur-target := new-label
       cl-snoc(acc, new-case)
     end
@@ -654,7 +694,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
                 visitor.get-loc(b.ann.l),
                 compiled-ann.exp,
                 j-id(js-id-of(b.id))])),
-          j-break
+          j-continue
         ]),
       cl-cons(after-ann-case, compiled-body.new-cases))
   end
@@ -704,18 +744,20 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(j-id(colon-field-id), link(compiled-obj, compiled-args))))))
           # else:
-          j-if(check-method,
-            j-block1(
-              j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                    cl-cons(compiled-obj, compiled-args))))
-              ),
-            j-block([clist:
-                check-fun(compiler.get-loc(l), colon-field-id),
-                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-              ]))
+            j-if(check-method, j-block([clist: 
+                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+                        cl-cons(compiled-obj, compiled-args))))
+                ]),
+              j-block([clist:
+                  check-fun(compiler.get-loc(l), colon-field-id),
+                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
+                ])),
+            # If the answer is a cont, jump to the end of the current function
+            # rather than continuing normally
+            j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
+              j-block([clist: j-break])),
           # end
-          ,
-          j-break]),
+          j-continue]),
       new-cases)
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
@@ -735,18 +777,20 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-          j-if(check-method,
-            j-block1(
-              j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
-                    cl-cons(obj-id, compiled-args))))
-              ),
-            j-block([clist:
-                check-fun(compiler.get-loc(l), colon-field-id),
-                j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-              ]))
-          # end
-          ,
-          j-break]),
+            j-if(check-method, j-block([clist: 
+                  j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+                        cl-cons(obj-id, compiled-args))))
+                ]),
+              j-block([clist:
+                  check-fun(compiler.get-loc(l), colon-field-id),
+                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
+                ])),
+            # If the answer is a cont, jump to the end of the current function
+            # rather than continuing normally
+            j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
+              j-block([clist: j-break])),
+              # end
+          j-continue]),
       new-cases)
   end
 end
@@ -765,7 +809,11 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
         check-fun(j-id(compiler.cur-apploc), compiled-f),
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
-        j-break]),
+        # If the answer is a cont, jump to the end of the current function
+        # rather than continuing normally
+        j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
+          j-block([clist: j-break])),
+        j-continue]),
     new-cases)
 end
 
@@ -786,7 +834,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
         j-expr(j-assign(compiler.cur-step,
             j-ternary(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
               consq-label, alt-label))),
-        j-break
+        j-continue
       ]),
     new-cases)
 end
@@ -819,7 +867,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
         j-var(temp-branch,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
-        j-break]
+        j-continue]
 
     c-block(
       j-block(preamble + actual-app),
@@ -878,7 +926,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
             ^ cl-snoc(_, get-field-names)
             ^ cl-append(_, deref-fields)
             ^ cl-snoc(_, j-expr(j-assign(compiler.cur-step, entry-label)))
-            ^ cl-snoc(_, j-break)),
+            ^ cl-snoc(_, j-continue)),
         ann-cases.new-cases
           ^ cl-append(_, compiled-body.new-cases)
           ^ cl-snoc(_, j-case(ann-cases.new-label, compiled-body.block)))
@@ -920,7 +968,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(cases-loc))),
         j-expr(j-assign(compiler.cur-step,
             j-binop(j-bracket(dispatch, j-dot(compiled-val, "$name")), J.j-or, else-label))),
-        j-break]),
+        j-continue]),
     new-cases)
 end
 
@@ -945,7 +993,7 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
             j-list(false, field-locs),
             compiler.get-loc(loc),
             compiler.get-loc(obj.l)]))),
-        j-break]),
+        j-continue]),
     new-cases)
 
 end
@@ -1086,7 +1134,7 @@ compiler-visitor = {
             + visit-e.other-stmts
               + [clist:
               j-expr(j-assign(self.cur-ans, visit-e.exp)),
-              j-break]),
+              j-continue]),
         cl-empty)
     end)
   end,
