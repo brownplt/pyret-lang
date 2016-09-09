@@ -606,7 +606,7 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         [ED.error:
-          ed-simple-intro("object lookup", self.loc),
+          ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
            ED.embed(self.obj)]
       else if src-available(self.loc):
@@ -617,7 +617,7 @@ data RuntimeError:
               | s-app(_,f,_) => f
             end
             [ED.error:
-              ed-intro("reference update expression", self.loc, -1, true),
+              ed-intro("field lookup expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("The "),
@@ -626,7 +626,7 @@ data RuntimeError:
               ED.embed(self.non-obj)]
           | none =>
             [ED.error:
-              ed-intro("reference update expression", self.loc, -1, true),
+              ed-intro("field lookup expression", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("The left side was not an object:")],
@@ -634,7 +634,7 @@ data RuntimeError:
         end
       else:
         [ED.error:
-          ed-simple-intro("object lookup", self.loc),
+          ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("The left side was not an object:")],
           ED.embed(self.obj)]
       end
