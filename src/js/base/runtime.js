@@ -1439,6 +1439,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
+                // Early exit for user-thrown exception here
+                if(isContinuation(s)) { return s; }
                 reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
@@ -1478,7 +1480,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             switch($step) {
             case 0:
               $step = 1;
-              return toReprHelp();
+              $ans = toReprHelp();
+              if(isContinuation($ans)) { break; }
+              return $ans;
             case 1:
               if (stack.length === 0) {
                 thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
@@ -1493,8 +1497,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 top.done.push(a);
               }
               $step = 0;
-              break;
+              continue;
             }
+            break;
+          }
+          if(isContinuation($ans)) {
+            $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr"],
+              toReprFun,
+              $step,
+              [],
+              []);
+            return $ans;
           }
         } catch($e) {
           if (thisRuntime.isCont($e)) {
@@ -1544,12 +1558,21 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               }];
               $step = 1;
               $ans = toReprFun();
-              break;
+              if(isContinuation($ans)) { break; }
+              continue;
             case 1:
               stack = stackOfStacks.pop();
               return $ans;
             }
+            break;
           }
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["runtime torepr (reentrant)"],
+            reenterToReprFun,
+            $step,
+            [],
+            []);
+          return $ans;
         } catch($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -1585,16 +1608,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["torepr"], 1, $a); }
-      return makeString(toReprJS(val, ReprMethods._torepr));
+      return toReprJS(val, ReprMethods._torepr);
     }, "torepr");
     var tostring = makeFunction(function(val) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["tostring"], 1, $a); }
-      if(isString(val)) {
-        return makeString(val);
-      }
-      else {
-        return makeString(toReprJS(val, ReprMethods._tostring));
-      }
+      if(isString(val)) { return val; }
+      else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
     var print = makeFunction(
@@ -3768,29 +3787,45 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var currentRunCount = 0;
+      var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          cleanQuit = false;
+          $ans = thisRuntime.makeCont();
         }
         
-        while (curIdx < len) {
+        while (cleanQuit && (curIdx < len)) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
+            cleanQuit = false;
+            $ans = thisRuntime.makeCont();
+            break;
           }
           switch($step) {
           case 0:
             $step = 1;
             $ans = f.app(curIdx);
-            // no need to break
+            if(isContinuation($ans)) {
+              cleanQuit = false;
+              break;
+            }
           case 1:
             arr.push($ans);
             $step = 0;
             curIdx++;
+            continue;
           }
+          break;
         }
-        return arr;
+        if(cleanQuit) {
+          return arr;
+        }
+        else {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+          return $ans;
+        }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
