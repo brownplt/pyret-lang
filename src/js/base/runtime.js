@@ -3072,7 +3072,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(true) {
           started = true;
           if(i >= stop) { return thisRuntime.nothing; }
-          fun.app(i);
+          var res = fun.app(i);
+
+          if (isContinuation(res)) { return res; }
 
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3432,7 +3434,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
-      throw makePause(pause, resumer);
+      return makePause(pause, resumer);
     }
 
     function PausePackage() {
@@ -4174,6 +4176,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
+          if(isContinuation(currentAcc)) { return currentAcc; }
         }
         return currentAcc;
       }
@@ -4182,7 +4185,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
