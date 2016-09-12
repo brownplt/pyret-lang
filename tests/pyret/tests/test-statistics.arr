@@ -39,3 +39,17 @@ check "numeric helpers":
 
 end
 
+check "linear regression":
+  statistics.lin-reg-2V([list: 0], [list: ]) raises "lists must have equal lengths"
+  statistics.lin-reg-2V([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
+
+  f = statistics.lin-reg-2V([list: 0, 1, 2], [list: -5, -3, -1]).predictor()
+  f(0) is -5
+  f(2.5) is 0
+
+  g = statistics.lin-reg-2V([list: -3, 1, 2, 4], [list: ~4, ~1.5, ~0, -2.2]).predictor()
+  g(0) is%(within-abs(0.001)) 1.69423
+  g(1.94911) is%(within-abs(0.001)) 0.0
+
+end
+
