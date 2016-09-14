@@ -4,6 +4,7 @@ provide-types *
 import ast as A
 import string-dict as SD
 import valueskeleton as VS
+import lists as LISTS
 import file("type-structs.arr") as TS
 import file("compile-structs.arr") as C
 import file("type-defaults.arr") as TD
@@ -14,6 +15,7 @@ type ModuleType = TS.ModuleType
 type DataType = TS.DataType
 type Loc = A.Loc
 
+all = LISTS.all
 string-dict = SD.string-dict
 
 t-name = TS.t-name
@@ -41,11 +43,27 @@ is-t-existential = TS.is-t-existential
 new-existential = TS.new-existential
 new-type-var = TS.new-type-var
 
+type-member-map = TS.type-member-map
+
 foldr2 = TS.foldr2
 
 fun bind(f, a): a.bind(f) end
 fun typing-bind(f, a): a.typing-bind(f) end
 fun fold-bind(f, a): a.fold-bind(f) end
+
+data PathElement:
+  | arg-path(arg-num :: Number)
+  | ret-path
+  | app-path(type-num :: Number)
+  | record-path(field-name :: String)
+  | ref-path
+  | tuple-path(tuple-index :: Number)
+end
+
+type Path = List<PathElement>
+
+# The StringDict is a mapping from the path of the type
+type Structure = SD.StringDict<Set<Path>>
 
 # "exported" context after type checking
 data TCInfo:
@@ -139,6 +157,12 @@ sharing:
   end,
   method add-field-constraint(self, typ :: Type, field-name :: String, field-type :: Type):
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-field-constraint(typ, field-name, field-type), self.info)
+  end,
+  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult)) -> Context:
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-variable(existential, arg-types, ret-type, loc, checking-fun), self.info)
+  end,
+  method add-example-type(self, existential :: Type, typ :: Type) -> Context:
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-type(existential, typ), self.info)
   end,
   method add-level(self) -> Context:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-level(), self.info)
@@ -295,15 +319,16 @@ data ConstraintSystem:
                       constraints :: List<{Type; Type}>, # {subtype; supertype}
                       refinement-constraints :: List<{Type; Type}>, # {existential; t-data-refinement}
                       field-constraints :: StringDict<{Type; StringDict<List<Type>>}>, # type -> {type; field labels -> field types (with the location of their use)}
+                      example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult)}>, # existential type for function (from examples) -> {existential; annotation types; example types; check function}
                       next-system :: ConstraintSystem)
   | no-constraints
 sharing:
   method add-variable(self, variable :: Type):
     cases(ConstraintSystem) self:
       | no-constraints => raise("can't add variable to an uninitialized system")
-      | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
         if TS.is-t-existential(variable):
-          constraint-system(variables.add(variable), constraints, refinement-constraints, field-constraints, next-system)
+          constraint-system(variables.add(variable), constraints, refinement-constraints, field-constraints, example-types, next-system)
         else:
           self
         end
@@ -312,30 +337,30 @@ sharing:
   method add-variable-set(self, new-variables :: Set<Type>):
     cases(ConstraintSystem) self:
       | no-constraints => raise("can't add variables to an uninitialized system")
-      | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
-        constraint-system(variables.union(new-variables), constraints, refinement-constraints, field-constraints, next-system)
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+        constraint-system(variables.union(new-variables), constraints, refinement-constraints, field-constraints, example-types, next-system)
     end
   end,
   method add-constraint(self, subtype :: Type, supertype :: Type):
     cases(ConstraintSystem) self:
       | no-constraints => raise("can't add constraints to an uninitialized system: " + tostring(subtype) + " = " + tostring(supertype) + "\n" + tostring(subtype.l) + "\n" + tostring(supertype.l))
-      | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
         fun add-refinement(exists, refinement):
-          constraint-system(variables, constraints, link({exists; refinement}, refinement-constraints), field-constraints, next-system)
+          constraint-system(variables, constraints, link({exists; refinement}, refinement-constraints), field-constraints, example-types, next-system)
         end
         if TS.is-t-existential(subtype) and TS.is-t-data-refinement(supertype):
           add-refinement(subtype, supertype)
         else if TS.is-t-existential(supertype) and TS.is-t-data-refinement(subtype):
           add-refinement(supertype, subtype)
         else:
-          constraint-system(variables, link({subtype; supertype}, constraints), refinement-constraints, field-constraints, next-system)
+          constraint-system(variables, link({subtype; supertype}, constraints), refinement-constraints, field-constraints, example-types, next-system)
         end
     end
   end,
   method add-field-constraint(self, typ :: Type, field-name :: String, field-type :: Type):
     cases(ConstraintSystem) self:
       | no-constraints => raise("can't add constraints to an uninitialized system")
-      | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
         new-field-constraints = cases(Option) field-constraints.get(typ.key()):
           | some({shadow typ; label-mapping}) =>
             new-label-mapping = cases(Option) label-mapping.get(field-name):
@@ -348,34 +373,72 @@ sharing:
           | none =>
             field-constraints.set(typ.key(), {typ; [string-dict: field-name, [list: field-type]]})
         end
-        constraint-system(variables, constraints, refinement-constraints, new-field-constraints, next-system)
+        constraint-system(variables, constraints, refinement-constraints, new-field-constraints, example-types, next-system)
+    end
+  end,
+  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult)):
+    cases(ConstraintSystem) self:
+      | no-constraints => raise("can't add constraints to an uninitialized system")
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+        constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types.set(existential.key(), {existential; {arg-types: arg-types, ret-type: ret-type, loc: loc}; [list: ]; checking-fun}), next-system)
+    end
+  end,
+  method add-example-type(self, existential :: Type, typ :: Type):
+    cases(ConstraintSystem) self block:
+      | no-constraints => raise("can't add constraints to an uninitialized system")
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+        cases(Option) example-types.get(existential.key()):
+          | none =>
+            constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system.add-example-type(existential, typ))
+          | some({_; inference-data; typs; checking-fun}) =>
+            new-example-types = example-types.set(existential.key(), {existential; inference-data; link(typ, typs); checking-fun})
+            constraint-system(variables, constraints, refinement-constraints, field-constraints, new-example-types, next-system)
+        end
     end
   end,
   method add-level(self):
-    constraint-system(empty-list-set, empty, empty, SD.make-string-dict(), self)
+    constraint-system(empty-list-set, empty, empty, SD.make-string-dict(), SD.make-string-dict(), self)
   end,
   method solve-level-helper(self, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     solve-helper-constraints(self, solution, context).bind(lam({system; shadow solution}, shadow context):
       solve-helper-refinements(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-        solve-helper-fields(system, solution, context)
+        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
+          solve-helper-examples(system, solution, context)
+        end)
       end)
     end)
   end,
   method solve-level(self, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
-    self.solve-level-helper(constraint-solution(empty-list-set, [string-dict: ]), context).bind(lam({system; solution}, shadow context):
-      cases(ConstraintSystem) system:
-        | no-constraints =>
-          fold-result({system; solution}, context)
-        | constraint-system(variables, _, _, _, next-system) =>
-          shadow solution = constraint-solution(variables, solution.substitutions)
-          shadow next-system = if is-constraint-system(next-system):
-            next-system.add-variable-set(variables)
-          else:
-            next-system
-          end
-          fold-result({next-system; solution}, context)
-      end
-    end)
+    cases(ConstraintSystem) self:
+      | no-constraints =>
+        fold-result({self; constraint-solution(empty-list-set, [string-dict: ])}, context)
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+        # introduce a half level so any constraints depending on test inference can be solved after test inference
+        shadow next-system = next-system.add-level()
+        {shadow variables; shadow next-system} = example-types.keys-list().foldr(lam(key, {shadow variables; shadow next-system}):
+          {existential; _; _; _} = example-types.get-value(key)
+          {variables.remove(existential); next-system.add-variable(existential)}
+        end, {variables; next-system})
+        system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
+        system.solve-level-helper(constraint-solution(empty-list-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context):
+          # This is solving the level introduced above
+          shadow system = system.next-system.add-variable-set(system.variables)
+          system.solve-level-helper(solution, context).bind(lam({shadow system; shadow solution}, shadow context):
+            cases(ConstraintSystem) system:
+              | no-constraints =>
+                fold-result({system; solution}, context)
+              | constraint-system(shadow variables, _, _, _, _, shadow next-system) =>
+                shadow solution = constraint-solution(variables, solution.substitutions)
+                shadow next-system = if is-constraint-system(next-system):
+                  next-system.add-variable-set(variables)
+                else:
+                  next-system
+                end
+                fold-result({next-system; solution}, context)
+            end
+          end)
+        end)
+    end
   end
 end
 
@@ -398,17 +461,26 @@ fun substitute-in-field-constraints(new-type :: Type, type-var :: Type, field-co
   end, [string-dict: ])
 end
 
+fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>}>):
+  example-types.keys-list().foldr(lam(key, new-example-types):
+    {existential; info; typs} = example-types.get-value(key)
+    new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end)})
+  end, [string-dict: ])
+end
+
 fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
   fun add-substitution(new-type :: Type, type-var :: Type, shadow system :: ConstraintSystem, shadow solution :: ConstraintSolution, shadow context :: Context):
     substitutions = solution.substitutions.set(type-var.key(), {new-type; type-var})
     constraints = substitute-in-constraints(new-type, type-var, system.constraints)
     refinement-constraints = substitute-in-constraints(new-type, type-var, system.refinement-constraints)
     field-constraints = substitute-in-field-constraints(new-type, type-var, system.field-constraints)
+    example-types = substitute-in-example-types(new-type, type-var, system.example-types)
     solve-helper-constraints(
       constraint-system(system.variables,
                         constraints,
                         refinement-constraints,
                         field-constraints,
+                        example-types,
                         system.next-system),
       constraint-solution(empty-list-set, substitutions),
       context)
@@ -416,11 +488,11 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
 
   cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
-    | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       cases(List<{Type; Type}>) constraints:
         | empty => fold-result({system; solution}, context)
         | link(first, rest) =>
-          shadow system = constraint-system(variables, rest, refinement-constraints, field-constraints, next-system)
+          shadow system = constraint-system(variables, rest, refinement-constraints, field-constraints, example-types, next-system)
           {subtype; supertype} = first
           if is-t-top(supertype) or is-t-bot(subtype):
             solve-helper-constraints(system, solution, context)
@@ -442,6 +514,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                                             system.constraints,
                                             system.refinement-constraints,
                                             system.field-constraints,
+                                            system.example-types,
                                             system.next-system.add-constraint(subtype, supertype)),
                           solution,
                           context)
@@ -460,6 +533,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                                           system.constraints,
                                           system.refinement-constraints,
                                           system.field-constraints,
+                                          system.example-types,
                                           system.next-system.add-constraint(subtype, supertype)),
                         solution,
                         context)
@@ -604,12 +678,12 @@ end
 fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
   cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
-    | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types,  next-system) =>
       partitioned = partition(lam({lhs; _}): TS.is-t-existential(lhs) end, refinement-constraints)
       shadow refinement-constraints = partitioned.is-true
       normal-constraints = partitioned.is-false
       if is-link(normal-constraints):
-        shadow system = constraint-system(variables, normal-constraints, field-constraints, next-system)
+        shadow system = constraint-system(variables, normal-constraints, field-constraints, example-types, next-system)
         solve-helper-constraints(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
           solve-helper-refinements(system, solution, context)
         end)
@@ -674,7 +748,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                     end, refinements.first)
                     substitutions.set(exists.key(), {merged-type; exists})
                   end, solution.substitutions)
-                  fold-result({constraint-system(variables, empty, empty, field-constraints, next-system); constraint-solution(empty-list-set, substitutions)}, context)
+                  fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-list-set, substitutions)}, context)
                 end
             end
           end)
@@ -686,12 +760,12 @@ end
 fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
   cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
-    | constraint-system(variables, constraints, refinement-constraints, field-constraints, next-system) =>
+    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       cases(List<String>) field-constraints.keys-list():
         | empty => fold-result({system; solution}, context)
         | link(first, rest) =>
           {typ; field-mappings} = field-constraints.get-value(first)
-          shadow system = constraint-system(system.variables, system.constraints, system.refinement-constraints, system.field-constraints.remove(first), system.next-system)
+          shadow system = constraint-system(system.variables, system.constraints, system.refinement-constraints, system.field-constraints.remove(first), system.example-types, system.next-system)
           instantiate-object-type(typ, context).bind(lam(shadow typ, shadow context):
             cases(Type) typ:
               | t-record(fields, l, _) =>
@@ -723,7 +797,7 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
                       next-system.add-field-constraint(typ, field-name, field-type)
                     end, next-system)
                   end, system.next-system)
-                  shadow system = constraint-system(system.variables, system.constraints, system.refinement-constraints, system.field-constraints, next-system)
+                  shadow system = constraint-system(system.variables, system.constraints, system.refinement-constraints, system.field-constraints, system.example-types, next-system)
                   solve-helper-fields(system, solution, context)
                 end
               | else =>
@@ -747,6 +821,309 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
           end)
       end
   end
+end
+
+# TODO(MATT): check something about incomplete-examples
+# TODO(MATT): check the types of the resulting values
+fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
+  cases(ConstraintSystem) system:
+    | no-constraints => fold-result({system; solution}, context)
+    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+      foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}):
+        {existential; _; fun-examples; checking-fun} = example-types.get-value(existential-key)
+        shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)
+        partitioned = partition(lam(typ): typ.free-variables().size() == 0 end, fun-examples)
+        complete-examples = partitioned.is-true
+        incomplete-examples = partitioned.is-false
+        cases(List<Type>) complete-examples block:
+          | link(first, rest) =>
+            generalized = rest.foldr(generalize-type, first)
+            first-structure = find-structure(first)
+            common-structure = rest.foldr(find-common-structure, first-structure)
+            new-type = maintain-common-structure(common-structure, generalized)
+            fold-result({system; constraint-solution(empty-list-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
+          | empty => raise("TODO(MATT): no concrete examples provided error")
+        end
+      end, example-types.keys-list(), context, {system; solution})
+  end
+end
+
+fun remove-refinements-and-foralls(typ :: Type) -> Type:
+  rraf = remove-refinements-and-foralls
+  cases(Type) typ:
+    | t-name(_, _, _, _) =>
+      typ
+    | t-arrow(args, ret, l, inferred) =>
+      new-args = args.map(rraf)
+      new-ret = rraf(ret)
+      t-arrow(new-args, new-ret, l, inferred)
+    | t-app(onto, args, l, inferred) =>
+      new-onto = rraf(onto)
+      new-args = args.map(rraf)
+      t-app(new-onto, new-args, l, inferred)
+    | t-top(_, _) => typ
+    | t-bot(_, _) => typ
+    | t-record(fields, l, inferred) =>
+      new-fields = type-member-map(fields, {(_, field-type): rraf(field-type)})
+      t-record(new-fields, l, inferred)
+    | t-tuple(elts, l, inferred) =>
+      t-tuple(elts.map(rraf), l, inferred)
+    | t-forall(introduces, onto, l, inferred) =>
+      new-onto = introduces.foldr(lam(a-var, new-onto): new-onto.substitute(new-existential(a-var.l, false), a-var) end, onto)
+      shadow new-onto = rraf(new-onto)
+      new-onto
+    | t-ref(ref-typ, l, inferred) =>
+      t-ref(rraf(ref-typ), inferred)
+    | t-data-refinement(data-type, variant-name, l, inferred) =>
+      data-type
+    | t-var(id, l, _) =>
+      typ
+    | t-existential(id, l, inferred) =>
+      typ
+  end
+end
+
+fun generalize-type(current-type :: Type, next-type :: Type):
+  new-var = lam(): new-existential(current-type.l, false) end
+  cases(Type) current-type:
+    | t-name(a-module-name, a-id, _, _) =>
+      cases(Type) next-type:
+        | t-name(b-module-name, b-id, _, _) =>
+          if (a-module-name == b-module-name) and (a-id == b-id): current-type
+          else: new-var() end
+        | else => new-var()
+      end
+    | t-arrow(a-args, a-ret, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-arrow(b-args, b-ret, _, _) =>
+          if a-args.length() <> b-args.length(): new-var()
+          else:
+            new-args = map2(generalize-type, a-args, b-args)
+            new-ret = generalize-type(a-ret, b-ret)
+            t-arrow(new-args, new-ret, a-l, a-inferred)
+          end
+        | else => new-var()
+      end
+    | t-app(a-onto, a-args, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-app(b-onto, b-args, _, _) =>
+          if (a-args.length() <> b-args.length()) or (a-onto <> b-onto): new-var()
+          else:
+            new-args = map2(generalize-type, a-args, b-args)
+            t-app(a-onto, new-args, a-l, a-inferred)
+          end
+        | else => new-var()
+      end
+    | t-top(_, _) =>
+      cases(Type) next-type:
+        | t-top(_, _) => current-type
+        | else => new-var()
+      end
+    | t-bot(_, _) =>
+      cases(Type) next-type:
+        | t-bot(_, _) => current-type
+        | else => new-var()
+      end
+    | t-record(a-fields, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-record(b-fields, _, _) =>
+          if a-fields.keys() <> b-fields.keys(): new-var()
+          else:
+            new-fields = a-fields.keys-list().foldr(lam(key, new-fields):
+              generalize-type(a-fields.get-value(key), b-fields.get-value(key))
+            end, [string-dict: ])
+            t-record(new-fields, a-l, a-inferred)
+          end
+        | else => new-var()
+      end
+    | t-tuple(a-elts, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-tuple(b-elts, _, _) =>
+          if a-elts.length() <> b-elts.length(): new-var()
+          else:
+            new-elts = map2(generalize-type, a-elts, b-elts)
+            t-tuple(new-elts, a-l, a-inferred)
+          end
+        | else => new-var()
+      end
+    | t-forall(_, _, _, _) => raise("foralls should have been removed")
+    | t-ref(a-typ, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-ref(b-typ, _, _) =>
+          t-ref(generalize-type(a-typ, b-typ), a-l, a-inferred)
+        | else => new-var()
+      end
+    | t-data-refinement(_, _, _, _) => raise("refinements should have been removed")
+    | t-var(a-id, a-l, a-inferred) =>
+      cases(Type) next-type:
+        | t-var(b-id, _, _) =>
+          if a-id == b-id: current-type
+          else: new-var()
+          end
+        | else => new-var()
+      end
+    | t-existential(_, _, _) => current-type
+  end
+end
+
+fun find-common-structure(typ :: Type, structure :: Structure) -> Structure:
+  new-structure = find-structure(typ)
+  new-keys = new-structure.keys-list()
+  new-keys.foldr(lam(new-key, result-structure):
+    cases(Option<Set<Path>>) structure.get(new-key):
+      | none => result-structure
+      | some(old-set) =>
+        result-set = new-structure.get-value(new-key)
+        result-structure.set(new-key, result-set.intersect(old-set))
+    end
+  end, [string-dict: ])
+end
+
+fun find-structure(typ :: Type) -> Structure:
+  flattened-type = flatten-tree-with-paths(typ)
+
+  fun gather-set(shadow typ :: Type, rest :: List<{Type; Path}>) -> Set<Path>:
+    rest.foldr(lam({rest-typ; path}, current-set):
+      if typ == rest-typ:
+        current-set.add(path)
+      else:
+        current-set
+      end
+    end, [list-set: ])
+  end
+
+  fun _find-structure(_flattened-type):
+    cases(List<{Type; Path}>) _flattened-type:
+      | empty => [SD.string-dict: ]
+      | link({first-type; first-path}, rest) =>
+        temp-set = gather-set(first-type, flattened-type)
+        first-set = temp-set.remove(first-path)
+        _find-structure(rest).set(tostring(first-path), first-set)
+    end
+  end
+
+  _find-structure(flattened-type)
+end
+
+fun flatten-list<X>(xs :: List<List<X>>) -> List<X>:
+  xs.foldl(lam(a, b): b.append(a) end, empty)
+end
+
+fun flatten-tree-with-paths(typ :: Type) -> List<{Type; Path}>:
+  fun _flatten-tree-with-paths(shadow typ, current-path :: Path):
+    cases(Type) typ:
+      | t-name(_, _, _, _) =>
+        [list: {typ; current-path}]
+      | t-arrow(args, ret, _, _) =>
+        arg-pairs = map_n(lam(idx, arg):
+          _flatten-tree-with-paths(arg, current-path.append([list: arg-path(idx)]))
+        end, 0, args)
+        ret-pairs = _flatten-tree-with-paths(ret, current-path.append([list: ret-path]))
+        flatten-list(arg-pairs)
+          .append(ret-pairs)
+          .append([list: {typ; current-path}])
+      | t-app(onto, args, _, _) =>
+        type-pairs = map_n(lam(idx, arg):
+          _flatten-tree-with-paths(arg, current-path.append([list: app-path(idx)]))
+        end, 0, args)
+        #onto-pairs = _flatten-tree-with-paths(onto, current-path.append([list: app-onto-path]))
+        flatten-list(type-pairs)
+        #  .append(onto-pairs)
+          .append([list: {typ; current-path}])
+      | t-top(_, _) =>
+        [list: {typ; current-path}]
+      | t-bot(_, _) =>
+        [list: {typ; current-path}]
+      | t-record(fields, _, _) =>
+        field-pairs = fields.keys-list().foldr(lam(field-name, pairs):
+          pairs.append(_flatten-tree-with-paths(fields.get-value(field-name), current-path.append([list: record-path(field-name)])))
+        end, empty)
+        flatten-list(field-pairs)
+          .append([list: {typ; current-path}])
+      | t-tuple(elts, _, _) =>
+        elt-pairs = map_n(lam(idx, elt):
+          _flatten-tree-with-paths(elt, current-path.append([list: tuple-path(idx)]))
+        end, 0, elts)
+        flatten-list(elt-pairs)
+          .append([list: {typ; current-path}])
+      | t-forall(introduces, onto, l, _) =>
+        raise("Foralls should have been removed")
+      | t-ref(ref-type, _, _) =>
+        _flatten-tree-with-paths(ref-type, current-path.append([list: ref-path]))
+          .append([list: {typ; current-path}])
+      | t-data-refinement(_, _, _, _) =>
+        raise("Refinements should have been removed")
+      | t-var(_, _, _) =>
+        [list: {typ; current-path}]
+      | t-existential(_, _, _) =>
+        [list: {typ; current-path}]
+    end
+  end
+  _flatten-tree-with-paths(typ, empty)
+end
+
+fun maintain-common-structure(struct :: Structure, typ :: Type) -> Type:
+  # sets all common existentials to the same variable
+  # new-paths is a map from path -> existential to place at that path
+  fun _maintain-structure(shadow typ, current-path :: Path, new-paths :: SD.MutableStringDict<Type>):
+    cases(Type) typ:
+      | t-name(_, _, _, _) =>
+        typ
+      | t-arrow(args, ret, l, inferred) =>
+        new-args = map_n(lam(idx, arg):
+          _maintain-structure(arg, current-path.append([list: arg-path(idx)]), new-paths)
+        end, 0, args)
+        new-ret = _maintain-structure(ret, current-path.append([list: ret-path]), new-paths)
+        t-arrow(new-args, new-ret, l, inferred)
+      | t-app(onto, args, l, inferred) =>
+        new-args = map_n(lam(idx, arg):
+          _maintain-structure(arg, current-path.append([list: app-path(idx)]), new-paths)
+        end, 0, args)
+        t-app(onto, new-args, l, inferred)
+      | t-top(_, _) =>
+        typ
+      | t-bot(_, _) =>
+        typ
+      | t-record(fields, l, inferred) =>
+        new-fields = type-member-map(fields, lam(field-name, field-type):
+          _maintain-structure(field-type, current-path.append([list: record-path(field-name)]), new-paths)
+        end)
+        t-record(new-fields, l, inferred)
+      | t-tuple(elts, l, inferred) =>
+        new-elts = map_n(lam(idx, elt):
+          _maintain-structure(elt, current-path.append([list: tuple-path(idx)]), new-paths)
+        end, 0, elts)
+        t-tuple(new-elts, l, inferred)
+      | t-forall(_, _, _, _) =>
+        raise("Foralls should have been removed")
+      | t-ref(ref-type, l, inferred) =>
+        t-ref(_maintain-structure(ref-type, current-path.append([list: ref-path]), new-paths), l, inferred)
+      | t-data-refinement(_, _, _, _) =>
+        raise("Refinements should have been removed")
+      | t-var(_, _, _) =>
+        typ
+      | t-existential(_, _, _) =>
+        cases(Option<Type>) new-paths.get-now(tostring(current-path)):
+          | some(new-exists) =>
+            new-exists
+          | none =>
+            cases(Option<Set<Path>>) struct.get(tostring(current-path)) block:
+              | some(paths) =>
+                each(lam(path):
+                  new-paths.set-now(tostring(path), typ)
+                end, paths.to-list())
+                typ
+              | none =>
+                typ
+            end
+        end
+    end
+  end
+
+  maintained = _maintain-structure(typ, empty, [SD.mutable-string-dict: ])
+  existentials = maintained.free-variables()
+  temp-solution = constraint-solution(existentials, [string-dict: ])
+  temp-solution.generalize(maintained)
 end
 
 # resolves the type down to either a t-record, an existential, or a data type

@@ -483,8 +483,9 @@ sharing:
     end
   end,
   method _output(self):
-    fun helper(typ, free-vars-mapping):
-      h = helper(_, free-vars-mapping)
+    var current-letter = "A"
+    fun helper(typ, free-vars-mapping, tyvar-mapping):
+      h = helper(_, free-vars-mapping, tyvar-mapping)
       cases(Type) typ:
         | t-name(module-name, id, _, _) =>
           VS.vs-str(id.toname())
@@ -518,9 +519,24 @@ sharing:
           VS.vs-seq([list: VS.vs-str("("),
                           h(data-type),
                           VS.vs-str(" % is-" + variant-name + ")")])
-        # TODO(MATT): pretty print %tyvar
         | t-var(id, _, _) =>
-          VS.vs-str(id.toname())
+          cases(Name) id:
+            | s-atom(base, _) =>
+              if base == "%tyvar":
+                cases(Option<String>) tyvar-mapping.get-now(typ.key()) block:
+                  | some(name) => VS.vs-str(name)
+                  | none =>
+                    letter = current-letter
+                    tyvar-mapping.set-now(typ.key(), current-letter)
+                    current-letter := string-from-code-point(string-to-code-point(letter) + 1)
+                    VS.vs-str(letter)
+                end
+              else:
+                VS.vs-str(id.toname())
+              end
+            | else =>
+              VS.vs-str(id.toname())
+          end
         | t-existential(id, _, _) =>
           VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
       end
@@ -529,7 +545,7 @@ sharing:
     free-vars-mapping = fold_n(lam(position, mapping, free-var):
       mapping.set(free-var.key(), tostring(position))
     end, 1, SD.make-string-dict(), free-vars-list)
-    helper(self, free-vars-mapping)
+    helper(self, free-vars-mapping, SD.make-mutable-string-dict())
   end
 end
 
