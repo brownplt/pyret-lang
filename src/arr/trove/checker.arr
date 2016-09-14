@@ -520,13 +520,10 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   {
     method run-checks(self, module-name, checks):
       when check-all or (module-name == main-module-name) block:
-        print("There are " + tostring(checks.length()) + " check blocks to run \n")
         for each(c from checks) block:
-          print("Running a check: " + torepr(c) + "\n")
           results-before = current-results
           reset-results()
           result = run-task(c.run)
-          print("Got a result: " + torepr(result) + "\n")
           cases(Either) result:
             | left(v) => add-block-result(check-block-result(c.name, c.location, current-results, none))
             | right(err) => add-block-result(check-block-result(c.name, c.location, current-results, some(err)))

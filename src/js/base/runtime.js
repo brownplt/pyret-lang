@@ -2530,7 +2530,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       } else {
         return safeCall(function() {
           var res = ann.check(compilerLoc, val);
-          if(thisRuntime.isContinuation(res)) { console.trace(); }
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return val; }
@@ -2548,7 +2548,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       else {
         return safeCall(function() {
           var res = ann.check(compilerLoc, val);
-          if(thisRuntime.isContinuation(res)) { console.trace(); }
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
           return returnOrRaise(result, val, after);
@@ -5173,7 +5173,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           "}\n" +
           checksPlusBody + "\n" +
           "}";
-        CONSOLE.log(constrFun);
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
