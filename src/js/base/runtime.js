@@ -3860,16 +3860,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var currentRunCount = 0;
+      var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          $ans = thisRuntime.makeCont();
+          cleanQuit = false;
         }
         
-        while (curIdx < len) {
+        while (cleanQuit && curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
+            $ans = thisRuntime.makeCont();
+            cleanQuit = false;
           }
           switch($step) {
           case 0:
@@ -3877,14 +3880,27 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             $ans = f.app(curIdx);
             // no need to break
           case 1:
+            if (thisRuntime.isContinuation($ans)) {
+              cleanQuit = false;
+              break;
+            }
             if (thisRuntime.ffi.isSome($ans)) {
               arr.push(thisRuntime.getField($ans, "value"));
             }
             $step = 0;
             curIdx++;
+            continue;
           }
+          break;
         }
-        return arr;
+        if(cleanQuit) {
+          return arr;
+        }
+        else {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
+          return $ans;
+        }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
