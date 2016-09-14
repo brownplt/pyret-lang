@@ -1950,8 +1950,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
-                  // If this call stack-throws,
+                  // If this call stack-returns,
                   var newAns = getColonField(curLeft, "_equals").full_meth(curLeft, curRight, equalFunPy);
+                  if(isContinuation(newAns)) { return newAns; }
                   // the continuation stacklet will get the result, and combine them manually
                   toCompare.curAns = combineEquality(toCompare.curAns, newAns);
                 }
