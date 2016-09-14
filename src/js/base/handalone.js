@@ -159,7 +159,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var getStackP = runtime.makeFunction(getStack, "get-stack");
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
-    runtime.safeCall(function() {
+    return runtime.safeCall(function() {
       return toCall.app(checks, getStackP);
     }, function(summary) {
       if(runtime.isObject(summary)) {

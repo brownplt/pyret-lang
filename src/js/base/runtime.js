@@ -2433,7 +2433,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
-      if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
+      if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
       throw "Internal error: got invalid result from annotation check";
     }
 
@@ -2504,7 +2504,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         throw "Internal error: got invalid result from annotation check";
       } else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return val; }
           if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
@@ -2520,7 +2522,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
@@ -3011,6 +3015,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function safeCall(fun, after, stackFrame) {
       var $ans = undefined;
       var $step = 0;
+      var skipLoop = false;
       if (thisRuntime.isActivationRecord(fun)) {
         var $ar = fun;
         $step = $ar.step;
@@ -3023,9 +3028,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          skipLoop = true;
+          $ans = thisRuntime.makeCont();
         }
-        while(true) {
+        while(!skipLoop) {
           switch($step) {
           case 0:
             $step = 1;
@@ -3041,16 +3047,17 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           case 2:
             return $ans;
           }
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(
-              "safeCall for " + stackFrame,
-              safeCall,
-              $step,
-              [ fun, after, stackFrame ],
-              [ $fun_ans ]
-            );
-          return $ans;
+          break;
         }
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(
+            "safeCall for " + stackFrame,
+            safeCall,
+            $step,
+            [ fun, after, stackFrame ],
+            [ $fun_ans ]
+          );
+        return $ans;
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
@@ -3073,17 +3080,17 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var i = start;
       var started = false;
       var currentRunCount = 0;
-      if(thisRuntime.isActivationRecord(fun)) {
-        var ar = fun
-        i = ar.vars[0];
-        fun = ar.vars[1];
-        stop = ar.vars[2];
-        started = ar.vars[3];
-        if (started) {
-          i = i + 1;
+      function restart(_fun) {
+        if(thisRuntime.isActivationRecord(_fun)) {
+          var ar = fun
+          i = ar.vars[0];
+          fun = ar.vars[1];
+          stop = ar.vars[2];
+          started = ar.vars[3];
+          if (started) {
+            i = i + 1;
+          }
         }
-      }
-      try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           return thisRuntime.makeCont();
@@ -3102,13 +3109,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           else { i = i + 1; }
         }
       }
-      catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord("eachLoop", eachLoop, true, [], [i, fun, stop, started]);
-        }
-        throw $e;
+      var res = restart();
+      if(isContinuation(res)) {
+        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, fun, stop, started]);
       }
+      return res;
     }
 
     var RUN_ACTIVE = false;
@@ -3939,7 +3945,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       function foldHelp() {
         while(++currentIndex < length) {
-          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          if(isContinuation(res)) { return res; }
+          currentAcc = res;
         }
         return currentAcc;
       }
@@ -3948,7 +3956,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -3975,7 +3991,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
@@ -3984,7 +4002,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
-          return mapHelp();
+          var res = mapHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4011,7 +4037,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+          var res = f.app(arr[currentIndex], currentIndex);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
@@ -4020,7 +4048,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
-          return mapHelp();
+          var res = mapHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-mapi"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4049,7 +4085,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc.push(f.app(currentFst));
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          currentAcc.push(res);
         }
         return thisRuntime.ffi.makeList(currentAcc);
       }
@@ -4058,7 +4096,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc.push($ar.ans);
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-map"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4130,7 +4176,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          if(f.app(currentFst)) {
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          if(res) {
             currentAcc.push(currentFst);
           }
         }
@@ -4143,7 +4191,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               currentAcc.push(currentFst);
             }
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-filter"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4170,7 +4226,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array();
       function filterHelp() {
         while(++currentIndex < length) {
-          if(isPyretTrue(f.app(arr[currentIndex]))){
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          if(isPyretTrue(res)){
             newArray.push(arr[currentIndex]);
           }
         }
@@ -4181,7 +4239,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             if($ar.ans) { newArray.push(arr[currentIndex]); }
           }
-          return filterHelp();
+          var res = filterHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-filter"],
+              filterFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -5058,7 +5124,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
 
         var checksPlusBody = "";
-        if(hasRefinement) {
+        if(true /* hasRefinement */) {
           checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
             constructorBody + "\n" +
           "});";
@@ -5066,11 +5132,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         else {
           checkArgs.forEach(function(a, i) {
             if(checkMuts[i]) {
-              checksPlusBody += "thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
             else {
-              checksPlusBody += "thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
+            checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
           });
           checksPlusBody += constructorBody;
         }
@@ -5081,7 +5148,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           "}\n" +
           checksPlusBody + "\n" +
           "}";
-        //CONSOLE.log(constrFun);
+        CONSOLE.log(constrFun);
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));

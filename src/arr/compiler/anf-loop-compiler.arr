@@ -642,6 +642,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
     if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
       acc
     else:
+      ann-result = fresh-id(compiler-name("ann-check"))
       compiled-ann = compile-ann(b.ann, visitor)
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
@@ -649,8 +650,12 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
           [clist:
             j-expr(j-assign(step, new-label)),
             j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
-            j-expr(rt-method("_checkAnn",
+            j-var(ann-result, rt-method("_checkAnn",
               [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+            j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
+              j-block([clist:
+                j-expr(j-assign(visitor.cur-ans, j-id(ann-result))),
+                j-break])),
             j-continue]))
       cur-target := new-label
       cl-snoc(acc, new-case)
@@ -682,6 +687,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
     after-ann = visitor.make-label()
     after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
     compiled-ann = compile-ann(b.ann, visitor)
+    ann-result = fresh-id(compiler-name("ann-check"))
     c-block(
       j-block(
         compiled-e.other-stmts +
@@ -690,10 +696,12 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
         [clist:
           j-expr(j-assign(step, after-ann)),
           j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
-          j-expr(rt-method("_checkAnn", [clist:
-                visitor.get-loc(b.ann.l),
-                compiled-ann.exp,
-                j-id(js-id-of(b.id))])),
+          j-var(ann-result, rt-method("_checkAnn",
+            [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+          j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
+            j-block([clist:
+              j-expr(j-assign(visitor.cur-ans, j-id(ann-result))),
+              j-break])),
           j-continue
         ]),
       cl-cons(after-ann-case, compiled-body.new-cases))
@@ -739,7 +747,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
           j-expr(j-assign(step,  after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-          j-expr(j-assign(colon-field-id.id, colon-field)),
+          j-var(colon-field-id.id, colon-field),
           # if num-args < 6:
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(j-id(colon-field-id), link(compiled-obj, compiled-args))))))
@@ -867,6 +875,9 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
         j-var(temp-branch,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
+        j-if1(rt-method("isContinuation", [clist: j-id(compiler.cur-ans)]),
+          j-block([clist:
+            j-break])),
         j-continue]
 
     c-block(
