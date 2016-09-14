@@ -258,21 +258,15 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
         temp-marked.set-now(locator.uri(), true)
         pmap = SD.make-mutable-string-dict()
         deps = locator.get-dependencies()
-        print("Dependencies: " + torepr(deps) + "\n")
         found-mods = for map(d from deps) block:
-          print("Searching for: " + torepr(d) + "\n")
           found = dfind(context, d)
-          print("Found: " + found.locator.uri() + "\n")
           pmap.set-now(d.key(), found.locator)
           found
         end
-        print("Found mods: " + torepr(for map(l from found-mods): l.locator.uri() end) + "\n")
         # visit all dependents
         for map(f from found-mods):
           visit(f.locator, f.context, link(f.locator, curr-path))
         end
-        print("Done mapping" + "\n")
-        print("Linking " + locator.uri() + "\n")
         # add current locator to head of topo sort
         topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
         # mark current locator permanently
@@ -282,9 +276,7 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
   end
   # our include edges are backwards to how the topological sort algorithm expects dependencies,
   # so reverse the result
-  print("Building a worklist for: " + locator.uri() + "\n")
   ans = visit(locator, context, [list: locator]).reverse()
-  print("The list was: " + for map(l from ans): l.locator.uri() end.join-str(", ") + "\n")
   ans
 end
 
