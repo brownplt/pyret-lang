@@ -2038,10 +2038,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               $step = 1;
               $ans = equalHelp();
               if(isContinuation($ans)) {
-                debugger;
                 $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
                   stackFrameDesc,
-                  reenterEqualFun,
+                  equalFun,
                   $step,
                   [],
                   []);
@@ -2085,7 +2084,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               $step = 1;
               $ans = equalFun();
               if(isContinuation($ans)) {
-                debugger;
                 $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
                   stackFrameDesc,
                   reenterEqualFun,
