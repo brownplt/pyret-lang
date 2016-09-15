@@ -586,11 +586,12 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
                 |#
                 j-return(j-id(local-compiler.cur-ans))]
 
+  check-cont = j-unop(rt-method("isContinuation", [clist: j-id(local-compiler.cur-ans)]), j-not)
+
   j-block([clist:
       j-var(step, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
-      j-var(doloop, j-true),
       #j-try-catch(
       #j-block([clist:
           preamble,
@@ -598,9 +599,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
             j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
                 # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
                 # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
-                j-expr(j-assign(doloop, j-false)),
                 j-expr(j-assign(local-compiler.cur-ans, rt-method("makeCont", cl-empty)))])),
-          j-while(j-id(doloop),
+          j-while(check-cont,
             j-block([clist:
                 # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
                 j-switch(j-id(step), switch-cases),
@@ -654,8 +654,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
               [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
             j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
               j-block([clist:
-                j-expr(j-assign(visitor.cur-ans, j-id(ann-result))),
-                j-break])),
+                j-expr(j-assign(visitor.cur-ans, j-id(ann-result)))])),
             j-continue]))
       cur-target := new-label
       cl-snoc(acc, new-case)
@@ -700,8 +699,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
             [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
           j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
             j-block([clist:
-              j-expr(j-assign(visitor.cur-ans, j-id(ann-result))),
-              j-break])),
+              j-expr(j-assign(visitor.cur-ans, j-id(ann-result)))])),
           j-continue
         ]),
       cl-cons(after-ann-case, compiled-body.new-cases))
@@ -760,10 +758,6 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                   check-fun(compiler.get-loc(l), colon-field-id),
                   j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
                 ])),
-            # If the answer is a cont, jump to the end of the current function
-            # rather than continuing normally
-            j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
-              j-block([clist: j-break])),
           # end
           j-continue]),
       new-cases)
@@ -795,9 +789,6 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                 ])),
             # If the answer is a cont, jump to the end of the current function
             # rather than continuing normally
-            j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
-              j-block([clist: j-break])),
-              # end
           j-continue]),
       new-cases)
   end
@@ -819,8 +810,6 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         # If the answer is a cont, jump to the end of the current function
         # rather than continuing normally
-        j-if1(rt-method("isContinuation", [clist: j-id(ans)]),
-          j-block([clist: j-break])),
         j-continue]),
     new-cases)
 end
@@ -875,9 +864,6 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
         j-var(temp-branch,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
-        j-if1(rt-method("isContinuation", [clist: j-id(compiler.cur-ans)]),
-          j-block([clist:
-            j-break])),
         j-continue]
 
     c-block(

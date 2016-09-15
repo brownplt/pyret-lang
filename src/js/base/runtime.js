@@ -3296,7 +3296,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
               // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
-              next.ans = val;
+              if(!isContinuation(val)) {
+                next.ans = val;
+              }
               // CONSOLE.log("GAS = ", thisRuntime.GAS);
 
 
