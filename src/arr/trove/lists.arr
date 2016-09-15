@@ -812,6 +812,19 @@ fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
   end
 end  
 
+fun distinct(l :: List) -> List:
+  doc: "returns a list with exactly the distinct elements of the original list removing the first instance"
+  cases (List) l:
+    | empty => empty
+    | link(first, rest) =>
+      cases(equality.EqualityResult) member3(rest, first):
+        | NotEqual(_, _, _) => link(first, distinct(rest))
+        | Unknown(_, _, _) => link(first, distinct(rest))
+        | Equal => distinct(rest)
+      end
+  end
+end
+
 fun length(l :: List) -> Number:
   l.length()
 end
