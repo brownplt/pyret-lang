@@ -533,11 +533,9 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   end
   stack-attach-guard =
     if compiler.options.proper-tail-calls:
-      j-binop(rt-method("isCont", [clist: j-id(ans)]),
-        j-and,
-        j-parens(j-binop(j-id(step), j-neq, ret-label)))
+      j-binop(j-id(step), j-neq, ret-label)
     else:
-      rt-method("isCont", [clist: j-id(e)])
+      j-true
     end
 
   switch-cases =
@@ -603,8 +601,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           j-while(check-cont,
             j-block([clist:
                 # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
-                j-switch(j-id(step), switch-cases),
-                j-break]))] + after-loop)
+                j-switch(j-id(step), switch-cases)]))] + after-loop)
       #|
         e,
         j-block(
@@ -655,7 +652,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
             j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
               j-block([clist:
                 j-expr(j-assign(visitor.cur-ans, j-id(ann-result)))])),
-            j-continue]))
+            j-break]))
       cur-target := new-label
       cl-snoc(acc, new-case)
     end
@@ -700,7 +697,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
           j-if1(rt-method("isContinuation", [clist: j-id(ann-result)]),
             j-block([clist:
               j-expr(j-assign(visitor.cur-ans, j-id(ann-result)))])),
-          j-continue
+          j-break
         ]),
       cl-cons(after-ann-case, compiled-body.new-cases))
   end
@@ -759,7 +756,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                   j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
                 ])),
           # end
-          j-continue]),
+          j-break]),
       new-cases)
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
@@ -789,7 +786,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                 ])),
             # If the answer is a cont, jump to the end of the current function
             # rather than continuing normally
-          j-continue]),
+          j-break]),
       new-cases)
   end
 end
@@ -810,7 +807,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         # If the answer is a cont, jump to the end of the current function
         # rather than continuing normally
-        j-continue]),
+        j-break]),
     new-cases)
 end
 
@@ -831,7 +828,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
         j-expr(j-assign(compiler.cur-step,
             j-ternary(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
               consq-label, alt-label))),
-        j-continue
+        j-break
       ]),
     new-cases)
 end
@@ -864,7 +861,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
         j-var(temp-branch,
           j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args), compiled-branch-fun)),
         deref-fields,
-        j-continue]
+        j-break]
 
     c-block(
       j-block(preamble + actual-app),
@@ -923,7 +920,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
             ^ cl-snoc(_, get-field-names)
             ^ cl-append(_, deref-fields)
             ^ cl-snoc(_, j-expr(j-assign(compiler.cur-step, entry-label)))
-            ^ cl-snoc(_, j-continue)),
+            ^ cl-snoc(_, j-break)),
         ann-cases.new-cases
           ^ cl-append(_, compiled-body.new-cases)
           ^ cl-snoc(_, j-case(ann-cases.new-label, compiled-body.block)))
@@ -965,7 +962,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
         j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(cases-loc))),
         j-expr(j-assign(compiler.cur-step,
             j-binop(j-bracket(dispatch, j-dot(compiled-val, "$name")), J.j-or, else-label))),
-        j-continue]),
+        j-break]),
     new-cases)
 end
 
@@ -990,7 +987,7 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
             j-list(false, field-locs),
             compiler.get-loc(loc),
             compiler.get-loc(obj.l)]))),
-        j-continue]),
+        j-break]),
     new-cases)
 
 end
@@ -1131,7 +1128,7 @@ compiler-visitor = {
             + visit-e.other-stmts
               + [clist:
               j-expr(j-assign(self.cur-ans, visit-e.exp)),
-              j-continue]),
+              j-break]),
         cl-empty)
     end)
   end,
