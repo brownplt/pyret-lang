@@ -3587,7 +3587,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1143;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
 
     var DEBUGLOG = true;
     /**
