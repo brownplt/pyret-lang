@@ -842,7 +842,7 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
             common-structure = rest.foldr(find-common-structure, first-structure)
             new-type = maintain-common-structure(common-structure, generalized)
             fold-result({system; constraint-solution(empty-list-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
-          | empty => raise("TODO(MATT): no concrete examples provided error")
+          | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
         end
       end, example-types.keys-list(), context, {system; solution})
   end
