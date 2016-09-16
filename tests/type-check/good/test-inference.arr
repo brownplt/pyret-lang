@@ -22,3 +22,12 @@ end
 
 test-1 :: Number = f(1, 2)
 test-2 :: List<Number> = my-map(lam(x): string-length(x) end, [list: "a"])
+
+fun q(x, y):
+  x.a + y.a
+where:
+  q({a: 1}, {a: 1, b: 2}) is 2
+  q({a: 1}, {a: 2}) is 3
+end
+
+test-3 :: Number = q({a: 1}, {a: 2})

@@ -927,13 +927,11 @@ fun generalize-type(current-type :: Type, next-type :: Type):
     | t-record(a-fields, a-l, a-inferred) =>
       cases(Type) next-type:
         | t-record(b-fields, _, _) =>
-          if a-fields.keys() <> b-fields.keys(): new-var()
-          else:
-            new-fields = a-fields.keys-list().foldr(lam(key, new-fields):
-              generalize-type(a-fields.get-value(key), b-fields.get-value(key))
-            end, [string-dict: ])
-            t-record(new-fields, a-l, a-inferred)
-          end
+          keys-set = a-fields.keys().intersect(b-fields.keys())
+          new-fields = keys-set.fold(lam(new-fields, key):
+            new-fields.set(key, generalize-type(a-fields.get-value(key), b-fields.get-value(key)))
+          end, [string-dict: ])
+          t-record(new-fields, a-l, a-inferred)
         | else => new-var()
       end
     | t-tuple(a-elts, a-l, a-inferred) =>
@@ -1010,7 +1008,7 @@ fun flatten-list<X>(xs :: List<List<X>>) -> List<X>:
 end
 
 fun flatten-tree-with-paths(typ :: Type) -> List<{Type; Path}>:
-  fun _flatten-tree-with-paths(shadow typ, current-path :: Path):
+  fun _flatten-tree-with-paths(shadow typ, current-path :: Path) -> List<{Type; Path}>:
     cases(Type) typ:
       | t-name(_, _, _, _) =>
         [list: {typ; current-path}]
@@ -1038,8 +1036,7 @@ fun flatten-tree-with-paths(typ :: Type) -> List<{Type; Path}>:
         field-pairs = fields.keys-list().foldr(lam(field-name, pairs):
           pairs.append(_flatten-tree-with-paths(fields.get-value(field-name), current-path.append([list: record-path(field-name)])))
         end, empty)
-        flatten-list(field-pairs)
-          .append([list: {typ; current-path}])
+        field-pairs.append([list: {typ; current-path}])
       | t-tuple(elts, _, _) =>
         elt-pairs = map_n(lam(idx, elt):
           _flatten-tree-with-paths(elt, current-path.append([list: tuple-path(idx)]))
