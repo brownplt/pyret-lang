@@ -555,14 +555,16 @@ end
 fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
+  var case-num = 0
   for CL.each(body-case from body-cases):
+    case-num := !case-num + 1
     when J.is-j-case(body-case):
       acc-dag.set-now(tostring(body-case.exp.label.get()),
         node(body-case.exp.label,
           cases(J.JBlock) body-case.body:
             | j-block1(s) => find-steps-to(cl-sing(s), step)
             | j-block(stmts) => find-steps-to(stmts, step)
-          end, body-case,
+          end, body-case, !case-num,
           ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
     end
   end
