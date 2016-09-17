@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import lists as L
 import sets as S
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
@@ -49,14 +50,30 @@ end
 
 data GraphNode:
   | node(_from :: J.Label, _to :: ConcatList<J.Label>, case-body :: J.JCase,
+      location :: Number
       ref free-vars :: NameSet,
-      ref used-vars :: NameSet,
-      ref decl-vars :: NameSet,
-      ref live-vars :: Option<NameSet>,
-      ref live-after-vars :: Option<NameSet>,
+      ref used-vars :: NameSet, # use[n]
+      ref decl-vars :: NameSet, # def[n]
+      ref live-vars :: Option<NameSet>, # in[n]
+      ref live-after-vars :: Option<NameSet>, # out[n]
       ref dead-vars :: Option<NameSet>,
       ref dead-after-vars :: Option<NameSet>)
     # note: _to is a set, determined by identical
+    # _from = prec[n]
+    # _to = succ[n]
+    with:
+    # For sorting
+    method _lessthan(self, other):
+      self.location < other.location
+    end
+end
+
+data LiveInterval:
+  | live-interval(variable :: A.Name, first :: String, last :: String)
+    with:
+    method startloc(self, dag): dag.get-value(first).location end,
+    method endloc(self, dag): dag.get-value(last).location end,
+    method withlast(self, last): live-interval(self.variable, self.first, last) end
 end
 
 data CaseResults:
@@ -68,6 +85,7 @@ end
 data RegisterAllocation:
   | results(body :: ConcatList<J.JCase>, discardable-vars :: FrozenNameSet)
 end
+
 
 fun used-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
@@ -271,23 +289,116 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
     | some(live) => 
       live
     | none =>
-      live-after = copy-nameset(n!free-vars)
-      for CL.each(follow from n._to):
-        next-opt = dag.get(tostring(follow.get()))
-        when is-some(next-opt):
-          next = next-opt.value
-          next-vars = compute-live-vars(next, dag)
-          live-after.merge-now(next-vars)
+      live-after = copy-nameset(n!free-vars) # use[n]
+      for CL.each(follow from n._to): # add out[n] to live-after
+        next-opt = dag.get(tostring(follow.get())) # Look up nodes in DAG
+        when is-some(next-opt): # Sanity check (?)
+          next = next-opt.value # Actual node in dag
+          next-vars = compute-live-vars(next, dag) # in[next]
+          live-after.merge-now(next-vars) # out[n] U= in[next]
         end
       end
       decls = n!decl-vars
-      live = difference-now(live-after, decls)
+      # in[n] = use[n] U (out[n] - def[n])
+      live = difference-now(live-after, decls) # subtract def[n] to get in[n]
       dead-after = difference-now(decls, live-after)
       dead = difference-now(dead-after, n!used-vars)
 
       n!{live-after-vars: some(live-after), live-vars: some(live),
         dead-after-vars: some(dead-after), dead-vars: some(dead)}
-      live
+      live # returns in[n]
+  end
+end
+
+fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> block:
+  live-ranges = D.make-mutable-string-dict()
+  sorted-keys = dag.keys-list.sort-by(
+    dag.get-value(_).location <  dag.get-value(_).location,
+    dag.get-value(_).location == dag.get-value(_).location)
+  for each(lbl from sorted-keys):
+    n = dag.get-value(lbl)
+    for each(v from n!decl-vars.value.keys-list()):
+      if live-ranges.has-key-now(v.key()):
+        raise("Impossible: Variable redeclared in JS output")
+      else:
+        live-ranges.set-now(v.key(), live-interval(v, lbl, lbl))
+      end
+    end
+    for each(v from n!live-vars.value.keys-list()):
+      if not(live-ranges.has-key-now(v.key())):
+        raise("Impossible: Variable is live but not previously declared")
+      else:
+        live-ranges.set-now(v.key(), live-ranges.get-now(v.key()).withlast(lbl))
+      end
+    end
+  end
+  map(live-ranges.get-now(_), live-ranges.keys-now())
+end
+
+fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
+  doc:"""
+      Returns a mapping of name.key() -> <allocated name>.
+      We use Poletto and Sarkar's Linear Register Allocation
+      scan to condense variable names with different live ranges.
+      """
+  R = 20
+  live-ranges = compute-live-ranges(dag)
+  if live-ranges.length() <= R block:
+    for fold(sd from D.make-string-dict(), interval from live-ranges):
+      sd.set(interval.variable.key(), interval.variable)
+    end
+  else:
+    # INVARIANT: len == # of active intervals
+    pool = raw-array-of(false, R)
+    # TODO: Convert this into something more efficient for expire-old-intervals
+    active = raw-array-of(false, R)
+    get-active = lam(): map(lam(i): {i; raw-array-get(active, _)} end, range(0, R)) end
+    ret = D.make-mutable-string-dict()
+    var num-active = 0
+    # Most recently assigned (see spill-at-interval)
+    var most-recent = 0
+    var available = range(0, R)
+    # Select the first R variables to form the register pool
+    for each2(i from range(0, R), interval from live-ranges):
+      raw-array-set(pool, i, interval.variable)
+    end
+
+    fun expire-old-intervals(i):
+      for each({idx, interval} from get-active()):
+        when interval.endpoint(dag) < i.startpoint(dag) block:
+          num-active := !num-active - 1
+          available := link(idx, !available)
+          raw-array-set(active, idx, false)
+        end
+      end
+    end
+
+    fun spill-at-interval(i):
+      # PRECONDITION: active is full
+      spill = raw-array-get(active, !most-recent)
+      if spill.endpoint(dag) > i.endpoint(dag) block:
+        ret.set-now(spill.variable.key(), spill.variable)
+        ret.set-now(i.variable.key(), raw-array-get(pool, !most-recent))
+        raw-array-set(active, !most-recent, i)
+      else:
+        ret.set-now(i.variable.key(), i.variable)
+      end
+    end
+
+    sorted-ranges = live-ranges.sort-by(
+      lam(a, b): a.startloc(dag) < b.startloc(dag) end,
+      lam(a, b): a.startloc(dag) == b.startloc(dag) end)
+    for each(interval from sorted-ranges):
+      expire-old-intervals(interval)
+      cases(List) !available block:
+        | empty => spill-at-interval(interval)
+        | link(pool-idx, rest) =>
+          available := rest
+          raw-array-set(active, pool-idx, interval)
+          ret.set-now(interval.variable.key(), raw-array-get(pool, pool-idx))
+      end
+    end
+    ret.freeze()
   end
 end
 
