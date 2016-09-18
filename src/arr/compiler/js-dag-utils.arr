@@ -10,6 +10,7 @@ import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as CL
+import file("data-struct-utils.arr") as DSU
 #import "compiler/live-ranges.arr" as LR
 import string-dict as D
 import srcloc as SL
@@ -50,7 +51,7 @@ end
 
 data GraphNode:
   | node(_from :: J.Label, _to :: ConcatList<J.Label>, case-body :: J.JCase,
-      location :: Number
+      location :: Number,
       ref free-vars :: NameSet,
       ref used-vars :: NameSet, # use[n]
       ref decl-vars :: NameSet, # def[n]
@@ -69,11 +70,12 @@ data GraphNode:
 end
 
 data LiveInterval:
-  | live-interval(variable :: A.Name, first :: String, last :: String)
+  | live-interval(variable :: A.Name, first :: String, last :: String, dag)
     with:
-    method startloc(self, dag): dag.get-value(first).location end,
-    method endloc(self, dag): dag.get-value(last).location end,
-    method withlast(self, last): live-interval(self.variable, self.first, last) end
+    method startloc(self): self.dag.get-value(self.first).location end,
+    method endloc(self): self.dag.get-value(self.last).location end,
+    method withlast(self, last): live-interval(self.variable, self.first, last, self.dag) end,
+    method _lessthan(self, other): self.endloc() < other.endloc() end
 end
 
 data CaseResults:
@@ -312,23 +314,23 @@ end
 
 fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> block:
   live-ranges = D.make-mutable-string-dict()
-  sorted-keys = dag.keys-list.sort-by(
-    dag.get-value(_).location <  dag.get-value(_).location,
-    dag.get-value(_).location == dag.get-value(_).location)
-  for each(lbl from sorted-keys):
+  sorted-keys = dag.keys-list().sort-by(
+    lam(x, y): dag.get-value(x).location <  dag.get-value(y).location end,
+    lam(x, y): dag.get-value(x).location == dag.get-value(y).location end)
+  for each(lbl from sorted-keys) block:
     n = dag.get-value(lbl)
-    for each(v from n!decl-vars.value.keys-list()):
+    for each(v from n!decl-vars.keys-list-now()):
       if live-ranges.has-key-now(v.key()):
         raise("Impossible: Variable redeclared in JS output")
       else:
-        live-ranges.set-now(v.key(), live-interval(v, lbl, lbl))
+        live-ranges.set-now(v.key(), live-interval(v, lbl, lbl, dag))
       end
     end
-    for each(v from n!live-vars.value.keys-list()):
-      if not(live-ranges.has-key-now(v.key())):
+    for each(v from n!live-vars.value.keys-list-now()):
+      if not(live-ranges.has-key-now(v)):
         raise("Impossible: Variable is live but not previously declared")
       else:
-        live-ranges.set-now(v.key(), live-ranges.get-now(v.key()).withlast(lbl))
+        live-ranges.set-now(v, live-ranges.get-now(v).withlast(lbl))
       end
     end
   end
@@ -336,70 +338,49 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
 end
 
 fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
-  doc:"""
+  doc:```
       Returns a mapping of name.key() -> <allocated name>.
-      We use Poletto and Sarkar's Linear Register Allocation
+      We use a variation of Poletto and Sarkar's Linear Register Allocation
       scan to condense variable names with different live ranges.
-      """
-  R = 20
+      Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
+      ```
   live-ranges = compute-live-ranges(dag)
-  if live-ranges.length() <= R block:
-    for fold(sd from D.make-string-dict(), interval from live-ranges):
-      sd.set(interval.variable.key(), interval.variable)
-    end
-  else:
-    # INVARIANT: len == # of active intervals
-    pool = raw-array-of(false, R)
-    # TODO: Convert this into something more efficient for expire-old-intervals
-    active = raw-array-of(false, R)
-    get-active = lam(): map(lam(i): {i; raw-array-get(active, _)} end, range(0, R)) end
-    ret = D.make-mutable-string-dict()
-    var num-active = 0
-    # Most recently assigned (see spill-at-interval)
-    var most-recent = 0
-    var available = range(0, R)
-    # Select the first R variables to form the register pool
-    for each2(i from range(0, R), interval from live-ranges):
-      raw-array-set(pool, i, interval.variable)
-    end
-
-    fun expire-old-intervals(i):
-      for each({idx, interval} from get-active()):
-        when interval.endpoint(dag) < i.startpoint(dag) block:
-          num-active := !num-active - 1
-          available := link(idx, !available)
-          raw-array-set(active, idx, false)
+  # Dynamically grown set of "registers"
+  pool = DSU.make-mutable-stack()
+  # Allocation dictionary
+  ret = D.make-mutable-string-dict()
+  # Priority heap (min = element with earliest ending)
+  active = DSU.make-mutable-pairing-heap()
+  
+  fun prune-dead(i-cur):
+    cases(Option) active.find-min():
+      | none => nothing
+      | some(i-min) =>
+        # Interval is expired
+        if i-min.end-loc() < i-cur.start-loc() block:
+          active.delete-min()
+          # Push the register allocated to i-min back into pool
+          pool.push(ret.get-value-now(i-min.variable.key()))
+          # Recur to prune any additional intervals
+          prune-dead(i-cur)
+        else:
+          nothing
         end
-      end
     end
-
-    fun spill-at-interval(i):
-      # PRECONDITION: active is full
-      spill = raw-array-get(active, !most-recent)
-      if spill.endpoint(dag) > i.endpoint(dag) block:
-        ret.set-now(spill.variable.key(), spill.variable)
-        ret.set-now(i.variable.key(), raw-array-get(pool, !most-recent))
-        raw-array-set(active, !most-recent, i)
-      else:
-        ret.set-now(i.variable.key(), i.variable)
-      end
-    end
-
-    sorted-ranges = live-ranges.sort-by(
-      lam(a, b): a.startloc(dag) < b.startloc(dag) end,
-      lam(a, b): a.startloc(dag) == b.startloc(dag) end)
-    for each(interval from sorted-ranges):
-      expire-old-intervals(interval)
-      cases(List) !available block:
-        | empty => spill-at-interval(interval)
-        | link(pool-idx, rest) =>
-          available := rest
-          raw-array-set(active, pool-idx, interval)
-          ret.set-now(interval.variable.key(), raw-array-get(pool, pool-idx))
-      end
-    end
-    ret.freeze()
   end
+
+  # Perform allocation
+  for each(i from live-ranges) block:
+    prune-dead(i)
+    active.insert(i)
+    cases(Option) pool.pop():
+      | none => ret.set-now(i.variable.key(), i.variable)
+      | some(reg) =>
+        ret.set-now(i.variable.key(), reg)
+    end
+  end
+  # Return assignments
+  ret.freeze()
 end
 
 fun stmts-of(blk :: J.JBlock):
@@ -479,13 +460,13 @@ end
 
 
 
-fun elim-dead-vars-jblock(b :: J.JBlock, dead-vars :: FrozenNameSet):
+fun elim-dead-vars-jblock(b :: J.JBlock, dead-vars :: FrozenNameSet, allocation-visitor):
   cases(J.JBlock) b:
     | j-block1(s) =>
       if is-pointless-j-var(s, dead-vars): J.j-block(cl-empty)
-      else: b
+      else: b.visit(allocation-visitor)
       end
-    | j-block(stmts) => J.j-block(elim-dead-vars-jstmts(stmts, dead-vars))
+    | j-block(stmts) => J.j-block(elim-dead-vars-jstmts(stmts, dead-vars, allocation-visitor))
   end
 end
 
@@ -496,45 +477,45 @@ fun is-pointless-j-var(s, dead-vars):
   end
 end
 
-fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet):
+fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameSet, allocation-visitor):
   for CL.foldl(acc from cl-empty, s from stmts):
     cases(J.JStmt) s:
       | j-var(name, rhs) =>
         if dead-vars.has-key(name.key()):
           if ignorable(rhs): acc
-          else: acc ^ cl-snoc(_, J.j-expr(rhs))
+          else: acc ^ cl-snoc(_, J.j-expr(rhs.visit(allocation-visitor)))
           end
-        else: acc ^ cl-snoc(_, s)
+        else: acc ^ cl-snoc(_, s.visit(allocation-visitor))
         end
       | j-if1(cond, consq) =>
-        acc ^ cl-snoc(_, J.j-if1(cond, elim-dead-vars-jblock(consq, dead-vars)))
+        acc ^ cl-snoc(_, J.j-if1(cond.visit(allocation-visitor), elim-dead-vars-jblock(consq, dead-vars, allocation-visitor)))
       | j-if(cond, consq, alt) =>
         acc ^ cl-snoc(_,
-          J.j-if(cond, elim-dead-vars-jblock(consq, dead-vars), elim-dead-vars-jblock(alt, dead-vars)))
-      | j-return(expr) => acc ^ cl-snoc(_, s)
+          J.j-if(cond.visit(allocation-visitor), elim-dead-vars-jblock(consq, dead-vars, allocation-visitor), elim-dead-vars-jblock(alt, dead-vars, allocation-visitor)))
+      | j-return(expr) => acc ^ cl-snoc(_, s.visit(allocation-visitor))
       | j-try-catch(body, exn, catch) =>
         acc ^ cl-snoc(_,
-          J.j-try-catch(elim-dead-vars-jblock(body, dead-vars), exn, elim-dead-vars-jblock(catch, dead-vars)))
-      | j-throw(exp) => acc ^ cl-snoc(_, s)
-      | j-expr(expr) => acc ^ cl-snoc(_, s)
-      | j-break => acc ^ cl-snoc(_, s)
-      | j-continue => acc ^ cl-snoc(_, s)
+          J.j-try-catch(elim-dead-vars-jblock(body, dead-vars, allocation-visitor), exn.visit(allocation-visitor), elim-dead-vars-jblock(catch, dead-vars, allocation-visitor)))
+      | j-throw(exp) => acc ^ cl-snoc(_, s.visit(allocation-visitor))
+      | j-expr(expr) => acc ^ cl-snoc(_, s.visit(allocation-visitor))
+      | j-break => acc ^ cl-snoc(_, s.visit(allocation-visitor))
+      | j-continue => acc ^ cl-snoc(_, s.visit(allocation-visitor))
       | j-switch(exp, branches) =>
         new-switch-branches = for map(b from branches):
-          elim-dead-vars-jcase(b, dead-vars)
+          elim-dead-vars-jcase(b, dead-vars, allocation-visitor)
         end
-        acc ^ cl-snoc(_, J.j-switch(exp, new-switch-branches))
+        acc ^ cl-snoc(_, J.j-switch(exp.visit(allocation-visitor), new-switch-branches))
       | j-while(cond, body) =>
-        acc ^ cl-snoc(_, J.j-while(cond, elim-dead-vars-jblock(body, dead-vars)))
+        acc ^ cl-snoc(_, J.j-while(cond.visit(allocation-visitor), elim-dead-vars-jblock(body, dead-vars, allocation-visitor)))
       | j-for(create-var, init, cont, update, body) =>
-        acc ^ cl-snoc(_, J.j-for(create-var, init, cont, update, elim-dead-vars-jblock(body, dead-vars)))
+        acc ^ cl-snoc(_, J.j-for(create-var, init.visit(allocation-visitor), cont.visit(allocation-visitor), update.visit(allocation-visitor), elim-dead-vars-jblock(body, dead-vars, allocation-visitor)))
     end
   end
 end
-fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: FrozenNameSet):
+fun elim-dead-vars-jcase(c :: J.JCase, dead-vars :: FrozenNameSet, allocation-visitor):
   cases(J.JCase) c:
-    | j-default(body) => J.j-default(elim-dead-vars-jblock(body, dead-vars))
-    | j-case(exp, body) => J.j-case(exp, elim-dead-vars-jblock(body, dead-vars))
+    | j-default(body) => J.j-default(elim-dead-vars-jblock(body, dead-vars, allocation-visitor))
+    | j-case(exp, body) => J.j-case(exp, elim-dead-vars-jblock(body, dead-vars, allocation-visitor))
   end
 end
 
@@ -556,15 +537,15 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
   var case-num = 0
-  for CL.each(body-case from body-cases):
-    case-num := !case-num + 1
+  for CL.each(body-case from body-cases) block:
+    case-num := case-num + 1
     when J.is-j-case(body-case):
       acc-dag.set-now(tostring(body-case.exp.label.get()),
         node(body-case.exp.label,
           cases(J.JBlock) body-case.body:
             | j-block1(s) => find-steps-to(cl-sing(s), step)
             | j-block(stmts) => find-steps-to(stmts, step)
-          end, body-case, !case-num,
+          end, body-case, case-num,
           ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
     end
   end
@@ -612,6 +593,30 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #     live-ranges.set-now(v.tosourcestring(), cur.add(lbl))
   #   end
   # end
+  allocated = allocate-variables(dag)
+  fix-name = lam(name):
+    cases(Option) allocated.get(name.key()):
+      | none => name # Dead variables not included in allocation
+      | some(n) => n
+    end
+  end
+  allocation-visitor = J.default-map-visitor.{
+    method j-var(self, name, rhs):
+      J.j-var(fix-name(name), rhs.visit(self))
+    end,
+    method j-try-catch(self, body, exn, catch):
+      J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
+    end,
+    method j-fun(self, args, body):
+      J.j-fun(CL.map(fix-name, args), body.visit(self))
+    end,
+    method j-assign(self, name, rhs):
+      J.j-assign(fix-name(name), rhs.visit(self))
+    end,
+    method j-id(self, id):
+      J.j-id(fix-name(id))
+    end
+  }
   acc = ns-empty()
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
@@ -624,8 +629,8 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   dead-assignment-eliminated = for CL.map(body-case from body-cases):
     n = dag.get-value(tostring(body-case.exp.label.get()))
     cases(Option) n!dead-vars:
-      | none => body-case
-      | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze())
+      | none => body-case.visit(allocation-visitor)
+      | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze(), allocation-visitor)
     end
   end
 
