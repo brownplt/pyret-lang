@@ -637,7 +637,7 @@ sharing:
 end
 
 default-map-visitor = {
-  method j-field(self, name, value): j-field(self, name, value.visit(self)) end,
+  method j-field(self, name, value): j-field(name, value.visit(self)) end,
   method j-parens(self, exp): j-parens(exp.visit(self)) end,
   method j-unop(self, exp, op): j-unop(exp.visit(self), op) end,
   method j-binop(self, left, op, right): j-binop(left.visit(self), op, right.visit(self)) end,
@@ -660,10 +660,11 @@ default-map-visitor = {
   method j-false(self): j-false end,
   method j-null(self): j-null end,
   method j-undefined(self): j-undefined end,
-  method j-label(self, label): j-label(label.visit(self)) end,
+  method j-label(self, label): j-label(label) end,
   method j-case(self, exp, body): j-case(exp.visit(self), body.visit(self)) end,
   method j-default(self, body): j-default(body.visit(self)) end,
   method j-block(self, stmts): j-block(stmts.map(_.visit(self))) end,
+  method j-block1(self, stmt): j-block1(stmt.visit(self)) end,
   method j-var(self, name, rhs): j-var(name, rhs.visit(self)) end,
   method j-if1(self, cond, consq): j-if1(cond.visit(self), consq.visit(self)) end,
   method j-if(self, cond, consq, alt): j-if(cond.visit(self), consq.visit(self), alt.visit(self)) end,

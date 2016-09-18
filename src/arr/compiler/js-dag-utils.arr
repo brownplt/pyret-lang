@@ -14,6 +14,7 @@ import file("data-struct-utils.arr") as DSU
 #import "compiler/live-ranges.arr" as LR
 import string-dict as D
 import srcloc as SL
+import valueskeleton as VS
 
 type ConcatList = CL.ConcatList
 type NameSet = D.MutableStringDict<A.Name>
@@ -75,7 +76,12 @@ data LiveInterval:
     method startloc(self): self.dag.get-value(self.first).location end,
     method endloc(self): self.dag.get-value(self.last).location end,
     method withlast(self, last): live-interval(self.variable, self.first, last, self.dag) end,
-    method _lessthan(self, other): self.endloc() < other.endloc() end
+    method _lessthan(self, other): self.endloc() < other.endloc() end,
+    method _output(self):
+      VS.vs-constr("live-interval",
+        # DAG Omitted
+        [list: VS.vs-value({variable: self.variable, first: self.first, last: self.last})])
+    end
 end
 
 data CaseResults:
@@ -319,22 +325,23 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
     lam(x, y): dag.get-value(x).location == dag.get-value(y).location end)
   for each(lbl from sorted-keys) block:
     n = dag.get-value(lbl)
-    for each(v from n!decl-vars.keys-list-now()):
-      if live-ranges.has-key-now(v.key()):
-        raise("Impossible: Variable redeclared in JS output")
+    for each(v from n!decl-vars.keys-list-now()): # For v in def[n]
+      if live-ranges.has-key-now(v) block:
+        redeclared = live-ranges.get-value-now(v).variable.tosourcestring()
+        region = n.case-body.tosource().pretty(80).join-str("\n")
+        live-ranges.set-now(v, live-ranges.get-value-now(v).withlast(lbl))
       else:
-        live-ranges.set-now(v.key(), live-interval(v, lbl, lbl, dag))
+        live-ranges.set-now(v, live-interval(n!decl-vars.get-value-now(v), lbl, lbl, dag))
       end
     end
     for each(v from n!live-vars.value.keys-list-now()):
-      if not(live-ranges.has-key-now(v)):
-        raise("Impossible: Variable is live but not previously declared")
-      else:
-        live-ranges.set-now(v, live-ranges.get-now(v).withlast(lbl))
+      when live-ranges.has-key-now(v):
+        live-ranges.set-now(v, live-ranges.get-value-now(v).withlast(lbl))
       end
     end
   end
-  map(live-ranges.get-now(_), live-ranges.keys-now())
+  print("# of live variables: before\t" + tostring(live-ranges.keys-now().size()))
+  map(live-ranges.get-value-now(_), live-ranges.keys-now().to-list())
 end
 
 fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
@@ -357,7 +364,7 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
       | none => nothing
       | some(i-min) =>
         # Interval is expired
-        if i-min.end-loc() < i-cur.start-loc() block:
+        if i-min.endloc() < i-cur.startloc() block:
           active.delete-min()
           # Push the register allocated to i-min back into pool
           pool.push(ret.get-value-now(i-min.variable.key()))
@@ -594,6 +601,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #   end
   # end
   allocated = allocate-variables(dag)
+  assigned = D.make-mutable-string-dict()
   fix-name = lam(name):
     cases(Option) allocated.get(name.key()):
       | none => name # Dead variables not included in allocation
@@ -601,8 +609,25 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
     end
   end
   allocation-visitor = J.default-map-visitor.{
-    method j-var(self, name, rhs):
-      J.j-var(fix-name(name), rhs.visit(self))
+    method j-var(self, name, rhs) block:
+      # Need to avoid duplicating var declarations
+      fixed = fix-name(name)
+      if assigned.has-key-now(fixed.key()) block:
+        # For cases expressions...
+        #
+        # I do not have proof
+        # That this works in any way
+        # But I think it does.
+        #                 -- Basho
+        if fixed.key() == name.key():
+          J.j-var(fixed, rhs.visit(self))
+        else:
+          J.j-expr(J.j-assign(fixed, rhs.visit(self)))
+        end
+      else:
+        assigned.set-now(fixed.key(), true)
+        J.j-var(fixed, rhs.visit(self))
+      end
     end,
     method j-try-catch(self, body, exn, catch):
       J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
@@ -633,6 +658,12 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
       | some(dead-vars) => elim-dead-vars-jcase(body-case, dead-vars.freeze(), allocation-visitor)
     end
   end
+
+  registers = D.make-mutable-string-dict()
+  for each(v from allocated.keys().to-list()):
+    registers.set-now(allocated.get-value(v).key(), true)
+  end
+  print("\tAfter: " + tostring(registers.keys-now().size()) + "\n")
 
   # print("Done")
   results(dead-assignment-eliminated, discardable-vars)
