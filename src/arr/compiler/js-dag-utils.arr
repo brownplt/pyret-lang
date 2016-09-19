@@ -59,7 +59,8 @@ data GraphNode:
       ref live-vars :: Option<NameSet>, # in[n]
       ref live-after-vars :: Option<NameSet>, # out[n]
       ref dead-vars :: Option<NameSet>,
-      ref dead-after-vars :: Option<NameSet>)
+      ref dead-after-vars :: Option<NameSet>,
+      ref protected-after-vars :: NameSet)
     # note: _to is a set, determined by identical
     # _from = prec[n]
     # _to = succ[n]
@@ -71,16 +72,22 @@ data GraphNode:
 end
 
 data LiveInterval:
-  | live-interval(variable :: A.Name, first :: String, last :: String, dag)
+  | live-interval(variable :: A.Name, first :: String, last :: String, ref protekted :: Boolean, dag)
     with:
     method startloc(self): self.dag.get-value(self.first).location end,
     method endloc(self): self.dag.get-value(self.last).location end,
-    method withlast(self, last): live-interval(self.variable, self.first, last, self.dag) end,
+    method withlast(self, last): live-interval(self.variable, self.first, last, self!protekted, self.dag) end,
+    method set-protected(self, val):
+      self!{protekted: val}
+    end,
+    method is-protected(self):
+      self!protekted
+    end,
     method _lessthan(self, other): self.endloc() < other.endloc() end,
     method _output(self):
       VS.vs-constr("live-interval",
         # DAG Omitted
-        [list: VS.vs-value({variable: self.variable, first: self.first, last: self.last})])
+        [list: VS.vs-value({variable: self.variable, first: self.first, last: self.last, protekted: self!protekted})])
     end
 end
 
@@ -95,16 +102,22 @@ data RegisterAllocation:
 end
 
 
-fun used-vars-jblock(b :: J.JBlock) -> NameSet block:
+fun used-vars-jblock(b :: J.JBlock) -> {NameSet; NameSet} block:
   acc = ns-empty()
-  cases(J.JBlock) b:
-    | j-block1(s) => acc.merge-now(used-vars-jstmt(s))
+  prot = ns-empty()
+  cases(J.JBlock) b block:
+    | j-block1(s) =>
+      {acc-s; prot-s} = used-vars-jstmt(s)
+      acc.merge-now(acc-s)
+      prot.merge-now(prot-s)
     | j-block(stmts) =>
-      for CL.each(s from stmts):
-        acc.merge-now(used-vars-jstmt(s))
+      for CL.each(s from stmts) block:
+        {acc-s; prot-s} = used-vars-jstmt(s)
+        acc.merge-now(acc-s)
+        prot.merge-now(prot-s)
       end
   end
-  acc
+  {acc; prot}
 end
 fun declared-vars-jblock(b :: J.JBlock) -> NameSet block:
   acc = ns-empty()
@@ -149,128 +162,179 @@ fun declared-vars-jstmt(s :: J.JStmt) -> NameSet:
       ans
   end
 end
-fun used-vars-jstmt(s :: J.JStmt) -> NameSet:
+fun used-vars-jstmt(s :: J.JStmt) -> {NameSet; NameSet}:
   cases(J.JStmt) s block:
-    | j-var(name, rhs) => 
-      ans = used-vars-jexpr(rhs)
-      ans.remove-now(name.key())
-      ans
-    | j-if1(cond, consq) => 
-      ans = used-vars-jexpr(cond)
-      ans.merge-now(used-vars-jblock(consq))
-      ans
+    | j-var(name, rhs) =>
+      {acc; prot} = used-vars-jexpr(rhs)
+      acc.remove-now(name.key())
+      {acc; prot}
+    | j-if1(cond, consq) =>
+      {acc; prot} = used-vars-jexpr(cond)
+      {acc-consq; prot-consq} = used-vars-jblock(consq)
+      acc.merge-now(acc-consq)
+      prot.merge-now(prot-consq)
+      {acc; prot}
     | j-if(cond, consq, alt) =>
-      ans = used-vars-jexpr(cond)
-      ans.merge-now(used-vars-jblock(consq))
-      ans.merge-now(used-vars-jblock(alt))
-      ans
+      {acc; prot} = used-vars-jexpr(cond)
+      {acc-consq; prot-consq} = used-vars-jblock(consq)
+      {acc-alt; prot-alt} = used-vars-jblock(alt)
+      acc.merge-now(acc-consq)
+      prot.merge-now(prot-consq)
+      acc.merge-now(acc-alt)
+      prot.merge-now(prot-alt)
+      {acc; prot}
     | j-return(expr) => used-vars-jexpr(expr)
     | j-try-catch(body, exn, catch) =>
-      ns-catch = used-vars-jblock(catch)
+      {ns-catch; ns-catch-prot} = used-vars-jblock(catch)
       ns-catch.remove-now(exn.key())
-      ans = used-vars-jblock(body)
-      ans.merge-now(ns-catch)
-      ans
+      {acc-body; prot-body} = used-vars-jblock(body)
+      acc-body.merge-now(ns-catch)
+      prot-body.merge-now(ns-catch-prot)
+      {acc-body; prot-body}
     | j-throw(exp) => used-vars-jexpr(exp)
     | j-expr(expr) => used-vars-jexpr(expr)
-    | j-break => ns-empty()
-    | j-continue => ns-empty()
+    | j-break => {ns-empty(); ns-empty()}
+    | j-continue => {ns-empty(); ns-empty()}
     | j-switch(exp, branches) =>
-      acc = used-vars-jexpr(exp)
-      for CL.each(b from branches):
-        acc.merge-now(used-vars-jcase(b))
+      {acc; prot} = used-vars-jexpr(exp)
+      for CL.each(b from branches) block:
+        {acc-b; prot-b} = used-vars-jcase(b)
+        acc.merge-now(acc-b)
+        prot.merge-now(prot-b)
       end
-      acc
+      {acc; prot}
     | j-while(cond, body) =>
-      ans = used-vars-jexpr(cond)
-      ans.merge-now(used-vars-jblock(body))
-      ans
+      {acc; prot} = used-vars-jexpr(cond)
+      {acc-body; prot-body} = used-vars-jblock(body)
+      acc.merge-now(acc-body)
+      prot.merge-now(prot-body)
+      {acc; prot}
     | j-for(create-var, init, cont, update, body) =>
-      ans = used-vars-jexpr(init)
-      ans.merge-now(used-vars-jexpr(cont))
-      ans.merge-now(used-vars-jexpr(update))
-      ans.merge-now(used-vars-jblock(body))
+      {acc; prot} = used-vars-jexpr(init)
+      {acc-cont; prot-cont} = used-vars-jexpr(cont)
+      {acc-update; prot-update} = used-vars-jexpr(update)
+      {acc-body; prot-body} = used-vars-jblock(body)
+      acc.merge-now(acc-cont)
+      prot.merge-now(prot-cont)
+      acc.merge-now(acc-update)
+      prot.merge-now(prot-update)
+      acc.merge-now(acc-body)
+      prot.merge-now(prot-body)
       when create-var and J.is-j-assign(init):
-        ans.remove-now(init.name.key())
+        acc.remove-now(init.name.key())
       end
-      ans
+      {acc; prot}
   end
 end
-fun used-vars-jexpr(e :: J.JExpr) -> NameSet:
+fun used-vars-jexpr(e :: J.JExpr) -> {NameSet; NameSet}:
   cases(J.JExpr) e block:
     | j-parens(exp) => used-vars-jexpr(exp)
     | j-unop(exp, op) => used-vars-jexpr(exp)
     | j-binop(left, op, right) => 
-      ans = used-vars-jexpr(left)
-      ans.merge-now(used-vars-jexpr(right))
-      ans
+      {ans-left; protected-left} = used-vars-jexpr(left)
+      {ans-right; protected-right} = used-vars-jexpr(right)
+      ans-left.merge-now(ans-right)
+      protected-left.merge-now(protected-right)
+      {ans-left; protected-left}
     | j-fun(args, body) =>
-      acc = difference-now(used-vars-jblock(body), declared-vars-jblock(body))
+      {used-body; protected-body} = used-vars-jblock(body)
+      # Remove local-scope-only variables
+      acc = difference-now(used-body, declared-vars-jblock(body))
+      # Remove arguments
       for CL.each(a from args):
         acc.remove-now(a.key())
       end
-      acc
+      # Merge with *protected*, since we want to protect
+      # everything that we close over
+      protected-body.merge-now(acc)
+      {acc; protected-body}
     | j-new(func, args) =>
-      acc = used-vars-jexpr(func)
-      for CL.each(a from args):
-        acc.merge-now(used-vars-jexpr(a))
+      {acc; prot} = used-vars-jexpr(func)
+      for CL.each(a from args) block:
+        {arg-acc; arg-prot} = used-vars-jexpr(a)
+        acc.merge-now(arg-acc)
+        prot.merge-now(arg-prot)
       end
-      acc
+      {acc; prot}
     | j-app(func, args) =>
-      acc = used-vars-jexpr(func)
-      for CL.each(a from args):
-        acc.merge-now(used-vars-jexpr(a))
+      {acc; prot} = used-vars-jexpr(func)
+      for CL.each(a from args) block:
+        {arg-acc; arg-prot} = used-vars-jexpr(a)
+        acc.merge-now(arg-acc)
+        prot.merge-now(arg-prot)
       end
-      acc
+      {acc; prot}
     | j-method(obj, meth, args) =>
-      acc = used-vars-jexpr(obj)
-      for CL.each(a from args):
-        acc.merge-now(used-vars-jexpr(a))
+      {acc; prot} = used-vars-jexpr(obj)
+      for CL.each(a from args) block:
+        {arg-acc; arg-prot} = used-vars-jexpr(a)
+        acc.merge-now(arg-acc)
+        prot.merge-now(arg-prot)
       end
-      acc
+      {acc; prot}
     | j-ternary(test, consq, altern) =>
-      ans = used-vars-jexpr(test)
-      ans.merge-now(used-vars-jexpr(consq))
-      ans.merge-now(used-vars-jexpr(altern))
-      ans
+      {acc; prot} = used-vars-jexpr(test)
+      {acc-consq; prot-consq} = used-vars-jexpr(consq)
+      {acc-altern; prot-altern} = used-vars-jexpr(altern)
+      acc.merge-now(acc-consq)
+      prot.merge-now(prot-consq)
+      acc.merge-now(acc-altern)
+      prot.merge-now(prot-altern)
+      {acc; prot}
     | j-assign(name, rhs) => 
-      ans = used-vars-jexpr(rhs)
-      ans.set-now(name.key(), name)
-      ans
+      {acc; prot} = used-vars-jexpr(rhs)
+      # Should be safe, since this should never be in
+      # the protected set
+      acc.set-now(name.key(), name)
+      {acc; prot}
     | j-bracket-assign(obj, field, rhs) =>
-      ans = used-vars-jexpr(obj)
-      ans.merge-now(used-vars-jexpr(field))
-      ans.merge-now(used-vars-jexpr(rhs))
-      ans
+      {acc; prot} = used-vars-jexpr(obj)
+      {acc-field; prot-field} = used-vars-jexpr(field)
+      {acc-rhs; prot-rhs} = used-vars-jexpr(rhs)
+      acc.merge-now(acc-field)
+      prot.merge-now(prot-field)
+      acc.merge-now(acc-rhs)
+      prot.merge-now(prot-rhs)
+      {acc; prot}
     | j-dot-assign(obj, name, rhs) =>
-      ans = used-vars-jexpr(obj)
-      ans.merge-now(used-vars-jexpr(rhs))
-      ans
+      {acc; prot} = used-vars-jexpr(obj)
+      {acc-rhs; prot-rhs} = used-vars-jexpr(rhs)
+      acc.merge-now(acc-rhs)
+      prot.merge-now(prot-rhs)
+      {acc; prot}
     | j-dot(obj, field) => used-vars-jexpr(obj)
     | j-bracket(obj, field) => 
-      ans = used-vars-jexpr(obj)
-      ans.merge-now(used-vars-jexpr(field))
-      ans
+      {acc; prot} = used-vars-jexpr(obj)
+      {acc-field; prot-field} = used-vars-jexpr(field)
+      acc.merge-now(acc-field)
+      prot.merge-now(prot-field)
+      {acc; prot}
     | j-list(_, elts) =>
       acc = ns-empty()
-      for CL.each(elt from elts):
-        acc.merge-now(used-vars-jexpr(elt))
+      prot = ns-empty()
+      for CL.each(elt from elts) block:
+        {acc-elt; prot-elt} = used-vars-jexpr(elt)
+        acc.merge-now(acc-elt)
+        prot.merge-now(prot-elt)
       end
-      acc
+      {acc; prot}
     | j-obj(fields) =>
       acc = ns-empty()
-      for CL.each(f from fields):
-        acc.merge-now(used-vars-jfield(f))
+      prot = ns-empty()
+      for CL.each(f from fields) block:
+        {acc-f; prot-f} = used-vars-jfield(f)
+        acc.merge-now(acc-f)
+        prot.merge-now(prot-f)
       end
-      acc
-    | j-id(id) => [D.mutable-string-dict: id.key(), id]
-    | j-str(_) => ns-empty()
-    | j-num(_) => ns-empty()
-    | j-true => ns-empty()
-    | j-false => ns-empty()
-    | j-null => ns-empty()
-    | j-undefined => ns-empty()
-    | j-label(_) => ns-empty()
+      {acc; prot}
+    | j-id(id) => {[D.mutable-string-dict: id.key(), id]; ns-empty()}
+    | j-str(_) => {ns-empty(); ns-empty()}
+    | j-num(_) => {ns-empty(); ns-empty()}
+    | j-true => {ns-empty(); ns-empty()}
+    | j-false => {ns-empty(); ns-empty()}
+    | j-null => {ns-empty(); ns-empty()}
+    | j-undefined => {ns-empty(); ns-empty()}
+    | j-label(_) => {ns-empty(); ns-empty()}
   end
 end
 fun declared-vars-jcase(c :: J.JCase) -> NameSet:
@@ -279,16 +343,18 @@ fun declared-vars-jcase(c :: J.JCase) -> NameSet:
     | j-default(body) => declared-vars-jblock(body)
   end
 end
-fun used-vars-jcase(c :: J.JCase) -> NameSet:
+fun used-vars-jcase(c :: J.JCase) -> {NameSet; NameSet}:
   cases(J.JCase) c block:
-    | j-case(exp, body) => 
-      ans = used-vars-jexpr(exp)
-      ans.merge-now(used-vars-jblock(body))
-      ans
+    | j-case(exp, body) =>
+      {acc; prot} = used-vars-jexpr(exp)
+      {acc-body; prot-body} = used-vars-jblock(body)
+      acc.merge-now(acc-body)
+      prot.merge-now(prot-body)
+      {acc; prot}
     | j-default(body) => used-vars-jblock(body)
   end
 end
-fun used-vars-jfield(f :: J.JField) -> NameSet:
+fun used-vars-jfield(f :: J.JField) -> {NameSet; NameSet}:
   used-vars-jexpr(f.value)
 end
 
@@ -298,7 +364,7 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
       live
     | none =>
       live-after = copy-nameset(n!free-vars) # use[n]
-      for CL.each(follow from n._to): # add out[n] to live-after
+      for CL.each(follow from n._to) block: # add out[n] to live-after
         next-opt = dag.get(tostring(follow.get())) # Look up nodes in DAG
         when is-some(next-opt): # Sanity check (?)
           next = next-opt.value # Actual node in dag
@@ -331,7 +397,7 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
         region = n.case-body.tosource().pretty(80).join-str("\n")
         live-ranges.set-now(v, live-ranges.get-value-now(v).withlast(lbl))
       else:
-        live-ranges.set-now(v, live-interval(n!decl-vars.get-value-now(v), lbl, lbl, dag))
+        live-ranges.set-now(v, live-interval(n!decl-vars.get-value-now(v), lbl, lbl, n!protected-after-vars.has-key-now(v), dag))
       end
     end
     for each(v from n!live-vars.value.keys-list-now()):
@@ -339,18 +405,23 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
         live-ranges.set-now(v, live-ranges.get-value-now(v).withlast(lbl))
       end
     end
+    for each(v from n!protected-after-vars.keys-list-now()):
+      when live-ranges.has-key-now(v) block:
+        # print("Protected: " + v + "\n")
+        live-ranges.get-value-now(v).set-protected(true)
+      end
+    end
   end
-  print("# of live variables: before\t" + tostring(live-ranges.keys-now().size()))
   map(live-ranges.get-value-now(_), live-ranges.keys-now().to-list())
 end
 
 fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
-  doc:```
-      Returns a mapping of name.key() -> <allocated name>.
-      We use a variation of Poletto and Sarkar's Linear Register Allocation
-      scan to condense variable names with different live ranges.
-      Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
-      ```
+  doc: ```
+       Returns a mapping of name.key() -> <allocated name>.
+       We use a variation of Poletto and Sarkar's Linear Register Allocation
+       scan to condense variable names with different live ranges.
+       Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
+       ```
   live-ranges = compute-live-ranges(dag)
   # Dynamically grown set of "registers"
   pool = DSU.make-mutable-stack()
@@ -358,6 +429,8 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
   ret = D.make-mutable-string-dict()
   # Priority heap (min = element with earliest ending)
   active = DSU.make-mutable-pairing-heap()
+  # Should be the same as ARGUMENTS name in anf-loop-compiler
+  ARGUMENTS = A.s-name(A.dummy-loc, "arguments")
   
   fun prune-dead(i-cur):
     cases(Option) active.find-min():
@@ -367,7 +440,9 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
         if i-min.endloc() < i-cur.startloc() block:
           active.delete-min()
           # Push the register allocated to i-min back into pool
-          pool.push(ret.get-value-now(i-min.variable.key()))
+          when (i-min.variable <> ARGUMENTS) and not(i-min.is-protected()):
+            pool.push(ret.get-value-now(i-min.variable.key()))
+          end
           # Recur to prune any additional intervals
           prune-dead(i-cur)
         else:
@@ -376,18 +451,22 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
     end
   end
 
+  var num-ranges = 0
+  var num-registers = 0
   # Perform allocation
   for each(i from live-ranges) block:
+    num-ranges := num-ranges + 1
     prune-dead(i)
     active.insert(i)
-    cases(Option) pool.pop():
+    cases(Option) pool.pop() block:
       | none => ret.set-now(i.variable.key(), i.variable)
+        num-registers := num-registers + 1
       | some(reg) =>
         ret.set-now(i.variable.key(), reg)
     end
   end
   # Return assignments
-  ret.freeze()
+  {num-ranges; num-registers; ret.freeze()}
 end
 
 fun stmts-of(blk :: J.JBlock):
@@ -553,7 +632,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
             | j-block1(s) => find-steps-to(cl-sing(s), step)
             | j-block(stmts) => find-steps-to(stmts, step)
           end, body-case, case-num,
-          ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
+          ns-empty(), ns-empty(), ns-empty(), none, none, none, none, ns-empty()))
     end
   end
   dag = acc-dag.freeze()
@@ -573,7 +652,9 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   for each(lbl from str-labels) block:
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
-    n!{used-vars: used-vars-jcase(n.case-body)}
+    {used; protekted} = used-vars-jcase(n.case-body)
+    n!{used-vars: used}
+    n!{protected-after-vars: protekted}
     n!{free-vars: difference-now(n!used-vars, n!decl-vars)}
   end
   for each(lbl from str-labels):
@@ -600,7 +681,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #     live-ranges.set-now(v.tosourcestring(), cur.add(lbl))
   #   end
   # end
-  allocated = allocate-variables(dag)
+  {num-before; num-after; allocated} = allocate-variables(dag)
   assigned = D.make-mutable-string-dict()
   fix-name = lam(name):
     cases(Option) allocated.get(name.key()):
@@ -663,7 +744,10 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   for each(v from allocated.keys().to-list()):
     registers.set-now(allocated.get-value(v).key(), true)
   end
-  print("\tAfter: " + tostring(registers.keys-now().size()) + "\n")
+  # When statement to only show interesting cases
+  when num-before > 20:
+    print("# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
+  end
 
   # print("Done")
   results(dead-assignment-eliminated, discardable-vars)
