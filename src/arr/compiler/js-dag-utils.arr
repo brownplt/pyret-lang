@@ -407,12 +407,14 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
     end
     for each(v from n!protected-after-vars.keys-list-now()):
       when live-ranges.has-key-now(v) block:
-        # print("Protected: " + v + "\n")
+        #print("Protected: " + v + "\n")
         live-ranges.get-value-now(v).set-protected(true)
       end
     end
   end
-  map(live-ranges.get-value-now(_), live-ranges.keys-now().to-list())
+  map(live-ranges.get-value-now(_), live-ranges.keys-now().to-list()).sort-by(
+    lam(x, y): x.startloc() < y.startloc() end,
+    lam(x, y): x.startloc() == y.startloc() end)
 end
 
 fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
@@ -654,8 +656,10 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
     n!{decl-vars: declared-vars-jcase(n.case-body)}
     {used; protekted} = used-vars-jcase(n.case-body)
     n!{used-vars: used}
+    free-vars = difference-now(n!used-vars, n!decl-vars)
+    protekted.merge-now(free-vars)
     n!{protected-after-vars: protekted}
-    n!{free-vars: difference-now(n!used-vars, n!decl-vars)}
+    n!{free-vars: free-vars}
   end
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
