@@ -65,7 +65,7 @@ fun report-value(operand, value):
     [ED.para:
       ED.text("The "),
       operand,
-      ED.text(" side evaluated to:")],
+      ED.text(" side was:")],
     ED.embed(value)]
 end
 
