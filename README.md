@@ -29,7 +29,7 @@ commenting and reporting issues.
 Installing
 ----------
 
-First, make sure you've installed [Node >= 4.2.4](http://nodejs.org).  Then run:
+First, make sure you've installed [Node >= 6](http://nodejs.org).  Then run:
 
     $ npm install
     $ make
