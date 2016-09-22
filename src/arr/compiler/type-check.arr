@@ -14,6 +14,7 @@ type TypeMembers = TS.TypeMembers
 type ConstraintSolution = TCS.ConstraintSolution
 type Loc = A.Loc
 type Expr = A.Expr
+type Name = A.Name
 
 local = TS.local
 module-uri = TS.module-uri
@@ -87,6 +88,23 @@ instantiate-object-type = TCS.instantiate-object-type
 instantiate-forall = TCS.instantiate-forall
 
 string-dict = SD.string-dict
+
+is-s-check-test = A.is-s-check-test
+
+################### Test Inference ####################
+
+# an option containing the key of the function name,
+# the arg-types (some of which are existentials),
+# the return type (which may be an existential),
+# and the existential that is the function's type
+var test-inference-data :: Option<{name :: Name,
+                                   arg-types :: List<Type>,
+                                   ret-type :: Type,
+                                   loc :: Loc,
+                                   existential :: Type }> = none
+
+
+#######################################################
 
 fun option-bind<X, Y>(f :: (X -> Option<Y>), maybe-thing :: Option<X>) -> Option<Y>:
   cases(Option<X>) maybe-thing:
@@ -408,7 +426,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-op(loc, op, l, r) =>
           raise("checking for s-op not implemented")
         | s-check-test(loc, op, refinement, l, r) =>
-          typing-result(e, expect-type, context)
+          collect-example(e, context).typing-bind(lam(_, shadow context):
+            typing-result(e, expect-type, context)
+          end)
         | s-check-expr(l, expr, ann) =>
           raise("checking for s-check-expr not implemented")
         | s-paren(l, expr) =>
@@ -653,9 +673,11 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op, l, r) =>
       raise("synthesis for s-op not implemented")
     | s-check-test(loc, op, refinement, l, r) =>
-      result-type = new-existential(loc, false)
-      shadow context = context.add-variable(result-type)
-      typing-result(e, result-type, context)
+      collect-example(e, context).typing-bind(lam(_, shadow context):
+        result-type = new-existential(loc, false)
+        shadow context = context.add-variable(result-type)
+        typing-result(e, result-type, context)
+      end)
     | s-check-expr(l, expr, ann) =>
       raise("synthesis for s-check-expr not implemented")
     | s-paren(l, expr) =>
@@ -1422,18 +1444,37 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
       fold-rhs = fold-typing(lam(binding, shadow context):
         cases(A.LetrecBind) binding:
           | s-letrec-bind(l2, b, value) =>
-            shadow context = context.add-level()
             expected-type = collected-types.get-value(b.id.key())
-            free-vars = expected-type.free-variables()
-            shadow context = context.add-variable-set(free-vars)
-            checking(value, expected-type, false, context).bind(lam(new-ast, new-type, shadow context):
-              context.solve-level().typing-bind(lam(solution, shadow context):
-                shadow context = context.substitute-in-binds(solution)
-                shadow new-type = solution.generalize(solution.apply(new-type))
-                shadow context = context.add-binding(b.id.key(), new-type)
-                typing-result(new-ast, new-type, context)
-              end)
-            end)
+            cases(Option) context.constraints.example-types.get(expected-type.key()) block:
+              | some({_; partial-type; _; _}) =>
+                test-inference-data := some({name: b.id,
+                                             arg-types: partial-type.arg-types,
+                                             ret-type: partial-type.ret-type,
+                                             loc: partial-type.loc,
+                                             existential: expected-type})
+                if A.is-s-lam(value) block:
+                  check-block = value._check.value
+                  result = checking(check-block, t-top(l2, false), false, context)
+                  test-inference-data := none
+                  result.bind(lam(_, result-type, shadow context):
+                    typing-result(value, result-type, context)
+                  end)
+                else:
+                  raise("the right hand side should be a lambda")
+                end
+              | none =>
+                shadow context = context.add-level()
+                free-vars = expected-type.free-variables()
+                shadow context = context.add-variable-set(free-vars)
+                checking(value, expected-type, false, context).bind(lam(new-ast, new-type, shadow context):
+                  context.solve-level().typing-bind(lam(solution, shadow context):
+                    shadow context = context.substitute-in-binds(solution)
+                    shadow new-type = solution.generalize(solution.apply(new-type))
+                    shadow context = context.add-binding(b.id.key(), new-type)
+                    typing-result(new-ast, new-type, context)
+                  end)
+                end)
+            end
         end
       end, bindings-to-type, context)
       fold-rhs.typing-bind(lam(new-rhs, shadow context):
@@ -1473,9 +1514,24 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
               initial-type = collected.get-value(first-bind.b.id.key())
               if is-t-existential(initial-type):
                 cases(Expr) first-bind.value:
-                  | s-lam(lam-l, _, lam-params, lam-args, lam-ann, _, _, _, _) =>
-                    collect-bindings(lam-args, context).bind(lam(arg-coll, shadow context):
-                      lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context).bind(lam(lam-type, shadow context):
+                  | s-lam(lam-l, _, lam-params, lam-args, lam-ann, _, _, _check, _) =>
+                    collect-bindings(lam-args, context).bind(lam(arg-coll, shadow context) block:
+                      cases(Option<Expr>) _check:
+                        | some(check-block) =>
+                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, temp-context):
+                            cases(Type) lam-type block:
+                              | t-arrow(temp-args, temp-ret, temp-l, _) =>
+                                new-exists = new-existential(temp-l, true)
+                                shadow temp-context = temp-context.add-variable(new-exists)
+                                shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _))
+                                fold-result(new-exists, temp-context)
+                              | else =>
+                                lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
+                            end
+                          end)
+                        | none =>
+                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
+                      end.bind(lam(lam-type, shadow context):
                         fold-result(collected.set(first-bind.b.id.key(), lam-type), context)
                       end)
                     end)
@@ -2039,3 +2095,72 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       fold-errors([list: C.cant-type-check("a-checked should not be appearing before type checking", A.dummy-loc)])
   end
 end
+
+################### Test Inference ####################
+
+fun collect-example(e :: Expr%(is-s-check-test), context :: Context) -> FoldResult<Nothing>:
+  cases(Option) test-inference-data:
+    | none => fold-result(nothing, context)
+    | some(inference-data) =>
+      cases(A.Expr) e:
+        | s-check-test(l, op, refinement, lhs, rhs) =>
+          cases(A.CheckOp) op:
+            | s-op-is(_) =>
+              cases(Option<A.Expr>) refinement:
+                | some(_) => fold-result(nothing, context)
+                | none =>
+                  cases(A.Expr) lhs:
+                    | s-app(_, _fun, args) =>
+                      maybe-id = cases(A.Expr) _fun:
+                        | s-id(_, id) => some(id)
+                        | s-id-var(_, id) => some(id)
+                        | s-id-letrec(_, id, _) => some(id)
+                        | else => none
+                      end
+                      cases(Option<Name>) maybe-id block:
+                        | none => fold-result(nothing, context)
+                        | some(id) =>
+                          if inference-data.name == id block:
+                            fold-arg-types = foldr2(lam(fold-result-args, arg, expect-arg):
+                              fold-result-args.bind(lam(result-args, shadow context):
+                                if is-t-existential(expect-arg):
+                                  synthesis(arg, false, context).fold-bind(lam(_, result-type, shadow context):
+                                    fold-result(link(result-type, result-args), context)
+                                  end)
+                                else:
+                                  checking(arg, expect-arg, false, context).fold-bind(lam(_, _, shadow context):
+                                    fold-result(link(expect-arg, result-args), context)
+                                  end)
+                                end
+                              end)
+                            end, fold-result(empty, context), args, inference-data.arg-types)
+                            fold-arg-types.bind(lam(arg-types, shadow context):
+                              expect-ret-type = inference-data.ret-type
+                              if is-t-existential(expect-ret-type):
+                                synthesis(rhs.value, false, context).fold-bind(lam(_, result-type, shadow context):
+                                  fold-result(result-type, context)
+                                end)
+                              else:
+                                checking(rhs.value, expect-ret-type).fold-bind(lam(_, _, shadow context):
+                                  fold-result(expect-ret-type, context)
+                                end)
+                              end.bind(lam(ret-type, shadow context):
+                                shadow context = context.add-example-type(inference-data.existential, t-arrow(arg-types, ret-type, inference-data.loc, true))
+                                fold-result(nothing, context)
+                              end)
+                            end)
+                          else:
+                            fold-result(nothing, context)
+                          end
+                      end
+                    | else => fold-result(nothing, context)
+                  end
+              end
+            | else => fold-result(nothing, context)
+          end
+        | else => fold-result(nothing, context)
+      end
+  end
+end
+
+#######################################################
