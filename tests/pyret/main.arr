@@ -11,6 +11,7 @@ import "./tests/test-array.arr" as _
 import "./tests/test-constructors.arr" as _
 import "./tests/test-contracts.arr" as _
 import "./tests/test-math.arr" as _
+import "./tests/test-statistics.arr" as _
 import "./tests/test-s-exp.arr" as _
 import "./tests/test-json.arr" as _
 import "./tests/test-refs.arr" as _

@@ -8,6 +8,7 @@ import either as E
 import equality as equality
 import valueskeleton as VS
 import lists as lists
+import math as math
 
 type List = lists.List
 List = lists.is-List
@@ -47,7 +48,7 @@ fun mean(l :: List<Number>) -> Number:
   if length(l) == 0:
     raise("You can't take the average of an empty list")
   else:
-    sum(l) / length(l)
+    math.sum(l) / length(l)
   end
 end
 
@@ -76,11 +77,11 @@ fun lin-reg-2V(x :: List<Number>, y :: List<Number>) -> StatModel:
   else if x.length() < 2:
     raise("lin-reg-2V: input lists must have at least 2 elements each")
   else:
-    xpt_xy = sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt_x_xpt_y = (sum(x) * sum(y)) / x.length()
+    xpt_xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
+    xpt_x_xpt_y = (math.sum(x) * math.sum(y)) / x.length()
     covariance = xpt_xy - xpt_x_xpt_y
-    v1 = sum(map(lam(n): n * n end, x))
-    v2 = (sum(x) * sum(x)) / x.length()
+    v1 = math.sum(map(lam(n): n * n end, x))
+    v2 = (math.sum(x) * math.sum(x)) / x.length()
     variance = v1 - v2
     beta = covariance / variance
     alpha = mean(y) - (beta * mean(x))
