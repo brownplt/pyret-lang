@@ -240,6 +240,13 @@ check "sort as a function":
       { name: "Joan", age: 43 }]
 end
 
+check "distinct":
+  lists.distinct([list: ~1, ~1]) is-roughly [list: ~1, ~1]
+  lists.distinct([list: ~1, ~1, 1]) is-roughly [list: ~1, ~1, 1]
+  lists.distinct([list: ~1, ~1, 1, 1]) is-roughly [list: ~1, ~1, 1]
+  lists.distinct([list: ~1, ~2, ~3]) is-roughly [list: ~1, ~2, ~3]
+end
+
 check "more utility functions":
   lists.last([list: 1]) is 1
   lists.last([list: 1, 2, 3, 4, 5, 6, 7]) is 7
