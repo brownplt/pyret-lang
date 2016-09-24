@@ -68,6 +68,7 @@ ifneq ($(findstring .exe,$(SHELL)),)
 	RMDIR = $(foreach dir,$1,if exist "$(dir)". (rd /S /Q "$(dir)".)$(\n))
 	RM = if exist "$1". (del $1)
 else
+	SHELL = /bin/bash
 	MKDIR = mkdir -p $1
 	RMDIR = rm -rf $1
 	RM = rm -f $1
@@ -138,6 +139,18 @@ EXTRA_FLAGS=$(EF)
 else
 EXTRA_FLAGS = -no-check-mode
 endif
+ralloc-test/%.jarr : ralloc-test/%.arr
+	$(NODE) $(PHASEA)/pyret.jarr \
+	-library \
+	--require-config src/scripts/standalone-configA.json \
+	--compiled-dir ralloc-test/compiled/ \
+	--outfile $@ \
+	--build-runnable $<
+
+.PHONY : ralloc-test
+ralloc-test: $(patsubst %.arr,%.jarr,$(wildcard ralloc-test/*.arr))
+	for f in $^; do echo $$f; $(NODE) $$f; done
+
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
                       --build-runnable $*.arr \
@@ -279,7 +292,6 @@ type-check-test: phaseA tests/type-check/main.jarr
 tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
 	$(TEST_BUILD) \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
-
 
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)
