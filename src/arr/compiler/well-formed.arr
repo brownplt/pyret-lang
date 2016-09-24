@@ -720,6 +720,28 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     end
   end,
+  method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
+    wf-table-headers(l, header)
+    if is-empty(header):
+      true
+    else:
+      expected-len = header.length()
+      for lists.all(_row from rows) block:
+        actual-len = _row.elems.length()
+        when actual-len == 0:
+          add-error(C.table-empty-row(_row.l))
+        end
+        when (actual-len <> 0) and (actual-len <> expected-len):
+          header-loc = header    .get(0).l + header    .last().l
+          row-loc    = _row.elems.get(0).l + _row.elems.last().l
+          add-error(C.table-row-wrong-size(header-loc, header, _row))
+        end
+        for lists.all(elem from _row.elems):
+          elem.visit(self)
+        end
+      end
+    end
+  end,
   method s-table-extend(self, l, column-binds, extensions) block:
     bound-names = S.list-to-tree-set(map(lam(b :: A.Bind): b.id.toname() end, column-binds.binds))
     for L.all(extension from extensions):
@@ -856,28 +878,6 @@ top-level-visitor = A.default-iter-visitor.{
     cur-shared := the-cur-shared
     is-empty(underscores) and
       ret and wrap-visit-check(well-formed-visitor, _check)
-  end,
-  method s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
-    wf-table-headers(l, header)
-    if is-empty(header):
-      true
-    else:
-      expected-len = header.length()
-      for lists.all(_row from rows) block:
-        actual-len = _row.elems.length()
-        when actual-len == 0:
-          add-error(C.table-empty-row(_row.l))
-        end
-        when (actual-len <> 0) and (actual-len <> expected-len):
-          header-loc = header    .get(0).l + header    .last().l
-          row-loc    = _row.elems.get(0).l + _row.elems.last().l
-          add-error(C.table-row-wrong-size(header-loc, header, _row))
-        end
-        for lists.all(elem from _row.elems):
-          elem.visit(well-formed-visitor)
-        end
-      end
-    end
   end,
 
   # Everything else delegates to the non-toplevel visitor
@@ -1069,6 +1069,12 @@ top-level-visitor = A.default-iter-visitor.{
      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
      | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member", l2)
     end
+  end,
+  method s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>):
+    well-formed-visitor.s-table(l, header, rows)
+  end,
+  method s-load-table(_, l, header, spec):
+    well-formed-visitor.s-load-table(l, header, spec)
   end,
   method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
     well-formed-visitor.s-table-extend(l, column-binds, extensions)
