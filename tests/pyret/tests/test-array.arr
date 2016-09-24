@@ -257,3 +257,20 @@ check:
   a2.set-now(1, 2)
   a1 is=~ a2
 end
+
+check:
+  fun loop(x):
+    if x < 0: 0
+    else:
+      x + loop(x - 1)
+    end
+  end
+  big-array = raw-array-build(lam(x): x end, 5000)
+
+  filtered = raw-array-filter(lam(x) block:
+    loop(1000)
+    num-modulo(x, 2) == 0
+  end, big-array)
+
+  filtered is=~ raw-array-build(lam(x): x * 2 end, 2500)
+end

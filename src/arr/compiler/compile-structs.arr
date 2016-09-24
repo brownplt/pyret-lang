@@ -2220,6 +2220,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-length", t-top,
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
+    "raw-array-filter", t-top,
+    "raw-array-map", t-top,
     "raw-array", t-record(
       [string-dict:
         "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),
