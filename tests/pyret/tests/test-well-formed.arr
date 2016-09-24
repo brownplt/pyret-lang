@@ -149,6 +149,12 @@ check "malformed blocks":
   c("{method m(self): nothing where: 5 end}") satisfies CS.is-unwelcome-where
 end
 
+check "table row sizes, non-top-level":
+  c("f(table: a, b row: end)") satisfies CS.is-table-empty-row
+  c("f(table: a, b row: 1 end)") satisfies CS.is-table-row-wrong-size
+  c("f(table: row: end)") satisfies CS.is-table-empty-header
+end
+
 check "table loading checks":
   c("load-table: h1 end") satisfies CS.is-load-table-no-body
   c("load-table: source: src end") satisfies CS.is-table-empty-header
