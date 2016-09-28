@@ -15,7 +15,8 @@
     "seedrandom": "~2.3.10",
     "codemirror": "git://github.com/jpolitz/CodeMirror",
     "benchmark": "2.0.0",
-    "ascii-table": "~0.0.9"
+    "ascii-table": "~0.0.9",
+    "jasmine-node": "1.14.5"
   },
   "devDependencies": {},
   "scripts": {
