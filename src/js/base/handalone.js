@@ -1,4 +1,4 @@
-require = require("requirejs");
+var require = require("requirejs");
 require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
 
   var staticModules = program.staticModules;

@@ -48,8 +48,8 @@
           fs.open(realOut, "w", function(err, outFile) {
             if (err) throw err;
             fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-            fs.writeSync(outFile, "requirejs = require(\"requirejs\");\n");
-            fs.writeSync(outFile, "define = requirejs.define;\n}\n");
+            fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
+            fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
             fs.writeSync(outFile, programWithDeps);
             fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
             var writeRealOut = function(str) { 
