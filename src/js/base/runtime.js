@@ -5577,6 +5577,56 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     };
 
+    // Deal with name shortening
+    var nameMap = {
+        'addModuleToNamespace': 'aMTN',
+        'checkArityC': 'cAC',
+        'checkRefAnns': 'cRA',
+        'derefField': 'dF',
+        'getColonFieldLoc': 'gCFL',
+        'getDotAnn': 'gDA',
+        'getField': 'gF',
+        'getFieldRef': 'gFR',
+        'hasBrand': 'hB',
+        'isActivationRecord': 'isAR',
+        'isCont': 'isC',
+        'isFunction': 'isF',
+        'isMethod': 'isM',
+        'isPyretException': 'isPE',
+        'isPyretTrue': 'isPT',
+        'makeActivationRecord': 'mAR',
+        'makeBoolean': 'mB',
+        'makeBranderAnn': 'mBA',
+        'makeCont': 'mC',
+        'makeDataValue': 'mDV',
+        'makeFunction': 'mF',
+        'makeGraphableRef': 'mGR',
+        'makeMatch': 'mM',
+        'makeMethod': 'mMet',
+        'makeMethodN': 'mMN',
+        'makeObject': 'mO',
+        'makePredAnn': 'mPA',
+        'makeRecordAnn': 'mRA',
+        'makeTupleAnn': 'mTA',
+        'makeVariantConstructor': 'mVC',
+        'namedBrander': 'nB',
+        'traceEnter': 'tEn',
+        'traceErrExit': 'tErEx',
+        'traceExit': 'tEx',
+        '_checkAnn': '_cA'
+    };
+
+    for (var longName in nameMap) {
+        if (nameMap[longName] in thisRuntime) {
+            throw new Error("Multiple short names for " + nameMap[longName]);
+        }
+
+        if (!(longName in thisRuntime)) {
+            throw new Error("Method not in runtime already " + longName);
+        }
+        thisRuntime[nameMap[longName]] = thisRuntime[longName];
+    }
+
     return thisRuntime;
   }
 
