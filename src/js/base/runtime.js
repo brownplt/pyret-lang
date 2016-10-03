@@ -2437,7 +2437,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
+      return !(ann.refinement);
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2888,7 +2888,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
+      
 
+      // Fast path: no refinements, so no deep stack/pause potential
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.fields.length; i++) {
+          var result = that.anns[that.fields[i]].check(that.locs[i], getColonField(val, thisField));
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
+
+      // Slow path: has refinement, so need to stack guard
       function deepCheckFields(remainingFields) {
         var thisField;
         return safeCall(function() {
@@ -5141,7 +5154,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
 
         var checksPlusBody = "";
-        if(true /* hasRefinement */) {
+        if(hasRefinement) {
           checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
             constructorBody + "\n" +
           "});";
@@ -5154,7 +5167,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             else {
               checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
-            checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
+            //checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
           });
           checksPlusBody += constructorBody;
         }
