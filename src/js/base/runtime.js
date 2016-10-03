@@ -2918,7 +2918,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       // Fast path: no refinements, so no deep stack/pause potential
       if(!that.hasRefinement) {
         for(var i = 0; i < that.fields.length; i++) {
-          var result = that.anns[that.fields[i]].check(that.locs[i], getColonField(val, thisField));
+          var thisField = that.fields[i];
+          var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
           if(!thisRuntime.ffi.isOk(result)) {
             return result;
           }
