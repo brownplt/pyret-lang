@@ -2433,7 +2433,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
       if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
-      throw "Internal error: got invalid result from annotation check";
+      console.trace();
+      console.error("Invalid result from annotation check: ", result);
+      throw new Error("Internal error: got invalid result from annotation check");
     }
 
     function isCheapAnnotation(ann) {
@@ -2778,6 +2780,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         //return ffi.throwMessageException("lengths not equal");
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
+
+      // Fast path for no refinements, since arbitrary stack space can't be consumed
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.anns.length; i++) {
+          var result = that.anns[i].check(that.locs[i], val.vals[i]);
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
+
+      // Slow path for annotations with refinements, which may call back into Pyret
 
       function deepCheckFields(remainingAnns) {
         var thisAnn;
