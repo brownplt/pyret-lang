@@ -4073,7 +4073,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function filterFun($ar) {
         try {
           if (thisRuntime.isActivationRecord($ar)) {
-            newArray = $ar.ans;
+            if($ar.ans) { newArray.push(arr[currentIndex]); }
           }
           return filterHelp();
         } catch ($e) {

@@ -51,6 +51,8 @@
                                                 ["RawArray", "tva"]]],
       "raw-array-length":    ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
       "raw-array-to-list":   ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
+      "raw-array-filter":    ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["RawArray", "tva"]], ["RawArray", "tva"]]],
+      "raw-array-map":    ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["RawArray", "tva"]], ["RawArray", "tvb"]]],
       "raw-array-fold":      ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 
                                                                "tvb", ["RawArray", "tva"], "Number"], "tvb"]],
 

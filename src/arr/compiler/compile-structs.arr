@@ -2046,6 +2046,7 @@ end
 
 type CompileOptions = {
   check-mode :: Boolean,
+  check-all :: Boolean,
   type-check :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
@@ -2061,6 +2062,7 @@ type CompileOptions = {
 
 default-compile-options = {
   check-mode : true,
+  check-all : true,
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
@@ -2220,6 +2222,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-length", t-top,
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
+    "raw-array-filter", t-top,
+    "raw-array-map", t-top,
     "raw-array", t-record(
       [string-dict:
         "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),

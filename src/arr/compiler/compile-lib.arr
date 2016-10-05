@@ -443,7 +443,7 @@ fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm
       #print("Make standalone program\n")
       program = make-standalone(ws, prog, options)
       #print("Run program\n")
-      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source(), options))
       #print("Done\n")
       ans
     | link(_, _) =>
@@ -467,7 +467,7 @@ fun compile-and-run-locator(locator, finder, context, realm, runtime, starter-mo
       #print("Run program\n")
 
       # NOTE(joe): program.v OK because no errors above
-      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source()))
+      ans = right(L.run-program(runtime, realm, program.v.js-ast.to-ugly-source(), options))
       #print("Done\n")
       ans
     | link(_, _) =>
