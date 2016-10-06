@@ -84,13 +84,18 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
+end
+
+data ValueExport:
+  | v-just-type(t :: T.Type)
+  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
 data Provides:
   | provides(
       from-uri :: URI,
-      values :: StringDict<T.Type>,
+      values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.Type>
     )
@@ -192,7 +197,6 @@ fun provides-from-raw-provides(uri, raw):
     if is-string(v) block:
       vdict.set(v, t-top)
     else:
-      #print("\n\nYOOOOOOOOOOOOOOOOOOOOOOO: " + tostring(v.name)) 
       vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
     end
   end
