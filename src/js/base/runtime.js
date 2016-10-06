@@ -1821,22 +1821,36 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: thisRuntime.ffi.equal };
-      var cache = {left: [], right: []};
+      var cache = {left: [], right: [], equal: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
-            return true;
+            return cache.equal[i];
         }
         return false;
+      }
+      function setCachePair(obj1, obj2, val) {
+        for (var i = 0; i < cache.left.length; i++) {
+          if (cache.left[i] === obj1 && cache.right[i] === obj2) {
+            cache.equal[i] = val;
+            return;
+          }
+        }
+// throw new Error("Internal error: tried to 
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
         cache.right.push(obj2);
+        cache.equal.push(thisRuntime.ffi.equal);
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
+          if(current.setCache) {
+            setCachePair(current.left, current.right, toCompare.curAns);
+            continue;
+          }
           curLeft = current.left;
           curRight = current.right;
 
@@ -1875,10 +1889,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
-            if (findPair(curLeft, curRight)) {
-              continue; // Already checked this pair of objects
+            var curPair = findPair(curLeft, curRight);
+            if (curPair !== false) {
+              // Already checked this pair of objects
+              toCompare.curAns = curPair
+              continue;
             } else {
               cachePair(curLeft, curRight);
+              toCompare.stack.push({ setCache: true, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -2037,6 +2055,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               $ans = equalFun();
               break;
             case 1:
+              for(var i = 0; i < toCompare.stack.length; i++) {
+                var current = toCompare.stack[i];
+                if(current.setCache) {
+                  setCachePair(current.left, current.right, $ans);
+                }
+              }
+              setCachePair(left, right, $ans);
               toCompare = stackOfToCompare.pop();
               return $ans;
             }
