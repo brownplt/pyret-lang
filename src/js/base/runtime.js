@@ -1842,13 +1842,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         cache.left.push(obj1);
         cache.right.push(obj2);
         cache.equal.push(thisRuntime.ffi.equal);
+        return cache.equal.length;
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
           if(current.setCache) {
-            setCachePair(current.left, current.right, toCompare.curAns);
+            cache.equal[current.index - 1] = toCompare.curAns;
             continue;
           }
           curLeft = current.left;
@@ -1895,8 +1896,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = curPair
               continue;
             } else {
-              cachePair(curLeft, curRight);
-              toCompare.stack.push({ setCache: true, left: curLeft, right: curRight });
+              var index = cachePair(curLeft, curRight);
+              toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -2058,10 +2059,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               for(var i = 0; i < toCompare.stack.length; i++) {
                 var current = toCompare.stack[i];
                 if(current.setCache) {
-                  setCachePair(current.left, current.right, $ans);
+                  cache.equal[current.index - 1] = $ans;
                 }
               }
-              setCachePair(left, right, $ans);
               toCompare = stackOfToCompare.pop();
               return $ans;
             }
