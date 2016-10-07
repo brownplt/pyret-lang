@@ -203,7 +203,8 @@
     }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
-    function runProgram(otherRuntimeObj, realmObj, programString) {
+    function runProgram(otherRuntimeObj, realmObj, programString, options) {
+      var checkAll = runtime.getField(options, "check-all");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
@@ -217,7 +218,7 @@
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
+        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
@@ -243,7 +244,7 @@
         "builtin://checker": function(checker) {
           var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       };

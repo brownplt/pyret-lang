@@ -156,7 +156,8 @@ fun main(args):
           CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               compile-module: true,
-              display-progress: display-progress
+              display-progress: display-progress,
+              check-all: check-all
             })
         else:
           print(C.usage-info(options).join-str("\n"))
