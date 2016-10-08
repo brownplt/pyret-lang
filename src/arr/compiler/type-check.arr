@@ -155,7 +155,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       context
     else:
       uri = globvs.get-value(g)
-      context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g)))
+      context.set-global-types(context.global-types.set(A.s-global(g).key(),
+            compile-env.mods.get-value(uri).values.get-value(g).t))
     end
   end, context)
   shadow context = globts.keys-list().foldl(lam(g, shadow context):

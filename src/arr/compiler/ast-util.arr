@@ -446,6 +446,23 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
   end
 end
 
+fun canonicalize-value-export(ve :: Any, uri :: URI, transform-name :: NameChanger) -> CS.ValueExport:
+  # FIXME: This is weird but some things get put in the values dictionary that aren't ValueExports
+  if CS.is-v-fun(ve):
+    CS.v-fun(canonicalize-names(ve.t, uri, transform-name), "v-fun", none)
+  else if CS.is-v-just-type(ve):
+    CS.v-just-type(canonicalize-names(ve.t, uri, transform-name))
+  else:
+    # I believe the only time this branch is used is for builtin functions
+    # For example is Option's "some". Maybe we have to change the way these builtin functions
+    # are stored (maybe in type-defaults.arr)?
+    block:
+      print("No ValueExport for uri " + uri + "\n")
+      CS.v-just-type(canonicalize-names(ve, uri, transform-name))
+    end
+  end
+end
+
 fun find-mod(compile-env, uri) -> Option<String>:
   for find(depkey from compile-env.mods.keys-list()):
     other-uri = compile-env.mods.get-value(depkey).from-uri
@@ -456,18 +473,22 @@ end
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, tranformer):
     for fold(s from [SD.string-dict: ], v from d.keys-list()):
-      s.set(v, canonicalizer(d.get-value(v), uri, tranformer))
+      block:
+        print("name is " + v + "\n")
+        s.set(v, canonicalizer(d.get-value(v), uri, tranformer))
+      end
     end
   end
 end
 
+transform-values-dict = transform-dict-helper(canonicalize-value-export)
 transform-dict = transform-dict-helper(canonicalize-names)
 transform-data-dict = transform-dict-helper(canonicalize-data-type)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
   | provides(from-uri, values, aliases, data-definitions) =>
-    new-vals = transform-dict(values, from-uri, transformer)
+    new-vals = transform-values-dict(values, from-uri, transformer)
     new-aliases = transform-dict(aliases, from-uri, transformer)
     new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
     CS.provides(from-uri, new-vals, new-aliases, new-data-definitions)

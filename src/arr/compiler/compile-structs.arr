@@ -111,6 +111,16 @@ end
 
 rag = raw-array-get
 
+fun value-export-from-raw(uri, val-export, tyvar-env :: SD.StringDict<T.Type>) -> ValueExport block:
+  t = val-export.tag
+  typ = type-from-raw(uri, val-export.typ, tyvar-env)
+  if t == "v-fun":
+    v-fun(typ, t, none)
+  else:
+    v-just-type(typ)
+  end
+end
+
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
   tfr = type-from-raw(uri, _, tyvar-env)
   # TODO(joe): Make this do something intelligent when location information
@@ -197,7 +207,7 @@ fun provides-from-raw-provides(uri, raw):
     if is-string(v) block:
       vdict.set(v, t-top)
     else:
-      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+      vdict.set(v.name, value-export-from-raw(uri, v.valueExport, SD.make-string-dict()))
     end
   end
   aliases = raw.aliases
