@@ -241,8 +241,9 @@ fun used-vars-jexpr(e :: J.JExpr) -> {NameSet; NameSet}:
       # Remove local-scope-only variables
       acc = difference-now(used-body, declared-vars-jblock(body))
       # Remove arguments
-      for CL.each(a from args):
+      for CL.each(a from args) block:
         acc.remove-now(a.key())
+        protected-body.remove-now(a.key())
       end
       # Merge with *protected*, since we want to protect
       # everything that we close over
