@@ -419,12 +419,12 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
 end
 
 fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
-  doc: ```
-       Returns a mapping of name.key() -> <allocated name>.
-       We use a variation of Poletto and Sarkar's Linear Register Allocation
-       scan to condense variable names with different live ranges.
-       Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
-       ```
+  #doc: ```
+  #     Returns a mapping of name.key() -> <allocated name>.
+  #     We use a variation of Poletto and Sarkar's Linear Register Allocation
+  #     scan to condense variable names with different live ranges.
+  #     Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
+  #     ```
   live-ranges = compute-live-ranges(dag)
   # Dynamically grown set of "registers"
   pool = DSU.make-mutable-stack()
@@ -622,7 +622,7 @@ end
 #   end
 #   ranges
 # end
-fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
+fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> RegisterAllocation block:
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
   var case-num = 0
@@ -694,40 +694,46 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
       | some(n) => n
     end
   end
-  allocation-visitor = J.default-map-visitor.{
-    method j-var(self, name, rhs) block:
-      # Need to avoid duplicating var declarations
-      fixed = fix-name(name)
-      if assigned.has-key-now(fixed.key()) block:
-        # For cases expressions...
-        #
-        # I do not have proof
-        # That this works in any way
-        # But I think it does.
-        #                 -- Basho
-        if fixed.key() == name.key():
-          J.j-var(fixed, rhs.visit(self))
+  allocation-visitor = if false block:
+    print("\nSkipping register allocation\n")
+    J.default-map-visitor
+  else:
+    print("\nDoing register allocation at " + tostring(loc) + "\n")
+    J.default-map-visitor.{
+      method j-var(self, name, rhs) block:
+        # Need to avoid duplicating var declarations
+        fixed = fix-name(name)
+        if assigned.has-key-now(fixed.key()) block:
+          # For cases expressions...
+          #
+          # I do not have proof
+          # That this works in any way
+          # But I think it does.
+          #                 -- Basho
+          if fixed.key() == name.key():
+            J.j-var(fixed, rhs.visit(self))
+          else:
+            J.j-expr(J.j-assign(fixed, rhs.visit(self)))
+          end
         else:
-          J.j-expr(J.j-assign(fixed, rhs.visit(self)))
+          assigned.set-now(fixed.key(), true)
+          J.j-var(fixed, rhs.visit(self))
         end
-      else:
-        assigned.set-now(fixed.key(), true)
-        J.j-var(fixed, rhs.visit(self))
+      end,
+      method j-try-catch(self, body, exn, catch):
+        J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
+      end,
+      method j-fun(self, args, body):
+        J.j-fun(CL.map(fix-name, args), body.visit(self))
+      end,
+      method j-assign(self, name, rhs):
+        J.j-assign(fix-name(name), rhs.visit(self))
+      end,
+      method j-id(self, id):
+        J.j-id(fix-name(id))
       end
-    end,
-    method j-try-catch(self, body, exn, catch):
-      J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
-    end,
-    method j-fun(self, args, body):
-      J.j-fun(CL.map(fix-name, args), body.visit(self))
-    end,
-    method j-assign(self, name, rhs):
-      J.j-assign(fix-name(name), rhs.visit(self))
-    end,
-    method j-id(self, id):
-      J.j-id(fix-name(id))
-    end
-  }
+    }
+  end
   acc = ns-empty()
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
@@ -750,8 +756,19 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
     registers.set-now(allocated.get-value(v).key(), true)
   end
   # When statement to only show interesting cases
-  when num-before > 20:
-    print("# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
+  print("# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
+  COLOR-PRE = string-from-code-point(27) + "[96m"
+  COLOR-POST = string-from-code-point(27) + "[0m"
+  when num-before <> num-after block:
+    print("Renaming:\n")
+    for each(v from allocated.keys().to-list()):
+      dest = allocated.get-value(v).key()
+      print("\t" + if dest <> v:
+          (COLOR-PRE + v + " => " + allocated.get-value(v).key() + COLOR-POST)
+        else:
+          (v + " => " + allocated.get-value(v).key())
+        end + "\n")
+    end
   end
 
   # print("Done")

@@ -373,13 +373,13 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
   fun s(stmt):
     cases(J.JStmt) stmt block:
       | j-var(name, rhs) =>
-        # Ignore all variables named $underscore#####
-        if A.is-s-atom(name) and (name.base == "$underscore") block:
-          e(rhs)
-        else:
+#        # Ignore all variables named $underscore#####
+#        if A.is-s-atom(name) and (name.base == "$underscore") block:
+#          e(rhs)
+#        else:
           e(rhs)
           vars.set-now(name.key(), name)
-        end
+#        end
       | j-if1(cond, consq) =>
         e(cond)
         b(consq)
@@ -454,7 +454,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ^ cl-append(_, visited-body.new-cases)
   # Initialize the case numbers, for more legible output...
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
-  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
+  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step, l)
   shadow main-body-cases = main-body-cases-and-dead-vars.body
   all-vars = D.make-mutable-string-dict()
   for CL.each(case-expr from main-body-cases):
