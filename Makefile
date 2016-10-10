@@ -141,7 +141,6 @@ EXTRA_FLAGS = -no-check-mode
 endif
 ralloc-test/%.jarr : ralloc-test/%.arr
 	$(NODE) $(PHASEA)/pyret.jarr \
-	-library \
 	--require-config src/scripts/standalone-configA.json \
 	--compiled-dir ralloc-test/compiled/ \
 	--outfile $@ \
