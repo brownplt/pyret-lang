@@ -89,8 +89,8 @@ check "lists":
   equal-now(l1, l3) is false
 end
 
-eq-all = { _equals(_, _, _): E.Equal end }
-eq-none = { _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
+eq-all = { method _equals(_, _, _): E.Equal end }
+eq-none = { method _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
 
 check "identical pre-check overrides method in true case, but not in false case":
   identical(eq-none, eq-none) is true
@@ -189,11 +189,11 @@ check:
   var called = false
   var long-equals = {}
   long-equals := {
-    _equals(_, _, eq):
+    method _equals(_, _, eq) block:
       for each(i from range(0, 10000)):
         i + i
       end
-      if called:
+      if called block:
         E.Equal
       else:
         called := true
@@ -209,6 +209,53 @@ check:
 end
 
 check "non-equality result from equals":
-  o = { _equals(_, _, _): true end }
+  o = { method _equals(_, _, _): true end }
   o == {} raises "EqualityResult"
+end
+
+check "https://github.com/brownplt/pyret-lang/issues/896":
+  var firsteq = nothing
+  var secondeq = nothing
+  
+  o = {
+    method _equals(self, other, eq) block:
+      v1 = {}
+      v2 = {x:"a"}
+      firsteq := eq([list: v1], [list: v2])
+      secondeq := eq(v1, v2)
+      eq(1, 1)
+    end
+  }
+  o == {}
+  firsteq satisfies E.is-NotEqual
+  secondeq satisfies E.is-NotEqual
+end
+
+check "https://github.com/brownplt/pyret-lang/issues/896":
+  var firsteq = nothing
+  var secondeq = nothing
+  
+  o = {
+    method _equals(self, other, eq) block:
+      v1 = {}
+      v2 = {x:"a"}
+      firsteq := eq(v1, v2)
+      secondeq := eq(v1, v2)
+      eq(1, 1)
+    end
+  }
+  o == {}
+  firsteq satisfies E.is-NotEqual
+  secondeq satisfies E.is-NotEqual
+end
+
+check "https://github.com/brownplt/pyret-lang/issues/895":
+  list-to-set([list:
+    [list: "top","mid-a"],
+    [list: "top","mid-b","low-b-a"],
+    [list: "top","mid-b"]]) is-not
+  list-to-set([list:
+    [list: [list: "top","mid-a"]],
+    [list: "top","mid-b"],
+    [list: "top","mid-b","low-b-a"]])
 end

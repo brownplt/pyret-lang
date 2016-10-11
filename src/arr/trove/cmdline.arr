@@ -7,9 +7,9 @@ provide {
   Bool: read-bool,
   String: read-string,
   Custom: read-custom,
-  ParseParam: ParseParam,
-  ParamRepeat: ParamRepeat,
-  Param: Param,
+  ParseParam: is-ParseParam,
+  ParamRepeat: is-ParamRepeat,
+  Param: is-Param,
   parse-args: parse-args,
   parse-cmdline: parse-cmdline,
   usage-info: usage-info,
@@ -24,21 +24,41 @@ provide {
   right: right,
   required-once: required-once,
   required-many: required-many,
-  ParsedArguments: ParsedArguments,
+  ParsedArguments: is-ParsedArguments,
   is-success: is-success,
   is-arg-error: is-arg-error
 } end
 provide-types *
 
+import global as _
+import base as _
 import cmdline-lib as CL
 import format as F
 import string-dict as D
+import lists as lists
 import either as E
+import option as O
+
+type Option = O.Option
+some = O.some
+none = O.none
+
+type Either = E.Either
+right = E.right
+left = E.left
+
+type List = lists.List
+link = lists.link
+empty = lists.empty
+list = lists.list
+is-empty = lists.is-empty
+fold = lists.fold
+
+
+
+
 format = F.format
 string-dict = D.string-dict
-type Either = E.Either
-left = E.left
-right = E.right
 
 all-cmdline-params = CL.command-line-arguments()
 file-name = all-cmdline-params.first
@@ -46,33 +66,33 @@ other-args = all-cmdline-params.rest
 
 data ParseParam:
   | read-number with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
       n = string-tonumber(s)
       if is-nothing(n):
         right(format("~a expected a numeric argument, got ~a", [list: param-name, torepr(s)]))
       else: left(n)
       end
     end,
-    parse-string(self): "<number>" end
+    method parse-string(self): "<number>" end
   | read-bool with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:
         right(format("~a expected a boolean argument, got ~a", [list: param-name, torepr(s)]))
       end
     end,
-    parse-string(self): "(true|false)" end
+    method parse-string(self): "(true|false)" end
   | read-string with:
-    parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
       left(s)
     end,
-    parse-string(self): "<string>" end
+    method parse-string(self): "<string>" end
   | read-custom(name :: String, parser :: Function) with:
-    parse(self, arg-index :: Number, param-name :: String, s :: String):
+    method parse(self, arg-index :: Number, param-name :: String, s :: String):
       self.parser(arg-index, param-name, s)
     end,
-    parse-string(self): format("<~a>", [list: self.name]) end
+    method parse-string(self): format("<~a>", [list: self.name]) end
 end
 
 data ParsedArguments:
@@ -82,10 +102,10 @@ end
 
 
 data ParamRepeat:
-  | once with: _tostring(_, ts): "may be used at most once" end
-  | many with: _tostring(_, ts): "may be repeated" end
-  | required-once with: _tostring(_, ts): "must be used exactly once" end
-  | required-many with: _tostring(_, ts): "must be used at least once" end
+  | once with: method _tostring(_, ts): "may be used at most once" end
+  | many with: method _tostring(_, ts): "may be repeated" end
+  | required-once with: method _tostring(_, ts): "must be used exactly once" end
+  | required-many with: method _tostring(_, ts): "must be used at least once" end
 end
 
 data Param:

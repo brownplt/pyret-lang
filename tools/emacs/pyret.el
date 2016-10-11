@@ -106,7 +106,7 @@
 (defconst pyret-keywords-test
   '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
-   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check"
+   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
@@ -119,10 +119,10 @@
 (defconst pyret-keywords-percent
    '("is" "is-not"))
 (defconst pyret-paragraph-starters
-  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
+  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "ask:"))
 
 (defconst pyret-punctuation-regex
-  (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," "^" "(" ")" "[" "]" "{" "}" 
+  (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," ";" "^" "(" ")" "[" "]" "{" "}" 
                 "." "!" "\\" "|" "=" "==" "<>" "+" "%" "*" "/"))) ;; NOTE: No hyphen by itself
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\(?:\\_<"
@@ -132,7 +132,7 @@
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
           "\\_>\\|" 
-          (regexp-opt '("." "!" "^")) 
+          "\\(?:\\.\\(?:$\\|[^.]\\)\\|[!^]\\)"
           "\\)"))
 (defconst pyret-ws-regex "\\(?:[ \t\n]\\|#.*?\n\\)")
 
@@ -157,6 +157,79 @@
   (pyret-del-lists pyret-keywords-colon     pyret-bootstrap-keywords-colon)
   (pyret-del-lists pyret-paragraph-starters pyret-bootstrap-paragraph-starters))
 
+;; String handling effectively ripped from Emacs' python.el
+
+(eval-and-compile
+  (defconst pyret-rx-constituents
+    `((string-delimiter . ,(rx (and
+                                ;; Match even number of backslashes.
+                                (or (not (any ?\\ ?\' ?\")) point
+                                    ;; Quotes might be preceded by a escaped quote.
+                                    (and (or (not (any ?\\)) point) ?\\
+                                         (* ?\\ ?\\) (any ?\' ?\")))
+                                (* ?\\ ?\\)
+                                ;; Match single or triple quotes of any kind.
+                                (group (or  "\"" "\"\"\"" "'" "```")))))))
+  (defmacro pyret-rx (&rest regexps)
+    "Pyret mode specialized rx macro.
+This variant of `rx' supports common Pyret named REGEXPS."
+    (let ((rx-constituents (append pyret-rx-constituents rx-constituents)))
+      (cond ((null regexps)
+             (error "No regexp"))
+            ((cdr regexps)
+             (rx-to-string `(and ,@regexps) t))
+            (t
+             (rx-to-string (car regexps) t))))))
+
+(defconst pyret-syntax-propertize-function
+  (syntax-propertize-rules
+   ((pyret-rx string-delimiter)
+    (0 (ignore (pyret-syntax-stringify))))))
+
+(defsubst pyret-syntax-count-quotes (quote-char &optional point limit)
+  "Count number of quotes around point (max is 3).
+QUOTE-CHAR is the quote char to count.  Optional argument POINT is
+the point where scan starts (defaults to current point), and LIMIT
+is used to limit the scan."
+  (let ((i 0))
+    (while (and (< i 3)
+                (or (not limit) (< (+ point i) limit))
+                (eq (char-after (+ point i)) quote-char))
+      (setq i (1+ i)))
+    i))
+
+(defun pyret-syntax-stringify ()
+  "Put `syntax-table' property correctly on single/triple quotes."
+  (let* ((num-quotes (length (match-string-no-properties 1)))
+         (ppss (prog2
+                   (backward-char num-quotes)
+                   (syntax-ppss)
+                 (forward-char num-quotes)))
+         (string-start (and (not (nth 4 ppss)) (nth 8 ppss)))
+         (quote-starting-pos (- (point) num-quotes))
+         (quote-ending-pos (point))
+         (num-closing-quotes
+          (and string-start
+               (pyret-syntax-count-quotes
+                (char-before) string-start quote-starting-pos))))
+    (cond ((and string-start (= num-closing-quotes 0))
+           ;; This set of quotes doesn't match the string starting
+           ;; kind. Do nothing.
+           nil)
+          ((not string-start)
+           ;; This set of quotes delimit the start of a string.
+           (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                              'syntax-table (string-to-syntax "|")))
+          ((= num-quotes num-closing-quotes)
+           ;; This set of quotes delimit the end of a string.
+           (put-text-property (1- quote-ending-pos) quote-ending-pos
+                              'syntax-table (string-to-syntax "|")))
+          ((> num-quotes num-closing-quotes)
+           ;; This may only happen whenever a triple quote is closing
+           ;; a single quoted string. Add string delimiter syntax to
+           ;; all three quotes.
+           (put-text-property quote-starting-pos quote-ending-pos
+                              'syntax-table (string-to-syntax "|"))))))
 
 (defun pyret-recompute-lexical-regexes ()
   (defconst pyret-keywords-regex (regexp-opt pyret-keywords))
@@ -166,9 +239,10 @@
   (defconst pyret-keywords-percent-regex (regexp-opt pyret-keywords-percent))
   (defconst pyret-font-lock-keywords-1
     (list
-     `(";" . font-lock-keyword-face)
-     `("\\(```\\(?:\\\\[`\\]\\|[^`\\]\\|``?[^`]\\)*?```\\)" 
-       (1 '(face font-lock-string-face font-lock-multiline t) t))
+     `("\\(^~[+-]?[0-9]+\\(?:\\.[0-9]+\\)?\\(?:[eE][-+]?[0-9]+\\)\\)"
+       (1 font-lock-negation-char-face))
+     ;`("\\(```\\(?:\\\\[`\\]\\|[^`\\]\\|``?[^`]\\)*?```\\)" 
+     ;  (1 '(face font-lock-string-face font-lock-multiline t) t))
      `(,(concat 
          "\\(^\\|[ \t]\\|" pyret-punctuation-regex "\\)\\("
          pyret-keywords-colon-regex
@@ -557,6 +631,10 @@
                      (> (pyret-indent-vars defered-opened) 0)) 
               (decf (pyret-indent-vars defered-opened))
               (pop opens))) ;; don't indent if we've started a RHS already
+           ((and (looking-at "*") (not (pyret-in-string)) (pyret-has-top opens '(provide)))
+            (pop opens)
+            (incf (pyret-indent-shared defered-closed))
+            (forward-char))
            ((and (looking-at pyret-initial-operator-regex) (not (pyret-in-string)))
             (incf (pyret-indent-initial-period cur-opened))
             (incf (pyret-indent-initial-period defered-closed))
@@ -564,12 +642,17 @@
            ((pyret-COLON)
             (cond
              ((or (pyret-has-top opens '(wantcolon))
-                  (pyret-has-top opens '(wantcolonorequal)))
+                  (pyret-has-top opens '(wantcolonorequal))
+                  (pyret-has-top opens '(wantcolonorblock)))
               (pop opens))
              ((or (pyret-has-top opens '(object))
+                  (pyret-has-top opens '(objectortuple))
                   (pyret-has-top opens '(shared)))
                   ;;(pyret-has-top opens '(data)))
               ;;(message "Line %d, saw colon in context %s, pushing 'field" (+ 1 n) (car-safe opens))
+              (when (pyret-has-top opens '(objectortuple))
+                (pop opens)
+                (push 'object opens))
               (incf (pyret-indent-fields defered-opened))
               (push 'field opens)
               (push 'needsomething opens)))
@@ -612,42 +695,45 @@
            ((or (pyret-FUN) (pyret-LAM))
             (incf (pyret-indent-fun defered-opened))
             (push 'fun opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             ;; (push 'wantcloseparen opens)
             ;; (push 'wantopenparen opens)
             (forward-char 3))
            ((pyret-LETREC)
             (incf (pyret-indent-fun defered-opened))
             (push 'let opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (forward-char 6))
            ((pyret-LET)
             (incf (pyret-indent-fun defered-opened))
             (push 'let opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (forward-char 3))
            ((pyret-METHOD)
+            (when (pyret-has-top opens '(objectortuple))
+              (pop opens)
+              (push 'object opens))
             (incf (pyret-indent-fun defered-opened))
             (push 'fun opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             ;; (push 'wantcloseparen opens)
             ;; (push 'wantopenparen opens)
             (forward-char 6))
            ((pyret-WHEN) ;when indents just like funs
             (incf (pyret-indent-fun defered-opened))
             (push 'when opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (forward-char 4))
            ((pyret-FOR) ;for indents just like funs
             (incf (pyret-indent-fun defered-opened))
             (push 'for opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (forward-char 3))
            ((looking-at "[ \t]+") (goto-char (match-end 0)))
            ((pyret-CASES)
             (incf (pyret-indent-cases defered-opened))
             (push 'cases opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (push 'needsomething opens)
             (push 'wantcloseparen opens)
             (push 'wantopenparen opens)
@@ -661,11 +747,12 @@
            ((pyret-ASKCOLON)
             (incf (pyret-indent-cases defered-opened))
             (push 'ifcond opens)
-            (forward-char 4))
+            (push 'wantcolonorblock opens)
+            (forward-char 3))
            ((pyret-IF)
             (incf (pyret-indent-fun defered-opened))
             (push 'if opens)
-            (push 'wantcolon opens)
+            (push 'wantcolonorblock opens)
             (push 'needsomething opens)
             (forward-char 2))
            ((pyret-ELSEIF)
@@ -723,13 +810,19 @@
               (push 'object opens)
               (push 'wantcolon opens)))
             (forward-char 4))
-           ;; ((pyret-PROVIDE)
-           ;;  (push 'provide opens)
-           ;;  (forward-char 7))
+           ((pyret-PROVIDE)
+             (push 'provide opens)
+             (incf (pyret-indent-shared defered-opened))
+             (forward-char 7))
            ((pyret-SHARING)
             (incf (pyret-indent-data cur-closed))
             (incf (pyret-indent-shared defered-opened))
             (cond 
+             ((pyret-has-top opens '(field object data))
+              (pop opens) (pop opens) (pop opens)
+              (incf (pyret-indent-object cur-closed))
+              (push 'shared opens)
+              (push 'wantcolon opens))
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
               ;(incf (pyret-indent-object cur-closed))
@@ -742,6 +835,11 @@
             (forward-char 7))
            ((pyret-WHERE)
             (cond
+             ((pyret-has-top opens '(field object data))
+              (pop opens) (pop opens) (pop opens)
+              (incf (pyret-indent-object cur-closed))
+              (incf (pyret-indent-data cur-closed))
+              (incf (pyret-indent-shared defered-opened)))
              ((pyret-has-top opens '(object data))
               (pop opens) (pop opens)
               ;(incf (pyret-indent-object cur-closed))
@@ -769,7 +867,7 @@
             (push 'check opens)
             (push 'wantcolon opens)
             (forward-char 5))
-           ((and (pyret-EXAMPLES) (equal pyret-dialect 'Bootstrap) (not opens))
+           ((and (pyret-EXAMPLES) (not opens))
             (incf (pyret-indent-shared defered-opened))
             (push 'check opens)
             (push 'wantcolon opens)
@@ -780,10 +878,14 @@
             (push 'wantcolon opens)
             (forward-char 3))
            ((pyret-BLOCK)
-            (incf (pyret-indent-fun defered-opened))
-            (push 'block opens)
-            (push 'wantcolon opens)
-            (forward-char 5))
+            (cond
+             ((pyret-has-top opens '(wantcolonorblock))
+              (forward-char 5))
+             (t
+              (incf (pyret-indent-fun defered-opened))
+              (push 'block opens)
+              (push 'wantcolon opens)
+              (forward-char 5))))
            ((pyret-GRAPH)
             (incf (pyret-indent-graph defered-opened))
             (push 'graph opens)
@@ -830,9 +932,14 @@
               ;;(message "Line %d, Seen rbrack, and opens is %s, incrementing defered-closed-vars" (1+ n) opens)
               (incf (pyret-indent-vars defered-closed)))
             (forward-char))
+           ((pyret-SEMI)
+            (when (pyret-has-top opens '(objectortuple))
+              (pop opens)
+              (push 'tuple opens))
+            (forward-char))
            ((pyret-LBRACE)
             (incf (pyret-indent-object defered-opened))
-            (push 'object opens)
+            (push 'objectortuple opens)
             (forward-char))
            ((pyret-RBRACE)
             (save-excursion
@@ -852,7 +959,9 @@
                (t 
                 ;;(message "In rbrace, incrementing cur-closed-fields")
                 (incf (pyret-indent-fields cur-closed))))) ;; otherwise decrement the running count
-            (if (pyret-has-top opens '(object))
+            (if (or (pyret-has-top opens '(object))
+                    (pyret-has-top opens '(tuple))
+                    (pyret-has-top opens '(objectortuple)))
                 (pop opens))
             (while (pyret-has-top opens '(var))
               (pop opens)
@@ -867,7 +976,7 @@
              ((or (pyret-has-top opens '(object))
                   (pyret-has-top opens '(shared))) ; method in an object or sharing section
               (push 'fun opens)
-              ;; (push 'wantcolon opens)
+              (push 'wantcolonorblock opens)
               ;; (push 'wantcloseparen opens)
               (incf (pyret-indent-fun defered-opened)))
              (t
@@ -885,13 +994,11 @@
               ;;(message "Line %d, Seen rparen, and opens is %s, incrementing defered-closed-vars" (1+ n) opens)
               (incf (pyret-indent-vars defered-closed)))
             (forward-char))
-           ((or (pyret-END) (pyret-SEMI))
+           ((pyret-END)
             (when (pyret-has-top opens '(object data))
               ;(incf (pyret-indent-object cur-closed))
               (pop opens))
             (let* ((h (car-safe opens))
-                   (is-semi (pyret-SEMI))
-                   (which-to-close (if is-semi defered-closed cur-closed))
                    (still-unclosed t))
               (while (and still-unclosed opens)
                 (cond
@@ -902,71 +1009,69 @@
                   (cond 
                    ((> (pyret-indent-object cur-opened) 0) (decf (pyret-indent-object cur-opened)))
                    ((> (pyret-indent-object defered-opened) 0) (decf (pyret-indent-object defered-opened)))
-                   (t (incf (pyret-indent-object which-to-close)))))
+                   (t (incf (pyret-indent-object cur-closed)))))
                  ((equal h 'wantcloseparen)
                   (cond
                    ((> (pyret-indent-parens cur-opened) 0) (decf (pyret-indent-parens cur-opened)))
                    ((> (pyret-indent-parens defered-opened) 0) (decf (pyret-indent-parens defered-opened)))
-                   (t (incf (pyret-indent-parens which-to-close)))))
+                   (t (incf (pyret-indent-parens cur-closed)))))
                  ((equal h 'field)
                   (cond
                    ((> (pyret-indent-fields cur-opened) 0) (decf (pyret-indent-fields cur-opened)))
                    ((> (pyret-indent-fields defered-opened) 0) (decf (pyret-indent-fields defered-opened)))
-                   (t (incf (pyret-indent-fields which-to-close)))))
+                   (t (incf (pyret-indent-fields cur-closed)))))
                  ((equal h 'var)
                   (cond
                    ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
-                   (t (incf (pyret-indent-vars which-to-close)))))
+                   (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
                  ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
-                   (t (incf (pyret-indent-fun which-to-close))))
+                   (t (incf (pyret-indent-fun cur-closed))))
                   (setq still-unclosed nil))
                  ((or (equal h 'cases) (equal h 'ifcond))
                   (cond
                    ((> (pyret-indent-cases cur-opened) 0) (decf (pyret-indent-cases cur-opened)))
                    ((> (pyret-indent-cases defered-opened) 0) (decf (pyret-indent-cases defered-opened)))
-                   (t (incf (pyret-indent-cases which-to-close))))
+                   (t (incf (pyret-indent-cases cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'data)
                   (cond
                    ((> (pyret-indent-data cur-opened) 0) (decf (pyret-indent-data cur-opened)))
                    ((> (pyret-indent-data defered-opened) 0) (decf (pyret-indent-data defered-opened)))
-                   (t (incf (pyret-indent-data which-to-close))))
+                   (t (incf (pyret-indent-data cur-closed))))
                   (setq still-unclosed nil))
                  ((or (equal h 'shared) (equal h 'check))
                   (cond
                    ((> (pyret-indent-shared cur-opened) 0) (decf (pyret-indent-shared cur-opened)))
                    ((> (pyret-indent-shared defered-opened) 0) (decf (pyret-indent-shared defered-opened)))
-                   (t (incf (pyret-indent-shared which-to-close))))
+                   (t (incf (pyret-indent-shared cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'try)
                   (cond
                    ((> (pyret-indent-try cur-opened) 0) (decf (pyret-indent-try cur-opened)))
                    ((> (pyret-indent-try defered-opened) 0) (decf (pyret-indent-try defered-opened)))
-                   (t (incf (pyret-indent-try which-to-close))))
+                   (t (incf (pyret-indent-try cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'except)
                   (cond
                    ((> (pyret-indent-except cur-opened) 0) (decf (pyret-indent-except cur-opened)))
                    ((> (pyret-indent-except defered-opened) 0) (decf (pyret-indent-except defered-opened)))
-                   (t (incf (pyret-indent-except which-to-close))))
+                   (t (incf (pyret-indent-except cur-closed))))
                   (setq still-unclosed nil))
                  ((equal h 'graph)
                   (cond
                    ((> (pyret-indent-graph cur-opened) 0) (decf (pyret-indent-graph cur-opened)))
                    ((> (pyret-indent-graph defered-opened) 0) (decf (pyret-indent-graph defered-opened)))
-                   (t (incf (pyret-indent-graph which-to-close))))
+                   (t (incf (pyret-indent-graph cur-closed))))
                   (setq still-unclosed nil))
                  )
                 (pop opens)
                 (setq h (car-safe opens)))
-              (if is-semi
-                  (forward-char 1)
-                (forward-char 3))))
+              (forward-char 3)))
            (t (if (not (eobp)) (forward-char)))))
         ;;(message "At end   of line %d, open is %s" (+ n 1) open)
         (aset pyret-nestings-at-line-start n (pyret-add-indent open (pyret-sub-indent cur-opened cur-closed)))
@@ -1167,6 +1272,7 @@ in (nil if we're not in a string).")
   (pyret-recompute-lexical-regexes)
   (set (make-local-variable 'pyret-dialect) 'Pyret)
   (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
+  (set (make-local-variable 'syntax-propertize-function) pyret-syntax-propertize-function)
   (set (make-local-variable 'font-lock-syntactic-keywords) pyret-font-lock-syntactic-keywords)
   (font-lock-refresh-defaults)
   (set (make-local-variable 'comment-start) "#")

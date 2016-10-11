@@ -12,7 +12,7 @@ check:
   end
 
   c("method(self, arg) -> Any%(arg): 'no-good' end") satisfies CS.is-unbound-id
-  c("data Foo: sharing: f(self, arg) -> Any%(arg): self; end") satisfies CS.is-unbound-id
+  c("data Foo: sharing: f(self, arg) -> Any%(arg): self end end") satisfies CS.is-unbound-id
   c("method(self, arg :: Any%(self)): 'no-good' end") satisfies CS.is-unbound-id
-  c("data Foo: sharing: f(self, arg :: Any%(self)): self; end") satisfies CS.is-unbound-id
+  c("data Foo: sharing: f(self, arg :: Any%(self)): self end end") satisfies CS.is-unbound-id
 end

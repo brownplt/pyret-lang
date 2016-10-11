@@ -1,6 +1,6 @@
 var r = require("requirejs")
 
-define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/srcloc", "trove/render-error-display"], function (matchers, e, ffiLib, srclocLib, rendererrorLib) {
+define(["./matchers", "../evaluator/eval-matchers", "trove/srcloc", "trove/render-error-display"], function (matchers, e, srclocLib, rendererrorLib) {
 
   _ = require('jasmine-node');
   var path = require('path');
@@ -27,7 +27,7 @@ define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/src
         get = rt.getField;
         str = rt.makeString;
         P = e.makeEvalCheckers(this, rt);
-        ffi = ffiLib(rt, rt.namespace);
+        ffi = rt.ffi;
         addPyretMatchers(this, rt);
     });
 
@@ -51,15 +51,16 @@ define(["./matchers", "../evaluator/eval-matchers", "js/ffi-helpers", "trove/src
       });
 
       it("should catch type/arity errors in runtime functions", function(done) {
-        rt.loadModulesNew(rt.namespace, [rendererrorLib], function(rendererrorLib) {
-          var rendererror = rt.getField(rendererrorLib, "values");
-          // Can't use toThrow because of generative structs
-          expect(function() { ffi.throwFieldNotFound("not a srcloc", undefined, undefined); })
-            .toThrowRuntimeExn(rt, rendererror, "Expected \"Srcloc\", but got \"not a srcloc\"");
-          expect(function() { rt.confirm(str("too"), str("many"), str("arguments")); })
-            .toThrowRuntimeExn(rt, rendererror, "Expected to get 2 arguments");
-          P.wait(done);
-        });
+        rt.runThunk(function() {
+          rt.loadModulesNew(rt.namespace, [rendererrorLib], function(rendererrorLib) {
+            var rendererror = rt.getField(rendererrorLib, "values");
+            // Can't use toThrow because of generative structs
+            expect(function() { ffi.throwFieldNotFound("not a srcloc", undefined, undefined); })
+              .toThrowRuntimeExn(rt, rendererror, "Expected");
+            expect(function() { rt.confirm(str("too"), str("many"), str("arguments")); })
+              .toThrowRuntimeExn(rt, rendererror, "Expected");
+          });
+        },function(){P.wait(done);});
       });
     });
   }

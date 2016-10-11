@@ -1,10 +1,42 @@
 #lang pyret
 
+
 provide *
 
 check:
   fun negate(f): lam(x): not(f(x)) end end
-  fun around(n, delta): lam(other): num-abs(other - n) < delta;;
+  fun around(n, delta): lam(other): num-abs(other - n) < delta end end
+
+  3 / (4 - 4) raises "division by zero"
+
+  within-abs(-3)(1, 2) raises "negative tolerance"
+  within(-3)(2, 3) raises "negative relative tolerance"
+  within-rel(-3)(2, 3) raises "negative relative tolerance"
+
+  min-number = ~0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005
+  within-abs(min-number)(0, min-number) raises "roughnum tolerance too small"
+
+  num-expt(0, -1) raises "expt: division by zero"
+
+  num-exp(5000) raises "exp: argument too large"
+
+  num-modulo(0.5, 5) raises "first argument 1/2 is not an integer"
+  num-modulo(5, 0.5) raises "second argument 1/2 is not an integer"
+  num-modulo(6, 0) raises "second argument is zero"
+
+  num-sqrt(-3) raises "negative argument"
+
+  num-acos(-2) raises "acos: out of domain"
+  num-acos(2) raises "acos: out of domain"
+
+  num-asin(-2) raises "asin: out of domain"
+  num-asin(2) raises "asin: out of domain"
+
+  num-to-string-digits(3, 1/2) raises "digits should be an integer"
+  num-to-string-digits(3, ~3) raises "digits should be an integer"
+
+
+  num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
   num-max("not-a-num", 3) raises ""
@@ -22,7 +54,7 @@ check:
 
   1 / 10 is 0.1
   3 is 3
-  # TODO(joe): Something is up with parsing bignums; these fail
+  # TODO(joe): Something is up with parsing bignums end these fail
   # 3.000000000000000000000000000000000001 == 3 is false
   1000000000000000000000000000000000000000000000000000000001
     == 1000000000000000000000000000000000000000000000000000000000
@@ -38,7 +70,7 @@ check:
   num-abs(0) is 0
   num-abs(1) is 1
 
-  # These are just sanity; the js-nums library has more rigorous tests
+  # These are just sanity end the js-nums library has more rigorous tests
   # for the accuracy of the trig functions.  Here we just make sure the
   # Pyret functions are bound to plausible underlying operations
   num-sin(0) is 0
@@ -60,6 +92,41 @@ check:
 
   num-atan(0) is 0
   num-atan(1) satisfies around(0.78, 0.01)
+
+
+  num-atan2( 2,  1) satisfies around(1.107, 0.001)
+  num-atan2( 2, -1) satisfies around(2.034, 0.001)
+  num-atan2(-2, -1) satisfies around(4.249, 0.001)
+  num-atan2(-2,  1) satisfies around(5.176, 0.001)
+
+  degree = (2 * num-asin(1)) / 180
+
+  num-atan2(                       0,  0) raises "atan2: out of domain"
+
+  num-atan2(                       0,  1) satisfies around(           0, 0.001)
+
+  num-atan2(    num-tan(30 * degree),  1) satisfies around( 30 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree),  1) satisfies around( 45 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree),  1) satisfies around( 60 * degree, 0.001)
+  num-atan2(    num-tan(88 * degree),  1) satisfies around( 88 * degree, 0.001)
+
+  num-atan2(    num-tan(88 * degree), -1) satisfies around( 92 * degree, 0.001)
+  num-atan2(    num-tan(60 * degree), -1) satisfies around(120 * degree, 0.001)
+  num-atan2(    num-tan(45 * degree), -1) satisfies around(135 * degree, 0.001)
+  num-atan2(    num-tan(30 * degree), -1) satisfies around(150 * degree, 0.001)
+
+  num-atan2(                       0, -1) satisfies around(180 * degree, 0.001)
+
+  num-atan2(0 - num-tan(30 * degree), -1) satisfies around(210 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree), -1) satisfies around(225 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree), -1) satisfies around(240 * degree, 0.001)
+  num-atan2(0 - num-tan(88 * degree), -1) satisfies around(268 * degree, 0.001)
+
+  num-atan2(0 - num-tan(88 * degree),  1) satisfies around(272 * degree, 0.001)
+  num-atan2(0 - num-tan(60 * degree),  1) satisfies around(300 * degree, 0.001)
+  num-atan2(0 - num-tan(45 * degree),  1) satisfies around(315 * degree, 0.001)
+  num-atan2(0 - num-tan(30 * degree),  1) satisfies around(330 * degree, 0.001)
+
 
   num-modulo(17, 5) is 2
   num-modulo(15, -2) is -1
@@ -83,12 +150,11 @@ check:
 
   num-log(0) raises "non-positive argument"
   num-log(1) is 0
-  # num-log(num-exp(1)) is 1  # can't compare rough with exact!
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
-  # NOTE(joe): This seems a big algorithm-dependent; mainly here
+  # NOTE(joe): This seems a big algorithm-dependent end mainly here
   # as a regression test so we know if this changes
   #num-exact(num-sqrt(2)) is 1767766952966369 / 1250000000000000
   num-exact(num-sqrt(2)) is 14142135623730951/10000000000000000
@@ -128,6 +194,8 @@ check:
   (3 + _)(12) is 15
   (_ / _)(6, 3) is 2
 
+
+  ~2e222 * ~2e222 raises "roughnum overflow"
 end
 
 check:
@@ -156,7 +224,7 @@ check:
   num-to-string-digits(5432.1234, 2) is "5432.12"
   num-to-string-digits(0.123456789, 2) is "0.12"
   num-to-string-digits(5, 2) is "5.00"
-  num-to-string-digits(555, -2) is "600."
+  num-to-string-digits(555, -2) is "600"
   # NOTE(joe): This test is awaiting a fixed numeric library for rounding
   # num-to-string-digits(100000000000000000000000000000000000000001234 / 10000, 2) is
   #  "10000000000000000000000000000000000000000.12"

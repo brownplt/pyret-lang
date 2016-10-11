@@ -5,21 +5,24 @@ provide {
   output-file : output-file,
   file-exists: file-exists,
   file-times: file-times,
-  file-to-string: file-to-string
+  file-to-string: file-to-string,
+  real-path: F.real-path
 } end
 provide-types *
 
+import global as _
+import base as _
 import filelib as F
 
 data File:
   | in-fd(inner-file :: Any) with:
-    read-line(self): F.read-line(self.inner-file) end,
-    read-file(self): F.read-file(self.inner-file) end,
-    close-file(self): F.close-input-file(self.inner-file) end
+    method read-file(self): F.read-file(self.inner-file) end,
+    method close-file(self): F.close-input-file(self.inner-file) end,
+    method full-path(self): F.real-path(self.inner-file) end
   | out-fd(inner-file :: Any) with:
-    display(self, val): F.display(self.inner-file, val) end,
-    close-file(self): F.close-output-file(self.inner-file) end,
-    flush(self): F.flush-output-file(self.inner-file) end
+    method display(self, val): F.display(self.inner-file, val) end,
+    method close-file(self): F.close-output-file(self.inner-file) end,
+    method flush(self): F.flush-output-file(self.inner-file) end
 end
 
 fun input-file(path :: String):
@@ -30,14 +33,14 @@ fun file-exists(path :: String):
   F.exists(path)
 end
 
-fun file-times(path :: String):
+fun file-times(path :: String) block:
   f = input-file(path)
   ts = F.file-times(f.inner-file)
   f.close-file()
   ts
 end
 
-fun file-to-string(path):
+fun file-to-string(path) block:
   f = input-file(path)
   s = f.read-file()
   f.close-file()
@@ -48,4 +51,3 @@ end
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
-

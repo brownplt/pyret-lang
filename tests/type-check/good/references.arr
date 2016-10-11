@@ -6,7 +6,7 @@ d :: Number = c
 
 a := 6
 
-fun synth-assign():
+fun synth-assign() block:
   a := 7
   8
 end

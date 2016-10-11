@@ -49,14 +49,14 @@ check "reverse where: block":
 end
 
 check "filter where: block":
-  filter(lam(e): e > 5;, [list: -1, 1]) is [list: ]
-  filter(lam(e): e > 0;, [list: -1, 1]) is [list: 1]
+  filter(lam(e): e > 5 end, [list: -1, 1]) is [list: ]
+  filter(lam(e): e > 0 end, [list: -1, 1]) is [list: 1]
 end
 
 check "partition where: block":
-  partition(lam(e): e > 0;, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
-  partition(lam(e): e > 5;, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
-  partition(lam(e): e < 5;, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
+  partition(lam(e): e > 0 end, [list: -1, 1]) is { is-true: [list: 1], is-false : [list: -1] }
+  partition(lam(e): e > 5 end, [list: -1, 1]) is { is-true: [list: ], is-false : [list: -1, 1] }
+  partition(lam(e): e < 5 end, [list: -1, 1]) is { is-true: [list: -1, 1], is-false : [list: ] }
 end
 
 check "find where: block":
@@ -103,24 +103,24 @@ check "all2 where: block":
 end
 
 check "map where: block":
-  map(lam(_): raise("shipwrecked!");, [list: ]) is [list: ]
-  map(lam(_): 2;, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
-  map(lam(x): x + 1;, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
+  map(lam(_): raise("shipwrecked!") end, [list: ]) is [list: ]
+  map(lam(_): 2 end, [list: 1, 2, 3, 4]) is [list: 2, 2, 2, 2]
+  map(lam(x): x + 1 end, [list: 1, 2, 3, 4]) is [list: 2, 3, 4, 5]
 end
 
 check "map2 where: block":
-  map2(lam(_, _): raise("shipwrecked!");, [list: ], [list: ]) is [list: ]
-  map2(lam(x, y): x or y;, [list: true, false], [list: false, false]) is [list: true, false]
+  map2(lam(_, _): raise("shipwrecked!") end, [list: ], [list: ]) is [list: ]
+  map2(lam(x, y): x or y end, [list: true, false], [list: false, false]) is [list: true, false]
 end
 
 check "map_n where: block":
-  map_n(lam(n, e): n;, 0, [list: "captain", "first mate"]) is [list: 0, 1]
+  map_n(lam(n, e): n end, 0, [list: "captain", "first mate"]) is [list: 0, 1]
 end
 
 check "fold where: block":
-  fold(lam(acc, cur): acc;, 1, [list: 1, 2, 3, 4]) is 1
-  fold(lam(acc, cur): cur;, 1, [list: 1, 2, 3, 4]) is 4
-  fold(lam(acc, cur): acc + cur;, 0, [list: 1, 2, 3, 4]) is 10
+  fold(lam(acc, cur): acc end, 1, [list: 1, 2, 3, 4]) is 1
+  fold(lam(acc, cur): cur end, 1, [list: 1, 2, 3, 4]) is 4
+  fold(lam(acc, cur): acc + cur end, 0, [list: 1, 2, 3, 4]) is 10
   fold(lam(lst, elt): link(elt, lst) end, empty, [list: 1, 2, 3]) is [list: 3, 2, 1]
 end
 
@@ -129,7 +129,7 @@ check "foldr":
 end
 
 check "fold2 where: block":
-  fold2(lam(x, y, z): x - y - z;, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
+  fold2(lam(x, y, z): x - y - z end, 6, [list: 1, 1, 1], [list: 1, 1, 1]) is 0
 end
 
 check "fold_n where: block":
@@ -207,4 +207,51 @@ check "shuffle":
   num-random-seed(0)
   l-mixed2 = lists.shuffle(l)
   l-mixed2 is l-mixed
+end
+
+check "string helper":
+  lists.join-str([list: "a", "b"], ",") is "a,b"
+  lists.join-str([list: "", "", ""], "") is ""
+  lists.join-str([list: "", "a", ""], ",") is ",a,"
+  lists.join-str([list:], ",") is ""
+  lists.join-str([list: "a"], ",") is "a"
+  lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+end
+
+check "sort as a function":
+  lists.sort([list: 1, 5, 6, 2, 3]) is [list: 1, 2, 3, 5, 6]
+
+  lists.sort([list: "dog", "Dog", "DOG"]) is [list: "DOG", "Dog", "dog"]
+
+  lists.sort-by([list:
+      { name: "Bob", age: 22 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Joan", age: 43 },
+      { name: "Alex", age: 3 }],
+    lam(p1, p2): p1.age < p2.age end,
+    lam(p1, p2): p1.age == p2.age end)
+    is
+    [list:
+      { name: "Alex", age: 3 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Bob", age: 22 },
+      { name: "Joan", age: 43 }]
+end
+
+check "distinct":
+  lists.distinct([list: ~1, ~1]) is-roughly [list: ~1, ~1]
+  lists.distinct([list: ~1, ~1, 1]) is-roughly [list: ~1, ~1, 1]
+  lists.distinct([list: ~1, ~1, 1, 1]) is-roughly [list: ~1, ~1, 1]
+  lists.distinct([list: ~1, ~2, ~3]) is-roughly [list: ~1, ~2, ~3]
+end
+
+check "more utility functions":
+  lists.last([list: 1]) is 1
+  lists.last([list: 1, 2, 3, 4, 5, 6, 7]) is 7
+
+  lists.append([list: 1, 2, 3], [list: 4, 5, 6]) is [list: 1, 2, 3, 4, 5, 6]
+
+  lists.push(empty, 1) is link(1, empty)
 end

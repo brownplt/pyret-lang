@@ -1,86 +1,132 @@
 import load-lib as L
-import repl as R
 import runtime-lib as RT
 import string-dict as SD
 import either as E
-import "compiler/compile-structs.arr" as CS
-import "compiler/repl-support.arr" as RS
+import pathlib as P
+import file("../../../src/arr/compiler/locators/builtin.arr") as B
+import file("../../../src/arr/compiler/repl.arr") as R
+import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
+
+print("Running repl-tests: " + tostring(time-now()) + "\n")
 
 type Either = E.Either
 
+fun get-run-answer(res):
+  cases(Either) res block:
+    | right(ans) => ans
+    | left(err) =>
+      print-error("Expected an answer, but got compilation errors:")
+      for lists.each(e from err):
+        print-error(tostring(e))
+      end
+  end
+end
+val = lam(str): L.get-result-answer(get-run-answer(str)) end
+msg = lam(str): L.render-error-message(get-run-answer(str)) end
+
 check:
   r = RT.make-runtime()
-  var current-defs = "5"
-  loc = RS.make-repl-definitions-locator("definitions", "pyret://definitions", lam(): current-defs end, CS.standard-globals)
-  dfind = RS.make-definitions-finder([SD.string-dict:])
-  repl = R.make-repl(r, loc, {}, dfind)
 
-  result1 = repl.restart-interactions()
-  L.get-result-answer(result1.v) is some(5)
-
-  current-defs := "x = 5"
-  result2 = repl.restart-interactions()
-  L.get-result-answer(result2.v) is none
-
-  var ic = 0
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
+  fun restart(src, type-check):
+    i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
+    repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
+  end
   fun next-interaction(src):
-    ic := ic + 1
-    i = RS.make-repl-interaction-locator("interactions" + tostring(ic), "pyret://interactions" + tostring(ic), lam(): src end, repl)
+    i = repl.make-interaction-locator(lam(): src end)
     repl.run-interaction(i)
   end
 
+  result1 = restart("5", false)
+  L.get-result-answer(result1.v) is some(5)
+
+  result2 = restart("x = 5", false)
+  L.get-result-answer(result2.v) is none
+
   result3 = next-interaction("y = 10\nx")
-  L.get-result-answer(result3.v) is some(5)
+  val(result3) is some(5)
 
   result4 = next-interaction("y")
-  L.get-result-answer(result4.v) is some(10)
+  val(result4) is some(10)
 
-  result5 = next-interaction("include image")
+  result5 = next-interaction("include string-dict")
   result5.v satisfies L.is-success-result
 
-  result6 = next-interaction("is-function(rectangle)")
-  cases(Either) result6:
-    | right(v) =>
-      L.get-result-answer(result6.v) is some(true)
-    | left(err) =>
-      print(err)
-  end
+  result6 = next-interaction("is-function(make-string-dict)")
+  val(result6) is some(true)
 
-  current-defs := "import string-dict from string-dict\n55"
-  result7 = repl.restart-interactions()
-  L.get-result-answer(result7.v) is some(55)
+  importsd = "import string-dict as SD\nstring-dict = SD.string-dict\n55"
+  result7 = restart(importsd, false)
+  val(result7) is some(55)
 
   # should fail because y no longer bound
   result8 = next-interaction("y")
   result8 satisfies E.is-left
 
   result9 = next-interaction("is-function(string-dict.make)")
-  L.get-result-answer(result9.v) is some(true)
+  val(result9) is some(true)
 
-  result10 = next-interaction("import string-dict as SD")
+  result10 = next-interaction("import string-dict as SD2")
   result10 satisfies E.is-right
 
   result11 = next-interaction(```
-    sd1 :: SD.StringDict = [string-dict:]
+    sd1 :: SD.StringDict = [SD2.string-dict:]
     sd2 = [SD.string-dict:]
     sd1 == sd2
   ```)
-  L.get-result-answer(result11.v) is some(true)
+  val(result11) is some(true)
 
-  # fails because shadows string-dict from import ... from
-  result12 = next-interaction("include string-dict")
+  # fails because shadows SD above
+  result12 = next-interaction("import string-dict as SD")
   result12 satisfies E.is-left
 
-  current-defs := "include string-dict"
-  result13 = repl.restart-interactions()
+  importbindsd = "import string-dict as SD\nstring-dict = SD.string-dict"
+  result13 = restart(importbindsd, false)
   result13 satisfies E.is-right
 
   result14 = next-interaction("[string-dict: 'x', 10].get-value('x')")
-  L.get-result-answer(result14.v) is some(10)
+  val(result14) is some(10)
 
   result15 = next-interaction("shadow string-dict = 57")
   result15 satisfies E.is-right
 
   result16 = next-interaction("string-dict")
-  L.get-result-answer(result16.v) is some(57)
+  val(result16) is some(57)
+
+  result17 = next-interaction("import repl(\"interactions://2\") as I2")
+  result17 satisfies E.is-right
+
+  result18 = next-interaction("I2.string-dict")
+  val(result18) is some(57)
+
+  result19 = next-interaction("import repl(\"definitions://\") as Defs")
+  result19 satisfies E.is-right
+
+  result20 = next-interaction("is-object(Defs.string-dict)")
+  val(result20) is some(true)
+
+  result21 = restart("x :: Number = 5\nx", true)
+  val(result21) is some(5)
+
+  result22 = next-interaction("fun f() -> String: x end")
+  result22 satisfies E.is-left
+
+  result23 = next-interaction("fun g() -> Number: x end\ng()")
+  val(result23) is some(5)
+
+  result24 = restart("{x; y} = {1; 2}\nx", false)
+  val(result24) is some(1)
+
+  result25 = next-interaction("x + y")
+  val(result25) is some(3)
+
+  # try nested tuples and make sure all the bindings appear in the REPL
+  result26 = restart("{{a; b}; {c; d; e} as f; {g; h}} = {{1; 2}; {3; 4; {5; 6}}; {{7; 8}; 9}}\na", false)
+  val(result26) is some(1)
+
+  result27 = next-interaction("a + e.{1} + f.{0} + g.{1} + h")
+  val(result27) is some(27)
+
 end
+

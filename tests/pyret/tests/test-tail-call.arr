@@ -24,7 +24,7 @@ end
 
 var is-pass = false
 
-fun stateful-ann(_) -> Boolean:
+fun stateful-ann(_) -> Boolean block:
   is-pass := not(is-pass)
   is-pass
 end

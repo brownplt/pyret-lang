@@ -1,19 +1,26 @@
-import "compiler/locators/builtin.arr" as B
-import "compiler/compile-lib.arr" as CL
-import "compiler/compile-structs.arr" as CM
+import file("../../../src/arr/compiler/locators/builtin.arr") as B
+import file("../../../src/arr/compiler/compile-lib.arr") as CL
+import file("../../../src/arr/compiler/compile-structs.arr") as CM
 import load-lib as L
 import string-dict as SD
-import namespace-lib as N
 import runtime-lib as R
+
+print("Running builtin-locator tests: " + tostring(time-now()) + "\n")
+
 
 check:
   sd = B.make-builtin-locator("string-dict")
-  sd.get-dependencies() is [list:]
-  sd.get-provides().values.keys() is [tree-set:
-     "make-string-dict", "string-dict", "string-dict-of",
-     "make-mutable-string-dict", "mutable-string-dict"]
-  sd.get-provides().types.keys() is [tree-set: "MutableStringDict", "StringDict"]
-  sd.get-compiled([SD.string-dict:]) satisfies is-some
+  sd.get-dependencies() is [list: CM.builtin("valueskeleton")]
+  sd.get-compiled() satisfies is-some
+
+  sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
+  sd.get-compiled().value.provides.values.keys() is [tree-set: "is-mutable-string-dict", "is-string-dict", "make-mutable-string-dict", "make-string-dict", "mutable-string-dict", "string-dict", "string-dict-of"]
+
+  # TODO(joe): reinstate these once types come back
+  # sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
+  # sd.get-compiled().value.provides.values.keys() is [tree-set:
+  #   "make-string-dict", "string-dict", "string-dict-of",
+  #   "make-mutable-string-dict", "mutable-string-dict"]
 end
 
 check:
@@ -33,25 +40,16 @@ check:
 
     fun g(x): [SD.string-dict: 'x', x] end
     ```)
+  modules.set-now("baz",
+    ```
+    import string-dict as SD
+
+    is-function(SD.make-string-dict)
+    ```)
 
   fun string-to-locator(name :: String):
-    {
-      needs-compile(self, provs): true end,
-      get-module(self): CL.pyret-string(modules.get-value-now(name)) end,
-      get-extra-imports(self):
-        CM.minimal-imports
-      end,
-      get-dependencies(self):
-        CL.get-dependencies(self.get-module(), self.uri())
-      end,
-      get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
-      get-globals(self): CM.standard-globals end,
-      get-namespace(self, runtime): N.make-base-namespace(runtime) end,
-      uri(self): "protocol://" + name end,
-      name(self): name end,
-      set-compiled(self, ctxt, provs): nothing end,
-      get-compiled(self): none end,
-      _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    CL.string-locator("protocol://" + name, modules.get-value-now(name)).{
+      method get-extra-imports(self): CM.minimal-imports end
     }
   end
 
@@ -63,23 +61,31 @@ check:
     CL.located(l, nothing)
   end
 
-  clib = CL.make-compile-lib(dfind)
-
   floc = string-to-locator("foo")
   CL.get-dependencies(floc.get-module(), floc.uri()) is
     [list:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
-  wlist = clib.compile-worklist(floc, {})
-  wlist.length() is 4
-  wlist.get(3).locator is floc
-  wlist.get(2).locator.uri() is "protocol://bar"
-  wlist.get(2).locator is string-to-locator("bar")
-  wlist.get(1).locator.uri() is "pyret-builtin://string-dict"
-  wlist.get(1).locator.name() is "string-dict"
-  wlist.get(0).locator.uri() is "pyret-builtin://string-dict"
-  wlist.get(0).locator.name() is "string-dict"
+  wlist = CL.compile-worklist(dfind, floc, {})
+  wlist.length() is 27
+  wlist.get(0).locator.uri() is "builtin://global"
+  wlist.get(0).locator.name() is "global"
+  wlist.get(1).locator.uri() is "builtin://valueskeleton"
+  wlist.get(1).locator.name() is "valueskeleton"
+  wlist.get(2).locator.uri() is "builtin://string-dict"
+  wlist.get(2).locator.name() is "string-dict"
+  wlist.get(25).locator.uri() is "protocol://bar"
+  wlist.get(25).locator is string-to-locator("bar")
+  wlist.get(26).locator is floc
 
-  ans = CL.compile-and-run-worklist(clib, wlist, R.make-runtime(), CM.default-compile-options)
-  ans.v satisfies L.is-success-result
+  # TODO(joe): this requires some better eval support than we have
+  # ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  # ans.v satisfies L.is-success-result
+
+  bazloc = string-to-locator("baz")
+  wlist2 = CL.compile-worklist(dfind, bazloc, {})
+  wlist2.length() is 26
+  # TODO(joe): this requires some better eval support than we have
+  # ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
+  # ans2.v satisfies L.is-success-result
 end

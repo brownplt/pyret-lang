@@ -105,7 +105,7 @@ fun parse(prog) -> Expr:
   
   fun check-params(maybe-params :: S.S-Exp) -> List<String>:
     doc: "Ensure that a function has no duplicate parameter names."
-    cases(S.S-Exp) maybe-params:
+    cases(S.S-Exp) maybe-params block:
       | s-list(params) =>
         for each(param from params):
           when params.filter(lam(x): x == param end).length() > 1:

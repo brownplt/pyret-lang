@@ -1,38 +1,41 @@
-define([], function() {
-  return function(runtime, ns) {
-    var F = runtime.makeFunction;
+({
+  requires: [],
+  nativeRequires: [],
+  provides: {},
+  theModule: function(RUNTIME, NAMESPACE) {
+    var F = RUNTIME.makeFunction;
     function getLegacyPath(name) {
-      runtime.pauseStack(function(restarter) {
+      RUNTIME.pauseStack(function(restarter) {
         // NOTE(joe): This is a bit of requireJS hackery that assumes a
         // certain layout for builtin modules
         require([name], function(m) {
-          restarter.resume(runtime.makeObject({
+          restarter.resume(RUNTIME.makeObject({
             "get-raw-dependencies":
-              F(function() {
-                return [];
-              }),
+            F(function() {
+              return [];
+            }, "get-raw-dependencies"),
             "get-raw-provides":
-              F(function() {
-                return [];
-              }),
+            F(function() {
+              return [];
+            }, "get-raw-provides"),
             "get-raw-compiled":
-              F(function() {
-                return runtime.makeOpaque(function() { return m; });
-              })
+            F(function() {
+              return RUNTIME.makeOpaque(function() { return m; });
+            }, "get-raw-compiled")
           }));
         });
 
       });
     }
-    var O = runtime.makeObject;
+    var O = RUNTIME.makeObject;
     return O({
       "provide-plus-types": O({
         types: { },
         values: O({
-          "legacy-path-raw-locator": runtime.makeFunction(getLegacyPath)
+          "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
         })
       }),
-      "answer": runtime.nothing
+      "answer": RUNTIME.nothing
     });
-  };
-});
+  }
+})

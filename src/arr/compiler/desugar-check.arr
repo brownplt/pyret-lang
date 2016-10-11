@@ -4,8 +4,8 @@ provide *
 provide-types *
 import ast as A
 import srcloc as SL
-import "compiler/gensym.arr" as G
-import "compiler/ast-util.arr" as U
+import file("gensym.arr") as G
+import file("ast-util.arr") as U
 
 data CheckInfo:
   | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr)
@@ -17,7 +17,7 @@ fun ast-pretty(ast):
 end
 
 fun ast-lam(ast):
-  A.s-lam(ast.l, [list: ], [list: ], A.a-blank, "", ast, none)
+  A.s-lam(ast.l, "", [list: ], [list: ], A.a-blank, "", ast, none, true)
 end
 
 fun ast-srcloc(l):
@@ -25,54 +25,56 @@ fun ast-srcloc(l):
 end
 
 check-stmts-visitor = A.default-map-visitor.{
-  s-check-test(self, l, op, refinement, left, right):
+  method s-check-test(self, l, op, refinement, left, right):
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
+        [list: ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
-        [list: ast-pretty(term), refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
+        [list: refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
-      | s-op-is            =>
+      | s-op-is(_)                =>
         cases(Option) refinement:
           | none                    => check-op("check-is")
           | some(shadow refinement) => check-refinement(refinement, "check-is-refinement")
         end
-      | s-op-is-not        =>
+      | s-op-is-roughly(_) =>
+        check-op("check-is-roughly")
+      | s-op-is-not(_)              =>
         cases(Option) refinement:
           | none                    => check-op("check-is-not")
           | some(shadow refinement) => check-refinement(refinement, "check-is-not-refinement")
         end
-      | s-op-is-op(opname)    =>
+      | s-op-is-op(_, opname)     =>
         check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-refinement")
-      | s-op-is-not-op(opname) =>
+      | s-op-is-not-op(_, opname) =>
         check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-not-refinement")
-      | s-op-satisfies        =>
+      | s-op-satisfies(_)         =>
         check-op("check-satisfies-delayed")
-      | s-op-satisfies-not    =>
+      | s-op-satisfies-not(_)     =>
         check-op("check-satisfies-not-delayed")
-      | s-op-raises           =>
+      | s-op-raises(_)            =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-not       =>
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-not(_)        =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
-          [list: ast-pretty(term), ast-lam(left), ast-srcloc(l)])
-      | s-op-raises-other     =>
+          [list: ast-lam(left), ast-srcloc(l)])
+      | s-op-raises-other(_)      =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-satisfies =>
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-satisfies(_)  =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-satisfies"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
-      | s-op-raises-violates  =>
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
+      | s-op-raises-violates(_)   =>
         A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-violates"),
-          [list: ast-pretty(term), ast-lam(left), right.value, ast-srcloc(l)])
+          [list: ast-lam(left), right.value, ast-srcloc(l)])
       | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))
     end
   end,
-  s-check(self, l, name, body, keyword-check):
+  method s-check(self, l, name, body, keyword-check):
     # collapse check blocks into top layer
     body.visit(self)
   end
@@ -82,7 +84,7 @@ fun get-checks(stmts):
   var standalone-counter = 0
   fun add-check(stmt, lst):
     cases(A.Expr) stmt:
-      | s-fun(l, name, _, _, _, _, _, _check) =>
+      | s-fun(l, name, _, _, _, _, _, _check, _) =>
         cases(Option) _check:
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
@@ -93,7 +95,7 @@ fun get-checks(stmts):
           | none => lst
         end
      | s-check(l, name, body, keyword-check) =>
-        check-name = cases(Option) name:
+        check-name = cases(Option) name block:
           | none =>
             standalone-counter := standalone-counter + 1
             "check-block-" + tostring(standalone-counter)
@@ -129,29 +131,29 @@ fun create-check-block(l, checks):
 end
 
 fun make-lam(l, args, body):
-  A.s-lam(l, [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none)
+  A.s-lam(l, "", [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, true)
 end
 
 no-checks-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     A.s-block(l, stmts.map(_.visit(self)))
   end,
-  s-fun(self, l, name, params, args, ann, doc, body, _):
-    A.s-fun(l, name, params, args, ann, doc, body, none)
+  method s-fun(self, l, name, params, args, ann, doc, body, _, blocky):
+    A.s-fun(l, name, params, args, ann, doc, body, none, blocky)
   end,
-  s-data(self, l, name, params, mixins, variants, shared-members, _):
+  method s-data(self, l, name, params, mixins, variants, shared-members, _):
     A.s-data(l, name, params, mixins, variants, shared-members, none)
   end,
-  s-lam(self, l, params, args, ann, doc, body, _):
-    A.s-lam(l, params, args, ann, doc, body, none)
+  method s-lam(self, l, name, params, args, ann, doc, body, _, blocky):
+    A.s-lam(l, name, params, args, ann, doc, body, none, blocky)
   end,
-  s-check(self, l, name, body, keyword-check):
+  method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name(l, "nothing"))
   end
 }
 
 check-visitor = A.default-map-visitor.{
-  s-block(self, l, stmts):
+  method s-block(self, l, stmts):
     checks-to-perform = get-checks(stmts)
     ds-stmts = stmts.map(_.visit(self))
     do-checks = create-check-block(l, checks-to-perform)
@@ -164,7 +166,7 @@ check-visitor = A.default-map-visitor.{
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
             [list: 
-              A.s-let(l, A.s-bind(l, false, id-result, A.a-blank), last-expr, false),
+              A.s-let(l, A.s-bind(l, true, id-result, A.a-blank), last-expr, false),
               do-checks,
               A.s-id(l, id-result)
             ]

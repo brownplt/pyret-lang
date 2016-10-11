@@ -1,7 +1,7 @@
 
 ![Yarr](https://raw.github.com/brownplt/pyret-lang/master/img/pyret-banner.png)
 
-[![Build Status](https://travis-ci.org/brownplt/pyret-lang.png)](https://travis-ci.org/brownplt/pyret-lang)
+[![Build Status](https://travis-ci.org/brownplt/pyret-lang.svg)](https://travis-ci.org/brownplt/pyret-lang)
 
 A scripting language.
 
@@ -29,9 +29,11 @@ commenting and reporting issues.
 Installing
 ----------
 
-First, make sure you've installed [Node >= 0.10](http://nodejs.org).  Then run:
+First, make sure you've installed [Node >= 6](http://nodejs.org).  Then run:
 
-    $ make install && make && make test
+    $ npm install
+    $ make
+    $ make test
 
 It'll build the Pyret compiler and run the tests.
 
@@ -44,9 +46,15 @@ in Pyret development, read on:
 
 The easiest way to *run* a Pyret program from the command-line is:
 
-    $ node build/phaseX/main-wrapper.js <path-to-pyret-program-here>
+    $ node build/phaseX/pyret.jarr \
+        --build-runnable <path-to-pyret-program-here> \
+        --outfile <path-for-standalone-js> \
+        --builtin-js-dir src/js/trove/ \
+        --builtin-arr-dir src/arr/trove \
+        --require-config src/scripts/standalone-configA.json
+    $ node <path-for-standalone-js>
 
-Where X is a number from 0-3, indicating a phase (described below).
+Where X is 0, A, B, or C, indicating a phase (described below).
 
 Phases
 ------
@@ -59,27 +67,27 @@ distinct *phases*.
 1.  Phase 0 is a standalone JavaScript file that contains an entire compiled
 Pyret compiler and runtime.  This large blob gets committed into version
 control whenever we add a nontrivial feature to the language.  It is large and
-somewhat slow to load, but whatever is in build/phase0/pyret.js is currently
+somewhat slow to load, but whatever is in build/phase0/pyret.jarr is currently
 the canonical new-world implementation of Pyret.
 
-2.  Phase 1 is set up to be populated with built versions of all the files for
-the compiler, built by the phase 0 compiler.  Phase 1 is what most of the
+2.  Phase A is set up to be populated with built versions of all the files for
+the compiler, built by the phase 0 compiler.  Phase A is what most of the
 testing scripts run against, since it is the easiest to create, and after it is
 built it is your development snapshot of the compiler you're working on.
 However, just building phase1 is not enough to fully re-boostrap the compiler,
 because it contains a mix of old-compiler output and any new changes that were
 made to runtime files.
 
-3.  Phase 2 is set up to be populated with built versions of all the files for
-the compiler, built by the phase 1 compiler.  This version does represent a
-fully-bootstrapped compiler.  If you run `make standalone2`, you get a new
+3.  Phase B is set up to be populated with built versions of all the files for
+the compiler, built by the phase A compiler.  This version does represent a
+fully-bootstrapped compiler.  If you run `make phaseB`, you get a new
 standalone compiler in the same format as `build/phase0/pyret.js`.
 
-4.  Phase 3 builds from phase 2.  One major use of phase 3 is to check the
-bootstrapped compiler from phase 2.  Before committing a new standalone in
-phase 0, build both standalone2 and standalone3, and check:
+4.  Phase C builds from phase B.  One major use of phase C is to check the
+bootstrapped compiler from phase B.  Before committing a new standalone in
+phase 0, build both phaseB and phaseC, and check:
     
-        $ diff build/phase2/pyret.js build/phase3/pyret.js
+        $ diff build/phaseB/pyret.jarr build/phaseC/pyret.jarr
 
     And it should be empty, which indicates that the bootstrapped compiler is
 at
@@ -89,6 +97,6 @@ at
 
         $ make new-bootstrap
 
-    which will build the phase2 and phase3 standalones, check the diff, and
+    which will build the phaseB and phaseC standalones, check the diff, and
     copy to phase0 if the diff is empty.
 

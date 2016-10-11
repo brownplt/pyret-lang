@@ -1,4 +1,4 @@
-PYRET_COMP       = build/phase0/pyret.js
+PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
 NODE             = node -max-old-space-size=8192
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
@@ -10,18 +10,18 @@ TROVE            = arr/trove
 COMPILER         = arr/compiler
 
 PHASE0           = build/phase0
-PHASE1           = build/phase1
-PHASE2           = build/phase2
-PHASE3           = build/phase3
+PHASEA           = build/phaseA
+PHASEB           = build/phaseB
+PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 DOCS             = docs
 
 # CUSTOMIZE THESE IF NECESSARY
-SRC_JS          := $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/*.arr))\
- $(patsubst %.arr,%.arr.js,$(wildcard src/$(COMPILER)/locators/*.arr))
-ROOT_LIBS        = $(patsubst src/arr/base/%.arr,src/trove/%.js,$(wildcard src/$(BASE)/*.arr))
-LIBS_JS         := $(patsubst src/arr/trove/%.arr,src/trove/%.js,$(wildcard src/$(TROVE)/*.arr)) # deliberately .js suffix
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
+COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
+	src/js/js-numbers.js
+COMPILER_FILES = $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
+TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 
 # You can download the script to work with s3 here:
 #
@@ -46,22 +46,17 @@ PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wil
 # below.
 S3               = s3
 
-COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
-	src/js/js-numbers.js
-TROVE_JS         = $(patsubst src/js/trove/%.js,src/trove/%.js,$(wildcard src/$(JSTROVE)/*.js))
-
-PHASE1_ALL_DEPS := $(patsubst src/%,$(PHASE1)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
-
-PHASE2_ALL_DEPS := $(patsubst src/%,$(PHASE2)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
-
-PHASE3_ALL_DEPS := $(patsubst src/%,$(PHASE3)/%,$(LIBS_JS) $(ROOT_LIBS) $(TROVE_JS) $(SRC_JS) $(COPY_JS))
+PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS))
+PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS))
+PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS))
 
 DOCS_DEPS        = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
 DOCS_SKEL_DEPS   = $(patsubst src/%,$(DOCS)/skeleton/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
 
-PHASE1_DIRS     := $(sort $(dir $(PHASE1_ALL_DEPS)))
-PHASE2_DIRS     := $(sort $(dir $(PHASE2_ALL_DEPS)))
-PHASE3_DIRS     := $(sort $(dir $(PHASE3_ALL_DEPS)))
+PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
+PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
+PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
+
 DOCS_DIRS       := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
 
 # NOTE: Needs TWO blank lines here, dunno why
@@ -87,156 +82,110 @@ endif
 .DELETE_ON_ERROR:
 
 # MAIN TARGET
-.PHONY : phase1
-phase1: $(PHASE1)/phase1.built
+.PHONY : phaseA
+phaseA: $(PHASEA)/pyret.jarr
 
-$(PHASE1)/phase1.built: $(PYRET_COMP) $(PHASE1_ALL_DEPS) $(patsubst src/%,$(PHASE1)/%,$(PARSERS)) $(PHASE1)/pyret-start.js $(PHASE1)/main-wrapper.js
-	touch $(PHASE1)/phase1.built
+.PHONY : phaseA-deps
+phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
-.PHONY : phase2
-phase2: $(PHASE2)/phase2.built
 
-$(PHASE2)/phase2.built: $(PYRET_COMP) $(PHASE2_ALL_DEPS) $(patsubst src/%,$(PHASE2)/%,$(PARSERS)) $(PHASE2)/pyret-start.js $(PHASE2)/main-wrapper.js
-	touch $(PHASE2)/phase2.built
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseA/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configA.json
 
-.PHONY : phase3
-phase3: $(PHASE3)/phase3.built
+.PHONY : phaseB
+phaseB: $(PHASEB)/pyret.jarr
 
-$(PHASE3)/phase3.built: $(PYRET_COMP) $(PHASE3_ALL_DEPS) $(patsubst src/%,$(PHASE3)/%,$(PARSERS)) $(PHASE3)/pyret-start.js $(PHASE3)/main-wrapper.js
-	touch $(PHASE3)/phase3.built
+$(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseB/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseB/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configB.json
 
-$(PHASE1_ALL_DEPS): | $(PHASE1)
 
-$(PHASE2_ALL_DEPS): | $(PHASE2) phase1
+.PHONY : phaseC
+phaseC: $(PHASEC)/pyret.jarr
 
-$(PHASE3_ALL_DEPS): | $(PHASE3) phase2
+$(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
+	$(NODE) $(PHASEB)/pyret.jarr --outfile build/phaseC/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseC/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configC.json
 
-.PHONY : standalone1
-standalone1: phase1 $(PHASE1)/pyret.js
+.PHONY : show-comp
+show-comp: build/show-compilation.jarr
 
-.PHONY : standalone2
-standalone2: phase2 $(PHASE2)/pyret.js
+build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
+                      --build-runnable src/scripts/show-compilation.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/show-comp/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configA.json
+ifneq ($(EF),)
+EXTRA_FLAGS=$(EF)
+else
+EXTRA_FLAGS = -no-check-mode
+endif
+%.jarr: $(PHASEA)/pyret.jarr %.arr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+                      --build-runnable $*.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir compiled/ \
+                      $(EXTRA_FLAGS) \
+                      --require-config src/scripts/standalone-configA.json
 
-.PHONY : standalone3
-standalone3: phase3 $(PHASE3)/pyret.js
+$(PHASEA_ALL_DEPS): | $(PHASEA)
 
-$(PHASE1):
-	@$(call MKDIR,$(PHASE1_DIRS))
+$(PHASEB_ALL_DEPS): | $(PHASEB) phaseA
 
-$(PHASE2):
-	@$(call MKDIR,$(PHASE2_DIRS))
+$(PHASEC_ALL_DEPS): | $(PHASEC) phaseB
 
-$(PHASE3):
-	@$(call MKDIR,$(PHASE3_DIRS))
+$(PHASEA):
+	@$(call MKDIR,$(PHASEA_DIRS))
 
-$(PHASE1)/pyret.js: $(PHASE1_ALL_DEPS) $(PHASE1)/pyret-start.js
-	cd $(PHASE1) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+$(PHASEB):
+	@$(call MKDIR,$(PHASEB_DIRS))
 
-$(PHASE2)/pyret.js: $(PHASE2_ALL_DEPS) $(PHASE2)/pyret-start.js
-	cd $(PHASE2) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+$(PHASEC):
+	@$(call MKDIR,$(PHASEC_DIRS))
 
-$(PHASE3)/pyret.js: $(PHASE3_ALL_DEPS) $(PHASE3)/pyret-start.js
-	cd $(PHASE3) && \
-		$(NODE) ../../node_modules/requirejs/bin/r.js -o ../../src/scripts/require-build.js baseUrl=. name=pyret-start out=pyret.js paths.trove=trove paths.compiler=arr/compiler include=js/runtime-anf include=js/repl-lib
+$(PHASEA)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASEA)/$(JS)/$*-grammar.js "../../../lib/jglr/jglr" "jglr/jglr"
+	$(NODE) $(PHASEA)/$(JS)/$*-grammar.js $(PHASEA)/$(JS)/$*-parser.js
 
-$(PHASE1)/pyret-start.js: src/scripts/pyret-start.js
+$(PHASEB)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASEB)/$(JS)/$*-grammar.js "../../../lib/jglr/jglr" "jglr/jglr"
+	$(NODE) $(PHASEB)/$(JS)/$*-grammar.js $(PHASEB)/$(JS)/$*-parser.js
+
+
+$(PHASEC)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
+	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASEC)/$(JS)/$*-grammar.js "../../../lib/jglr/jglr" "jglr/jglr"
+	$(NODE) $(PHASEC)/$(JS)/$*-grammar.js $(PHASEC)/$(JS)/$*-parser.js
+
+$(PHASEA)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
-
-$(PHASE2)/pyret-start.js: src/scripts/pyret-start.js
+$(PHASEB)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
-
-$(PHASE3)/pyret-start.js: src/scripts/pyret-start.js
+$(PHASEC)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
-
-$(PHASE1)/js/js-numbers.js: src/js/base/js-numbers.js
-	cp $< $@
-
-$(PHASE2)/js/js-numbers.js: src/js/base/js-numbers.js
-	cp $< $@
-
-$(PHASE3)/js/js-numbers.js: src/js/base/js-numbers.js
-	cp $< $@
-
-$(PHASE1)/main-wrapper.js: src/scripts/main-wrapper.js
-	cp $< $@
-
-$(PHASE2)/main-wrapper.js: src/scripts/main-wrapper.js
-	cp $< $@
-
-$(PHASE3)/main-wrapper.js: src/scripts/main-wrapper.js
-	cp $< $@
-
-$(PHASE1)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
-	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE1)/$(JS)/$*-grammar.js
-	$(NODE) $(PHASE1)/$(JS)/$*-grammar.js $(PHASE1)/$(JS)/$*-parser.js
-
-$(PHASE2)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
-	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE2)/$(JS)/$*-grammar.js
-	$(NODE) $(PHASE2)/$(JS)/$*-grammar.js $(PHASE2)/$(JS)/$*-parser.js
-
-$(PHASE3)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokenizer.js $(wildcard lib/jglr/*.js)
-	$(NODE) lib/jglr/parser-generator.js src/$(JSBASE)/$*-grammar.bnf $(PHASE3)/$(JS)/$*-grammar.js
-	$(NODE) $(PHASE3)/$(JS)/$*-grammar.js $(PHASE3)/$(JS)/$*-parser.js
-
-$(PHASE1)/$(JS)/%.js : src/$(JSBASE)/%.js
-	$(SWEETJS) --output $@ $<
 
 .PHONY : docs
 docs:
 	cd docs/written && make VERSION=$(VERSION)
-
-docs-skel: $(DOCS_SKEL_DEPS)
-$(DOCS_SKEL_DEPS): | $(PHASE1)/phase1.built docs-trove
-$(DOCS)/written/trove/%.js.rkt : src/$(TROVE)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/trove/%.js.rkt : src/$(BASE)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-$(DOCS)/written/arr/compiler/%.arr.js.rkt : src/$(COMPILER)/%.arr docs/create-arr-doc-skeleton.arr
-	$(NODE) $(PHASE1)/main-wrapper.js -no-check-mode docs/create-arr-doc-skeleton.arr $< $@
-
-$(PHASE2)/$(JS)/%.js : src/$(JSBASE)/%.js
-	$(SWEETJS) --output $@ $<
-
-$(PHASE3)/$(JS)/%.js : src/$(JSBASE)/%.js
-	$(SWEETJS) --output $@ $<
-
-$(PHASE1)/trove/%.js : src/$(JSTROVE)/%.js
-	$(SWEETJS) --output $@ $<
-
-$(PHASE2)/trove/%.js : src/$(JSTROVE)/%.js
-	$(SWEETJS) --output $@ $<
-
-$(PHASE3)/trove/%.js : src/$(JSTROVE)/%.js
-	$(SWEETJS) --output $@ $<
-
-$(PHASE1)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PYRET_COMP)
-	$(NODE) $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
-
-$(PHASE2)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE1_ALL_DEPS)
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-
-$(PHASE3)/$(COMPILER)/%.arr.js : src/$(COMPILER)/%.arr $(PHASE2_ALL_DEPS)
-	$(NODE) $(PHASE2)/main-wrapper.js --compile-module-js $< > $@
-
-$(PHASE1)/trove/%.js: src/$(BASE)/%.arr $(PYRET_COMP)
-	$(NODE) $(PHASE0)/main-wrapper.js --compile-module-js $< -library > $@
-
-$(PHASE2)/trove/%.js: src/$(BASE)/%.arr $(PHASE1_ALL_DEPS)
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< -library > $@
-
-$(PHASE3)/trove/%.js: src/$(BASE)/%.arr $(PHASE2_ALL_DEPS)
-	$(NODE) $(PHASE2)/main-wrapper.js --compile-module-js $< -library > $@
-
-$(PHASE1)/trove/%.js: src/$(TROVE)/%.arr $(PYRET_COMP)
-	$(NODE) $(PHASE0)/main-wrapper.js --compile-module-js $< > $@
-
-$(PHASE2)/trove/%.js: src/$(TROVE)/%.arr $(PHASE1_ALL_DEPS)
-	$(NODE) $(PHASE1)/main-wrapper.js --compile-module-js $< > $@
-
-$(PHASE3)/trove/%.js: src/$(TROVE)/%.arr $(PHASE2_ALL_DEPS)
-	$(NODE) $(PHASE2)/main-wrapper.js --compile-module-js $< > $@
 
 .PHONY : install
 install:
@@ -244,24 +193,39 @@ install:
 	npm install
 
 PYRET_TEST_PHASE=$(P)
-ifeq ($(PYRET_TEST_PHASE),2)
-  PYRET_TEST_PHASE=$(PHASE2)
-  PYRET_TEST_PREREQ=$(PHASE2)/phase2.built
+ifeq ($(PYRET_TEST_PHASE),B)
+  PYRET_TEST_PHASE=$(PHASEB)
+  PYRET_TEST_PREREQ=$(PHASEB)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configB.json
 else
-ifeq ($(PYRET_TEST_PHASE),3)
-  PYRET_TEST_PHASE=$(PHASE3)
-  PYRET_TEST_PREREQ=$(PHASE3)/phase3.built
+ifeq ($(PYRET_TEST_PHASE),C)
+  PYRET_TEST_PHASE=$(PHASEC)
+  PYRET_TEST_PREREQ=$(PHASEC)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configC.json
 else
-  PYRET_TEST_PHASE=$(PHASE1)
-  PYRET_TEST_PREREQ=$(PHASE1)/phase1.built
+  PYRET_TEST_PHASE=$(PHASEA)
+  PYRET_TEST_PREREQ=$(PHASEA)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configA.json
 endif
 endif
 
-.PHONY : test
-test: runtime-test evaluator-test compiler-test repl-test pyret-test regression-test type-check-test lib-test
+TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+	  --builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config $(PYRET_TEST_CONFIG) \
+		--compiled-dir tests/compiled/
+
+.PHONY : old-test
+old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
+
+.PHONY : old-test-all
+old-test-all: test docs-test benchmark-test
 
 .PHONY : test-all
-test-all: test docs-test benchmark-test
+test-all: test docs-test
+
+.PHONY : test
+test: pyret-test type-check-test
 
 .PHONY : runtime-test
 runtime-test : $(PYRET_TEST_PREREQ)
@@ -271,44 +235,52 @@ runtime-test : $(PYRET_TEST_PREREQ)
 evaluator-test: $(PYRET_TEST_PREREQ)
 	cd tests/evaluator/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
 
-.PHONY : repl-test
-repl-test: $(PYRET_TEST_PREREQ) tests/repl/repl.js
-	cd tests/repl/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
-
 .PHONY : parse-test
-parse-test: tests/parse/parse.js build/phase1/js/pyret-tokenizer.js build/phase1/js/pyret-parser.js
+parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
 	cd tests/parse/ && $(NODE) test.js require-test-runner/
 
-TEST_HELP_JS := $(patsubst tests/pyret/%helper.arr,tests/pyret/%helper.arr.js,$(wildcard tests/pyret/*helper.arr))
-TEST_JS := $(patsubst tests/pyret/tests/%.arr,tests/pyret/tests/%.arr.js,$(wildcard tests/pyret/tests/*.arr))
-REGRESSION_TEST_JS := $(patsubst tests/pyret/regression/%.arr,tests/pyret/regression/%.arr.js,$(wildcard tests/pyret/regression/*.arr))
+TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
+TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
+REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
+MAIN_TEST_FILES := tests/pyret/main2.arr tests/type-check/main.arr tests/pyret/regression.arr tests/lib-test/lib-test-main.arr tests/all.arr
 
-tests/pyret/%helper.arr.js: tests/pyret/%helper.arr
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) $(MAIN_TEST_FILES)
+	$(TEST_BUILD) \
+		--build-runnable tests/all.arr \
+    --outfile tests/pyret/all.jarr \
+		-check-all
 
-tests/pyret/tests/%.arr.js: tests/pyret/tests/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+.PHONY : all-pyret-test
+all-pyret-test: tests/pyret/all.jarr parse-test
+	$(NODE) tests/pyret/all.jarr
 
-tests/pyret/regression/%.arr.js: tests/pyret/regression/%.arr $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js --compile-module-js $< > $@
+tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
+	$(TEST_BUILD) \
+		--outfile tests/pyret/main2.jarr \
+		--build-runnable tests/pyret/main2.arr \
+		-check-all # NOTE(joe): check-all doesn't yet do anything
 
-.PHONY : regression-test
-regression-test: $(PYRET_TEST_PREREQ) $(REGRESSION_TEST_JS) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    -check-all tests/pyret/regression.arr
 
 .PHONY : pyret-test
-pyret-test: $(PYRET_TEST_PREREQ) $(TEST_JS) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/pyret \
-    -check-all tests/pyret/main.arr
+pyret-test: phaseA tests/pyret/main2.jarr
+	$(NODE) tests/pyret/main2.jarr
+
+.PHONY : regression-test
+regression-test: tests/pyret/regression.jarr
+	$(NODE) tests/pyret/regression.jarr
+
+tests/pyret/regression.jarr: $(PYRET_TEST_PREREQ) $(REG_TEST_FILES) tests/pyret/regression.arr
+	$(TEST_BUILD) \
+		--build-runnable tests/pyret/regression.arr --outfile tests/pyret/regression.jarr
 
 .PHONY : type-check-test
-type-check-test: $(PYRET_TEST_PREREQ) $(TEST_HELP_JS)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir tests/type-check \
-    -check-all tests/type-check/main.arr
+type-check-test: phaseA tests/type-check/main.jarr
+	$(NODE) tests/type-check/main.jarr
+
+tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
+	$(TEST_BUILD) \
+		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
+
 
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)
@@ -317,13 +289,17 @@ compiler-test: $(PYRET_TEST_PREREQ)
     -check-all src/arr/compiler/compile.arr
 
 .PHONY : lib-test
-lib-test: $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    -check-all tests/lib-test/lib-test-main.arr
+lib-test: tests/lib-test-main/lib-test-main.jarr
+	$(NODE) tests/lib-test/lib-test-main.jarr
+
+tests/lib-test-main/lib-test-main.jarr: phaseA $(TROVE_ARR_FILES) tests/lib-test/lib-test-main.arr
+	$(TEST_BUILD) \
+		--build-runnable tests/lib-test/lib-test-main.arr \
+    --outfile tests/lib-test/lib-test-main.jarr
 
 .PHONY : benchmark-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
-	cd tools/benchmark && node tests
+	cd tools/benchmark/ && make test
 
 .PHONY : docs-test
 docs-test: docs
@@ -331,16 +307,21 @@ docs-test: docs
 
 .PHONY : clean
 clean:
-	$(call RMDIR,$(PHASE1))
-	$(call RMDIR,$(PHASE2))
-	$(call RMDIR,$(PHASE3))
+	$(call RMDIR,$(PHASEA))
+	$(call RMDIR,$(PHASEB))
+	$(call RMDIR,$(PHASEC))
+	$(call RMDIR,build/show-comp/compiled)
 	$(call RMDIR,$(RELEASE_DIR))
+
+.PHONY : test-clean
+test-clean:
+	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
-	sed "s/define('pyret-start/define('pyret/" $(PHASE2)/pyret.js > $(PHASE0)/pyret.js
-no-diff-standalone: standalone2 standalone3
-	diff $(PHASE2)/pyret.js $(PHASE3)/pyret.js
+	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
+no-diff-standalone: phaseB phaseC
+	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 
 $(RELEASE_DIR)/phase1:
 	$(call MKDIR,$(RELEASE_DIR)/phase1)

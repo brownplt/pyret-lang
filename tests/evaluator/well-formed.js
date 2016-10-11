@@ -31,21 +31,21 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("mixed operators should be malformed", function(done) {
-        P.checkCompileErrorMsg("true and false or true", "Cannot mix binary operators of different types");
-        P.checkCompileErrorMsg("1 + 2 - 3", "Cannot mix binary operators of different types");
-        P.checkCompileErrorMsg("1 + 2 + 3 * 4", "Cannot mix binary operators of different types");
-        P.checkCompileErrorMsg("1 / 2 + 3 * 4 - 5", "Cannot mix binary operators of different types");
+        P.checkCompileErrorMsg("true and false or true", "Binary operators of different kinds cannot be mixed");
+        P.checkCompileErrorMsg("1 + 2 - 3", "Binary operators of different kinds cannot be mixed");
+        P.checkCompileErrorMsg("1 + 2 + 3 * 4", "Binary operators of different kinds cannot be mixed");
+        P.checkCompileErrorMsg("1 / 2 + 3 * 4 - 5", "Binary operators of different kinds cannot be mixed");
 
         P.wait(done);
       });
       it("nullary methods", function(done) {
-        P.checkCompileErrorMsg("method(): nothing end", "Cannot have a method with zero arguments");
-        P.checkCompileErrorMsg("{foo(): nothing end}", "Cannot have a method with zero arguments");
+        P.checkCompileErrorMsg("method(): nothing end", "Method declarations are expected to accept at least one argument");
+        P.checkCompileErrorMsg("{foo(): nothing end}", "Method declarations are expected to accept at least one argument");
 
         P.wait(done);
       });
       it("multiple statements on a line", function(done) {
-        var msg =  "Found two expressions on the same line";
+        var msg =  "on the same line";
         P.checkCompileErrorMsg("5-2", msg);
         P.checkCompileErrorMsg("'ab''de'", msg);
         P.checkCompileErrorMsg("a\"abc\"", msg);
@@ -57,9 +57,9 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("anonymous bindings", function(done) {
-        P.checkCompileErrorMsg("var _ = 5", "there is no name to modify");
-        P.checkCompileErrorMsg("shadow _ = 5", "there is no name to shadow");
-        P.checkCompileErrorMsg("{a : 5, a(self): 'bad' end}", "defined the field name `a` twice");
+        P.checkCompileErrorMsg("var _ = 5", "pointless since there is no name");
+        P.checkCompileErrorMsg("shadow _ = 5", "no name to shadow");
+        P.checkCompileErrorMsg("{_ : 1}", "cannot be used as a field name");
         P.wait(done);
       });
       it("malformed check-tests", function(done) {
@@ -117,6 +117,12 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
                                "end\n" + 
                                "10",
                                "Cannot end a block in a fun-binding");
+        P.checkCompileErrorMsg("fun foo():\n" +
+                               " 123\n" +
+                               " a :: Number\n" +
+                               "end\n" +
+                               "10",
+                               "Cannot end a block with a contract");
         P.checkCompileErrorMsg("lam(): x = 5 end", "Cannot end a block in a let-binding");
         P.checkCompileErrorMsg("lam(): var x = 5 end", "Cannot end a block in a var-binding");
         P.checkCompileErrorMsg("lam(): fun f(): nothing end end", "Cannot end a block in a fun-binding");
@@ -256,7 +262,6 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
           "function",
           "break",
           "return",
-          "do",
           "yield",
           "throw",
           "continue",
@@ -325,18 +330,34 @@ define(["js/runtime-anf", "./eval-matchers"], function(rtLib, e) {
         P.wait(done);
       });
       it("underscores", function(done) {
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "Underscore used as");
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "Underscore used as");
-        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "Underscore used as");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "The underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "The underscore");
+        P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "The underscore");
         P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
-        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "Underscore used as");
-        P.checkCompileErrorMsg("{ foo(self): _ end }", "Underscore used as");
-        P.checkCompileErrorMsg("{ fieldname: _ }", "Underscore used as");
-        P.checkCompileErrorMsg("method(self): _ end", "Underscore used as");
-        P.checkCompileErrorMsg("lam(self): _ end", "Underscore used as");
-        P.checkCompileErrorMsg("fun foo(self): _ end", "Underscore used as");
-        P.checkCompileErrorMsg("check: _ end", "Underscore used as");
-        P.checkCompileErrorMsg("provide _ end", "Underscore used as");
+        P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "The underscore");
+        P.checkCompileErrorMsg("{ foo(self): _ end }", "The underscore");
+        P.checkCompileErrorMsg("{ fieldname: _ }", "The underscore");
+        P.checkCompileErrorMsg("method(self): _ end", "The underscore");
+        P.checkCompileErrorMsg("lam(self): _ end", "The underscore");
+        P.checkCompileErrorMsg("fun foo(self): _ end", "The underscore");
+        P.checkCompileErrorMsg("check: _ end", "The underscore");
+        P.checkCompileErrorMsg("provide _ end", "The underscore");
+        P.wait(done);
+      });
+        it("tuples", function(done) {
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{-1}", "negative position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{1.1}", "non-integer position");
+        P.checkCompileErrorMsg("x = {1; 2; 3}\n x.{999999}", "big");
+        P.wait(done);
+      });
+      it("tables", function(done) {
+        P.checkCompileErrorMsg("table: row: end", "table");
+        P.checkCompileErrorMsg("table: row: 1 end", "table");
+        P.checkCompileErrorMsg("table: h1 row: end", "row");
+        P.checkCompileErrorMsg("table: h1, h2 row: 1 end", "row");
+        P.checkCompileErrorMsg("table: h1 row: 1, 2 end", "row");
+        P.checkCompileErrorMsg("table: a, b, c, d, b, e end", "column");
+        P.checkCompileErrorMsg("extend t using A: C: running-sum of B end", "used with reducer");
         P.wait(done);
       });
     });
