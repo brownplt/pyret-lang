@@ -1091,7 +1091,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, some(b), obj, fields, some(body))
+        compile-split-update(self, l2, some(b), obj, fields, some(body))
       | else =>
         compiled-e = e.visit(self)
         compiled-body = body.visit(self)
@@ -1123,7 +1123,7 @@ compiler-visitor = {
       | a-cases(l2, typ, val, branches, _else) =>
         compile-split-cases(self, l2, none, typ, val, branches, _else, some(e2))
       | a-update(l2, obj, fields) =>
-        compile-split-update(self, none, obj, fields, some(e2))
+        compile-split-update(self, l2, none, obj, fields, some(e2))
       | else =>
         e1-visit = e1.visit(self)
         e2-visit = e2.visit(self)
@@ -1154,7 +1154,7 @@ compiler-visitor = {
       | a-cases(l, typ, val, branches, _else) =>
         compile-split-cases(self, l, none, typ, val, branches, _else, none)
       | a-update(l, obj, fields) =>
-        compile-split-update(self, none, obj, fields, none)
+        compile-split-update(self, l, none, obj, fields, none)
       | else =>
         visit-e = e.visit(self)
         c-block(
