@@ -383,7 +383,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           else:
             anf-name(f, "anf_fun", lam(v):
                 anf-name-rec(args, "anf_arg", lam(vs):
-                    k.apply(l, N.a-app(l, v, vs))
+                    k.apply(l, N.a-app(l, v, vs, app-info))
                   end)
               end)
           end
