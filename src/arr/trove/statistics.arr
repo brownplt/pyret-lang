@@ -10,6 +10,7 @@ import valueskeleton as VS
 import lists as L
 import math as math
 
+empty = L.empty
 # A StatModel is a data type for representing
 # statistical models.  We create this type so that
 # users can extract, coefficients and meta-data from
@@ -62,6 +63,63 @@ fun stdev(l :: L.List) -> Number:
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = mean(sq-diff)
   num-sqrt(sq-mean)
+end
+
+fun chi-sqr(counts :: L.List<L.List<Number>>) -> Number:
+  doc: "returns the chi squared correlation between two observed variables"
+  
+  fun row-wise-sums(observed :: L.List<L.List<Number>>) -> L.List<Number>:
+    cases (L.List) observed:
+      | empty => empty
+      | link(first, rest) =>
+      
+      num-rows = L.length(first)
+      indices = L.range(0, num-rows)
+      L.map(
+        lam(ind): math.sum(L.map(lam(entry): L.get(entry, ind) end, observed)) end,
+        indices)
+    end
+  end
+  
+  fun column-wise-sums(observed :: L.List<L.List<Number>>) -> L.List<Number>:
+    L.map(lam(col): math.sum(col) end, observed)
+  end
+  
+  fun expected-table-column(row-sums :: L.List<Number>, col-sum :: Number, 
+    total :: Number) -> L.List<Number>:
+    
+    L.map(
+      lam(row): (row * col-sum) / total end,
+      row-sums)
+  end
+
+  fun expected-table(observed :: L.List<L.List<Number>>) -> L.List<L.List<Number>> :
+    num-columns = L.length(observed)
+    row-sums = row-wise-sums(observed)
+    col-sums = column-wise-sums(observed)
+    total = math.sum(row-sums)
+  
+    L.map(
+      lam(col): expected-table-column(row-sums, col, total) end,
+      col-sums)
+  end
+
+  fun flatten(table-list :: L.List<L.List<Number>>) -> L.List<Number> :
+    cases (L.List) table-list:
+      | empty => empty
+      | link(a, rest) => L.append(a, flatten(rest))
+    end
+  end
+
+  obs = L.distinct(L.map(lam(ob): ob.length() end, counts))
+  
+  if L.length(obs) > 1:
+    raise("Mismatched list dimensions")
+  else:
+    expected = expected-table(counts)
+    math.sum(L.map2(lam(e, o): num-sqr(e - o) / e end, 
+      flatten(expected), flatten(counts)))
+  end
 end
 
 fun lin-reg-2V(x :: L.List<Number>, y :: L.List<Number>) -> StatModel:
