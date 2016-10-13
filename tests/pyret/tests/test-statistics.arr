@@ -20,6 +20,12 @@ check "numeric helpers":
   stdev([list: 1, 1, 1, 1]) is-roughly ~0
   stdev([list:]) raises "empty"
 
+  chi-sqr([list: ]) is 0
+  chi-sqr([list: [list: 1]]) is 0
+  chi-sqr([list: [list: 1, 2], [list: 3]]) 
+    raises "Mismatched list dimensions"
+
+  chi-sqr([list: [list: 55, 20], [list: 45, 30]]) is 3
 end
 
 check "linear regression":
