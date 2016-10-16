@@ -11,6 +11,30 @@ import file("ast-util.arr") as U
 import file("gensym.arr") as G
 import file("type-structs.arr") as T
 
+type ScopeBinding = C.ScopeBinding
+letrec-bind = C.letrec-bind
+let-bind = C.let-bind
+var-bind = C.var-bind
+global-bind = C.global-bind
+module-bind = C.module-bind
+is-letrec-bind = C.is-letrec-bind
+is-let-bind = C.is-let-bind
+is-var-bind = C.is-var-bind
+is-global-bind = C.is-global-bind
+is-module-bind = C.is-module-bind
+
+type TypeBinding = C.TypeBinding
+let-type-bind = C.let-type-bind
+type-var-bind = C.type-var-bind
+global-type-bind = C.global-type-bind
+module-type-bind = C.module-type-bind
+is-let-type-bind = C.is-let-type-bind
+is-type-var-bind = C.is-type-var-bind
+is-global-type-bind = C.is-global-type-bind
+is-module-type-bind = C.is-module-type-bind
+
+
+
 string-dict = SD.string-dict
 mtd = [string-dict:]
 
@@ -504,41 +528,6 @@ end
 
 
 
-data ScopeBinding:
-  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
-  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
-end
-
-data TypeBinding:
-  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
-end
-
-fun scope-env-from-env(initial :: C.CompileEnvironment) block:
-  acc = SD.make-mutable-string-dict()
-  for each(name from initial.globals.values.keys-list()):
-    acc.set-now(name, global-bind(S.builtin("pyret-builtin"), names.s-global(name), none))
-  end
-  acc.freeze()
-where:
-  scope-env-from-env(C.compile-env(C.globals([string-dict: "x", T.t-top(A.dummy-loc, false)], mtd), mtd))
-    .get-value("x") is global-bind(S.builtin("pyret-builtin"), names.s-global("x"), none)
-end
-
-fun type-env-from-env(initial :: C.CompileEnvironment) block:
-  acc = SD.make-mutable-string-dict()
-  for each(name from initial.globals.types.keys-list()):
-    acc.set-now(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
-  end
-  acc.freeze()
-end
-
-
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   doc: ```
        Turn all s-names into s-atom or s-global
@@ -585,6 +574,44 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | else => raise("Unexpected atom type: " + torepr(name))
     end
   end
+
+  fun scope-env-from-env(initial :: C.CompileEnvironment) block:
+    acc = SD.make-mutable-string-dict()
+    for each(name from initial.globals.values.keys-list()):
+      mod-info = initial.mods.get-value(initial.globals.values.get-value(name))
+      val-info = mod-info.values.get(name)
+      # TODO(joe): I am a little confused about how many times we are asserting
+      # that something is bound here, in bindings vs. in the environment
+      cases(Option) val-info block:
+        | none =>
+          b = global-bind(S.builtin(mod-info.from-uri), names.s-global(name), none)
+          bindings.set-now(names.s-global(name).key(), b)
+          acc.set-now(name, b)
+        | some(shadow val-info) =>
+          cases(C.ValueExport) val-info block:
+            | v-var(t) =>
+              b = var-bind(S.builtin(mod-info.from-uri), names.s-global(name), A.a-blank, none)
+              bindings.set-now(names.s-global(name).key(), b)
+              acc.set-now(name, b)
+            | else =>
+              # TODO(joe): Good place to add _location_ to valueexport to report errs better
+              b = global-bind(S.builtin(mod-info.from-uri), names.s-global(name), none)
+              bindings.set-now(names.s-global(name).key(), b)
+              acc.set-now(name, b)
+          end
+      end
+    end
+    acc.freeze()
+  end
+
+  fun type-env-from-env(initial :: C.CompileEnvironment) block:
+    acc = SD.make-mutable-string-dict()
+    for each(name from initial.globals.types.keys-list()):
+      acc.set-now(name, global-type-bind(S.builtin("pyret-builtin-type"), names.s-type-global(name), none))
+    end
+    acc.freeze()
+  end
+
   fun update-type-binding-ann(atom, ann):
     if type-bindings.has-key-now(atom.key()):
       cases(TypeBinding) type-bindings.get-value-now(atom.key()):
@@ -693,13 +720,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           not(is-global-bind(sb) or is-module-bind(sb))
         end
       defined-vals = for map(key from non-globals): 
-        id-exp = cases(ScopeBinding) self.env.get-value(key):
-          | let-bind(_, atom, _, _) => A.s-id(l, atom)
-          | letrec-bind(_, atom, _, _) => A.s-id-letrec(l, atom, true)
-          | var-bind(_, atom, _, _) => A.s-id-var(l, atom)
-          | module-bind(_, atom, _, _) => A.s-id(l, atom)
+        cases(ScopeBinding) self.env.get-value(key) block:
+          | let-bind(_, atom, _, _) =>
+            A.s-defined-value(key, A.s-id(l, atom))
+          | letrec-bind(_, atom, _, _) =>
+            A.s-defined-value(key, A.s-id-letrec(l, atom, true))
+          | var-bind(_, atom, _, _) =>
+            A.s-defined-var(key, atom)
+          | module-bind(_, atom, _, _) =>
+            A.s-defined-value(key, A.s-id(l, atom))
         end
-        A.s-defined-value(key, id-exp)
       end
       non-global-types =
         for filter(k from self.type-env.keys-list()):
@@ -720,6 +750,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         {imp-e; imp-te; imp-imps} = acc
         cases(A.Import) i block:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
+            info-key = U.import-to-dep(file).key()
+            mod-info = initial-env.mods.get-value(info-key)
             atom-env =
               if A.is-s-underscore(name-vals):
                 make-anon-import-for(name-vals.l, "$import", imp-e, bindings, let-bind(l, _, A.a-any(l2), none))
@@ -734,7 +766,22 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               end
             {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
               {e; vn} = nv-v
-              v-atom-env = make-atom-for(v, false, e, bindings, module-bind(_, _, file, none))
+              maybe-value-export = mod-info.values.get(v.toname())
+              v-atom-env = cases(Option) maybe-value-export block:
+                | some(value-export) =>
+                  cases(C.ValueExport) value-export block:
+                    | v-just-type(t) =>
+                      make-atom-for(v, false, e, bindings, module-bind(_, _, file, none))
+                    | v-fun(t, n, f) => 
+                      make-atom-for(v, false, e, bindings, module-bind(_, _, file, none))
+                    | v-var(t) =>
+                      print("Seeing a var from another module: " + torepr(v))
+                      print("\n")
+                      make-atom-for(v, false, e, bindings, var-bind(_, _, A.a-blank, none))
+                  end
+                | none =>
+                  make-atom-for(v, false, e, bindings, module-bind(_, _, file, none))
+              end
               { v-atom-env.env; link(v-atom-env.atom, vn) }
             end
             {te; tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
@@ -768,12 +815,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         dd = datatypes.get-value-now(ddk) 
         A.p-data(dd.l, dd.namet, none)
       end
-      non-module-vals = for filter(vd from vals):
-        binding = bindings.get-value-now(vd.value.id.key())
+      get-dv-key = lam(dv):
+        cases(A.DefinedValue) dv:
+          | s-defined-value(n, v) => v.id.key()
+          | s-defined-var(n, id) => id.key()
+        end
+      end
+      non-module-vals = for filter(dv from vals):
+        key = get-dv-key(dv)
+        binding = bindings.get-value-now(key)
         not(is-some(binding.expr) and is-s-import-complete(binding.expr.value))
       end
-      val-defs = for map(vd from non-module-vals):
-        v-binding = bindings.get-value-now(vd.value.id.key())
+      val-defs = for map(dv from non-module-vals):
+        v-binding = bindings.get-value-now(get-dv-key(dv))
         cases(ScopeBinding) v-binding:
           | letrec-bind(loc, atom, ann, expr) =>
             A.p-value(loc, atom, ann)
@@ -1050,7 +1104,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-name(l2, s) =>
           cases(Option) self.env.get(s) block:
             | none =>
-              when self.type-env.has-key(s):
+              when self.type-env.has-key(s) block:
                 name-errors := link(C.type-id-used-as-value(l2, id), name-errors)
               end
               A.s-id(l2, names.s-global(s))
@@ -1174,7 +1228,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         id-k = id.key()
         if bindings.has-key-now(id-k):
           binding = bindings.get-value-now(id-k)
-          when not(is-var-bind(binding)):
+          when not(C.is-var-bind(binding)):
             add-error(C.bad-assignment(A.s-assign(loc, id, value), binding.loc))
           end
         else:

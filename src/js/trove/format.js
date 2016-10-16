@@ -82,19 +82,15 @@
         return result;
     };
 
-    return RUNTIME.makeObject({
-      'provide-plus-types': RUNTIME.makeObject({
-        'values': RUNTIME.makeObject({
-          format: RUNTIME.makeFunction(function(str, args) {
-            RUNTIME.ffi.checkArity(2, arguments, "format");
-            RUNTIME.checkString(str);
-            return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
-          }, "format"),
-        }),
-        'types': {}
-      }),
-      answer: NAMESPACE.get("nothing")
-    });
+    var vals = {
+      format: RUNTIME.makeFunction(function(str, args) {
+        RUNTIME.ffi.checkArity(2, arguments, "format");
+        RUNTIME.checkString(str);
+        return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
+      }, "format"),
+    };
+
+    return RUNTIME.makeModuleReturn(vals, {});
    
   }
 })

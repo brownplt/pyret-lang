@@ -147,6 +147,11 @@
     }
     var O = RUNTIME.makeObject;
     return O({
+      "defined-types": {},
+      "defined-values": {
+        "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
+        "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")
+      },
       "provide-plus-types": O({
         types: { },
         values: O({

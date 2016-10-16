@@ -161,15 +161,19 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       adts = for map(dt from dts):
         N.a-defined-type(dt.name, dt.typ)
       end
-      anf-name-rec(dvs.map(_.value), "defined_value", lam(advs):
+      needs-value = dvs.filter(A.is-s-defined-value)
+      anf-name-rec(needs-value.map(_.value), "defined_value", lam(advs):
         shadow advs = for map2(name from dvs.map(_.name), adv from advs):
           N.a-defined-value(name, adv)
         end
+        avars = dvs.filter(A.is-s-defined-var).map(lam(dvar):
+          N.a-defined-var(dvar.name, dvar.id)
+        end)
 
         anf-name(answer, "answer", lam(ans):
             anf-name(provides, "provides", lam(provs):
                 anf-name(checks, "checks", lam(chks):
-                    k.apply(l, N.a-module(l, ans, advs, adts, provs, types, chks))
+                    k.apply(l, N.a-module(l, ans, advs + avars, adts, provs, types, chks))
                   end)
               end)
           end)

@@ -367,7 +367,12 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
-            val-typs.set-now(v.v.toname(), ann-to-typ(v.ann))
+            binding = resolved.bindings.get-value-now(v.v.key())
+            if CS.is-var-bind(binding) block:
+              val-typs.set-now(v.v.toname(), CS.v-var(ann-to-typ(v.ann)))
+            else:
+              val-typs.set-now(v.v.toname(), CS.v-just-type(ann-to-typ(v.ann)))
+            end
           end
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):
@@ -446,6 +451,14 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
   end
 end
 
+fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
+  cases(CS.ValueExport) ve:
+    | v-just-type(t) => CS.v-just-type(canonicalize-names(t, uri, tn))
+    | v-var(t) => CS.v-var(canonicalize-names(t, uri, tn))
+    | v-fun(t, name, flatness) => CS.v-fun(canonicalize-names(t, uri, tn), name, flatness)
+  end
+end
+
 fun find-mod(compile-env, uri) -> Option<String>:
   for find(depkey from compile-env.mods.keys-list()):
     other-uri = compile-env.mods.get-value(depkey).from-uri
@@ -454,20 +467,21 @@ fun find-mod(compile-env, uri) -> Option<String>:
 end
 
 fun transform-dict-helper(canonicalizer):
-  lam(d, uri, tranformer):
+  lam(d, uri, transformer):
     for fold(s from [SD.string-dict: ], v from d.keys-list()):
-      s.set(v, canonicalizer(d.get-value(v), uri, tranformer))
+      s.set(v, canonicalizer(d.get-value(v), uri, transformer))
     end
   end
 end
 
+transform-value-dict = transform-dict-helper(canonicalize-value-export)
 transform-dict = transform-dict-helper(canonicalize-names)
 transform-data-dict = transform-dict-helper(canonicalize-data-type)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
   | provides(from-uri, values, aliases, data-definitions) =>
-    new-vals = transform-dict(values, from-uri, transformer)
+    new-vals = transform-value-dict(values, from-uri, transformer)
     new-aliases = transform-dict(aliases, from-uri, transformer)
     new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
     CS.provides(from-uri, new-vals, new-aliases, new-data-definitions)
@@ -571,7 +585,9 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
-            val-typs.set-now(v.v.toname(), c(typed.info.types.get-value(v.v.key())))
+            # TODO(joe): This function needs to take a NameResolution to figure
+            # out vars, just like get-named-provides does
+            val-typs.set-now(v.v.toname(), CS.v-just-type(c(typed.info.types.get-value(v.v.key()))))
           end
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):

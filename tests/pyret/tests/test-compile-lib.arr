@@ -414,18 +414,18 @@ check "raw-provide-syntax":
   provs.values is
     [string-dict:
       "string-to-num",
-      T.t-arrow(
+      CM.v-just-type(T.t-arrow(
         [list: g("String")],
         T.t-app(
           bn("option", "Option"),
           [list: g("Number")],
           l, false),
-        l, false),
+        l, false)),
       "num-greater",
-      T.t-arrow(
+      CM.v-just-type(T.t-arrow(
         [list: g("Number"), g("Number")],
         g("Boolean"),
-        l, false)
+        l, false))
     ]
 
   #NOTE(joe): tough to test the case for Ither datatype because of generativity
@@ -436,7 +436,7 @@ end
 check:
   ps = CM.provides("test-provides1",
     [string-dict:
-      "x", T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false)
+      "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
@@ -451,7 +451,7 @@ check:
 
   canon is CM.provides("test-provides1",
     [string-dict:
-      "x", T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false)
+      "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)

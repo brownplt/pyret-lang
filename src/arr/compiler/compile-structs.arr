@@ -54,15 +54,29 @@ data NativeModule:
   | requirejs(path :: String)
 end
 
+data ScopeBinding:
+  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
+end
+
+data TypeBinding:
+  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
+end
+
 data NameResolution:
   | resolved(
       ast :: A.Program,
       errors :: List<CompileError>,
-      bindings :: SD.MutableStringDict,
-      type-bindings :: SD.MutableStringDict,
-      datatypes :: SD.MutableStringDict)
+      bindings :: SD.MutableStringDict<ScopeBinding>,
+      type-bindings :: SD.MutableStringDict<TypeBinding>,
+      datatypes :: SD.MutableStringDict<A.Expr>)
 end
-
 
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
@@ -87,10 +101,16 @@ data Globals:
   | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
+data ValueExport:
+  | v-just-type(t :: T.Type)
+  | v-var(t :: T.Type)
+  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
-      values :: StringDict<T.Type>,
+      values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.Type>
     )
@@ -190,10 +210,9 @@ fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, t-top)
+      vdict.set(v, v-just-type(t-top))
     else:
-      #print("\n\nYOOOOOOOOOOOOOOOOOOOOOOO: " + tostring(v.name)) 
-      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+      vdict.set(v.name, v-just-type(type-from-raw(uri, v.typ, SD.make-string-dict())))
     end
   end
   aliases = raw.aliases

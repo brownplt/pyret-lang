@@ -67,7 +67,7 @@ fun get-defined-ids(p, imports, body):
   end
   type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
   {
-    imports: imports.filter(lam(id): not(A.is-s-underscore(id)) end),
+    imports: imports,
     ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
     type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
@@ -242,7 +242,8 @@ fun make-repl<a>(
   fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
-    for each(k from compiled.modules.keys-list-now()):
+    for each(k from compiled.modules.keys-list-now()) block:
+      m = compiled.modules.get-value-now(k)
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
     result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)

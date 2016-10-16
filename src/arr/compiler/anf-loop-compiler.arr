@@ -987,8 +987,13 @@ compiler-visitor = {
               j-field("defined-values",
                 j-obj(
                   for CL.map_list(dv from dvs):
-                    compiled-val = dv.value.visit(self).exp
-                    j-field(dv.name, compiled-val)
+                    cases(N.ADefinedValue) dv:
+                      | a-defined-value(name, value) =>
+                        compiled-val = dv.value.visit(self).exp
+                        j-field(dv.name, compiled-val)
+                      | a-defined-var(name, id) =>
+                        j-field(dv.name, j-id(js-id-of(id)))
+                    end
                   end)),
               j-field("defined-types",
                 j-obj(
@@ -1554,7 +1559,7 @@ fun compile-provides(provides):
   cases(CS.Provides) provides:
     | provides(thismod-uri, values, aliases, data-defs) =>
       value-fields = for CL.map_list(v from values.keys().to-list()):
-        j-field(v, compile-provided-type(values.get-value(v)))
+        j-field(v, compile-provided-type(values.get-value(v).t))
       end
       data-fields = for CL.map_list(d from data-defs.keys().to-list()):
         j-field(d, compile-provided-data(data-defs.get-value(d)))
@@ -1608,16 +1613,12 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
           | none => raise(dep + " not found in: " + torepr(env.mods))
         end
         j-var(js-id-of(n),
-          rt-method("getField", [clist:
-              rt-method("getField", [clist:
-                  rt-method("getField", [clist:
-                      j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                      j-str("provide-plus-types")
-                    ]),
-                  j-str("values")
+          j-bracket(
+             rt-method("getField", [clist:
+                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+                  j-str("defined-values")
                 ]),
-              j-str(n.toname())
-            ]))
+              j-str(n.toname())))
       | s-type-global(_) =>
         dep = env.globals.types.get-value(n.toname())
         uri = cases(Option) env.mods.get(dep):
@@ -1627,11 +1628,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
         j-var(js-id-of(n),
           j-bracket(
               rt-method("getField", [clist:
-                rt-method("getField", [clist:
-                    j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                    j-str("provide-plus-types")
-                  ]),
-                j-str("types")]),
+                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+                j-str("defined-types")]),
               j-str(n.toname())))
     end
 

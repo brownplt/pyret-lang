@@ -1360,14 +1360,8 @@
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
-    return RUNTIME.makeObject({
-      'provide-plus-types': RUNTIME.makeObject({
-        'values': RUNTIME.makeObject({
+    return RUNTIME.makeModuleReturn({
           'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
-        }),
-        'types': {}
-      }),
-      answer: NAMESPACE.get("nothing")
-    });
+        }, {});
   }
 })

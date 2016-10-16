@@ -464,9 +464,14 @@ data DefinedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
+  | s-defined-var(name :: String, id :: Name) with:
+    method label(self): "s-defined-var" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))
+    end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(_): raise("No visitor field for " + self.label()) end)
   end
 end
 data DefinedType:
@@ -1741,6 +1746,9 @@ default-map-visitor = {
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
+  method s-defined-var(self, name, id):
+    s-defined-var(name, id.visit(self))
+  end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
   end,
@@ -2270,6 +2278,9 @@ default-iter-visitor = {
   method s-defined-value(self, name, val):
     val.visit(self)
   end,
+  method s-defined-var(self, name, id):
+    id.visit(self)
+  end,
   method s-defined-type(self, name, typ):
     typ.visit(self)
   end,
@@ -2792,6 +2803,9 @@ dummy-loc-visitor = {
 
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
+  end,
+  method s-defined-var(self, name, id):
+    s-defined-var(name, id.visit(self))
   end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
