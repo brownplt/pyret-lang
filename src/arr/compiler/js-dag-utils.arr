@@ -98,7 +98,7 @@ data CaseResults:
 end
 
 data RegisterAllocation:
-  | results(body :: ConcatList<J.JCase>, discardable-vars :: FrozenNameSet)
+  | results(body :: ConcatList<J.JCase>, preserved-vars :: List<A.Name>)
 end
 
 
@@ -367,9 +367,11 @@ fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet
       live-after = copy-nameset(n!free-vars) # use[n]
       for CL.each(follow from n._to) block: # add out[n] to live-after
         next-opt = dag.get(tostring(follow.get())) # Look up nodes in DAG
-        when is-some(next-opt): # Sanity check (?)
+        when is-some(next-opt) block: # Sanity check (?)
           next = next-opt.value # Actual node in dag
           next-vars = compute-live-vars(next, dag) # in[next]
+#          next-decl = next!decl-vars
+#          remove-overlap-now(live-after)
           live-after.merge-now(next-vars) # out[n] U= in[next]
         end
       end
@@ -426,6 +428,12 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
   #     Further reading: http://belph.github.io/docs/pyret-register-alloc.pdf
   #     ```
   live-ranges = compute-live-ranges(dag)
+  # print("\nLive ranges:\n")
+  # for each(rng from live-ranges) block:
+  #   print(rng)
+  #   print("\n")
+  # end
+  # print("\n")
   # Dynamically grown set of "registers"
   pool = DSU.make-mutable-stack()
   # Allocation dictionary
@@ -459,13 +467,20 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
   # Perform allocation
   for each(i from live-ranges) block:
     num-ranges := num-ranges + 1
-    prune-dead(i)
-    active.insert(i)
-    cases(Option) pool.pop() block:
-      | none => ret.set-now(i.variable.key(), i.variable)
-        num-registers := num-registers + 1
-      | some(reg) =>
-        ret.set-now(i.variable.key(), reg)
+    # Extra cautionary step to prevent allocation
+    # of global variables
+    if A.is-s-atom(i.variable) block:
+      prune-dead(i)
+      active.insert(i)
+      cases(Option) pool.pop() block:
+        | none => ret.set-now(i.variable.key(), i.variable)
+          num-registers := num-registers + 1
+        | some(reg) =>
+          ret.set-now(i.variable.key(), reg)
+      end
+    else:
+      ret.set-now(i.variable.key(), i.variable)
+      num-registers := num-registers + 1
     end
   end
   # Return assignments
@@ -655,6 +670,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
   for each(lbl from str-labels) block:
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
+    # protekted == closed over
     {used; protekted} = used-vars-jcase(n.case-body)
     n!{used-vars: used}
     free-vars = difference-now(n!used-vars, n!decl-vars)
@@ -694,54 +710,40 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
       | some(n) => n
     end
   end
-  allocation-visitor = if false block:
-    print("\nSkipping register allocation\n")
-    J.default-map-visitor
-  else:
-    print("\nDoing register allocation at " + tostring(loc) + "\n")
-    J.default-map-visitor.{
-      method j-var(self, name, rhs) block:
-        # Need to avoid duplicating var declarations
-        fixed = fix-name(name)
-        if assigned.has-key-now(fixed.key()) block:
-          # For cases expressions...
-          #
-          # I do not have proof
-          # That this works in any way
-          # But I think it does.
-          #                 -- Basho
-          if fixed.key() == name.key():
-            J.j-var(fixed, rhs.visit(self))
-          else:
-            J.j-expr(J.j-assign(fixed, rhs.visit(self)))
-          end
-        else:
-          assigned.set-now(fixed.key(), true)
+  allocation-visitor = J.default-map-visitor.{
+    method j-var(self, name, rhs) block:
+      # Need to avoid duplicating var declarations
+      fixed = fix-name(name)
+      if assigned.has-key-now(fixed.key()) block:
+        # For cases expressions...
+        #
+        # I do not have proof
+        # That this works in any way
+        # But I think it does.
+        #                 -- Basho
+        if fixed.key() == name.key():
           J.j-var(fixed, rhs.visit(self))
+        else:
+          J.j-expr(J.j-assign(fixed, rhs.visit(self)))
         end
-      end,
-      method j-try-catch(self, body, exn, catch):
-        J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
-      end,
-      method j-fun(self, args, body):
-        J.j-fun(CL.map(fix-name, args), body.visit(self))
-      end,
-      method j-assign(self, name, rhs):
-        J.j-assign(fix-name(name), rhs.visit(self))
-      end,
-      method j-id(self, id):
-        J.j-id(fix-name(id))
+      else:
+        assigned.set-now(fixed.key(), true)
+        J.j-var(fixed, rhs.visit(self))
       end
-    }
-  end
-  acc = ns-empty()
-  for each(lbl from str-labels):
-    n = dag.get-value(lbl)
-    when is-some(n!dead-after-vars):
-      acc.merge-now(n!dead-after-vars.value)
+    end,
+    method j-try-catch(self, body, exn, catch):
+      J.j-try-catch(body.visit(self), fix-name(exn), catch.visit(self))
+    end,
+    method j-fun(self, args, body):
+      J.j-fun(CL.map(fix-name, args), body.visit(self))
+    end,
+    method j-assign(self, name, rhs):
+      J.j-assign(fix-name(name), rhs.visit(self))
+    end,
+    method j-id(self, id):
+      J.j-id(fix-name(id))
     end
-  end
-  discardable-vars = acc.freeze()
+  }
 
   dead-assignment-eliminated = for CL.map(body-case from body-cases):
     n = dag.get-value(tostring(body-case.exp.label.get()))
@@ -751,26 +753,36 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
     end
   end
 
-  registers = D.make-mutable-string-dict()
-  for each(v from allocated.keys().to-list()):
-    registers.set-now(allocated.get-value(v).key(), true)
-  end
-  # When statement to only show interesting cases
-  print("# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
-  COLOR-PRE = string-from-code-point(27) + "[96m"
-  COLOR-POST = string-from-code-point(27) + "[0m"
-  when num-before <> num-after block:
-    print("Renaming:\n")
-    for each(v from allocated.keys().to-list()):
-      dest = allocated.get-value(v).key()
-      print("\t" + if dest <> v:
-          (COLOR-PRE + v + " => " + allocated.get-value(v).key() + COLOR-POST)
-        else:
-          (v + " => " + allocated.get-value(v).key())
-        end + "\n")
+  acc = ns-empty()
+  for each(lbl from str-labels):
+    n = dag.get-value(lbl)
+    when is-some(n!live-after-vars):
+      for each(v-key from n!live-after-vars.value.keys-list-now()):
+        cases(Option) allocated.get(v-key):
+          | none => nothing
+          | some(reg) => acc.set-now(reg.key(), reg)
+        end
+      end
     end
   end
+  preserved-vars = acc.freeze()
+  shadow preserved-vars = preserved-vars.keys-list().map(preserved-vars.get-value(_))
+  # When statement to only show interesting cases
+  # print("\n# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
+  # COLOR-PRE = string-from-code-point(27) + "[96m"
+  # COLOR-POST = string-from-code-point(27) + "[0m"
+  # when num-before <> num-after block:
+  #   print("Renaming:\n")
+  #   for each(v from allocated.keys().to-list()):
+  #     dest = allocated.get-value(v).key()
+  #     print("\t" + if dest <> v:
+  #         (COLOR-PRE + v + " => " + allocated.get-value(v).key() + COLOR-POST)
+  #       else:
+  #         (v + " => " + allocated.get-value(v).key())
+  #       end + "\n")
+  #   end
+  # end
 
   # print("Done")
-  results(dead-assignment-eliminated, discardable-vars)
+  results(dead-assignment-eliminated, preserved-vars)
 end

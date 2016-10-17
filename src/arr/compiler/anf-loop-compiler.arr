@@ -454,17 +454,10 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ^ cl-append(_, visited-body.new-cases)
   # Initialize the case numbers, for more legible output...
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
-  main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step, l)
-  shadow main-body-cases = main-body-cases-and-dead-vars.body
-  all-vars = D.make-mutable-string-dict()
-  for CL.each(case-expr from main-body-cases):
-    local-bound-vars(case-expr, all-vars)
-  end
-  all-needed-vars = copy-mutable-dict(all-vars)
-  for each(d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
-    all-needed-vars.remove-now(d)
-  end
-  vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
+  main-body-cases-and-preserved-vars = DAG.simplify(main-body-cases, step, l)
+  shadow main-body-cases = main-body-cases-and-preserved-vars.body
+  vars = main-body-cases-and-preserved-vars.preserved-vars
+
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -880,8 +873,8 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
             ^ cl-snoc(_, j-expr(j-assign(compiler.cur-step, entry-label)))
             ^ cl-snoc(_, j-break)),
         ann-cases.new-cases
-          ^ cl-append(_, compiled-body.new-cases)
-          ^ cl-snoc(_, j-case(ann-cases.new-label, compiled-body.block)))
+          ^ cl-snoc(_, j-case(ann-cases.new-label, compiled-body.block))
+          ^ cl-append(_, compiled-body.new-cases))
     end
   else:
     c-block(j-block(preamble + compiled-body.block.stmts), compiled-body.new-cases)
