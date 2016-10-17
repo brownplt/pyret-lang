@@ -19,7 +19,7 @@ check "min and max":
   arg-max([list: -2]) is 0
 
   arg-min([list: ~0, -1, 2, -0.99]) is 1
-  arg-max([list: 1/100, 1/1000, 2, 2/10000]) is 3
+  arg-max([list: 1/100, 1/1000, 2, 2/10000]) is 2
 
   sum([list:]) is 0
   sum([list: 0, 1]) is 1
