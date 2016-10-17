@@ -139,16 +139,6 @@ EXTRA_FLAGS=$(EF)
 else
 EXTRA_FLAGS = -no-check-mode
 endif
-ralloc-test/%.jarr : ralloc-test/%.arr $(PHASEA)/pyret.jarr 
-	$(NODE) $(PHASEA)/pyret.jarr \
-	--require-config src/scripts/standalone-configA.json \
-	--compiled-dir ralloc-test/compiled/ \
-	--outfile $@ \
-	--build-runnable $<
-
-.PHONY : ralloc-test
-ralloc-test: $(patsubst %.arr,%.jarr,$(wildcard ralloc-test/*.arr))
-	for f in $^; do echo $$f; $(NODE) $$f; done
 
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
