@@ -215,7 +215,7 @@ end
 fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter:
   anfed = N.anf-program(program-ast)
   flatness-env = make-prog-flatness-env(anfed)
-  compiled = anfed.visit(AL.splitting-compiler(env, provides, options))
+  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))
   ccp-dict(compiled)
 end
 
@@ -223,5 +223,6 @@ fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options)
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
-  phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, provides, options))), ret)
+  flatness-env = make-prog-flatness-env(anfed)
+  phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))), ret)
 end

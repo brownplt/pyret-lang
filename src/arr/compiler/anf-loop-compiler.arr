@@ -751,7 +751,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body) block:
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
@@ -766,6 +766,54 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
         check-fun(j-id(compiler.cur-apploc), compiled-f),
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         j-break]),
+    new-cases)
+end
+
+fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
+  cases (J.JBlock) b:
+    | j-block(stmt-list) => stmt-list
+    | j-block1(stmt) => cl-cons(stmt, cl-empty)
+  end
+end
+
+fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
+  print("Compiling flat app to " + tostring(f.id) + "\n")
+  ans = compiler.cur-ans
+  compiled-f = f.visit(compiler).exp
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+
+  # Generate the code for calling the function
+  call-code = [clist:
+    j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+    check-fun(j-id(compiler.cur-apploc), compiled-f),
+    j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args)))
+  ]
+
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
+  {block-remainder; new-cases} = cases(Option) opt-dest:
+    | some(dest) =>
+      cases(Option) opt-compiled-body:
+        | some(compiled-body) =>
+          body-c-block = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
+          {body-c-block.block; body-c-block.new-cases}
+        | none => raise("Impossible: can't have a dest without a body")
+      end
+    | none =>
+      cases(Option) opt-compiled-body:
+        | some(compiled-body) =>
+          {compiled-body.block; compiled-body.new-cases}
+        | none => {j-block(cl-empty); cl-empty}
+      end
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(call-code + j-block-to-stmt-list(block-remainder)),
     new-cases)
 end
 
@@ -950,10 +998,31 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
+fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
+    compiler,
+    b :: Option<BindType>,
+    opt-body :: Option<N.AExpr>):
+  compile-normal = lam(): compile-split-app(l, compiler, b, f, args, opt-body) end
+  if N.is-a-id(f):
+    flatness-opt = compiler.flatness-env.get-value(tostring(f.id))
+    cases (Option) flatness-opt:
+      | some(flatness) =>
+        if flatness == 0:
+          compile-flat-app(l, compiler, b, f, args, opt-body)
+        else:
+          compile-normal()
+        end
+      | none => compile-normal()
+    end
+  else:
+    raise("Calling a function that's not an id, but instead : " + tostring(f))
+  end
+end
+
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: ( -> DAG.CaseResults)):
   cases(N.ALettable) e:
     | a-app(l2, f, args) =>
-      compile-split-app(l2, compiler, b, f, args, opt-body)
+      compile-a-app(l2, f, args, compiler, b, opt-body)
     | a-method-app(l2, obj, m, args) =>
       compile-split-method-app(l2, compiler, b, obj, m, args, opt-body)
     | a-if(l2, cond, then, els) =>
@@ -1570,7 +1639,7 @@ fun compile-provides(provides):
   end
 end
 
-fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
+fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
@@ -1795,20 +1864,23 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   wrap-new-module(module-body)
 end
 
-fun compile-program(self, l, imports-in, prog, freevars, env):
+fun compile-program(self, l, imports-in, prog, freevars, env, flatness-env):
   raise("Use compile-module instead!  Pass the compile-module: true compiler option")
 end
 
-fun non-splitting-compiler(env, provides, options):
+# Eventually maybe we should have a more general "optimization-env" instead of
+# flatness-env. For now, leave it since our design might change anyway.
+fun non-splitting-compiler(env, flatness-env, provides, options):
   compiler-visitor.{
     options: options,
+    flatness-env: flatness-env,
     method a-program(self, l, _, imports, body):
       simplified = body.visit(remove-useless-if-visitor)
       freevars = N.freevars-e(simplified)
       if options.compile-module:
-        compile-module(self, l, imports, simplified, freevars, provides, env)
+        compile-module(self, l, imports, simplified, freevars, provides, env, flatness-env)
       else:
-        compile-program(self, l, imports, simplified, freevars, provides, env)
+        compile-program(self, l, imports, simplified, freevars, provides, env, flatness-env)
       end
     end
   }
