@@ -1388,12 +1388,22 @@ data RuntimeError:
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
                     | some(ast) =>
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
+                      fun-loc = cases(Any) ast:
+                        | s-app(_, _fun, _) => _fun.l
+                        | s-for(_, _fun, _, _, _, _) => _fun.l
+                        | else  => ast.l
+                      end
+                      args = cases(Any) ast:
+                        | s-app(_, _, args) => args
+                        | s-for(_, _, args, _, _, _) => args
+                        | else  => ast.l
+                      end
+                      applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
                       [ED.sequence:
                         ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
+                          ED.highlight(ED.ed-args(fun-app-arity), args.map(_.l),1),
                           ED.text(" were passed to the "),
                           applicant,
                           ED.text(".")],
@@ -1553,6 +1563,7 @@ data RuntimeError:
                 ED.highlight(ED.text("left side"), [ED.locs: 
                   cases(Any) ast:
                     | s-app(_, _fun, _) => _fun.l
+                    | s-for(_, _fun, _, _, _, _) => _fun.l
                     | else  => ast.l
                   end], 0),
                 ED.text(" was not a function value:")],
