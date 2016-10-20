@@ -8,10 +8,7 @@ define([], function() {
   }
 
   var suspend;
-  if (typeof setImmediate !== 'undefined') {
-    suspend = function(f) { return setImmediate(f); };
-  }
-  else if (isBrowser() && (typeof window !== "undefined") && window.postMessage) {
+  if (isBrowser() && (typeof window !== "undefined") && window.postMessage) {
     var origin = String(window.location.origin);
     var postMessageCBToken = String(Math.random());
     var postMessageCBs = {};
@@ -31,6 +28,9 @@ define([], function() {
         cb: postMessageIndex
       }, origin);
     };
+  }
+  else if (typeof setImmediate !== 'undefined') {
+    suspend = function(f) { return setImmediate(f); };
   }
   else {
     suspend = function(f) { setTimeout(f, 0); };
