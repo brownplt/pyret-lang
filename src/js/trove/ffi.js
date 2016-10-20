@@ -630,6 +630,7 @@
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
       isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
+      isVSCollectionIter: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection-iter").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
       isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
       isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
@@ -651,6 +652,7 @@
         var isValue = runtime.getField(VS, "is-vs-value");
         var isTable = runtime.getField(VS, "is-vs-table");
         var isCollection = runtime.getField(VS, "is-vs-collection");
+        var isCollectionIter = runtime.getField(VS, "is-vs-collection-iter");
         var isConstr = runtime.getField(VS, "is-vs-constr");
         var isStr = runtime.getField(VS, "is-vs-str");
         var isSeq = runtime.getField(VS, "is-vs-seq");
@@ -666,6 +668,8 @@
               arr.push(runtime.getField(cur, "v"));
             } else if (runtime.unwrap(isCollection.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+            } else if (runtime.unwrap(isCollectionIter.app(cur)) === true) {
+              continue;
             } else if (runtime.unwrap(isTable.app(cur)) === true) {
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });
