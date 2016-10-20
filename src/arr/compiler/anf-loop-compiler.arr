@@ -660,24 +660,38 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
   end
 end
 
-fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
+fun get-remaining-code(compiler, opt-dest, opt-body, ans) -> {J.JBlock;CList<J.JCase>}:
   opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
   cases(Option) opt-dest:
     | some(dest) =>
       cases(Option) opt-compiled-body:
         | some(compiled-body) =>
           compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
-          cl-cons(
-            j-case(after-label, compiled-binding.block),
-            compiled-binding.new-cases)
-        | none => raise("Impossible: compile-split-app can't have a dest without a body")
+          {compiled-binding.block; compiled-binding.new-cases}
+        | none => raise("Impossible: can't have a dest without a body")
       end
     | none =>
       cases(Option) opt-compiled-body:
         | some(compiled-body) =>
-          cl-cons(j-case(after-label, compiled-body.block), compiled-body.new-cases)
-        | none => cl-empty
+          {compiled-body.block; compiled-body.new-cases}
+        | none => {j-block(cl-empty); cl-empty}
       end
+  end
+end
+
+fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
+  {remaining-block; remaining-cases} = get-remaining-code(compiler, opt-dest, opt-body, ans)
+  block-with-case = cl-cons(j-case(after-label, remaining-block), remaining-cases)
+  cases (J.JBlock) remaining-block:
+    | j-block(stmt-list) =>
+      if stmt-list.is-empty():
+        # Don't add the j-case if it's just going to have an empty block.
+        remaining-cases
+      else:
+        block-with-case
+      end
+    | j-block1(stmt) =>
+      block-with-case
   end
 end
 
@@ -772,7 +786,7 @@ end
 fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
   cases (J.JBlock) b:
     | j-block(stmt-list) => stmt-list
-    | j-block1(stmt) => cl-cons(stmt, cl-empty)
+    | j-block1(stmt) => cl-sing(stmt)
   end
 end
 
@@ -792,22 +806,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
   # Compile the body of the let. We split it into two portions:
   # 1) the code that can be in the same "block" (or case region) and
   # 2) the rest of the case statements
-  opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
-  {block-remainder; new-cases} = cases(Option) opt-dest:
-    | some(dest) =>
-      cases(Option) opt-compiled-body:
-        | some(compiled-body) =>
-          body-c-block = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
-          {body-c-block.block; body-c-block.new-cases}
-        | none => raise("Impossible: can't have a dest without a body")
-      end
-    | none =>
-      cases(Option) opt-compiled-body:
-        | some(compiled-body) =>
-          {compiled-body.block; compiled-body.new-cases}
-        | none => {j-block(cl-empty); cl-empty}
-      end
-  end
+  {block-remainder; new-cases} = get-remaining-code(compiler, opt-dest, opt-body, ans)
 
   # Now merge the code for calling the function with the next block
   # (this is basically our optimization, since we're not starting a new case
@@ -998,22 +997,26 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
+fun get-flatness-opt(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Option<Number>:
+  flatness-opt-opt = flatness-env.get(fun-name)
+  cases (Option) flatness-opt-opt:
+    | some(flatness-opt) => flatness-opt
+    | none => none
+  end
+end
+
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
     opt-body :: Option<N.AExpr>):
-  compile-normal = lam(): compile-split-app(l, compiler, b, f, args, opt-body) end
   if N.is-a-id(f):
-    flatness-opt = compiler.flatness-env.get-value(tostring(f.id))
-    cases (Option) flatness-opt:
-      | some(flatness) =>
-        if flatness == 0:
-          compile-flat-app(l, compiler, b, f, args, opt-body)
-        else:
-          compile-normal()
-        end
-      | none => compile-normal()
+    flatness-opt = get-flatness-opt(compiler.flatness-env, tostring(f.id))
+    app-compiler = if is-some(flatness-opt) and (flatness-opt.value == 0):
+      compile-flat-app
+    else:
+      compile-split-app
     end
+    app-compiler(l, compiler, b, f, args, opt-body)
   else:
     raise("Calling a function that's not an id, but instead : " + tostring(f))
   end

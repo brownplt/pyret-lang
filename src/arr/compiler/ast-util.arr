@@ -456,10 +456,7 @@ fun canonicalize-value-export(ve :: Any, uri :: URI, transform-name :: NameChang
     # I believe the only time this branch is used is for builtin functions
     # For example is Option's "some". Maybe we have to change the way these builtin functions
     # are stored (maybe in type-defaults.arr)?
-    block:
-      print("No ValueExport for uri " + uri + "\n")
-      CS.v-just-type(canonicalize-names(ve, uri, transform-name))
-    end
+    CS.v-just-type(canonicalize-names(ve, uri, transform-name))
   end
 end
 
@@ -473,10 +470,7 @@ end
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, tranformer):
     for fold(s from [SD.string-dict: ], v from d.keys-list()):
-      block:
-        print("name is " + v + "\n")
-        s.set(v, canonicalizer(d.get-value(v), uri, tranformer))
-      end
+      s.set(v, canonicalizer(d.get-value(v), uri, tranformer))
     end
   end
 end
