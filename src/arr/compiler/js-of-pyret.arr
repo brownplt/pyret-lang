@@ -89,9 +89,9 @@ fun make-expr-flatness-env(
     sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
   cases(AA.AExpr) aexpr:
     | a-type-let(_, bind, body) =>
-      raise("Unsupported")
+      make-expr-flatness-env(body, sd)
     | a-let(_, bind, val, body) =>
-      val-flatness = if AA.is-a-lam(val) block:
+      val-flatness = if AA.is-a-lam(val) or AA.is-a-method(val) block:
         lam-flatness = make-expr-flatness-env(val.body, sd)
         sd.set-now(tostring(bind.id), lam-flatness)
         # flatness of defining this lambda is 0, since we're not actually
@@ -119,7 +119,10 @@ fun make-expr-flatness-env(
 
       flatness-max(val-flatness, body-flatness)
     | a-arr-let(_, bind, idx, e, body) =>
-      raise("Unsupported still")
+      # Could maybe try to add some string like "bind.name + idx" to the
+      # sd to let us keep track of the flatness if e is an a-lam, but for
+      # now we don't since I'm not sure it'd work right.
+      flatness-max(make-lettable-flatness-env(e, sd), make-expr-flatness-env(body, sd))
     | a-var(_, bind, val, body) =>
       # Do same thing with a-var as with a-let for now
       make-expr-flatness-env(body, sd)
@@ -153,7 +156,7 @@ fun make-lettable-flatness-env(
     | a-module(_, answer, dv, dt, provides, types, checks) =>
       default-ret
     | a-if(_, c, t, e) =>
-      raise("Unsupported")
+      flatness-max(make-expr-flatness-env(t, sd), make-expr-flatness-env(e, sd))
     | a-assign(_, id, value) =>
       block:
         if AA.is-a-id(value) and sd.has-key-now(tostring(value.id)):
@@ -187,15 +190,35 @@ fun make-lettable-flatness-env(
     | a-get-bang(_, obj, field) =>
       default-ret
     | a-lam(_, name, args, ret, body) =>
-      make-expr-flatness-env(body, sd)
+      # I believe the only way we can reach this case is if we write code
+      # like:
+      # lam(x): x end
+      # That is, we define a lambda, but don't bind it to anything
+      if string-equal(name, ""):
+        default-ret
+      else:
+        raise("lam should be anonymous!")
+      end
     | a-method(_, name, args, ret, body) =>
-      make-expr-flatness-env(body, sd)
+      raise("Should not be called with an a-method")
     | a-id-var(_, id) =>
       default-ret
     | a-id-letrec(_, id, safe) =>
       default-ret
     | a-val(_, v) =>
       default-ret
+    | a-data-expr(l, name, namet, vars, shared) =>
+      default-ret
+    | a-cases(_, typ, val, branches, els) =>
+      # Flatness is the max of the flatness all the cases branches
+      combine = lam(case-branch, max-flat):
+        branch-flatness = make-expr-flatness-env(case-branch.body, sd)
+        flatness-max(max-flat, branch-flatness)
+      end
+      max-flat = branches.foldl(combine, some(0))
+
+      else-flat = make-expr-flatness-env(els, sd)
+      flatness-max(max-flat, else-flat)
   end
 end
 
@@ -208,7 +231,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg) -> SD.StringDict<Number> block:
         sd
       end
   end
-  print("flatness env: " + tostring(flatness-env) + "\n")
+  #print("flatness env: " + tostring(flatness-env) + "\n")
   flatness-env.freeze()
 end
 

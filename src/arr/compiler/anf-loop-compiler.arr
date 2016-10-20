@@ -791,7 +791,6 @@ fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
 end
 
 fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
-  print("Compiling flat app to " + tostring(f.id) + "\n")
   ans = compiler.cur-ans
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
