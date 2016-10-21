@@ -256,7 +256,20 @@ data List<a>:
     end,
 
 sharing:
-  method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+  method _output(self :: List<a>) -> VS.ValueSkeleton:
+    len = self.length()
+    var curr = self
+    VS.vs-collection-iter(self.length(), "list", {
+      next: lam():
+        cases(List) curr block:
+          | empty => none
+          | link(f, r) =>
+            curr := r
+            some(f)
+        end
+      end
+    })
+  end,
   
   method _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)

@@ -214,16 +214,34 @@
 
       var outputISD = runtime.makeMethod0(function(_) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a); }
-        var elts = [];
+
+
+        
         var keys = getAllKeys();
-        var vsValue = get(VS, "vs-value");
-        for (var i = 0; i < keys.length; i++) {
-          elts.push(vsValue.app(userKey(keys[i])));
-          elts.push(vsValue.app(underlyingDict[keys[i]]));
-        }
-        return get(VS, "vs-collection").app(
-          runtime.makeString("string-dict"),
-          runtime.ffi.makeList(elts));
+        var iterCol = get(VS, "vs-collection-iter");
+        var curKey;
+        var onKey = true;
+        return iterCol.app(keys.length * 2, "string-dict", runtime.makeObject({
+          next: runtime.makeFunction(
+            function() {
+              if(!onKey) {
+                onKey = true;
+                return runtime.ffi.makeSome(underlyingDict[curKey]);
+              }
+              else {
+                onKey = false;
+                curKey = keys.pop();
+                if(curKey === undefined) {
+                  return runtime.ffi.makeNone();
+                }
+                else {
+                  return runtime.ffi.makeSome(userKey(curKey));
+                }
+              }
+            },
+            "output-isd-next"
+          )
+        }));
       });
 
       var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {

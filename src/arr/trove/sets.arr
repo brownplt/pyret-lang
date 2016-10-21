@@ -272,6 +272,19 @@ end
 
 data Set:
   | list-set(elems :: lists.List) with:
+    method iter(self):
+      var curr = self.elems
+      {
+        next: lam():
+          cases(lists.List) curr block:
+            | empty => option.none
+            | link(f, r) =>
+              curr := r
+              option.some(f)
+          end
+        end
+      }
+    end,
     method pick(self):
       lst = self.elems
       cases(List) lst:
@@ -307,7 +320,9 @@ data Set:
         end, "") +
       "]"
     end,
-    method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
+    method _output(self):
+      VS.vs-collection-iter(self.size(), "list-set", self.iter())
+    end,
 
     method fold(self, f :: (Any, Any -> Any), base :: Any):
       fold(f, base, self.elems)
@@ -388,6 +403,26 @@ data Set:
     end
     
   | tree-set(elems :: AVLTree) with:
+    method iter(self):
+      var to-visit = [lists.list: self.elems]
+      fun next():
+        cases(lists.List) to-visit:
+          | empty => option.none
+          | link(f, r) =>
+            cases(AVLTree) f block:
+              | leaf =>
+                to-visit := r
+                next()
+              | branch(value, _, left, right) =>
+                to-visit := link(left, link(right, r))
+                option.some(value)
+            end
+        end
+      end
+      {
+        next: next
+      }
+    end,
     method pick(self):
       t = self.elems
       cases(AVLTree) t:
@@ -414,7 +449,9 @@ data Set:
         end, "") +
       "]"
     end,
-    method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
+    method _output(self):
+      VS.vs-collection-iter(self.size(), "tree-set", self.iter())
+    end,
 
     method fold(self, f :: (Any -> Any), base :: Any):
       tree-fold(f, base, self.elems)
