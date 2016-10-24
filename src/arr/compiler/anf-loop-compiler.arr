@@ -660,38 +660,30 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
   end
 end
 
-fun get-remaining-code(compiler, opt-dest, opt-body, ans) -> {J.JBlock;CList<J.JCase>}:
-  opt-compiled-body = opt-body.and-then(lam(b): b.visit(compiler) end)
-  cases(Option) opt-dest:
+fun get-remaining-code(compiler, opt-dest, body, ans) -> {J.JBlock;CList<J.JCase>}:
+  compiled-body = body.visit(compiler)
+  shadow compiled-body = cases(Option) opt-dest:
     | some(dest) =>
-      cases(Option) opt-compiled-body:
-        | some(compiled-body) =>
-          compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
-          {compiled-binding.block; compiled-binding.new-cases}
-        | none => raise("Impossible: can't have a dest without a body")
-      end
+      compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
+      compiled-binding
     | none =>
-      cases(Option) opt-compiled-body:
-        | some(compiled-body) =>
-          {compiled-body.block; compiled-body.new-cases}
-        | none => {j-block(cl-empty); cl-empty}
-      end
+      compiled-body
   end
+
+  {compiled-body.block; compiled-body.new-cases}
 end
 
-fun get-new-cases(compiler, opt-dest, opt-body, after-label, ans):
-  {remaining-block; remaining-cases} = get-remaining-code(compiler, opt-dest, opt-body, ans)
-  block-with-case = cl-cons(j-case(after-label, remaining-block), remaining-cases)
-  cases (J.JBlock) remaining-block:
-    | j-block(stmt-list) =>
-      if stmt-list.is-empty():
-        # Don't add the j-case if it's just going to have an empty block.
-        remaining-cases
-      else:
-        block-with-case
-      end
-    | j-block1(stmt) =>
-      block-with-case
+# Return code for opt-body and the label the caller should jump to after
+# their block of code is done
+fun get-new-cases(compiler, opt-dest, opt-body, ans) -> {CList<J.JBlock>; J.JExpr}:
+  cases(Option) opt-body:
+    | some(compiled-body) =>
+      pre-body-label = compiler.make-label()
+      {next-block; next-cases} = get-remaining-code(compiler, opt-dest, compiled-body, ans)
+      remaining-cases = cl-cons(j-case(pre-body-label, next-block), next-cases)
+
+      {remaining-cases; pre-body-label}
+    | none => {cl-empty; compiler.cur-target}
   end
 end
 
@@ -706,8 +698,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
     colon-field = rt-method("getColonFieldLoc", [clist: compiled-obj, j-str(methname), compiler.get-loc(l)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
     check-method = rt-method("isMethod", [clist: colon-field-id])
-    after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-    new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
     c-block(
       j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
@@ -736,8 +727,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
     colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(methname), compiler.get-loc(l)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
     check-method = rt-method("isMethod", [clist: colon-field-id])
-    after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-    new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
     c-block(
       j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
@@ -770,8 +760,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body) block:
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
-  after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
   c-block(
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
@@ -828,15 +817,16 @@ end
 fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   consq-label = compiler.make-label()
   alt-label = compiler.make-label()
-  after-if-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   ans = compiler.cur-ans
+  {after-if-cases; after-if-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
   compiler-after-if = compiler.{cur-target: after-if-label}
   compiled-consq = consq.visit(compiler-after-if)
   compiled-alt = alt.visit(compiler-after-if)
+
   new-cases =
     cl-cons(j-case(consq-label, compiled-consq.block), compiled-consq.new-cases)
     + cl-cons(j-case(alt-label, compiled-alt.block), compiled-alt.new-cases)
-    + get-new-cases(compiler, opt-dest, opt-body, after-if-label, ans)
+    + after-if-cases
   c-block(
     j-block([clist:
         j-expr(j-assign(compiler.cur-step,
@@ -945,7 +935,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
 end
 fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
   compiled-val = val.visit(compiler).exp
-  after-cases-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
+  {after-cases-cases; after-cases-label} = get-new-cases(compiler, opt-dest, opt-body, compiler.cur-ans)
   compiler-after-cases = compiler.{cur-target: after-cases-label}
   compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _, cases-loc))
   compiled-else = _else.visit(compiler-after-cases)
@@ -965,7 +955,7 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
   # NOTE: Ignoring typ for the moment!
   new-cases =
     branch-else-cases
-    + get-new-cases(compiler, opt-dest, opt-body, after-cases-label, compiler.cur-ans)
+    + after-cases-cases
   c-block(
     j-block([clist:
         j-var(dispatch.id, dispatch-table),
@@ -987,8 +977,7 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
   compiled-field-vals = CL.map_list(lam(a): a.value.visit(compiler).exp end, fields)
   field-names = CL.map_list(lam(f): j-str(f.name) end, fields)
   field-locs = CL.map_list(lam(f): compiler.get-loc(f.l) end, fields)
-  after-update-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
-  new-cases = get-new-cases(compiler, opt-dest, opt-body, after-update-label, ans)
+  {new-cases; after-update-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
   c-block(
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
