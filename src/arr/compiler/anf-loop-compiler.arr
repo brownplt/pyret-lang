@@ -807,11 +807,21 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
   # 2) the rest of the case statements
   {block-remainder; new-cases} = get-remaining-code(compiler, opt-dest, opt-body, ans)
 
+  # If there's nothing remaining for the current block, update the step and break
+  block-remainder-tail = if is-none(opt-body):
+    [clist:
+      j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+      j-break
+    ]
+  else:
+    cl-empty
+  end
+
   # Now merge the code for calling the function with the next block
   # (this is basically our optimization, since we're not starting a new case
   # for the next block)
   c-block(
-    j-block(call-code + j-block-to-stmt-list(block-remainder)),
+    j-block(call-code + j-block-to-stmt-list(block-remainder) + block-remainder-tail),
     new-cases)
 end
 
