@@ -794,23 +794,24 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
   # Compile the body of the let. We split it into two portions:
   # 1) the code that can be in the same "block" (or case region) and
   # 2) the rest of the case statements
-  {block-remainder; new-cases} = get-remaining-code(compiler, opt-dest, opt-body, ans)
-
-  # If there's nothing remaining for the current block, update the step and break
-  block-remainder-tail = if is-none(opt-body):
-    [clist:
-      j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
-      j-break
-    ]
-  else:
-    cl-empty
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
   end
 
   # Now merge the code for calling the function with the next block
   # (this is basically our optimization, since we're not starting a new case
   # for the next block)
   c-block(
-    j-block(call-code + j-block-to-stmt-list(block-remainder) + block-remainder-tail),
+    j-block(call-code + j-block-to-stmt-list(remaining-code)),
     new-cases)
 end
 

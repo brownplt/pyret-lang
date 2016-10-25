@@ -138,12 +138,7 @@
       "string-tolower": "StrUnop",
       "string-to-lower": "StrUnop",
 
-      //"string-append": "StrBinop",
-      "string-append": {
-        tag: "v-fun",
-        typ: "StrBinop",
-        flatness: 0
-      },
+      "string-append": "StrBinop",
       "string-equal": "StrPred2",
       "string-contains": "StrPred2",
       "string-isnumber": "StrPred",
