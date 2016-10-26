@@ -717,7 +717,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       non-globals =
         for filter(k from self.env.keys-list()):
           sb = self.env.get-value(k)
-          not(is-global-bind(sb) or is-module-bind(sb))
+          not(
+            is-global-bind(sb) or
+            is-module-bind(sb) or
+            is-some(initial-env.globals.values.get(k)))
         end
       defined-vals = for map(key from non-globals): 
         cases(ScopeBinding) self.env.get-value(key) block:

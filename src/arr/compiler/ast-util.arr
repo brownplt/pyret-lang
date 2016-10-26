@@ -368,11 +368,11 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
             binding = resolved.bindings.get-value-now(v.v.key())
-            if CS.is-var-bind(binding) block:
-              val-typs.set-now(v.v.toname(), CS.v-var(ann-to-typ(v.ann)))
-            else:
-              val-typs.set-now(v.v.toname(), CS.v-just-type(ann-to-typ(v.ann)))
+            provided-value = cases(CS.ScopeBinding) binding:
+              | var-bind(_, _, _, _) => CS.v-var(ann-to-typ(v.ann))
+              | else => CS.v-just-type(ann-to-typ(v.ann))
             end
+            val-typs.set-now(v.v.toname(), provided-value)
           end
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):

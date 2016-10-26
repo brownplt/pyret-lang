@@ -133,6 +133,11 @@ check:
   val(result29) is some(5)
   result30 = next-interaction("var-to-change-at-repl")
   val(result30) is some(5)
+  result31 = next-interaction("fun f(): var-to-change-at-repl end")
+  result32 = next-interaction("var-to-change-at-repl := 22")
+  result33 = next-interaction("f()")
+  val(result33) is some(22)
+
 
 end
 

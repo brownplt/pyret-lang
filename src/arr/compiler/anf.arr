@@ -163,7 +163,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       needs-value = dvs.filter(A.is-s-defined-value)
       anf-name-rec(needs-value.map(_.value), "defined_value", lam(advs):
-        shadow advs = for map2(name from dvs.map(_.name), adv from advs):
+        shadow advs = for map2(name from needs-value.map(_.name), adv from advs):
           N.a-defined-value(name, adv)
         end
         avars = dvs.filter(A.is-s-defined-var).map(lam(dvar):
