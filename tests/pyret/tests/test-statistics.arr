@@ -16,6 +16,12 @@ check "numeric helpers":
   median([list: ~1, 1, ~1]) is 1
   median([list: 1, ~1, ~1]) is-roughly ~1
 
+  # Even numbered lists
+  median([list: -1, 1]) is 0
+  median([list: 1, 2, 3, 4]) is 2.5
+  median([list: -1, 0, ~2, 3]) is-roughly ~1
+  median([list: ~0, ~1, ~2, ~2, ~6, ~8]) is-roughly ~2
+
   stdev([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 1.41
   stdev([list: 1, 1, 1, 1]) is-roughly ~0
   stdev([list:]) raises "empty"
