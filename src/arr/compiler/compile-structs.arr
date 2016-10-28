@@ -54,6 +54,42 @@ data NativeModule:
   | requirejs(path :: String)
 end
 
+data BindOrigin:
+  | bo-local(loc :: Loc)
+  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+end
+
+data ValueBinder:
+  | vb-letrec
+  | vb-let
+  | vb-var
+  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+end
+
+data ValueBind:
+  | value-bind(
+      origin :: BindOrigin,
+      binder :: ValueBinder,
+      atom :: A.Name,
+      ann :: A.Ann,
+      expr :: Option<A.Expr>)
+end
+
+data TypeBinder:
+  | tb-type-let
+  | tb-type-var
+  | tb-module(uri :: URI)
+end
+
+data TypeBind:
+  | type-bind(
+      origin :: BindOrigin,
+      binder :: TypeBinder,
+      atom :: A.Name,
+      ann :: Option<A.Ann>)
+end
+
+#|
 data ScopeBinding:
   | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
   | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
@@ -68,13 +104,14 @@ data TypeBinding:
   | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
   | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
 end
+|#
 
 data NameResolution:
   | resolved(
       ast :: A.Program,
       errors :: List<CompileError>,
-      bindings :: SD.MutableStringDict<ScopeBinding>,
-      type-bindings :: SD.MutableStringDict<TypeBinding>,
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
       datatypes :: SD.MutableStringDict<A.Expr>)
 end
 
@@ -865,6 +902,26 @@ data CompileError:
               ED.code(ED.text(self.ann.id.toname())),
               ED.text(" could not be found.")]]
       end
+    end
+  | type-id-used-in-dot-lookup(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used with a dot accessor as if to access a type within another module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it does not refer to a module.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is being used with a dot accessor as if to access a type within another module at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it does not refer to a module.")]]
     end
   | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):

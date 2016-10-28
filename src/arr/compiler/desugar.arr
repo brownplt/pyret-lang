@@ -131,13 +131,13 @@ end
 
 fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), R.let-bind(loc, a, ann, none))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann, none))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
 fun mk-id-var-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), R.var-bind(loc, a, ann, none))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-var, a, ann, none))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
 end
 
