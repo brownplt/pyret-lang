@@ -581,13 +581,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(t) =>
-              print("Setting a variable: ", name)
+              print("Setting a variable: " + name)
               print("\n")
               b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
-              print("Setting a non-variable: ", name)
+              print("Setting a non-variable: " + name)
               print("\n")
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
               b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none)
