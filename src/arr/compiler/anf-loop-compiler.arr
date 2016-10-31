@@ -1472,14 +1472,13 @@ fun compile-type-variant(variant):
   cases(T.TypeVariant) variant:
     | t-variant(name, members, with-members, l) =>
       j-list(true, [clist: j-str(name),
-        j-list(false, CL.map_list(lam(mem-name):
-          typ = members.get-value(mem-name)
+        j-list(false, CL.map_list(lam({mem-name; typ}):
           if T.is-t-ref(typ):
             j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
           else:
             j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
           end
-        end, members.keys-list()))])
+        end, members))])
     | t-singleton-variant(name, with-members, l) =>
       j-list(true, [clist: j-str(name)])
   end

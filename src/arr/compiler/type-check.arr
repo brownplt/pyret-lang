@@ -911,9 +911,9 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
               check-variant(variant, initial-data-type.get-variant-value(variant.name), brander-type, t-vars, context)
             end, variants, context).bind(lam(new-variant-types, shadow context):
               variant-type-fields = new-variant-types.map(lam(var-type):
-                var-type.with-fields.keys-list().foldl(lam(key, all-fields):
-                  all-fields.set(key, var-type.with-fields.get-value(key))
-                end, var-type.fields)
+                var-type.fields.foldr(lam({field-name; field-type}, all-fields):
+                  all-fields.set(field-name, field-type)
+                end, var-type.with-fields)
               end)
               variants-meet = cases(List<TypeMembers>) variant-type-fields:
                 | empty => empty
@@ -1062,9 +1062,9 @@ fun collect-variants(variant :: A.Variant, context :: Context) -> FoldResult<Typ
       foldr-fold-result(lam(member, shadow context, type-members):
         process-member(member, context)
           .bind(lam(member-type, shadow context):
-            fold-result(type-members.set(member.bind.id.toname(), member-type), context)
+            fold-result(link({member.bind.id.toname(); member-type}, type-members), context)
           end)
-      end, members, context, SD.make-string-dict()).bind(lam(type-members, shadow context):
+      end, members, context, empty).bind(lam(type-members, shadow context):
         collect-members(with-members, true, context).bind(lam(type-with-members, shadow context):
           type-variant = t-variant(name, type-members, type-with-members, l)
           fold-result(type-variant, context)
@@ -1087,8 +1087,7 @@ fun mk-constructor-type(variant-typ :: TypeVariant, brander-typ :: Type, params 
   refined-type = t-data-refinement(inner-type, variant-typ.name, variant-typ.l, false).set-loc(variant-typ.l)
   cases(TypeVariant) variant-typ:
     | t-variant(name, fields, _, l) =>
-      field-types = fields.keys-list().map(lam(field-key):
-        field-type = fields.get-value(field-key)
+      field-types = fields.map(lam({field-name; field-type}):
         cases(Type) field-type:
           | t-ref(ref-typ, _, _) => ref-typ
           | else => field-type
@@ -1276,23 +1275,23 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
                 fold-result({new-branch; typ}, context)
               end
 
-              if not(args.length() == fields.count()):
+              if not(args.length() == fields.length()):
                 fold-errors([list: C.incorrect-number-of-bindings(branch, tv)])
               else:
                 shadow context = context.add-level()
-                foldr2(lam(fold-context, arg, arg-type-key):
+                foldr2(lam(fold-context, arg, {arg-name; arg-type}):
                   fold-context.bind(lam(_, shadow context):
                     to-type(arg.bind.ann, context).bind(lam(maybe-type, shadow context):
                       cases(Option<Type>) maybe-type:
                         | some(typ) =>
-                          shadow context = context.add-constraint(fields.get-value(arg-type-key), typ)
+                          shadow context = context.add-constraint(arg-type, typ)
                           fold-result(nothing, context.add-binding(arg.bind.id.key(), typ))
                         | none =>
-                          fold-result(nothing, context.add-binding(arg.bind.id.key(), fields.get-value(arg-type-key)))
+                          fold-result(nothing, context.add-binding(arg.bind.id.key(), arg-type))
                       end
                     end)
                   end)
-                end, fold-result(nothing, context), args, fields.keys-list()).bind(lam(_, shadow context):
+                end, fold-result(nothing, context), args, fields).bind(lam(_, shadow context):
                   context.solve-level().bind(lam(solution, shadow context):
                     shadow context = context.substitute-in-binds(solution)
                     handle-body(tv, body, process, context)
