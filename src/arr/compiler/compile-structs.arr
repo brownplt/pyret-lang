@@ -154,9 +154,9 @@ fun tvariant-from-raw(uri, tvariant, env):
   t = tvariant.tag
   ask:
     | t == "variant" then:
-      members = tvariant.vmembers.foldl(lam(tm, members):
-        members.set(tm.name, type-from-raw(uri, tm.typ, env))
-      end, [string-dict: ])
+      members = tvariant.vmembers.foldr(lam(tm, members):
+        link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
+      end, empty)
       t-variant(tvariant.name, members, [string-dict: ])
     | t == "singleton-variant" then:
       t-singleton-variant(tvariant.name, [string-dict: ])

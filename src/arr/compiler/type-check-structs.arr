@@ -1249,8 +1249,8 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
           new-with-fields = variant.with-fields.keys-list().foldl(lam(key, new-with-fields):
             new-with-fields.set(key, variant.with-fields.get-value(key))
           end, data-type.fields)
-          new-fields = variant.fields.keys-list().foldl(lam(key, new-fields):
-            new-fields.set(key, variant.fields.get-value(key))
+          new-fields = variant.fields.foldl(lam({field-name; field-type}, new-fields):
+            new-fields.set(field-name, field-type)
           end, new-with-fields)
           new-data-type = t-data(data-type.name, data-type.params, data-type.variants, new-fields, data-type.l)
           fold-result(new-data-type, context)
