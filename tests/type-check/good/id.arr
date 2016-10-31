@@ -1,6 +1,6 @@
 
 
-fun id<A>(v :: A):
+fun id<A>(v :: A) -> A:
   v
 end 
 

@@ -18,7 +18,7 @@ e :: RawArray<Number> = d
 
 
 f = {
-    make: lam<A>(arr :: RawArray<A>):
+    make: lam<A>(arr :: RawArray<A>) -> RawArray<A>:
         arr
     end
 }
