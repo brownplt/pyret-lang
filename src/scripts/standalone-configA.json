@@ -6,10 +6,12 @@
       "pyret-base": "./",
       "crypto": "empty:",
       "fs": "empty:",
+      "http": "empty:",
       "path": "empty:",
       "q": "empty:",
       "requirejs": "empty:",
       "s-expression": "empty:",
-      "seedrandom": "empty:"
+      "seedrandom": "empty:",
+      "websocket": "empty:"
     }
 }
