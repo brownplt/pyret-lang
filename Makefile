@@ -101,26 +101,30 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
 phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
-	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseB/pyret.jarr \
-                      --build-runnable src/arr/compiler/pyret.arr \
-                      --builtin-js-dir src/js/trove/ \
-                      --builtin-arr-dir src/arr/trove/ \
-                      --compiled-dir build/phaseB/compiled/ \
-                      -no-check-mode \
-                      --require-config src/scripts/standalone-configB.json
+	$(NODE) src/server/client.js \
+    --compiler $(PHASEA)/pyret.jarr --port 1701 \
+    --outfile build/phaseB/pyret.jarr \
+    --program src/arr/compiler/pyret.arr \
+    --builtin-js-dir src/js/trove/ \
+    --builtin-arr-dir src/arr/trove/ \
+    --compiled-dir build/phaseB/compiled/ \
+    --check-mode \
+    --require-config src/scripts/standalone-configB.json
 
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
 
 $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
-	$(NODE) $(PHASEB)/pyret.jarr --outfile build/phaseC/pyret.jarr \
-                      --build-runnable src/arr/compiler/pyret.arr \
-                      --builtin-js-dir src/js/trove/ \
-                      --builtin-arr-dir src/arr/trove/ \
-                      --compiled-dir build/phaseC/compiled/ \
-                      -no-check-mode \
-                      --require-config src/scripts/standalone-configC.json
+	$(NODE) src/server/client.js \
+    --compiler $(PHASEB)/pyret.jarr --port 1702 \
+    --outfile build/phaseC/pyret.jarr \
+    --program src/arr/compiler/pyret.arr \
+    --builtin-js-dir src/js/trove/ \
+    --builtin-arr-dir src/arr/trove/ \
+    --compiled-dir build/phaseB/compiled/ \
+    --check-mode \
+    --require-config src/scripts/standalone-configC.json
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
