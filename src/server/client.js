@@ -32,7 +32,7 @@ const serverModule = options.compiler;
 
 const pidFile = ".pyret-parley." + options.port + ".pid";
 
-if(options.shutdown) {
+function shutdown() {
   try {
     const pid = Number(fs.readFileSync(pidFile));
     fs.unlinkSync(pidFile);
@@ -41,6 +41,10 @@ if(options.shutdown) {
   catch(e) {
     console.error("Could not kill the process because the pid file " + pidFile + " didn't exist or was inaccessible: ", e);
   }
+}
+
+if(options.shutdown) {
+  shutdown();
   process.exit(0);
 }
 
@@ -100,12 +104,21 @@ function startupServer(port) {
   });
 }
 
-// If a server is starting up, fail and tell the client to wait
-if(lockFile.checkSync(".pyret-parley." + options.port + ".startup.lock")) {
-  console.error("The server is starting up in another process, and cannot be reached yet.  Retry this command in a few seconds.");
-// If a server is already running, just connect to it and do the work
-} else if (lockFile.checkSync(".pyret-parley." + options.port + ".running.lock")) {
-  client.connect('ws://localhost:' + options.port, 'parley');
+if (lockFile.checkSync(".pyret-parley." + options.port + ".running.lock")) {
+  // If the compiler is newer than the server process, restart
+  var compilerStats = fs.lstatSync(serverModule);
+  var pidStats = fs.lstatSync(pidFile);
+  console.log(compilerStats, pidStats);
+  if(pidStats.mtime.getTime() < compilerStats.mtime.getTime()) {
+    console.log("A running server was found, but the chosen compiler (" + serverModule + ") is newer than the server.  Restarting...");
+    shutdown();
+    startupServer(options.port)
+      .then(() => client.connect('ws://localhost:' + options.port, 'parley'))
+      .catch((err) => console.error('Starting up the server failed: ', err));
+  }
+  else {
+    client.connect('ws://localhost:' + options.port, 'parley');
+  }
 // Otherwise, try starting up a server and waiting for it, then doing the work
 } else {
   console.log("No lockfile found, starting up server");
