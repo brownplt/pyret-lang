@@ -1,10 +1,10 @@
 
 f = if true:
-  lam<A>(a :: A, b :: A):
+  lam<A>(a :: A, b :: A) -> A:
     a
   end
 else:
-  lam<A,B>(a :: A, b :: B):
+  lam<A,B>(a :: A, b :: B) -> B:
     b
   end
 end

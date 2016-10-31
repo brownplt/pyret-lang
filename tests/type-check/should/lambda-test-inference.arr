@@ -1,5 +1,5 @@
-tru  = lam<A>(t :: A): lam(f :: A): t end end
-fals = lam<A>(t :: A): lam(f :: A): f end end
+tru  = lam<A>(t :: A) -> A: lam(f :: A): t end end
+fals = lam<A>(t :: A) -> A: lam(f :: A): f end end
 test = lam<A>(cond :: (A -> (A -> A))): lam(consq :: A): lam(altern :: A): cond(consq)(altern) end end end
 
 never-five  :: (Number -> Number) = fals(5)

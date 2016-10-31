@@ -1597,14 +1597,16 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
 
     fold-arg-types.bind(lam(arg-types, shadow context):
       arrow-type = t-arrow(arg-types, ret-type, l, false)
-      lam-type =
-        if is-empty(params):
-          arrow-type
+      if is-empty(params):
+        fold-result(arrow-type, context)
+      else:
+        if is-t-existential(ret-type):
+          fold-errors([list: C.polymorphic-return-type-unann(l)])
         else:
           forall = for map(param from params): t-var(param, l, false) end
-          t-forall(forall, arrow-type, l, false)
+          fold-result(t-forall(forall, arrow-type, l, false), context)
         end
-      fold-result(lam-type, context)
+      end
     end)
   end)
 end
