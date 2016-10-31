@@ -1,7 +1,7 @@
 import json as J
 import js-file("server") as S
-import file("./cli-module-loader.arr") as CLI
-import file("./compile-structs.arr") as CS
+import file("../arr/compiler/cli-module-loader.arr") as CLI
+import file("../arr/compiler/compile-structs.arr") as CS
 
 fun compile(options):
   outfile = cases(Option) options.get("outfile"):
@@ -25,7 +25,7 @@ fun compile(options):
     })
 end
 
-S.make-server(5000, lam(msg) block:
+S.make-server(1700, lam(msg) block:
   print("Got message in pyret-land: " + msg)
   opts = J.read-json(msg)
   print(torepr(opts))

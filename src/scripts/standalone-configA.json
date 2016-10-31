@@ -7,6 +7,7 @@
       "crypto": "empty:",
       "fs": "empty:",
       "http": "empty:",
+      "lockfile": "empty:",
       "path": "empty:",
       "q": "empty:",
       "requirejs": "empty:",
