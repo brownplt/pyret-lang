@@ -321,18 +321,16 @@ fun build-program(path, options) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
-  print-progress = lam(s):
+  print-progress-clearing = lam(s, to-clear):
     when options.display-progress:
-      print(s)
+      options.log(s, to-clear)
     end
   end
+  print-progress = lam(s): print-progress-clearing(s, none) end
   var str = "Gathering dependencies..."
   fun clear-and-print(new-str) block:
-    print-progress("\r")
-    print-progress(string-repeat(" ", string-length(str)))
-    print-progress("\r")
+    print-progress-clearing(new-str, some(string-length(str)))
     str := new-str
-    print-progress(str)
   end
   print-progress(str)
   base-module = CS.dependency("file", [list: path])
@@ -387,8 +385,8 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   cases(Either) maybe-program block:
     | left(problems) => 
       for lists.each(e from problems) block:
-        print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-        print-error("\n")
+        options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
+        options.log-error("\n")
       end
       raise("There were compilation errors")
     | right(program) =>

@@ -1,4 +1,5 @@
 import json as J
+import string-dict as SD
 import js-file("server") as S
 import file("../arr/compiler/cli-module-loader.arr") as CLI
 import file("../arr/compiler/compile-structs.arr") as CS
@@ -21,15 +22,31 @@ fun compile(options):
       proper-tail-calls: options.get("improper-tail-calls").or-else(true),
       compile-module: true,
       compiled-cache: options.get("compiled-dir").or-else("./compiled"),
-      display-progress: options.get("display-progress").or-else(true)
+      display-progress: options.get("display-progress").or-else(true),
+      log: options.get("log").or-else(CS.default-compile-options.log),
+      log-error: options.get("log-error").or-else(CS.default-compile-options.log-error)
     })
 end
 
-S.make-server(1700, lam(msg) block:
+S.make-server(1700, lam(msg, send-message) block:
   print("Got message in pyret-land: " + msg)
   opts = J.read-json(msg)
   print(torepr(opts))
   print("\n")
-  compile(opts.dict)
+  with-logger = opts.dict.set("log",
+    lam(s, to-clear):
+      d = [SD.string-dict: "type", J.j-str("echo-log"), "contents", J.j-str(s)]
+      with-clear = cases(Option) to-clear:
+        | none => d.set("clear-first", J.j-bool(false))
+        | some(n) => d.set("clear-first", J.j-num(n))
+      end
+      send-message(J.j-obj(with-clear).serialize())
+    end)
+  with-error = with-logger.set("log-error",
+    lam(s):
+      d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
+      send-message(J.j-obj(d).serialize())
+    end)
+  compile(with-error)
 end)
 

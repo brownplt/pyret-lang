@@ -37,7 +37,7 @@ client.on('connectFailed', function(error) {
 });
  
 client.on('connect', function(connection) {
-  console.log('WebSocket Client Connected');
+  console.log('parley protocol connected');
   connection.on('error', function(error) {
     console.log("Connection Error: " + error.toString());
   });
@@ -45,13 +45,24 @@ client.on('connect', function(connection) {
     console.log('parley closed');
   });
   connection.on('message', function(message) {
-    if (message.type === 'utf8') {
-        console.log("Received: '" + message.utf8Data + "'");
+    const parsed = JSON.parse(message.utf8Data);
+    if(parsed.type === 'echo-log') {
+      if(parsed["clear-first"]) {
+        process.stdout.write("\r");
+        process.stdout.write(new Array(parsed["clear-first"] + 1).join(" "));
+        process.stdout.write("\r");
+        process.stdout.write(parsed.contents);
+      }
+      else {
+        process.stdout.write(parsed.contents);
+      }
+    }
+    else if(parsed.type === 'echo-err') {
+      process.stderr.write(parsed.contents);
     }
   });
 
   connection.sendUTF(JSON.stringify(commandLineArgs(optionDefinitions)));
-  connection.close();
 });
 
 function startupServer(port) {
