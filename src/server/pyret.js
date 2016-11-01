@@ -7,7 +7,7 @@ const optionDefinitions = [
   // These options affect how the client starts up and communiates with the server
   { name: 'shutdown', alias: 's', type: Boolean, group: "client", defaultValue: false },
   { name: 'port', alias: 't', type: String, defaultValue: "1705", group: "client" },
-  { name: 'compiler', alias: 'c', type: String, defaultValue: "node_modules/pyret-lang/build/phase0/pyret-unstable.jarr", group: "client" },
+  { name: 'compiler', alias: 'c', type: String, defaultValue: "node_modules/pyret-lang/build/phase0/pyret.jarr", group: "client" },
 
   { name: 'program', type: String, group: "client", defaultOption: true },
 
