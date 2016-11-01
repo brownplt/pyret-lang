@@ -19,7 +19,8 @@
     "q": "~1.0.1",
     "requirejs": "~2.1.15",
     "s-expression": "~2.2.0",
-    "seedrandom": "~2.3.10"
+    "seedrandom": "~2.3.10",
+    "websocket": "^1.0.23"
   },
   "devDependencies": {},
   "bin": {
