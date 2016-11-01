@@ -22,7 +22,8 @@ const optionDefinitions = [
   { name: 'builtin-js-dir', type: String, group: "pyret-options" },
   { name: 'builtin-arr-dir', type: String, group: "pyret-options" },
   { name: 'check-mode', type: Boolean, group: "pyret-options", defaultValue: true },
-  { name: 'compiled-dir', type: String, group: "pyret-options" }
+  { name: 'compiled-dir', type: String, group: "pyret-options" },
+  { name: 'standalone-file', type: String, group: "pyret-options" }
 
 ];
 
@@ -77,7 +78,6 @@ client.on('connect', function(connection) {
       process.stderr.write(parsed.contents);
     }
   });
-  console.log("options: ", commandLineArgs(optionDefinitions)['pyret-options']);
   connection.sendUTF(JSON.stringify(commandLineArgs(optionDefinitions)['pyret-options']));
 });
 
@@ -90,7 +90,6 @@ function startupServer(port) {
 
   return new Promise((resolve, reject) => {
     child.on('message', function(msg) {
-      console.log("Message received from child: ", msg);
       if(msg.type === 'success') {
         child.unref();
         child.disconnect();
@@ -108,7 +107,6 @@ if (lockFile.checkSync(".pyret-parley." + options.port + ".running.lock")) {
   // If the compiler is newer than the server process, restart
   var compilerStats = fs.lstatSync(serverModule);
   var pidStats = fs.lstatSync(pidFile);
-  console.log(compilerStats, pidStats);
   if(pidStats.mtime.getTime() < compilerStats.mtime.getTime()) {
     console.log("A running server was found, but the chosen compiler (" + serverModule + ") is newer than the server.  Restarting...");
     shutdown();

@@ -5,6 +5,7 @@ import string-dict as SD
 import js-file("server") as S
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
+import file("locators/builtin.arr") as B
 
 fun compile(options):
   outfile = cases(Option) options.get("outfile"):
@@ -24,6 +25,7 @@ fun compile(options):
       proper-tail-calls: options.get("improper-tail-calls").or-else(true),
       compile-module: true,
       compiled-cache: options.get("compiled-dir").or-else("./compiled"),
+      standalone-file: options.get("standalone-file").or-else(CS.default-compile-options.standalone-file),
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(CS.default-compile-options.log),
       log-error: options.get("log-error").or-else(CS.default-compile-options.log-error)
@@ -32,10 +34,19 @@ end
 
 fun serve(port):
   S.make-server(port, lam(msg, send-message) block:
-    print("Got message in pyret-land: " + msg)
+    # print("Got message in pyret-land: " + msg)
     opts = J.read-json(msg).native()
-    print(torepr(opts))
-    print("\n")
+    # print(torepr(opts))
+    # print("\n")
+    when opts.has-key("builtin-js-dir"):
+      B.set-builtin-js-dirs([list: opts.get-value("builtin-js-dir")])
+    end
+    when opts.has-key("builtin-arr-dir"):
+      B.set-builtin-arr-dirs([list: opts.get-value("builtin-arr-dir")])
+    end
+    when opts.has-key("allow-builtin-overrides"):
+      B.set-allow-builtin-overrides(opts.get-value("allow-builtin-overrides"))
+    end
     with-logger = opts.set("log",
       lam(s, to-clear):
         d = [SD.string-dict: "type", J.j-str("echo-log"), "contents", J.j-str(s)]

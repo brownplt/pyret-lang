@@ -22,7 +22,11 @@
     "seedrandom": "~2.3.10"
   },
   "devDependencies": {},
+  "bin": {
+    "pyret": "src/server/pyret.js"
+  },
   "scripts": {
+    "install": "make phaseA-deps",
     "test": "make test-all"
   },
   "repository": {
