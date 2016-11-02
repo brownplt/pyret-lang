@@ -17,7 +17,7 @@ fun compile(options):
     options.get-value("require-config"),
     outfile,
     CS.default-compile-options.{
-      check-mode : options.get("check-mode").or-else(true),
+      check-mode : not(options.get("no-check-mode").or-else(false)),
       type-check : options.get("type-check").or-else(false),
       allow-shadowed : options.get("allow-shadowed").or-else(false),
       collect-all: options.get("collect-all").or-else(false),
@@ -39,10 +39,10 @@ fun serve(port):
     # print(torepr(opts))
     # print("\n")
     when opts.has-key("builtin-js-dir"):
-      B.set-builtin-js-dirs([list: opts.get-value("builtin-js-dir")])
+      B.set-builtin-js-dirs(opts.get-value("builtin-js-dir"))
     end
     when opts.has-key("builtin-arr-dir"):
-      B.set-builtin-arr-dirs([list: opts.get-value("builtin-arr-dir")])
+      B.set-builtin-arr-dirs(opts.get-value("builtin-arr-dir"))
     end
     when opts.has-key("allow-builtin-overrides"):
       B.set-allow-builtin-overrides(opts.get-value("allow-builtin-overrides"))

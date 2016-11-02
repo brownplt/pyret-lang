@@ -95,7 +95,7 @@ $(PHASEA)/pyret.jarr: $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PH
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
-                      -no-check-mode \
+                      --no-check-mode \
                       --require-config src/scripts/standalone-configA.json
 
 .PHONY : phaseB
@@ -108,8 +108,8 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
     --program src/arr/compiler/pyret.arr \
     --builtin-js-dir src/js/trove/ \
     --builtin-arr-dir src/arr/trove/ \
+    --no-check-mode \
     --compiled-dir build/phaseB/compiled/ \
-    --check-mode \
     --require-config src/scripts/standalone-configB.json
 
 
@@ -123,8 +123,8 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
     --program src/arr/compiler/pyret.arr \
     --builtin-js-dir src/js/trove/ \
     --builtin-arr-dir src/arr/trove/ \
+    --no-check-mode \
     --compiled-dir build/phaseB/compiled/ \
-    --check-mode \
     --require-config src/scripts/standalone-configC.json
 
 .PHONY : show-comp
@@ -144,8 +144,8 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 %.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
-                      --build-runnable $*.arr \
+	$(NODE) src/server/client.js --compiler $(PHASEA)/pyret.jarr --outfile $*.jarr \
+                      --program $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir compiled/ \
