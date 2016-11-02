@@ -46,10 +46,10 @@ fun serve(port):
       end
     end
     when opts.has-key("builtin-arr-dir"):
-      if is-List(opts.get-value("builtin-js-dir")):
-        B.set-builtin-arr-dirs(opts.get-value("builtin-js-dir"))
+      if is-List(opts.get-value("builtin-arr-dir")):
+        B.set-builtin-arr-dirs(opts.get-value("builtin-arr-dir"))
       else:
-        B.set-builtin-arr-dirs([list: opts.get-value("builtin-js-dir")])
+        B.set-builtin-arr-dirs([list: opts.get-value("builtin-arr-dir")])
       end
     end
     when opts.has-key("allow-builtin-overrides"):
