@@ -12,8 +12,8 @@ const optionDefinitions = [
   { name: 'program', type: String, group: "pyret-options" },
   { name: 'outfile', type: String, group: "pyret-options" },
   { name: 'require-config', type: String, group: "pyret-options" },
-  { name: 'builtin-js-dir', type: String, multiple: true, group: "pyret-options" },
-  { name: 'builtin-arr-dir', type: String, multiple: true, group: "pyret-options" },
+  { name: 'builtin-js-dir', type: String, group: "pyret-options" },
+  { name: 'builtin-arr-dir', type: String, group: "pyret-options" },
   { name: 'no-check-mode', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" }
