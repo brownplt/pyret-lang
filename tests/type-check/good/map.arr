@@ -3,7 +3,7 @@ data MyList<A>:
   | my-link(first :: A, rest :: MyList<A>)
 end
 
-fun test-map<A,B>(lst :: MyList<A>, f :: (A -> B)):
+fun test-map<A,B>(lst :: MyList<A>, f :: (A -> B)) -> MyList<B>:
   cases(MyList<A>) lst:
     | my-empty =>
       my-empty

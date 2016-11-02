@@ -222,7 +222,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
 
   fun v-members-to-t-members(ms):
-    ms.foldl(lam(m, members):
+    ms.foldr(lam(m, members):
       cases(A.VariantMember) m:
         | s-variant-member(l, kind, bind) =>
           typ = if A.is-s-mutable(kind):
@@ -230,9 +230,9 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           else:
             ann-to-typ(bind.ann)
           end
-          members.set(bind.id.toname(), typ)
+          link({bind.id.toname(); typ}, members)
       end
-    end, [SD.string-dict: ])
+    end, empty)
   end
 
   fun member-to-t-member(m):
@@ -403,11 +403,15 @@ fun canonicalize-members(ms :: T.TypeMembers, uri :: URI, tn :: NameChanger) -> 
   T.type-member-map(ms, lam(_, typ): canonicalize-names(typ, uri, tn) end)
 end
 
+fun canonicalize-fields(ms :: List<{String; T.Type}>, uri :: URI, tn :: NameChanger) -> List<{String; T.Type}>:
+  ms.map(lam({name; typ}): {name; canonicalize-names(typ, uri, tn)} end)
+end
+
 fun canonicalize-variant(v :: T.TypeVariant, uri :: URI, tn :: NameChanger) -> T.TypeVariant:
   c = canonicalize-members(_, uri, tn)
   cases(T.TypeVariant) v:
     | t-variant(name, fields, with-fields, l) =>
-      T.t-variant(name, c(fields), c(with-fields), l)
+      T.t-variant(name, canonicalize-fields(fields, uri, tn), c(with-fields), l)
     | t-singleton-variant(name, with-fields, l) =>
       T.t-singleton-variant(name, c(with-fields), l)
   end
