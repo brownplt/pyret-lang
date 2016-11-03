@@ -172,7 +172,9 @@ fun make-lettable-flatness-env(
       if AA.is-a-id(f):
         get-flatness-for-call(tostring(f.id), sd)
       else:
-        raise("f isn't an id, it's " + f + "\n")
+        # This should never happen in a "correct" program, but it's not our job
+        # to do this kind of checking here, so don't raise an error.
+        none
       end
     | a-method-app(_, obj, meth, args) =>
       # For now method calls are infinite flatness
