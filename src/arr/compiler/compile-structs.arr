@@ -2071,6 +2071,7 @@ type CompileOptions = {
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
+  log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
 }
@@ -2086,6 +2087,19 @@ default-compile-options = {
   compile-module: true,
   compiled-cache: "compiled",
   display-progress: true,
+  log: lam(s, to-clear):
+    cases(Option) to-clear block:
+      | none => print(s)
+      | some(n) =>
+        print("\r")
+        print(string-repeat(" ", n))
+        print("\r")
+        print(s)
+    end
+  end,
+  log-error: lam(s):
+    print-error(s)
+  end,
   method on-compile(_, locator, loadable): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"

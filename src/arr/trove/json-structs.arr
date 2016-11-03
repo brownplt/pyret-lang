@@ -60,7 +60,7 @@ data JSON:
       self.s
     end,
     method serialize(self):
-      '"' + self.s + '"'
+      torepr(self.s)
     end
   | j-bool(b :: Boolean) with:
     method native(self):
