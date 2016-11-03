@@ -202,7 +202,7 @@ fun make-lettable-flatness-env(
         raise("lam should be anonymous!")
       end
     | a-method(_, name, args, ret, body) =>
-      raise("Should not be called with an a-method")
+      default-ret
     | a-id-var(_, id) =>
       default-ret
     | a-id-letrec(_, id, safe) =>
@@ -237,9 +237,10 @@ fun make-prog-flatness-env(anfed :: AA.AProg) -> SD.StringDict<Number> block:
   flatness-env.freeze()
 end
 
-fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter:
+fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter block:
   anfed = N.anf-program(program-ast)
   flatness-env = make-prog-flatness-env(anfed)
+  print("Flatness env is " + tostring(flatness-env) + "\n")
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))
   ccp-dict(compiled)
 end
