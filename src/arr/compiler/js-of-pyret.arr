@@ -228,7 +228,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg) -> SD.StringDict<Number> block:
   sd = SD.make-mutable-string-dict()
   flatness-env = cases(AA.AProg) anfed:
     | a-program(_, prov, imports, body) => block:
-        #print("AST is " + tostring(body.tosource().pretty(2000)) + "\n")
         make-expr-flatness-env(body, sd)
         sd
       end
@@ -240,7 +239,6 @@ end
 fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter block:
   anfed = N.anf-program(program-ast)
   flatness-env = make-prog-flatness-env(anfed)
-  print("Flatness env is " + tostring(flatness-env) + "\n")
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))
   ccp-dict(compiled)
 end

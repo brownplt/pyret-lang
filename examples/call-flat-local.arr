@@ -5,7 +5,7 @@ fun get-x(o):
 end
 
 fun use-get-x():
-  a = get-x({x: 133})
+  a = get-x({x: 15})
   b = get-x({x: a})
   c = get-x({x: b})
   c
@@ -26,7 +26,6 @@ end
 fun flat-app-as-last-expr():
   get-x({x:4567})
 end
-
 
 fun dont-use-get-x():
   f = get-x
