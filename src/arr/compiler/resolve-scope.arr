@@ -36,12 +36,17 @@ fun resolve-provide(p :: A.Provide, b :: A.Expr) -> A.Provide:
       ids = A.block-ids(b)
       obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, id.tosourcestring(), A.s-id(l, id)) end)
       A.s-provide(l, obj)
-    | else => p
+    | s-provide-none(l) =>
+      A.s-provide(l, A.s-obj(l, [list: ]))
+    | else =>
+      p
   end
 end
 
 fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr) -> A.ProvideTypes:
   cases(A.ProvideTypes) p:
+    | s-provide-types-none(l) =>
+      A.s-provide-types(l, [list:])
     | s-provide-types-all(l) =>
       ids = A.block-type-ids(b)
       type-fields = for map(id from ids):
@@ -484,7 +489,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
         | else => raise("Impossible")
       end
 
-      A.s-program(l, A.s-provide-none(l), A.s-provide-types-none(l),
+      A.s-program(l, resolve-provide(_provide-raw, body), resolve-type-provide(provide-types-raw, body),
         imports, with-provides.visit(desugar-scope-visitor))
   end
   
@@ -503,7 +508,7 @@ where:
       )
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
-  ds(PP.surface-parse("provide x end x = 10 nothing", "test")) is compare1
+  ds(PP.surface-parse("provide x end x = 10 nothing", "test")) #is compare1
 end
 
 
@@ -581,14 +586,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(t) =>
-              print("Setting a variable: " + name)
-              print("\n")
               b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
-              print("Setting a non-variable: " + name)
-              print("\n")
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
               b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none)
               bindings.set-now(names.s-global(name).key(), b)
@@ -655,8 +656,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             | tb-type-let => A.a-name(l, name)
             | tb-type-var => A.a-type-var(l, name)
             | tb-module(_) =>
-              print("Using a module import as a type name " + torepr(id))
-              print("\n")
               A.a-name(l, name)
           end
         else:
@@ -771,15 +770,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       var vals = nothing
       var typs = nothing
       visit-body.visit(A.default-iter-visitor.{
-        method s-module(_, _, _, dv, dt, _, _, _) block:
+        method s-module(_, _, _, dv, dt, pv, pt, _) block:
           vals := dv
           typs := dt
           true
         end
       })
-      data-defs = for map(ddk from datatypes.keys-list-now()):
-        dd = datatypes.get-value-now(ddk) 
-        A.p-data(dd.l, dd.namet, none)
+      provides-dict = cases(A.Provide) _provide block:
+        | s-provide(_, obj) =>
+          when not(A.is-s-obj(obj)): raise("Provides didn't look like an object" + torepr(_provide)) end
+          for fold(pd from [SD.string-dict:], f from obj.fields):
+            pd.set(f.name, true)
+          end
+        | else => raise("Should have been resolved: " + torepr(_provide))
+      end
+      provide-types-dict = cases(A.ProvideTypes) _provide-types block:
+        | s-provide-types(_, fields) =>
+          for fold(pd from [SD.string-dict:], f from fields):
+            pd.set(f.name, true)
+          end
+        | else => raise("Should have been resolved: " + torepr(_provide-types))
       end
       get-dv-key = lam(dv):
         cases(A.DefinedValue) dv:
@@ -787,22 +797,29 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-defined-var(n, id) => id.key()
         end
       end
-      non-module-vals = for filter(dv from vals):
-        key = get-dv-key(dv)
-        binding = bindings.get-value-now(key)
-        not(C.is-vb-module(binding.binder))
-      end
-      val-defs = for map(dv from vals):
+      val-defs = for lists.filter-map(dv from vals) block:
         v-binding = bindings.get-value-now(get-dv-key(dv))
-        A.p-value(l, v-binding.atom, v-binding.ann)
+        if provides-dict.has-key(dv.name):
+          some(A.p-value(l, v-binding.atom, v-binding.ann))
+        else:
+          none
+        end
       end
-      non-module-defs = for filter(td from typs):
+      alias-defs = for lists.filter-map(td from typs):
         t-binding = type-bindings.get-value-now(td.typ.id.key())
-        not(C.is-tb-module(t-binding.binder))
+        if provide-types-dict.has-key(td.name):
+          some(A.p-alias(l, t-binding.atom, t-binding.atom, none))
+        else:
+          none
+        end
       end
-      alias-defs = for map(td from typs):
-        t-binding = type-bindings.get-value-now(td.typ.id.key())
-        A.p-alias(l, t-binding.atom, t-binding.atom, none)
+      data-defs = for lists.filter-map(ddk from datatypes.keys-list-now()):
+        dd = datatypes.get-value-now(ddk) 
+        if provide-types-dict.has-key(dd.name):
+          some(A.p-data(dd.l, dd.namet, none))
+        else:
+          none
+        end
       end
       one-true-provide = A.s-provide-complete(
         l,
@@ -810,8 +827,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         alias-defs,
         data-defs
       )
-      
-      A.s-program(l, one-true-provide, _provide-types, imp-imps.reverse(), visit-body)
+
+      A.s-program(l, one-true-provide, A.s-provide-types-none(l), imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
@@ -1093,8 +1110,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
     method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
     method a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
-    method a-dot(self, l, obj, field):
-      cases(A.Name) obj:
+    method a-dot(self, l, obj, field) block:
+      cases(A.Name) obj block:
         | s-name(nameloc, s) =>
           cases(Option) self.type-env.get(s):
             | none => A.a-dot(l, obj, field)
@@ -1109,7 +1126,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               |#
           end
         | else =>
-          name-errors := link(C.underscore-as-ann(obj.l))
+          name-errors := link(C.underscore-as-ann(obj.l), name-errors)
+          A.a-dot(l, obj.visit(self), field)
       end
     end,
     method a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
@@ -1184,7 +1202,9 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         id-k = id.key()
         if bindings.has-key-now(id-k):
           binding = bindings.get-value-now(id-k)
-          when not(C.is-vb-var(binding.binder)):
+          when not(C.is-vb-var(binding.binder)) block:
+            #print("The resolution was: " + torepr(resolved))
+            #print("\n\nThe environment was: " + torepr(initial-env))
             var-loc = get-origin-loc(binding.origin)
             add-error(C.bad-assignment(A.s-assign(loc, id, value), var-loc))
           end
@@ -1201,9 +1221,9 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         else if type-bindings.has-key-now(id.key()):
           nothing
         else:
-          # print-error("Cannot find " + id.key() + " at " + loc.format(true) + " in:\n")
-          # print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          # print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
+          #print-error("Cannot find " + id.key() + " at " + loc.format(true) + " in:\n")
+          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
+          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
           add-error(C.unbound-type-id(A.a-name(loc, id)))
           nothing
         end
@@ -1219,9 +1239,9 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
           nothing
         else:
           # need to figure out how to read through the imports here, I think
-          # print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
-          # print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          # print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
+          print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
+          print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
+          print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
           add-error(C.unbound-type-id(A.a-name(loc, name)))
           nothing
         end
