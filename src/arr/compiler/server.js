@@ -60,6 +60,7 @@
                   if(runtime.isFailureResult(result)) {
                     connection.close();
                     console.error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
+                    restarter.error(result.exn);
                   }
                   else {
                     connection.close();
