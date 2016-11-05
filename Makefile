@@ -144,7 +144,7 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 %.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) src/server/client.js --compiler $(PHASEA)/pyret.jarr --outfile $*.jarr \
+	$(NODE) src/server/client.js --compiler $(PHASEA)/pyret.jarr --port 1701 --outfile $*.jarr \
                       --program $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
