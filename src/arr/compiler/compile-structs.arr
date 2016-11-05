@@ -211,9 +211,9 @@ fun tvariant-from-raw(uri, tvariant, env):
   t = tvariant.tag
   ask:
     | t == "variant" then:
-      members = tvariant.vmembers.foldl(lam(tm, members):
-        members.set(tm.name, type-from-raw(uri, tm.typ, env))
-      end, [string-dict: ])
+      members = tvariant.vmembers.foldr(lam(tm, members):
+        link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
+      end, empty)
       t-variant(tvariant.name, members, [string-dict: ])
     | t == "singleton-variant" then:
       t-singleton-variant(tvariant.name, [string-dict: ])
@@ -1821,6 +1821,21 @@ data CompileError:
           ED.text("argument at"), draw-and-highlight(self.arg.l),
           ED.text(" needs a type annotation. Alternatively, provide a where: block with examples of the function's use.")]]
     end
+  | polymorphic-return-type-unann(function-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("function"), [list: self.function-loc], 0),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The function at "),
+          draw-and-highlight(self.function-loc),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
+    end
   | binop-type-error(binop :: A.Expr, tl :: T.Type, tr :: T.Type, etl :: T.Type, etr :: T.Type) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -2132,6 +2147,7 @@ type CompileOptions = {
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
+  log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
 }
@@ -2147,6 +2163,19 @@ default-compile-options = {
   compile-module: true,
   compiled-cache: "compiled",
   display-progress: true,
+  log: lam(s, to-clear):
+    cases(Option) to-clear block:
+      | none => print(s)
+      | some(n) =>
+        print("\r")
+        print(string-repeat(" ", n))
+        print("\r")
+        print(s)
+    end
+  end,
+  log-error: lam(s):
+    print-error(s)
+  end,
   method on-compile(_, locator, loadable): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"

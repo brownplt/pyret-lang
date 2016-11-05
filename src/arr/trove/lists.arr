@@ -781,7 +781,7 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
     elts = for fold_n(i from 1, arr from raw-array-of(lst.first, lst.length()), e from lst.rest) block:
-      ix = random(i)
+      ix = random(i + 1)
       raw-array-set(arr, i, raw-array-get(arr, ix))
       raw-array-set(arr, ix, e)
       arr
