@@ -366,10 +366,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
-          for each(v from values):
+          for each(v from values) block:
             binding = resolved.bindings.get-value-now(v.v.key())
             provided-value = cases(CS.ValueBinder) binding.binder:
-              | var-bind(_, _, _, _) => CS.v-var(ann-to-typ(v.ann))
+              | vb-var => CS.v-var(ann-to-typ(v.ann))
               | else => CS.v-just-type(ann-to-typ(v.ann))
             end
             val-typs.set-now(v.v.toname(), provided-value)
