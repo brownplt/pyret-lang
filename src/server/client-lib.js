@@ -64,7 +64,10 @@ function start(options) {
     const child = childProcess.fork(
       serverModule,
       ["-serve", "--port", port],
-      { stdio: [0, 1, 2, 'ipc'] } // To send messages on completion of startup
+      {
+        stdio: [0, 1, 2, 'ipc'],
+        execArgv: ["-max-old-space-size=8192"]
+      } // To send messages on completion of startup
     );
 
     return new Promise((resolve, reject) => {
@@ -103,6 +106,11 @@ function start(options) {
       .then(() => client.connect('ws://localhost:' + options.client.port, 'parley'))
       .catch((err) => console.error('Starting up the server failed: ', err));
   }
+
+  process.on('SIGINT', function() {
+    console.log("Caught interrupt signal, killing and restarting server");
+    shutdown();
+  });
 
 }
 
