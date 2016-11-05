@@ -2860,7 +2860,7 @@ dummy-loc-visitor = {
     s-provide-none(dummy-loc)
   end,
   method s-provide-types(self, l, anns):
-    s-provide(dummy-loc, anns.map(_.visit(self)))
+    s-provide-types(dummy-loc, anns.map(_.visit(self)))
   end,
   method s-provide-types-all(self, l):
     s-provide-types-all(dummy-loc)
