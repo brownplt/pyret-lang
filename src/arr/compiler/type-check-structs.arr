@@ -775,7 +775,7 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
                 remaining-fields = required-field-set.difference(intersection)
                 if remaining-fields.size() > 0:
                   missing-field-errors = remaining-fields.to-list().map(lam(remaining-field-name):
-                    C.object-missing-field(remaining-field-name, tostring(typ), typ.l, field-mappings.get-value(remaining-field-name).l)
+                    C.object-missing-field(remaining-field-name, tostring(typ), typ.l, field-mappings.get-value(remaining-field-name).get(0).l)
                   end)
                   fold-errors(missing-field-errors)
                 else:
