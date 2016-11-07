@@ -158,9 +158,9 @@ data RuntimeError:
           ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("The "),
+            ED.text("This "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
-            ED.text(" is not a reference in the "),
+            ED.text(" is not a mutable reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
       else:
@@ -169,7 +169,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
       end
     end,
@@ -179,7 +179,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
