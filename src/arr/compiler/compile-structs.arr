@@ -1906,6 +1906,19 @@ data CompileError:
           draw-and-highlight(self.blame-loc),
           ED.text(")")]]
     end
+  | non-object-provide(loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal"),
+          ED.cmcode(self.loc)]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal at "),
+          draw-and-highlight(self.loc)]]
+    end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     method render-fancy-reason(self):
       [ED.error:
