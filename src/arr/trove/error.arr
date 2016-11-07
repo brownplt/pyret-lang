@@ -1195,12 +1195,7 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(
-              if self.fun-def-loc.is-builtin(): 
-                0 
-              else: 
-                1 
-              end, false):
+            cases(O.Option) maybe-stack-loc(0, true):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
