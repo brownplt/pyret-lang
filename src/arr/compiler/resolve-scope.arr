@@ -1239,9 +1239,9 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
           nothing
         else:
           # need to figure out how to read through the imports here, I think
-          print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
-          print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
+          #print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
+          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
+          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
           add-error(C.unbound-type-id(A.a-name(loc, name)))
           nothing
         end
