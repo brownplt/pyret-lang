@@ -85,47 +85,42 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 .PHONY : phaseA-deps
-phaseA-deps: $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
-	$(NODE) src/server/client.js --compiler $(PYRET_COMP0) --port 1700 \
-                      --outfile build/phaseA/pyret.jarr \
-                      --program src/arr/compiler/pyret.arr \
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
-                      --no-check-mode \
+                      -no-check-mode \
                       --require-config src/scripts/standalone-configA.json
 
 .PHONY : phaseB
 phaseB: $(PHASEB)/pyret.jarr
 
 $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$(PHASEB)/%,$(PARSERS))
-	$(NODE) src/server/client.js \
-    --compiler $(PHASEA)/pyret.jarr --port 1701 \
-    --outfile build/phaseB/pyret.jarr \
-    --program src/arr/compiler/pyret.arr \
-    --builtin-js-dir src/js/trove/ \
-    --builtin-arr-dir src/arr/trove/ \
-    --no-check-mode \
-    --compiled-dir build/phaseB/compiled/ \
-    --require-config src/scripts/standalone-configB.json
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseB/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseB/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configB.json
 
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
 
 $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$(PHASEC)/%,$(PARSERS))
-	$(NODE) src/server/client.js \
-    --compiler $(PHASEB)/pyret.jarr --port 1702 \
-    --outfile build/phaseC/pyret.jarr \
-    --program src/arr/compiler/pyret.arr \
-    --builtin-js-dir src/js/trove/ \
-    --builtin-arr-dir src/arr/trove/ \
-    --no-check-mode \
-    --compiled-dir build/phaseB/compiled/ \
-    --require-config src/scripts/standalone-configC.json
+	$(NODE) $(PHASEB)/pyret.jarr --outfile build/phaseC/pyret.jarr \
+                      --build-runnable src/arr/compiler/pyret.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseC/compiled/ \
+                      -no-check-mode \
+                      --require-config src/scripts/standalone-configC.json
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
@@ -144,8 +139,8 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 %.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) src/server/client.js --compiler $(PHASEA)/pyret.jarr --port 1701 --outfile $*.jarr \
-                      --program $*.arr \
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+                      --build-runnable $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir compiled/ \
@@ -200,24 +195,20 @@ PYRET_TEST_PHASE=$(P)
 ifeq ($(PYRET_TEST_PHASE),B)
   PYRET_TEST_PHASE=$(PHASEB)
   PYRET_TEST_PREREQ=$(PHASEB)/pyret.jarr
-  PYRET_TEST_PORT=1702
   PYRET_TEST_CONFIG=src/scripts/standalone-configB.json
 else
 ifeq ($(PYRET_TEST_PHASE),C)
   PYRET_TEST_PHASE=$(PHASEC)
   PYRET_TEST_PREREQ=$(PHASEC)/pyret.jarr
-  PYRET_TEST_PORT=1703
   PYRET_TEST_CONFIG=src/scripts/standalone-configC.json
 else
   PYRET_TEST_PHASE=$(PHASEA)
   PYRET_TEST_PREREQ=$(PHASEA)/pyret.jarr
-  PYRET_TEST_PORT=1701
   PYRET_TEST_CONFIG=src/scripts/standalone-configA.json
 endif
 endif
 
-TEST_BUILD=$(NODE) src/server/client.js \
-    --compiler $(PYRET_TEST_PHASE)/pyret.jarr --port $(PYRET_TEST_PORT) \
+TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 	  --builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config $(PYRET_TEST_CONFIG) \
@@ -254,7 +245,7 @@ MAIN_TEST_FILES := tests/pyret/main2.arr tests/type-check/main.arr tests/pyret/r
 
 tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) $(MAIN_TEST_FILES)
 	$(TEST_BUILD) \
-		--program tests/all.arr \
+		--build-runnable tests/all.arr \
     --outfile tests/pyret/all.jarr \
 		-check-all
 
@@ -265,7 +256,7 @@ all-pyret-test: tests/pyret/all.jarr parse-test
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
 		--outfile tests/pyret/main2.jarr \
-		--program tests/pyret/main2.arr \
+		--build-runnable tests/pyret/main2.arr \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
 
 
@@ -321,19 +312,11 @@ clean:
 	$(call RMDIR,build/show-comp/compiled)
 	$(call RMDIR,$(RELEASE_DIR))
 
-clean-servers:
-	$(NODE) src/server/client.js --shutdown --port 1700
-	$(NODE) src/server/client.js --shutdown --port 1701
-	$(NODE) src/server/client.js --shutdown --port 1702
-	$(NODE) src/server/client.js --shutdown --port 1703
-
 .PHONY : test-clean
 test-clean:
 	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
-unstable: phaseA
-	cp $(PHASEA)/pyret.jarr build/phase0/pyret-unstable.jarr
 new-bootstrap: no-diff-standalone
 	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
 no-diff-standalone: phaseB phaseC
