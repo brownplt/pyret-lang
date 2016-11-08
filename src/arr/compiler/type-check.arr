@@ -1451,6 +1451,12 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
                                              ret-type: partial-type.ret-type,
                                              loc: partial-type.loc,
                                              existential: expected-type})
+                  print("function:\n")
+                  each(lam(x) block:
+                    print(x)
+                    print("\n")
+                  end, value.tosource().pretty(72))
+                  print("test-inference-data: " + tostring(test-inference-data) + "\n\n")
                 if A.is-s-lam(value) block:
                   check-block = value._check.value
                   result = checking(check-block, t-top(l2, false), false, context)

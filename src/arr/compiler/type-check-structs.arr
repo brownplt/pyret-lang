@@ -829,8 +829,10 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
   cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
-      foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}):
+      foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}) block:
         {existential; _; fun-examples; checking-fun} = example-types.get-value(existential-key)
+        print("existential: " + tostring(existential) + "\n")
+        print("fun-examples: " + tostring(fun-examples) + "\n")
         shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)
         partitioned = partition(lam(typ): typ.free-variables().size() == 0 end, fun-examples)
         complete-examples = partitioned.is-true
@@ -841,6 +843,7 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
             first-structure = find-structure(first)
             common-structure = rest.foldr(find-common-structure, first-structure)
             new-type = maintain-common-structure(common-structure, generalized)
+            print("new-type: " + tostring(new-type) + "\n\n")
             fold-result({system; constraint-solution(empty-list-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
           | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
         end
