@@ -1117,6 +1117,23 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function makeDataTypeConstructor($name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
+      
+      function C(dict, brands) {
+        this.dict = dict;
+        this.brands = brands;
+      }
+      C.prototype = new PObject({}, []);
+      C.prototype.$name = $name;
+      C.prototype.$app_fields = $app_fields;
+      C.prototype.$app_fields_raw = $app_fields_raw;
+      C.prototype.$mut_fields_mask = $mut_fields_mask;
+      C.prototype.$arity = $arity;
+      C.prototype.$constructor = constructor
+
+      return C;
+    }
+
     function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
       var ret = new PObject(dict, brands);
       ret.$name = $name;
@@ -1124,7 +1141,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       ret.$app_fields_raw = $app_fields_raw;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
-      ret.$constructor = constructor
+      ret.$constructor = constructor;
       return ret;
     }
 
@@ -5210,8 +5227,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             constructorBody += "dict['" + argNames[i] + "'] = " + a + ";\n";
           }
         });
-        constructorBody +=
-          "return thisRuntime.makeDataValue(dict, brands, " + quote(reflName) + ", reflRefFields, reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+        constructorBody += "return new Construct(dict, brands)";
 
         //var arityCheck = "thisRuntime.checkArityC(loc, " + allArgs.length + ", arguments);";
         var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
@@ -5243,7 +5259,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           "}";
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
-        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
+        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
+        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflRefFields, reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+        + constrFun]));
         return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
       }
 
@@ -5613,6 +5631,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'makeUnsafeSetRef' : makeUnsafeSetRef,
       'makeVariantConstructor': makeVariantConstructor,
       'makeDataValue': makeDataValue,
+      'makeDataTypeConstructor': makeDataTypeConstructor,
       'makeMatch': makeMatch,
       'makeOpaque'   : makeOpaque,
 
