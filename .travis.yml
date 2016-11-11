@@ -17,7 +17,6 @@ install:
 - make install
 before_script: make -j3
 script:
-- make clean-servers
 - make all-pyret-test
 notifications:
   slack:
