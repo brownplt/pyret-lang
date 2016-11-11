@@ -17,9 +17,10 @@ function start(options) {
       const pid = Number(fs.readFileSync(pidFile));
       fs.unlinkSync(pidFile);
       process.kill(pid, 'SIGINT');
+      console.log("Sent kill signal to " + pid);
     }
     catch(e) {
-      console.error("Could not kill the process because the pid file " + pidFile + " didn't exist or was inaccessible: ", e);
+      console.log("No process to quit: " + pid);
     }
   }
 
