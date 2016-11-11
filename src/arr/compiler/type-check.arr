@@ -2095,7 +2095,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
             typ = resolve-alias(t-mod.aliases.get-value(field), context)
             fold-result(some(typ), context)
           else:
-            fold-errors([list: C.unbound-type-id(in-ann)], context)
+            fold-errors([list: C.unbound-type-id(in-ann)])
           end
       end
     | a-checked(checked, residual) =>
@@ -2148,7 +2148,7 @@ fun collect-example(e :: Expr%(is-s-check-test), context :: Context) -> FoldResu
                                   fold-result(result-type, context)
                                 end)
                               else:
-                                checking(rhs.value, expect-ret-type).fold-bind(lam(_, _, shadow context):
+                                checking(rhs.value, expect-ret-type, false, context).fold-bind(lam(_, _, shadow context):
                                   fold-result(expect-ret-type, context)
                                 end)
                               end.bind(lam(ret-type, shadow context):
