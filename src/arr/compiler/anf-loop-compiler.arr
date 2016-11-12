@@ -1059,7 +1059,7 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
           compile-fun-body(l, new-step, temp, compiler, effective-args, some(len), body, true, is-flat)))])
 end
 
-fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: ( -> DAG.CaseResults)):
+fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
     | a-app(l2, f, args) =>
       compile-a-app(l2, f, args, compiler, b, opt-body)
