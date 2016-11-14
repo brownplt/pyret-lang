@@ -317,22 +317,28 @@ check "raw-provide-syntax":
     [raw-array:
       {
         name: "string-to-num",
-        typ: {
-          tag: "arrow",
-          args: [list: gr("String")],
-          ret: {
-            tag: "tyapp",
-            onto: bnr("option", "Option"),
-            args: [list: gr("Number")]
+        value: {
+          bind: "let",
+          typ: {
+            tag: "arrow",
+            args: [list: gr("String")],
+            ret: {
+              tag: "tyapp",
+              onto: bnr("option", "Option"),
+              args: [list: gr("Number")]
+            }
           }
         }
       },
       {
         name: "num-greater",
-        typ: {
-          tag: "arrow",
-          args: [list: gr("Number"), gr("Number")],
-          ret: gr("Boolean")
+        value: {
+          bind: "let",
+          typ: {
+            tag: "arrow",
+            args: [list: gr("Number"), gr("Number")],
+            ret: gr("Boolean")
+          }
         }
       }]
 

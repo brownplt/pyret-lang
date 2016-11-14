@@ -689,6 +689,7 @@ shadow tree-set = {
 }
 
 empty-set = empty-list-set
+shadow set = list-set
 shadow list-to-set = list-to-list-set
 shadow fold = set-fold
 shadow all = set-all
