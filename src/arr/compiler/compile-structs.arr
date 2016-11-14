@@ -249,7 +249,11 @@ fun provides-from-raw-provides(uri, raw):
     if is-string(v) block:
       vdict.set(v, v-just-type(t-top))
     else:
-      vdict.set(v.name, v-just-type(type-from-raw(uri, v.typ, SD.make-string-dict())))
+      if v.value.bind == "var":
+        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else:
+        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      end
     end
   end
   aliases = raw.aliases

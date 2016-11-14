@@ -1558,7 +1558,14 @@ fun compile-provides(provides):
   cases(CS.Provides) provides:
     | provides(thismod-uri, values, aliases, data-defs) =>
       value-fields = for CL.map_list(v from values.keys().to-list()):
-        j-field(v, compile-provided-type(values.get-value(v).t))
+        cases(CS.ValueExport) values.get-value(v):
+          | v-just-type(t) => j-field(v, compile-provided-type(t))
+          | v-var(t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("var")),
+              j-field("typ", compile-provided-type(t))
+            ]))
+          | v-fun(t, _, _) => j-field(v, compile-provided-type(t))
+        end
       end
       data-fields = for CL.map_list(d from data-defs.keys().to-list()):
         j-field(d, compile-provided-data(data-defs.get-value(d)))
