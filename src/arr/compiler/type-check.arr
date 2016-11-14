@@ -1307,6 +1307,12 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
                   context.solve-level().bind(lam(solution, shadow context):
                     shadow context = context.substitute-in-binds(solution)
                     handle-body(tv, body, process, context)
+                      .bind(lam(result, shadow context):
+                        shadow context = args.foldr(lam(arg, shadow context):
+                          context.remove-binding(arg.bind.id.key())
+                        end, context)
+                        fold-result(result, context)
+                      end)
                   end)
                 end)
               end
@@ -1959,7 +1965,7 @@ end
 fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCInfo>:
   cases(A.Provide) _provide:
     | s-provide-complete(_, values, aliases, data-definitions) =>
-      initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types) 
+      initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types)
       fold-values-info = foldr-fold-result(lam(value, shadow context, info):
         value-key = value.v.key()
         if info.types.has-key(value-key):
