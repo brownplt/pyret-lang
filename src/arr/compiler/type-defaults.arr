@@ -383,7 +383,7 @@ module-const-lists = t-module("builtin://lists",
             "_match", t-top,
             "_plus", t-arrow([list: lotv], lotv),
             "push", t-arrow([list: ], lotv),
-            "split-at", t-arrow(tv-arg, t-record([string-dict:
+            "split-at", t-arrow([list: t-number], t-record([string-dict:
               "prefix", lotv,
               "suffix", lotv
             ])),
