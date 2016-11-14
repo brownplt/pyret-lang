@@ -351,6 +351,12 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             end, binds, rhs-result)
             checking(body, expect-type, top-level, context)
               .map-expr(A.s-let-expr(l, new-binds, _, blocky))
+              .bind(lam(new-expr, new-type, shadow context):
+                shadow context = binds.foldr(lam(binding, shadow context):
+                  context.remove-binding(binding.b.id.key())
+                end, context)
+                typing-result(new-expr, new-type, context)
+              end)
           end)
         | s-letrec(l, binds, body, blocky) =>
           handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
@@ -595,6 +601,12 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         synthesis(body, false, context)
           .map-expr(A.s-let-expr(l, new-binds, _, b))
           .map-type(_.set-loc(l))
+          .bind(lam(new-expr, new-type, shadow context):
+            shadow context = binds.foldr(lam(binding, shadow context):
+              context.remove-binding(binding.b.id.key())
+            end, context)
+            typing-result(new-expr, new-type, context)
+          end)
       end)
     | s-letrec(l, binds, body, blocky) =>
       handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
@@ -1493,6 +1505,12 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
         context.solve-level().typing-bind(lam(solution, shadow context):
           shadow context = context.substitute-in-binds(solution)
           handle-body(all-new-binds, context)
+            .bind(lam(new-ast, new-type, shadow context):
+              shadow context = binds.foldr(lam(binding, shadow context):
+                context.remove-binding(binding.b.id.key())
+              end, context)
+              typing-result(new-ast, new-type, context)
+            end)
         end)
       end)
     end)
@@ -1941,15 +1959,16 @@ end
 fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCInfo>:
   cases(A.Provide) _provide:
     | s-provide-complete(_, values, aliases, data-definitions) =>
+      initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types) 
       fold-values-info = foldr-fold-result(lam(value, shadow context, info):
         value-key = value.v.key()
         if info.types.has-key(value-key):
           fold-result(info, context)
         else:
-          typ = context.binds.get-value(value-key).set-inferred(false)
+          typ = context.info.types.get-value(value-key).set-inferred(false)
           fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
         end
-      end, values, context, context.info)
+      end, values, context, initial-info)
       fold-values-info.bind(lam(values-info, shadow context):
         fold-aliases-info = foldr-fold-result(lam(_alias, shadow context, info):
           alias-key = _alias.in-name.key()

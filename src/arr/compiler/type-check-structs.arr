@@ -140,6 +140,11 @@ sharing:
   method add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.constraints, self.info)
   end,
+  method remove-binding(self, term-key :: String) -> Context:
+    current-type = self.binds.get-value(term-key)
+    new-info = tc-info(self.info.types.set(term-key, current-type), self.info.aliases, self.info.data-types)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.remove(term-key), self.constraints, new-info)
+  end,
   method add-dict-to-bindings(self, dict :: SD.StringDict<Type>) -> Context:
     new-binds = dict.keys-list().foldl(lam(key, bindings):
       bindings.set(key, dict.get-value(key))
