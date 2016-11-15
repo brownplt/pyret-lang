@@ -2,17 +2,17 @@
 
 provide *
 provide-types *
+import ast as A
+import file as F
+import string-dict as SD
+import file("anf.arr") as N
+import file("anf-loop-compiler.arr") as AL
+import file("ast-anf.arr") as AA
+import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
-import ast as A
-import string-dict as SD
-import file as F
-import file("anf.arr") as N
-import file("ast-anf.arr") as AA
-import file("anf-loop-compiler.arr") as AL
-import file("desugar-check.arr") as CH
 import file("desugar.arr") as D
-import file("ast-util.arr") as AU
+import file("desugar-check.arr") as CH
 import file("js-ast.arr") as J
 
 # TODO(joe): add methods for printing to module vs static information
@@ -226,8 +226,33 @@ fun make-lettable-flatness-env(
   end
 end
 
-fun make-prog-flatness-env(anfed :: AA.AProg) -> SD.StringDict<Number> block:
+fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, env :: C.CompileEnvironment) -> SD.StringDict<Number> block:
+
   sd = SD.make-mutable-string-dict()
+
+  for each(k from bindings.keys-list-now()):
+    vb = bindings.get-value-now(k)
+    when C.is-bo-module(vb.origin):
+      cases(Option) vb.origin.mod:
+        | none => nothing
+        | some(import-type) =>
+          dep = AU.import-to-dep(import-type).key()
+          cases(Option) env.mods.get(dep):
+            | none => raise("There is a binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
+            | some(provides) =>
+              exported-as = vb.atom.toname()
+              value-export = provides.values.get-value(exported-as)
+              cases(C.ValueExport) value-export:
+                | v-fun(_, _, flatness) =>
+                  sd.set-now(k, flatness)
+                | else =>
+                  nothing
+              end
+          end
+      end
+    end
+  end
+
   flatness-env = cases(AA.AProg) anfed:
     | a-program(_, prov, imports, body) => block:
         make-expr-flatness-env(body, sd)
@@ -291,19 +316,20 @@ fun get-flat-provides(provides, flatness-env, ast) block:
   end
 end
 
-fun make-compiled-pyret(program-ast, env, provides, options) -> { C.Provides; CompiledCodePrinter} block:
+fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
   anfed = N.anf-program(program-ast)
-  flatness-env = make-prog-flatness-env(anfed)
+  flatness-env = make-prog-flatness-env(anfed, bindings, env)
   flat-provides = get-flat-provides(provides, flatness-env, anfed)
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
   {flat-provides; ccp-dict(compiled)}
 end
 
-fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options) block:
+fun trace-make-compiled-pyret(trace, phase, program-ast, env, bindings, provides, options) block:
   var ret = trace
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
-  flatness-env = make-prog-flatness-env(anfed)
+  flatness-env = make-prog-flatness-env(anfed, bindings, env)
   flat-provides = get-flat-provides(provides, flatness-env)
   {flat-provides; phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))), ret)}
 end
+

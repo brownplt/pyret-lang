@@ -381,7 +381,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           # ...in order to be checked for bad assignments here
           var any-errors = named-result.errors
             + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-          named-result := nothing
           when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
           var type-checked =
             if options.type-check:
@@ -407,9 +406,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               {final-provides; cr} = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)
+                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
                 else:
-                  {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, provides, options)
+                  {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, named-result.bindings, provides, options)
                   {final-provides; phase("Result", CS.ok(cr), ret)}
                 end
               else:

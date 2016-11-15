@@ -262,7 +262,12 @@ fun provides-from-raw-provides(uri, raw):
       if v.value.bind == "var":
         vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
-        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, v.value.name, some(v.value.flatness))))
+        flatness = if is-number(v.value.flatness):
+          some(v.value.flatness)
+        else:
+          none
+        end
+        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
         vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end

@@ -1021,14 +1021,14 @@ fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: S
     | some(f-opt) => f-opt
     | none => none
   end
-  is-some(flatness-opt) and (flatness-opt.value == 0)
+  is-some(flatness-opt) and (flatness-opt.value <= 5)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
     opt-body :: Option<N.AExpr>):
-  app-compiler = if N.is-a-id(f) and is-function-flat(compiler.flatness-env, tostring(f.id)):
+  app-compiler = if N.is-a-id(f) and is-function-flat(compiler.flatness-env, f.id.key()):
     compile-flat-app
   else:
     compile-split-app
@@ -1039,7 +1039,7 @@ end
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
   is-flat = if is-some(bind-opt) and is-b-let(bind-opt.value):
     bind = bind-opt.value.value
-    is-function-flat(compiler.flatness-env, tostring(bind.id))
+    is-function-flat(compiler.flatness-env, bind.id.key())
   else:
     false
   end

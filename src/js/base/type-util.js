@@ -107,23 +107,27 @@ define([], function() {
     };
   }
 
-  function bindToPyret(runtime, typ) {
+  function bindToPyret(runtime, value) {
     var wrapper = function(t) {
       return runtime.makeObject({ bind: "let", typ: t });
     };
-    if(typ.bind) {
-      if(typ.bind === "fun") {
+    var typ;
+    if(value.bind) {
+      if(value.bind === "fun") {
+        typ = value.typ;
         wrapper = function(t) {
-          return runtime.makeObject({ bind: "fun", flatness: typ.flatness, typ: t});
+          return runtime.makeObject({ bind: "fun", name: value.name, flatness: value.flatness, typ: t});
         }
-        typ = typ.typ;
       }
       else if(typ.bind === "var") {
-        typ = typ.typ;
+        typ = value.typ;
         wrapper = function(t) {
           return runtime.makeObject({ bind: "var", typ: t });
         };
       }
+    }
+    else {
+      typ = value;
     }
     return wrapper(toPyretType(runtime, typ));
   }
