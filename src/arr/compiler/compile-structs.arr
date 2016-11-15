@@ -54,15 +54,66 @@ data NativeModule:
   | requirejs(path :: String)
 end
 
+data BindOrigin:
+  | bo-local(loc :: Loc)
+  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+end
+
+data ValueBinder:
+  | vb-letrec
+  | vb-let
+  | vb-var
+  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+end
+
+data ValueBind:
+  | value-bind(
+      origin :: BindOrigin,
+      binder :: ValueBinder,
+      atom :: A.Name,
+      ann :: A.Ann,
+      expr :: Option<A.Expr>)
+end
+
+data TypeBinder:
+  | tb-type-let
+  | tb-type-var
+  | tb-module(uri :: URI)
+end
+
+data TypeBind:
+  | type-bind(
+      origin :: BindOrigin,
+      binder :: TypeBinder,
+      atom :: A.Name,
+      ann :: Option<A.Ann>)
+end
+
+#|
+data ScopeBinding:
+  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
+end
+
+data TypeBinding:
+  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
+end
+|#
+
 data NameResolution:
   | resolved(
       ast :: A.Program,
       errors :: List<CompileError>,
-      bindings :: SD.MutableStringDict,
-      type-bindings :: SD.MutableStringDict,
-      datatypes :: SD.MutableStringDict)
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>)
 end
-
 
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
@@ -87,10 +138,16 @@ data Globals:
   | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
+data ValueExport:
+  | v-just-type(t :: T.Type)
+  | v-var(t :: T.Type)
+  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
-      values :: StringDict<T.Type>,
+      values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.Type>
     )
@@ -190,10 +247,13 @@ fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, t-top)
+      vdict.set(v, v-just-type(t-top))
     else:
-      #print("\n\nYOOOOOOOOOOOOOOOOOOOOOOO: " + tostring(v.name)) 
-      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+      if v.value.bind == "var":
+        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else:
+        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      end
     end
   end
   aliases = raw.aliases
@@ -846,6 +906,26 @@ data CompileError:
               ED.code(ED.text(self.ann.id.toname())),
               ED.text(" could not be found.")]]
       end
+    end
+  | type-id-used-in-dot-lookup(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used with a dot accessor as if to access a type within another module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it does not refer to a module.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is being used with a dot accessor as if to access a type within another module at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it does not refer to a module.")]]
     end
   | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
@@ -1829,6 +1909,19 @@ data CompileError:
           ED.text(self.message + " (found at "),
           draw-and-highlight(self.blame-loc),
           ED.text(")")]]
+    end
+  | non-object-provide(loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal"),
+          ED.cmcode(self.loc)]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal at "),
+          draw-and-highlight(self.loc)]]
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     method render-fancy-reason(self):

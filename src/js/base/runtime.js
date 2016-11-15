@@ -4820,7 +4820,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
-        return thisRuntime.getField(m, "provide-plus-types");
+        if(m.dict['defined-values'] === undefined) {
+          console.log("Defined values are: ", m.dict['defined-values']);
+        }
+        return makeObject({
+          values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
+          types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          'defined-values': m.dict['defined-values'],
+          'defined-types': m.dict['defined-types']
+        });
       }
     }
 
@@ -4906,11 +4914,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types) {
+    function makeModuleReturn(values, types, internal) {
       return thisRuntime.makeObject({
+        "defined-values": values,
+        "defined-types": types,
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types
+          "types": types,
+          "internal": internal || {}
         })
       });
     }
@@ -5027,7 +5038,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
       var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
-        newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        if(hasField(moduleObj, "defined-values")) {
+          newns = newns.set(vf, getField(moduleObj, "defined-values")[vf]);
+        }
+        else {
+          newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        }
       });
       typeFields.forEach(function(tf) {
         newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
@@ -5517,6 +5533,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
+        "defined-values": runtimeNamespaceBindings,
+        "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
           "types": runtimeTypeBindings

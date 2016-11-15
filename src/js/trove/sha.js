@@ -4,10 +4,7 @@
   provides: {},
   // NOTE(joe): when moving this to troveA, add uri and crypto
   theModule: function(runtime, namespace, uri, crypto) {
-    return runtime.makeObject({
-      "provide-plus-types": runtime.makeObject({
-        types: {},
-        values: runtime.makeObject({
+    return runtime.makeModuleReturn({
           sha256: runtime.makeFunction(function(str) {
             runtime.checkArity(1, arguments, ["sha"]);
               runtime.checkString(str);
@@ -15,8 +12,7 @@
             hash.update(str);
             return hash.digest('hex');
           }, "sha256")
-        })
-      })
-    });
+        },
+        {});
   }
 })
