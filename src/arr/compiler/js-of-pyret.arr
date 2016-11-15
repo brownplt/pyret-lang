@@ -93,7 +93,7 @@ fun make-expr-flatness-env(
     | a-let(_, bind, val, body) =>
       val-flatness = if AA.is-a-lam(val) or AA.is-a-method(val) block:
         lam-flatness = make-expr-flatness-env(val.body, sd)
-        sd.set-now(tostring(bind.id), lam-flatness)
+        sd.set-now(bind.id.key(), lam-flatness)
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
         some(0)
@@ -101,9 +101,9 @@ fun make-expr-flatness-env(
         block:
           # If we're binding this name to something that's already been defined
           # just copy over the definition
-          known-flatness-opt = sd.get-now(tostring(val.id))
+          known-flatness-opt = sd.get-now(val.id.key())
           cases (Option) known-flatness-opt:
-            | some(flatness) => sd.set-now(tostring(bind.id), flatness)
+            | some(flatness) => sd.set-now(bind.id.key(), flatness)
             | none => none
           end
           # flatness of the binding part of the let is 0 since we don't
@@ -141,7 +141,7 @@ fun get-flatness-for-call(function-name :: String, sd :: SD.MutableStringDict<Op
   end
 
   # If it's not in our lookup dict OR the flatness is none treat it the same
-  val = sd.get-now(tostring(function-name)).or-else(none)
+  val = sd.get-now(function-name).or-else(none)
   cases (Option) val:
     | some(flatness) => some(flatness + 1)
     | none => none
@@ -157,20 +157,19 @@ fun make-lettable-flatness-env(
       default-ret
     | a-if(_, c, t, e) =>
       flatness-max(make-expr-flatness-env(t, sd), make-expr-flatness-env(e, sd))
+
+    # NOTE -- a-assign might not be flat b/c it checks annotations
     | a-assign(_, id, value) =>
       block:
-        if AA.is-a-id(value) and sd.has-key-now(tostring(value.id)):
-          sd.set-now(tostring(id), sd.get-value-now(tostring(value.id)))
-        else:
-          #FIXME: this branch is required, kind of inconvenient
-          none
+        when AA.is-a-id(value) and sd.has-key-now(value.id.key()):
+          sd.set-now(id.key(), sd.get-value-now(value.id.key()))
         end
         default-ret
       end
     | a-app(_, f, args) =>
       # Look up flatness in the dictionary
       if AA.is-a-id(f):
-        get-flatness-for-call(tostring(f.id), sd)
+        get-flatness-for-call(f.id.key(), sd)
       else:
         # This should never happen in a "correct" program, but it's not our job
         # to do this kind of checking here, so don't raise an error.
@@ -185,6 +184,8 @@ fun make-lettable-flatness-env(
     | a-tuple(_, fields) => default-ret
     | a-tuple-get(_, tup, index) => default-ret
     | a-obj(_, fields) => default-ret
+
+    # NOTE -- update might not be flat b/c it checks annotations
     | a-update(_, supe, fields) => default-ret
     | a-extend(_, supe, fields) => default-ret
     | a-dot(_, obj, field) => default-ret
@@ -211,6 +212,7 @@ fun make-lettable-flatness-env(
       default-ret
     | a-data-expr(l, name, namet, vars, shared) =>
       default-ret
+    # NOTE -- cases might not be flat b/c it checks annotations
     | a-cases(_, typ, val, branches, els) =>
       # Flatness is the max of the flatness all the cases branches
       combine = lam(case-branch, max-flat):
@@ -236,11 +238,65 @@ fun make-prog-flatness-env(anfed :: AA.AProg) -> SD.StringDict<Number> block:
   flatness-env.freeze()
 end
 
-fun make-compiled-pyret(program-ast, env, provides, options) -> CompiledCodePrinter block:
+
+fun get-defined-values(ast):
+  fun help(ae):
+    cases(AA.AExpr) ae:
+      | a-type-let(_, _, body) => help(body)
+      | a-let(_, _, _, body) => help(body)
+      | a-arr-let(_, _, _, _, body) => help(body)
+      | a-var(_, _, _, body) => help(body)
+      | a-seq(_, _, e2) => help(e2)
+      | a-lettable(_, e) =>
+        block:
+          when not(AA.is-a-module(e)):
+            raise("Ill-formed ANF ast: " + torepr(e))
+          end
+          e
+        end
+    end
+  end
+
+  the-module = help(ast.body)
+  the-dvs = the-module.defined-values
+
+  dvs-dict = for fold(s from [SD.string-dict:], d from the-dvs):
+    cases(AA.ADefinedValue) d:
+      | a-defined-value(name, val) => s.set(name, val.id.key())
+      | a-defined-var(name, id) => s.set(name, id.key())
+    end
+  end
+
+  dvs-dict
+end
+
+fun get-flat-provides(provides, flatness-env, ast) block:
+  dvs-dict = get-defined-values(ast)
+  cases(C.Provides) provides block:
+    | provides(uri, values, aliases, datatypes) =>
+      new-values = for fold(s from [SD.string-dict:], k from values.keys-list()):
+        maybe-flatness = flatness-env.get(dvs-dict.get-value(k))
+        existing-val = values.get-value(k)
+        new-val = cases(Option) maybe-flatness:
+          | none => existing-val
+          | some(flatness-result) =>
+            cases(Option) flatness-result:
+              | none => existing-val
+              | some(flatness) => C.v-fun(existing-val.t, k, some(flatness))
+            end
+        end
+        s.set(k, new-val)
+      end
+      C.provides(uri, new-values, aliases, datatypes)
+  end
+end
+
+fun make-compiled-pyret(program-ast, env, provides, options) -> { C.Provides; CompiledCodePrinter} block:
   anfed = N.anf-program(program-ast)
   flatness-env = make-prog-flatness-env(anfed)
-  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))
-  ccp-dict(compiled)
+  flat-provides = get-flat-provides(provides, flatness-env, anfed)
+  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
+  {flat-provides; ccp-dict(compiled)}
 end
 
 fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options) block:
@@ -248,5 +304,6 @@ fun trace-make-compiled-pyret(trace, phase, program-ast, env, provides, options)
   anfed = N.anf-program(program-ast)
   ret := phase("ANFed", anfed, ret)
   flatness-env = make-prog-flatness-env(anfed)
-  phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))), ret)
+  flat-provides = get-flat-provides(provides, flatness-env)
+  {flat-provides; phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))), ret)}
 end

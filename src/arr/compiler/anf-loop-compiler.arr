@@ -1658,7 +1658,13 @@ fun compile-provides(provides):
               j-field("bind", j-str("var")),
               j-field("typ", compile-provided-type(t))
             ]))
-          | v-fun(t, _, _) => j-field(v, compile-provided-type(t))
+          | v-fun(t, name, flatness) => 
+            j-field(v, j-obj([clist:
+              j-field("bind", j-str("fun")),
+              j-field("flatness", flatness.and-then(j-num).or-else(j-false)),
+              j-field("name", j-str(name)),
+              j-field("typ", compile-provided-type(t))
+            ]))
         end
       end
       data-fields = for CL.map_list(d from data-defs.keys().to-list()):
@@ -1863,8 +1869,6 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
             j-field("args", j-list(true, CL.map_list(j-str, args)))])
       end
     end
-    # NOTE(joe): intentionally empty until we can generate the right
-    # type information
     provides-obj = compile-provides(provides)
     the-module = j-fun([clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
     [D.string-dict:
