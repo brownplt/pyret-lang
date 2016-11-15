@@ -340,24 +340,27 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               .map-expr(A.s-type-let-expr(l, binds, _, blocky))
           end)
         | s-let-expr(l, binds, body, blocky) =>
-          fold-typing(synthesis-let-bind, binds, context).typing-bind(lam(rhs-result, shadow context):
-            new-binds = map2(lam(binding, rhs):
-              cases(A.LetBind) binding:
-                | s-let-bind(let-l, let-b, _) =>
-                  A.s-let-bind(let-l, let-b, rhs)
-                | s-var-bind(let-l, let-b, _) =>
-                  A.s-var-bind(let-l, let-b, rhs)
-              end
-            end, binds, rhs-result)
-            checking(body, expect-type, top-level, context)
-              .map-expr(A.s-let-expr(l, new-binds, _, blocky))
-              .bind(lam(new-expr, new-type, shadow context):
-                shadow context = binds.foldr(lam(binding, shadow context):
-                  context.remove-binding(binding.b.id.key())
-                end, context)
-                typing-result(new-expr, new-type, context)
-              end)
-          end)
+          fun handler(shadow l, shadow binds, shadow body, shadow context):
+            fold-typing(synthesis-let-bind, binds, context).typing-bind(lam(rhs-result, shadow context):
+              new-binds = map2(lam(binding, rhs):
+                cases(A.LetBind) binding:
+                  | s-let-bind(let-l, let-b, _) =>
+                    A.s-let-bind(let-l, let-b, rhs)
+                  | s-var-bind(let-l, let-b, _) =>
+                    A.s-var-bind(let-l, let-b, rhs)
+                end
+              end, binds, rhs-result)
+              checking(body, expect-type, top-level, context)
+                .map-expr(A.s-let-expr(l, new-binds, _, blocky))
+                .bind(lam(new-expr, new-type, shadow context):
+                  shadow context = binds.foldr(lam(binding, shadow context):
+                    context.remove-binding(binding.b.id.key())
+                  end, context)
+                  typing-result(new-expr, new-type, context)
+                end)
+            end)
+          end
+          ignore-checker(l, binds, body, blocky, context, handler)
         | s-letrec(l, binds, body, blocky) =>
           handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
             checking(body, expect-type, top-level, context)
@@ -588,26 +591,29 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           .map-type(_.set-loc(l))
       end)
     | s-let-expr(l, binds, body, b) =>
-      binds-result = fold-typing(synthesis-let-bind, binds, context)
-      binds-result.typing-bind(lam(new-rhs, shadow context):
-        new-binds = map2(lam(binding, rhs):
-          cases(A.LetBind) binding:
-            | s-let-bind(let-l, let-b, _) =>
-              A.s-let-bind(let-l, let-b, rhs)
-            | s-var-bind(let-l, let-b, _) =>
-              A.s-var-bind(let-l, let-b, rhs)
-          end
-        end, binds, new-rhs)
-        synthesis(body, false, context)
-          .map-expr(A.s-let-expr(l, new-binds, _, b))
-          .map-type(_.set-loc(l))
-          .bind(lam(new-expr, new-type, shadow context):
-            shadow context = binds.foldr(lam(binding, shadow context):
-              context.remove-binding(binding.b.id.key())
-            end, context)
-            typing-result(new-expr, new-type, context)
-          end)
-      end)
+      fun handler(shadow l, shadow binds, shadow body, shadow context):
+        binds-result = fold-typing(synthesis-let-bind, binds, context)
+        binds-result.typing-bind(lam(new-rhs, shadow context):
+          new-binds = map2(lam(binding, rhs):
+            cases(A.LetBind) binding:
+              | s-let-bind(let-l, let-b, _) =>
+                A.s-let-bind(let-l, let-b, rhs)
+              | s-var-bind(let-l, let-b, _) =>
+                A.s-var-bind(let-l, let-b, rhs)
+            end
+          end, binds, new-rhs)
+          synthesis(body, false, context)
+            .map-expr(A.s-let-expr(l, new-binds, _, b))
+            .map-type(_.set-loc(l))
+            .bind(lam(new-expr, new-type, shadow context):
+              shadow context = binds.foldr(lam(binding, shadow context):
+                context.remove-binding(binding.b.id.key())
+              end, context)
+              typing-result(new-expr, new-type, context)
+            end)
+        end)
+      end
+      ignore-checker(l, binds, body, b, context, handler)
     | s-letrec(l, binds, body, blocky) =>
       handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
         synthesis(body, top-level, context)
@@ -2125,6 +2131,45 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end
     | a-checked(checked, residual) =>
       fold-errors([list: C.cant-type-check("a-checked should not be appearing before type checking", A.dummy-loc)])
+  end
+end
+
+# ignores the desugared checker output
+fun ignore-checker(l :: Loc, binds :: List<A.LetBind>, body :: Expr, blocky, context :: Context, handler :: (Loc, List<A.LetBind>, Expr, Context -> TypingResult)) -> TypingResult:
+  if binds.length() == 1:
+    binding = binds.get(0)
+    cases(A.Name) binding.b.id:
+      | s-atom(base, _) =>
+        if string-length(base) >= 19:
+          name = string-substring(base, 0, 19)
+          if name == "result-after-checks":
+            cases(Expr) body:
+              | s-block(_, stmts) =>
+                maybe-module = stmts.last()
+                if A.is-s-module(maybe-module):
+                  shadow context = context.add-binding(binding.b.id.key(), t-top(l, false))
+                  checking(maybe-module, t-top(l, false), true, context)
+                    .bind(lam(new-module, new-type, shadow context):
+                      shadow context = context.remove-binding(binding.b.id.key())
+                      typing-result(A.s-let-expr(l, binds, body, blocky), new-type, context)
+                    end)
+                else:
+                  handler(l, binds, body, context)
+                end
+              | else =>
+                handler(l, binds, body, context)
+            end
+          else:
+            handler(l, binds, body, context)
+          end
+        else:
+          handler(l, binds, body, context)
+        end
+      | else =>
+        handler(l, binds, body, context)
+    end
+  else:
+    handler(l, binds, body, context)
   end
 end
 
