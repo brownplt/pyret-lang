@@ -29,6 +29,10 @@
     }
     var O = RUNTIME.makeObject;
     return O({
+      'defined-values': {
+          "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
+        },
+      'defined-types': {},
       "provide-plus-types": O({
         types: { },
         values: O({

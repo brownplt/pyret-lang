@@ -106,7 +106,7 @@
 (defconst pyret-keywords-test
   '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
-   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check"
+   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving"))
@@ -119,7 +119,7 @@
 (defconst pyret-keywords-percent
    '("is" "is-not"))
 (defconst pyret-paragraph-starters
-  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "ask:"))
+  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "ask:"))
 
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," ";" "^" "(" ")" "[" "]" "{" "}" 
@@ -631,6 +631,10 @@ is used to limit the scan."
                      (> (pyret-indent-vars defered-opened) 0)) 
               (decf (pyret-indent-vars defered-opened))
               (pop opens))) ;; don't indent if we've started a RHS already
+           ((and (looking-at "*") (not (pyret-in-string)) (pyret-has-top opens '(provide)))
+            (pop opens)
+            (incf (pyret-indent-shared defered-closed))
+            (forward-char))
            ((and (looking-at pyret-initial-operator-regex) (not (pyret-in-string)))
             (incf (pyret-indent-initial-period cur-opened))
             (incf (pyret-indent-initial-period defered-closed))
@@ -806,9 +810,10 @@ is used to limit the scan."
               (push 'object opens)
               (push 'wantcolon opens)))
             (forward-char 4))
-           ;; ((pyret-PROVIDE)
-           ;;  (push 'provide opens)
-           ;;  (forward-char 7))
+           ((pyret-PROVIDE)
+             (push 'provide opens)
+             (incf (pyret-indent-shared defered-opened))
+             (forward-char 7))
            ((pyret-SHARING)
             (incf (pyret-indent-data cur-closed))
             (incf (pyret-indent-shared defered-opened))
@@ -862,7 +867,7 @@ is used to limit the scan."
             (push 'check opens)
             (push 'wantcolon opens)
             (forward-char 5))
-           ((and (pyret-EXAMPLES) (equal pyret-dialect 'Bootstrap) (not opens))
+           ((and (pyret-EXAMPLES) (not opens))
             (incf (pyret-indent-shared defered-opened))
             (push 'check opens)
             (push 'wantcolon opens)

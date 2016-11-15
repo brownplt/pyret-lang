@@ -317,8 +317,8 @@ check "raw-provide-syntax":
     [raw-array:
       {
         name: "string-to-num",
-        valueExport: {
-          tag: "v-just-type",
+        value: {
+          bind: "let",
           typ: {
             tag: "arrow",
             args: [list: gr("String")],
@@ -332,8 +332,8 @@ check "raw-provide-syntax":
       },
       {
         name: "num-greater",
-        valueExport: {
-          tag: "v-just-type",
+        value: {
+          bind: "let",
           typ: {
             tag: "arrow",
             args: [list: gr("Number"), gr("Number")],
@@ -420,7 +420,7 @@ check "raw-provide-syntax":
   provs.values is
     [string-dict:
       "string-to-num",
-       CM.v-just-type(T.t-arrow(
+      CM.v-just-type(T.t-arrow(
         [list: g("String")],
         T.t-app(
           bn("option", "Option"),

@@ -318,35 +318,34 @@
 
     var F = runtime.makeFunction;
 
-    return runtime.makeObject({
-      "provide-plus-types": runtime.makeObject({
-        values: runtime.makeObject({
-          mouse: gmf(reactorEvents, "mouse"),
-          keypress: gmf(reactorEvents, "keypress"),
-          "time-tick": gmf(reactorEvents, "time-tick"),
-          "make-reactor": F(makeReactor, "make-reactor"),
+    var values = {
+      mouse: gmf(reactorEvents, "mouse"),
+      keypress: gmf(reactorEvents, "keypress"),
+      "time-tick": gmf(reactorEvents, "time-tick"),
+      "make-reactor": F(makeReactor, "make-reactor"),
 
-          "get-value": F(getValue, "get-value"),
-          "get-instance": F(getValue, "get-instance"),
-          "draw": F(draw, "draw"),
-          "get-trace": F(getTrace, "get-trace"),
-          "get-trace-as-table": F(getTraceAsTable, "get-trace-as-table"),
-          "start-trace": F(startTrace, "start-trace"),
-          "stop-trace": F(stopTrace, "stop-trace"),
-          "interact-trace": F(interactTrace, "interact-trace"),
-          "simulate-trace": F(simulateTrace, "simulate-trace"),
-          "react": F(react, "react"),
-          "interact": F(interact, "interact")
+      "get-value": F(getValue, "get-value"),
+      "get-instance": F(getValue, "get-instance"),
+      "draw": F(draw, "draw"),
+      "get-trace": F(getTrace, "get-trace"),
+      "get-trace-as-table": F(getTraceAsTable, "get-trace-as-table"),
+      "start-trace": F(startTrace, "start-trace"),
+      "stop-trace": F(stopTrace, "stop-trace"),
+      "interact-trace": F(interactTrace, "interact-trace"),
+      "simulate-trace": F(simulateTrace, "simulate-trace"),
+      "react": F(react, "react"),
+      "interact": F(interact, "interact")
 
-        }),
-        types: {
-          Event: gtf(reactorEvents, "Event"),
-          Reactor: annReactor
-        },
-        internal: {
-          setInteract: setInteract          
-        }
-      })
-    });
+    };
+
+    var types = {
+      Event: gtf(reactorEvents, "Event"),
+      Reactor: annReactor
+    };
+
+    var internal = {
+      setInteract: setInteract          
+    };
+    return runtime.makeModuleReturn(values, types, internal);
   }
 })

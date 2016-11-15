@@ -1,6 +1,6 @@
 
 
-fun f<A>(a :: A, b :: (A -> Any)):
+fun f<A>(a :: A, b :: (A -> Any)) -> Any:
   b(a)
 end
 

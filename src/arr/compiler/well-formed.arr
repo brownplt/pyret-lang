@@ -693,7 +693,10 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     true
   end,
-  method s-provide(self, l, expr):
+  method s-provide(self, l, expr) block:
+    when not(A.is-s-obj(expr)):
+      add-error(C.non-object-provide(l))
+    end
     true
   end,
   method s-reactor(self, l, fields):

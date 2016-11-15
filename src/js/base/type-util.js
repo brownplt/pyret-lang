@@ -107,16 +107,25 @@ define([], function() {
     };
   }
 
-  function toPyretValueExport(runtime, typ) {
-    // val is either a type or it's a special ValueExport object
-    var O = runtime.makeObject;
-    if (typ.tag == "v-fun") {
-      return O({tag: "v-fun",
-                typ: toPyretType(runtime, typ.typ),
-                flatness: typ.flatness});
+  function bindToPyret(runtime, typ) {
+    var wrapper = function(t) {
+      return runtime.makeObject({ bind: "let", typ: t });
+    };
+    if(typ.bind) {
+      if(typ.bind === "fun") {
+        wrapper = function(t) {
+          return runtime.makeObject({ bind: "fun", flatness: typ.flatness, typ: t});
+        }
+        typ = typ.typ;
+      }
+      else if(typ.bind === "var") {
+        typ = typ.typ;
+        wrapper = function(t) {
+          return runtime.makeObject({ bind: "var", typ: t });
+        };
+      }
     }
-    return O({tag: "v-just-type",
-              typ: toPyretType(runtime, typ)});
+    return wrapper(toPyretType(runtime, typ));
   }
 
   function toPyretType(runtime, typ) {
@@ -462,8 +471,8 @@ define([], function() {
     localType: localType,
     record: record,
     dataType: dataType,
-    toPyretValueExport: toPyretValueExport,
     toPyretType: toPyretType,
+    bindToPyret: bindToPyret,
     providesToPyret: providesToPyret,
     expandType: expandType,
     expandRecord: expandRecord

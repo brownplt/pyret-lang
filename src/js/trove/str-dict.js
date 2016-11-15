@@ -1500,46 +1500,42 @@
         return makeImmutableStringDict(map);
       }
 
-      return O({
-        "provide-plus-types": O({
-          types: {
-            MutableStringDict: annMutable,
-            StringDict: annImmutable
-          },
-          values: O({
-            "make-mutable-string-dict": F(createMutableStringDict, "make-mutable-string-dict"),
-            "mutable-string-dict": O({
-              make: F(createMutableStringDictFromArray, "mutable-string-dict:make"),
-              make0: F(createMutableStringDict0, "mutable-string-dict:make0"),
-              make1: F(createMutableStringDict1, "mutable-string-dict:make1"),
-              make2: F(createMutableStringDict2, "mutable-string-dict:make2"),
-              make3: F(createMutableStringDict3, "mutable-string-dict:make3"),
-              make4: F(createMutableStringDict4, "mutable-string-dict:make4"),
-              make5: F(createMutableStringDict5, "mutable-string-dict:make5")
-            }),
-            "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
-            "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
-            "dict-each": F(dictEach, "dict-each"),
-            "dict-each-loop": F(dictEachLoop, "dict-each-loop"),
-            "string-dict": O({
-              make: F(createImmutableStringDictFromArray, "string-dict:make"),
-              make0: F(createImmutableStringDict0, "string-dict:make0"),
-              make1: F(createImmutableStringDict1, "string-dict:make1"),
-              make2: F(createImmutableStringDict2, "string-dict:make2"),
-              make3: F(createImmutableStringDict3, "string-dict:make3"),
-              make4: F(createImmutableStringDict4, "string-dict:make4"),
-              make5: F(createImmutableStringDict5, "string-dict:make5")
-            }),
-            "string-dict-of": F(createConstImmutableStringDict, "string-dict-of"),
-            "is-string-dict": F(isImmutableStringDict, "is-string-dict")
-          }),
-          internal: {
-            checkISD: jsCheckISD,
-            checkMSD: jsCheckMSD
-          }
+      var vals = {
+        "make-mutable-string-dict": F(createMutableStringDict, "make-mutable-string-dict"),
+        "mutable-string-dict": O({
+          make: F(createMutableStringDictFromArray, "mutable-string-dict:make"),
+          make0: F(createMutableStringDict0, "mutable-string-dict:make0"),
+          make1: F(createMutableStringDict1, "mutable-string-dict:make1"),
+          make2: F(createMutableStringDict2, "mutable-string-dict:make2"),
+          make3: F(createMutableStringDict3, "mutable-string-dict:make3"),
+          make4: F(createMutableStringDict4, "mutable-string-dict:make4"),
+          make5: F(createMutableStringDict5, "mutable-string-dict:make5")
         }),
-        "answer": runtime.nothing
-      });
+        "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
+        "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
+        "dict-each": F(dictEach, "dict-each"),
+        "dict-each-loop": F(dictEachLoop, "dict-each-loop"),
+        "string-dict": O({
+          make: F(createImmutableStringDictFromArray, "string-dict:make"),
+          make0: F(createImmutableStringDict0, "string-dict:make0"),
+          make1: F(createImmutableStringDict1, "string-dict:make1"),
+          make2: F(createImmutableStringDict2, "string-dict:make2"),
+          make3: F(createImmutableStringDict3, "string-dict:make3"),
+          make4: F(createImmutableStringDict4, "string-dict:make4"),
+          make5: F(createImmutableStringDict5, "string-dict:make5")
+        }),
+        "string-dict-of": F(createConstImmutableStringDict, "string-dict-of"),
+        "is-string-dict": F(isImmutableStringDict, "is-string-dict")
+      };
+      var types = {
+        MutableStringDict: annMutable,
+        StringDict: annImmutable
+      };
+      var internal = {
+        checkISD: jsCheckISD,
+        checkMSD: jsCheckMSD
+      };
+      return runtime.makeModuleReturn(vals, types, internal);
     }
   })
 

@@ -2,21 +2,20 @@
 
 import cmdline as C
 import file as F
+import render-error-display as RED
 import string-dict as D
+import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
-import file("cli-module-loader.arr") as CLI
 import file("locators/builtin.arr") as B
-import format as Format
-import either as E
-import render-error-display as RED
-format = Format.format
-left = E.left
-right = E.right
-
+import file("server.arr") as S
 
 fun main(args):
   options = [D.string-dict:
+    "serve",
+      C.flag(C.once, "Start the Pyret server"),
+    "port",
+      C.next-val-default(C.String, "1701", none, C.once, "Port to serve on (default 1701)"),
     "build-standalone",
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build-runnable",
@@ -114,6 +113,9 @@ fun main(args):
                 compiled-cache: compiled-dir,
                 display-progress: display-progress
               })
+        else if r.has-key("serve"):
+          port = r.get-value("port")
+          S.serve(port)
         else if r.has-key("build-standalone"):
           raise("Use build-runnable instead of build-standalone")
           #|

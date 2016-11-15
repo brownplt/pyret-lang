@@ -87,9 +87,9 @@ fun arg-max-helper(curr-max, max-ind :: Number, curr-ind :: Number, l :: L.List)
   | empty => max-ind
   | link(first, rest) =>
     if first > curr-max:
-      arg-min-helper(first, curr-ind, curr-ind + 1, rest)
+      arg-max-helper(first, curr-ind, curr-ind + 1, rest)
     else:
-      arg-min-helper(curr-max, max-ind, curr-ind + 1, rest)
+      arg-max-helper(curr-max, max-ind, curr-ind + 1, rest)
     end
  end
 end

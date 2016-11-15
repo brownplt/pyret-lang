@@ -1,9 +1,9 @@
 #lang pyret/library
 
 provide {
-  set: list-set-maker,
-  list-set: list-set-maker,
-  tree-set: tree-set-maker,
+  set: list-set,
+  list-set: list-set,
+  tree-set: tree-set,
   empty-set: empty-list-set,
   empty-list-set: empty-list-set,
   empty-tree-set: empty-tree-set,
@@ -668,7 +668,7 @@ fun makeSet5(a, b, c, d, e):
   end
 end
 
-list-set-maker = {
+shadow list-set = {
   make: arr-to-list-set,
   make0: lam(): empty-list-set end,
   make1: lam(a): list-set(link(a, empty)) end,
@@ -678,7 +678,7 @@ list-set-maker = {
   make5: lam(a, b, c, d, e): list-set(makeSet5(a, b, c, d, e)) end
 }
 
-tree-set-maker = {
+shadow tree-set = {
   make: arr-to-tree-set,
   make0: lam(): empty-tree-set end,
   make1: lam(a): empty-tree-set.add(a) end,
@@ -687,3 +687,10 @@ tree-set-maker = {
   make4: lam(a, b, c, d): empty-tree-set.add(a).add(b).add(c).add(d) end,
   make5: lam(a, b, c, d, e): empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
 }
+
+empty-set = empty-list-set
+shadow set = list-set
+shadow list-to-set = list-to-list-set
+shadow fold = set-fold
+shadow all = set-all
+shadow any = set-any

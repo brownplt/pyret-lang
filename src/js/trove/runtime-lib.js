@@ -20,21 +20,18 @@
         }))
       }));
     }
-    return runtime.makeObject({
-      "provide-plus-types": runtime.makeObject({
-        types: {
-          Runtime: annRuntime
-        },
-        values: runtime.makeObject({
-          "make-runtime": runtime.makeFunction(makeRuntime, "make-runtime")
-        }),
-        internal: {
-          makeRuntime: makeRuntime,
-          checkRuntime: checkRuntime,
-          brandRuntime: brandRuntime
-        }
-      })
-    });
+    var values = {
+      "make-runtime": runtime.makeFunction(makeRuntime, "make-runtime")
+    };
+    var types = {
+      Runtime: annRuntime
+    };
+    var internal = {
+      makeRuntime: makeRuntime,
+      checkRuntime: checkRuntime,
+      brandRuntime: brandRuntime
+    };
+    return runtime.makeModuleReturn(values, types, internal);
   }
 })
 

@@ -277,6 +277,11 @@ data ADefinedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
+  | a-defined-var(name :: String, id :: A.Name) with:
+    method label(self): "a-defined-var" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.toname())
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

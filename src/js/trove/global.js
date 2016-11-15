@@ -22,6 +22,18 @@
                     name: "EqualityResult" }
     },
     values: {
+      "print": ["arrow", ["Any"], "Any"],
+      "test-print": ["arrow", ["Any"], "Any"],
+      "print-error": ["arrow", ["Any"], "Any"],
+      "display": ["arrow", ["Any"], "Any"],
+      "display-error": ["arrow", ["Any"], "Any"],
+
+      "run-task": ["arrow", [["arrow", [], "Any"]], "Any"],
+      "brander": "Any",
+      "raise": "Any",
+      "nothing": "Any",
+      "builtins": "Any",
+
       "nothing": "Nothing",
       "torepr": ["arrow", ["Any"], "String"],
       "to-repr": ["arrow", ["Any"], "String"],
@@ -74,6 +86,7 @@
       // Number functions
 
       "string-to-number": ["arrow", ["String"], ["Option", "Number"]],
+      "string-tonumber": ["arrow", ["String"], ["Option", "Number"]],
       "num-is-integer": "NumPred",
       "num-is-rational": "NumPred",
       "num-is-roughnum": "NumPred",
@@ -155,6 +168,21 @@
       "string-split-all": ["arrow", ["String", "String"], ["List", "String"]],
       "string-explode": ["arrow", ["String"], ["List", "String"]],
       "string-index-of": ["arrow", ["String", "String"], "Number"],
+
+      "_plus": "Any",
+      "_minus": "Any",
+      "_times": "Any",
+      "_divide": "Any",
+      "_lessthan": "Any",
+      "_lessequal": "Any",
+      "_greaterthan": "Any",
+      "_greaterequal": "Any",
+
+      "ref-get": "Any",
+      "ref-set": "Any",
+      "ref-freeze": "Any",
+
+      "exn-unwrap": "Any"
 
     },
     aliases: {

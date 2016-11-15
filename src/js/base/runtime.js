@@ -1842,13 +1842,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         cache.left.push(obj1);
         cache.right.push(obj2);
         cache.equal.push(thisRuntime.ffi.equal);
+        return cache.equal.length;
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
           if(current.setCache) {
-            setCachePair(current.left, current.right, toCompare.curAns);
+            cache.equal[current.index - 1] = toCompare.curAns;
             continue;
           }
           curLeft = current.left;
@@ -1895,8 +1896,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = curPair
               continue;
             } else {
-              cachePair(curLeft, curRight);
-              toCompare.stack.push({ setCache: true, left: curLeft, right: curRight });
+              var index = cachePair(curLeft, curRight);
+              toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -2058,10 +2059,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               for(var i = 0; i < toCompare.stack.length; i++) {
                 var current = toCompare.stack[i];
                 if(current.setCache) {
-                  setCachePair(current.left, current.right, $ans);
+                  cache.equal[current.index - 1] = $ans;
                 }
               }
-              setCachePair(left, right, $ans);
               toCompare = stackOfToCompare.pop();
               return $ans;
             }
@@ -4820,7 +4820,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
-        return thisRuntime.getField(m, "provide-plus-types");
+        if(m.dict['defined-values'] === undefined) {
+          console.log("Defined values are: ", m.dict['defined-values']);
+        }
+        return makeObject({
+          values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
+          types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          'defined-values': m.dict['defined-values'],
+          'defined-types': m.dict['defined-types']
+        });
       }
     }
 
@@ -4906,11 +4914,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types) {
+    function makeModuleReturn(values, types, internal) {
       return thisRuntime.makeObject({
+        "defined-values": values,
+        "defined-types": types,
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types
+          "types": types,
+          "internal": internal || {}
         })
       });
     }
@@ -5027,7 +5038,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
       var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
-        newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        if(hasField(moduleObj, "defined-values")) {
+          newns = newns.set(vf, getField(moduleObj, "defined-values")[vf]);
+        }
+        else {
+          newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        }
       });
       typeFields.forEach(function(tf) {
         newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
@@ -5517,6 +5533,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
+        "defined-values": runtimeNamespaceBindings,
+        "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
           "types": runtimeTypeBindings
