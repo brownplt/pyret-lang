@@ -8,7 +8,13 @@
     "pyret-base/js/pyret-tokenizer",
     "pyret-base/js/pyret-parser"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "surface-parse": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {
     var srcloc = RUNTIME.getField(srclocLib, "values");
     var ast = RUNTIME.getField(astLib, "values");
