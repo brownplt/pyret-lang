@@ -87,6 +87,10 @@ end
 ```) satisfies CS.is-unbound-type-id
   end
 
+  check "bad module references":
+    c("lists.not-defined") satisfies CS.is-wf-err
+  end
+
   check "bound type aliases":
     cok(```
 type N = Number

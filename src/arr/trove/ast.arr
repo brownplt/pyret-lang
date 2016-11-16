@@ -945,6 +945,15 @@ data Expr:
   | s-str(l :: Loc, s :: String) with:
     method label(self): "s-str" end,
     method tosource(self): PP.str(torepr(self.s)) end
+  # Base should be a name that refers to a module import, like import lists as L
+  # path is generalized to list because eventually this should support
+  # Lib.Mod.x kinds of references
+  | s-module-dot(l :: Loc, base :: Name, path :: List<String>) with:
+    method label(self): "s-module-dot" end,
+    method tosource(self):
+      PP.infix-break(INDENT, 0, str-period, self.base.tosource(),
+        PP.separate(str-period, self.path.map(PP.str)))
+    end
   | s-dot(l :: Loc, obj :: Expr, field :: String) with:
     method label(self): "s-dot" end,
     method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(), PP.str(self.field)) end,
@@ -2145,6 +2154,9 @@ default-map-visitor = {
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(l, obj.visit(self), field)
   end,
+  method s-module-dot(self, l :: Loc, base :: Name, path :: List<String>):
+    s-module-dot(l, base.visit(self), path)
+  end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(l, obj.visit(self), field)
   end,
@@ -2708,6 +2720,9 @@ default-iter-visitor = {
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
+  method s-module-dot(self, l :: Loc, base :: Name, path):
+    base.visit(self)
+  end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
@@ -3247,6 +3262,9 @@ dummy-loc-visitor = {
   end,
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(dummy-loc, obj.visit(self), field)
+  end,
+  method s-module-dot(self, l :: Loc, base :: Name, path):
+    s-module-dot(dummy-loc, base.visit(self), path)
   end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(dummy-loc, obj.visit(self), field)

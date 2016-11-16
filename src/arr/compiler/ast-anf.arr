@@ -477,6 +477,9 @@ data AVal:
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
     method tosource(self): PP.str("~" + tostring(self.id)) end
+  | a-module-dot(l :: Loc, base :: A.Name, path :: List<String>) with:
+    method label(self): "a-module-dot" end,
+    method tosource(self): self.id.to-compiled-source() end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -580,6 +583,8 @@ fun strip-loc-val(val :: AVal):
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
+    | a-module-dot(_, base, path) => a-module-dot(dummy-loc, base, path)
+>>>>>>> checkpoint: this probably fails lots of tests, but seems to correctly compile value module lookups, and check if they are there, without treating them as objects
   end
 end
 
@@ -716,6 +721,9 @@ default-map-visitor = {
   end,
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
+  end,
+  method a-module-dot(self, l :: Loc, base :: A.Name, path):
+    a-module-dot(l, base, path)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     a-id-var(l, id)
@@ -956,11 +964,8 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-id-var(_, id) =>
-      seen-so-far.set-now(id.key(), id)
-      seen-so-far
-    | a-id-letrec(_, id, _) =>
-      seen-so-far.set-now(id.key(), id)
+    | a-module-dot(_, base, _) =>
+      seen-so-far.set-now(base.key(), base)
       seen-so-far
     | a-id-safe-letrec(_, id) =>
       seen-so-far.set-now(id.key(), id)

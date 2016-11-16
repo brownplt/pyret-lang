@@ -1484,6 +1484,12 @@ compiler-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,
+  method a-module-dot(self, l :: Loc, base :: A.Name, path :: List<String>):
+    lookup = for fold(expr from j-id(js-id-of(base)), p from path):
+      j-bracket(j-dot(expr, "dict"), j-str(p))
+    end
+    c-exp(lookup, cl-empty)
+  end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,

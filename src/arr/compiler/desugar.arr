@@ -433,6 +433,7 @@ fun desugar-expr(expr :: A.Expr):
         blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
+    | s-module-dot(l, base, path) => A.s-module-dot(l, base, path)
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-bracket(l, obj, key) =>
       ds-curry(l, bid(l, "get-value"), [list: desugar-expr(obj), desugar-expr(key)])

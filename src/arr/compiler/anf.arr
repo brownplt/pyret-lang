@@ -174,6 +174,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
+    | s-module-dot(l, base, path) => k(l, N.a-val(l, N.a-module-dot(l, base, path)))
     | s-srcloc(l, loc) => k(N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:
@@ -350,8 +351,13 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       cases(A.Expr) f:
         | s-dot(l2, obj, m) =>
           anf-name(obj, "anf_method_obj", lam(v):
+<<<<<<< HEAD
             anf-name-rec(args, "anf_arg", lam(vs):
               k(N.a-method-app(l, v, m, vs))
+=======
+            anf-name-rec(args, "anf_arg", lam(vs):  
+              k.apply(l, N.a-method-app(l, v, m, vs))
+>>>>>>> checkpoint: this probably fails lots of tests, but seems to correctly compile value module lookups, and check if they are there, without treating them as objects
             end)
           end)
         | s-lam(f-l, _, _, params, ann, _, body, _, _, blocky) =>
