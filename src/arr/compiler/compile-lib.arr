@@ -214,32 +214,6 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
-  parsed = get-ast(p, uri)
-  vals-part =
-    cases (A.Provide) parsed._provide:
-      | s-provide-none(l) => mtd
-      | s-provide-all(l) =>
-        const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
-      | s-provide(l, e) =>
-        cases (A.Expr) e:
-          | s-obj(_, mlist) => const-dict(mlist.map(_.name), CS.v-just-there)
-          | else => raise("Non-object expression in provide: " + l.format(true))
-        end
-    end
-  types-part =
-    cases(A.ProvideTypes) parsed.provided-types:
-      | s-provide-types-none(l) => mtd
-      | s-provide-types-all(l) =>
-        type-ids = A.block-type-ids(parsed.block)
-        type-strs = type-ids.map(lam(i): i.name.toname() end)
-        const-dict(type-strs, CS.t-just-there)
-      | s-provide-types(l, anns) =>
-        const-dict(anns.map(_.name), CS.t-just-there)
-    end
-  CS.provides(vals-part, types-part)
-end
-
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
