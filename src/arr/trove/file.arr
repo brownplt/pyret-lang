@@ -51,3 +51,5 @@ end
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
+
+real-path = F.real-path

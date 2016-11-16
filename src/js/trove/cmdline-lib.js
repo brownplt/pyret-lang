@@ -1,6 +1,12 @@
 ({
   requires: [],
-  provides: {},
+  provides: {
+    values: {
+      "command-line-arguments": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   nativeRequires: [],
   theModule: function(runtime, _, uri) {
     return runtime.makeModuleReturn(

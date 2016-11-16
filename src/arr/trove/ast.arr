@@ -2415,7 +2415,7 @@ default-iter-visitor = {
   end,
 
   method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
-    lists.app(_.visit(self), params)
+    lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 

@@ -3,7 +3,21 @@
     { "import-type": "builtin", name: "runtime-lib" }
   ],
   nativeRequires: ["pyret-base/js/secure-loader"],
-  provides: {},
+  provides: {
+    values: {
+      "run-program": "tany",
+      "is-success-result": "tany",
+      "is-failure-result": "tany",
+      "get-result-answer": "tany",
+      "get-result-realm": "tany",
+      "get-result-compile-result": "tany",
+      "render-check-results": "tany",
+      "render-error-message": "tany",
+      "empty-realm": "tany",
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {
 
 

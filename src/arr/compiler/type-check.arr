@@ -2096,7 +2096,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
           end
       end
     | a-checked(checked, residual) =>
-      fold-errors([list: C.cant-type-check("a-checked should not be appearing before type checking", A.dummy-loc)])
+      fold-errors([list: C.cant-typecheck("a-checked should not be appearing before type checking", A.dummy-loc)])
   end
 end
 

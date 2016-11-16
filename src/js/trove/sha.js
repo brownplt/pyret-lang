@@ -1,7 +1,13 @@
 ({
   requires: [],
   nativeRequires: ["crypto"],
-  provides: {},
+  provides: {
+    values: {
+      "sha256": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   // NOTE(joe): when moving this to troveA, add uri and crypto
   theModule: function(runtime, namespace, uri, crypto) {
     return runtime.makeModuleReturn({

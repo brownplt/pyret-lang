@@ -5,7 +5,14 @@
     "pyret-base/js/secure-loader",
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "builtin-raw-locator": "tany",
+      "builtin-raw-locator-from-str": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
 

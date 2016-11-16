@@ -1,7 +1,13 @@
 ({
   requires: [],
   nativeRequires: ["path", "fs", "requirejs"],
-  provides: {},
+  provides: {
+    values: {
+      "make-standalone": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(runtime, namespace, uri, path, fs, requirejs) {
     /*
 
