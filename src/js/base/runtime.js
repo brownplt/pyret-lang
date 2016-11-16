@@ -4820,14 +4820,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
-        if(m.dict['defined-values'] === undefined) {
-          console.log("Defined values are: ", m.dict['defined-values']);
-        }
         return makeObject({
           values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
           types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          internal: thisRuntime.getField(m, "provide-plus-types").dict['internal'],
           'defined-values': m.dict['defined-values'],
-          'defined-types': m.dict['defined-types']
+          'defined-types': m.dict['defined-types'],
         });
       }
     }
