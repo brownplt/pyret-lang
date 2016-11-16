@@ -1085,21 +1085,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
     end,
-    method s-do(self, l, iter, binds, ann, body) block:
-      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
-        cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) =>
-            {env; fbs} = acc
-            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-let, _, bind.ann.visit(self), none))
-            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
-            visit-val = val.visit(self)
-            new-fb = A.s-for-bind(l2, new-bind, visit-val)
-            { atom-env.env; link(new-fb, acc.fbs) }
-        end
-      end
-      A.s-do(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}))
-    end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
         {env; atoms} = acc
@@ -1343,8 +1328,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-table-order(self, l, table, ordering):
       A.s-table-order(l, table.visit(self), ordering)
     end,
-    method s-table-extent(self, l, column, table):
-      A.s-table-extent(l, column.visit(self), table)
+    method s-table-extend(self, l, column, table):
+      A.s-table-extend(l, column.visit(self), table)
     end,
   }
   C.resolved-names(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)

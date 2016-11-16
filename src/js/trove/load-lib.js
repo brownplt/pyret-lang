@@ -3,7 +3,21 @@
     { "import-type": "builtin", name: "runtime-lib" }
   ],
   nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
-  provides: {},
+  provides: {
+    values: {
+      "run-program": "tany",
+      "is-success-result": "tany",
+      "is-failure-result": "tany",
+      "get-result-answer": "tany",
+      "get-result-realm": "tany",
+      "get-result-compile-result": "tany",
+      "render-check-results": "tany",
+      "render-error-message": "tany",
+      "empty-realm": "tany",
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
@@ -12,7 +26,6 @@
     var EXIT_ERROR_CHECK_FAILURES = 4;
     var EXIT_ERROR_JS = 5;
     var EXIT_ERROR_UNKNOWN = 6;
-
 
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
     var brandModuleResult = runtime.namedBrander("module-result", ["load-lib: module-result brander"]);

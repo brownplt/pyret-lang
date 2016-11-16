@@ -1,5 +1,11 @@
 ({
-  provides: {},
+  provides: {
+    values: {
+      "format": "tany" 
+    },
+    aliases: {},
+    datatypes: {}
+  },
   requires: [],
   nativeRequires: [],
   theModule: function(RUNTIME, NAMESPACE, uri) {

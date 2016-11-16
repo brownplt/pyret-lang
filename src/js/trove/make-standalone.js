@@ -1,7 +1,13 @@
 ({
   requires: [],
   nativeRequires: ["path", "fs"],
-  provides: {},
+  provides: {
+    values: {
+      "make-standalone": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(runtime, namespace, uri, path, fs) {
 
     var READ_OPTIONS = {encoding: 'utf8'};
