@@ -63,7 +63,7 @@ data ValueBinder:
   | vb-letrec
   | vb-let
   | vb-var
-  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+  | vb-module(dep :: Dependency, uri :: URI) # The A in import ast as A (with URI determined from compile env)
 end
 
 data ValueBind:

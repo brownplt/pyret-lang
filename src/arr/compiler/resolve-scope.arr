@@ -690,7 +690,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         atom = vb.atom
         cases(C.ValueBinder) vb.binder block:
           | vb-let => A.s-defined-value(key, A.s-id(l, atom))
-          | vb-module(_) => A.s-defined-value(key, A.s-id(l, atom))
+          | vb-module(_, _) => A.s-defined-value(key, A.s-id(l, atom))
           | vb-letrec => A.s-defined-value(key, A.s-id-letrec(l, atom, true))
           | vb-var => A.s-defined-var(key, atom)
         end
@@ -716,10 +716,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             atom-env =
               if A.is-s-underscore(name-vals):
                 make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(mod-info.from-uri), _, A.a-any(l2), none))
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(U.import-to-dep(file), mod-info.from-uri), _, A.a-any(l2), none))
               else:
                 make-atom-for(name-vals, false, imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(mod-info.from-uri), _, A.a-any(l2), none))
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(U.import-to-dep(file), mod-info.from-uri), _, A.a-any(l2), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
@@ -1072,11 +1072,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               end
               A.s-id(l2, names.s-global(s))
             | some(vb) =>
-              cases (C.ValueBinder) vb.binder:
+              cases (C.ValueBinder) vb.binder block:
                 | vb-let => A.s-id(l2, vb.atom)
                 | vb-letrec => A.s-id-letrec(l2, vb.atom, false)
                 | vb-var => A.s-id-var(l2, vb.atom)
-                | vb-module(_) => A.s-id(l2, vb.atom)
+                | vb-module(_, _) =>
+                  name-errors := link(C.wf-err("Module binding " + to-repr(id) + " used as value", l), name-errors)
+                  A.s-id(l2, vb.atom)
               end
           end
         | s-atom(_, _) => A.s-id(l, id)
@@ -1100,6 +1102,28 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
         | else => 
           raise("Should not reach non-underscore bindings in resolve-names: " + id.key() + " at " + torepr(l))
+      end
+    end,
+    method s-dot(self, l, obj, field):
+      cases(A.Expr) obj:
+        | s-id(l2, name) =>
+          maybe-module = cases(A.Name) name:
+            | s-name(l3, s) =>
+              cases(Option) self.env.get(s) block:
+                | none => none
+                | some(vb) =>
+                  cases (C.ValueBinder) vb.binder:
+                    | vb-module(_, _) => some(vb)
+                    | else => none
+                  end
+              end
+            | else => none
+          end
+          cases(Option) maybe-module:
+            | none => A.s-dot(l, obj.visit(self), field)
+            | some(vbm) => A.s-module-dot(l, vbm.atom, [list: field])
+          end
+        | else => A.s-dot(l, obj.visit(self), field)
       end
     end,
     method a-blank(self): A.a-blank end,
@@ -1183,6 +1207,32 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
       method s-id(self, loc, id) block:
         when handle-id(id, loc):
           add-error(C.unbound-id(A.s-id(loc, id)))
+        end
+        true
+      end,
+      method s-module-dot(self, l, base, path) block:
+        when handle-id(base, l):
+          add-error(C.unbound-id(A.s-id(l, base)))
+        end
+        cases(Option) bindings.get-now(base.key()):
+          | none => true
+          | some(vb) =>
+            cases(C.ValueBinder) vb.binder:
+              | vb-module(dep, _) =>
+                mod-info = initial-env.mods.get(dep.key())
+                cases(Option) mod-info:
+                  | none =>
+                    raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(vb.binder) )
+                  | some(info) =>
+                    # TODO(joe): extend to general path lists
+                    cases(Option) info.values.get(path.first):
+                      | none =>
+                        add-error(C.wf-err("Name " + path.first + " not found in module bound to " + to-repr(base), l))
+                      | some(_) =>
+                        nothing
+                    end
+                end
+            end
         end
         true
       end,

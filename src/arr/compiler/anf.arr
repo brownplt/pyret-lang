@@ -185,6 +185,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k.apply(l, N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k.apply(l, N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k.apply(l, N.a-val(l, N.a-id(l, id)))
+    | s-module-dot(l, base, path) => k.apply(l, N.a-val(l, N.a-module-dot(l, base, path)))
     | s-srcloc(l, loc) => k.apply(l, N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:
@@ -362,7 +363,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       cases(A.Expr) f:
         | s-dot(l2, obj, m) =>
           anf-name(obj, "anf_method_obj", lam(v):
-            anf-name-rec(args, "anf_arg", lam(vs):
+            anf-name-rec(args, "anf_arg", lam(vs):  
               k.apply(l, N.a-method-app(l, v, m, vs))
             end)
           end)

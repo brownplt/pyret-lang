@@ -474,6 +474,9 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
+  | a-module-dot(l :: Loc, base :: A.Name, path :: List<String>) with:
+    method label(self): "a-module-dot" end,
+    method tosource(self): self.id.to-compiled-source() end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -576,6 +579,7 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
+    | a-module-dot(_, base, path) => a-module-dot(dummy-loc, base, path)
   end
 end
 
@@ -712,6 +716,9 @@ default-map-visitor = {
   end,
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
+  end,
+  method a-module-dot(self, l :: Loc, base :: A.Name, path):
+    a-module-dot(l, base, path)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     a-id-var(l, id)
@@ -943,11 +950,8 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-id-var(_, id) =>
-      seen-so-far.set-now(id.key(), id)
-      seen-so-far
-    | a-id-letrec(_, id, _) =>
-      seen-so-far.set-now(id.key(), id)
+    | a-module-dot(_, base, _) =>
+      seen-so-far.set-now(base.key(), base)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far
     | a-num(_, _) => seen-so-far
