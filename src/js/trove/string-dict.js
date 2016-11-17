@@ -48,7 +48,8 @@
       "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]
     },
     aliases: {
-
+      "StringDict": ["local", "StringDict"],
+      "MutableStringDict": ["local", "MutableStringDict"],
     },
     datatypes: {
       "StringDict": ["data", "StringDict", ["a"], [], {

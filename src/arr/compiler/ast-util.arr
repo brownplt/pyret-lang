@@ -1048,7 +1048,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             T.t-top(l, false)
           | some(b) =>
             cases(CS.TypeBinder) b.binder:
-              | tb-module(dot-uri) =>
+              | tb-module(dep, dot-uri) =>
                 T.t-name(module-uri(dot-uri), A.s-name(l, field), l, false)
               | else =>
                 raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope.")

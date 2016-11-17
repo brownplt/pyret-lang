@@ -13,7 +13,7 @@ import file("../../../src/arr/compiler/locators/builtin.arr") as BL
 
 print("Running compile-lib tests: " + tostring(time-now()) + "\n")
 
-fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
+fun worklist-contains-checker(wlist :: List<CL.ToCompile>):
   locs = wlist.map(_.locator)
   lam(loc :: CL.Locator): locs.member(loc) end
 end
@@ -45,7 +45,6 @@ check "Worklist generation (simple)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -114,7 +113,6 @@ check "Worklist generation (DAG)":
       method get-native-modules(self): empty end,
       method get-extra-imports(self): CM.minimal-imports end,
       method get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      method get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       method get-globals(self): CM.no-builtins.globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -177,7 +175,6 @@ check "Worklist generation (Cycle)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -239,7 +236,6 @@ check "Multiple includes":
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,
       method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method get-native-modules(self): empty end,
       method uri(self): "file://" + name end,

@@ -78,7 +78,7 @@ end
 data TypeBinder:
   | tb-type-let
   | tb-type-var
-  | tb-module(uri :: URI)
+  | tb-module(dep :: Dependency, uri :: URI)
 end
 
 data TypeBind:

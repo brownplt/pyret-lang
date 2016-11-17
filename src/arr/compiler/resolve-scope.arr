@@ -831,7 +831,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(C.TypeBinder) vb.binder block:
             | tb-type-let => A.a-name(l, name)
             | tb-type-var => A.a-type-var(l, name)
-            | tb-module(_) =>
+            | tb-module(_, _) =>
+              name-errors := link(C.wf-err("Module name " + to-repr(id) + " used as a type name; maybe you mean to use one of the fields of that module with " + id.toname() + ".<some-type>", l), name-errors)
               A.a-name(l, name)
           end
         else:
@@ -887,23 +888,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         {imp-e; imp-te; imp-imps} = acc
         cases(A.Import) i block:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
-            info-key = U.import-to-dep(file).key()
-            mod-info = initial-env.mods.get-value(info-key)
+            dep = U.import-to-dep(file)
+            mod-info = initial-env.mods.get-value(dep.key())
             atom-env =
               if A.is-s-underscore(name-vals):
                 make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(U.import-to-dep(file), mod-info.from-uri), _, A.a-any(l2), none))
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
               else:
                 make-atom-for(name-vals, false, imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(U.import-to-dep(file), mod-info.from-uri), _, A.a-any(l2), none))
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
               end
             atom-env-t =
               if A.is-s-underscore(name-types):
                 make-anon-import-for(name-types.l, "$import", imp-te, type-bindings,
-                  C.type-bind(C.bo-local(name-types.l), C.tb-module(mod-info.from-uri), _, none))
+                  C.type-bind(C.bo-local(name-types.l), C.tb-module(dep, mod-info.from-uri), _, none))
               else:
                 make-atom-for(name-types, false, imp-te, type-bindings,
-                  C.type-bind(C.bo-local(name-types.l), C.tb-module(mod-info.from-uri), _, none))
+                  C.type-bind(C.bo-local(name-types.l), C.tb-module(dep, mod-info.from-uri), _, none))
               end
             {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
               {e; vn} = nv-v
@@ -1292,14 +1293,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(Option) self.type-env.get(s):
             | none => A.a-dot(l, obj, field)
             | some(tb) =>
-              A.a-dot(l, tb.atom, field)
-#|
-              cases(C.TypeBinder) tb.binder:
-                | tb-module(uri) => A.a-dot(l, tb.atom, field)
+              cases(C.TypeBinder) tb.binder block:
+                | tb-module(_, _) => A.a-dot(l, tb.atom, field)
                 | else =>
                   name-errors := link(C.type-id-used-in-dot-lookup(nameloc, tb.atom), name-errors)
+                  A.a-dot(l, tb.atom, field)
               end
-              |#
           end
         | else =>
           name-errors := link(C.underscore-as-ann(obj.l), name-errors)
@@ -1327,10 +1326,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     method s-table-order(self, l, table, ordering):
       A.s-table-order(l, table.visit(self), ordering)
-    end,
-    method s-table-extend(self, l, column, table):
-      A.s-table-extend(l, column.visit(self), table)
-    end,
+    end
   }
   C.resolved-names(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end
@@ -1431,23 +1427,37 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         end
         true
       end,
-      method a-dot(self, loc, name, field) block:
+      method a-dot(self, l, name, field) block:
         if A.is-s-underscore(name) block:
           add-error(C.underscore-as-ann(name.l))
+          true
         else if A.is-s-type-global(name) and initial-env.globals.types.has-key(name.toname()):
           # need to figure out how to read through the imports here, I think
-          nothing
-        else if type-bindings.has-key-now(name.key()):
-          nothing
+          true
         else:
-          # need to figure out how to read through the imports here, I think
-          #print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
-          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
-          add-error(C.unbound-type-id(A.a-name(loc, name)))
-          nothing
+          cases(Option) type-bindings.get-now(name.key()) block:
+            | none =>
+              add-error(C.unbound-type-id(A.a-name(l, name)))
+              true
+            | some(tb) =>
+              cases(C.TypeBinder) tb.binder:
+                | tb-module(dep, _) =>
+                  mod-info = initial-env.mods.get(dep.key())
+                  cases(Option) mod-info:
+                    | none =>
+                      raise("Bug: Reference to an unknown module. " + to-repr(name) + " " + to-repr(tb.binder) )
+                    | some(info) =>
+                      cases(Option) info.aliases.get(field) block:
+                        | none =>
+                          add-error(C.wf-err("Type named " + field + " not found in module bound to " + to-repr(name), l))
+                          true
+                        | some(_) =>
+                          true
+                      end
+                  end
+              end
+          end
         end
-        true
       end
     })
   errors
