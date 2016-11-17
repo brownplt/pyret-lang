@@ -2929,7 +2929,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
       }
       
-
       // Fast path: no refinements, so no deep stack/pause potential
       if(!that.hasRefinement) {
         for(var i = 0; i < that.fields.length; i++) {
