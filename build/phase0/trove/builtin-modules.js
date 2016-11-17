@@ -123,7 +123,7 @@
 
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      value: t.bindToPyret(RUNTIME, expanded)
                     });
                   });
                 }
