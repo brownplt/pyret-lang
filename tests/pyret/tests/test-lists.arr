@@ -207,6 +207,18 @@ check "shuffle":
   num-random-seed(0)
   l-mixed2 = lists.shuffle(l)
   l-mixed2 is l-mixed
+
+  two-elts = [list: 1, 2]
+  {saw-same; saw-different} =
+    for fold({saw-same; saw-different} from {false; false}, i from range(0, 100)):
+      same = (lists.shuffle(two-elts) == two-elts)
+      {
+        saw-same or same;
+        saw-different or not(same)
+      }
+    end
+  saw-same is true
+  saw-different is true
 end
 
 check "string helper":
@@ -255,3 +267,4 @@ check "more utility functions":
 
   lists.push(empty, 1) is link(1, empty)
 end
+

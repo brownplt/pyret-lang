@@ -3,7 +3,7 @@
   nativeRequires: ["path"],
   provides: {},
   theModule: function(RUNTIME, NAMESPACE, uri, path) {
-    var values = RUNTIME.makeObject({
+    var values = {
       "normalize": RUNTIME.makeFunction(function(p) {
         RUNTIME.ffi.checkArity(1, arguments, "normalize");
         RUNTIME.checkString(p);
@@ -53,14 +53,8 @@
         return RUNTIME.makeString(path.basename(s, sext));
       }),
       "path-sep": RUNTIME.makeString(path.sep)
-    });
-    return RUNTIME.makeObject({
-      'provide-plus-types': RUNTIME.makeObject({
-        'values': values,
-        'types': {}
-      }),
-      answer: NAMESPACE.get("nothing")
-    });
+    };
+    return RUNTIME.makeModuleReturn(values, {});
   }    
 })
 

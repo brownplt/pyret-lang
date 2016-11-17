@@ -275,24 +275,28 @@
       });
 
     }
+    var vals = {
+      "run-program": runtime.makeFunction(runProgram, "run-program"),
+      "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
+      "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
+      "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
+      "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
+      "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
+      "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
+      "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
+      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
+    };
+    var types = {
+      Module: annModule,
+      ModuleResult: annModuleResult,
+      Realm: annRealm
+    };
     return runtime.makeObject({
+      'defined-values': vals,
+      'defined-types': types,
       "provide-plus-types": runtime.makeObject({
-        values: runtime.makeObject({
-          "run-program": runtime.makeFunction(runProgram, "run-program"),
-          "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
-          "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
-          "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
-          "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
-          "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
-          "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
-          "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
-          "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
-        }),
-        types: {
-          Module: annModule,
-          ModuleResult: annModuleResult,
-          Realm: annRealm
-        },
+        values: runtime.makeObject(vals),
+        types: types,
         internal: {
           makeRealm: makeRealm,
           getModuleResultAnswer: getModuleResultAnswer,

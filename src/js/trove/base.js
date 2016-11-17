@@ -26,6 +26,8 @@
   nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
     return runtime.makeObject({
+      "defined-values": {},
+      "defined-types": {},
       "provide-plus-types": runtime.makeObject({
         "values": runtime.makeObject({}),
         "types": {}

@@ -279,11 +279,6 @@
       "D7": runtime.getField(pStruct_vals, "D7")
     });
 
-    return makeObject({
-      'provide-plus-types': makeObject({
-        'values': values,
-        'types': {}
-      })
-    });
+    return runtime.makeModuleReturn(values, {});
   }
 })

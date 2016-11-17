@@ -48,11 +48,22 @@ end
 
 fun median(l :: L.List):
   doc: "returns the median element of the list"
+
+  fun is-odd(n :: Number) -> Boolean:
+    num-modulo(n, 2) == 1
+  end
+
   sorted = l.sort()
-  index = L.length(sorted)
+  size = L.length(sorted)
+  index_of_median = num-floor(size / 2)
   cases (L.List) sorted:
     |empty => raise("The list is empty")
-    |link(first, rest) => sorted.get(num-floor(index / 2))
+    |link(first, rest) => 
+      if is-odd(size):
+        sorted.get(index_of_median)
+      else:
+        (sorted.get(index_of_median) + sorted.get(index_of_median - 1)) / 2
+      end
   end
 end
 

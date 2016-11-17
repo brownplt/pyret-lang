@@ -158,9 +158,9 @@ data RuntimeError:
           ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("The "),
+            ED.text("This "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
-            ED.text(" is not a reference in the "),
+            ED.text(" is not a mutable reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
       else:
@@ -169,7 +169,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
       end
     end,
@@ -179,7 +179,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
@@ -1195,12 +1195,7 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(
-              if self.fun-def-loc.is-builtin(): 
-                0 
-              else: 
-                1 
-              end, false):
+            cases(O.Option) maybe-stack-loc(0, true):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1388,12 +1383,22 @@ data RuntimeError:
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
                     | some(ast) =>
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
+                      fun-loc = cases(Any) ast:
+                        | s-app(_, _fun, _) => _fun.l
+                        | s-for(_, _fun, _, _, _, _) => _fun.l
+                        | else  => ast.l
+                      end
+                      args = cases(Any) ast:
+                        | s-app(_, _, args) => args
+                        | s-for(_, _, args, _, _, _) => args
+                        | else  => ast.l
+                      end
+                      applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
                       [ED.sequence:
                         ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
+                          ED.highlight(ED.ed-args(fun-app-arity), args.map(_.l),1),
                           ED.text(" were passed to the "),
                           applicant,
                           ED.text(".")],
@@ -1553,6 +1558,7 @@ data RuntimeError:
                 ED.highlight(ED.text("left side"), [ED.locs: 
                   cases(Any) ast:
                     | s-app(_, _fun, _) => _fun.l
+                    | s-for(_, _fun, _, _, _, _) => _fun.l
                     | else  => ast.l
                   end], 0),
                 ED.text(" was not a function value:")],

@@ -1029,8 +1029,13 @@ compiler-visitor = {
               j-field("defined-values",
                 j-obj(
                   for CL.map_list(dv from dvs):
-                    compiled-val = dv.value.visit(self).exp
-                    j-field(dv.name, compiled-val)
+                    cases(N.ADefinedValue) dv:
+                      | a-defined-value(name, value) =>
+                        compiled-val = dv.value.visit(self).exp
+                        j-field(dv.name, compiled-val)
+                      | a-defined-var(name, id) =>
+                        j-field(dv.name, j-id(js-id-of(id)))
+                    end
                   end)),
               j-field("defined-types",
                 j-obj(
@@ -1134,7 +1139,7 @@ compiler-visitor = {
   end,
   method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
-    c-exp(j-dot-assign(j-id(js-id-of(id)), "$var", visit-value.exp), visit-value.other-stmts)
+    c-exp(rt-field("nothing"), cl-snoc(visit-value.other-stmts, j-expr(j-dot-assign(j-id(js-id-of(id)), "$var", visit-value.exp))))
   end,
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
@@ -1514,14 +1519,13 @@ fun compile-type-variant(variant):
   cases(T.TypeVariant) variant:
     | t-variant(name, members, with-members, l) =>
       j-list(true, [clist: j-str(name),
-        j-list(false, CL.map_list(lam(mem-name):
-          typ = members.get-value(mem-name)
+        j-list(false, CL.map_list(lam({mem-name; typ}):
           if T.is-t-ref(typ):
             j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
           else:
             j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
           end
-        end, members.keys-list()))])
+        end, members))])
     | t-singleton-variant(name, with-members, l) =>
       j-list(true, [clist: j-str(name)])
   end
@@ -1596,7 +1600,14 @@ fun compile-provides(provides):
   cases(CS.Provides) provides:
     | provides(thismod-uri, values, aliases, data-defs) =>
       value-fields = for CL.map_list(v from values.keys().to-list()):
-        j-field(v, compile-provided-type(values.get-value(v)))
+        cases(CS.ValueExport) values.get-value(v):
+          | v-just-type(t) => j-field(v, compile-provided-type(t))
+          | v-var(t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("var")),
+              j-field("typ", compile-provided-type(t))
+            ]))
+          | v-fun(t, _, _) => j-field(v, compile-provided-type(t))
+        end
       end
       data-fields = for CL.map_list(d from data-defs.keys().to-list()):
         j-field(d, compile-provided-data(data-defs.get-value(d)))
@@ -1650,16 +1661,12 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
           | none => raise(dep + " not found in: " + torepr(env.mods))
         end
         j-var(js-id-of(n),
-          rt-method("getField", [clist:
-              rt-method("getField", [clist:
-                  rt-method("getField", [clist:
-                      j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                      j-str("provide-plus-types")
-                    ]),
-                  j-str("values")
+          j-bracket(
+             rt-method("getField", [clist:
+                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+                  j-str("defined-values")
                 ]),
-              j-str(n.toname())
-            ]))
+              j-str(n.toname())))
       | s-type-global(_) =>
         dep = env.globals.types.get-value(n.toname())
         uri = cases(Option) env.mods.get(dep):
@@ -1669,11 +1676,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
         j-var(js-id-of(n),
           j-bracket(
               rt-method("getField", [clist:
-                rt-method("getField", [clist:
-                    j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                    j-str("provide-plus-types")
-                  ]),
-                j-str("types")]),
+                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+                j-str("defined-types")]),
               j-str(n.toname())))
     end
 
