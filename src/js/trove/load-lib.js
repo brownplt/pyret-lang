@@ -15,7 +15,9 @@
       "render-error-message": "tany",
       "empty-realm": "tany",
     },
-    aliases: {},
+    aliases: {
+      "Realm": "tany" 
+    },
     datatypes: {}
   },
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {

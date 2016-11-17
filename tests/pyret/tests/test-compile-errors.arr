@@ -89,6 +89,7 @@ end
 
   check "bad module references":
     c("lists.not-defined") satisfies CS.is-wf-err
+    c("lam(x :: lists.Lust): x end") satisfies CS.is-wf-err
   end
 
   check "bound type aliases":

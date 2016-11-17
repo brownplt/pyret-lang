@@ -532,6 +532,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-str(l, s) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-module-dot(l, base, path) =>
+          check-synthesis(A.s-dot(l, A.s-id(l, base), path.first), expect-type, top-level, context)
         | s-dot(l, obj, field) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-get-bang(l, obj, field) =>
@@ -778,6 +780,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       typing-result(e, t-boolean(l), context)
     | s-str(l, s) =>
       typing-result(e, t-string(l), context)
+    | s-module-dot(l, base, path) =>
+      _synthesis(A.s-dot(l, A.s-id(l, base), path.first), top-level, context)
     | s-dot(l, obj, field) =>
       synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
         synthesis-field(l, new-ast, new-type, field, A.s-dot, context)
