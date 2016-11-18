@@ -406,14 +406,17 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               cleaned := cleaned.visit(AU.letrec-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               {final-provides; cr} = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
+                if options.collect-all:
+                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
                 else:
                   {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, named-result.bindings, provides, options)
                   {final-provides; phase("Result", CS.ok(cr), ret)}
                 end
               else:
-                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
-                else: phase("Result", CS.err(any-errors), ret)
+                if options.collect-all and options.ignore-unbound:
+                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
+                else:
+                  {provides; phase("Result", CS.err(any-errors), ret)}
                 end
               end
               cleaned := nothing
