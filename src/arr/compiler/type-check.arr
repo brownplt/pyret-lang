@@ -1577,7 +1577,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
                 fold-result(collected, context)
               end.bind(lam(collected-bindings, shadow context):
                 key = first-bind.b.id.key()
-                helper(rest-binds, top-level, context, data-bindings, {link(first-bind, bindings.{0}); bindings.{1}.set(key, collected-bindings.get-value(key))})
+                helper(rest-binds, top-level, context, data-bindings, {bindings.{0}.append([list: first-bind]); bindings.{1}.set(key, collected-bindings.get-value(key))})
               end)
             end)
         end
