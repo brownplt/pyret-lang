@@ -85,6 +85,7 @@ j-label = J.j-label
 j-break = J.j-break
 j-while = J.j-while
 j-for = J.j-for
+j-raw-code = J.j-raw-code
 make-label-sequence = J.make-label-sequence
 
 is-t-data = T.is-t-data
@@ -571,7 +572,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   fun-body =
     preamble-stmts +
   if is-flat:
-    cl-empty
+    [clist: j-expr(j-raw-code("// callee optimization"))]
   else:
     [clist: gas-check]
   end +
@@ -807,6 +808,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body) block:
 
   # Generate the code for calling the function
   call-code = [clist:
+    j-expr(j-raw-code("// caller optimization")),
     j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args)))
   ]
 
