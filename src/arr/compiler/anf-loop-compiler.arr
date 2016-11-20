@@ -1049,8 +1049,9 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
   else:
     compile-split-app
   end
-  app-compiler(l, compiler, b, f, args, opt-body,
-    is-function-k-flat(compiler.flatness-env, f.id.key()))
+
+  is-k-flat = N.is-a-id(f) and is-function-k-flat(compiler.flatness-env, f.id.key())
+  app-compiler(l, compiler, b, f, args, opt-body, is-k-flat)
 end
 
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
