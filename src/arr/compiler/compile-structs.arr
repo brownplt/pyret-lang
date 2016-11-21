@@ -811,7 +811,10 @@ data CompileError:
             [ED.para:
               ED.text("The identifier "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
-              ED.text(" is unbound. It is "),
+              ED.text(" is unbound:")],
+             ED.cmcode(self.id.l),
+            [ED.para:
+              ED.text("It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
               ED.text(" but not previously defined.")]]
       end
