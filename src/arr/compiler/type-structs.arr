@@ -501,6 +501,9 @@ sharing:
         end
     end
   end,
+  method _lessthan(self, other):
+    self.key() < other.key()
+  end,
   method _output(self):
     var current-letter = "A"
     fun helper(typ, free-vars-mapping, tyvar-mapping):

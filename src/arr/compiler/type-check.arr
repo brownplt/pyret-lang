@@ -137,7 +137,7 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
           else:
             new-existentials = data-type.params.map(lam(a-var): new-existential(a-var.l, false) end)
             new-type = t-app(typ, new-existentials, typ.l, inferred)
-            new-context = context.add-variable-set(list-to-list-set(new-existentials))
+            new-context = context.add-variable-set(list-to-tree-set(new-existentials))
             fold-result(new-type, new-context)
           end
       end
@@ -234,11 +234,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       #  print(x)
       #  print("\n")
       #end, body.tosource().pretty(72))
+      print("\nBegin Type Checking (\n")
 
       tc-result = checking(body, t-top(l, false), true, context)
-      cases(TypingResult) tc-result:
+      cases(TypingResult) tc-result block:
         | typing-result(new-body, _, shadow context) =>
           folded-info = gather-provides(_provide, context)
+          print("\nEnd Type Checking )\n")
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
               C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, new-body), info))
@@ -845,7 +847,7 @@ fun synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: 
       | t-existential(id, l, _) =>
         existential-args = args.map(lam(_): new-existential(l, false) end)
         existential-ret = new-existential(l, false)
-        shadow context = context.add-variable-set(list-to-list-set(link(existential-ret, existential-args)))
+        shadow context = context.add-variable-set(list-to-tree-set(link(existential-ret, existential-args)))
         new-arrow = t-arrow(existential-args, existential-ret, l, false)
         shadow context = context.add-constraint(fun-type, new-arrow)
         result = foldr2(lam(acc, arg, arg-type):
@@ -1475,12 +1477,12 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
                                              ret-type: partial-type.ret-type,
                                              loc: partial-type.loc,
                                              existential: expected-type})
-                  print("function:\n")
-                  each(lam(x) block:
-                    print(x)
-                    print("\n")
-                  end, value.tosource().pretty(72))
-                  print("test-inference-data: " + tostring(test-inference-data) + "\n\n")
+                #print("function:\n")
+                #each(lam(x) block:
+                #  print(x)
+                #  print("\n")
+                #end, value.tosource().pretty(72))
+                #print("test-inference-data: " + tostring(test-inference-data) + "\n\n")
                 if A.is-s-lam(value) block:
                   check-block = value._check.value
                   result = checking(check-block, t-top(l2, false), false, context)
@@ -1914,7 +1916,7 @@ fun tuple-view(access-loc :: Loc, tup-type-loc :: Loc, tup-type :: Type,
       new-tup-type = foldr2(lam(new-onto, a-var, a-exists):
         new-onto.substitute(a-exists, a-var)
       end, onto, introduces, new-existentials)
-      shadow context = context.add-variable-set(list-to-list-set(new-existentials))
+      shadow context = context.add-variable-set(list-to-tree-set(new-existentials))
       tuple-view(access-loc, tup-type-loc, new-tup-type, handle, context)
     | t-existential(_, exists-l, _) =>
       typing-error([list: C.unable-to-infer(exists-l)])
@@ -1942,7 +1944,7 @@ fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, co
         new-onto = foldr2(lam(new-onto, a-var, a-exists):
           new-onto.substitute(a-exists, a-var)
         end, onto, introduces, new-existentials)
-        {new-onto; temp-context.add-variable-set(list-to-list-set(new-existentials))}
+        {new-onto; temp-context.add-variable-set(list-to-tree-set(new-existentials))}
       | else => {typ; temp-context}
     end
   end
