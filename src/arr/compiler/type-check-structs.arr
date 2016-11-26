@@ -172,10 +172,8 @@ sharing:
   method add-level(self) -> Context:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-level(), self.info)
   end,
-  method solve-level(self) -> FoldResult<ConstraintSolution> block:
-    print("Begin solve-level (\n")
+  method solve-level(self) -> FoldResult<ConstraintSolution>:
     self.constraints.solve-level(self).bind(lam({new-system; solution}, context) block:
-      print("End solve-level )\n")
       fold-result(solution, context.set-constraints(new-system))
     end)
   end,
@@ -427,11 +425,9 @@ sharing:
           {variables.remove(existential); next-system.add-variable(existential)}
         end, {variables; next-system})
         system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
-        system.solve-level-helper(constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context) block:
+        system.solve-level-helper(constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context):
           # This is solving the level introduced above
-          print("Begin add-variable-set (\n")
           shadow system = system.next-system.add-variable-set(system.variables)
-          print("End add-variable-set )\n")
           system.solve-level-helper(solution, context).bind(lam({shadow system; shadow solution}, shadow context):
             shadow solution = constraint-solution(variables, solution.substitutions)
             cases(ConstraintSystem) system:
@@ -439,19 +435,8 @@ sharing:
                 fold-result({system; solution}, context)
               | constraint-system(shadow variables, _, _, _, _, shadow next-system) =>
                 shadow solution = constraint-solution(variables, solution.substitutions)
-                shadow next-system = if is-constraint-system(next-system) block:
-                  #when variables.size() > 0 block:
-                  #  print("\nvariables:\n")
-                  #  print(variables)
-                  #  print("\n\n")
-                  #  print("Next-system:\n")
-                  #  print(next-system)
-                  #  print("\n\n")
-                  #end
-                  print("Begin add-variable-set 2(\n")
-                  result = next-system.add-variable-set(variables)
-                  print("End add-variable-set 2 )\n")
-                  result
+                shadow next-system = if is-constraint-system(next-system):
+                  next-system.add-variable-set(variables)
                 else:
                   next-system
                 end
@@ -489,9 +474,7 @@ fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-type
   end, [string-dict: ])
 end
 
-fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}> block:
-  print("Begin solve-helper-constraints (\n")
-
+fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
   fun add-substitution(new-type :: Type, type-var :: Type, shadow system :: ConstraintSystem, shadow solution :: ConstraintSolution, shadow context :: Context):
     substitutions = solution.substitutions.set(type-var.key(), {new-type; type-var})
     constraints = substitute-in-constraints(new-type, type-var, system.constraints)
@@ -509,7 +492,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
       context)
   end
 
-  result = cases(ConstraintSystem) system:
+  cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       cases(List<{Type; Type}>) constraints:
@@ -696,15 +679,10 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
           end
       end
   end
-
-  print("End solve-helper-constraints )\n")
-  result
 end
 
-fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}> block:
-  print("Begin solve-helper-refinements (\n")
-
-  result = cases(ConstraintSystem) system:
+fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
+  cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types,  next-system) =>
       partitioned = partition(lam({lhs; _}): TS.is-t-existential(lhs) end, refinement-constraints)
@@ -783,15 +761,10 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
         end
       end
   end
-
-  print("End solve-helper-refinements )\n")
-  result
 end
 
-fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}> block:
-  print("Begin solve-helper-fields (\n")
-
-  result = cases(ConstraintSystem) system:
+fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
+  cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       cases(List<String>) field-constraints.keys-list():
@@ -854,42 +827,31 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
           end)
       end
   end
-
-  print("End solve-helper-fields )\n")
-  result
 end
 
 # TODO(MATT): check something about incomplete-examples
 # TODO(MATT): check the types of the resulting values
-fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}> block:
-  print("Begin solve-helper-examples (\n")
-
-  result = cases(ConstraintSystem) system:
+fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
+  cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
-      foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}) block:
+      foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}):
         {existential; _; fun-examples; checking-fun} = example-types.get-value(existential-key)
-        #print("existential: " + tostring(existential) + "\n")
-        #print("fun-examples: " + tostring(fun-examples) + "\n")
         shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)
         partitioned = partition(lam(typ): typ.free-variables().size() == 0 end, fun-examples)
         complete-examples = partitioned.is-true
         incomplete-examples = partitioned.is-false
-        cases(List<Type>) complete-examples block:
+        cases(List<Type>) complete-examples:
           | link(first, rest) =>
             generalized = rest.foldr(generalize-type, first)
             first-structure = find-structure(first)
             common-structure = rest.foldr(find-common-structure, first-structure)
             new-type = maintain-common-structure(common-structure, generalized)
-            #print("new-type: " + tostring(new-type) + "\n\n")
             fold-result({system; constraint-solution(empty-tree-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
           | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
         end
       end, example-types.keys-list(), context, {system; solution})
   end
-
-  print("End solve-helper-examples )\n")
-  result
 end
 
 fun remove-refinements-and-foralls(typ :: Type) -> Type:

@@ -560,8 +560,7 @@ sharing:
               VS.vs-str(id.toname())
           #end
         | t-existential(id, _, _) =>
-          #VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
-          VS.vs-str(typ.key())
+          VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
       end
     end
     free-vars-list = self.free-variables().to-list()
