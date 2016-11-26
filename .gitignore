@@ -63,7 +63,3 @@ tests/pyret/standalone/importer.jarr
 *.arr.js
 
 compiled/
-
-cs1-submissions
-benchmark
-benchmarking.sh
