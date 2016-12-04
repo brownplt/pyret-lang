@@ -5,7 +5,7 @@
   theModule: function(runtime, ns, uri, runtimeLib) {
     var get = runtime.getField;
     function applyBrand(brand, val) {
-      return get(brand, "brand").app(val);
+      return get(brand, "brand")(val);
     }
 
     var brandRuntime = runtime.namedBrander("runtime", ["runtime-lib: runtime brander"]);

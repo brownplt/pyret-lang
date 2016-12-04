@@ -63,7 +63,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       runtime["asLoaderOption"] = function(type) {
         switch(type) {
         case "sanitizer":
-          return runtime.getField(ds, "sanitize-col").app(arguments[1], arguments[2]);
+          return runtime.getField(ds, "sanitize-col")(arguments[1], arguments[2]);
         default:
           runtime.ffi.throwMessageException("Internal error: Invalid loader option type: " + type);
         }
@@ -71,7 +71,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       // Convenience function for JS library use
       runtime["extractLoaderOption"] = function(opt) {
         var isSanitizer = runtime.getField(ds, "is-sanitize-col");
-        if (runtime.unwrap(isSanitizer.app(opt))) {
+        if (runtime.unwrap(isSanitizer(opt))) {
           return {
             type: "sanitizer",
             col: runtime.getField(opt, "col"),
@@ -93,17 +93,17 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
         empty_only : runtime.getField(ds, "empty-only")
       };
 
-      runtime["makeCStr"] = runtime.getField(ds, "c-str").app;
-      runtime["makeCNum"] = runtime.getField(ds, "c-num").app;
-      runtime["makeCBool"] = runtime.getField(ds, "c-bool").app;
-      runtime["makeCCustom"] = runtime.getField(ds, "c-custom").app;
+      runtime["makeCStr"] = runtime.getField(ds, "c-str");
+      runtime["makeCNum"] = runtime.getField(ds, "c-num");
+      runtime["makeCBool"] = runtime.getField(ds, "c-bool");
+      runtime["makeCCustom"] = runtime.getField(ds, "c-custom");
       runtime["makeCEmpty"] = function() { return runtime.getField(ds, "c-empty"); };
 
-      runtime["isCStr"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-str").app(v)); };
-      runtime["isCNum"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-num").app(v)); };
-      runtime["isCBool"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-bool").app(v)); };
-      runtime["isCCustom"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-custom").app(v)); };
-      runtime["isCEmpty"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-empty").app(v)); };
+      runtime["isCStr"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-str")(v)); };
+      runtime["isCNum"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-num")(v)); };
+      runtime["isCBool"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-bool")(v)); };
+      runtime["isCCustom"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-custom")(v)); };
+      runtime["isCEmpty"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-empty")(v)); };
 
       runtime["unwrapCellContent"] = function(v) {
         if (runtime.isCStr(v)) {
@@ -134,16 +134,16 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
         return runtime.makeTuple([headers, contents]);
       };
       runtime["checkCellContent"] = runtime.makeCheckType(
-        runtime.getField(ds, "is-CellContent").app, "CellContent");
+        runtime.getField(ds, "is-CellContent"), "CellContent");
     },
     "builtin://reactors": function(reactor) {
       var r = runtime.getField(runtime.getField(reactor, "provide-plus-types"), "values");
-      runtime.setParam("makeReactor", runtime.getField(r, "make-reactor").app);
+      runtime.setParam("makeReactor", runtime.getField(r, "make-reactor"));
     },
     "builtin://checker": function(checker) {
       checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
       // NOTE(joe): This is the place to add checkAll
-      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
+      var currentChecker = runtime.getField(checker, "make-check-context")(runtime.makeString(main), true);
       runtime.setParam("current-checker", currentChecker);
     }
   };
@@ -160,7 +160,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     runtime.safeCall(function() {
-      return toCall.app(checks, getStackP);
+      return toCall(checks, getStackP);
     }, function(summary) {
       if(runtime.isObject(summary)) {
         process.stdout.write(runtime.getField(summary, "message"));
@@ -205,7 +205,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
                 var cliRender = execRt.makeFunction(function(val) { 
                   return execRt.toReprJS(val, execRt.ReprMethods["$cli"]); 
                 }, "cliRender");
-                return gf(gf(rendererror, "values"), "display-to-string").app(
+                return gf(gf(rendererror, "values"), "display-to-string")(
                   reasonResult.result,
                   cliRender,
                   execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));

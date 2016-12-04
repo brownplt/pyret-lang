@@ -81,10 +81,10 @@
     var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
 
     function applyBrand(brand, val) {
-      return get(brand, "brand").app(val);
+      return get(brand, "brand")(val);
     }
     function hasBrand(brand, val) {
-      return get(brand, "test").app(val);
+      return get(brand, "test")(val);
     }
 
     // used for removing values
@@ -714,12 +714,12 @@
       var mergeISD = runtime.makeMethod1(function(self, other) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a); }
         checkISD(other);
-        var otherKeys = runtime.getField(other, "keys-list").app();
+        var otherKeys = runtime.getField(other, "keys-list")();
         var otherKeysArr = runtime.ffi.toArray(otherKeys);
         if (otherKeysArr.length === 0) { return self; }
         var newMap = underlyingMap;
         for (var i = 0; i < otherKeysArr.length; i++) {
-          newMap = newMap.set(otherKeysArr[i], runtime.getField(other, "get-value").app(otherKeysArr[i]));
+          newMap = newMap.set(otherKeysArr[i], runtime.getField(other, "get-value")(otherKeysArr[i]));
         }
         return makeImmutableStringDict(newMap);
       });
@@ -771,10 +771,10 @@
         var keys = underlyingMap.keys();
         var vsValue = get(VS, "vs-value");
         for (var i = 0; i < keys.length; i++) {
-          elts.push(vsValue.app(keys[i]));
-          elts.push(vsValue.app(underlyingMap.get(keys[i])));
+          elts.push(vsValue(keys[i]));
+          elts.push(vsValue(underlyingMap.get(keys[i])));
         }
-        return get(VS, "vs-collection").app(
+        return get(VS, "vs-collection")(
             runtime.makeString("string-dict"),
             runtime.ffi.makeList(elts));
       });
@@ -782,21 +782,21 @@
       var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['equals'], 3, $a); }
         if (!hasBrand(brandImmutable, other)) {
-          return runtime.ffi.notEqual.app('', self, other);
+          return runtime.ffi.notEqual('', self, other);
         } else {
           var keys = underlyingMap.keys();
-          var otherKeysLength = get(other, 'count').app();
+          var otherKeysLength = get(other, 'count')();
           function equalsHelp() {
             if (keys.length === 0) {
               return runtime.ffi.equal;
             } else {
               var thisKey = keys.pop();
-              if (!get(other, 'has-key').app(thisKey)) {
-                return runtime.ffi.notEqual.app('', self, other);
+              if (!get(other, 'has-key')(thisKey)) {
+                return runtime.ffi.notEqual('', self, other);
               } else {
                 return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingMap.get(thisKey),
-                      get(other, 'get-value').app(thisKey));
+                  return recursiveEquality(underlyingMap.get(thisKey),
+                      get(other, 'get-value')(thisKey));
                 },
                 function (result) {
                   if (runtime.ffi.isNotEqual(result)) {
@@ -809,7 +809,7 @@
             }
           }
           if (keys.length !== otherKeysLength) {
-            return runtime.ffi.notEqual.app('', self, other);
+            return runtime.ffi.notEqual('', self, other);
           } else {
             return equalsHelp();
           }
@@ -883,12 +883,12 @@
       var mergeMSD = runtime.makeMethod1(function(self, other) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a); }
         checkMSD(other);
-        var otherKeys = runtime.getField(other, "keys-list-now").app();
+        var otherKeys = runtime.getField(other, "keys-list-now")();
         var otherKeysArr = runtime.ffi.toArray(otherKeys);
         for (var i = 0; i < otherKeysArr.length; i++) {
           var key = otherKeysArr[i];
-          var val = runtime.getField(other, "get-value-now").app(key);
-          runtime.getField(self, "set-now").app(key, val);
+          var val = runtime.getField(other, "get-value-now")(key);
+          runtime.getField(self, "set-now")(key, val);
         }
         return runtime.nothing;
       });
@@ -952,10 +952,10 @@
             // calling convention, which makes this work with the stack
             // compilation strategy for Pyret.
             return runtime.safeCall(function() {
-              return recursiveToRepr.app(underlyingDict[thisKey]);
+              return recursiveToRepr(underlyingDict[thisKey]);
             },
             function(result /* stringification of element */) {
-              elts.push(recursiveToRepr.app(thisKey));
+              elts.push(recursiveToRepr(thisKey));
               elts.push(result);
               return toreprElts();
             });
@@ -970,10 +970,10 @@
         var keys = Object.keys(underlyingDict);
         var vsValue = get(VS, "vs-value");
         for (var i = 0; i < keys.length; i++) {
-          elts.push(vsValue.app(keys[i]));
-          elts.push(vsValue.app(underlyingDict[keys[i]]));
+          elts.push(vsValue(keys[i]));
+          elts.push(vsValue(underlyingDict[keys[i]]));
         }
-        return get(VS, "vs-collection").app(
+        return get(VS, "vs-collection")(
             runtime.makeString("mutable-string-dict"),
             runtime.ffi.makeList(elts));
       });
@@ -981,21 +981,21 @@
       var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
         if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["equals"], 3, $a); }
         if (!hasBrand(brandMutable, other)) {
-          return runtime.ffi.notEqual.app("", self, other);
+          return runtime.ffi.notEqual("", self, other);
         } else {
           var keys = Object.keys(underlyingDict);
-          var otherKeysLength = get(other, "count-now").app();
+          var otherKeysLength = get(other, "count-now")();
           function eqElts() {
             if (keys.length === 0) {
               return runtime.ffi.equal;
             } else {
               var thisKey = keys.pop();
-              if (!get(other, 'has-key-now').app(thisKey)) {
-                return runtime.ffi.notEqual.app('', self, other);
+              if (!get(other, 'has-key-now')(thisKey)) {
+                return runtime.ffi.notEqual('', self, other);
               } else {
                 return runtime.safeCall(function() {
-                  return recursiveEquality.app(underlyingDict[thisKey],
-                      get(other, 'get-value-now').app(thisKey));
+                  return recursiveEquality(underlyingDict[thisKey],
+                      get(other, 'get-value-now')(thisKey));
                 },
                 function (result) {
                   if (runtime.ffi.isNotEqual(result)) {
@@ -1008,7 +1008,7 @@
             }
           }
           if (keys.length !== otherKeysLength) {
-            return runtime.ffi.notEqual.app("", self, other);
+            return runtime.ffi.notEqual("", self, other);
           } else {
             return eqElts();
           }

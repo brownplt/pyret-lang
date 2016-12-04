@@ -12,8 +12,8 @@
     var WorldConfigOption = runtime.getField(pWorld, "internal").WorldConfigOption;
     var adaptWorldFunction = runtime.getField(pWorld, "internal").adaptWorldFunction;
     var p_read_json = runtime.getField(runtime.getField(pJSON, "values"),"read-json")
-    var read_json = function(s) { return p_read_json.app(s) }
-    var serialize = function(j) { return runtime.getField(j, "serialize").app() }
+    var read_json = function(s) { return p_read_json(s) }
+    var serialize = function(j) { return runtime.getField(j, "serialize")() }
 
     var OnParticle = function(handler, name, options) {
       WorldConfigOption.call(this, 'on-particle');
@@ -119,7 +119,7 @@
     //////////////////////////////////////////////////////////////////////
     
     var configCore = function(config, options) {
-      var config_str = runtime.getField(config, "_shim-convert").app();
+      var config_str = runtime.getField(config, "_shim-convert")();
       var ename = ""
       if(typeof options.core == "string") {
         ename = options.core + "_config"
@@ -151,30 +151,30 @@
 
     var checkCoreInfoType =
       runtime.makeCheckType(function(v) {
-        return ((pyIsCore.app(v) == runtime.pyretTrue) ||
-                (pyIsNoCore.app(v) == runtime.pyretTrue)); },
+        return ((pyIsCore(v) == runtime.pyretTrue) ||
+                (pyIsNoCore(v) == runtime.pyretTrue)); },
                             "CoreInfo");
     var checkCoreObj =
       runtime.makeCheckType(function(v) {
-        return (pyIsCore.app(v) == runtime.pyretTrue); },
+        return (pyIsCore(v) == runtime.pyretTrue); },
                             "core");
     var checkPinConfigType =
       runtime.makeCheckType(function(v) {
-        return ((pyIsWrite.app(v) == runtime.pyretTrue) ||
-                (pyIsDigRead.app(v) == runtime.pyretTrue) ||
-                (pyIsAnaRead.app(v) == runtime.pyretTrue)); },
+        return ((pyIsWrite(v) == runtime.pyretTrue) ||
+                (pyIsDigRead(v) == runtime.pyretTrue) ||
+                (pyIsAnaRead(v) == runtime.pyretTrue)); },
                             "PinConfig");
     var checkEventType =
       runtime.makeCheckType(function(v) {
-        return (pyIsEvent.app(v) == runtime.pyretTrue); },
+        return (pyIsEvent(v) == runtime.pyretTrue); },
                             "Event");
     var checkConfigInfoType =
       runtime.makeCheckType(function(v) {
-        return (pyIsConfig.app(v) == runtime.pyretTrue); },
+        return (pyIsConfig(v) == runtime.pyretTrue); },
                             "ConfigInfo");
     
     var core_to_options = function(core) {
-      if(pyIsNoCore.app(core) == runtime.pyretTrue) {
+      if(pyIsNoCore(core) == runtime.pyretTrue) {
         return {
           'acc': runtime.getField(core, "access"),
           'raw': true
@@ -231,7 +231,7 @@
         checkPinConfigType(config);
         options = core_to_options(core);
         configCore(config, options);
-        return pyConfig.app(core, config);
+        return pyConfig(core, config);
       }, "configure-core"),
       "clear-core-config": makeFunction(function(core) {
         runtime.ffi.checkArity(1, arguments, "clear-core-config");

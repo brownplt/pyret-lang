@@ -17,10 +17,10 @@
       var sStr = gf(vals, "s-str");
       var sNum = gf(vals, "s-num");
       var sSym = gf(vals, "s-sym");
-      var list = function(l) { return sList.app(RUNTIME.ffi.makeList(l)); }
-      var str = function(s) { return sStr.app(RUNTIME.makeString(s)); }
-      var num = function(nstr) { return sNum.app(RUNTIME.makeNumberFromString(nstr)); }
-      var sym = function(x) { return sSym.app(RUNTIME.makeString(x)); }
+      var list = function(l) { return sList(RUNTIME.ffi.makeList(l)); }
+      var str = function(s) { return sStr(RUNTIME.makeString(s)); }
+      var num = function(nstr) { return sNum(RUNTIME.makeNumberFromString(nstr)); }
+      var sym = function(x) { return sSym(RUNTIME.makeString(x)); }
       function convert(v) {
         if(v instanceof String) {
           return str(String(v));

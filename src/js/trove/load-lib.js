@@ -16,7 +16,7 @@
     var annRealm = runtime.makeBranderAnn(brandRealm, "Realm");
 
     function applyBrand(brand, val) {
-      return runtime.getField(brand, "brand").app(val);
+      return runtime.getField(brand, "brand")(val);
     }
 
     function makeRealm(dynamicModules) {
@@ -139,7 +139,7 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        execRt.runThunk(function() { return toCall.app(checks, getStackP); },
+        execRt.runThunk(function() { return toCall(checks, getStackP); },
           function(printedCheckResult) {
             if(execRt.isSuccessResult(printedCheckResult)) {
               if(execRt.isString(printedCheckResult.result)) {
@@ -172,7 +172,7 @@
               }, function(reason) {
                 return execRt.safeCall(
                   function() { 
-                    return gf(gf(rendererror, "values"), "display-to-string").app(
+                    return gf(gf(rendererror, "values"), "display-to-string")(
                       reason, 
                       execRt.namespace.get("torepr"), 
                       execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
@@ -218,7 +218,7 @@
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+        var currentChecker = otherRuntime.getField(checker, "make-check-context")(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
@@ -244,7 +244,7 @@
         "builtin://checker": function(checker) {
           var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+          var currentChecker = otherRuntime.getField(checker, "make-check-context")(otherRuntime.makeString(main), checkAll);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       };

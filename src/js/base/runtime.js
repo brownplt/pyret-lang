@@ -437,9 +437,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return getRef(fieldVal);
       }
       else if(isMethod(fieldVal)){
-        var curried = fieldVal['meth'](val);
-        curried.app = curried; // XXX Polyglot
-        return curried;
+        return fieldVal['meth'](val);
       }
       else {
         return fieldVal;
@@ -652,7 +650,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
        @return {!PFunction} with app of fun
     */
     function makeFunction(fun, name) {
-      fun.app = fun;
       return fun;
     }
 
@@ -980,10 +977,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if(arity === -1) {
         var f = function(self, handlers, els) {
           if(hasField(handlers, name)) {
-            return getField(handlers, name).app();
+            return getField(handlers, name)();
           }
           else {
-            return els.app(self);
+            return els(self);
           }
         };
         return makeMethod2(f, name);
@@ -991,10 +988,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       else {
         var f = function(self, handlers, _else) {
           if(hasField(handlers, name)) {
-            return self.$app_fields(getField(handlers, name).app, self.$mut_fields_mask);
+            return self.$app_fields(getField(handlers, name), self.$mut_fields_mask);
           }
           else {
-            return _else.app(self);
+            return _else(self);
           }
         };
         return makeMethod2(f, name);
@@ -1529,7 +1526,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a); }
 
         return thisRuntime.safeCall(function() {
-          display.app(val);
+          display(val);
         }, function(_) {
           return val;
         }, "print");
@@ -1569,7 +1566,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a); }
 
         return thisRuntime.safeCall(function() {
-          display_error.app(val);
+          display_error(val);
         }, function(_) {
           return val;
         }, "print-error");
@@ -1649,16 +1646,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (thisRuntime.srcloc === undefined) {
           return makeString(JSON.stringify(arr));
         } else {
-          return getField(thisRuntime.srcloc, "builtin").app(arr[0])
+          return getField(thisRuntime.srcloc, "builtin")(arr[0])
         }
       }
       else if (typeof arr === "object" && arr.length === 7) {
-        return getField(thisRuntime.srcloc, "srcloc").app(
+        return getField(thisRuntime.srcloc, "srcloc")(
           arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]
         );
       }
       else {
-        return getField(thisRuntime.srcloc, "builtin").app(String(arr));
+        return getField(thisRuntime.srcloc, "builtin")(String(arr));
       }
     }
 
@@ -1785,31 +1782,31 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, NumberErrbacks)) {
                   continue;
                 } else {
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                 }
               } else if (jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks)) {
                 continue;
               } else {
-                toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              toCompare.curAns = thisRuntime.ffi.unknown.app("Roughnums", curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.unknown("Roughnums", curLeft, curRight);
             } else if (jsnums.equals(curLeft, curRight, NumberErrbacks)) {
               continue;
             } else {
-              toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
-            toCompare.curAns = thisRuntime.ffi.unknown.app("Functions" , curLeft ,  curRight);
+            toCompare.curAns = thisRuntime.ffi.unknown("Functions" , curLeft ,  curRight);
           } else if (isMethod(curLeft) && isMethod(curRight)) {
-            toCompare.curAns = thisRuntime.ffi.unknown.app("Methods" , curLeft , curRight);
+            toCompare.curAns = thisRuntime.ffi.unknown("Methods" , curLeft , curRight);
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
             } else {
-              toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
             }
           } else {
             var curPair = findPair(curLeft, curRight);
@@ -1822,9 +1819,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight); // We would've caught identical refs already
                 } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                 } else { // In equal-now, we walk through the refs
                   var newPath = current.path;
                   var lastDot = newPath.lastIndexOf(".");
@@ -1842,7 +1839,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
               } else if(isTuple(curLeft) && isTuple(curRight)) {
                 if (curLeft.vals.length !== curRight.vals.length) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.vals.length; i++) {
                     toCompare.stack.push({
@@ -1854,7 +1851,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
                     toCompare.stack.push({
@@ -1867,7 +1864,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                   /* Two objects with brands that differ */
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
@@ -1907,7 +1904,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
                   if(fieldsLeft.length !== fieldsRight.length) {
-                    toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                    toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
                   }
                   for(var k = 0; k < fieldsLeft.length; k++) {
                     toCompare.stack.push({
@@ -1918,7 +1915,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                   }
                 }
               } else {
-                toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
+                toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
               }
             }
           }
@@ -2243,15 +2240,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     // JS function from Pyret values to Pyret equality answers
     function identical3PyValues(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
-        return thisRuntime.ffi.unknown.app("Functions", v1,  v2);
+        return thisRuntime.ffi.unknown("Functions", v1,  v2);
       } else if (isMethod(v1) && isMethod(v2)) {
-        return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
+        return thisRuntime.ffi.unknown('Methods', v1,  v2);
       } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
-        return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
+        return thisRuntime.ffi.unknown('Roughnums', v1,  v2);
       } else if (v1 === v2) {
         return thisRuntime.ffi.equal;
       } else {
-        return thisRuntime.ffi.notEqual.app("", v1, v2);
+        return thisRuntime.ffi.notEqual("", v1, v2);
       }
     };
     // Pyret function from Pyret values to Pyret equality answers
@@ -2632,7 +2629,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }, function(result) {
         if(thisRuntime.ffi.isOk(result)) {
           return safeCall(function() {
-            return that.pred.app(val);
+            return that.pred(val);
           }, function(result) {
             if(isPyretTrue(result)) {
               return thisRuntime.ffi.contractOk;
@@ -2988,7 +2985,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(true) {
           started = true;
           if(i >= stop) { return thisRuntime.nothing; }
-          fun.app(i);
+          fun(i);
 
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3408,7 +3405,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
-          return thunk.app();
+          return thunk();
         }, thisRuntime.namespace, {
           sync: false
         }, function(result) {
@@ -3425,7 +3422,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function runWhileRunning(thunk) {
       thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
-          return thunk.app();
+          return thunk();
         }, thisRuntime.namespace, {
           sync: false
         }, function(result) {
@@ -3471,7 +3468,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeString(l.concat(r));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_plus")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_plus").app(r);
+          return thisRuntime.getField(l, "_plus")(r);
         });
       } else {
         thisRuntime.ffi.throwNumStringBinopError(l, r, "+", "Plus", "_plus");
@@ -3484,7 +3481,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_minus").app(r);
+          return thisRuntime.getField(l, "_minus")(r);
         });
       } else {
         thisRuntime.ffi.throwNumericBinopError(l, r, "-", "Minus", "_minus");
@@ -3497,7 +3494,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_times").app(r);
+          return thisRuntime.getField(l, "_times")(r);
         });
       } else {
         thisRuntime.ffi.throwNumericBinopError(l, r, "*", "Times", "_times");
@@ -3510,7 +3507,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeNumberBig(jsnums.divide(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_divide").app(r);
+          return thisRuntime.getField(l, "_divide")(r);
         });
       } else {
         thisRuntime.ffi.throwNumericBinopError(l, r, "/", "Divide", "_divide");
@@ -3525,7 +3522,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeBoolean(l < r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessthan")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_lessthan").app(r);
+          return thisRuntime.getField(l, "_lessthan")(r);
         });
       } else {
         thisRuntime.ffi.throwNumStringBinopError(l, r, "<", "Less-than", "_lessthan");
@@ -3540,7 +3537,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeBoolean(l > r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterthan")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_greaterthan").app(r);
+          return thisRuntime.getField(l, "_greaterthan")(r);
         });
       } else {
         thisRuntime.ffi.throwNumStringBinopError(l, r, ">", "Greater-than", "_greaterthan");
@@ -3555,7 +3552,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeBoolean(l <= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_lessequal")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_lessequal").app(r);
+          return thisRuntime.getField(l, "_lessequal")(r);
         });
       } else {
         thisRuntime.ffi.throwNumStringBinopError(l, r, "<=", "Less-than-or-equal", "_lessequal");
@@ -3570,7 +3567,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.makeBoolean(l >= r);
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_greaterequal")) {
         return safeTail(function() {
-          return thisRuntime.getField(l, "_greaterequal").app(r);
+          return thisRuntime.getField(l, "_greaterequal")(r);
         });
       } else {
         thisRuntime.ffi.throwNumStringBinopError(l, r, ">=", "Greater-than-or-equal", "_greaterequal");
@@ -3636,7 +3633,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           switch($step) {
           case 0:
             $step = 1;
-            $ans = f.app(curIdx);
+            $ans = f(curIdx);
             // no need to break
           case 1:
             arr.push($ans);
@@ -3687,7 +3684,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           switch($step) {
           case 0:
             $step = 1;
-            $ans = f.app(curIdx);
+            $ans = f(curIdx);
             // no need to break
           case 1:
             if (thisRuntime.ffi.isSome($ans)) {
@@ -3783,7 +3780,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       function foldHelp() {
         while(++currentIndex < length) {
-          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          currentAcc = f(currentAcc, arr[currentIndex], currentIndex + start);
         }
         return currentAcc;
       }
@@ -3819,7 +3816,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+          newArray[currentIndex] = f(arr[currentIndex]);
         }
         return newArray;
       }
@@ -3855,7 +3852,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+          newArray[currentIndex] = f(arr[currentIndex], currentIndex);
         }
         return newArray;
       }
@@ -3893,7 +3890,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc.push(f.app(currentFst));
+          currentAcc.push(f(currentFst));
         }
         return thisRuntime.ffi.makeList(currentAcc);
       }
@@ -3934,9 +3931,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         if (length === 0) { return newArray; }
-        newArray[++currentIndex] = f1.app(arr[currentIndex]);
+        newArray[++currentIndex] = f1(arr[currentIndex]);
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+          newArray[currentIndex] = f(arr[currentIndex]);
         }
         return newArray;
       }
@@ -3974,7 +3971,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          if(f.app(currentFst)) {
+          if(f(currentFst)) {
             currentAcc.push(currentFst);
           }
         }
@@ -4014,7 +4011,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array();
       function filterHelp() {
         while(++currentIndex < length) {
-          if(isPyretTrue(f.app(arr[currentIndex]))){
+          if(isPyretTrue(f(arr[currentIndex]))){
             newArray.push(arr[currentIndex]);
           }
         }
@@ -4054,7 +4051,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc = f.app(currentAcc, fst);
+          currentAcc = f(currentAcc, fst);
         }
         return currentAcc;
       }
@@ -4935,7 +4932,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var funToReturn = makeFunction(function() { // XXX TODO NAME
         var theFun = makeConstructor();
-        funToReturn.app = theFun;
+        funToReturn = theFun;
         //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
         //CONSOLE.trace();
         var res = theFun.apply(null, arguments)

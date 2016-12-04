@@ -27,7 +27,7 @@
     ED = gf(ED, "values");
     VS = gf(VS, "values");
     var link = gf(L, "link");
-    var lnk = function(first, rest) { return link.app(first, rest); };
+    var lnk = function(first, rest) { return link(first, rest); };
     var mt = gf(L, "empty");
     function makeList(arr) {
       if (!arr || typeof arr.length !== "number") {
@@ -41,7 +41,7 @@
     }
 
     function makeTreeSet(arr) {
-      return gf(Se, 'list-to-tree-set').app(makeList(arr));
+      return gf(Se, 'list-to-tree-set')(makeList(arr));
     }
     function toArray(list) {
       var isList = runtime.getField(L, "is-List");
@@ -50,12 +50,12 @@
       // console.error("list is " + JSON.stringify(list).substr(0, 100));
       // console.error("list is Object? " + runtime.isObject(list));
       // console.error("list.brands is " + JSON.stringify(list.brands));
-      if(!(runtime.unwrap(isList.app(list)) === true)) {
+      if(!(runtime.unwrap(isList(list)) === true)) {
         throw "Non-list given to toArray " + String(list);
       }
       var arr = [];
       try {
-        while(!(runtime.unwrap(isEmpty.app(list)) === true)) {
+        while(!(runtime.unwrap(isEmpty(list)) === true)) {
           try {
             arr.push(runtime.getField(list, "first"));
           } catch(e) {
@@ -79,19 +79,19 @@
       return arr;
     }
     var checkSrcloc = runtime.makeCheckType(function(val) {
-      return runtime.unwrap(gf(S, "is-Srcloc").app(val));
+      return runtime.unwrap(gf(S, "is-Srcloc")(val));
     }, "Srcloc");
 
 /* NOTE(joe): skipping checker
-    function isTestResult(val) { return runtime.unwrap(runtime.getField(CH, "TestResult").app(val)); }
+    function isTestResult(val) { return runtime.unwrap(runtime.getField(CH, "TestResult")(val)); }
     var checkTestResult = runtime.makeCheckType(isTestResult, "TestResult");
 */
 
-    function isErrorDisplay(val) { return runtime.unwrap(runtime.getField(ED, "ErrorDisplay").app(val)); }
+    function isErrorDisplay(val) { return runtime.unwrap(runtime.getField(ED, "ErrorDisplay")(val)); }
     var checkErrorDisplay = runtime.makeCheckType(isErrorDisplay, "ErrorDisplay");
 
     function cases(pred, predName, val, casesObj) {
-      if(!pred.app(val)) {
+      if(!pred(val)) {
         throwTypeMismatch(val, predName);
       }
       var pyretObj = {}
@@ -106,7 +106,7 @@
         }
       });
       return runtime.safeTail(function() {
-        return gf(val, "_match").app(runtime.makeObject(pyretObj), els);
+        return gf(val, "_match")(runtime.makeObject(pyretObj), els);
       });
     }
 
@@ -116,7 +116,7 @@
     function checkResultsSummary(checkResults) {
       return runtime.safeCall(
         function() {
-          return gf(CH, "results-summary").app(checkResults);
+          return gf(CH, "results-summary")(checkResults);
         },
         function(pySummary) {
           return {
@@ -129,11 +129,11 @@
         "results-summary");
     };
 */
-    function err(str) { return gf(ERR, str).app; }
-    function contract(str) { return gf(CON, str).app; }
+    function err(str) { return gf(ERR, str); }
+    function contract(str) { return gf(CON, str); }
     function errPred(str) {
       return function(val) {
-        return runtime.unwrap(gf(ERR, str).app(val));
+        return runtime.unwrap(gf(ERR, str)(val));
       };
     }
     var raise = runtime.raise;
@@ -501,13 +501,13 @@
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
 
-    var isEqualityResult = gf(EQ, "is-EqualityResult").app;
-    var isEqual = gf(EQ, "is-Equal").app;
-    var isNotEqual = gf(EQ, "is-NotEqual").app;
-    var isUnknown = gf(EQ, "is-Unknown").app
+    var isEqualityResult = gf(EQ, "is-EqualityResult");
+    var isEqual = gf(EQ, "is-Equal");
+    var isNotEqual = gf(EQ, "is-NotEqual");
+    var isUnknown = gf(EQ, "is-Unknown");
 
-    var isEmpty = gf(L, "is-empty").app;
-    var isLink = gf(L, "is-link").app;
+    var isEmpty = gf(L, "is-empty");
+    var isLink = gf(L, "is-link");
 
     return runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
@@ -603,19 +603,19 @@
       makeTreeSet: makeTreeSet,
 
       isOption: runtime.getField(O, "is-Option"),
-      isNone: function(v) { return runtime.getField(O, "is-none").app(v); },
-      isSome: function(v) { return runtime.getField(O, "is-some").app(v); },
+      isNone: function(v) { return runtime.getField(O, "is-none")(v); },
+      isSome: function(v) { return runtime.getField(O, "is-some")(v); },
       makeNone: function() { return runtime.getField(O, "none"); },
-      makeSome: function(v) { return runtime.getField(O, "some").app(v); },
+      makeSome: function(v) { return runtime.getField(O, "some")(v); },
 
       isEither: runtime.getField(E, "is-Either"),
-      isLeft: function(v) { return runtime.getField(E, "is-left").app(v); },
-      isRight: function(v) { return runtime.getField(E, "is-right").app(v); },
-      makeLeft: function(l) { return runtime.getField(E, "left").app(l); },
-      makeRight: function(r) { return runtime.getField(E, "right").app(r); },
+      isLeft: function(v) { return runtime.getField(E, "is-left")(v); },
+      isRight: function(v) { return runtime.getField(E, "is-right")(v); },
+      makeLeft: function(l) { return runtime.getField(E, "left")(l); },
+      makeRight: function(r) { return runtime.getField(E, "right")(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
+      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List")(list)); },
       isLink : isLink,
       isEmpty : isEmpty,
 
@@ -624,23 +624,23 @@
 // NOTE(joe): skipping checker
 //      isTestResult: isTestResult,
 //      checkTestResult: checkTestResult,
-//      isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success").app(val)); },
+//      isTestSuccess: function(val) { return runtime.unwrap(runtime.getField(CH, "is-success")(val)); },
 
-      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
-      isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
-      isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
-      isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
-      isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
-      isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
-      isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+      isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton")(v)); },
+      isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value")(v)); },
+      isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table")(v)); },
+      isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection")(v)); },
+      isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr")(v)); },
+      isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str")(v)); },
+      isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq")(v)); },
       vsStr: function(s) {
         runtime.checkString(s);
-        return runtime.getField(VS, "vs-str").app(s);
+        return runtime.getField(VS, "vs-str")(s);
       },
 
       edEmbed: function(v) {
         runtime.checkPyretVal(v);
-        return runtime.getField(ED, "embed").app(v);
+        return runtime.getField(ED, "embed")(v);
       },
 
       //TODO(joe): add more creation methods for error-display/valueskeleton
@@ -654,7 +654,7 @@
         var isConstr = runtime.getField(VS, "is-vs-constr");
         var isStr = runtime.getField(VS, "is-vs-str");
         var isSeq = runtime.getField(VS, "is-vs-seq");
-        if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
+        if(!(runtime.unwrap(isValueSkeleton(skel)) === true)) {
           throwTypeMismatch(skel, "ValueSkeleton");
         }
         var arr = [];
@@ -662,18 +662,18 @@
         try {
           for (var i = 0; i < worklist.length; i++) { // length changes as the loop iterates
             var cur = worklist[i];
-            if (runtime.unwrap(isValue.app(cur)) === true) {
+            if (runtime.unwrap(isValue(cur)) === true) {
               arr.push(runtime.getField(cur, "v"));
-            } else if (runtime.unwrap(isCollection.app(cur)) === true) {
+            } else if (runtime.unwrap(isCollection(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
-            } else if (runtime.unwrap(isTable.app(cur)) === true) {
+            } else if (runtime.unwrap(isTable(cur)) === true) {
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });
-            } else if (runtime.unwrap(isConstr.app(cur)) === true) {
+            } else if (runtime.unwrap(isConstr(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
-            } else if (runtime.unwrap(isStr.app(cur)) === true) {
+            } else if (runtime.unwrap(isStr(cur)) === true) {
               // nothing
-            } else if (runtime.unwrap(isSeq.app(cur)) === true) {
+            } else if (runtime.unwrap(isSeq(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
             } else {
               throwMessageException("Non-value appeared in skeleton: " + String(cur));

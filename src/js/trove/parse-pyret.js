@@ -20,7 +20,7 @@
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     function makePyretPos(fileName, p) {
       var n = RUNTIME.makeNumber;
-      return RUNTIME.getField(srcloc, "srcloc").app(
+      return RUNTIME.getField(srcloc, "srcloc")(
         RUNTIME.makeString(fileName),
         n(p.startRow),
         n(p.startCol),
@@ -32,7 +32,7 @@
     }
     function combinePyretPos(fileName, p1, p2) {
       var n = RUNTIME.makeNumber;
-      return RUNTIME.getField(srcloc, "srcloc").app(
+      return RUNTIME.getField(srcloc, "srcloc")(
         RUNTIME.makeString(fileName),
         n(p1.startRow),
         n(p1.startCol),
@@ -82,7 +82,7 @@
         end = end || arr.length;
         f = f || tr;
         for (var i = end - 1; i >= start; i--)
-          ret = link.app(f(arr[i]), ret);
+          ret = link(f(arr[i]), ret);
         return ret;
       }
       function makeListComma(arr, start, end, f) {
@@ -91,7 +91,7 @@
         end = end || arr.length;
         f = f || tr;
         for (var i = end - 1; i >= start; i -= 2)
-          ret = link.app(f(arr[i]), ret);
+          ret = link(f(arr[i]), ret);
         return ret;
       }
       function makeList(arr, start, end, onto) {
@@ -99,14 +99,14 @@
         start = start || 0;
         end = end || arr.length;
         for (var i = end - 1; i >= start; i--)
-          ret = link.app(arr[i], ret);
+          ret = link(arr[i], ret);
         return ret;
       }
       function name(tok) {
         if (tok.value === "_")
-          return RUNTIME.getField(ast, 's-underscore').app(pos(tok.pos));
+          return RUNTIME.getField(ast, 's-underscore')(pos(tok.pos));
         else
-          return RUNTIME.getField(ast, 's-name').app(pos(tok.pos), RUNTIME.makeString(tok.value));
+          return RUNTIME.getField(ast, 's-name')(pos(tok.pos), RUNTIME.makeString(tok.value));
       }
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
@@ -122,8 +122,7 @@
         'program': function(node) {
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
-          return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+          return RUNTIME.getField(ast, 's-program')(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
         },
         'prelude': function(node) {
           var provide;
@@ -132,12 +131,12 @@
           if (kids.length > 0 && kids[0].name === "provide-stmt") {
             provide = tr(kids.shift());
           } else {
-            provide = RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos));
+            provide = RUNTIME.getField(ast, 's-provide-none')(pos(node.pos));
           }
           if (kids.length > 0 && kids[0].name === "provide-types-stmt") {
             provideTypes = tr(kids.shift());
           } else {
-            provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
+            provideTypes = RUNTIME.getField(ast, 's-provide-types-none')(pos(node.pos));
           }
           return {
             provide : provide,
@@ -148,43 +147,37 @@
         'provide-stmt': function(node) {
           if (node.kids.length === 2) {
             // (provide-stmt PROVIDE STAR)
-            return RUNTIME.getField(ast, 's-provide-all')
-              .app(pos(node.pos));
+            return RUNTIME.getField(ast, 's-provide-all')(pos(node.pos));
           } else {
             // (provide-stmt PROVIDE stmt END)
-            return RUNTIME.getField(ast, 's-provide')
-              .app(pos(node.pos), tr(node.kids[1]))
+            return RUNTIME.getField(ast, 's-provide')(pos(node.pos), tr(node.kids[1]))
           }
         },
         'provide-types-stmt': function(node) {
           if (node.kids[1].name === "STAR") {
-            return RUNTIME.getField(ast, 's-provide-types-all').app(pos(node.pos));
+            return RUNTIME.getField(ast, 's-provide-types-all')(pos(node.pos));
           } else {
             // will produce record-ann
             var rec = tr(node.kids[1]);
             // Get the fields out of it
-            return RUNTIME.getField(ast, 's-provide-types')
-              .app(pos(node.pos), RUNTIME.getField(rec, 'fields'));
+            return RUNTIME.getField(ast, 's-provide-types')(pos(node.pos), RUNTIME.getField(rec, 'fields'));
           }
         },
         'import-stmt': function(node) {
           if (node.kids[node.kids.length - 2].name === "AS") {
             if (node.kids.length == 4) {
               // (import-stmt IMPORT import-source AS NAME)
-              return RUNTIME.getField(ast, 's-import')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
+              return RUNTIME.getField(ast, 's-import')(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
             } else {
               // (import-stmt IMPORT import-source AS NAME, TYPES)
-              return RUNTIME.getField(ast, 's-import-types')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
+              return RUNTIME.getField(ast, 's-import-types')(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
             }
           } else if (node.kids[0].name === "INCLUDE") {
             // (import-stmt INCLUDE import-source)
-            return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-include')(pos(node.pos), tr(node.kids[1]));
           } else {
             // (import-stmt IMPORT comma-names FROM mod)
-            return RUNTIME.getField(ast, 's-import-fields')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-import-fields')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
           }
         },
         'import-source': function(node) {
@@ -192,20 +185,17 @@
         },
         // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
         'import-special': function(node) {
-          return RUNTIME.getField(ast, 's-special-import')
-            .app(pos(node.pos), symbol(node.kids[0]),
+          return RUNTIME.getField(ast, 's-special-import')(pos(node.pos), symbol(node.kids[0]),
                  makeListComma(node.kids, 2, node.kids.length - 1, string))
         },
         'import-name': function(node) {
           // (import-name NAME)
-          return RUNTIME.getField(ast, 's-const-import')
-            .app(pos(node.pos), symbol(node.kids[0]))
+          return RUNTIME.getField(ast, 's-const-import')(pos(node.pos), symbol(node.kids[0]))
         },
         'block': function(node) {
           // (block stmts ...)
           detectAndComplainAboutOperatorWhitespace(node.kids, fileName);
-          return RUNTIME.getField(ast, 's-block')
-            .app(pos(node.pos), makeListTr(node.kids));
+          return RUNTIME.getField(ast, 's-block')(pos(node.pos), makeListTr(node.kids));
         },
         'stmt': function(node) {
           // (stmt s)
@@ -231,25 +221,21 @@
         'data-variant': function(node) {
           if (node.kids[1].value !== undefined) {
             // (data-variant PIPE NAME with)
-            return RUNTIME.getField(ast, 's-singleton-variant')
-              .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-singleton-variant')(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
           } else {
             // (data-variant PIPE variant-constructor with)
             var constr = tr(node.kids[1])
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-variant')(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
           }
         },
         'first-data-variant': function(node) {
           if (node.kids[0].value !== undefined) {
             // (first-data-variant NAME with)
-            return RUNTIME.getField(ast, 's-singleton-variant')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-singleton-variant')(pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
           } else {
             // (first-data-variant variant-constructor with)
             var constr = tr(node.kids[0])
-            return RUNTIME.getField(ast, 's-variant')
-              .app(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-variant')(pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
           }
         },
         'data-sharing': function(node) {
@@ -262,44 +248,36 @@
           }
         },
         'type-expr': function(node) {
-          return RUNTIME.getField(ast, 's-type')
-              .app(pos(node.pos),
+          return RUNTIME.getField(ast, 's-type')(pos(node.pos),
                    name(node.kids[1]),
                    tr(node.kids[2]),
                    tr(node.kids[4]));
         },
         'newtype-expr': function(node) {
-          return RUNTIME.getField(ast, 's-newtype')
-            .app(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+          return RUNTIME.getField(ast, 's-newtype')(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
         },
         'var-expr': function(node) {
           // (var-expr VAR bind EQUALS e)
-          return RUNTIME.getField(ast, 's-var')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-var')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'rec-expr': function(node) {
           // (rec-expr REC bind EQUALS e)
-          return RUNTIME.getField(ast, 's-rec')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-rec')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'let-expr': function(node) {
           if (node.kids.length === 3) {
             // (let-expr bind EQUALS e)
-            return RUNTIME.getField(ast, 's-let')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
+            return RUNTIME.getField(ast, 's-let')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
           } else {
             // (let-expr VAL bind EQUALS e)
-            return RUNTIME.getField(ast, 's-let')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), RUNTIME.makeBoolean(true));
+            return RUNTIME.getField(ast, 's-let')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), RUNTIME.makeBoolean(true));
           }
         },
         'newtype-bind': function(node) {
-          return RUNTIME.getField(ast, 's-newtype-bind')
-            .app(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+          return RUNTIME.getField(ast, 's-newtype-bind')(pos(node.pos), name(node.kids[1]), name(node.kids[3]));
         },
         'type-bind': function(node) {
-          return RUNTIME.getField(ast, 's-type-bind')
-              .app(pos(node.pos),
+          return RUNTIME.getField(ast, 's-type-bind')(pos(node.pos),
                   name(node.kids[0]),
                   tr(node.kids[1]),
                   tr(node.kids[3]));
@@ -314,8 +292,7 @@
         'type-let-expr': function(node) {
           // (type-let-expr TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block end
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-          return RUNTIME.getField(ast, 's-type-let-expr')
-            .app(pos(node.pos),
+          return RUNTIME.getField(ast, 's-type-let-expr')(pos(node.pos),
                  makeListComma(node.kids, 1, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
@@ -324,8 +301,7 @@
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr or var-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-          return RUNTIME.getField(ast, 's-let-expr')
-            .app(pos(node.pos), 
+          return RUNTIME.getField(ast, 's-let-expr')(pos(node.pos), 
                  makeListComma(node.kids, 1, node.kids.length - 3, translators["let-binding"]),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
@@ -334,8 +310,7 @@
           // Note that we override the normal name dispatch here, because we don't want
           // to create the default let-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-          return RUNTIME.getField(ast, 's-letrec')
-            .app(pos(node.pos), 
+          return RUNTIME.getField(ast, 's-letrec')(pos(node.pos), 
                  makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]), 
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
@@ -346,23 +321,19 @@
           }
           if (node.name === "let-expr") {
             // (let-expr binding EQUALS binop-expr)
-            return RUNTIME.getField(ast, 's-let-bind')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-let-bind')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else if (node.name === "var-expr") {
             // (var-expr VAR binding EQUALS binop-expr)
-            return RUNTIME.getField(ast, 's-var-bind')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-var-bind')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
           }
         },
         'letrec-binding': function(node) {
           // (let-expr binding EQUALS binop-expr)
-          return RUNTIME.getField(ast, 's-letrec-bind')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-letrec-bind')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'contract-stmt': function(node) {
           // (contract-stmt NAME COLONCOLON ann)
-          return RUNTIME.getField(ast, 's-contract')
-            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-contract')(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
         },
         'fun-header': function(node) {
           // (fun-header ty-params args return-ann)
@@ -376,8 +347,7 @@
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
-          return RUNTIME.getField(ast, 's-fun')
-            .app(pos(node.pos), symbol(node.kids[1]),
+          return RUNTIME.getField(ast, 's-fun')(pos(node.pos), symbol(node.kids[1]),
                  header.tyParams,
                  header.args,
                  header.returnAnn,
@@ -388,33 +358,28 @@
         },
         'data-expr': function(node) {
           // (data-expr DATA NAME params COLON variant ... sharing-part check END)
-          return RUNTIME.getField(ast, 's-data')
-            .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
+          return RUNTIME.getField(ast, 's-data')(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
                  makeListTr(node.kids, 4, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 3]),
                  tr(node.kids[node.kids.length - 2]));
         },
         'assign-expr': function(node) {
           // (assign-expr id COLONEQUAL e)
-          return RUNTIME.getField(ast, 's-assign')
-            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-assign')(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
         },
         'when-expr': function(node) {
           // (when-expr WHEN test COLON body END)
           var isBlock = (node.kids[2].name === "BLOCK");
-          return RUNTIME.getField(ast, 's-when')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), isBlock);
+          return RUNTIME.getField(ast, 's-when')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), isBlock);
         },
         'check-expr': function(node) {
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
-            return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]), 
+            return RUNTIME.getField(ast, 's-check')(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]), 
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
           } else {
             // (check-expr CHECK STRING COLON body END)
-            return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+            return RUNTIME.getField(ast, 's-check')(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]), 
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
           }
         },
@@ -426,19 +391,16 @@
           } else if (kids.length === 2) {
             // (check-test left op)
             //             0    1
-            return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone());
+            return RUNTIME.getField(ast, 's-check-test')(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone());
           } else if (kids.length === 3) {
             // (check-test left op right)
             //             0    1  2
-            return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[2])));
+            return RUNTIME.getField(ast, 's-check-test')(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[2])));
           }
           else {
             // (check-test left op PERCENT LPAREN refinement RPAREN right)
             //             0    1                 4                 6
-            return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeSome(tr(kids[4])), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[6])));
+            return RUNTIME.getField(ast, 's-check-test')(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeSome(tr(kids[4])), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[6])));
           }
         },
         'binop-expr': function(node) {
@@ -446,7 +408,7 @@
             // (binop-expr e)
             return tr(node.kids[0]);
           } else {
-            var mkOp = RUNTIME.getField(ast, 's-op').app;
+            var mkOp = RUNTIME.getField(ast, 's-op');
             var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
                             pos(node.kids[1].pos),
                             tr(node.kids[1]), 
@@ -505,13 +467,12 @@
           return tr(node.kids[0]);
         },
         'template-expr': function(node) {
-          return RUNTIME.getField(ast, 's-template').app(pos(node.pos));
+          return RUNTIME.getField(ast, 's-template')(pos(node.pos));
         },
         'binop-expr-paren': function(node) {
           if (node.kids[0].name === "paren-nospace-expr") {
             // (binop-expr-paren (paren-nospace-expr _ e _))
-            return RUNTIME.getField(ast, 's-paren')
-              .app(pos(node.pos), tr(node.kids[0].kids[1]));
+            return RUNTIME.getField(ast, 's-paren')(pos(node.pos), tr(node.kids[0].kids[1]));
           } else {
             // (binop-expr-paren e)
             return tr(node.kids[0]);
@@ -553,29 +514,24 @@
           if (node.kids[lastBinding - 1].name === "SEMI") {
             lastBinding--;
           }
-          return RUNTIME.getField(ast, 's-tuple-bind')
-            .app(pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
+          return RUNTIME.getField(ast, 's-tuple-bind')(pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
         },
            
         'name-binding': function(node) {
           if (node.kids.length === 1) {
             // (binding name)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
                    RUNTIME.getField(ast, 'a-blank'));
           } else if (node.kids.length === 3) {
             // (binding name COLONCOLON ann)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
           } else if (node.kids.length === 2) {
             // (binding SHADOW name)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
                    RUNTIME.getField(ast, 'a-blank'));
           } else {
             // (binding SHADOW name COLONCOLON ann)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
           }
         },
         'toplevel-binding': function(node) {
@@ -584,12 +540,10 @@
             return tr(node.kids[0]);
           } else if (node.kids.length === 4) {
             // (toplevel-binding SHADOW NAME COLONCOLON noparen-arrow-ann)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), tr(node.kids[3]));
           } else {
             // (toplevel-binding NAME COLONCOLON noparen-arrow-ann)
-            return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-bind')(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), tr(node.kids[2]));
           }
         },
         'args': function(node) {
@@ -604,11 +558,9 @@
         'variant-member': function(node) {
           if (node.kids.length === 1) {
             // (variant-member b)
-            return RUNTIME.getField(ast, 's-variant-member')
-              .app(pos(node.pos), RUNTIME.getField(ast, "s-normal"), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-variant-member')(pos(node.pos), RUNTIME.getField(ast, "s-normal"), tr(node.kids[0]));
           } else {
-            return RUNTIME.getField(ast, 's-variant-member')
-              .app(pos(node.pos), RUNTIME.getField(ast, "s-mutable"), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-variant-member')(pos(node.pos), RUNTIME.getField(ast, "s-mutable"), tr(node.kids[1]));
           }
         },
         'variant-members': function(node) {
@@ -632,22 +584,18 @@
         'obj-field': function(node) {
           if (node.kids.length === 4) {
             // (obj-field MUTABLE key COLON value)
-            return RUNTIME.getField(ast, 's-mutable-field')
-              .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a-blank'), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-mutable-field')(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a-blank'), tr(node.kids[3]));
           } else if (node.kids.length === 6) {
             // (obj-field MUTABLE key COLONCOLON ann COLON value)
-            return RUNTIME.getField(ast, 's-mutable-field')
-              .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
+            return RUNTIME.getField(ast, 's-mutable-field')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
           } else if (node.kids.length === 3) {
             // (obj-field key COLON value)
-            return RUNTIME.getField(ast, 's-data-field')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, 's-data-field')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
-            return RUNTIME.getField(ast, 's-method-field')
-              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+            return RUNTIME.getField(ast, 's-method-field')(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
           }
         },
@@ -671,18 +619,15 @@
         },
         'reactor-expr': function(node) {
           // (REACTOR COLON fields END)
-          return RUNTIME.getField(ast, 's-reactor')
-            .app(pos(node.pos), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-reactor')(pos(node.pos), tr(node.kids[2]));
         },
         'table-expr': function(node) {
           // (TABLE table-headers table-rows end)
-          return RUNTIME.getField(ast, 's-table')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-table')(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
         },
         'load-table-expr': function(node) {
           // (LOAD-TABLE COLON table-headers load-table-specs END)
-          return RUNTIME.getField(ast, 's-load-table')
-            .app(pos(node.pos), tr(node.kids[2]),
+          return RUNTIME.getField(ast, 's-load-table')(pos(node.pos), tr(node.kids[2]),
                  ((node.kids[3].name === "END")
                   ? makeList([]) : tr(node.kids[3])));
         },
@@ -697,11 +642,9 @@
         'table-header': function(node) {
           // NAME [:: ann]
           if (node.kids.length === 3) {
-            return RUNTIME.getField(ast, 's-field-name')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]))
+            return RUNTIME.getField(ast, 's-field-name')(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]))
           } else {
-            return RUNTIME.getField(ast, 's-field-name')
-              .app(pos(node.pos), symbol(node.kids[0]), RUNTIME.getField(ast, 'a-blank'))
+            return RUNTIME.getField(ast, 's-field-name')(pos(node.pos), symbol(node.kids[0]), RUNTIME.getField(ast, 'a-blank'))
           }
         },
         'table-rows': function(node) {
@@ -710,8 +653,7 @@
         },
         'table-row': function(node) {
           // (ROW table-items)
-          return RUNTIME.getField(ast, 's-table-row')
-            .app(pos(node.pos), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-table-row')(pos(node.pos), tr(node.kids[1]));
         },
         'table-items': function(node) {
           // [list-table-item* binop-expr]
@@ -736,24 +678,20 @@
         'table-extend-field': function(node) {
           if (node.kids.length === 3) {
             // (key COLON binop-expr)
-            return RUNTIME.getField(ast, 's-table-extend-field')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+            return RUNTIME.getField(ast, 's-table-extend-field')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
                    RUNTIME.getField(ast, 'a-blank'));
           } else if ((node.kids.length === 5)
                      && (node.kids[1].name === "COLONCOLON")){
             // (key COLONCOLON ann COLON binop-expr)
-            return RUNTIME.getField(ast, 's-table-extend-field')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+            return RUNTIME.getField(ast, 's-table-extend-field')(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
                    tr(node.kids[2]));
           } else if (node.kids.length === 5) {
             // (key COLON expr OF NAME)
-            return RUNTIME.getField(ast, 's-table-extend-reducer')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+            return RUNTIME.getField(ast, 's-table-extend-reducer')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
                    name(node.kids[4]), RUNTIME.getField(ast, 'a-blank'));
           } else if (node.kids.length === 7) {
             // (key COLONCOLON ann COLON expr OF NAME)
-            return RUNTIME.getField(ast, 's-table-extend-reducer')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+            return RUNTIME.getField(ast, 's-table-extend-reducer')(pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
                    name(node.kids[6]), tr(node.kids[2]));
           }
         },
@@ -768,12 +706,10 @@
         'load-table-spec': function(node) {
           if (node.kids[0].name === "SANITIZE") {
             // (SANITIZE NAME USING expr)
-            return RUNTIME.getField(ast, 's-sanitize')
-              .app(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-sanitize')(pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
           } else {
             // (SOURCECOLON expr)
-            return RUNTIME.getField(ast, 's-table-src')
-              .app(pos(node.pos), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-table-src')(pos(node.pos), tr(node.kids[1]));
           }
         },
         'sql-expr': function(node) {
@@ -782,29 +718,25 @@
                 ? RUNTIME.ffi.makeNone()
                 : RUNTIME.ffi.makeSome(tr(node.kids[3]));
           var project = tr(node.kids[node.kids.length - 2]);
-          return RUNTIME.getField(ast, 's-sql')
-            .app( pos(node.pos), 
+          return RUNTIME.getField(ast, 's-sql')( pos(node.pos), 
                   inspect, // from
                   where, // where
                   project); // project
         },
         'do-expr': function(node) {
           // (do FOR iter binds ... return COLON body END)
-          return RUNTIME.getField(ast, 's-do')
-            .app(pos(node.pos), 
+          return RUNTIME.getField(ast, 's-do')(pos(node.pos), 
                  tr(node.kids[1]),                         // iterator
                  makeList(node.kids.slice(3, -4).map(tr)), // bindings
                  tr(node.kids[node.kids.length - 3]),      // return-ann
                  tr(node.kids[node.kids.length - 1]));     // body
         },
         'for-do': function(node) {
-          return RUNTIME.getField(ast, 's-for-do')
-            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
+          return RUNTIME.getField(ast, 's-for-do')(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
         },
         'for-then': function(node) {
           // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
-          return RUNTIME.getField(ast, 's-for')
-            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
+          return RUNTIME.getField(ast, 's-for')(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
                  tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
         },
         'for-bind-elt': function(node) {
@@ -823,14 +755,12 @@
         'field': function(node) {
           if (node.kids.length === 3) {
             // (field key COLON value)
-            return RUNTIME.getField(ast, "s-data-field")
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            return RUNTIME.getField(ast, "s-data-field")(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
           } else {
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
-            return RUNTIME.getField(ast, "s-method-field")
-              .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+            return RUNTIME.getField(ast, "s-method-field")(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
                    tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
           }
         },
@@ -874,40 +804,33 @@
         },
         'cases-binding': function(node) {
           if(node.kids.length === 2) {
-            return RUNTIME.getField(ast, 's-cases-bind')
-              .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-ref'), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-cases-bind')(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-ref'), tr(node.kids[1]));
           }
           else {
-            return RUNTIME.getField(ast, 's-cases-bind')
-              .app(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-normal'), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-cases-bind')(pos(node.pos), RUNTIME.getField(ast, 's-cases-bind-normal'), tr(node.kids[0]));
           }
         },
         'cases-branch': function(node) {
           if (node.kids.length === 4) {
             // (singleton-cases-branch PIPE NAME THICKARROW body)
-            return RUNTIME.getField(ast, 's-singleton-cases-branch')
-              .app(pos(node.pos), pos(node.kids[1].pos), symbol(node.kids[1]), tr(node.kids[3]));
+            return RUNTIME.getField(ast, 's-singleton-cases-branch')(pos(node.pos), pos(node.kids[1].pos), symbol(node.kids[1]), tr(node.kids[3]));
           } else {
             // (cases-branch PIPE NAME args THICKARROW body)
-            return RUNTIME.getField(ast, 's-cases-branch')
-              .app(pos(node.pos), pos(node.kids[1].pos.combine(node.kids[2].pos)),
+            return RUNTIME.getField(ast, 's-cases-branch')(pos(node.pos), pos(node.kids[1].pos.combine(node.kids[2].pos)),
                    symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
           }
         },
         'if-pipe-branch': function(node) {
           // (if-pipe-branch BAR binop-expr THENCOLON block)
-          return RUNTIME.getField(ast, 's-if-pipe-branch')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-if-pipe-branch')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else-if': function(node) {
           // (else-if ELSEIF test COLON body)
-          return RUNTIME.getField(ast, 's-if-branch')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-if-branch')(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         },
         'else': function(node) {
           // (else ELSECOLON body)
-          return RUNTIME.getField(ast, 's-else')
-            .app(pos(node.pos), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-else')(pos(node.pos), tr(node.kids[1]));
         },
         'ty-params': function(node) {
           if (node.kids.length === 0) {
@@ -920,36 +843,30 @@
         },
         'for-bind': function(node) {
           // (for-bind name FROM e)
-          return RUNTIME.getField(ast, 's-for-bind')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 's-for-bind')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'prim-expr': function(node) {
           // (prim-expr e)
           return tr(node.kids[0]);
         },
         'tuple-expr': function(node) {
-          return RUNTIME.getField(ast, 's-tuple')
-              .app(pos(node.pos), tr(node.kids[1]))
+          return RUNTIME.getField(ast, 's-tuple')(pos(node.pos), tr(node.kids[1]))
         },
         'tuple-get': function(node) {
-          return RUNTIME.getField(ast, 's-tuple-get')
-              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
+          return RUNTIME.getField(ast, 's-tuple-get')(pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
         },
         'obj-expr': function(node) {
           if (node.kids.length === 2) {
             // (obj-expr LBRACE RBRACE)
-            return RUNTIME.getField(ast, 's-obj')
-              .app(pos(node.pos), makeList([]));
+            return RUNTIME.getField(ast, 's-obj')(pos(node.pos), makeList([]));
           } else {
             // (obj-expr LBRACE obj-fields RBRACE)
-            return RUNTIME.getField(ast, 's-obj')
-              .app(pos(node.pos), tr(node.kids[1]));
+            return RUNTIME.getField(ast, 's-obj')(pos(node.pos), tr(node.kids[1]));
           }
         },
         'construct-expr': function(node) {
           // LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
-          return RUNTIME.getField(ast, 's-construct')
-            .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
+          return RUNTIME.getField(ast, 's-construct')(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         },
         'construct-modifier': function(node) {
           if (node.kids.length === 0) {
@@ -962,40 +879,33 @@
         },
         'app-expr': function(node) {
           // (app-expr f args)
-          return RUNTIME.getField(ast, 's-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-app')(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
         },
         'id-expr': function(node) {
           // (id-expr x)
-          return RUNTIME.getField(ast, 's-id')
-            .app(pos(node.pos), name(node.kids[0]));
+          return RUNTIME.getField(ast, 's-id')(pos(node.pos), name(node.kids[0]));
         },
         'dot-expr': function(node) {
           // (dot-expr obj PERIOD field)
-          return RUNTIME.getField(ast, 's-dot')
-            .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
+          return RUNTIME.getField(ast, 's-dot')(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'get-bang-expr': function(node) {
           // (get-bang-expr obj BANG field)
-          return RUNTIME.getField(ast, 's-get-bang')
-            .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
+          return RUNTIME.getField(ast, 's-get-bang')(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'bracket-expr': function(node) {
           // (bracket-expr obj PERIOD LBRACK field RBRACK)
-          return RUNTIME.getField(ast, 's-bracket')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-bracket')(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'cases-expr': function(node) {
           var isBlock = (node.kids[5].name === "BLOCK");
           if (node.kids[node.kids.length - 4].name === "ELSE") {
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
-            return RUNTIME.getField(ast, 's-cases-else')
-              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+            return RUNTIME.getField(ast, 's-cases-else')(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
                    makeListTr(node.kids, 6, node.kids.length - 5), tr(node.kids[node.kids.length - 2]), isBlock);
           } else {
             // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
-            return RUNTIME.getField(ast, 's-cases')
-              .app(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+            return RUNTIME.getField(ast, 's-cases')(pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
                    makeListTr(node.kids, 6, node.kids.length - 1), isBlock);
           }
         },
@@ -1003,32 +913,26 @@
           var isBlock = (node.kids[1].name === "BLOCK");
           if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
             // (if-pipe-expr ASK (BLOCK|COLON) branch ... BAR OTHERWISECOLON else END)
-            return RUNTIME.getField(ast, 's-if-pipe-else')
-              .app(pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 4),
+            return RUNTIME.getField(ast, 's-if-pipe-else')(pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 4),
                    tr(node.kids[node.kids.length - 2]), isBlock);
           } else {
             // (if-pipe-expr ASK (BLOCK|COLON) branch ... END)
-            return RUNTIME.getField(ast, 's-if-pipe')
-              .app(pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 1), isBlock);
+            return RUNTIME.getField(ast, 's-if-pipe')(pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 1), isBlock);
           }
         },
         'if-expr': function(node) {
           var isBlock = (node.kids[2].name === "BLOCK");
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-expr IF test (BLOCK|COLON) body branch ... ELSECOLON else END)
-            return RUNTIME.getField(ast, 's-if-else')
-              .app(pos(node.pos), 
-                   makeList([RUNTIME.getField(ast, 's-if-branch')
-                             .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+            return RUNTIME.getField(ast, 's-if-else')(pos(node.pos), 
+                   makeList([RUNTIME.getField(ast, 's-if-branch')(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
                             makeListTr(node.kids, 4, node.kids.length - 3)),
                    tr(node.kids[node.kids.length - 2]), isBlock);
           } else {
             // (if-expr IF test (BLOCK|COLON) body branch ... END)
-            return RUNTIME.getField(ast, 's-if')
-              .app(pos(node.pos), 
-                   makeList([RUNTIME.getField(ast, 's-if-branch')
-                             .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+            return RUNTIME.getField(ast, 's-if')(pos(node.pos), 
+                   makeList([RUNTIME.getField(ast, 's-if-branch')(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
                             makeListTr(node.kids, 4, node.kids.length - 1)), isBlock);
           }
@@ -1036,119 +940,98 @@
         'for-expr': function(node) {
           // (for-expr FOR iter LPAREN for-bind (COMMA for-bind)* RPAREN return (BLOCK|COLON) body END)
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-          return RUNTIME.getField(ast, 's-for')
-            .app(pos(node.pos), tr(node.kids[1]), makeListComma(node.kids, 3, node.kids.length - 5),
+          return RUNTIME.getField(ast, 's-for')(pos(node.pos), tr(node.kids[1]), makeListComma(node.kids, 3, node.kids.length - 5),
                  tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]), isBlock);
         },
         'user-block-expr': function(node) {
           // (user-block-expr BLOCK body END)
-          return RUNTIME.getField(ast, 's-user-block')
-            .app(pos(node.pos), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-user-block')(pos(node.pos), tr(node.kids[1]));
         },
         'lambda-expr': function(node) {
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
-          return RUNTIME.getField(ast, 's-lam')
-            .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
+          return RUNTIME.getField(ast, 's-lam')(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
                  tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
         },
         'method-expr': function(node) {
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
-          return RUNTIME.getField(ast, 's-method')
-            .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
+          return RUNTIME.getField(ast, 's-method')(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
                  tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
         },
         'extend-expr': function(node) {
           // (extend-expr e PERIOD LBRACE fields RBRACE)
-          return RUNTIME.getField(ast, 's-extend')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-extend')(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'update-expr': function(node) {
           // (update-expr e BANG LBRACE fields RBRACE)
-          return RUNTIME.getField(ast, 's-update')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-update')(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'paren-expr': function(node) {
           // (paren-expr LPAREN e RPAREN)
-          return RUNTIME.getField(ast, 's-paren')
-            .app(pos(node.pos), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-paren')(pos(node.pos), tr(node.kids[1]));
         },
         'paren-nospace-expr': function(node) {
           // (paren-nospace-expr LPAREN e RPAREN)
-          return RUNTIME.getField(ast, 's-paren')
-            .app(pos(node.pos), tr(node.kids[1]));
+          return RUNTIME.getField(ast, 's-paren')(pos(node.pos), tr(node.kids[1]));
         },
         'inst-expr': function(node) {
           // (inst-expr e LANGLE ann (COMMA ann)* RANGLE)
-          return RUNTIME.getField(ast, 's-instantiate')
-            .app(pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
+          return RUNTIME.getField(ast, 's-instantiate')(pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
         },
         'bool-expr': function(node) {
           if (node.kids[0].name === "TRUE") {
-            return RUNTIME.getField(ast, 's-bool')
-              .app(pos(node.pos), RUNTIME.pyretTrue);
+            return RUNTIME.getField(ast, 's-bool')(pos(node.pos), RUNTIME.pyretTrue);
           } else {
-            return RUNTIME.getField(ast, 's-bool')
-              .app(pos(node.pos), RUNTIME.pyretFalse);
+            return RUNTIME.getField(ast, 's-bool')(pos(node.pos), RUNTIME.pyretFalse);
           }
         },
         'num-expr': function(node) {
           // (num-expr n)
-          return RUNTIME.getField(ast, 's-num')
-            .app(pos(node.pos), number(node.kids[0]));
+          return RUNTIME.getField(ast, 's-num')(pos(node.pos), number(node.kids[0]));
         },
         'frac-expr': function(node) {
           // (frac-expr n)
           var numden = node.kids[0].value.split("/");
-          return RUNTIME.getField(ast, 's-frac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+          return RUNTIME.getField(ast, 's-frac')(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
         },
         'string-expr': function(node) {
-          return RUNTIME.getField(ast, 's-str')
-            .app(pos(node.pos), string(node.kids[0]));
+          return RUNTIME.getField(ast, 's-str')(pos(node.pos), string(node.kids[0]));
         },
         'ann-field': function(node) {
           // (ann-field n COLON ann) or (ann-field n COLONCOLON ann)
-          return RUNTIME.getField(ast, 'a-field')
-            .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 'a-field')(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
         },
         'name-ann': function(node) {
           if (node.kids[0].value === "Any") {
-            return RUNTIME.getField(ast, 'a-any').app(pos(node.pos));
+            return RUNTIME.getField(ast, 'a-any')(pos(node.pos));
           } else {
-            return RUNTIME.getField(ast, 'a-name')
-              .app(pos(node.pos), name(node.kids[0]));
+            return RUNTIME.getField(ast, 'a-name')(pos(node.pos), name(node.kids[0]));
           }
         },
         'record-ann': function(node) {
           // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
-          return RUNTIME.getField(ast, 'a-record')
-            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+          return RUNTIME.getField(ast, 'a-record')(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
         },
         'tuple-ann': function(node) {
           // (tuple LBRACE ann (SEMI ann)* [SEMI] RBRACE
           if (node.kids[node.kids.length - 2].name === "SEMI") {
-            return RUNTIME.getField(ast, 'a-tuple')
-              .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2));
+            return RUNTIME.getField(ast, 'a-tuple')(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2));
           } else {
-            return RUNTIME.getField(ast, 'a-tuple')
-              .app(pos(node.pos), makeListComma(node.kids, 0, node.kids.length - 1));
+            return RUNTIME.getField(ast, 'a-tuple')(pos(node.pos), makeListComma(node.kids, 0, node.kids.length - 1));
           }
         },
         'noparen-arrow-ann': function(node) {
           if (node.kids.length === 2) {
             // (noparen-arrow-ann THINARROW result)
-            return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), 
+            return RUNTIME.getField(ast, 'a-arrow')(pos(node.pos), 
                    empty, tr(node.kids[1]),
                    RUNTIME.pyretFalse);
           } else {
             // (noparen-arrow-ann comma-anns THINARROW result)
-            return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), 
+            return RUNTIME.getField(ast, 'a-arrow')(pos(node.pos), 
                    tr(node.kids[0]), tr(node.kids[2]),
                    RUNTIME.pyretFalse);
           }
@@ -1161,12 +1044,12 @@
             columns.push(tr(node.kids[i]));
           var table = tr(node.kids[1]);
           var extensions = tr(node.kids[node.kids.length - 2]);
-          return RUNTIME.getField(ast, 's-table-extend').app(pos(node.pos),
-                                                             RUNTIME.getField(ast, 's-column-binds').app(
-                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                                                               makeList(columns),
-                                                               table),
-                                                             extensions);
+          return RUNTIME.getField(ast, 's-table-extend')(pos(node.pos),
+                                                         RUNTIME.getField(ast, 's-column-binds')(
+                                                           combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                           makeList(columns),
+                                                           table),
+                                                         extensions);
         },
         'table-update': function(node) {
           var columns = new Array();
@@ -1174,12 +1057,12 @@
             columns.push(tr(node.kids[i]));
           var table = tr(node.kids[1]);
           var extensions = tr(node.kids[node.kids.length - 2]);
-          return RUNTIME.getField(ast, 's-table-update').app(pos(node.pos),
-                                                             RUNTIME.getField(ast, 's-column-binds').app(
-                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                                                               makeList(columns),
-                                                               table),
-                                                             extensions);
+          return RUNTIME.getField(ast, 's-table-update')(pos(node.pos),
+                                                         RUNTIME.getField(ast, 's-column-binds')(
+                                                           combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                           makeList(columns),
+                                                           table),
+                                                         extensions);
         },
         //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
         'table-select': function(node) {
@@ -1187,7 +1070,7 @@
           for (var i = 1; i < node.kids.length - 3; i+=2)
             columns.push(name(node.kids[i]));
           var table = tr(node.kids[node.kids.length - 2]);
-          return RUNTIME.getField(ast, 's-table-select').app(
+          return RUNTIME.getField(ast, 's-table-select')(
             pos(node.pos), makeList(columns), table);
         },
         'column-order': function(node) {
@@ -1197,15 +1080,15 @@
                 : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
                 : undefined;
           console.log(direction);
-          return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
-                                                            column,
-                                                            direction);
+          return RUNTIME.getField(ast, 's-column-sort')(pos(node.pos), 
+                                                        column,
+                                                        direction);
         },
         'table-order': function(node) {
           // TABLE-ORDER NAME COLON column-orderings end
-          return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos),
-                                                            tr(node.kids[1]),
-                                                            tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-table-order')(pos(node.pos),
+                                                        tr(node.kids[1]),
+                                                        tr(node.kids[3]));
         },
         'table-filter': function(node) {
           var columns = new Array();
@@ -1213,36 +1096,33 @@
             columns.push(tr(node.kids[i]));
           var table = tr(node.kids[1]);
           var predicate = tr(node.kids[node.kids.length - 2]);
-          return RUNTIME.getField(ast, 's-table-filter').app(pos(node.pos),
-                                                             RUNTIME.getField(ast, 's-column-binds').app(
-                                                               combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                                                               makeList(columns),
-                                                               table),
-                                                             predicate);
+          return RUNTIME.getField(ast, 's-table-filter')(pos(node.pos),
+                                                         RUNTIME.getField(ast, 's-column-binds')(
+                                                           combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                                           makeList(columns),
+                                                           table),
+                                                         predicate);
         },
         'table-extract': function(node) {
-          return RUNTIME.getField(ast, 's-table-extract').app(pos(node.pos),
-                                                              name(node.kids[1]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 's-table-extract')(pos(node.pos),
+                                                          name(node.kids[1]), tr(node.kids[3]));
         },
         'arrow-ann': function(node) {
           if (node.kids.length === 4) {
             // (arrow-ann LPAREN THINARROW result RPAREN)
-            return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), empty,
+            return RUNTIME.getField(ast, 'a-arrow')(pos(node.pos), empty,
                    tr(node.kids[2]),
                    RUNTIME.pyretTrue);
           } else {
             // (arrow-ann LPAREN comma-anns THINARROW result RPAREN)
-            return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), tr(node.kids[1]),
+            return RUNTIME.getField(ast, 'a-arrow')(pos(node.pos), tr(node.kids[1]),
                    tr(node.kids[3]),
                    RUNTIME.pyretTrue);
           }
         },
         'app-ann': function(node) {
           // (app-ann ann LANGLE comma-anns RANGLE)
-          return RUNTIME.getField(ast, 'a-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, 'a-app')(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'comma-anns': function(node) {
           return makeListComma(node.kids);
@@ -1255,13 +1135,11 @@
         },
         'pred-ann': function(node) {
           // (pred-ann ann PERCENT LPAREN exp RPAREN)
-          return RUNTIME.getField(ast, 'a-pred')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+          return RUNTIME.getField(ast, 'a-pred')(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
-          return RUNTIME.getField(ast, 'a-dot')
-            .app(pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
+          return RUNTIME.getField(ast, 'a-dot')(pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
         },
         'ann': function(node) {
           // (ann a)
@@ -1289,22 +1167,22 @@
       "and": RUNTIME.makeString("opand"),
       "or":  RUNTIME.makeString("opor"),
 
-      "is":                function(l){return RUNTIME.getField(ast, "s-op-is").app(l);},
-      "is-roughly":        function(l){return RUNTIME.getField(ast, "s-op-is-roughly").app(l);},
-      "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op==");},
-      "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
-      "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
-      "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not").app(l);},
-      "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op==");},
-      "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op=~");},
-      "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op<=>");},
-      "satisfies":         function(l){return RUNTIME.getField(ast, "s-op-satisfies").app(l);},
-      "violates":          function(l){return RUNTIME.getField(ast, "s-op-satisfies-not").app(l);},
-      "raises":            function(l){return RUNTIME.getField(ast, "s-op-raises").app(l);},
-      "raises-other-than": function(l){return RUNTIME.getField(ast, "s-op-raises-other").app(l);},
-      "does-not-raise":    function(l){return RUNTIME.getField(ast, "s-op-raises-not").app(l);},
-      "raises-satisfies":  function(l){return RUNTIME.getField(ast, "s-op-raises-satisfies").app(l);},
-      "raises-violates":   function(l){return RUNTIME.getField(ast, "s-op-raises-violates").app(l);},
+      "is":                function(l){return RUNTIME.getField(ast, "s-op-is")(l);},
+      "is-roughly":        function(l){return RUNTIME.getField(ast, "s-op-is-roughly")(l);},
+      "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op")(l, "op==");},
+      "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op")(l, "op=~");},
+      "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op")(l, "op<=>");},
+      "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not")(l);},
+      "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op")(l, "op==");},
+      "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op")(l, "op=~");},
+      "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op")(l, "op<=>");},
+      "satisfies":         function(l){return RUNTIME.getField(ast, "s-op-satisfies")(l);},
+      "violates":          function(l){return RUNTIME.getField(ast, "s-op-satisfies-not")(l);},
+      "raises":            function(l){return RUNTIME.getField(ast, "s-op-raises")(l);},
+      "raises-other-than": function(l){return RUNTIME.getField(ast, "s-op-raises-other")(l);},
+      "does-not-raise":    function(l){return RUNTIME.getField(ast, "s-op-raises-not")(l);},
+      "raises-satisfies":  function(l){return RUNTIME.getField(ast, "s-op-raises-satisfies")(l);},
+      "raises-violates":   function(l){return RUNTIME.getField(ast, "s-op-raises-violates")(l);},
     }
 
     function parseDataRaw(data, fileName) {

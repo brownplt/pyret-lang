@@ -21,10 +21,10 @@
       var jBool = gf(vals, "j-bool");
       var jNull = gf(vals, "j-null");
       var sdMake = gf(gf(sdvals, "string-dict"), "make");
-      var str = function(s) { return jStr.app(RUNTIME.makeString(s)); }
-      var num = function(n) { return jNum.app(RUNTIME.makeNumber(n)); }
-      var bool = function(b) { return jBool.app(RUNTIME.makeBoolean(b ? RUNTIME.pyretTrue : RUNTIME.pyretFalse)); }
-      var arr = function(a) { return jArr.app(RUNTIME.ffi.makeList(a)) }
+      var str = function(s) { return jStr(RUNTIME.makeString(s)); }
+      var num = function(n) { return jNum(RUNTIME.makeNumber(n)); }
+      var bool = function(b) { return jBool(RUNTIME.makeBoolean(b ? RUNTIME.pyretTrue : RUNTIME.pyretFalse)); }
+      var arr = function(a) { return jArr(RUNTIME.ffi.makeList(a)) }
       var nul = function(v) { return jNull; }
       function convert(v) {
         if(v === null) {
@@ -48,7 +48,7 @@
               RUNTIME.ffi.throwMessageException("Invalid key " + v + " in JSON: " + s);
             }
           }
-          return jObj.app(sdMake.app(a));
+          return jObj(sdMake(a));
         } else {
           RUNTIME.ffi.throwMessageException("Invalid JSON: " + s);
         }

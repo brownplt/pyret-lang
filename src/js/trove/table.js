@@ -16,11 +16,11 @@
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
 
     function applyBrand(brand, val) {
-      return get(brand, "brand").app(val);
+      return get(brand, "brand")(val);
     }
     
     function hasBrand(brand, val) {
-      return get(brand, "test").app(val);
+      return get(brand, "test")(val);
     }
     
     function isTable(val) {
@@ -66,7 +66,7 @@
           runtime.checkCellContent(contents[i][j]);
         }
         contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
-          return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
+          return sanitizers[j](contents[i][j], names[j], runtime.makeNumber(i));
         }), contents[i]);
       }
       return makeTable(names, contents);
@@ -149,7 +149,7 @@
           // columns have same names?
           // each row has the same elements
           var eq  = function() { return ffi.equal; };
-          var neq = function() { return ffi.notEqual.app('', self, other); };
+          var neq = function() { return ffi.notEqual('', self, other); };
           if (!hasBrand(brandTable, other)) {
             return neq();
           }
@@ -169,7 +169,7 @@
             var otherRow = otherRows[i];
             var colEqual = function(j) {
               return function() {
-                return equals.app(selfRow[j], otherRow[j]);
+                return equals(selfRow[j], otherRow[j]);
               };
             };
             var liftEquals = function(r) {
@@ -186,9 +186,9 @@
         
         '_output': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "_output");
-          var vsValue = get(VS, "vs-value").app;
-          var vsString = get(VS, "vs-str").app;
-          return get(VS, "vs-table").app(
+          var vsValue = get(VS, "vs-value");
+          var vsString = get(VS, "vs-str");
+          return get(VS, "vs-table")(
             headers.map(function(hdr){return vsString(hdr);}),
             rows.map(function(row){return row.map(
               function(elm){return vsValue(elm);});}));

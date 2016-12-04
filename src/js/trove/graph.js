@@ -61,7 +61,7 @@
 
       RUNTIME.checkArity(2, arguments, "show-graph");
 
-      var checkGraph = RUNTIME.makeCheckType(PyretGraph.app, "Graph");
+      var checkGraph = RUNTIME.makeCheckType(PyretGraph, "Graph");
       var checkGraphOptions = function(v) {
         RUNTIME._checkAnn(["GraphOptions"], TypeGraphOptions, v);
       };
@@ -77,8 +77,8 @@
 
       var colorConverter = libColor.convertColor(RUNTIME, IMAGE);
 
-      var vertexPrinter = gf(pyretGraphOptions, "vertex-printer").app; // TODO: unsafe!
-      var edgePrinter = gf(pyretGraphOptions, "edge-printer").app; // TODO: unsafe!
+      var vertexPrinter = gf(pyretGraphOptions, "vertex-printer"); // TODO: unsafe!
+      var edgePrinter = gf(pyretGraphOptions, "edge-printer"); // TODO: unsafe!
 
       var arrayOfNodes = RUNTIME.ffi.toArray(gf(pyretGraph, "vertices"));
       var nodes = arrayOfNodes.map(
@@ -672,14 +672,14 @@
        */
       RUNTIME.checkArity(2, arguments, "show-tree");
 
-      var checkTree = RUNTIME.makeCheckType(PyretTree.app, "Tree");
+      var checkTree = RUNTIME.makeCheckType(PyretTree, "Tree");
       var checkTreeOptions = function(v) {
         RUNTIME._checkAnn(["TreeOptions"], TypeTreeOptions, v);
       };
       checkTree(pyretTree);
       checkTreeOptions(treeOptions);
 
-      var printer = gf(treeOptions, 'node-printer').app; // TODO: unsafe
+      var printer = gf(treeOptions, 'node-printer'); // TODO: unsafe
 
       function toJSTree(node) {
         return {
