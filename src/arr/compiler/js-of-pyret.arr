@@ -97,7 +97,7 @@ fun make-expr-flatness-env(
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
         some(0)
-      else if AA.is-a-id-letrec(val):
+      else if AA.is-a-id-letrec(val) and val.safe:
         block:
           # If we're binding this name to something that's already been defined
           # just copy over the definition
