@@ -117,9 +117,9 @@ define([], function() {
         typ = value.typ;
         wrapper = function(t) {
           return runtime.makeObject({ bind: "fun", name: value.name, flatness: value.flatness, typ: t});
-        }
+        };
       }
-      else if(typ.bind === "var") {
+      else if(value.bind === "var") {
         typ = value.typ;
         wrapper = function(t) {
           return runtime.makeObject({ bind: "var", typ: t });
