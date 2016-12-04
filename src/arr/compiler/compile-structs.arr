@@ -1414,7 +1414,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
-         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], 0),
+         ED.highlight(ED.text(self.obj), [list: self.obj-loc], 0),
         [ED.para:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], 1))]]
