@@ -185,7 +185,7 @@ fun rt-field(name): j-dot(RUNTIME, name) end
 fun rt-method(name, args): j-method(RUNTIME, name, args) end
 
 fun app(l, f, args):
-  j-method(f, "app", args)
+  j-app(f, args)
 end
 
 fun check-fun(l, f):
