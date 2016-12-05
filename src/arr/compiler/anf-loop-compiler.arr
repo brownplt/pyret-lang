@@ -476,8 +476,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
           j-expr(j-unop(rt-field("GAS"), j-incr)),
           j-return(j-id(local-compiler.cur-ans))])))
   ^ cl-snoc(_, j-default(j-block1(
-          j-throw(j-binop(j-binop(j-str("No case numbered "), J.j-plus, j-id(step)), J.j-plus,
-              j-str(" in " + fun-name.tosourcestring()))))))
+        j-expr(j-method(rt-field("ffi"), "throwSpinnakerError", [clist: local-compiler.get-loc(l), j-id(step)])))))
   # fun check-no-dups(seen, kases):
   #   cases(List) kases:
   #     | empty => nothing
