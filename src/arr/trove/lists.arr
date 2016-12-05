@@ -738,7 +738,7 @@ end
 
 fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
   ask:
-    | is-empty(lst) then: equality.NotEqual("list", elt, lst)
+    | is-empty(lst) then: equality.NotEqual(elt, lst)
     | is-link(lst) then:
       f = lst.first
       r = lst.rest

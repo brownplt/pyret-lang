@@ -7,8 +7,8 @@ import error as error
 
 data EqualityResult:
   | Equal
-  | NotEqual(reason :: String, value1, value2)
-  | Unknown(reason :: String, value1, value2)
+  | NotEqual(value1, value2)
+  | Unknown(value1, value2)
 end
 
 fun equal-and(er1 :: EqualityResult, er2 :: EqualityResult):

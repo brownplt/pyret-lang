@@ -1795,31 +1795,31 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, NumberErrbacks)) {
                   continue;
                 } else {
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                 }
               } else if (jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks)) {
                 continue;
               } else {
-                toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              toCompare.curAns = thisRuntime.ffi.unknown("Roughnums", curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.unknown(curLeft, curRight);
             } else if (jsnums.equals(curLeft, curRight, NumberErrbacks)) {
               continue;
             } else {
-              toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
           } else if (isFunction(curLeft) && isFunction(curRight)) {
-            toCompare.curAns = thisRuntime.ffi.unknown("Functions" , curLeft ,  curRight);
+            toCompare.curAns = thisRuntime.ffi.unknown(curLeft ,  curRight);
           } else if (isMethod(curLeft) && isMethod(curRight)) {
-            toCompare.curAns = thisRuntime.ffi.unknown("Methods" , curLeft , curRight);
+            toCompare.curAns = thisRuntime.ffi.unknown(curLeft , curRight);
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
             } else {
-              toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
             }
           } else {
             var curPair = findPair(curLeft, curRight);
@@ -1832,52 +1832,41 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight); // We would've caught identical refs already
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight); // We would've caught identical refs already
                 } else if(!isRefSet(curLeft) || !isRefSet(curRight)) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                 } else { // In equal-now, we walk through the refs
-                  var newPath = current.path;
-                  var lastDot = newPath.lastIndexOf(".");
-                  var lastParen = newPath.lastIndexOf(")");
-                  if (lastDot > -1 && lastDot > lastParen) {
-                    newPath = newPath.substr(0, lastDot) + "!" + newPath.substr(lastDot + 1);
-                  } else {
-                    newPath = "deref(" + newPath + ")";
-                  }
                   toCompare.stack.push({
                     left: getRef(curLeft),
                     right: getRef(curRight),
-                    path: newPath
                   });
                 }
               } else if(isTuple(curLeft) && isTuple(curRight)) {
                 if (curLeft.vals.length !== curRight.vals.length) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.vals.length; i++) {
                     toCompare.stack.push({
                       left: curLeft.vals[i],
                       right: curRight.vals[i],
-                      path: "is-tuple{ " + current.path + "; " + i + " }"
                     });
                   }
                 }
               } else if (isArray(curLeft) && isArray(curRight)) {
                 if (alwaysFlag || (curLeft.length !== curRight.length)) {
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                 } else {
                   for (var i = 0; i < curLeft.length; i++) {
                     toCompare.stack.push({
                       left: curLeft[i],
                       right: curRight[i],
-                      path: "raw-array-get(" + current.path + ", " + i + ")"
                     });
                   }
                 }
               } else if (isObject(curLeft) && isObject(curRight)) {
                 if (!sameBrands(getBrands(curLeft), getBrands(curRight))) {
                   /* Two objects with brands that differ */
-                  toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                  toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
@@ -1904,7 +1893,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                       toCompare.stack.push({
                         left: fieldsLeft[k],
                         right: fieldsRight[k],
-                        path: current.path + "." + fieldNames[k]
                       });
                     }
                   }
@@ -1917,18 +1905,17 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                   fieldsLeft = getFields(curLeft);
                   fieldsRight = getFields(curRight);
                   if(fieldsLeft.length !== fieldsRight.length) {
-                    toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                    toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
                   }
                   for(var k = 0; k < fieldsLeft.length; k++) {
                     toCompare.stack.push({
                       left: curLeft.dict[fieldsLeft[k]],
                       right: curRight.dict[fieldsLeft[k]],
-                      path: current.path + "." + fieldsLeft[k]
                     });
                   }
                 }
               } else {
-                toCompare.curAns = thisRuntime.ffi.notEqual(current.path, curLeft, curRight);
+                toCompare.curAns = thisRuntime.ffi.notEqual(curLeft, curRight);
               }
             }
           }
@@ -1983,7 +1970,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             switch($step) {
             case 0:
               stackOfToCompare.push(toCompare);
-              toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
+              toCompare = {stack: [{left: left, right: right}], curAns: thisRuntime.ffi.equal};
               $step = 1;
               $ans = equalFunLoop();
               break;
@@ -2253,15 +2240,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     // JS function from Pyret values to Pyret equality answers
     function identical3PyValues(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
-        return thisRuntime.ffi.unknown("Functions", v1,  v2);
+        return thisRuntime.ffi.unknown(v1,  v2);
       } else if (isMethod(v1) && isMethod(v2)) {
-        return thisRuntime.ffi.unknown('Methods', v1,  v2);
+        return thisRuntime.ffi.unknown(v1,  v2);
       } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
-        return thisRuntime.ffi.unknown('Roughnums', v1,  v2);
+        return thisRuntime.ffi.unknown(v1,  v2);
       } else if (v1 === v2) {
         return thisRuntime.ffi.equal;
       } else {
-        return thisRuntime.ffi.notEqual("", v1, v2);
+        return thisRuntime.ffi.notEqual(v1, v2);
       }
     };
     // Pyret function from Pyret values to Pyret equality answers

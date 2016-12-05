@@ -591,8 +591,18 @@
       isFailArg: isFailArg,
 
       equal: gf(EQ, "Equal"),
-      notEqual: gf(EQ, "NotEqual"),
-      unknown: gf(EQ, "Unknown"),
+      notEqual: function(p, l, r) {
+        var ne = gf(EQ, "NotEqual"); // VERY polyglot right now
+        if (ne.length === 3) { return ne(p, l, r); }
+        else if (arguments.length === 3) { return ne(l, r); }
+        else { return ne(p, l); }
+      },
+      unknown: function(p, l, r) {
+        var un = gf(EQ, "Unknown");
+        if (un.length === 3) { return un(p, l, r); }
+        else if (arguments.length === 3) { return un(l, r); }
+        else { return un(p, l); }
+      },
       isEqual: isEqual,
       isNotEqual: isNotEqual,
       isUnknown: isUnknown,

@@ -164,7 +164,7 @@ sharing:
   end,
   method _equals(self, other, eq):
     if not(is-AVLTree(other)):
-      equality.NotEqual("Non-AVLTree", self, other)
+      equality.NotEqual(self, other)
     else:
       eq(self.inorder(), other.inorder())
     end
@@ -483,12 +483,12 @@ sharing:
 
   method _equals(self, other, eq):
     if not(is-Set(other)):
-      equality.NotEqual("Non-Set", self, other)
+      equality.NotEqual(self, other)
     else:
       self-list = self.to-list()
       other-list = other.to-list()
       if not(other-list.length() == self-list.length()):
-        equality.NotEqual("set size", self, other)
+        equality.NotEqual(self, other)
       else:
         for fold(result from equality.Equal, elt from self-list):
           result-for-elt = lists.member-with(other-list, elt, eq)
