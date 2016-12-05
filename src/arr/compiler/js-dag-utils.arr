@@ -420,7 +420,22 @@ fun compute-live-ranges(dag :: D.StringDict<GraphNode>) -> List<LiveInterval> bl
     lam(x, y): x.startloc() == y.startloc() end)
 end
 
-fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
+fun get-activation-frame-crossing-vars(dag :: D.StringDict<GraphNode>, node-labels) block:
+  # Flatten live-after-vars in order to get set of
+  # names which cross activation frame boundaries
+  acc = ns-empty()
+  for each(lbl from node-labels):
+    n = dag.get-value(lbl)
+    when is-some(n!live-after-vars):
+      for each(v-key from n!live-after-vars.value.keys-list-now()):
+        acc.set-now(v-key, n!live-after-vars.value.get-value-now(v-key))
+      end
+    end
+  end
+  acc.freeze()
+end
+
+fun allocate-variables(dag :: D.StringDict<GraphNode>, node-labels) block:
   #doc: ```
   #     Returns a mapping of name.key() -> <allocated name>.
   #     We use a variation of Poletto and Sarkar's Linear Register Allocation
@@ -436,13 +451,54 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
   # print("\n")
   # Dynamically grown set of "registers"
   pool = DSU.make-mutable-stack()
+  # Names which have already crossed activation frames
+  activation-crossing-pool = DSU.make-mutable-stack()
+  # Variable names which cross activation frames (prior to allocation)
+  activation-crossing = get-activation-frame-crossing-vars(dag, node-labels)
   # Allocation dictionary
   ret = D.make-mutable-string-dict()
   # Priority heap (min = element with earliest ending)
   active = DSU.make-mutable-pairing-heap()
   # Should be the same as ARGUMENTS name in anf-loop-compiler
   ARGUMENTS = A.s-name(A.dummy-loc, "arguments")
-  
+
+  num-activation-crossing = activation-crossing.keys-list().length()
+  var num-activation-crossing-processed = 0
+  var num-ac-post = 0
+      
+  fun pop-register(for-var):
+    cases(Option) activation-crossing.get(for-var.key()) block:
+      | some(_) =>
+        # Given variable is used in activation frame; try
+        # to reuse variable which has already been placed
+        # in activation frame
+        num-activation-crossing-processed := num-activation-crossing-processed + 1
+        ap-popped = activation-crossing-pool.pop()
+        if is-some(ap-popped) block:
+          ap-popped
+        else:
+          # Fall back onto one-step pool
+          num-ac-post := num-ac-post + 1
+          pool.pop()
+        end
+      | none =>
+        if num-activation-crossing-processed =~ num-activation-crossing:
+          # If we've already allocated all activation-crossing
+          # variables, then we can reuse from the activation-crossing
+          # stack as well.
+          ap-popped = activation-crossing-pool.pop()
+          if is-some(ap-popped):
+            ap-popped
+          else:
+            pool.pop()
+          end
+        else:
+          pool.pop()
+        end
+    end
+  end
+
+
   fun prune-dead(i-cur):
     cases(Option) active.find-min():
       | none => nothing
@@ -452,7 +508,12 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
           active.delete-min()
           # Push the register allocated to i-min back into pool
           when (i-min.variable <> ARGUMENTS) and not(i-min.is-protected()):
-            pool.push(ret.get-value-now(i-min.variable.key()))
+            cases(Option) activation-crossing.get(i-min.variable.key()):
+              | some(_) =>
+                activation-crossing-pool.push(ret.get-value-now(i-min.variable.key()))
+              | none =>
+                pool.push(ret.get-value-now(i-min.variable.key()))
+            end
           end
           # Recur to prune any additional intervals
           prune-dead(i-cur)
@@ -472,7 +533,7 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
     if A.is-s-atom(i.variable) block:
       prune-dead(i)
       active.insert(i)
-      cases(Option) pool.pop() block:
+      cases(Option) pop-register(i.variable) block:
         | none => ret.set-now(i.variable.key(), i.variable)
           num-registers := num-registers + 1
         | some(reg) =>
@@ -483,8 +544,9 @@ fun allocate-variables(dag :: D.StringDict<GraphNode>) block:
       num-registers := num-registers + 1
     end
   end
+  
   # Return assignments
-  {num-ranges; num-registers; ret.freeze()}
+  {num-ranges; num-registers; num-activation-crossing; num-ac-post; ret.freeze()}
 end
 
 fun stmts-of(blk :: J.JBlock):
@@ -667,14 +729,18 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
   #   print("\n" + n.case-body.to-ugly-source())
   # end
   # print("Step 3")
+  declared = ns-empty()
   for each(lbl from str-labels) block:
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body)}
     # protekted == closed over
+    # FIXME: free-vars should not include things in other
+    #        nodes' decl-vars
     {used; protekted} = used-vars-jcase(n.case-body)
     n!{used-vars: used}
+    declared.merge-now(n!decl-vars)
     free-vars = difference-now(n!used-vars, n!decl-vars)
-    protekted.merge-now(free-vars)
+    protekted.merge-now(difference-now(free-vars, declared))
     n!{protected-after-vars: protekted}
     n!{free-vars: free-vars}
   end
@@ -702,7 +768,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
   #     live-ranges.set-now(v.tosourcestring(), cur.add(lbl))
   #   end
   # end
-  {num-before; num-after; allocated} = allocate-variables(dag)
+  {num-before; num-after; num-ac-pre; num-ac-post; allocated} = allocate-variables(dag, str-labels)
   assigned = D.make-mutable-string-dict()
   fix-name = lam(name):
     cases(Option) allocated.get(name.key()):
@@ -754,9 +820,11 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
   end
 
   acc = ns-empty()
+  naf-acc = ns-empty()
   for each(lbl from str-labels):
     n = dag.get-value(lbl)
-    when is-some(n!live-after-vars):
+    when is-some(n!live-after-vars) block:
+      naf-acc.merge-now(difference-now(n!live-after-vars.value, n!protected-after-vars))
       for each(v-key from n!live-after-vars.value.keys-list-now()):
         cases(Option) allocated.get(v-key):
           | none => nothing
@@ -765,23 +833,29 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name, loc) -> Register
       end
     end
   end
+  naf-pre = naf-acc.keys-list-now().length()
   preserved-vars = acc.freeze()
   shadow preserved-vars = preserved-vars.keys-list().map(preserved-vars.get-value(_))
   # When statement to only show interesting cases
-  # print("\n# of live variables Before: \t" + tostring(num-before) + "\tAfter: \t" + tostring(num-after) + "\n")
-  # COLOR-PRE = string-from-code-point(27) + "[96m"
-  # COLOR-POST = string-from-code-point(27) + "[0m"
-  # when num-before <> num-after block:
-  #   print("Renaming:\n")
-  #   for each(v from allocated.keys().to-list()):
-  #     dest = allocated.get-value(v).key()
-  #     print("\t" + if dest <> v:
-  #         (COLOR-PRE + v + " => " + allocated.get-value(v).key() + COLOR-POST)
-  #       else:
-  #         (v + " => " + allocated.get-value(v).key())
-  #       end + "\n")
-  #   end
-  # end
+  #print("\n" + tostring(num-before) + "\t" + tostring(num-after) + " (location: " + tostring(loc) + ")" +  "\n")
+  #COLOR-PRE = string-from-code-point(27) + "[96m"
+  #COLOR-POST = string-from-code-point(27) + "[0m"
+  #when num-before <> num-after block:
+  #  print("Renaming:\n")
+  #  for each(v from allocated.keys().to-list()):
+  #    dest = allocated.get-value(v).key()
+  #    print("\t" + if dest <> v:
+  #        (COLOR-PRE + v + " => " + allocated.get-value(v).key() + COLOR-POST)
+  #      else:
+  #        (v + " => " + allocated.get-value(v).key())
+  #      end + "\n")
+  #  end
+  #  if num-ac-pre == num-ac-post:
+  #    print("\t[" + tostring(num-ac-pre) + " crossing AF before; " + tostring(num-ac-post) + " after]\n")
+  #  else:
+  #    print("\t" + COLOR-PRE + "[" + tostring(naf-pre) + " crossing AF before; " + tostring(num-ac-post) + " after]" + COLOR-POST + "\n")
+  #  end
+  #end
 
   # print("Done")
   results(dead-assignment-eliminated, preserved-vars)
