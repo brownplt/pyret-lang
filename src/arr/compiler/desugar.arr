@@ -437,7 +437,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body, blocky) =>
       values = bindings.map(_.value).map(desugar-expr)
-      name = "for-body<" + l.format(false) + ">"
+      name = "for-body@" + l.key()
       the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
     | s-for-do(l, from-clause, dos) =>

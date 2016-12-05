@@ -127,6 +127,7 @@ fun make-default-types() block:
   default-typs.set-now("checkTupleBind", t-arrow([list: t-top, t-number, t-srcloc], t-bot))
   default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
   default-typs.set-now("throwNoBranchesMatched", t-arrow([list: t-srcloc, t-string], t-bot))
+  default-typs.set-now("throwUnbrandableValue", t-arrow([list: t-srcloc, t-top, t-string], t-bot))
   default-typs.set-now("throwUnfinishedTemplate", t-arrow([list: t-srcloc], t-bot))
   default-typs.set-now("makeReactor", t-forall([list: tva], t-arrow([list:
       tva,

@@ -178,7 +178,7 @@ fun used-vars-jexpr(e :: J.JExpr) -> NameSet:
       ans = used-vars-jexpr(left)
       ans.merge-now(used-vars-jexpr(right))
       ans
-    | j-fun(args, body) =>
+    | j-fun(_, args, body) =>
       acc = difference-now(used-vars-jblock(body), declared-vars-jblock(body))
       for CL.each(a from args):
         acc.remove-now(a.key())
@@ -358,6 +358,7 @@ fun ignorable(rhs):
     | j-id(_) => true
     | j-str(_) => true
     | j-num(_) => true
+    | j-fun(_, _, _) => true
     | j-true => true
     | j-false => true
     | j-undefined => true
@@ -405,7 +406,10 @@ fun elim-dead-vars-jstmts(stmts :: ConcatList<J.JStmt>, dead-vars :: FrozenNameS
         acc ^ cl-snoc(_,
           J.j-try-catch(elim-dead-vars-jblock(body, dead-vars), exn, elim-dead-vars-jblock(catch, dead-vars)))
       | j-throw(exp) => acc ^ cl-snoc(_, s)
-      | j-expr(expr) => acc ^ cl-snoc(_, s)
+      | j-expr(expr) =>
+        if ignorable(expr): acc
+        else: acc ^ cl-snoc(_, s)
+        end
       | j-break => acc ^ cl-snoc(_, s)
       | j-continue => acc ^ cl-snoc(_, s)
       | j-switch(exp, branches) =>

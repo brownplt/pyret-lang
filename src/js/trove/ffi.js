@@ -404,6 +404,11 @@
     function throwUnfinishedTemplate(locArray) {
       raise(err("template-not-finished")(runtime.makeSrcloc(locArray)));
     }
+    function throwUnbrandableValue(locArray, val, brandName) {
+      runtime.checkPyretVal(val);
+      runtime.checkString(brandName);
+      raise(err("unbrandable-value")(runtime.makeSrcloc(locArray), val, brandName));
+    }
     function throwNonFunApp(locArray, funVal) {
       runtime.checkPyretVal(funVal);
       raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
@@ -514,7 +519,9 @@
     var isEmpty = gf(L, "is-empty");
     var isLink = gf(L, "is-link");
 
-    return runtime.makeJSModuleReturn({
+    var moduleReturn = {
+      mungeFunName : runtime.mungeFunName,
+      unmungeFunName : runtime.unmungeFunName,
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,
@@ -552,6 +559,7 @@
       throwNoCasesMatched: throwNoCasesMatched,
       throwNonFunApp: throwNonFunApp,
       throwUnfinishedTemplate: throwUnfinishedTemplate,
+      throwUnbrandableValue: throwUnbrandableValue,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
       throwInvalidTableColumn: throwInvalidTableColumn,
 
@@ -609,16 +617,16 @@
       makeTreeSet: makeTreeSet,
 
       isOption: runtime.getField(O, "is-Option"),
-      isNone: function(v) { return runtime.getField(O, "is-none")(v); },
-      isSome: function(v) { return runtime.getField(O, "is-some")(v); },
+      isNone: function(v) { moduleReturn.isNone = runtime.getField(O, "is-none"); return moduleReturn.isNone(v); },
+      isSome: function(v) { moduleReturn.isSome = runtime.getField(O, "is-some"); return moduleReturn.isSome(v); },
       makeNone: function() { return runtime.getField(O, "none"); },
-      makeSome: function(v) { return runtime.getField(O, "some")(v); },
+      makeSome: function(v) { moduleReturn.makeSome = runtime.getField(O, "some"); return moduleReturn.makeSome(v); },
 
       isEither: runtime.getField(E, "is-Either"),
-      isLeft: function(v) { return runtime.getField(E, "is-left")(v); },
-      isRight: function(v) { return runtime.getField(E, "is-right")(v); },
-      makeLeft: function(l) { return runtime.getField(E, "left")(l); },
-      makeRight: function(r) { return runtime.getField(E, "right")(r); },
+      isLeft: function(v) { moduleReturn.isLeft = runtime.getField(E, "is-left"); return moduleReturn.isLeft(v); },
+      isRight: function(v) { moduleReturn.isRight = runtime.getField(E, "is-right"); return moduleReturn.isRight(v); },
+      makeLeft: function(l) { moduleReturn.makeLeft = runtime.getField(E, "left"); return moduleReturn.makeLeft(l); },
+      makeRight: function(r) { moduleReturn.makeRight = runtime.getField(E, "right"); return moduleReturn.makeRight(r); },
 
       toArray: toArray,
       isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List")(list)); },
@@ -692,6 +700,7 @@
         }
         return arr;
       }
-    });
+    };
+    return runtime.makeJSModuleReturn(moduleReturn);
   }
 })

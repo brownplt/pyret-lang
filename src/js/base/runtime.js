@@ -1171,15 +1171,28 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var thisBrandStr = mkBrandName(name);
       var testSrcloc = srcloc || ["brander-test: " + thisBrandStr];
       var brandSrcloc = srcloc || ["brander-brand: " + thisBrandStr]
+      var testSrc =
+          "\"use strict\";\n" +
+          "return function " + mungeFunName("is-" + name) + "(obj){ " +
+          "if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw R.ffi.throwArityErrorC(l, 1, $a); } " +
+          "return mb(hb(obj, tbs)); " +
+          "}";
+      var brandSrc = 
+          "\"use strict\";\n" +
+          "return function " + mungeFunName("brand-" + name) + "(obj){ " +
+          "if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw R.ffi.throwArityErrorC(l, 1, $a); } " +
+          "if (!isObject(obj)) throw R.ffi.throwUnbrandableValue(l, obj, name); " +
+          "return obj.brand(tbs); " +
+          "}";
       var brander = makeObject({
-        'test': makeFunction(function(obj) {
-          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a); }
-          return makeBoolean(hasBrand(obj, thisBrandStr));
-        }, "is-" + name),
-        'brand': makeFunction(function(obj) {
-          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a); }
-          return obj.brand(thisBrandStr);
-        }, "brand-" + name)
+        'test': makeFunction(
+          Function.call(null, "R", "l", "mb", "hb", "tbs", testSrc)(
+            thisRuntime, testSrcloc, makeBoolean, hasBrand, thisBrandStr),
+          "is-" + name),
+        'brand': makeFunction(
+          Function.call(null, "R", "l", "isObject", "tbs", "name", brandSrc)(
+            thisRuntime, brandSrcloc, isObject, thisBrandStr, name),
+          "brand-" + name)
       });
       brander._brand = thisBrandStr;
       return brander;
@@ -1230,7 +1243,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function mungeFunName(s) {
-      return s.replace(/([^-a-z_0-9]+)/g,
+      return s.replace(/([^-a-zA-Z_0-9]+)/g,
                        function(match) {
                          var ret = ["$x"];
                          for (var i = 0; i < match.length; i++)
@@ -2332,10 +2345,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function mkPred(jsPred, name) {
       var pred =
           "\"use strict\";\n" +
-          "function(mb, p) {\n" +
-          "  return function " + mungeFunName(name) + "(v) { return makeBoolean(jsPred(v)); };\n" +
-          "}";
-      return makeFunction(Function.apply(null, pred)(makeBoolean, jsPred), name);
+          "return function " + mungeFunName(name) + "(v) { return makeBoolean(jsPred(v)); };";
+      return makeFunction(Function.call(null, "mb", "p", pred)(makeBoolean, jsPred), name);
     }
 
     function returnOrRaise(result, val, after) {
@@ -4840,13 +4851,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeBrandPredicate(loc, brand, predName) {
       var pred =
           "\"use strict\";\n" +
-          "function (checkArityC, loc, hasBrand, brand) {\n" +
-          "  return function " + mungeFunName(predName + "-pred") + "(val) {\n" +
-          "    checkArityC(loc, 1, arguments);\n" +
-          "    return hasBrand(val, brand);\n" +
-          "  };\n" +
+          "return function " + mungeFunName(predName + "-pred") + "(val) {\n" +
+          "checkArityC(loc, 1, arguments); " +
+          "return hasBrand(val, brand); " +
           "}";
-      return makeFunction(Function.apply(null, pred)(checkArityC, loc, hasBrand, brand), predName + "-pred");
+      return makeFunction(
+        Function.call(null, "checkArityC", "loc", "hasBrand", "brand", pred)(checkArityC, loc, hasBrand, brand),
+        predName + "-pred");
     }
     function makeVariantConstructor(
       loc,
@@ -4930,15 +4941,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       //CONSOLE.log(String(outerFun));
 
-      var funToReturn = makeFunction(function() { // XXX TODO NAME
-        var theFun = makeConstructor();
-        funToReturn = theFun;
-        //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
-        //CONSOLE.trace();
-        var res = theFun.apply(null, arguments)
-        //CONSOLE.log("got ", res);
-        return res;
-      }, reflName);
+      var funToReturn = makeConstructor();
       funToReturn.$constrFor = reflName;
       return funToReturn;
     }
@@ -5389,6 +5392,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'toReprJS' : toReprJS,
       'toRepr' : function(val) { return toReprJS(val, ReprMethods._torepr); },
+      'mungeFunName' : mungeFunName,
+      'unmungeFunName' : unmungeFunName,
       'ReprMethods' : ReprMethods,
 
       'wrap' : wrap,

@@ -698,6 +698,19 @@ data RuntimeError:
         [ED.para: ED.text("The left side was not an object:")],
         ED.embed(self.non-obj)]
     end
+  | unbrandable-value(loc, val, brandName) with:
+    method render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Attempted to brand")],
+        ED.embed(self.val),
+        [ED.para:
+          ED.text("as a "), ED.code(ED.text(self.brandName)),
+          ED.text(" at "), draw-and-highlight(self.loc),
+          ED.text(", but the value is not an object.")]]
+    end
   | non-boolean-condition(loc, typ, value) with:
     method render-fancy-reason(self, _, _):
       self.render-reason() # TODO!!
