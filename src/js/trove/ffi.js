@@ -144,6 +144,11 @@
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
+    function throwSpinnakerError(loc, stepNum) {
+      runtime.checkNumber(stepNum);
+      raise(err("spinnaker-error")(runtime.makeSrcloc(loc), stepNum));
+    }
+
     function throwFieldNotFound(loc, object, field) {
       checkSrcloc(loc);
       runtime.checkPyretVal(object);
@@ -517,6 +522,7 @@
       throwNumStringBinopError: throwNumStringBinopError,
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,
+      throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,

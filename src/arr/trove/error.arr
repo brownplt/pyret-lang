@@ -279,6 +279,16 @@ data RuntimeError:
         [ED.para: ED.text("Relevant arguments:")],
         vert-list-values(self.info-args)]
     end
+  | spinnaker-error(funloc, step-num) with:
+    method render-fancy-reason(self, _, _, _):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Internal compiler error: No case numbered " + tostring(self.step-num) + " in")],
+        ED.loc(self.fun-loc),
+        please-report-bug()]
+    end
   | template-not-finished(loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin() or not(src-available(self.loc)):
