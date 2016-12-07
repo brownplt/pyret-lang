@@ -244,7 +244,7 @@ end
 
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile>:
+fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
   fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
@@ -276,12 +276,13 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
   end
   # our include edges are backwards to how the topological sort algorithm expects dependencies,
   # so reverse the result
-  visit(locator, context, [list: locator]).reverse()
+  ans = visit(locator, context, [list: locator]).reverse()
+  ans
 end
 
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
 
-fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram:
+fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram block:
   cache = modules
   loadables = for map(w from worklist):
     uri = w.locator.uri()

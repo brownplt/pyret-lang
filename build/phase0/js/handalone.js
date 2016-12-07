@@ -1,4 +1,4 @@
-var require = require("requirejs");
+require = require("requirejs");
 require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
 
   var staticModules = program.staticModules;
@@ -159,7 +159,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var getStackP = runtime.makeFunction(getStack, "get-stack");
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
-    return runtime.safeCall(function() {
+    runtime.safeCall(function() {
       return toCall.app(checks, getStackP);
     }, function(summary) {
       if(runtime.isObject(summary)) {

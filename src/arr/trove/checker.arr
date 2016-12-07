@@ -519,7 +519,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun reset-results(): current-results := [list: ] end
   {
     method run-checks(self, module-name, checks):
-      when check-all or (module-name == main-module-name):
+      when check-all or (module-name == main-module-name) block:
         for each(c from checks) block:
           results-before = current-results
           reset-results()

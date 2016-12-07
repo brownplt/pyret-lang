@@ -41,15 +41,15 @@
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
       config.name = "program-require";
-      return runtime.pauseStack(function(restarter) {
+      runtime.pauseStack(function(restarter) {
         requirejs.optimize(config, function(result) {
           var programWithDeps = fs.readFileSync(config.out, {encoding: 'utf8'});
           // Browser/node check based on window below
           fs.open(realOut, "w", function(err, outFile) {
             if (err) throw err;
             fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-            fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
-            fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
+            fs.writeSync(outFile, "requirejs = require(\"requirejs\");\n");
+            fs.writeSync(outFile, "define = requirejs.define;\n}\n");
             fs.writeSync(outFile, programWithDeps);
             fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
             var writeRealOut = function(str) { 
