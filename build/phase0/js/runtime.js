@@ -1171,6 +1171,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
+        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -1438,6 +1439,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
+                // Early exit for user-thrown exception here
+                if(isContinuation(s)) { return s; }
                 reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
@@ -1477,7 +1480,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             switch($step) {
             case 0:
               $step = 1;
-              return toReprHelp();
+              $ans = toReprHelp();
+              if(isContinuation($ans)) { break; }
+              return $ans;
             case 1:
               if (stack.length === 0) {
                 thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
@@ -1492,8 +1497,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 top.done.push(a);
               }
               $step = 0;
-              break;
+              continue;
             }
+            break;
+          }
+          if(isContinuation($ans)) {
+            $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["runtime torepr"],
+              toReprFun,
+              $step,
+              [],
+              []);
+            return $ans;
           }
         } catch($e) {
           if (thisRuntime.isCont($e)) {
@@ -1543,12 +1558,21 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               }];
               $step = 1;
               $ans = toReprFun();
-              break;
+              if(isContinuation($ans)) { break; }
+              continue;
             case 1:
               stack = stackOfStacks.pop();
               return $ans;
             }
+            break;
           }
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["runtime torepr (reentrant)"],
+            reenterToReprFun,
+            $step,
+            [],
+            []);
+          return $ans;
         } catch($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -1584,16 +1608,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["torepr"], 1, $a); }
-      return makeString(toReprJS(val, ReprMethods._torepr));
+      return toReprJS(val, ReprMethods._torepr);
     }, "torepr");
     var tostring = makeFunction(function(val) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["tostring"], 1, $a); }
-      if(isString(val)) {
-        return makeString(val);
-      }
-      else {
-        return makeString(toReprJS(val, ReprMethods._tostring));
-      }
+      if(isString(val)) { return val; }
+      else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
     var print = makeFunction(
@@ -1821,22 +1841,37 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: thisRuntime.ffi.equal };
-      var cache = {left: [], right: []};
+      var cache = {left: [], right: [], equal: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
-            return true;
+            return cache.equal[i];
         }
         return false;
+      }
+      function setCachePair(obj1, obj2, val) {
+        for (var i = 0; i < cache.left.length; i++) {
+          if (cache.left[i] === obj1 && cache.right[i] === obj2) {
+            cache.equal[i] = val;
+            return;
+          }
+        }
+// throw new Error("Internal error: tried to 
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
         cache.right.push(obj2);
+        cache.equal.push(thisRuntime.ffi.equal);
+        return cache.equal.length;
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
+          if(current.setCache) {
+            cache.equal[current.index - 1] = toCompare.curAns;
+            continue;
+          }
           curLeft = current.left;
           curRight = current.right;
 
@@ -1875,10 +1910,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
-            if (findPair(curLeft, curRight)) {
-              continue; // Already checked this pair of objects
+            var curPair = findPair(curLeft, curRight);
+            if (curPair !== false) {
+              // Already checked this pair of objects
+              toCompare.curAns = curPair
+              continue;
             } else {
-              cachePair(curLeft, curRight);
+              var index = cachePair(curLeft, curRight);
+              toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -1930,8 +1969,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
-                  // If this call stack-throws,
+                  // If this call stack-returns,
                   var newAns = getColonField(curLeft, "_equals").full_meth(curLeft, curRight, equalFunPy);
+                  if(isContinuation(newAns)) { return newAns; }
                   // the continuation stacklet will get the result, and combine them manually
                   toCompare.curAns = combineEquality(toCompare.curAns, newAns);
                 }
@@ -1997,7 +2037,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             switch($step) {
             case 0:
               $step = 1;
-              return equalHelp();
+              $ans = equalHelp();
+              if(isContinuation($ans)) {
+                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                  stackFrameDesc,
+                  equalFun,
+                  $step,
+                  [],
+                  []);
+              }
+              return $ans;
             case 1:
               toCompare.curAns = combineEquality(toCompare.curAns, $ans);
               $step = 0;
@@ -2035,8 +2084,23 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
               $step = 1;
               $ans = equalFun();
+              if(isContinuation($ans)) {
+                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                  stackFrameDesc,
+                  reenterEqualFun,
+                  $step,
+                  [],
+                  []);
+                return $ans;
+              }
               break;
             case 1:
+              for(var i = 0; i < toCompare.stack.length; i++) {
+                var current = toCompare.stack[i];
+                if(current.setCache) {
+                  cache.equal[current.index - 1] = $ans;
+                }
+              }
               toCompare = stackOfToCompare.pop();
               return $ans;
             }
@@ -2393,12 +2457,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
-      if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
-      throw "Internal error: got invalid result from annotation check";
+      if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
+      console.trace();
+      console.error("Invalid result from annotation check: ", result);
+      throw new Error("Internal error: got invalid result from annotation check");
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
+      return !(ann.refinement);
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2464,7 +2530,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         throw "Internal error: got invalid result from annotation check";
       } else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return val; }
           if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
@@ -2480,7 +2548,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
@@ -2736,6 +2806,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
 
+      // Fast path for no refinements, since arbitrary stack space can't be consumed
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.anns.length; i++) {
+          var result = that.anns[i].check(that.locs[i], val.vals[i]);
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
+
+      // Slow path for annotations with refinements, which may call back into Pyret
+
       function deepCheckFields(remainingAnns) {
         var thisAnn;
         return safeCall(function() {
@@ -2845,7 +2928,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
+      
+      // Fast path: no refinements, so no deep stack/pause potential
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.fields.length; i++) {
+          var thisField = that.fields[i];
+          var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
 
+      // Slow path: has refinement, so need to stack guard
       function deepCheckFields(remainingFields) {
         var thisField;
         return safeCall(function() {
@@ -2926,6 +3022,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
+    function isContinuation(v) { return typeof v === "object" && v instanceof Cont; }
     Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
@@ -2970,6 +3067,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function safeCall(fun, after, stackFrame) {
       var $ans = undefined;
       var $step = 0;
+      var skipLoop = false;
       if (thisRuntime.isActivationRecord(fun)) {
         var $ar = fun;
         $step = $ar.step;
@@ -2982,22 +3080,36 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          skipLoop = true;
+          $ans = thisRuntime.makeCont();
         }
-        while(true) {
+        while(!skipLoop) {
           switch($step) {
           case 0:
             $step = 1;
             $ans = fun();
-            break;
+            if(isContinuation($ans)) { break;}
+            continue;
           case 1:
             var $fun_ans = $ans;
             $step = 2;
             $ans = after($fun_ans);
-            break;
-          case 2: return $ans;
+            if(isContinuation($ans)) { break;}
+            continue;
+          case 2:
+            return $ans;
           }
+          break;
         }
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(
+            "safeCall for " + stackFrame,
+            safeCall,
+            $step,
+            [ fun, after, stackFrame ],
+            [ $fun_ans ]
+          );
+        return $ans;
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
@@ -3020,40 +3132,41 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var i = start;
       var started = false;
       var currentRunCount = 0;
-      if(thisRuntime.isActivationRecord(fun)) {
-        var ar = fun
-        i = ar.vars[0];
-        fun = ar.vars[1];
-        stop = ar.vars[2];
-        started = ar.vars[3];
-        if (started) {
-          i = i + 1;
+      function restart(_fun) {
+        if(thisRuntime.isActivationRecord(_fun)) {
+          var ar = fun
+          i = ar.vars[0];
+          fun = ar.vars[1];
+          stop = ar.vars[2];
+          started = ar.vars[3];
+          if (started) {
+            i = i + 1;
+          }
         }
-      }
-      try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          return thisRuntime.makeCont();
         }
         while(true) {
           started = true;
           if(i >= stop) { return thisRuntime.nothing; }
-          fun.app(i);
+          var res = fun.app(i);
+
+          if (isContinuation(res)) { return res; }
 
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
+            return thisRuntime.makeCont();
           }  
           else { i = i + 1; }
         }
       }
-      catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord("eachLoop", eachLoop, true, [], [i, fun, stop, started]);
-        }
-        throw $e;
+      var res = restart();
+      if(isContinuation(res)) {
+        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, fun, stop, started]);
       }
+      return res;
     }
 
     var RUN_ACTIVE = false;
@@ -3190,7 +3303,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             if (manualPause !== null) {
               var thePause = manualPause;
               manualPause = null;
-              pauseStack(function(restarter) {
+              return pauseStack(function(restarter) {
                 thePause.setHandlers({
                   resume: function() { restarter.resume(val); },
                   break: restarter.break,
@@ -3211,8 +3324,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
               // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
-              next.ans = val;
+              if(!isContinuation(val)) {
+                next.ans = val;
+              }
               // CONSOLE.log("GAS = ", thisRuntime.GAS);
+
+
 
               if (next.fun instanceof Function) {
                 val = next.fun(next);
@@ -3222,6 +3339,39 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 CONSOLE.log(JSON.stringify(next));
                 CONSOLE.log(theOneTrueStack);
                 throw false;
+              }
+              if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
+                // console.log("BOUNCING");
+                BOUNCES++;
+                thisRuntime.GAS = initialGas;
+                for(var i = val.stack.length - 1; i >= 0; i--) {
+    //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
+                  theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
+                }
+                // console.log("The new stack height is ", theOneTrueStackHeight);
+                // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
+                //   if (f && f.from) { return f.from.toString(); }
+                //   else { return f; }
+                // }));
+
+                if(isPause(val)) {
+                  thisThread.pause();
+                  val.pause.setHandlers(thisThread.handlers);
+                  if(val.resumer) { val.resumer(val.pause); }
+                  return;
+                }
+                else if(thisRuntime.isCont(val)) {
+                  if(sync) {
+                    loop = true;
+                    // DON'T return; we synchronously loop back to the outer while loop
+                    continue;
+                  }
+                  else {
+                    TOS++;
+                    util.suspend(iter);
+                    return;
+                  }
+                }
               }
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
@@ -3363,7 +3513,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
-      throw makePause(pause, resumer);
+      return makePause(pause, resumer);
     }
 
     function PausePackage() {
@@ -3456,7 +3606,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return;
         }
       }
-      thisRuntime.pauseStack(function(restarter) {
+      return thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3473,7 +3623,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function runWhileRunning(thunk) {
-      thisRuntime.pauseStack(function(restarter) {
+      return thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3490,7 +3640,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
 
     var DEBUGLOG = true;
     /**
@@ -3672,29 +3822,45 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var currentRunCount = 0;
+      var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          cleanQuit = false;
+          $ans = thisRuntime.makeCont();
         }
         
-        while (curIdx < len) {
+        while (cleanQuit && (curIdx < len)) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
+            cleanQuit = false;
+            $ans = thisRuntime.makeCont();
+            break;
           }
           switch($step) {
           case 0:
             $step = 1;
             $ans = f.app(curIdx);
-            // no need to break
+            if(isContinuation($ans)) {
+              cleanQuit = false;
+              break;
+            }
           case 1:
             arr.push($ans);
             $step = 0;
             curIdx++;
+            continue;
           }
+          break;
         }
-        return arr;
+        if(cleanQuit) {
+          return arr;
+        }
+        else {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+          return $ans;
+        }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
@@ -3723,16 +3889,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var currentRunCount = 0;
+      var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          $ans = thisRuntime.makeCont();
+          cleanQuit = false;
         }
         
-        while (curIdx < len) {
+        while (cleanQuit && curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
+            $ans = thisRuntime.makeCont();
+            cleanQuit = false;
           }
           switch($step) {
           case 0:
@@ -3740,14 +3909,27 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             $ans = f.app(curIdx);
             // no need to break
           case 1:
+            if (thisRuntime.isContinuation($ans)) {
+              cleanQuit = false;
+              break;
+            }
             if (thisRuntime.ffi.isSome($ans)) {
               arr.push(thisRuntime.getField($ans, "value"));
             }
             $step = 0;
             curIdx++;
+            continue;
           }
+          break;
         }
-        return arr;
+        if(cleanQuit) {
+          return arr;
+        }
+        else {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
+          return $ans;
+        }
       } catch($e) {
         if (thisRuntime.isCont($e)) {
           $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
@@ -3833,7 +4015,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       function foldHelp() {
         while(++currentIndex < length) {
-          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          if(isContinuation(res)) { return res; }
+          currentAcc = res;
         }
         return currentAcc;
       }
@@ -3842,7 +4026,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -3869,7 +4061,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
@@ -3878,7 +4072,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
-          return mapHelp();
+          var res = mapHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-map"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -3905,7 +4107,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array(length);
       function mapHelp() {
         while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+          var res = f.app(arr[currentIndex], currentIndex);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
@@ -3914,7 +4118,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
-          return mapHelp();
+          var res = mapHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-mapi"],
+              mapFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -3943,7 +4155,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc.push(f.app(currentFst));
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          currentAcc.push(res);
         }
         return thisRuntime.ffi.makeList(currentAcc);
       }
@@ -3952,7 +4166,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc.push($ar.ans);
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-map"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4024,7 +4246,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         while(thisRuntime.ffi.isLink(currentLst)) {
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          if(f.app(currentFst)) {
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          if(res) {
             currentAcc.push(currentFst);
           }
         }
@@ -4037,7 +4261,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               currentAcc.push(currentFst);
             }
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-filter"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4064,7 +4296,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var newArray = new Array();
       function filterHelp() {
         while(++currentIndex < length) {
-          if(isPyretTrue(f.app(arr[currentIndex]))){
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          if(isPyretTrue(res)){
             newArray.push(arr[currentIndex]);
           }
         }
@@ -4073,9 +4307,17 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function filterFun($ar) {
         try {
           if (thisRuntime.isActivationRecord($ar)) {
-            newArray = $ar.ans;
+            if($ar.ans) { newArray.push(arr[currentIndex]); }
           }
-          return filterHelp();
+          var res = filterHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-filter"],
+              filterFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4105,6 +4347,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
+          if(isContinuation(currentAcc)) { return currentAcc; }
         }
         return currentAcc;
       }
@@ -4113,7 +4356,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (thisRuntime.isActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
-          return foldHelp();
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-list-fold"],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
         } catch ($e) {
           if (thisRuntime.isCont($e)) {
             $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -4795,7 +5046,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
-        return thisRuntime.getField(m, "provide-plus-types");
+        return makeObject({
+          values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
+          types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          internal: thisRuntime.getField(m, "provide-plus-types").dict['internal'],
+          'defined-values': m.dict['defined-values'],
+          'defined-types': m.dict['defined-types'],
+        });
       }
     }
 
@@ -4833,7 +5090,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             // CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            thisRuntime.pauseStack(function(restarter) {
+            return thisRuntime.pauseStack(function(restarter) {
               // CONSOLE.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
@@ -4844,9 +5101,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           }
         }, function(natives) {
           function continu() {
-            return thisRuntime.safeTail(function() {
-              return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
-            });
+            return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
           }
           if(realm[uri]) {
             return continu();
@@ -4881,11 +5136,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types) {
+    function makeModuleReturn(values, types, internal) {
       return thisRuntime.makeObject({
+        "defined-values": values,
+        "defined-types": types,
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types
+          "types": types,
+          "internal": internal || {}
         })
       });
     }
@@ -4953,11 +5211,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         else {
           checkArgs.forEach(function(a, i) {
             if(checkMuts[i]) {
-              checksPlusBody += "thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
             else {
-              checksPlusBody += "thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
+            //checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
           });
           checksPlusBody += constructorBody;
         }
@@ -4968,7 +5227,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           "}\n" +
           checksPlusBody + "\n" +
           "}";
-        //CONSOLE.log(constrFun);
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
@@ -5002,7 +5260,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
       var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
-        newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        if(hasField(moduleObj, "defined-values")) {
+          newns = newns.set(vf, getField(moduleObj, "defined-values")[vf]);
+        }
+        else {
+          newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        }
       });
       typeFields.forEach(function(tf) {
         newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
@@ -5251,6 +5514,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'makeCont'    : makeCont,
       'isCont'      : isCont,
+      'isContinuation'      : isContinuation,
       'makePause'   : makePause,
       'isPause'     : isPause,
 
@@ -5492,6 +5756,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
+        "defined-values": runtimeNamespaceBindings,
+        "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
           "types": runtimeTypeBindings
