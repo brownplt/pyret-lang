@@ -1331,8 +1331,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             if(isNumber(next)) { finishVal(reprMethods["number"](next)); }
             else if (isBoolean(next)) { finishVal(reprMethods["boolean"](next)); }
             else if (isNothing(next)) { finishVal(reprMethods["nothing"](next)); }
-            else if (isFunction(next)) { finishVal(reprMethods["function"](next)); }
             else if (isMethod(next)) { finishVal(reprMethods["method"](next)); }
+            else if (isFunction(next)) { finishVal(reprMethods["function"](next)); }
             else if (isString(next)) { finishVal(reprMethods["string"](next)); }
             else if (isOpaque(next)) { finishVal(reprMethods["opaque"](next)); }
             else if (isArray(next)) {
@@ -1811,10 +1811,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             }
           } else if (isNothing(curLeft) && isNothing(curRight)) {
             continue;
-          } else if (isFunction(curLeft) && isFunction(curRight)) {
-            toCompare.curAns = thisRuntime.ffi.unknown(curLeft ,  curRight);
           } else if (isMethod(curLeft) && isMethod(curRight)) {
             toCompare.curAns = thisRuntime.ffi.unknown(curLeft , curRight);
+          } else if (isFunction(curLeft) && isFunction(curRight)) {
+            toCompare.curAns = thisRuntime.ffi.unknown(curLeft ,  curRight);
           } else if (isOpaque(curLeft) && isOpaque(curRight)) {
             if (curLeft.equals(curLeft.val, curRight.val)) {
               continue;
@@ -2050,7 +2050,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if (thisRuntime.ffi.isEqual(ans)) { return makeBoolean(true); }
       else if (thisRuntime.ffi.isNotEqual(ans)) { return makeBoolean(false); }
       else if (thisRuntime.ffi.isUnknown(ans)) {
-        thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+        thisRuntime.ffi.throwEqualityException(getField(ans, "value1"), getField(ans, "value2"));
       }
     };
 
@@ -2263,7 +2263,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if (thisRuntime.ffi.isEqual(ans)) { return true; }
       else if (thisRuntime.ffi.isNotEqual(ans)) { return false; }
       else if (thisRuntime.ffi.isUnknown(ans)) {
-        thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
+        thisRuntime.ffi.throwEqualityException(getColonField(ans, "value1"), getColonField(ans, "value2"));
       }
     };
     // Pyret function from Pyret values to Pyret booleans (or throws)

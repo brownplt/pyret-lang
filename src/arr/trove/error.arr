@@ -1765,7 +1765,7 @@ data RuntimeError:
             ED.text(" is an invalid array index because "),
             ED.text(self.reason)]])
     end
-  | equality-failure(reason :: String, value1, value2) with:
+  | equality-failure(value1, value2) with:
     method render-fancy-reason(self, _, _):
       self.render-reason() # TODO
     end,

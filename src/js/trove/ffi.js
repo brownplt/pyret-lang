@@ -240,11 +240,10 @@
       return err("user-exception")(errVal);
     }
 
-    function throwEqualityException(reason, v1, v2) {
-      runtime.checkString(reason);
+    function throwEqualityException(v1, v2) {
       runtime.checkPyretVal(v1);
       runtime.checkPyretVal(v2);
-      raise(err("equality-failure")(reason, v1, v2));
+      raise(err("equality-failure")(v1, v2));
     }
 
     function throwTypeMismatch(val, typeName) {
@@ -591,18 +590,8 @@
       isFailArg: isFailArg,
 
       equal: gf(EQ, "Equal"),
-      notEqual: function(p, l, r) {
-        var ne = gf(EQ, "NotEqual"); // VERY polyglot right now
-        if (ne.length === 3) { return ne(p, l, r); }
-        else if (arguments.length === 3) { return ne(l, r); }
-        else { return ne(p, l); }
-      },
-      unknown: function(p, l, r) {
-        var un = gf(EQ, "Unknown");
-        if (un.length === 3) { return un(p, l, r); }
-        else if (arguments.length === 3) { return un(l, r); }
-        else { return un(p, l); }
-      },
+      notEqual: gf(EQ, "NotEqual"),
+      unknown: gf(EQ, "Unknown"),
       isEqual: isEqual,
       isNotEqual: isNotEqual,
       isUnknown: isUnknown,

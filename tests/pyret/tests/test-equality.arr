@@ -90,7 +90,7 @@ check "lists":
 end
 
 eq-all = { method _equals(_, _, _): E.Equal end }
-eq-none = { method _equals(_, _, _): E.NotEqual("just because", 0, 1) end }
+eq-none = { method _equals(_, _, _): E.NotEqual(0, 1) end }
 
 check "identical pre-check overrides method in true case, but not in false case":
   identical(eq-none, eq-none) is true
@@ -112,8 +112,8 @@ check "identical pre-check overrides method in true case, but not in false case"
   eq-none is-not=~ eq-all
 end
 
-f-func-err = "Functions"
-f-meth-err = "Methods"
+f-func-err = "<function>"
+f-meth-err = "<method>"
 f = lam(): "no-op" end
 m = method(self): "no-op" end
 
@@ -205,7 +205,7 @@ check:
   s1 = [list: 1, long-equals, 3, 4]
   s2 = [list: 1, {}, 3, 4]
 
-  equal-always(s1, s2) raises "Functions"
+  equal-always(s1, s2) raises "<function>"
 end
 
 check "non-equality result from equals":
