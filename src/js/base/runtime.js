@@ -2343,7 +2343,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
+      return !(ann.refinement || ann instanceof PRecordAnn || (ann instanceof PTupleAnn && !ann.isCheap));
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2351,13 +2351,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return returnOrRaise(ann.check(compilerLoc, val), val, after);
       }
       else {
-        return safeCall(function() {
+        return checkAnnSafe(compilerLoc, ann, val, after);
+      }
+    }
+    function checkAnnSafe(compilerLoc, ann, val, after) {
+      return safeCall(function() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
         "checkAnn");
-      }
     }
 
     function checkAnnArg(compilerLoc, ann, args, index, funName) {
@@ -2659,10 +2662,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       this.locs = locs;
       this.anns = anns;
       var hasRefinement = false;
+      var isCheap = true;
       for (var i = 0; i < anns.length; i++) {
         hasRefinement = hasRefinement || anns[i].refinement;
+        isCheap = isCheap && isCheapAnnotation(anns[i]);
       }
       this.refinement = hasRefinement;
+      this.isCheap = isCheap;
     }
     
     function makeTupleAnn(locs, anns) {
@@ -2679,6 +2685,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if(that.anns.length != val.vals.length) {
         //return ffi.throwMessageException("lengths not equal");
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
+      }
+      if (this.isCheap) {
+        for (var i = 0; i < this.anns.length; i++) {
+          // is this right, or should this.locs be indexed in reversed order?
+          var result = this.anns[i].check(this.locs[i], val.vals[i]);
+          if (thisRuntime.ffi.isFail(result))
+            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
+        }
+        return thisRuntime.ffi.contractOk;
       }
 
       function deepCheckFields(remainingAnns) {
@@ -2940,7 +2955,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             $step = 2;
             $ans = after($fun_ans);
             break;
-          case 2: return $ans;
+          case 2: ++thisRuntime.GAS; return $ans;
           }
         }
       } catch($e) {
@@ -2982,7 +2997,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         while(true) {
           started = true;
-          if(i >= stop) { return thisRuntime.nothing; }
+          if(i >= stop) { ++thisRuntime.GAS; return thisRuntime.nothing; }
           fun(i);
 
           if (++currentRunCount >= 1000) {
