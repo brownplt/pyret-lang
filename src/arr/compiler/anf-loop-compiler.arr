@@ -638,6 +638,20 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   new-cases = for lists.fold(acc from cl-empty, b from binds):
     if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
       acc
+    else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+      new-label = visitor.make-label()
+      new-case = 
+        j-case(cur-target,
+          j-block(
+            [clist:
+              j-expr(j-assign(step, new-label)),
+              j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
+              j-expr(rt-method("checkTupleBind", [clist: j-id(js-id-of(b.id)), j-num(b.ann.fields.length()),
+                    visitor.get-loc(b.ann.l)])),
+              j-break
+            ]))
+      cur-target := new-label
+      cl-snoc(acc, new-case)
     else:
       ann-result = fresh-id(compiler-name("ann-check"))
       compiled-ann = compile-ann(b.ann, visitor)
@@ -678,6 +692,22 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
         ),
       compiled-body.new-cases
       )
+  else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+    step = visitor.cur-step
+    after-ann = visitor.make-label()
+    after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
+    c-block(
+      j-block(
+        compiled-e.other-stmts +
+        id-assign +
+        [clist:
+          j-expr(j-assign(step, after-ann)),
+          j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
+          j-expr(rt-method("checkTupleBind", [clist: j-id(js-id-of(b.id)), j-num(b.ann.fields.length()),
+                visitor.get-loc(b.ann.l)])),
+          j-break
+        ]),
+      cl-cons(after-ann-case, compiled-body.new-cases))
   else:
     step = visitor.cur-step
     after-ann = visitor.make-label()
