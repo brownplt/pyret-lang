@@ -1219,7 +1219,7 @@ compiler-visitor = {
   method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
     if true:
-      c-exp(j-bracket(j-dot(visit-obj.exp, "dict"), j-str(field)))
+      c-exp(j-bracket(j-dot(visit-obj.exp, "dict"), j-str(field)), visit-obj.other-stmts)
     else:
       c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
     end
