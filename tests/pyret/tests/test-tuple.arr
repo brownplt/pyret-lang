@@ -104,7 +104,7 @@ check "tuple binding":
     nothing
   end
 
-  bad-bind() raises "tup-length-mismatch"
+  bad-bind() raises "bad-tuple-bind"
 end
 
 
