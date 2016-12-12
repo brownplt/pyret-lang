@@ -3109,15 +3109,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             var $fun_ans = $ans;
             $step = 2;
             $ans = after($fun_ans);
-<<<<<<< HEAD
             if(isContinuation($ans)) { break;}
             continue;
-          case 2:
-            return $ans;
-=======
-            break;
           case 2: ++thisRuntime.GAS; return $ans;
->>>>>>> 5d6f92e... "cheap" tuple annotations should be easier to come by
           }
           break;
         }
@@ -3169,15 +3163,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         while(true) {
           started = true;
-<<<<<<< HEAD
-          if(i >= stop) { return thisRuntime.nothing; }
+          if(i >= stop) { ++thisRuntime.GAS; return thisRuntime.nothing; }
           var res = fun.app(i);
 
           if (isContinuation(res)) { return res; }
-=======
-          if(i >= stop) { ++thisRuntime.GAS; return thisRuntime.nothing; }
-          fun(i);
->>>>>>> 5d6f92e... "cheap" tuple annotations should be easier to come by
 
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
