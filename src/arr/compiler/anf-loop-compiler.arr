@@ -693,7 +693,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
       raise("Unknown " + b.value.label() + " in compile-annotated-let")
     end
   shadow b = b.value
-  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+  if true or A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(
         compiled-e.other-stmts +
@@ -1273,8 +1273,12 @@ compiler-visitor = {
     c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
   end,
   method a-tuple-get(self, l, tup, index):
-   visit-name = tup.visit(self)
-    c-exp(rt-method("getTuple", [clist: visit-name.exp, j-num(index), self.get-loc(l)]), cl-empty)
+    visit-name = tup.visit(self)
+    if true:
+      c-exp(j-bracket(j-dot(visit-name.exp, "vals"), j-num(index)), cl-empty)
+    else:
+      c-exp(rt-method("getTuple", [clist: visit-name.exp, j-num(index), self.get-loc(l)]), cl-empty)
+    end
   end,
   method a-array(self, l, values):
     visit-vals = values.map(_.visit(self))
@@ -1311,12 +1315,16 @@ compiler-visitor = {
     if safe:
       c-exp(j-dot(s, "$var"), cl-empty)
     else:
-      c-exp(
-        j-ternary(
-          j-binop(j-dot(s, "$var"), j-eq, undefined),
-          raise-id-exn(self.get-loc(l), id.toname()),
-          j-dot(s, "$var")),
-        cl-empty)
+      if true:
+        c-exp(j-dot(s, "$var"), cl-empty)
+      else:
+        c-exp(
+          j-ternary(
+            j-binop(j-dot(s, "$var"), j-eq, undefined),
+            raise-id-exn(self.get-loc(l), id.toname()),
+            j-dot(s, "$var")),
+          cl-empty)
+      end
     end
   end,
 
