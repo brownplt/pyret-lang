@@ -190,8 +190,13 @@ fun app(l, f, args):
 end
 
 fun check-fun(l, f):
-  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))))
+  if true:
+    [clist:]
+  else:
+    [clist:
+      j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
+        j-block1(j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))))]
+  end
 end
 
 fun thunk-app(block):
@@ -297,14 +302,18 @@ fun arity-check(loc-expr, arity :: Number):
   len = j-id(compiler-name("l"))
   iter = j-id(compiler-name("i"))
   t = j-id(compiler-name("t"))
-  [clist:
-    j-var(len.id, j-dot(ARGUMENTS, "length")),
-    j-if1(j-binop(len, j-neq, j-num(arity)),
-      j-block([clist:
-          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
-          j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
-            j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
-          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
+  if true:
+    [clist:]
+  else:
+    [clist:
+      j-var(len.id, j-dot(ARGUMENTS, "length")),
+      j-if1(j-binop(len, j-neq, j-num(arity)),
+        j-block([clist:
+            j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
+            j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
+              j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
+            j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
+  end
 end
 
 no-vars = D.make-mutable-string-dict
@@ -636,7 +645,8 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
+    if true block:
+    #if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
       acc
     else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
       new-label = visitor.make-label()
@@ -781,10 +791,10 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(compiled-obj, compiled-args))))
                 ]),
-              j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-                ])),
+              j-block(
+                  check-fun(compiler.get-loc(l), colon-field-id) +
+                  [clist: j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))]
+                )),
           # end
           j-break]),
       new-cases)
@@ -810,10 +820,10 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(obj-id, compiled-args))))
                 ]),
-              j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
-                ])),
+              j-block(
+                  check-fun(compiler.get-loc(l), colon-field-id) +
+                  [clist: j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))]
+                )),
             # If the answer is a cont, jump to the end of the current function
             # rather than continuing normally
           j-break]),
@@ -832,8 +842,8 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         j-expr(j-assign(step, after-app-label)),
-        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-        check-fun(j-id(compiler.cur-apploc), compiled-f),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))]
+        + check-fun(j-id(compiler.cur-apploc), compiled-f) + [clist:
         j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
         # If the answer is a cont, jump to the end of the current function
         # rather than continuing normally
@@ -899,29 +909,33 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
   end
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
-  cases(N.ACasesBranch) branch:
-    | a-cases-branch(_, pat-loc, name, args, body) =>
-      branch-given-arity = j-num(args.length())
-      obj-expected-arity = j-dot(compiled-val, "$arity")
-      checker =
-        j-if1(j-binop(obj-expected-arity, j-neq, branch-given-arity),
-          j-block1(
-            j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
-              j-block1(
-                j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                    [clist: compiler.get-loc(pat-loc), branch-given-arity,
-                      obj-expected-arity, compiler.get-loc(cases-loc)]))),
-              j-block1(
-                j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                    [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))
-      [clist: checker]
-    | a-singleton-cases-branch(_, pat-loc, _, _) =>
-      checker =
-        j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
-          j-block1(
-            j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))))
-      [clist: checker]
+  if true:
+    [clist:]
+  else:
+    cases(N.ACasesBranch) branch:
+      | a-cases-branch(_, pat-loc, name, args, body) =>
+        branch-given-arity = j-num(args.length())
+        obj-expected-arity = j-dot(compiled-val, "$arity")
+        checker =
+          j-if1(j-binop(obj-expected-arity, j-neq, branch-given-arity),
+            j-block1(
+              j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
+                j-block1(
+                  j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
+                      [clist: compiler.get-loc(pat-loc), branch-given-arity,
+                        obj-expected-arity, compiler.get-loc(cases-loc)]))),
+                j-block1(
+                  j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                      [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))
+        [clist: checker]
+      | a-singleton-cases-branch(_, pat-loc, _, _) =>
+        checker =
+          j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
+            j-block1(
+              j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
+                  [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))))
+        [clist: checker]
+    end
   end
 end
 fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc):
@@ -1204,7 +1218,11 @@ compiler-visitor = {
   end,
   method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
+    if true:
+      c-exp(j-bracket(j-dot(visit-obj.exp, "dict"), j-str(field)))
+    else:
+      c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)), visit-obj.other-stmts + [clist: j-expr(j-assign(self.cur-apploc, self.get-loc(l)))])
+    end
   end,
   method a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
@@ -1334,7 +1352,8 @@ compiler-visitor = {
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
-        compiled = compile-ann(m.bind.ann, self)
+        compiled = compile-ann(A.a-blank, self)
+        #compiled = compile-ann(m.bind.ann, self)
         {
           anns: cl-snoc(acc.anns, compiled.exp),
           others: acc.others + compiled.other-stmts

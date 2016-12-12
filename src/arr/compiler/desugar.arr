@@ -27,7 +27,11 @@ fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
 
 fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
-  cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
+  if true:
+    cont(e)
+  else:
+    cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
+  end
 end
 
 fun check-table<T>(l, e, cont :: (A.Expr -> T)) -> T:
