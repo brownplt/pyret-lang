@@ -2180,6 +2180,7 @@ default-compile-options = {
   collect-all: false,
   ignore-unbound: false,
   proper-tail-calls: true,
+  inline-case-body-limit: 5,
   compile-module: true,
   compiled-cache: "compiled",
   display-progress: true,
@@ -2349,6 +2350,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-fold", t-top,
     "raw-array-filter", t-top,
     "raw-array-map", t-top,
+    "raw-array-join-str", t-top,
+    "raw-array-from-list", t-top,
     "raw-array", t-record(
       [string-dict:
         "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),

@@ -170,7 +170,7 @@ data AExpr:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(elt): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -356,7 +356,7 @@ data ALettable:
     method tosource(self):
       PP.group(PP.nest(INDENT, self.id.to-compiled-source() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
+  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo) with:
     method label(self): "a-app" end,
     method tosource(self):
       PP.group(self._fun.tosource()
@@ -531,8 +531,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
-    | a-app(_, f, args) =>
-      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
+    | a-app(_, f, args, app-info) =>
+      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), app-info)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
@@ -644,8 +644,8 @@ default-map-visitor = {
   method a-assign(self, l :: Loc, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  method a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-app(l, _fun.visit(self), args.map(_.visit(self)))
+  method a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo):
+    a-app(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
   method a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
@@ -849,10 +849,14 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
             freevars-e-acc(_else, seen-so-far))))
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
+    | a-array(_, vs) =>
+      for fold(acc from seen-so-far, shadow v from vs):
+        freevars-v-acc(v, acc)
+      end
     | a-assign(_, id, v) =>
       seen-so-far.set-now(id.key(), id)
       freevars-v-acc(v, seen-so-far)
-    | a-app(_, f, args) =>
+    | a-app(_, f, args, _) =>
       from-f = freevars-v-acc(f, seen-so-far)
       for fold(acc from from-f, arg from args):
         freevars-v-acc(arg, acc)

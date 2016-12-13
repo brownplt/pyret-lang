@@ -3110,7 +3110,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         $fun_ans = $ar.vars[0];
       }
       try {
-        if (--thisRuntime.GAS <= 0) {
+        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           skipLoop = true;
           $ans = thisRuntime.makeCont();
@@ -3162,7 +3162,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function eachLoop(fun, start, stop) {
       var i = start;
       var started = false;
-      var currentRunCount = 0;
       function restart(_fun) {
         if(thisRuntime.isActivationRecord(_fun)) {
           var ar = fun
@@ -3174,7 +3173,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             i = i + 1;
           }
         }
-        if (--thisRuntime.GAS <= 0) {
+        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           return thisRuntime.makeCont();
         }
@@ -3185,7 +3184,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
           if (isContinuation(res)) { return res; }
 
-          if (++currentRunCount >= 1000) {
+          if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }  
@@ -3263,6 +3262,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var sync = options.sync || false;
       var initialGas = thisRuntime.INITIAL_GAS;
+      thisRuntime.GAS = initialGas;
+      thisRuntime.RUNGAS = sync ? Infinity : initialGas * 10;
 
       var threadIsCurrentlyPaused = false;
       var threadIsDead = false;
@@ -3342,9 +3343,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 });
               });
             }
-            var frameCount = 0;
             while(theOneTrueStackHeight > 0) {
-              if(!sync && frameCount++ > 100) {
+              if(!sync && thisRuntime.RUNGAS <= 1) {
+                thisRuntime.RUNGAS = initialGas * 10;
                 TOS++;
                 // CONSOLE.log("Setting timeout to resume iter");
                 util.suspend(iter);
@@ -3375,6 +3376,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 // console.log("BOUNCING");
                 BOUNCES++;
                 thisRuntime.GAS = initialGas;
+                thisRuntime.RUNGAS = initialGas * 10;
                 for(var i = val.stack.length - 1; i >= 0; i--) {
     //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                   theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
@@ -3459,6 +3461,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return;
       }
       thisRuntime.GAS = initialGas;
+      thisRuntime.RUNGAS = initialGas * 10;
       iter();
     }
 
@@ -3509,6 +3512,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
     function isActivationRecord(obj) {
       return obj instanceof ActivationRecord;
+    }
+    function isInitializedActivationRecord(obj) {
+      return obj instanceof ActivationRecord && !(obj.ans === UNINITIALIZED_ANSWER);
     }
 
     // we can set verbose to true to include the <builtin> srcloc positions
@@ -3823,6 +3829,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    var raw_array_from_list = function(lst) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a); }
+      thisRuntime.checkList(lst);
+      return thisRuntime.ffi.toArray(lst);
+    };
+
+    var raw_array_join_str = function(arr, str) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-join-str"], 2, $a); }
+      thisRuntime.checkArray(arr);
+      thisRuntime.checkString(str);
+      return arr.join(str);
+    };
+
     var raw_array_of = function(val, len) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a); }
       thisRuntime.checkNumber(len);
@@ -3852,7 +3871,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $ans;
         var $step = 0;
       }
-      var currentRunCount = 0;
       var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
@@ -3862,7 +3880,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         
         while (cleanQuit && (curIdx < len)) {
-          if (++currentRunCount >= 1000) {
+          if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             cleanQuit = false;
             $ans = thisRuntime.makeCont();
@@ -3919,7 +3937,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $ans;
         var $step = 0;
       }
-      var currentRunCount = 0;
       var cleanQuit = true;
       try {
         if (--thisRuntime.GAS <= 0) {
@@ -3929,7 +3946,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         
         while (cleanQuit && curIdx < len) {
-          if (++currentRunCount >= 1000) {
+          if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             $ans = thisRuntime.makeCont();
             cleanQuit = false;
@@ -4045,7 +4062,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
-        while(++currentIndex < length) {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
           var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
           if(isContinuation(res)) { return res; }
           currentAcc = res;
@@ -4054,7 +4076,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function foldFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
           var res = foldHelp();
@@ -4091,7 +4113,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        while(++currentIndex < length) {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
           newArray[currentIndex] = res;
@@ -4100,7 +4127,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function mapFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
           var res = mapHelp();
@@ -4137,7 +4164,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        while(++currentIndex < length) {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
           var res = f.app(arr[currentIndex], currentIndex);
           if(isContinuation(res)) { return res; }
           newArray[currentIndex] = res;
@@ -4146,7 +4178,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function mapFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
           var res = mapHelp();
@@ -4184,6 +4216,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
@@ -4194,7 +4230,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function foldFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             currentAcc.push($ar.ans);
           }
           var res = foldHelp();
@@ -4236,16 +4272,22 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
+        // TODO: This is badly wrong
         if (length === 0) { return newArray; }
         newArray[++currentIndex] = f1.app(arr[currentIndex]);
-        while(++currentIndex < length) {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1
           newArray[currentIndex] = f.app(arr[currentIndex]);
         }
         return newArray;
       }
       function mapFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             newArray[currentIndex] = $ar.ans;
           }
           return mapHelp();
@@ -4275,6 +4317,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
@@ -4287,7 +4333,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function foldFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             if($ar.ans) {
               currentAcc.push(currentFst);
             }
@@ -4326,7 +4372,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       var newArray = new Array();
       function filterHelp() {
-        while(++currentIndex < length) {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
           if(isPyretTrue(res)){
@@ -4337,7 +4388,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function filterFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             if($ar.ans) { newArray.push(arr[currentIndex]); }
           }
           var res = filterHelp();
@@ -4375,6 +4426,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
@@ -4384,7 +4439,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       function foldFun($ar) {
         try {
-          if (thisRuntime.isActivationRecord($ar)) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
             currentAcc = $ar.ans;
           }
           var res = foldHelp();
@@ -5310,6 +5365,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     /** type {!PBase} */
     var builtins = makeObject({
+      'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
+      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }, "list-to-raw-array"),
       'has-field': makeFunction(hasField, "has-field"),
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
@@ -5463,6 +5520,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw-array-set': makeFunction(raw_array_set, "raw-array-set"),
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
+      'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
+      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
       'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
@@ -5522,6 +5581,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'traceErrExit': traceErrExit,
 
       'isActivationRecord'   : isActivationRecord,
+      'isInitializedActivationRecord'   : isInitializedActivationRecord,
       'makeActivationRecord' : makeActivationRecord,
 
       'GAS': INITIAL_GAS,

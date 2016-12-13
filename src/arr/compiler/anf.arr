@@ -41,7 +41,7 @@ end
 
 fun bind(l, id): N.a-bind(l, id, A.a-blank) end
 
-fun anf-bind(b):
+fun anf-bind(b :: A.Bind):
   cases(A.Bind) b:
     | s-bind(l, shadows, id, ann) => N.a-bind(l, id, ann)
   end
@@ -315,7 +315,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(val, "cases_val",
         lam(v): k.apply(l, N.a-cases(l, typ, v, branches.map(anf-cases-branch), anf-term(_else))) end)
     | s-block(l, stmts) => anf-block(stmts, k)
-    | s-user-block(l, body) => anf(body, k)
 
     | s-check-expr(l, expr, ann) =>
       name = mk-id(l, "ann_check_temp")
@@ -358,7 +357,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           k.apply(l, N.a-val(l, N.a-id(l, array-id)))
         end))
 
-    | s-app(l, f, args) =>
+    | s-app-enriched(l, f, args, app-info) =>
       cases(A.Expr) f:
         | s-dot(l2, obj, m) =>
           anf-name(obj, "anf_method_obj", lam(v):
@@ -388,14 +387,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           else:
             anf-name(f, "anf_fun", lam(v):
                 anf-name-rec(args, "anf_arg", lam(vs):
-                    k.apply(l, N.a-app(l, v, vs))
+                    k.apply(l, N.a-app(l, v, vs, app-info))
                   end)
               end)
           end
         | else =>
           anf-name(f, "anf_fun", lam(v):
               anf-name-rec(args, "anf_arg", lam(vs):
-                  k.apply(l, N.a-app(l, v, vs))
+                  k.apply(l, N.a-app(l, v, vs, app-info))
                 end)
             end)
       end
@@ -469,7 +468,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
 
     | s-let(_, _, _) => raise("s-let should be handled by anf-block: " + torepr(e))
     | s-var(_, _, _) => raise("s-var should be handled by anf-block: " + torepr(e))
+    | s-user-block(l, body) => raise("s-user-block should have been desugared already: " + torepr(e))
     | else => raise("Missed case in anf: " + torepr(e))
   end
 end
-

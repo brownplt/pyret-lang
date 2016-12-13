@@ -105,6 +105,15 @@ fun make-default-types() block:
   ]))
 
   # Need to be fixed to correct type:
+  default-typs.set-now(A.s-global("raw-array-get").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-set").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-of").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-length").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-fold").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-from-list").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-join-str").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array").key(), t-top)
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)
   default-typs.set-now(A.s-global("ref-freeze").key(), t-top)

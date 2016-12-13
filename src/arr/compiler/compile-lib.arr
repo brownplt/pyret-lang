@@ -406,6 +406,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               var cleaned = dp-ast
               dp-ast := nothing
               cleaned := cleaned.visit(AU.letrec-visitor)
+                          .visit(AU.inline-lams)
+                          .visit(AU.set-recursive-visitor)
+                          .visit(AU.set-tail-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
               cr = if is-empty(any-errors):
                 if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)

@@ -327,6 +327,8 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
             # ASSUMES that the dispatch table is assigned two statements before this one
             looking-for := some(expr.rhs.left.obj.id)
             cl-snoc(acc, expr.rhs.right.label)
+          else if J.is-j-num(expr.rhs):
+            acc
           else if J.is-j-ternary(expr.rhs):
             # ASSUMES that the only current use of $step = ( ? : )
             # comes from compile-split-if

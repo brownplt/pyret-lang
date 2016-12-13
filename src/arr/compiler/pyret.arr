@@ -10,6 +10,9 @@ import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
 
+# this value is the limit of number of steps that could be inlined in case body
+DEFAULT-INLINE-CASE-LIMIT = 5
+
 fun main(args):
   options = [D.string-dict:
     "serve",
@@ -53,7 +56,9 @@ fun main(args):
     "improper-tail-calls",
       C.flag(C.once, "Run without proper tail calls"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation")
+      C.flag(C.once, "Type-check the program during compilation"),
+    "inline-case-body-limit",
+      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -73,6 +78,7 @@ fun main(args):
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
+      inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
@@ -111,7 +117,8 @@ fun main(args):
                 proper-tail-calls: tail-calls,
                 compile-module: true,
                 compiled-cache: compiled-dir,
-                display-progress: display-progress
+                display-progress: display-progress,
+                inline-case-body-limit: inline-case-body-limit
               })
         else if r.has-key("serve"):
           port = r.get-value("port")
@@ -142,7 +149,8 @@ fun main(args):
               ignore-unbound: false,
               proper-tail-calls: tail-calls,
               compile-module: false,
-              display-progress: display-progress
+              display-progress: display-progress,
+              inline-case-body-limit: inline-case-body-limit
             })
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):

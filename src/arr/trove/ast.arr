@@ -190,6 +190,10 @@ end
 
 global-names = MakeName(0)
 
+data AppInfo:
+  | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
+end
+
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
   typarams =
@@ -884,6 +888,14 @@ data Expr:
           last.end-char)
       end
     end,
+    method tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+    end
+  | s-app-enriched(l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo) with:
+    # this is used only in the step before transforming the program to ANF
+    method label(self): "s-app" end,
     method tosource(self):
       PP.group(self._fun.tosource()
           + PP.parens(PP.nest(INDENT,
@@ -1589,9 +1601,13 @@ data Ann:
     method label(self): "a-arrow" end,
     method tosource(self):
       ann = PP.separate(str-space,
-        [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
-      if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
-      else: ann
+        [list:
+          PP.separate(PP.commabreak, self.args.map(_.tosource())),
+          str-arrow, self.ret.tosource()])
+      if self.use-parens:
+        PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else:
+        ann
       end
     end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
@@ -2027,6 +2043,9 @@ default-map-visitor = {
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo):
+    s-app-enriched(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
   method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s-prim-app(l, _fun, args.map(_.visit(self)))

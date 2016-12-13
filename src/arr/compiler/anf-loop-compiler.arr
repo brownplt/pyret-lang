@@ -34,7 +34,7 @@ cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
-fun type-name(str):
+fun type-name(str :: String) -> String:
   "$type$" + str
 end
 
@@ -66,6 +66,7 @@ j-throw = J.j-throw
 j-expr = J.j-expr
 j-binop = J.j-binop
 j-and = J.j-and
+j-or = J.j-or
 j-lt = J.j-lt
 j-eq = J.j-eq
 j-neq = J.j-neq
@@ -82,11 +83,15 @@ j-switch = J.j-switch
 j-case = J.j-case
 j-default = J.j-default
 j-label = J.j-label
-j-continue = J.j-continue
 j-break = J.j-break
+j-continue = J.j-continue
 j-while = J.j-while
 j-for = J.j-for
 make-label-sequence = J.make-label-sequence
+
+fun console-log(lst :: CL.ConcatList) -> J.JStmt:
+  j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
+end
 
 is-t-data = T.is-t-data
 
@@ -431,8 +436,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ans = fresh-id(compiler-name("ans"))
   apploc = fresh-id(compiler-name("al"))
   doloop = fresh-id(compiler-name("skiploop"))
-  local-compiler = compiler.{make-label: make-label, cur-ret: ret-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc}
-  visited-body = body.visit(local-compiler)
+  elided-frames = fresh-id(compiler-name("elidedFrames"))
+  local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc, args: args.map(_.id).map(js-id-of), elided-frames: elided-frames}
   # To avoid penalty for assigning to formal parameters and also using the arguments object,
   # we create a shadow set of formal arguments, and immediately assign them to the "real" ones
   # in the normal entry case.  This expands the function preamble, but might enable JS optimizations,
@@ -440,6 +445,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   formal-args = for map(arg from args):
     N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
   end
+  visited-body = body.visit(local-compiler)
   no-real-args = (args.first.id == compiler.resumer)
   copy-formals-to-args =
     if no-real-args: cl-empty
@@ -484,7 +490,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
       j-id(fun-name),
       j-id(step),
       j-list(false, if no-real-args: cl-empty else: CL.map_list(lam(a): j-id(js-id-of(a.id)) end, args) end),
-      j-list(false, CL.map_list(lam(v): j-id(v) end, vars))
+      j-list(false, CL.map_list(lam(v): j-id(v) end, vars)),
+      j-id(elided-frames)
     ])
   e = fresh-id(compiler-name("e"))
   first-arg = formal-args.first.id
@@ -498,7 +505,8 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         [clist:
           j-expr(j-assign(step, j-dot(j-id(first-arg), "step"))),
           j-expr(j-assign(apploc, j-dot(j-id(first-arg), "from"))),
-          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans")))
+          j-expr(j-assign(local-compiler.cur-ans, j-dot(j-id(first-arg), "ans"))),
+          j-expr(j-assign(elided-frames, j-dot(j-id(first-arg), "elidedFrames")))
         ] +
         for CL.map_list_n(i from 0, arg from args):
           j-expr(j-assign(js-id-of(arg.id), j-bracket(j-dot(j-id(first-arg), "args"), j-num(i))))
@@ -588,12 +596,15 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
 
   j-block([clist:
       j-var(step, j-num(0)),
+      j-var(elided-frames, j-num(0)),
       j-var(local-compiler.cur-ans, undefined),
       j-var(apploc, local-compiler.get-loc(l)),
       #j-try-catch(
       #j-block([clist:
           preamble,
-          j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+          j-if1(j-binop(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+                        j-or,
+                        j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
             j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
                 # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
                 # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
@@ -770,7 +781,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
     c-block(
       j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-          j-expr(j-assign(step,  after-app-label)),
+          j-expr(j-assign(step, after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
           j-var(colon-field-id.id, colon-field),
           # if num-args < 6:
@@ -821,24 +832,53 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body):
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body :: Option, app-info :: A.AppInfo) -> DAG.CaseResults:
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   after-app-label = if is-none(opt-body): compiler.cur-target else: compiler.make-label() end
   new-cases = get-new-cases(compiler, opt-dest, opt-body, after-app-label, ans)
-  c-block(
-    j-block([clist:
-        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-        j-expr(j-assign(step, after-app-label)),
-        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-        check-fun(j-id(compiler.cur-apploc), compiled-f),
-        j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
-        # If the answer is a cont, jump to the end of the current function
-        # rather than continuing normally
-        j-break]),
-    new-cases)
+  if app-info.is-recursive and
+     app-info.is-tail and
+     compiler.allow-tco and
+     compiler.options.proper-tail-calls and
+     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
+    c-block(
+      j-block(
+        [clist:
+          # Update step before the call, so that if it runs out of gas,
+          # the resumer goes to the right step
+          j-expr(j-assign(step, j-num(0))),
+          j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
+          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
+            j-block([clist:
+              j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+              j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
+        CL.map_list2(
+          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
+          compiled-args.to-list(),
+          compiler.args) +
+        # CL.map_list2(
+        #   lam(compiled-arg, arg):
+        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+        #   end,
+        #   compiled-args.to-list(),
+        #   compiler.args),
+        [clist: j-continue]),
+      new-cases)
+  else:
+    c-block(
+      j-block([clist:
+          # Update step before the call, so that if it runs out of gas,
+          # the resumer goes to the right step
+          j-expr(j-assign(step, after-app-label)),
+          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+          check-fun(j-id(compiler.cur-apploc), compiled-f),
+          j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
+          j-break]),
+      new-cases)
+  end
 end
 
 fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
@@ -864,7 +904,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
 end
 fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases-loc):
   compiled-body = branch.body.visit(compiler)
-  if compiled-body.new-cases.length() < 5:
+  if compiled-body.new-cases.length() < compiler.options.inline-case-body-limit:
     compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, cases-loc)
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
@@ -881,7 +921,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
       j-list(false, cl-empty)
     end
     compiled-branch-fun =
-      compile-fun-body(branch.body.l, step, temp-branch, compiler, branch-args, none, branch.body, true)
+      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true)
     preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
@@ -1024,8 +1064,8 @@ end
 
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: ( -> DAG.CaseResults)):
   cases(N.ALettable) e:
-    | a-app(l2, f, args) =>
-      compile-split-app(l2, compiler, b, f, args, opt-body)
+    | a-app(l2, f, args, app-info) =>
+      compile-split-app(l2, compiler, b, f, args, opt-body, app-info)
     | a-method-app(l2, obj, m, args) =>
       compile-split-method-app(l2, compiler, b, obj, m, args, opt-body)
     | a-if(l2, cond, then, els) =>
@@ -1107,19 +1147,31 @@ compiler-visitor = {
           visited-body.new-cases)
     end
   end,
-  method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    compile-lettable(self, some(b-let(b)), e, some(body), lam():
-      compiled-e = e.visit(self)
-      compiled-body = body.visit(self)
-      compile-annotated-let(self, b-let(b), compiled-e, compiled-body)
-    end)
-  end,
   method a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
     compile-lettable(self, some(b-array(b, idx)), e, some(body), lam():
       compiled-e = e.visit(self)
       compiled-body = body.visit(self)
       compile-annotated-let(self, b-array(b, idx), compiled-e, compiled-body)
     end)
+  end,
+  method a-let(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
+    shadow b = b-let(b)
+    cases(N.ALettable) e:
+      | a-app(l2, f, args, app-info) =>
+        compile-split-app(l2, self, some(b), f, args, some(body), app-info)
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, some(b), obj, m, args, some(body))
+      | a-if(l2, cond, then, els) =>
+        compile-split-if(self, some(b), cond, then, els, some(body))
+      | a-cases(l2, typ, val, branches, _else) =>
+        compile-split-cases(self, l2, some(b), typ, val, branches, _else, some(body))
+      | a-update(l2, obj, fields) =>
+        compile-split-update(self, l2, some(b), obj, fields, some(body))
+      | else =>
+        compiled-e = e.visit(self)
+        compiled-body = body.visit(self)
+        compile-annotated-let(self, b, compiled-e, compiled-body)
+    end
   end,
   method a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
@@ -1135,15 +1187,27 @@ compiler-visitor = {
         ^ cl-cons(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   end,
-  method a-seq(self, _, e1, e2):
-    compile-lettable(self, none, e1, some(e2), lam():
-      e1-visit = e1.visit(self)
-      e2-visit = e2.visit(self)
-      first-stmt = if J.is-JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
-      c-block(
-        j-block(e1-visit.other-stmts + cl-cons(first-stmt, e2-visit.block.stmts)),
-        e2-visit.new-cases)
-    end)
+  method a-seq(self, l, e1  :: N.ALettable, e2):
+    cases(N.ALettable) e1:
+      | a-app(l2, f, args, app-info) =>
+        compile-split-app(l2, self, none, f, args, some(e2), app-info)
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, some(e2))
+      | a-if(l2, cond, consq, alt) =>
+        compile-split-if(self, none, cond, consq, alt, some(e2))
+      | a-cases(l2, typ, val, branches, _else) =>
+        compile-split-cases(self, l2, none, typ, val, branches, _else, some(e2))
+      | a-update(l2, obj, fields) =>
+        compile-split-update(self, l2, none, obj, fields, some(e2))
+      | else =>
+        e1-visit = e1.visit(self)
+        e2-visit = e2.visit(self)
+        first-stmt = if J.is-JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
+        c-block(
+          j-block(e1-visit.other-stmts + cl-cons(first-stmt, e2-visit.block.stmts)),
+          e2-visit.new-cases
+        )
+    end
   end,
   method a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr, alt :: N.AExpr):
     raise("Impossible: a-if directly in compiler-visitor should never happen")
@@ -1155,9 +1219,20 @@ compiler-visitor = {
     raise("Impossible: a-update directly in compiler-visitor should never happen")
   end,
   method a-lettable(self, _, e :: N.ALettable):
-    compile-lettable(self, none, e, none, lam():
-      visit-e = e.visit(self)
-      c-block(
+    cases(N.ALettable) e:
+      | a-app(l, f, args, app-info) =>
+        compile-split-app(l, self, none, f, args, none, app-info)
+      | a-method-app(l2, obj, m, args) =>
+        compile-split-method-app(l2, self, none, obj, m, args, none)
+      | a-if(l, cond, consq, alt) =>
+        compile-split-if(self, none, cond, consq, alt, none)
+      | a-cases(l, typ, val, branches, _else) =>
+        compile-split-cases(self, l, none, typ, val, branches, _else, none)
+      | a-update(l, obj, fields) =>
+        compile-split-update(self, l, none, obj, fields, none)
+      | else =>
+        visit-e = e.visit(self)
+        c-block(
           j-block(
           cl-sing(j-expr(j-assign(self.cur-step, self.cur-target)))
             + visit-e.other-stmts
@@ -1165,7 +1240,7 @@ compiler-visitor = {
               j-expr(j-assign(self.cur-ans, visit-e.exp)),
               j-break]),
         cl-empty)
-    end)
+    end
   end,
   method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
@@ -1223,9 +1298,11 @@ compiler-visitor = {
     c-exp(
       rt-method("makeFunction", [clist: j-id(temp), j-str(name)]),
       [clist:
-        j-var(temp,
-          j-fun(CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
-                compile-fun-body(l, new-step, temp, self, effective-args, some(len), body, true)))])
+        j-var(
+          temp,
+          j-fun(
+            CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
+            compile-fun-body(l, new-step, temp, self.{allow-tco: true}, effective-args, some(len), body, true)))])
   end,
   method a-method(self, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
     step = fresh-id(compiler-name("step"))
@@ -1234,7 +1311,7 @@ compiler-visitor = {
     full-var =
       j-var(temp-full,
         j-fun(CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
-          compile-fun-body(l, step, temp-full, self, args, some(len), body, true)
+          compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true)
         ))
     method-expr = if len < 9:
       rt-method("makeMethod" + tostring(len - 1), [clist: j-id(temp-full), j-str(name)])
@@ -1858,7 +1935,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
   visited-body = compile-fun-body(l, step, toplevel-name,
-    self.{get-loc: get-loc, cur-apploc: apploc, resumer: resumer}, # resumer gets js-id-of'ed in compile-fun-body
+    self.{get-loc: get-loc, cur-apploc: apploc, resumer: resumer, allow-tco: false}, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true)
   toplevel-fun = j-fun([clist: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
