@@ -668,7 +668,7 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
   # TODO(Oak, 26 Jan 2016): make sure below are correct when static type checker lands
   cases (A.Ann) ann:
     | a-blank => false
-    | a-any => false
+    | a-any(l) => false
     | a-name(_, _) => false
     | a-type-var(_, _) => false 
     | a-arrow(_, args, ret, _) => false
