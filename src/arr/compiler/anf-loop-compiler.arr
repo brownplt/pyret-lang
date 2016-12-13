@@ -777,7 +777,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, is-definitely-function) block:
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, is-definitely-fn) block:
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
@@ -787,7 +787,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, is-definitely-fu
     j-block(
       # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
       cl-sing(j-expr(j-assign(step, after-app-label))) +
-      if not(is-definitely-function):
+      if not(is-definitely-fn):
         [clist:
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
           check-fun(j-id(compiler.cur-apploc), compiled-f)]
@@ -807,7 +807,7 @@ fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
   end
 end
 
-fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, use-function-check) block:
+fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, is-definitely-fn) block:
   ans = compiler.cur-ans
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
@@ -1032,12 +1032,8 @@ fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: S
   is-some(flatness-opt) and (flatness-opt.value <= 5)
 end
 
-# Is the function k-flat for any finite k?
-fun is-function-k-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  cases (Option) flatness-env.get(fun-name):
-    | some(f-opt) => is-some(f-opt)
-    | none => false
-  end
+fun is-id-fn-name(flatness-env :: D.StringDict<Option<Number>>, name :: String) -> Boolean:
+    is-some(flatness-env.get(name))
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
@@ -1050,8 +1046,8 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compile-split-app
   end
 
-  is-k-flat = N.is-a-id(f) and is-function-k-flat(compiler.flatness-env, f.id.key())
-  app-compiler(l, compiler, b, f, args, opt-body, is-k-flat)
+  is-fn = N.is-a-id(f) and is-id-fn-name(compiler.flatness-env, f.id.key())
+  app-compiler(l, compiler, b, f, args, opt-body, is-fn)
 end
 
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
