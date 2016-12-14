@@ -145,6 +145,13 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
   end
 end
 
+fun value-export-sd-to-type-sd(sd :: SD.StringDict<C.ValueExport>) -> SD.StringDict<Type>:
+  tdict = for fold(tdict from SD.make-string-dict(), k from sd.keys-list()):
+    tdict.set(k, sd.get-value(k).t)
+  end
+  tdict
+end
+
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
   context = TCS.empty-context()
@@ -155,6 +162,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       context
     else:
       uri = globvs.get-value(g)
+      # TODO(joe): type-check vars by making them refs
       context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
     end
   end, context)

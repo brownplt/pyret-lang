@@ -382,7 +382,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           # ...in order to be checked for bad assignments here
           var any-errors = named-result.errors
             + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-          named-result := nothing
           when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
           var type-checked =
             if options.type-check:
@@ -410,18 +409,23 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                           .visit(AU.set-recursive-visitor)
                           .visit(AU.set-tail-visitor)
               when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
-              cr = if is-empty(any-errors):
-                if options.collect-all: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, provides, options)
-                else: phase("Result", CS.ok(JSP.make-compiled-pyret(cleaned, env, provides, options)), ret)
+              {final-provides; cr} = if is-empty(any-errors):
+                if options.collect-all:
+                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
+                else:
+                  {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, named-result.bindings, provides, options)
+                  {final-provides; phase("Result", CS.ok(cr), ret)}
                 end
               else:
-                if options.collect-all and options.ignore-unbound: JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
-                else: phase("Result", CS.err(any-errors), ret)
+                if options.collect-all and options.ignore-unbound:
+                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
+                else:
+                  {provides; phase("Result", CS.err(any-errors), ret)}
                 end
               end
               cleaned := nothing
               r = if options.collect-all: cr else: cr.result end
-              mod-result = module-as-string(AU.canonicalize-provides(provides, env), env, r)
+              mod-result = module-as-string(AU.canonicalize-provides(final-provides, env), env, r)
               mod-result
             | err(_) => module-as-string(dummy-provides(locator.uri()), env,
                 if options.collect-all: phase("Result", type-checked, ret) else: type-checked end)
