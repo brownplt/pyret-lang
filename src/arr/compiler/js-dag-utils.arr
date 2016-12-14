@@ -245,6 +245,7 @@ fun used-vars-jexpr(e :: J.JExpr) -> NameSet:
     | j-null => ns-empty()
     | j-undefined => ns-empty()
     | j-label(_) => ns-empty()
+    | j-raw-code(_) => ns-empty()
   end
 end
 fun declared-vars-jcase(c :: J.JCase) -> NameSet:

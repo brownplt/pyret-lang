@@ -75,7 +75,7 @@
                     var expanded = t.expandType(dts[k], t.expandRecord(shorthands, {}));
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      typ: t.toPyretType(RUNTIME, expanded)
                     });
                   });
                 }
@@ -100,7 +100,7 @@
 
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      typ: t.toPyretType(RUNTIME, expanded)
                     });
                   });
                 }

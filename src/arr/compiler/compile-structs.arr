@@ -135,7 +135,7 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
 end
 
 data ValueExport:
@@ -162,6 +162,16 @@ fun make-dep(raw-dep) -> Dependency:
 end
 
 rag = raw-array-get
+
+fun value-export-from-raw(uri, val-export, tyvar-env :: SD.StringDict<T.Type>) -> ValueExport block:
+  t = val-export.tag
+  typ = type-from-raw(uri, val-export.typ, tyvar-env)
+  if t == "v-fun":
+    v-fun(typ, t, none)
+  else:
+    v-just-type(typ)
+  end
+end
 
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
   tfr = type-from-raw(uri, _, tyvar-env)
@@ -251,6 +261,13 @@ fun provides-from-raw-provides(uri, raw):
     else:
       if v.value.bind == "var":
         vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else if v.value.bind == "fun":
+        flatness = if is-number(v.value.flatness):
+          some(v.value.flatness)
+        else:
+          none
+        end
+        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
         vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end

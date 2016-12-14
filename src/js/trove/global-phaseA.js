@@ -22,18 +22,6 @@
                     name: "EqualityResult" }
     },
     values: {
-      "print": ["arrow", ["Any"], "Any"],
-      "test-print": ["arrow", ["Any"], "Any"],
-      "print-error": ["arrow", ["Any"], "Any"],
-      "display": ["arrow", ["Any"], "Any"],
-      "display-error": ["arrow", ["Any"], "Any"],
-
-      "run-task": ["arrow", [["arrow", [], "Any"]], "Any"],
-      "brander": "Any",
-      "raise": "Any",
-      "nothing": "Any",
-      "builtins": "Any",
-
       "nothing": "Nothing",
       "torepr": ["arrow", ["Any"], "String"],
       "to-repr": ["arrow", ["Any"], "String"],
@@ -63,8 +51,6 @@
                                                 ["RawArray", "tva"]]],
       "raw-array-length":    ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "Number"]],
       "raw-array-to-list":   ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
-      "raw-array-join-str":  ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "String"]],
-      "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
       "raw-array-filter":    ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["RawArray", "tva"]], ["RawArray", "tva"]]],
       "raw-array-map":    ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["RawArray", "tva"]], ["RawArray", "tvb"]]],
       "raw-array-fold":      ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva", "Number"], "tvb"], 
@@ -88,7 +74,6 @@
       // Number functions
 
       "string-to-number": ["arrow", ["String"], ["Option", "Number"]],
-      "string-tonumber": ["arrow", ["String"], ["Option", "Number"]],
       "num-is-integer": "NumPred",
       "num-is-rational": "NumPred",
       "num-is-roughnum": "NumPred",
@@ -153,7 +138,12 @@
       "string-tolower": "StrUnop",
       "string-to-lower": "StrUnop",
 
-      "string-append": "StrBinop",
+      //"string-append": "StrBinop",
+      "string-append": {
+        tag: "v-fun",
+        typ: "StrBinop",
+        flatness: 0
+      },
       "string-equal": "StrPred2",
       "string-contains": "StrPred2",
       "string-isnumber": "StrPred",
@@ -170,21 +160,6 @@
       "string-split-all": ["arrow", ["String", "String"], ["List", "String"]],
       "string-explode": ["arrow", ["String"], ["List", "String"]],
       "string-index-of": ["arrow", ["String", "String"], "Number"],
-
-      "_plus": "Any",
-      "_minus": "Any",
-      "_times": "Any",
-      "_divide": "Any",
-      "_lessthan": "Any",
-      "_lessequal": "Any",
-      "_greaterthan": "Any",
-      "_greaterequal": "Any",
-
-      "ref-get": "Any",
-      "ref-set": "Any",
-      "ref-freeze": "Any",
-
-      "exn-unwrap": "Any"
 
     },
     aliases: {
