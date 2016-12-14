@@ -321,11 +321,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return s;
       },
       "data": function(val, pushTodo) {
-        var vals = val.$app_fields_raw(function(/* varargs */) {
-          var ans = new Array(arguments.length);
-          for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-          return ans;
-        });
+        var vals = [];
+        for (var i = 0; i < val.$constructor.$fieldNames.length; i++) {
+          vals[i] = val.dict[val.$constructor.$fieldNames[i]];
+        }
         pushTodo(undefined, val, undefined, vals, "render-data",
                  { arity: val.$arity, implicitRefs: val.$mut_fields_mask,
                    fields: val.$constructor.$fieldNames, constructorName: val.$name });
@@ -1117,7 +1116,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
-    function makeDataTypeConstructor($name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
+    function makeDataTypeConstructor($name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored) {
+
+      if (_ignored) { // POLYGLOT
+        $arity = $mut_fields_mask;
+        $mut_fields_mask = constructor;
+        constructor = _ignored;
+      }
       
       function C(dict, brands) {
         this.dict = dict;
@@ -1126,7 +1131,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       C.prototype = new PObject({}, []);
       C.prototype.$name = $name;
       C.prototype.$app_fields = $app_fields;
-      C.prototype.$app_fields_raw = $app_fields_raw;
       C.prototype.$mut_fields_mask = $mut_fields_mask;
       C.prototype.$arity = $arity;
       C.prototype.$constructor = constructor
@@ -1134,11 +1138,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return C;
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
+    function makeDataValue(dict, brands, $name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored) {
+      if (_ignored) { // POLYGLOT
+        $arity = $mut_fields_mask;
+        $mut_fields_mask = constructor;
+        constructor = _ignored;
+      }
       var ret = new PObject(dict, brands);
       ret.$name = $name;
       ret.$app_fields = $app_fields;
-      ret.$app_fields_raw = $app_fields_raw;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
       ret.$constructor = constructor;
@@ -1994,22 +2002,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
                 else if (isDataValue(curLeft) && isDataValue(curRight)) {
                   /* Two data values with the same brands and no equals method on the left */
-                  var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
-                    var ans = new Array(arguments.length);
-                    for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-                    return ans;
-                  });
-                  if (fieldsLeft.length > 0) {
-                    var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
-                      var ans = new Array(arguments.length);
-                      for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-                      return ans;
-                    });
-                    var fieldNames = curLeft.$constructor.$fieldNames;
-                    for (var k = 0; k < fieldsLeft.length; k++) {
+                  var fieldNames = curLeft.$constructor.$fieldNames;
+                  if (fieldNames.length > 0) {
+                    for (var k = 0; k < fieldNames.length; k++) {
                       toCompare.stack.push({
-                        left: fieldsLeft[k],
-                        right: fieldsRight[k],
+                        left: curLeft.dict[fieldNames[k]],
+                        right: curRight.dict[fieldNames[k]],
                         path: current.path + "." + fieldNames[k]
                       });
                     }
@@ -5251,9 +5249,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       base,
       brands,
       reflName,
-      reflRefFields,
       reflFields,
-      constructor) {
+      constructor, _ignored) {
+      if (_ignored) { // POLYGLOT
+        reflFields = constructor;
+        constructor = _ignored;
+      }
+      
       function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
       function constArr(arr) { return "[" + arr.map(quote).join(",") + "]"; }
 
@@ -5313,11 +5315,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           checksPlusBody + "\n" +
           "}";
 
-        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
+        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
-        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflRefFields, reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
         + constrFun]));
-        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
+        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflFields, constructor, base);
       }
 
       //CONSOLE.log(String(outerFun));
