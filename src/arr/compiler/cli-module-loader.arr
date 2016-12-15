@@ -317,7 +317,7 @@ fun run(path, options):
   end
 end
 
-fun build-program(path, options) block:
+fun build-program(path, options, stats) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
@@ -355,10 +355,16 @@ fun build-program(path, options) block:
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    method on-compile(_, locator, loadable) block:
+    method on-compile(_, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
+      when options.collect-times:
+        comp = for map(stage from trace):
+          stage.name + ": " + tostring(stage.time) + "ms"
+        end
+        stats.set-now(locator.name(), comp)
+      end
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
@@ -370,18 +376,18 @@ fun build-program(path, options) block:
       else:
         cases(CL.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, JSP.ccp-file(module-path))
+            CL.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end
     end
   }
-
   CL.compile-standalone(wl, starter-modules, options)
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
-  maybe-program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) => 
       for lists.each(e from problems) block:
@@ -396,7 +402,17 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end
 
-      MS.make-standalone(program.natives, program.js-ast, JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times: stats.set-now("standalone", time-now()) end
+      ans = MS.make-standalone(program.natives, program.js-ast,
+        JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times block:
+        standalone-end = time-now() - stats.get-value-now("standalone")
+        stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
+        for each(key from stats.keys-list-now()):
+          print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
+        end
+      end
+      ans
   end
 end
 

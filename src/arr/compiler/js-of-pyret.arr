@@ -327,9 +327,16 @@ end
 fun trace-make-compiled-pyret(trace, phase, program-ast, env, bindings, provides, options) block:
   var ret = trace
   anfed = N.anf-program(program-ast)
-  ret := phase("ANFed", anfed, ret)
+  if options.collect-all:
+    ret := phase("ANFed", anfed, time-now(), ret)
+  else if options.collect-times:
+    ret := phase("ANFed", nothing, time-now(), ret)
+  else:
+    nothing
+  end
   flatness-env = make-prog-flatness-env(anfed, bindings, env)
-  flat-provides = get-flat-provides(provides, flatness-env)
-  {flat-provides; phase("Generated JS", ccp-dict(anfed.visit(AL.splitting-compiler(env, flatness-env, provides, options))), ret)}
+  flat-provides = get-flat-provides(provides, flatness-env, anfed)
+  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
+  {flat-provides; phase("Generated JS", C.ok(ccp-dict(compiled)), time-now(), ret)}
 end
 

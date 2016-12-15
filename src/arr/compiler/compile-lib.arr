@@ -23,13 +23,17 @@ import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
 
 data CompilationPhase:
-  | start
-  | phase(name :: String, result :: Any, prev :: CompilationPhase)
+  | start(time :: Number)
+  | phase(name :: String, result :: Any, time :: Number, prev :: CompilationPhase)
 sharing:
   method tolist(self):
     fun help(the-phase, acc):
       if is-start(the-phase): acc
-      else: help(the-phase.prev, {name : the-phase.name, result : the-phase.result} ^ link(_, acc))
+      else:
+        help(the-phase.prev,
+          { name : the-phase.name,
+            time : the-phase.time - the-phase.prev.time,
+            result : the-phase.result} ^ link(_, acc))
       end
     end
     help(self, empty)
@@ -101,7 +105,7 @@ data PyretCode:
 end
 
 data Loadable:
-  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer)
+  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
 end
 
 type ModuleResult = Any
@@ -292,7 +296,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
           lam(_, v): cache.get-value-now(v.uri()).provides end
       )
       options.before-compile(w.locator)
-      loadable = compile-module(w.locator, provide-map, cache, options)
+      {loadable :: Loadable; trace :: List} = compile-module(w.locator, provide-map, cache, options)
       # I feel like here we want to generate two copies of the loadable:
       # - One local for calling on-compile with and serializing
       # - One canonicalized for the local cache
@@ -302,7 +306,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
           module-as-string(AU.localize-provides(provides, env), env, result)
       end
       # allow on-compile to return a new loadable
-      options.on-compile(w.locator, local-loadable)
+      options.on-compile(w.locator, local-loadable, trace)
     else:
       cache.get-value-now(uri)
     end
@@ -318,7 +322,7 @@ fun is-builtin-module(uri :: String) -> Boolean:
   string-index-of(uri, "builtin://") == 0
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> Loadable block:
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
@@ -328,7 +332,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       #print("Module is already compiled\n")
       cases(Loadable) loadable:
         | module-as-string(pvds, ce-unused, m) =>
-          module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m)
+          {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m); empty}
       end
     | none =>
       #print("Module is being freshly compiled\n")
@@ -341,16 +345,26 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         | pyret-ast(module-ast) =>
           module-ast
       end
-      var ret = start
+      var ret = start(time-now())
       var ast-ended = AU.append-nothing-if-necessary(ast)
-      when options.collect-all:
-        when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, ret) end
+      if options.collect-all:
+        when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, time-now(), ret) end
+      else if options.collect-times:
+        ret := phase("Added nothing", nothing, time-now(), ret)
+      else:
+        nothing
       end
       ast := nothing
       ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
-      when options.collect-all: ret := phase("Checked well-formedness", wf, ret) end
+      if options.collect-all:
+        ret := phase("Checked well-formedness", wf, time-now(), ret)
+      else if options.collect-times:
+        ret := phase("Checked well-formedness", nothing, time-now(), ret)
+      else:
+        nothing
+      end
       checker = if options.check-mode and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
@@ -362,19 +376,42 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing
-          when options.collect-all:
+          if options.collect-all:
             ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
-              checked, ret)
+              checked, time-now(), ret)
+          else if options.collect-times:
+            ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
+              nothing, time-now(), ret)
+          else:
+            nothing
           end
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
-          when options.collect-all: ret := phase("Added imports", imported, ret) end
+          if options.collect-all:
+            ret := phase("Added imports", imported, time-now(), ret)
+          else if options.collect-times:
+            ret := phase("Added imports", nothing, time-now(), ret)
+          else:
+            nothing
+          end
           var scoped = RS.desugar-scope(imported, env)
           imported := nothing
-          when options.collect-all: ret := phase("Desugared scope", scoped, ret) end
+          if options.collect-all:
+            ret := phase("Desugared scope", scoped, time-now(), ret)
+                    else if options.collect-times:
+            ret := phase("Desugared scope", nothing, time-now(), ret)
+          else:
+            nothing
+          end
           var named-result = RS.resolve-names(scoped, env)
           scoped := nothing
-          when options.collect-all: ret := phase("Resolved names", named-result, ret) end
+          if options.collect-all:
+            ret := phase("Resolved names", named-result, time-now(), ret)
+          else if options.collect-times:
+            ret := phase("Resolved names", nothing, time-now(), ret)
+          else:
+            nothing
+          end
           var provides = AU.get-named-provides(named-result, locator.uri(), env)
           # Once name resolution has happened, any newly-created s-binds must be added to bindings...
           var desugared = D.desugar(named-result.ast)
@@ -382,7 +419,13 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           # ...in order to be checked for bad assignments here
           var any-errors = named-result.errors
             + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-          when options.collect-all: ret := phase("Fully desugared", desugared.ast, ret) end
+          if options.collect-all:
+            ret := phase("Fully desugared", desugared.ast, time-now(), ret)
+          else if options.collect-times:
+            ret := phase("Fully desugared", nothing, time-now(), ret)
+          else:
+            nothing
+          end
           var type-checked =
             if options.type-check:
               type-checked = T.type-check(desugared.ast, env, modules)
@@ -395,7 +438,13 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             else: CS.ok(desugared.ast)
             end
           desugared := nothing
-          when options.collect-all: ret := phase("Type Checked", type-checked, ret) end
+          if options.collect-all:
+            ret := phase("Type Checked", type-checked, time-now(), ret)
+          else if options.collect-times:
+            ret := phase("Type Checked", nothing, time-now(), ret)
+          else:
+            nothing
+          end
           cases(CS.CompileResult) type-checked block:
             | ok(_) =>
               var tc-ast = type-checked.code
@@ -408,30 +457,44 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                           .visit(AU.inline-lams)
                           .visit(AU.set-recursive-visitor)
                           .visit(AU.set-tail-visitor)
-              when options.collect-all: ret := phase("Cleaned AST", cleaned, ret) end
+              if options.collect-all:
+                ret := phase("Cleaned AST", cleaned, time-now(), ret)
+              else if options.collect-times:
+                ret := phase("Cleaned AST", nothing, time-now(), ret)
+              else:
+                nothing
+              end
               {final-provides; cr} = if is-empty(any-errors):
-                if options.collect-all:
+                if options.collect-all or options.collect-times:
                   JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
                 else:
                   {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, named-result.bindings, provides, options)
-                  {final-provides; phase("Result", CS.ok(cr), ret)}
+                  {final-provides; phase("Result", CS.ok(cr), time-now(), ret)}
                 end
               else:
                 if options.collect-all and options.ignore-unbound:
                   JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
                 else:
-                  {provides; phase("Result", CS.err(any-errors), ret)}
+                  {provides; phase("Result", CS.err(any-errors), time-now(), ret)}
                 end
               end
               cleaned := nothing
-              r = if options.collect-all: cr else: cr.result end
-              mod-result = module-as-string(AU.canonicalize-provides(final-provides, env), env, r)
-              mod-result
-            | err(_) => module-as-string(dummy-provides(locator.uri()), env,
-                if options.collect-all: phase("Result", type-checked, ret) else: type-checked end)
+              canonical-provides = AU.canonicalize-provides(final-provides, env)
+              mod-result = module-as-string(canonical-provides, env, cr.result)
+              {mod-result; if options.collect-all or options.collect-times: cr.tolist() else: empty end}
+            | err(_) =>
+              { module-as-string(dummy-provides(locator.uri()), env, type-checked);
+                if options.collect-all or options.collect-times:
+                  phase("Result", type-checked, time-now(), ret).tolist()
+                else: empty
+                end }
           end
-        | err(_) => module-as-string(dummy-provides(locator.uri()), env,
-            if options.collect-all: phase("Result", wf, ret) else: wf end)
+        | err(_) =>
+          { module-as-string(dummy-provides(locator.uri()), env, wf) ;
+            if options.collect-all or options.collect-times:
+              phase("Result", wf, time-now(), ret).tolist()
+            else: empty
+            end }
       end
   end
 end

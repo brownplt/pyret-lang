@@ -2178,6 +2178,7 @@ type CompileOptions = {
   type-check :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
+  collect-times :: Boolean,
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
   compile-module :: Boolean,
@@ -2195,6 +2196,7 @@ default-compile-options = {
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
+  collect-times: false,
   ignore-unbound: false,
   proper-tail-calls: true,
   inline-case-body-limit: 5,
@@ -2214,7 +2216,7 @@ default-compile-options = {
   log-error: lam(s):
     print-error(s)
   end,
-  method on-compile(_, locator, loadable): loadable end,
+  method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"
 }

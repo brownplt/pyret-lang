@@ -40,17 +40,21 @@ compile-str = lam(filename, options):
   base-module = CS.dependency("file-no-cache", [list: filename])
   base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
+  traces = SD.make-mutable-string-dict()
   result = CL.compile-program(wlist, options.{
       collect-all: true,
       method before-compile(_, _): nothing end,
-      method on-compile(_, _, loadable): loadable end
+      method on-compile(_, locator, loadable, trace) block:
+        traces.set-now(locator.name(), trace)
+        loadable
+      end
     })
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List<CS.CompileResult>) errors:
     | empty =>
-      E.right(result.loadables)
+      E.right({result.loadables; traces})
     | link(_, _) =>
-      E.left(result.loadables)
+      E.left({result.loadables; traces})
   end
 end
 
@@ -86,14 +90,17 @@ cases (C.ParsedArguments) parsed-options block:
         comp = cases(E.Either) compiled block:
           | left(v) =>
             println("Compilation failed")
-            v.last().result-printer.tolist()
-          | right(v) => v.last().result-printer.tolist()
+            {_; traces} = v
+            traces.get-value-now(file)
+          | right(v) =>
+            {_; traces} = v
+            traces.get-value-now(file)
         end
 
         for each(phase from comp) block:
           println("\n")
           println(">>>>>>>>>>>>>>>>>>\n")
-          println(phase.name + ":\n")
+          println(phase.name + ":   " + tostring(phase.time) + "ms \n")
           if A.is-Program(phase.result) block: each(println, phase.result.tosource().pretty(print-width))
           else if AN.is-AProg(phase.result): each(println, phase.result.tosource().pretty(print-width))
           else if JS.is-CompiledCodePrinter(phase.result): println(phase.result.pyret-to-js-pretty(print-width))

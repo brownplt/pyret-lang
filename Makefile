@@ -98,7 +98,7 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       -allow-builtin-overrides \
                       --builtin-js-dir build/phase0/trove \
                       --compiled-dir build/phaseA/compiled/ \
-                      -no-check-mode \
+                      -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
 .PHONY : phaseB
@@ -110,7 +110,7 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
-                      -no-check-mode \
+                      -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configB.json
 
 
@@ -123,7 +123,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
-                      -no-check-mode \
+                      -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configC.json
 
 .PHONY : show-comp
