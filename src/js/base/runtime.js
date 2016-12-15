@@ -322,8 +322,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       },
       "data": function(val, pushTodo) {
         var vals = [];
-        for (var i = 0; i < val.$constructor.$fieldNames.length; i++) {
-          vals[i] = val.dict[val.$constructor.$fieldNames[i]];
+        if (val.$constructor.$fieldNames) {
+          for (var i = 0; i < val.$constructor.$fieldNames.length; i++) {
+            vals[i] = val.dict[val.$constructor.$fieldNames[i]];
+          }
         }
         pushTodo(undefined, val, undefined, vals, "render-data",
                  { arity: val.$arity, implicitRefs: val.$mut_fields_mask,
@@ -2003,7 +2005,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 else if (isDataValue(curLeft) && isDataValue(curRight)) {
                   /* Two data values with the same brands and no equals method on the left */
                   var fieldNames = curLeft.$constructor.$fieldNames;
-                  if (fieldNames.length > 0) {
+                  if (fieldNames && fieldNames.length > 0) {
                     for (var k = 0; k < fieldNames.length; k++) {
                       toCompare.stack.push({
                         left: curLeft.dict[fieldNames[k]],
