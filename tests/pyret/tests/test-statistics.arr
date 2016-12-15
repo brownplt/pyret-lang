@@ -1,7 +1,7 @@
 import equality as E
 include statistics
 
-check "numeric helpers":
+check "basic statistical functions":
   
   mean([list:]) raises "empty"
   mean([list: 1/2]) is 1/2
@@ -22,6 +22,25 @@ check "numeric helpers":
   median([list: 1, 2, 3, 4]) is 2.5
   median([list: -1, 0, ~2, 3]) is-roughly ~1
   median([list: ~0, ~1, ~2, ~2, ~6, ~8]) is-roughly ~2
+
+  # Mode
+  mode([list: ]) raises "empty"
+  mode([list: 1]) is 1
+  mode([list: 1, 1, 2]) is 1
+  mode([list: -1, 0, -1, 2, 3, -33, ~0.1]) is -1
+  mode([list: ~2, ~1.0002, ~2, ~1.0001, ~1]) is-roughly ~2
+
+  # For multimode distributions, returns smallest mode
+  mode([list: -1, 0, 1, 2]) is -1
+  mode([list: ~0.1, ~0.2, ~0.2, ~0.1]) is-roughly ~0.1
+
+  # Modes (Plural) returns each mode in a list with multiple
+  modes([list: ]) raises "empty"
+  modes([list: 1]) is [list: 1]
+  modes([list: -1, 0, 1, 2]) is [list: -1, 0, 1, 2]
+  modes([list: ~0.1, ~0.2, ~0.2, ~0.1]) is-roughly [list: ~0.1, ~0.2]
+  modes([list: -1, 2, -1, 2, -1]) is [list: -1]
+  modes([list: 1, 1, 2, 2, 3, 3, 3]) is [list: 3]
 
   stdev([list:]) raises "empty"
   stdev([list: 5]) is 0
