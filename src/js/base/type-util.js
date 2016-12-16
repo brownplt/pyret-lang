@@ -129,7 +129,7 @@ define([], function() {
     else {
       typ = value;
     }
-    return wrapper(toPyretType(runtime, typ));
+    return wrapper(toPyretType(runtime, expandType(typ)));
   }
 
   function toPyretType(runtime, typ) {
