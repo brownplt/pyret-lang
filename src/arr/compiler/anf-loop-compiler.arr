@@ -430,6 +430,8 @@ fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
   s.freeze().unfreeze()
 end
 
+var total-time = 0
+
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean) -> J.JBlock block:
   make-label = make-label-sequence(0)
@@ -463,7 +465,11 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   ^ cl-append(_, visited-body.new-cases)
   # Initialize the case numbers, for more legible output...
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
+  start = time-now()
   main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
+  finish = time-now() - start
+  total-time := total-time + finish
+  #print("Simplify time for " + torepr(l) + ": " + num-to-string(finish) + ", so far cumulative: " + to-repr(total-time) + "\n")
   shadow main-body-cases = main-body-cases-and-dead-vars.body
   all-vars = D.make-mutable-string-dict()
   for CL.each(case-expr from main-body-cases):
@@ -982,7 +988,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
   if N.is-a-cases-branch(branch):
     entry-label = compiler.make-label()
     ann-cases = compile-anns(compiler, compiler.cur-step, branch.args.map(get-bind), entry-label)
-    field-names = j-id(js-id-of(compiler-name("fn")))
+    field-names = j-id(js-id-of(fresh-id(compiler-name("fn"))))
     get-field-names = j-var(field-names.id, j-dot(j-dot(compiled-val, "$constructor"), "$fieldNames"))
     deref-fields =
       for CL.map_list_n(i from 0, arg from branch.args):
