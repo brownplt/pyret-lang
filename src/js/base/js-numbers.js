@@ -595,9 +595,9 @@ define(function() {
     if(typeof x === "number" && typeof y === "number") {
       return x >= y;
     }
-    else {
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThanOrEqual(y);
-    }
+    })(x, y, errbacks);
   }
 
   // lessThanOrEqual: pyretnum pyretnum -> boolean
@@ -605,9 +605,9 @@ define(function() {
     if(typeof x === "number" && typeof y === "number") {
       return x <= y;
     }
-    else {
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThanOrEqual(y);
-    }
+    })(x, y, errbacks);
   };
 
   // greaterThan: pyretnum pyretnum -> boolean
@@ -615,9 +615,9 @@ define(function() {
     if(typeof x === "number" && typeof y === "number") {
       return x > y;
     }
-    else {
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThan(y);
-    }
+    })(x, y, errbacks);
   };
 
   // lessThan: pyretnum pyretnum -> boolean
@@ -625,9 +625,9 @@ define(function() {
     if(typeof x === "number" && typeof y === "number") {
       return x < y;
     }
-    else {
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThan(y);
-    }
+    })(x, y, errbacks);
   };
 
   // expt: pyretnum pyretnum -> pyretnum
