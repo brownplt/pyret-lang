@@ -116,15 +116,16 @@ define(function() {
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y, errbacks) {
-      if (typeof(x) === 'number' &&
-          typeof(y) === 'number') {
-        return onFixnums(x, y, errbacks);
-      }
 
       if (options.isXSpecialCase && options.isXSpecialCase(x, errbacks))
         return options.onXSpecialCase(x, y, errbacks);
       if (options.isYSpecialCase && options.isYSpecialCase(y, errbacks))
         return options.onYSpecialCase(x, y, errbacks);
+
+      if (typeof(x) === 'number' &&
+          typeof(y) === 'number') {
+        return onFixnums(x, y, errbacks);
+      }
 
       if (typeof(x) === 'number') {
         x = liftFixnumInteger(x, y);
