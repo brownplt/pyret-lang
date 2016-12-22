@@ -141,7 +141,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
       | empty => raise("Empty block")
       | link(f, r) =>
         # Note: assuming blocks don't end in let/var here
-        if r.length() == 0:
+        if is-empty(r):
           anf(f, k)
         else:
           cases(A.Expr) f:

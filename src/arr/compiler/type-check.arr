@@ -132,7 +132,7 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
         | none =>
           fold-errors([list: C.cant-typecheck("Expected a data type but got " + tostring(typ), typ.l)])
         | some(data-type) =>
-          if data-type.params.length() == 0:
+          if is-empty(data-type.params):
             fold-result(typ, context)
           else:
             new-existentials = data-type.params.map(lam(a-var): new-existential(a-var.l, false) end)

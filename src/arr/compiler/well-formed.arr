@@ -1,5 +1,3 @@
-#lang pyret
-
 provide {
   check-well-formed: check-well-formed
 } end
@@ -95,7 +93,7 @@ end
 is-s-block = A.is-s-block
 fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
-    if block.stmts.length() == 0: nothing
+    if is-empty(block.stmts): nothing
     else:
       add-error(C.unwelcome-where(tostring(typ), loc, block.l))
     end
@@ -314,21 +312,24 @@ fun wf-examples-body(visitor, body):
 end
 
 fun wf-table-headers(loc, headers):
-  num-headers = headers.length()
-  if num-headers == 0 block:
-    add-error(C.table-empty-header(loc))
-    true
-  else:
-    for each(i from range(0, num-headers)):
-      hi = headers.get(i)
-      for each(j from range(i + 1, num-headers)):
-        hj = headers.get(j)
-        when hi.name == hj.name:
-          add-error(C.table-duplicate-column-name(hi, hj))
+  cases(List) headers block:
+    | empty =>
+      add-error(C.table-empty-header(loc))
+      true
+    | link(first, rest) =>
+      fun dups(shadow first, shadow rest) block:
+        for each(hname from rest):
+          when first.name == hname.name:
+            add-error(C.table-duplicate-column-name(first, hname))
+          end
+        end
+        cases(List) rest:
+          | empty => nothing
+          | link(snd, tail) => dups(snd, tail)
         end
       end
-    end
-    true
+      dups(first, rest)
+      true
   end
 end
 
@@ -346,14 +347,14 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-special-import(self, l, kind, args) block:
     last-visited-loc := l
     if kind == "my-gdrive":
-      if args.length() <> 1 block:
+      if not(is-link(args) and is-empty(args.rest)) block:
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file"]))
         false
       else:
         true
       end
     else if kind == "shared-gdrive":
-      if args.length() <> 2 block:
+      if not(is-link(args) and is-link(args.rest) and is-empty(args.rest.rest)) block:
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id, which you can get from the share URL"]))
         false
       else:
@@ -362,7 +363,7 @@ well-formed-visitor = A.default-iter-visitor.{
     else if kind == "js-http":
       true
     else if kind == "gdrive-js":
-      if args.length() <> 2:
+      if not(is-link(args) and is-link(args.rest) and is-empty(args.rest.rest)):
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id"]))
       else:
         true
@@ -529,7 +530,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
-    when args.length() == 0:
+    when is-empty(args):
       add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
@@ -558,7 +559,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-method(self, l, name, params, args, ann, doc, body, _check, blocky) block:
     last-visited-loc := l
-    when args.length() == 0:
+    when is-empty(args):
       add-error(C.no-arguments(A.s-method(l, name, params, args, ann, doc, body, _check, blocky)))
     end
     ensure-unique-ids(args)
@@ -628,7 +629,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-if(self, l, branches, blocky) block:
     last-visited-loc := l
-    when branches.length() == 1:
+    when is-link(branches) and is-empty(branches.rest):
       add-error(C.single-branch-if(A.s-if(l, branches, blocky)))
     end
     when not(blocky):
@@ -1110,7 +1111,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any> block:
   errors := empty
   in-check-block := false
   ans =
-    if ast.visit(top-level-visitor) and (errors.length() == 0): C.ok(ast)
+    if ast.visit(top-level-visitor) and is-empty(errors): C.ok(ast)
     else: C.err(errors.reverse())
     end
   # cleanup

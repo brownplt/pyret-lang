@@ -475,11 +475,13 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   end
   vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
 
+  num-vars = vars.length()
+  
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
         if show-stack-trace:
-          [clist: j-expr(rt-method("traceExit", [clist: j-str(tostring(l)), j-num(vars.length())]))]
+          [clist: j-expr(rt-method("traceExit", [clist: j-str(tostring(l)), j-num(num-vars)]))]
         else:
           cl-empty
         end +
@@ -504,7 +506,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   first-arg = formal-args.first.id
   entryExit = [clist:
     j-str(tostring(l)),
-    j-num(vars.length())
+    j-num(num-vars)
   ]
 
   restorer =
@@ -736,7 +738,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
-  num-args = args.length()
+  # num-args = args.length()
 
   if J.is-j-id(compiled-obj):
     colon-field = rt-method("getColonFieldLoc", [clist: compiled-obj, j-str(methname), compiler.get-loc(l)])
@@ -921,7 +923,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
   else:
     temp-branch = fresh-id(compiler-name("temp_branch"))
     branch-args =
-      if N.is-a-cases-branch(branch) and (branch.args.length() > 0): branch.args.map(get-bind)
+      if N.is-a-cases-branch(branch) and is-link(branch.args): branch.args.map(get-bind)
       else: [list: N.a-bind(branch.body.l, compiler.resumer, A.a-blank)]
       end
     step = fresh-id(compiler-name("step"))

@@ -308,6 +308,50 @@ fun length<a>(lst :: List<a>) -> Number:
   help(lst, 0)
 end
 
+fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
+  doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
+  cases(List) lst1:
+    | empty =>
+      cases(List) lst2:
+        | empty => true
+        | else => false
+      end
+    | link(_, rest1) =>
+      cases(List) lst2:
+        | empty => false
+        | link(_, rest2) => same-length(rest1, rest2)
+      end
+  end
+where:
+  same-length([list: 1, 2], [list: true, false]) is true
+  same-length([list: 1, 2, 3], [list: true, false]) is false
+  same-length([list: ], [list: true, false]) is false
+end
+
+fun longer-than<a>(lst :: List<a>, len :: Number) -> Boolean:
+  doc: "Returns true if the given list is strictly longer than the given length. Runs in time proportional to the smaller of lst or len"
+  cases(List) lst:
+    | empty => len < 0
+    | link(_, rest) => (len < 1) or longer-than(rest, len - 1)
+  end
+where:
+  longer-than([list: 1, 2, 3], 2) is true
+  longer-than([list: 1, 2, 3], 4) is false
+  longer-than([list:], 0) is false
+end
+
+fun shorter-than<a>(lst :: List<a>, len :: Number) -> Boolean:
+  doc: "Returns true if the given list is strictly shorter than the given length. Runs in time proportional to the smaller of lst or len"
+  cases(List) lst:
+    | empty => len > 0
+    | link(_, rest) => (len > 1) and shorter-than(rest, len - 1)
+  end
+where:
+  shorter-than([list: 1, 2, 3], 2) is false
+  shorter-than([list: 1, 2, 3], 4) is true
+  shorter-than([list:], 0) is false
+end
+
 fun get<a>(lst :: List<a>, n :: Number) -> a:
   doc: "Returns the nth element of the given list, or raises an error if n is out of range"
   fun help(l, cur):

@@ -1267,7 +1267,7 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
   end
 
   helper(typ, context).bind(lam(data-type, shadow context):
-    if data-type.params.length() == 0:
+    if is-empty(data-type.params):
       fold-result(data-type, context)
     else:
       fold-errors([list: C.cant-typecheck(tostring(typ) + " expected " + tostring(data-type.params.length()) + " type arguments, but received none.", typ.l)])
