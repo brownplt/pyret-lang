@@ -797,10 +797,6 @@
                  tr(node.kids[node.kids.length - 3]),      // return-ann
                  tr(node.kids[node.kids.length - 1]));     // body
         },
-        'for-do': function(node) {
-          return RUNTIME.getField(ast, 's-for-do')
-            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
-        },
         'for-then': function(node) {
           // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
           return RUNTIME.getField(ast, 's-for')
