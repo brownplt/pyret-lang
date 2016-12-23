@@ -569,7 +569,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
-    for each(name from initial.globals.values.keys-list()):
+    for SD.each-key(name from initial.globals.values):
       mod-info = initial.mods.get-value(initial.globals.values.get-value(name))
       val-info = mod-info.values.get(name)
       # TODO(joe): I am a little confused about how many times we are asserting
@@ -602,7 +602,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun type-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
-    for each(name from initial.globals.types.keys-list()):
+    for SD.each-key(name from initial.globals.types):
       mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
       acc.set-now(name, C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none))
     end

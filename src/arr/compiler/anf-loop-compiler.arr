@@ -476,7 +476,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     local-bound-vars(case-expr, all-vars)
   end
   all-needed-vars = copy-mutable-dict(all-vars)
-  for each(d from main-body-cases-and-dead-vars.discardable-vars.keys-list()):
+  for D.each-key(d from main-body-cases-and-dead-vars.discardable-vars):
     all-needed-vars.remove-now(d)
   end
   vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))

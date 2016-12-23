@@ -408,7 +408,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
       when options.collect-times block:
         standalone-end = time-now() - stats.get-value-now("standalone")
         stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
-        for each(key from stats.keys-list-now()):
+        for SD.each-key-now(key from stats):
           print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
         end
       end

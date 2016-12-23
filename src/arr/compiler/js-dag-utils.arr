@@ -64,7 +64,7 @@ end
 
 # !mutates s1
 fun remove-overlap-now(s1 :: NameSet, s2 :: NameSet) -> Nothing:
-  for each(k2 from s2.keys-list-now()):
+  for D.each-key-now(k2 from s2):
     s1.remove-now(k2)
   end
 end
@@ -197,7 +197,7 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
       total-before = j-fun-difference
       declared = declared-vars-jblock(body, D.make-mutable-string-dict())
       from-body = used-vars-jblock(body, so-far)
-      for each(d from declared.keys-list-now()):
+      for D.each-key-now(d from declared):
         from-body.remove-now(d)
       end
       j-fun-difference := j-fun-difference + (time-now() - start - (j-fun-difference - total-before))
