@@ -4156,6 +4156,52 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return mapFun();
     };
 
+    var raw_array_each = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-each"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkArray(arr);
+      var currentIndex = -1;
+      var length = arr.length;
+      function eachHelp() {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+        }
+        return nothing;
+      }
+      function eachFun($ar) {
+        try {
+          var res = eachHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-each"],
+              eachFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
+        } catch ($e) {
+          if (thisRuntime.isCont($e)) {
+            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              ["raw-array-each"],
+              eachFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          if (thisRuntime.isPyretException($e)) {
+            $e.pyretStack.push(["raw-array-each"]);
+          }
+          throw $e;
+        }
+      }
+      return eachFun();
+    };
+
     var raw_array_mapi = function(f, arr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -5773,6 +5819,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_length': raw_array_length,
       'raw_array_to_list': raw_array_to_list,
       'raw_array_map': raw_array_map,
+      'raw_array_each': raw_array_each,
       'raw_array_map1': raw_array_map1,
       'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,

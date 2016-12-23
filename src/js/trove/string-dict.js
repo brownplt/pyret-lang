@@ -24,6 +24,8 @@
       "make-mutable-string-dict": ["forall", ["a"], ["arrow", [], "msdOfA"]],
       "string-dict": ["forall", ["a"], ["Maker", "Any", "sdOfA"]],
       "mutable-string-dict": ["forall", ["a"], ["Maker", "Any", "msdOfA"]],
+      "each-key": ["forall", ["a"], ["arrow", [["arrow", ["String"], "Nothing"], "sdOfA"], "Nothing"]],
+      "each-key-now": ["forall", ["a"], ["arrow", [["arrow", ["String"], "Nothing"], "msdOfA"], "Nothing"]],
       "is-mutable-string-dict": ["arrow", ["Any"], "Boolean"],
       "is-string-dict": ["arrow", ["Any"], "Boolean"],
       "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]
@@ -40,6 +42,7 @@
         "remove": ["arrow", ["String"], "sdOfA"],
         "keys": ["arrow", [], "SetOfA"],
         "keys-list": ["arrow", [], ["List", ["tid", "a"]]],
+        "each-key": ["arrow", [["arrow", ["String"], "Nothing"]], "Nothing"],
         "count": ["arrow", [], "Number"],
         "has-key": ["arrow", ["String"], "Boolean"],
         "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
@@ -54,6 +57,7 @@
         "remove-now": ["arrow", ["String"], "Nothing"],
         "keys-now": ["arrow", [], "SetOfA"],
         "keys-list-now": ["arrow", [], ["List", ["tid", "a"]]],
+        "each-key-now": ["arrow", [["arrow", ["String"], "Nothing"]], "Nothing"],
         "count-now": ["arrow", [], "Number"],
         "has-key-now": ["arrow", ["String"], "Boolean"],
         "_equals": ["arrow", ["sdOfA", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
@@ -245,7 +249,7 @@
         if (!this._root) {
           return [];
         } else {
-          return this._root.keys();
+          return this._root.keys([]);
         }
       };
     }
@@ -358,10 +362,10 @@
         return notSetValue;
       };
 
-      this.keys = function() {
-        return this.entries.map(function(kv) {
-          return kv[0];
-        })
+      this.keys = function(ret) {
+        for (var i = 0; i < this.entries.length; i++)
+          ret.push(this.entries[i][0]);
+        return ret;
       };
 
       this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -422,8 +426,9 @@
         return key === this.entry[0] ? this.entry[1] : notSetValue;
       };
 
-      this.keys = function() {
-        return [this.entry[0]];
+      this.keys = function(ret) {
+        ret.push(this.entry[0]);
+        return ret;
       };
 
       this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -468,10 +473,10 @@
         return notSetValue;
       };
 
-      this.keys = function() {
-        return this.entries.map(function(kv) {
-          return kv[0];
-        })
+      this.keys = function(ret) {
+        for (var i = 0; i < this.entries.length; i++)
+          ret.push(this.entries[i][0]);
+        return ret;
       };
 
       this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -547,17 +552,15 @@
           this.nodes[popCount(bitmap & (bit -1))].get(shift + SHIFT, keyHash, key, notSetValue);
       };
 
-      this.keys = function() {
-        var keys = new Array();
+      this.keys = function(ret) {
         var nodes = this.nodes;
         for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
           var node = nodes[ii];
           if (node) {
-            var nodeKeys = node.keys();
-            Array.prototype.push.apply(keys, nodeKeys);
+            node.keys(ret);
           }
         }
-        return keys;
+        return ret;
       };
 
       this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -624,17 +627,15 @@
         var node = this.nodes[idx];
         return node ? node.get(shift + SHIFT, keyHash, key, notSetValue) : notSetValue;
       };
-      this.keys = function() {
-        var keys = new Array();
+      this.keys = function(ret) {
         var nodes = this.nodes;
         for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
           var node = nodes[ii];
           if (node) {
-            var nodeKeys = node.keys();
-            Array.prototype.push.apply(keys, nodeKeys);
+            node.keys(ret);
           }
         }
-        return keys;
+        return ret;
       };
 
       this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -743,6 +744,12 @@
         }
       });
 
+      var eachKeyISD = runtime.makeMethod1(function(_, f) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key"], 2, $a); }
+        runtime.checkFunction(f);
+        return runtime.raw_array_each(f, underlyingMap.keys());
+      });
+
       var keysISD = runtime.makeMethod0(function(_) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a); }
         var keys = underlyingMap.keys();
@@ -836,6 +843,7 @@
         remove: removeISD,
         keys: keysISD,
         "keys-list": keysListISD,
+        'each-key': eachKeyISD,
         count: countISD,
         'has-key': hasKeyISD,
         _equals: equalsISD,
@@ -927,6 +935,12 @@
         return runtime.ffi.makeList(keys.map(function(mkey) {
           return runtime.makeString(mkey);
         }));
+      });
+
+      var eachKeyMSD = runtime.makeMethod1(function(_, f) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key-now"], 2, $a); }
+        runtime.checkFunction(f);
+        return runtime.raw_array_each(f, Object.keys(underlyingDict));
       });
 
       var countMSD = runtime.makeMethod0(function(_) {
@@ -1037,6 +1051,7 @@
         'remove-now': removeMSD,
         'keys-now': keysMSD,
         'keys-list-now': keysListMSD,
+        'each-key-now': eachKeyMSD,
         'count-now': countMSD,
         'has-key-now': hasKeyMSD,
         _equals: equalsMSD,
@@ -1133,6 +1148,20 @@
       return makeImmutableStringDict(map);
     }
 
+    function eachKey(f, isd) {
+      arity(2, arguments, "each-key-now");
+      jsCheckISD(isd);
+      runtime.checkFunction(f);
+      return runtime.getColonField(isd, "each-key").full_meth(isd, f);
+    }
+    
+    function eachKeyNow(f, msd) {
+      arity(2, arguments, "each-key-now");
+      jsCheckMSD(msd);
+      runtime.checkFunction(f);
+      return runtime.getColonField(msd, "each-key-now").full_meth(msd, f);
+    }
+    
     function createMutableStringDict0() {
       arity(0, arguments, "mutable-string-dict0");
       var dict = Object.create(null);
@@ -1227,6 +1256,8 @@
       }),
       "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
       "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
+      "each-key": F(eachKey, "each-key"),
+      "each-key-now": F(eachKeyNow, "each-key-now"),
       "string-dict": O({
         make: F(createImmutableStringDictFromArray, "string-dict:make"),
         make0: F(createImmutableStringDict0, "string-dict:make0"),
