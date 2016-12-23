@@ -346,25 +346,23 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           module-ast
       end
       var ret = start(time-now())
-      var ast-ended = AU.append-nothing-if-necessary(ast)
-      if options.collect-all:
-        when not(ast-ended <=> ast): ret := phase("Added nothing", ast-ended, time-now(), ret) end
-      else if options.collect-times:
-        ret := phase("Added nothing", nothing, time-now(), ret)
-      else:
-        nothing
+      fun add-phase(name, value) block:
+        if options.collect-all:
+          ret := phase(name, value, time-now(), ret)
+        else if options.collect-times:
+          ret := phase(name, nothing, time-now(), ret)
+        else:
+          nothing
+        end
+        value
       end
+      var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
+      add-phase("Added nothing", ast-ended)
       ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
-      if options.collect-all:
-        ret := phase("Checked well-formedness", wf, time-now(), ret)
-      else if options.collect-times:
-        ret := phase("Checked well-formedness", nothing, time-now(), ret)
-      else:
-        nothing
-      end
+      add-phase("Checked well-formedness", wf)
       checker = if options.check-mode and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
@@ -376,42 +374,16 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing
-          if options.collect-all:
-            ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
-              checked, time-now(), ret)
-          else if options.collect-times:
-            ret := phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end,
-              nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
-          if options.collect-all:
-            ret := phase("Added imports", imported, time-now(), ret)
-          else if options.collect-times:
-            ret := phase("Added imports", nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase("Added imports", imported)
           var scoped = RS.desugar-scope(imported, env)
           imported := nothing
-          if options.collect-all:
-            ret := phase("Desugared scope", scoped, time-now(), ret)
-                    else if options.collect-times:
-            ret := phase("Desugared scope", nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase("Desugared scope", scoped)
           var named-result = RS.resolve-names(scoped, env)
           scoped := nothing
-          if options.collect-all:
-            ret := phase("Resolved names", named-result, time-now(), ret)
-          else if options.collect-times:
-            ret := phase("Resolved names", nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase("Resolved names", named-result)
           var provides = AU.get-named-provides(named-result, locator.uri(), env)
           # Once name resolution has happened, any newly-created s-binds must be added to bindings...
           var desugared = D.desugar(named-result.ast)
@@ -419,13 +391,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           # ...in order to be checked for bad assignments here
           var any-errors = named-result.errors
             + RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-          if options.collect-all:
-            ret := phase("Fully desugared", desugared.ast, time-now(), ret)
-          else if options.collect-times:
-            ret := phase("Fully desugared", nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase("Fully desugared", desugared.ast)
           var type-checked =
             if options.type-check:
               type-checked = T.type-check(desugared.ast, env, modules)
@@ -438,13 +404,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             else: CS.ok(desugared.ast)
             end
           desugared := nothing
-          if options.collect-all:
-            ret := phase("Type Checked", type-checked, time-now(), ret)
-          else if options.collect-times:
-            ret := phase("Type Checked", nothing, time-now(), ret)
-          else:
-            nothing
-          end
+          add-phase("Type Checked", type-checked)
           cases(CS.CompileResult) type-checked block:
             | ok(_) =>
               var tc-ast = type-checked.code
@@ -457,31 +417,20 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                           .visit(AU.inline-lams)
                           .visit(AU.set-recursive-visitor)
                           .visit(AU.set-tail-visitor)
-              if options.collect-all:
-                ret := phase("Cleaned AST", cleaned, time-now(), ret)
-              else if options.collect-times:
-                ret := phase("Cleaned AST", nothing, time-now(), ret)
-              else:
-                nothing
-              end
+              add-phase("Cleaned AST", cleaned)
               {final-provides; cr} = if is-empty(any-errors):
-                if options.collect-all or options.collect-times:
-                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, named-result.bindings, provides, options)
-                else:
-                  {final-provides; cr} = JSP.make-compiled-pyret(cleaned, env, named-result.bindings, provides, options)
-                  {final-provides; phase("Result", CS.ok(cr), time-now(), ret)}
-                end
+                JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, provides, options)
               else:
                 if options.collect-all and options.ignore-unbound:
-                  JSP.trace-make-compiled-pyret(ret, phase, cleaned, env, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
                 else:
-                  {provides; phase("Result", CS.err(any-errors), time-now(), ret)}
+                  {provides; add-phase("Result", CS.err(any-errors))}
                 end
               end
               cleaned := nothing
               canonical-provides = AU.canonicalize-provides(final-provides, env)
-              mod-result = module-as-string(canonical-provides, env, cr.result)
-              {mod-result; if options.collect-all or options.collect-times: cr.tolist() else: empty end}
+              mod-result = module-as-string(canonical-provides, env, cr)
+              {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
             | err(_) =>
               { module-as-string(dummy-provides(locator.uri()), env, type-checked);
                 if options.collect-all or options.collect-times:

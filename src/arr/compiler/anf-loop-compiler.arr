@@ -449,6 +449,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
   end
   visited-body = body.visit(local-compiler)
+  compiler.add-phase("Visit body: " + l.format(true), nothing)
   no-real-args = (args.first.id == compiler.resumer)
   copy-formals-to-args =
     if no-real-args: cl-empty
@@ -468,6 +469,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   start = time-now()
   main-body-cases-and-dead-vars = DAG.simplify(main-body-cases, step)
   finish = time-now() - start
+  compiler.add-phase("Simplify body: " + l.format(true), nothing)
   total-time := total-time + finish
   #print("Simplify time for " + torepr(l) + ": " + num-to-string(finish) + ", so far cumulative: " + to-repr(total-time) + "\n")
   shadow main-body-cases = main-body-cases-and-dead-vars.body
@@ -603,6 +605,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
               # j-expr(j-app(j-id("console.log"), [list: j-str("In " + fun-name + ", step "), j-id(step), j-str(", GAS = "), rt-field("GAS"), j-str(", ans = "), j-id(local-compiler.cur-ans)])),
               j-switch(j-id(step), switch-cases)])))
 
+  compiler.add-phase("Finish function: " + l.format(true), nothing)
   j-block([clist:
       j-var(step, j-num(0)),
       j-var(elided-frames, j-num(0)),
@@ -1960,20 +1963,24 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun non-splitting-compiler(env, flatness-env, provides, options):
+fun splitting-compiler(env, add-phase, flatness-env, provides, options):
   compiler-visitor.{
+    add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
-    method a-program(self, l, _, imports, body):
+    method a-program(self, l, _, imports, body) block:
+      total-time := 0
       simplified = body.visit(remove-useless-if-visitor)
+      add-phase("Remove useless ifs", simplified)
       freevars = N.freevars-e(simplified)
-      if options.compile-module:
-        compile-module(self, l, imports, simplified, freevars, provides, env, flatness-env)
-      else:
-        compile-program(self, l, imports, simplified, freevars, provides, env, flatness-env)
-      end
+      add-phase("Freevars-e", freevars)
+      ans =
+        if options.compile-module:
+          compile-module(self, l, imports, simplified, freevars, provides, env, flatness-env)
+        else:
+          compile-program(self, l, imports, simplified, freevars, provides, env, flatness-env)
+        end
+      add-phase("Total simplification: " + tostring(total-time), ans)
     end
   }
 end
-
-splitting-compiler = non-splitting-compiler
