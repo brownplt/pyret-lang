@@ -50,7 +50,7 @@ end
 
 fun copy-nameset(s :: NameSet) -> NameSet block:
   start = time-now()
-  ans = s.freeze().unfreeze()
+  ans = s.clone-now()
   copy-overhead := copy-overhead + (time-now() - start)
   ans
 end
@@ -91,6 +91,11 @@ data RegisterAllocation:
   | results(body :: ConcatList<J.JCase>, discardable-vars :: FrozenNameSet)
 end
 
+fun-decl-vars :: D.MutableStringDict<NameSet> = D.make-mutable-string-dict()
+fun-used-vars :: D.MutableStringDict<NameSet> = D.make-mutable-string-dict()
+var from-hit = 0
+var from-miss = 0
+  
 fun used-vars-jblock(b :: J.JBlock, so-far :: NameSet) -> NameSet block:
   cases(J.JBlock) b block:
     | j-block1(s) => used-vars-jstmt(s, so-far)
@@ -192,11 +197,29 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
     | j-binop(left, op, right) => 
       shadow so-far = used-vars-jexpr(left, so-far)
       used-vars-jexpr(right, so-far)
-    | j-fun(args, body) =>
+    | j-fun(id, args, body) =>
       start = time-now()
       total-before = j-fun-difference
-      declared = declared-vars-jblock(body, D.make-mutable-string-dict())
-      from-body = used-vars-jblock(body, so-far)
+      declared =
+        if fun-decl-vars.has-key-now(id) block:
+          fun-decl-vars.get-value-now(id)
+        else:
+          ans = declared-vars-jblock(body, ns-empty())
+          fun-decl-vars.set-now(id, ans)
+          ans
+        end
+      from-body =
+        if fun-used-vars.has-key-now(id) block:
+          from-hit := from-hit + 1
+          so-far.merge-now(fun-used-vars.get-value-now(id))
+          so-far
+        else:
+          from-miss := from-miss + 1
+          clean-from-body = used-vars-jblock(body, ns-empty())
+          fun-used-vars.set-now(id, clean-from-body)
+          so-far.merge-now(clean-from-body)
+          so-far
+        end
       for D.each-key-now(d from declared):
         from-body.remove-now(d)
       end
@@ -465,8 +488,11 @@ var step-4-total = 0
 #   end
 #   ranges
 # end
-fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
+
+fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
   start = time-now()
+  from-hit := 0
+  from-miss := 0
   # print("Step 1: " + step + " num cases: " + tostring(body-cases.length()))
   acc-dag = D.make-mutable-string-dict()
   for CL.each(body-case from body-cases):
@@ -485,34 +511,33 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   copy-overhead := copy-overhead + (time-now() - start-copy)
   step-1 = time-now() - start
   step-1-total := step-1-total + step-1
-  debugprint("Step 1: " + torepr(step) + " " + torepr(step-1) + "/" + torepr(step-1-total) + "\n")
+#  add-phase("Step 1: " + torepr(step) + " " + torepr(step-1) + "/" + torepr(step-1-total), nothing)
   # print("Step 2")
   labels = for CL.foldr(acc from empty, body-case from body-cases):
     if J.is-j-case(body-case): link(body-case.exp.label.get(), acc)
     else: acc
     end
   end
-  str-labels = dag.keys-list()
   step-2 = time-now() - step-1 - start
   step-2-total := step-2-total + step-2
-  debugprint("Step 2: " + torepr(step) + " " + torepr(step-2) + "/" + torepr(step-2-total) + "\n")
+#  add-phase("Step 2: " + torepr(step) + " " + torepr(step-2) + "/" + torepr(step-2-total), nothing)
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
   #   print(tostring(n._from.get()) + " ==> " + tostring(n._to.to-list().map(_.get())))
   #   print("\n" + n.case-body.to-ugly-source())
   # end
   # print("Step 3")
-  for each(lbl from str-labels) block:
+  for D.each-key(lbl from dag) block:
     n = dag.get-value(lbl)
     n!{decl-vars: declared-vars-jcase(n.case-body, D.make-mutable-string-dict())}
     n!{used-vars: used-vars-jcase(n.case-body, D.make-mutable-string-dict())}
     n!{free-vars: difference-now(n!used-vars, n!decl-vars)}
   end
-  for each(lbl from str-labels):
+  for D.each-key(lbl from dag):
     n = dag.get-value(lbl)
     compute-live-vars(n, dag)
   end
-  # for each(lbl from str-labels) block:
+  # for D.each-key(lbl from dag) block:
   #   n = dag.get-value(lbl)
   #   print("\nUsed vars for " + lbl + ": " + torepr(n!used-vars))
   #   print("\nDecl vars for " + lbl + ": " + torepr(n!decl-vars.keys-now()))
@@ -525,7 +550,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   # end
   step-3 = time-now() - step-2 - step-1 - start
   step-3-total := step-3-total + step-3
-  debugprint("Step 3: " + torepr(step) + " " + torepr(step-3) + "/" + torepr(step-3-total) + "\n")
+#  add-phase("Step 3: " + torepr(step) + " " + torepr(step-3) + "/" + torepr(step-3-total), nothing)
   # print("Step 4")
   # live-ranges = D.make-mutable-string-dict()
   # for each(lbl from labels):
@@ -536,7 +561,7 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   #   end
   # end
   acc = ns-empty()
-  for each(lbl from str-labels):
+  for D.each-key(lbl from dag):
     n = dag.get-value(lbl)
     when is-some(n!dead-after-vars):
       acc.merge-now(n!dead-after-vars.value)
@@ -559,7 +584,8 @@ fun simplify(body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAlloc
   end
   step-4 = time-now() - step-3 - step-2 - step-1 - start
   step-4-total := step-4-total + step-4
-  debugprint("Step 4: " + torepr(step) + " " + torepr(step-4) + "/" + torepr(step-4-total) + "\n")
+#  add-phase("Step 4: " + torepr(step) + " " + torepr(step-4) + "/" + torepr(step-4-total), nothing)
+#  add-phase("Step 5: from-hit " + torepr(from-hit) + " / from-miss " + torepr(from-miss), nothing)
 
   debugprint("Cumulative overhead from copying string-dicts: " + torepr(copy-overhead) + "\n")
   debugprint("Cumulative overhead from differencing function sets: " + torepr(j-fun-difference) + "\n")

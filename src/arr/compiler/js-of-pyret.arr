@@ -230,7 +230,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
 
   sd = SD.make-mutable-string-dict()
 
-  for each(k from bindings.keys-list-now()):
+  for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
     when C.is-bo-module(vb.origin):
       cases(Option) vb.origin.mod:

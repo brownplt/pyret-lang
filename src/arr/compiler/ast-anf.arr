@@ -727,10 +727,7 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
-rec get-ann = _.ann
-
 fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
-  lst-a = freevars-list-acc(_, seen-so-far)
   cases(A.Ann) ann block:
     | a-blank => seen-so-far
     | a-any(l) => seen-so-far
@@ -741,12 +738,15 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-dot(l, left, right) =>
       seen-so-far.set-now(left.key(), left)
       seen-so-far
-    | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
-    | a-method(l, args, ret) => lst-a(link(ret, args))
-    | a-record(l, fields) => lst-a(fields.map(get-ann))
-    | a-tuple(l, fields) => lst-a(fields)
-    | a-app(l, a, args) => lst-a(link(a, args))
-    | a-method-app(l, a, _, args) => lst-a(link(a, args))
+    | a-arrow(l, args, ret, _) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-method(l, args, ret) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-record(l, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-ann-acc(f.ann, acc)
+      end
+    | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
+    | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
+    | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n
@@ -815,8 +815,6 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: NameDict<A.Name>) -> Name
   end
 end
 
-rec get-id = _.id
-
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   for fold(acc from seen-so-far, b from branches):
     cases(ACasesBranch) b block:
@@ -824,8 +822,8 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
         without-args = from-body
-        for each(arg from args.map(get-id)):
-          without-args.remove-now(arg.key())
+        for each(arg from args):
+          without-args.remove-now(arg.id.key())
         end
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
@@ -873,8 +871,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-lam(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
-      for each(arg from args.map(get-id)):
-        without-args.remove-now(arg.key())
+      for each(arg from args):
+        without-args.remove-now(arg.id.key())
       end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
@@ -883,8 +881,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-method(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
-      for each(arg from args.map(get-id)):
-        without-args.remove-now(arg.key())
+      for each(arg from args):
+        without-args.remove-now(arg.id.key())
       end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)

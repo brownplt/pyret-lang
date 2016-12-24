@@ -423,7 +423,7 @@ fun build-require-standalone(path, options):
   define-name = j-id(A.s-name(A.dummy-loc, "define"))
 
   prog = j-block([clist:
-      j-app(define-name, [clist: natives, j-fun([clist:],
+      j-app(define-name, [clist: natives, j-fun(J.next-j-fun-id(), [clist:],
         j-block([clist:
           j-return(program.js-ast)
         ]))
