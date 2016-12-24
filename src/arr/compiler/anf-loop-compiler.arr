@@ -1575,16 +1575,17 @@ compiler-visitor = {
   end
 }
 
+#|
 remove-useless-if-visitor = N.default-map-visitor.{
   method a-if(self, l, c, t, e):
     cases(N.AVal) c:
       | a-bool(_, test) =>
         if test:
           visit-t = t.visit(self)
-          if N.is-a-lettable(visit-t): visit-t.e else: N.a-if(l, c.visit(self), visit-t, e.visit(self)) end
+          if N.is-a-lettable(visit-t): visit-t.e else: N.a-if(l, c, visit-t, N.a-lettable(e.l, N.a-undefined(e.l))) end
         else:
           visit-e = e.visit(self)
-          if N.is-a-lettable(visit-e): visit-e.e else: N.a-if(l, c.visit(self), t.visit(self), visit-e) end
+          if N.is-a-lettable(visit-e): visit-e.e else: N.a-if(l, c, N.a-lettable(t.l, N.a-undefined(t.l)), visit-e) end
         end
       | else => N.a-if(l, c.visit(self), t.visit(self), e.visit(self))
     end
@@ -1610,6 +1611,7 @@ check:
     N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
 
 end
+|#
 
 fun mk-abbrevs(l):
   loc = const-id("loc")
@@ -1957,10 +1959,6 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   wrap-new-module(module-body)
 end
 
-fun compile-program(self, l, imports-in, prog, freevars, env, flatness-env):
-  raise("Use compile-module instead!  Pass the compile-module: true compiler option")
-end
-
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
 fun splitting-compiler(env, add-phase, flatness-env, provides, options):
@@ -1970,16 +1968,12 @@ fun splitting-compiler(env, add-phase, flatness-env, provides, options):
     flatness-env: flatness-env,
     method a-program(self, l, _, imports, body) block:
       total-time := 0
-      simplified = body.visit(remove-useless-if-visitor)
-      add-phase("Remove useless ifs", simplified)
-      freevars = N.freevars-e(simplified)
+      # This achieves nothing with our current code-gen, so it's a waste of time
+      # simplified = body.visit(remove-useless-if-visitor)
+      # add-phase("Remove useless ifs", simplified)
+      freevars = N.freevars-e(body)
       add-phase("Freevars-e", freevars)
-      ans =
-        if options.compile-module:
-          compile-module(self, l, imports, simplified, freevars, provides, env, flatness-env)
-        else:
-          compile-program(self, l, imports, simplified, freevars, provides, env, flatness-env)
-        end
+      ans = compile-module(self, l, imports, body, freevars, provides, env, flatness-env)
       add-phase("Total simplification: " + tostring(total-time), ans)
     end
   }

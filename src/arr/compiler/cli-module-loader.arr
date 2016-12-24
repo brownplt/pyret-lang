@@ -349,7 +349,6 @@ fun build-program(path, options, stats) block:
   cached-modules = starter-modules.count-now()
   var num-compiled = cached-modules
   shadow options = options.{
-    compile-module: true,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)

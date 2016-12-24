@@ -27,8 +27,6 @@ fun main(args):
       C.next-val(C.String, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "outfile",
       C.next-val(C.String, C.once, "Output file for build-runnable"),
-    "build",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
@@ -118,7 +116,6 @@ fun main(args):
                 collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
-                compile-module: true,
                 compiled-cache: compiled-dir,
                 display-progress: display-progress,
                 inline-case-body-limit: inline-case-body-limit
@@ -138,39 +135,13 @@ fun main(args):
                 collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
-                compile-module: true,
                 compiled-cache: compiled-dir,
                 display-progress: display-progress
               })
            |#
-        else if r.has-key("build"):
-          result = CLI.compile(r.get-value("build"),
-            CS.default-compile-options.{
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls,
-              compile-module: false,
-              display-progress: display-progress,
-              inline-case-body-limit: inline-case-body-limit
-            })
-          failures = filter(CS.is-err, result.loadables)
-          when is-link(failures):
-            for each(f from failures) block:
-              for lists.each(e from f.errors) block:
-                print-error(tostring(e))
-                print-error("\n")
-              end
-              raise("There were compilation errors")
-            end
-          end
         else if r.has-key("run"):
           CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
-              compile-module: true,
               display-progress: display-progress,
               check-all: check-all
             })

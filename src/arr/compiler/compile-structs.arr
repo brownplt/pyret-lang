@@ -2181,7 +2181,6 @@ type CompileOptions = {
   collect-times :: Boolean,
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
-  compile-module :: Boolean,
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
@@ -2200,7 +2199,6 @@ default-compile-options = {
   ignore-unbound: false,
   proper-tail-calls: true,
   inline-case-body-limit: 5,
-  compile-module: true,
   compiled-cache: "compiled",
   display-progress: true,
   log: lam(s, to-clear):
