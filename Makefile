@@ -14,7 +14,6 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
-DOCS             = docs
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -50,14 +49,10 @@ PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS))
 PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS))
 PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS))
 
-DOCS_DEPS        = $(patsubst src/%,$(DOCS)/generated/%.rkt,$(SRC_JS) $(TROVE_JS) $(LIBS_JS) $(COPY_JS) $(ROOT_LIBS))
-DOCS_SKEL_DEPS   = $(patsubst src/%,$(DOCS)/skeleton/%.rkt,$(SRC_JS) $(LIBS_JS) $(ROOT_LIBS))
-
 PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
-DOCS_DIRS       := $(sort $(dir $(DOCS_DEPS)) $(dir $(DOCS_SKEL_DEPS)))
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
@@ -186,10 +181,6 @@ $(PHASEB)/$(JS)/%.js : src/$(JSBASE)/%.js
 $(PHASEC)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
 
-.PHONY : docs
-docs:
-	cd docs/written && make VERSION=$(VERSION)
-
 .PHONY : install
 install:
 	@$(call MKDIR,node_modules)
@@ -222,10 +213,10 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
 
 .PHONY : old-test-all
-old-test-all: test docs-test benchmark-test
+old-test-all: test benchmark-test
 
 .PHONY : test-all
-test-all: test docs-test
+test-all: test
 
 .PHONY : test
 test: pyret-test type-check-test
@@ -304,9 +295,6 @@ tests/lib-test-main/lib-test-main.jarr: phaseA $(TROVE_ARR_FILES) tests/lib-test
 benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
 	cd tools/benchmark/ && make test
 
-.PHONY : docs-test
-docs-test: docs
-	cd docs/written && scribble --htmls index.scrbl
 
 .PHONY : clean
 clean:
@@ -349,14 +337,6 @@ release: release-gzip
 test-release: release-gzip
 	cd $(RELEASE_DIR) && \
 	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
-horizon-docs: docs
-	scp -r build/docs/ $(DOCS_TARGET)/horizon-$(VERSION)/
-	chmod -R a+rx $(DOCS_TARGET)/horizon-$(VERSION)/
-	cd $(DOCS_TARGET) && unlink horizon && ln -s horizon-$(VERSION) horizon
-release-docs: docs
-	scp -r build/docs/ $(DOCS_TARGET)/$(VERSION)/
-	chmod -R a+rx $(DOCS_TARGET)/$(VERSION)/
-	cd $(DOCS_TARGET) && unlink latest && ln -s $(VERSION) latest
 else
 release-gzip:
 	$(error Cannot release from this platform)
