@@ -14,7 +14,7 @@ check:
   sd.get-compiled() satisfies is-some
 
   sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
-  sd.get-compiled().value.provides.values.keys() is [tree-set: "is-mutable-string-dict", "is-string-dict", "make-mutable-string-dict", "make-string-dict", "mutable-string-dict", "string-dict", "string-dict-of"]
+  sd.get-compiled().value.provides.values.keys() is [tree-set: "each-key", "each-key-now", "is-mutable-string-dict", "is-string-dict", "make-mutable-string-dict", "make-string-dict", "mutable-string-dict", "string-dict", "string-dict-of"]
 
   # TODO(joe): reinstate these once types come back
   # sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
