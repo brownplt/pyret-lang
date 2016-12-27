@@ -5,6 +5,7 @@ provide-types *
 import ast as A
 import file as F
 import string-dict as SD
+import pprint as PP
 import file("anf.arr") as N
 import file("anf-loop-compiler.arr") as AL
 import file("ast-anf.arr") as AA
@@ -29,8 +30,8 @@ data CompiledCodePrinter:
     method print-js-static(self, printer):
       self.to-j-expr(self.dict.remove("theModule")).print-ugly-source(printer)
     end,
-    method pyret-to-js-pretty(self, width) -> String:
-      self.to-j-expr(self.dict).tosource().pretty(width).join-str("\n")
+    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
+      self.to-j-expr(self.dict).tosource()
     end,
     method pyret-to-js-runnable(self) -> String:
       self.to-j-expr(self.dict).to-ugly-source()
@@ -39,8 +40,8 @@ data CompiledCodePrinter:
       self.to-j-expr(self.dict).print-ugly-source(printer)
     end
   | ccp(compiled :: J.JExpr) with:
-    method pyret-to-js-pretty(self, width) -> String:
-      self.compiled.tosource().pretty(width).join-str("\n")
+    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
+      self.compiled.tosource()
     end,
     method pyret-to-js-runnable(self) -> String:
       self.compiled.to-ugly-source()
@@ -49,8 +50,8 @@ data CompiledCodePrinter:
       self.compiled.print-ugly-source(printer)
     end
   | ccp-string(compiled :: String) with:
-    method pyret-to-js-pretty(self, width) -> String:
-      raise("Cannot generate pretty JS from code string")
+    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
+      PP.str(self.compiled)
     end,
     method pyret-to-js-runnable(self) -> String:
       self.compiled

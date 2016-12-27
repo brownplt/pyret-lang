@@ -1982,7 +1982,8 @@ fun splitting-compiler(env, add-phase, flatness-env, provides, options):
       freevars = N.freevars-e(body)
       add-phase("Freevars-e", freevars)
       ans = compile-module(self, l, imports, body, freevars, provides, env, flatness-env)
-      add-phase("Total simplification: " + tostring(total-time), ans)
+      add-phase("Total simplification: " + tostring(total-time), nothing)
+      ans
     end
   }
 end
