@@ -70,7 +70,7 @@ fun remove-overlap-now(s1 :: NameSet, s2 :: NameSet) -> Nothing:
 end
 
 data GraphNode:
-  | node(_from :: J.Label, _to :: ConcatList<J.Label>, case-body :: J.JCase,
+  | node(_from :: String, _to :: D.MutableStringDict<J.Label>, case-body :: J.JCase,
       ref free-vars :: NameSet,
       ref used-vars :: NameSet,
       ref decl-vars :: NameSet,
@@ -78,7 +78,6 @@ data GraphNode:
       ref live-after-vars :: Option<NameSet>,
       ref dead-vars :: Option<NameSet>,
       ref dead-after-vars :: Option<NameSet>)
-    # note: _to is a set, determined by identical
 end
 
 data CaseResults:
@@ -308,14 +307,15 @@ end
 
 fun compute-live-vars(n :: GraphNode, dag :: D.StringDict<GraphNode>) -> NameSet:
   cases(Option) n!live-vars block:
-    | some(live) => 
+    | some(live) =>
       live
     | none =>
       live-after = copy-nameset(n!free-vars)
-      for CL.each(follow from n._to):
-        next-opt = dag.get(tostring(follow.get()))
-        when is-some(next-opt):
-          next = next-opt.value
+      for D.each-key-now(follow-key from n._to):
+        # Note: this is false only for the exit block of the function
+        # which isn't currently present in the DAG (todo: why not?)
+        when dag.has-key(follow-key):
+          next = dag.get-value(follow-key)
           next-vars = compute-live-vars(next, dag)
           live-after.merge-now(next-vars)
         end
@@ -338,22 +338,25 @@ fun stmts-of(blk :: J.JBlock):
   end
 end
 
-fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
+fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.MutableStringDict<J.Label>) -> D.MutableStringDict<J.Label>:
   var looking-for = none
-  for CL.foldr(acc from cl-empty, stmt from stmts):
+  for CL.foldr(shadow acc from acc, stmt from stmts):
     cases(J.JStmt) stmt:
       | j-var(name, rhs) =>
         if is-some(looking-for) and (looking-for.value == name) block:
           looking-for := none
-          for CL.foldl(shadow acc from acc, field from rhs.fields):
-            cl-snoc(acc, field.value.label)
+          for CL.foldl(shadow acc from acc, field from rhs.fields) block:
+            acc.set-now(tostring(field.value.label.get()), field.value.label)
+            acc
           end
         else:
           acc
         end
-      | j-if1(cond, consq) => acc + find-steps-to(stmts-of(consq), step)
+      | j-if1(cond, consq) => find-steps-to(stmts-of(consq), step, acc)
       | j-if(cond, consq, alt) =>
-        acc + find-steps-to(stmts-of(consq), step) + find-steps-to(stmts-of(alt), step)
+        acc
+          ^ find-steps-to(stmts-of(consq), step, _)
+          ^ find-steps-to(stmts-of(alt), step, _)
       | j-return(expr) => acc
       | j-try-catch(body, exn, catch) => acc # ignoring for now, because we know we don't use these
       | j-throw(exp) => acc
@@ -361,18 +364,22 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name):
         if J.is-j-assign(expr) and (expr.name == step):
           if J.is-j-label(expr.rhs) block:
             # simple assignment statement to $step
-            cl-snoc(acc, expr.rhs.label)
+            acc.set-now(tostring(expr.rhs.label.get()), expr.rhs.label)
+            acc
           else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
             # $step gets a cases dispatch
             # ASSUMES that the dispatch table is assigned two statements before this one
             looking-for := some(expr.rhs.left.obj.id)
-            cl-snoc(acc, expr.rhs.right.label)
+            acc.set-now(tostring(expr.rhs.right.label.get()), expr.rhs.right.label)
+            acc
           else if J.is-j-num(expr.rhs):
             acc
           else if J.is-j-ternary(expr.rhs):
             # ASSUMES that the only current use of $step = ( ? : )
             # comes from compile-split-if
-            cl-snoc(cl-snoc(acc, expr.rhs.consq.label), expr.rhs.altern.label)
+            acc.set-now(tostring(expr.rhs.consq.label.get()), expr.rhs.consq.label)
+            acc.set-now(tostring(expr.rhs.altern.label.get()), expr.rhs.altern.label)
+            acc
           else:
             raise({err: "Should not happen", expr: expr})
           end
@@ -497,11 +504,12 @@ fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name) -> Re
   acc-dag = D.make-mutable-string-dict()
   for CL.each(body-case from body-cases):
     when J.is-j-case(body-case):
-      acc-dag.set-now(tostring(body-case.exp.label.get()),
-        node(body-case.exp.label,
+      label = tostring(body-case.exp.label.get())
+      acc-dag.set-now(label,
+        node(label,
           cases(J.JBlock) body-case.body:
-            | j-block1(s) => find-steps-to(cl-sing(s), step)
-            | j-block(stmts) => find-steps-to(stmts, step)
+            | j-block1(s) => find-steps-to(cl-sing(s), step, ns-empty())
+            | j-block(stmts) => find-steps-to(stmts, step, ns-empty())
           end, body-case,
           ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
     end
