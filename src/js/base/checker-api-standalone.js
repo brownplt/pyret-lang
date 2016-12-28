@@ -159,9 +159,66 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var getStackP = runtime.makeFunction(getStack, "get-stack");
     var toCall = runtime.getField(checker, "results-report");
     var checks = runtime.getField(answer, "checks");
-    //console.dir(checks);
+
+    /**
+     * (copied and modified from output-ui.js in cpo)
+     * TODO: this won't work because runtime has no access to builtin://file
+     */
+    var locToAST = runtime.makeFunction(function(loc) {
+      return runtime.ffi.cases(runtime.getField(runtime.srcloc, "is-Srcloc"), "Srcloc", loc, {
+        "builtin": function(_) {
+          return runtime.ffi.makeNone();
+        },
+        "srcloc": function(filename, start_line, start_col, _, end_line, end_col, __) {
+          var prelude = "";
+          for(var i=1; i < start_line; i++) {prelude += "\n";}
+          for(var i=0; i < start_col; i++)  {prelude += " "; }
+          runtime.pauseStack(function(restarter) {
+            runtime.runThunk(function() {
+              var fileToString = runtime.getField(runtime.file, "file-to-string");
+              var source = fileToString.app(filename);
+              var fauxCode = prelude + source;
+              var surfaceParse = runtime.getField(runtime["parse-pyret"], "surface-parse");
+              return surfaceParse.app(fauxCode, filename);
+            }, function(result) {
+              if(runtime.isSuccessResult(result)) {
+                var res = result.result;
+                res = res && res.dict.block;
+                res = res && res.dict.stmts;
+                res = res && res.dict.first;
+                if (res) {
+                  restarter.resume(runtime.ffi.makeSome(res));
+                } else {
+                  process.stderr.write(
+                    'Unexpected failure in extracting first expresion in AST:',
+                    '\nRequested Location:\t', {from: start, to: end},
+                    '\nProgram Source:\t', source,
+                    '\nParse result:\t', result);
+                  restarter.resume(runtime.ffi.makeNone());
+                }
+              } else {
+                restarter.resume(runtime.ffi.makeNone());
+              }
+            });
+          });
+        }
+      });
+    });
+
+    var getNone1 = runtime.makeFunction(function(_) {
+      return runtime.ffi.makeNone();
+    });
+
+    var getNone2 = runtime.makeFunction(function(_, __) {
+      return runtime.ffi.makeNone();
+    });
+
+    var srcAvailable = runtime.makeFunction(function(loc) {
+      return (runtime.getField(runtime.srcloc, "is-srcloc")).app(loc);
+    });
+
     runtime.safeCall(function() {
-      return toCall.app(checks, getStackP);
+      return toCall.app(checks, getStackP, getNone2, srcAvailable, getNone1);
     }, function(summary) {
       if(runtime.isObject(summary)) {
         var summaryJSON = runtime.ffi.fromPyret(summary);
