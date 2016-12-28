@@ -46,7 +46,7 @@ fun mean(l :: L.List<Number>) -> Number:
   end
 end
 
-fun median(l :: L.List):
+fun median(l :: L.List) -> Number:
   doc: "returns the median element of the list"
 
   fun is-odd(n :: Number) -> Boolean:
