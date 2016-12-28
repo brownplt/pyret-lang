@@ -192,16 +192,7 @@ fun make-lettable-flatness-env(
     | a-colon(_, obj, field) => default-ret
     | a-get-bang(_, obj, field) =>
       default-ret
-    | a-lam(_, name, args, ret, body) =>
-      # I believe the only way we can reach this case is if we write code
-      # like:
-      # lam(x): x end
-      # That is, we define a lambda, but don't bind it to anything
-      if string-equal(name, ""):
-        default-ret
-      else:
-        raise("lam should be anonymous!")
-      end
+    | a-lam(_, name, args, ret, body) => default-ret
     | a-method(_, name, args, ret, body) =>
       default-ret
     | a-id-var(_, id) =>
