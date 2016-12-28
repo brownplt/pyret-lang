@@ -930,24 +930,37 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(", but it does not refer to a module.")]]
     end
-  | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
+  | type-id-used-as-value(id :: A.Name, origin :: BindOrigin) with:
     method render-fancy-reason(self):
-      [ED.error:
+      intro =
         [ED.para:
-          ED.text("The "),
-          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
-          ED.text(" is being used as a value.")],
-        ED.cmcode(self.loc),
-        [ED.para:
-          ED.text("but it is defined as a type.")]]
+          ED.text("This "),
+          ED.highlight(ED.text("name"), [ED.locs: self.id.l], 0),
+          ED.text(" is being used as a value:")]
+      usage = ED.cmcode(self.id.l)
+      cases(BindOrigin) self.origin:
+        | bo-local(loc) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is "),
+              ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
+              ED.text(":")],
+            ED.cmcode(loc)]
+        | bo-module(_, uri) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is defined as a type in "),
+              ED.embed(uri),
+              ED.text(".")]]
+      end
     end,
     method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("The name "),
-          ED.text(tostring(self.name)),
+          ED.text(self.id.s),
           ED.text(" is used as a value at "),
-          draw-and-highlight(self.loc),
+          draw-and-highlight(self.id.l),
           ED.text(", but it is defined as a type.")]]
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:

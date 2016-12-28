@@ -1068,7 +1068,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(Option) self.env.get(s) block:
             | none =>
               when self.type-env.has-key(s) block:
-                name-errors := link(C.type-id-used-as-value(l2, id), name-errors)
+                name-errors := link(C.type-id-used-as-value(id, self.type-env.get-value(s).origin), name-errors)
               end
               A.s-id(l2, names.s-global(s))
             | some(vb) =>
