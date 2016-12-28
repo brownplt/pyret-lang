@@ -3,7 +3,7 @@ git:
 before_install:
 - sudo apt-get update
 - sudo apt-get install parallel
-- wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
+- wget -O setup.sh http://mirror.csclub.uwaterloo.ca/racket/racket-installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
 - export PATH=$PATH:~/bin/
 - chmod 770 setup.sh
 - echo y >  setup_commands
