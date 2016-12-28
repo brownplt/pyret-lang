@@ -82,6 +82,37 @@
       return runtime.unwrap(gf(S, "is-Srcloc").app(val));
     }, "Srcloc");
 
+    function fromPyret(v) {
+      if (runtime.isNothing(v)) { return null; }
+      else if(runtime.isNumber(v)) {
+        if (typeof(v) === "number") {
+          return v;
+        } else {
+          return v.toFixnum();
+        }
+      }
+      else if(runtime.isString(v)) { return v; }
+      else if(runtime.isBoolean(v)) { return v; }
+      else if(runtime.isOpaque(v)) { return v.val; }
+      else if(isList(v)) {
+        var arr = toArray(v);
+        var arrStripped = [];
+        for (var i in arr) {
+          arrStripped[i] = fromPyret(arr[i]);
+        }
+        return arrStripped;
+      }
+      else if(runtime.isBase(v)) {
+        var fields = runtime.getFields(v);
+        var dictStripped = {};
+        for (var i in fields) {
+          dictStripped[fields[i]] = fromPyret(v.dict[fields[i]]);
+        }
+        return dictStripped;
+      }
+      else { throwInternalError("Cannot strip brands", [v]); }
+    }
+
 /* NOTE(joe): skipping checker
     function isTestResult(val) { return runtime.unwrap(runtime.getField(CH, "TestResult").app(val)); }
     var checkTestResult = runtime.makeCheckType(isTestResult, "TestResult");
@@ -506,6 +537,7 @@
     var isNotEqual = gf(EQ, "is-NotEqual").app;
     var isUnknown = gf(EQ, "is-Unknown").app
 
+    var isList = function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
 
@@ -615,7 +647,8 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
+      fromPyret: fromPyret,
+      isList: isList,
       isLink : isLink,
       isEmpty : isEmpty,
 

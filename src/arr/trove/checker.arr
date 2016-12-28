@@ -767,3 +767,88 @@ end
 fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
   results-summary(block-results, get-stack)
 end
+
+# NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
+# require that magical callers provide a get-stack function that produces
+# the list of locations to render
+fun results-report(block-results :: List<CheckBlockResult>, get-stack):
+  initBlock = {
+      message: "",
+      errored: 0,
+      passed: 0,
+      failed: 0,
+      total: 0
+    }
+  initComplete = initBlock.{
+      blocks: empty
+    }
+  complete-summary = for fold(summary from initComplete, br from block-results.reverse()):
+    block-summary = for fold(s from initBlock, tr from br.test-results.reverse()):
+      cases(TestResult) tr:
+        | success(loc) => s.{
+            message: s.message + "\n  " + loc.format(false) + ": ok",
+            passed: s.passed + 1,
+            total: s.total + 1
+          }
+        | else =>
+          src-available =
+            lam(loc):
+              cases(Loc) loc:
+                | builtin(_) => false
+                | srcloc(_,_,_,_,_,_,_)  => true
+              end
+            end
+          get-none = lam(x): none end
+          fancy-reason = tr.render-fancy-reason(get-none, src-available, get-none)
+          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
+            + RED.display-to-string(fancy-reason, torepr, empty)
+          s.{
+            message: m,
+            failed: s.failed + 1,
+            total: s.total + 1
+          }
+      end
+    end
+    ended-in-error = cases(Option) br.maybe-err:
+      | none => ""
+      | some(err) =>
+        stack = get-stack(err)
+        "\n  Block ended in the following error (all tests may not have ran): \n\n  "
+          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
+          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
+          + "\n\n"
+    end
+    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+    with-error-notification = message + ended-in-error
+    rest-of-message =
+      if block-summary.failed == 0: ""
+      else: block-summary.message
+      end
+    {
+      message: with-error-notification + rest-of-message,
+      errored: summary.errored + if is-some(br.maybe-err): 1 else: 0 end,
+      passed: summary.passed + block-summary.passed,
+      failed: summary.failed + block-summary.failed,
+      total: summary.total + block-summary.total,
+      blocks: link(block-summary, summary.blocks)
+    }
+  end
+  complete-summary.{
+    blocks: complete-summary.blocks.reverse()
+  }
+  #|if (complete-summary.total == 0) and (complete-summary.errored == 0):
+    complete-summary.{message: "The program didn't define any tests."}
+  else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
+    happy-msg = if complete-summary.passed == 1:
+        "Looks shipshape, your test passed, mate!"
+      else:
+        "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
+      end
+    complete-summary.{message: happy-msg}
+  else:
+    c = complete-summary
+    c.{
+      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
+    }
+  end|#
+end
