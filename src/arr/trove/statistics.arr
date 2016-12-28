@@ -67,6 +67,69 @@ fun median(l :: L.List) -> Number:
   end
 end
 
+fun modes(l :: L.List) -> L.List<Number>:
+  doc: ```returns a list containing each mode of the input list, 
+       or an empty list if the input list is empty```
+  length-of-repeated = lam(lst :: L.List<Number>) -> L.List<{Number; Number}>:
+    aggregate = lam(prev :: L.List<{Number; Number}>, current-val :: Number) 
+      -> L.List<{Number; Number}>:
+      
+      cases (L.List) prev:
+        | empty => [L.list: {current-val; 1}]
+        | link(first, rest) => 
+          prev-val = first.{0}
+          prev-count = first.{1}
+          
+          if within(~0.0)(prev-val, current-val):
+            L.link({prev-val; prev-count + 1}, rest)
+          else:
+            L.link({current-val; 1}, prev)
+          end
+      end
+    end
+    
+    L.fold(aggregate, [L.list: ], lst)
+  end
+  
+  sorted-list = l.sort()
+  number-counts = length-of-repeated(sorted-list)
+  
+  find-maximal-appearing = lam(prev :: L.List<{Number; Number}>, 
+      current-elt :: {Number; Number}) -> L.List<{Number; Number}>:
+    
+    cases (L.List) prev:
+      | empty => [L.list: current-elt]
+      | link(f, r) =>
+        current-elt-count = current-elt.{1}
+        list-head-count = f.{1}
+        
+        if current-elt-count > list-head-count:
+          [L.list: current-elt]
+        else if current-elt-count == list-head-count:
+          L.link(current-elt, prev)
+        else:
+          prev
+        end
+    end
+  end
+
+  maximal-appearing = L.fold(find-maximal-appearing, [L.list: ], number-counts)
+  L.map(lam(x :: {Number; Number}): x.{0} end, maximal-appearing)
+  
+end
+
+fun mode(l :: L.List) -> O.Option<Number>:
+  doc: ```returns an option containing the mode of the
+       input list, or none if the input list is empty.
+       If the input has multiple modes, this function
+       returns the mode with the least value```
+
+  cases (L.List) modes(l):
+    | empty => O.none
+    | link(f, r) => O.some(f)
+  end
+end
+
 fun stdev(l :: L.List) -> Number:
   doc: "returns the standard deviation of the list of numbers"
   reg-mean = mean(l)
