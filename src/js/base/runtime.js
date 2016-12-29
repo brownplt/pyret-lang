@@ -637,6 +637,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return b === pyretFalse;
     }
 
+    function checkPyretTrue(b) {
+      checkBoolean(b);
+      return b === pyretTrue;
+    }
+
     /*********************
             Function
     **********************/
@@ -5678,6 +5683,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'isPyretTrue' : isPyretTrue,
       'isPyretFalse' : isPyretFalse,
+
+      'checkPyretTrue' : checkPyretTrue,
 
       'isBase'      : isBase,
       'isNothing'   : isNothing,

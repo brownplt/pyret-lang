@@ -920,7 +920,7 @@ fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
   c-block(
     j-block([clist:
         j-expr(j-assign(compiler.cur-step,
-            j-ternary(rt-method("isPyretTrue", [clist: cond.visit(compiler).exp]),
+            j-ternary(rt-method("checkPyretTrue", [clist: cond.visit(compiler).exp]),
               consq-label, alt-label))),
         j-break
       ]),
