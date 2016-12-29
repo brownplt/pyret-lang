@@ -490,9 +490,13 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(parent-block-loc, stmts.last())
-      wf-block-stmts(self, l, stmts)
+      wf-block-stmts(self, parent-block-loc, stmts)
       true
     end
+  end,
+  method s-user-block(self, l :: Loc, body :: A.Expr) block:
+    parent-block-loc := l
+    body.visit(self)
   end,
   method s-tuple-bind(self, l, fields, as-name) block:
     true
