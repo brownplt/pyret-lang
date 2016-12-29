@@ -1498,58 +1498,43 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function toReprFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            $step = $ar.step;
-            $ans = $ar.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              $step = 1;
-              $ans = toReprHelp();
-              if(isContinuation($ans)) { break; }
-              return $ans;
-            case 1:
-              if (stack.length === 0) {
-                thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
-              }
-              var top = stack[stack.length - 1];
-              var a = thisRuntime.unwrap($ans);
-              if (thisRuntime.ffi.isValueSkeleton(a)) {
-                reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
-              } else {
-                // this is essentially finishVal
-                top.todo.pop();
-                top.done.push(a);
-              }
-              $step = 0;
-              continue;
-            }
-            break;
-          }
-          if(isContinuation($ans)) {
-            $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["runtime torepr"],
-              toReprFun,
-              $step,
-              [],
-              []);
+        if (thisRuntime.isActivationRecord($ar)) {
+          $step = $ar.step;
+          $ans = $ar.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = toReprHelp();
+            if(isContinuation($ans)) { break; }
             return $ans;
+          case 1:
+            if (stack.length === 0) {
+              thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
+            }
+            var top = stack[stack.length - 1];
+            var a = thisRuntime.unwrap($ans);
+            if (thisRuntime.ffi.isValueSkeleton(a)) {
+              reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
+            } else {
+              // this is essentially finishVal
+              top.todo.pop();
+              top.done.push(a);
+            }
+            $step = 0;
+            continue;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["runtime torepr"],
-              toReprFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["runtime torepr"]);
-          }
-          throw $e;
+          break;
+        }
+        if(isContinuation($ans)) {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["runtime torepr"],
+            toReprFun,
+            $step,
+            [],
+            []);
+          return $ans;
         }
       }
       function reenterToReprFun(val) {
@@ -1565,55 +1550,40 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             return undefined;
           }
         }
-        try {
-          if (thisRuntime.isActivationRecord(val)) {
-            $step = val.step;
-            $ans = val.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              stackOfStacks.push(stack);
-              stack = [{
-                arrays: getOld("arrays"),
-                objects: getOld("objects"),
-                refs: getOld("refs"),
-                todo: [val],
-                done: [],
-                extra: { implicitRefs: [false] },
-                root: val
-              }];
-              $step = 1;
-              $ans = toReprFun();
-              if(isContinuation($ans)) { break; }
-              continue;
-            case 1:
-              stack = stackOfStacks.pop();
-              return $ans;
-            }
-            break;
-          }
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["runtime torepr (reentrant)"],
-            reenterToReprFun,
-            $step,
-            [],
-            []);
-          return $ans;
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["runtime torepr (reentrant)"],
-              reenterToReprFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["runtime torepr"]);
-          }
-          throw $e;
+        if (thisRuntime.isActivationRecord(val)) {
+          $step = val.step;
+          $ans = val.ans;
         }
+        while(true) {
+          switch($step) {
+          case 0:
+            stackOfStacks.push(stack);
+            stack = [{
+              arrays: getOld("arrays"),
+              objects: getOld("objects"),
+              refs: getOld("refs"),
+              todo: [val],
+              done: [],
+              extra: { implicitRefs: [false] },
+              root: val
+            }];
+            $step = 1;
+            $ans = toReprFun();
+            if(isContinuation($ans)) { break; }
+            continue;
+          case 1:
+            stack = stackOfStacks.pop();
+            return $ans;
+          }
+          break;
+        }
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+          ["runtime torepr (reentrant)"],
+          reenterToReprFun,
+          $step,
+          [],
+          []);
+        return $ans;
       }
       var toReprFunPy = makeFunction(reenterToReprFun, "toReprFun");
       return reenterToReprFun(val);
@@ -2045,96 +2015,66 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function equalFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            $step = $ar.step;
-            $ans = $ar.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              $step = 1;
-              $ans = equalHelp();
-              if(isContinuation($ans)) {
-                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                  stackFrameDesc,
-                  equalFun,
-                  $step,
-                  [],
-                  []);
-              }
-              return $ans;
-            case 1:
-              toCompare.curAns = combineEquality(toCompare.curAns, $ans);
-              $step = 0;
-              break;
+        if (thisRuntime.isActivationRecord($ar)) {
+          $step = $ar.step;
+          $ans = $ar.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = equalHelp();
+            if(isContinuation($ans)) {
+              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                stackFrameDesc,
+                equalFun,
+                $step,
+                [],
+                []);
             }
+            return $ans;
+          case 1:
+            toCompare.curAns = combineEquality(toCompare.curAns, $ans);
+            $step = 0;
+            break;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc,
-              equalFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(stackFrameDesc);
-          }
-          throw $e;
         }
       }
       function reenterEqualFun(left, right) {
         // arity check
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord(left)) {
-            $step = left.step;
-            $ans = left.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              stackOfToCompare.push(toCompare);
-              toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
-              $step = 1;
-              $ans = equalFun();
-              if(isContinuation($ans)) {
-                $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                  stackFrameDesc,
-                  reenterEqualFun,
-                  $step,
-                  [],
-                  []);
-                return $ans;
-              }
-              break;
-            case 1:
-              for(var i = 0; i < toCompare.stack.length; i++) {
-                var current = toCompare.stack[i];
-                if(current.setCache) {
-                  cache.equal[current.index - 1] = $ans;
-                }
-              }
-              toCompare = stackOfToCompare.pop();
+        if (thisRuntime.isActivationRecord(left)) {
+          $step = left.step;
+          $ans = left.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            stackOfToCompare.push(toCompare);
+            toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
+            $step = 1;
+            $ans = equalFun();
+            if(isContinuation($ans)) {
+              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                stackFrameDesc,
+                reenterEqualFun,
+                $step,
+                [],
+                []);
               return $ans;
             }
+            break;
+          case 1:
+            for(var i = 0; i < toCompare.stack.length; i++) {
+              var current = toCompare.stack[i];
+              if(current.setCache) {
+                cache.equal[current.index - 1] = $ans;
+              }
+            }
+            toCompare = stackOfToCompare.pop();
+            return $ans;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc,
-              reenterEqualFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(stackFrameDesc);
-          }
-          throw $e;
         }
       }
       var equalFunPy = makeFunction(reenterEqualFun, "equalFun");
@@ -3109,54 +3049,37 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      try {
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          skipLoop = true;
-          $ans = thisRuntime.makeCont();
-        }
-        while(!skipLoop) {
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = fun();
-            if(isContinuation($ans)) { break;}
-            continue;
-          case 1:
-            var $fun_ans = $ans;
-            $step = 2;
-            $ans = after($fun_ans);
-            if(isContinuation($ans)) { break;}
-            continue;
-          case 2: ++thisRuntime.GAS; return $ans;
-          }
-          break;
-        }
-        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-          thisRuntime.makeActivationRecord(
-            "safeCall for " + stackFrame,
-            safeCall,
-            $step,
-            [ fun, after, stackFrame ],
-            [ $fun_ans ]
-          );
-        return $ans;
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(
-              "safeCall for " + stackFrame,
-              safeCall,
-              $step,
-              [ fun, after, stackFrame ],
-              [ $fun_ans ]
-            );
-        }
-        if (thisRuntime.isPyretException($e)) {
-          $e.pyretStack.push(stackFrame);
-        }
-        throw $e;
+      if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        skipLoop = true;
+        $ans = thisRuntime.makeCont();
       }
+      while(!skipLoop) {
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = fun();
+          if(isContinuation($ans)) { break;}
+          continue;
+        case 1:
+          var $fun_ans = $ans;
+          $step = 2;
+          $ans = after($fun_ans);
+          if(isContinuation($ans)) { break;}
+          continue;
+        case 2: ++thisRuntime.GAS; return $ans;
+        }
+        break;
+      }
+      $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+        thisRuntime.makeActivationRecord(
+          "safeCall for " + stackFrame,
+          safeCall,
+          $step,
+          [ fun, after, stackFrame ],
+          [ $fun_ans ]
+        );
+      return $ans;
     }
 
     function eachLoop(fun, start, stop) {
@@ -3409,6 +3332,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
+//            console.error("Exceptions should no longer be thrown: ", e);
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
               BOUNCES++;
@@ -3872,50 +3796,42 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var cleanQuit = true;
-      try {
-        if (--thisRuntime.GAS <= 0) {
+      if (--thisRuntime.GAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        cleanQuit = false;
+        $ans = thisRuntime.makeCont();
+      }
+      
+      while (cleanQuit && (curIdx < len)) {
+        if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           cleanQuit = false;
           $ans = thisRuntime.makeCont();
-        }
-        
-        while (cleanQuit && (curIdx < len)) {
-          if (--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            cleanQuit = false;
-            $ans = thisRuntime.makeCont();
-            break;
-          }
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = f.app(curIdx);
-            if(isContinuation($ans)) {
-              cleanQuit = false;
-              break;
-            }
-          case 1:
-            arr.push($ans);
-            $step = 0;
-            curIdx++;
-            continue;
-          }
           break;
         }
-        if(cleanQuit) {
-          return arr;
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = f.app(curIdx);
+          if(isContinuation($ans)) {
+            cleanQuit = false;
+            break;
+          }
+        case 1:
+          arr.push($ans);
+          $step = 0;
+          curIdx++;
+          continue;
         }
-        else {
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
-          return $ans;
-        }
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
-        }
-        throw $e;
+        break;
+      }
+      if(cleanQuit) {
+        return arr;
+      }
+      else {
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+        return $ans;
       }
     }
 
@@ -3938,52 +3854,44 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         var $step = 0;
       }
       var cleanQuit = true;
-      try {
-        if (--thisRuntime.GAS <= 0) {
+      if (--thisRuntime.GAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        $ans = thisRuntime.makeCont();
+        cleanQuit = false;
+      }
+      
+      while (cleanQuit && curIdx < len) {
+        if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           $ans = thisRuntime.makeCont();
           cleanQuit = false;
         }
-        
-        while (cleanQuit && curIdx < len) {
-          if (--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            $ans = thisRuntime.makeCont();
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = f.app(curIdx);
+          // no need to break
+        case 1:
+          if (thisRuntime.isContinuation($ans)) {
             cleanQuit = false;
+            break;
           }
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = f.app(curIdx);
-            // no need to break
-          case 1:
-            if (thisRuntime.isContinuation($ans)) {
-              cleanQuit = false;
-              break;
-            }
-            if (thisRuntime.ffi.isSome($ans)) {
-              arr.push(thisRuntime.getField($ans, "value"));
-            }
-            $step = 0;
-            curIdx++;
-            continue;
+          if (thisRuntime.ffi.isSome($ans)) {
+            arr.push(thisRuntime.getField($ans, "value"));
           }
-          break;
+          $step = 0;
+          curIdx++;
+          continue;
         }
-        if(cleanQuit) {
-          return arr;
-        }
-        else {
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
-          return $ans;
-        }
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
-        }
-        throw $e;
+        break;
+      }
+      if(cleanQuit) {
+        return arr;
+      }
+      else {
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
+        return $ans;
       }
     }
 
@@ -4075,32 +3983,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return currentAcc;
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            currentAcc = $ar.ans;
-          }
-          var res = foldHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-fold"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc = $ar.ans;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-fold"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
@@ -4126,32 +4020,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          var res = mapHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-map"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
@@ -4177,32 +4057,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          var res = mapHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-mapi"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-mapi"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
@@ -4229,32 +4095,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            currentAcc.push($ar.ans);
-          }
-          var res = foldHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-map"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-map"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc.push($ar.ans);
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-map"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
@@ -4272,38 +4124,32 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        // TODO: This is badly wrong
-        if (length === 0) { return newArray; }
-        newArray[++currentIndex] = f1.app(arr[currentIndex]);
         while(currentIndex < (length - 1)) {
           if(--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
-          currentIndex += 1
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+          currentIndex += 1;
+          var toCall = currentIndex === 0 ? f1 : f;
+          var res = toCall.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          return mapHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map1"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map1"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-map1"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
@@ -4332,34 +4178,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            if($ar.ans) {
-              currentAcc.push(currentFst);
-            }
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          if($ar.ans) {
+            currentAcc.push(currentFst);
           }
-          var res = foldHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-filter"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-filter"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-filter"]);
-          }
-          throw $e;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-filter"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
@@ -4380,6 +4212,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
+          if(!(isBoolean(res))) {
+            return ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
+          }
           if(isPyretTrue(res)){
             newArray.push(arr[currentIndex]);
           }
@@ -4387,32 +4222,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return newArray;
       }
       function filterFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            if($ar.ans) { newArray.push(arr[currentIndex]); }
-          }
-          var res = filterHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-filter"],
-              filterFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-filter"],
-              filterFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-filter"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          if($ar.ans) { newArray.push(arr[currentIndex]); }
         }
+        var res = filterHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-filter"],
+            filterFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return filterFun();
     };
@@ -4438,32 +4259,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return currentAcc;
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isInitializedActivationRecord($ar)) {
-            currentAcc = $ar.ans;
-          }
-          var res = foldHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-fold"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc = $ar.ans;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-fold"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
