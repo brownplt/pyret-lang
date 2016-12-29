@@ -489,7 +489,7 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.wf-empty-block(parent-block-loc))
       true
     else:
-      wf-last-stmt(l, stmts.last())
+      wf-last-stmt(parent-block-loc, stmts.last())
       wf-block-stmts(self, l, stmts)
       true
     end
