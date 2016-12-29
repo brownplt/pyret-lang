@@ -8,7 +8,7 @@
     const makeServer = function(port, onmessage) {
       const lockname = ".pyret-parley." + port + ".running.lock";
       //console.log("Starting up server");
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         lockFile.lock(lockname, function(er) {
           if(er) {
             console.error("Could not acquire lock");
