@@ -100,10 +100,10 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
         rev-stmts := link(s, rev-stmts)
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
-      | s-data(l, name, params, mixins, variants, shared, _check) =>
+      | s-data(l, name, params, mixins, variants, shared, _check-loc, _check) =>
         namet = names.make-atom(name)
         rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), namet), rev-type-binds)
-        rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check), rev-stmts)
+        rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check), rev-stmts)
       | else =>
         rev-stmts := link(s, rev-stmts)
     end
@@ -227,13 +227,13 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-let-bind(binding-group, A.s-var-bind(l, bind, expr), rest-stmts)
         | s-rec(l, bind, expr) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
-        | s-fun(l, name, params, args, ann, doc, body, _check, blocky) =>
+        | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-              A.s-lam(l, name, params, args, ann, doc, body, _check, blocky)
+              A.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
             ), rest-stmts)
-        | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
+        | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank) end
           fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank) end
           fun variant-binds(data-blob-id, v):
@@ -246,7 +246,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
             ]
           end
           blob-id = names.make-atom(name)
-          data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check)
+          data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check)
           bind-data = A.s-letrec-bind(l, bn(l, blob-id), data-expr)
           bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data], v from variants):
@@ -282,7 +282,7 @@ where:
     dsb(p(str).stmts).visit(A.dummy-loc-visitor)
   end
   n = none
-  thunk = lam(e): A.s-lam(d, "", [list: ], [list: ], A.a-blank, "", bk(e), n, false) end
+  thunk = lam(e): A.s-lam(d, "", [list: ], [list: ], A.a-blank, "", bk(e), n, n, false) end
 
 
   compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
@@ -362,7 +362,7 @@ where:
 
 end
 
-fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check, blocky):
+fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
   v-params = params.map(_.visit(visitor))
   v-ann = ann.visit(visitor)
   v-body = body.visit(visitor)
@@ -378,7 +378,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check,
       | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
     end
   end  
-  rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, v-check, blocky)
+  rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, _check-loc, v-check, blocky)
 end
 
 desugar-scope-visitor = A.default-map-visitor.{
@@ -422,17 +422,17 @@ desugar-scope-visitor = A.default-map-visitor.{
     end
     A.s-cases-branch(l, pat-loc, name, new-binds.reverse(), new-body)
   end,
-  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
-    rebuild-fun(A.s-fun, self, l, name, params, args, ann, doc, body, _check, blocky)
+  method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    rebuild-fun(A.s-fun, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
-  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
-    rebuild-fun(A.s-lam, self, l, name, params, args, ann, doc, body, _check, blocky)
+  method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    rebuild-fun(A.s-lam, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
-  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
-    rebuild-fun(A.s-method, self, l, name, params, args, ann, doc, body, _check, blocky)
+  method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    rebuild-fun(A.s-method, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
-  method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
-    rebuild-fun(A.s-method-field, self, l, name, params, args, ann, doc, body, _check, blocky)
+  method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    rebuild-fun(A.s-method-field, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end
 }
 
@@ -944,7 +944,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check) block:
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) block:
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
@@ -954,11 +954,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       with-params = self.{type-env: env}
       result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
-        shared-members.map(_.visit(with-params)), with-params.option(_check))
+        shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
       datatypes.set-now(namet.key(), result)
       result
     end,
-    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+    method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
@@ -984,9 +984,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # Restore the errors to what they were. (_check has already been desugared,
       # so the programmer will see those errors, not the ones from here.)
       name-errors := saved-name-errors
-      A.s-lam(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-lam(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
     end,
-    method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
@@ -1007,9 +1007,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
+      A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
     end,
-    method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
@@ -1030,7 +1030,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)    end,
+      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)    end,
     method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>

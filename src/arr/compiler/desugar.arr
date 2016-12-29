@@ -192,8 +192,8 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, params, args, ann, doc, body, _check, blocky) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check, blocky)))
+    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -220,7 +220,7 @@ end
 fun ds-curry-nullary(rebuild-node, l, obj, m):
   if is-underscore(obj):
     curried-obj = mk-id(l, "recv_")
-    A.s-lam(l, "", [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, false)
+    A.s-lam(l, "", [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, none, false)
   else:
     rebuild-node(l, desugar-expr(obj), m)
   end
@@ -238,7 +238,7 @@ fun ds-curry-binop(s, e1, e2, rebuild):
     | empty => rebuild(e1, e2)
     | link(f, r) =>
       curry-args = params-and-args.right
-      A.s-lam(s, "", [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, false)
+      A.s-lam(s, "", [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, none, false)
   end
 end
 
@@ -248,11 +248,11 @@ fun ds-curry(l, f, args):
     params = params-and-args.left
     if is-underscore(f):
       f-id = mk-id(l, "f_")
-      A.s-lam(l, "", empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, false)
+      A.s-lam(l, "", empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, none, false)
     else:
       ds-f = desugar-expr(f)
       if is-empty(params): A.s-app(l, ds-f, args)
-      else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, false)
+      else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, none, false)
       end
     end
   end
@@ -263,7 +263,7 @@ fun ds-curry(l, f, args):
         params-and-args = ds-curry-args(l, args)
         params = params-and-args.left
         A.s-lam(l, "", [list: ], link(curried-obj.id-b, params), A.a-blank, "",
-            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, false)
+            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, none, false)
       else:
         fallthrough()
       end
@@ -362,10 +362,10 @@ fun desugar-expr(expr :: A.Expr):
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-lam(l, name, params, args, ann, doc, body, _check, blocky) =>
-      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
-    | s-method(l, name, params, args, ann, doc, body, _check, blocky) =>
-      A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), desugar-opt(desugar-expr, _check), blocky)
+    | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
+    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+      A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body, blocky) =>
@@ -381,7 +381,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
     | s-letrec(l, binds, body, blocky) =>
       A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body), blocky)
-    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
       fun extend-variant(v):
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
@@ -399,7 +399,7 @@ fun desugar-expr(expr :: A.Expr):
         end
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
-        shared.map(desugar-member), desugar-opt(desugar-expr, _check))
+        shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
     | s-when(l, test, body, blocky) =>
       ds-test = desugar-expr(test)
       g-nothing = gid(l, "nothing")
@@ -438,14 +438,14 @@ fun desugar-expr(expr :: A.Expr):
     | s-for(l, iter, bindings, ann, body, blocky) =>
       values = bindings.map(_.value).map(desugar-expr)
       name = "for-body<" + l.format(false) + ">"
-      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, blocky)
+      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
     | s-sql(l, inspect-clause, where-clause, project-clause) =>
       d-map    = lam(e): A.s-dot(e.l, e, "map") end
       d-filter = lam(e): A.s-dot(e.l, e, "filter") end
       d-app    = lam(m, p):
         A.s-app(A.dummy-loc, m, [list:
-          A.s-lam(p.l, empty, [list: inspect-clause.bind], A.a-blank, "", p, none)]) end
+          A.s-lam(p.l, empty, [list: inspect-clause.bind], A.a-blank, "", p, none, none, false)]) end
       desugar-expr(
         cases(Option) where-clause:
           | some(pred) =>
@@ -464,7 +464,7 @@ fun desugar-expr(expr :: A.Expr):
           fun thunk(e):
             A.s-lam(l, "", [list: ], [list: ], A.a-blank, "",
               if A.is-s-block(e): e else: A.s-block(l, [list: e]) end,
-              none, false)
+              none, none, false)
           end
           fun opbool(fld):
             A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
@@ -560,7 +560,7 @@ fun desugar-expr(expr :: A.Expr):
         | s-construct-lazy =>
           A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
             [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, false)) end))])
+                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
       end
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
@@ -753,7 +753,7 @@ fun desugar-expr(expr :: A.Expr):
                   row.id-e,
                   A.s-array(A.dummy-loc,
                     extensions.map(process-extension(first)))]), true),
-          none, true)
+          none, none, true)
       end
 
       A.s-let-expr(A.dummy-loc,
@@ -829,7 +829,7 @@ fun desugar-expr(expr :: A.Expr):
                         A.s-let-bind(A.dummy-loc, new-row.id-b,
                           A.s-prim-app(A.dummy-loc, "raw_array_set", [list:
                             new-row.id-e, update.idx.id-e, update.val])) end),
-                      new-row.id-e, true), true), none, true),
+                      new-row.id-e, true), true), none, none, true),
               A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-select(l, columns, table) =>
       row = mk-id(A.dummy-loc, "row")
@@ -856,7 +856,7 @@ fun desugar-expr(expr :: A.Expr):
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
                   A.s-prim-app(A.dummy-loc, "raw_array_get",
-                      [list: row.id-e, c.idx.id-e]) end)), none, true),
+                      [list: row.id-e, c.idx.id-e]) end)), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-extract(l, column, table) =>
       tbl = mk-id(table.l, "table")
@@ -871,7 +871,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
           A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
-              A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, true),
+              A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-order(l, table, ordering) =>
       row1 = mk-id(S.builtin("1"), "row1")
@@ -900,11 +900,11 @@ fun desugar-expr(expr :: A.Expr):
                     | DESCENDING => "op>"
                   end,
                   A.s-prim-app(S.builtin("20"), "raw_array_get", [list: row1.id-e, col.id-e]),
-                  A.s-prim-app(S.builtin("21"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, true),
+                  A.s-prim-app(S.builtin("21"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, none, true),
               A.s-lam(S.builtin("22"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
                 desugar-expr(A.s-op(S.builtin("23"), S.builtin(""), "op==",
                   A.s-prim-app(S.builtin("24"), "raw_array_get", [list: row1.id-e, col.id-e]),
-                  A.s-prim-app(S.builtin("25"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, true)])])]), true)
+                  A.s-prim-app(S.builtin("25"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, none, true)])])]), true)
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
@@ -936,7 +936,7 @@ fun desugar-expr(expr :: A.Expr):
                   A.s-let-bind(A.dummy-loc, column.val.id-b,
                     A.s-prim-app(A.dummy-loc, "raw_array_get",
                         [list: row.id-e, column.idx.id-e])) end),
-                    desugar-expr(predicate), true), none, true),
+                    desugar-expr(predicate), true), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | else => raise("NYI (desugar): " + torepr(expr))
   end

@@ -17,7 +17,7 @@ fun ast-pretty(ast):
 end
 
 fun ast-lam(ast):
-  A.s-lam(ast.l, "", [list: ], [list: ], A.a-blank, "", ast, none, true)
+  A.s-lam(ast.l, "", [list: ], [list: ], A.a-blank, "", ast, none, none, true)
 end
 
 fun ast-srcloc(l):
@@ -84,12 +84,12 @@ fun get-checks(stmts):
   var standalone-counter = 0
   fun add-check(stmt, lst):
     cases(A.Expr) stmt:
-      | s-fun(l, name, _, _, _, _, _, _check, _) =>
+      | s-fun(l, name, _, _, _, _, _, _, _check, _) =>
         cases(Option) _check:
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
         end
-      | s-data(l, name, _, _, _, _, _check) =>
+      | s-data(l, name, _, _, _, _, _, _check) =>
         cases(Option) _check:
           | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
           | none => lst
@@ -131,21 +131,21 @@ fun create-check-block(l, checks):
 end
 
 fun make-lam(l, args, body):
-  A.s-lam(l, "", [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, true)
+  A.s-lam(l, "", [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, none, true)
 end
 
 no-checks-visitor = A.default-map-visitor.{
   method s-block(self, l, stmts):
     A.s-block(l, stmts.map(_.visit(self)))
   end,
-  method s-fun(self, l, name, params, args, ann, doc, body, _, blocky):
-    A.s-fun(l, name, params, args, ann, doc, body, none, blocky)
+  method s-fun(self, l, name, params, args, ann, doc, body, _, _, blocky):
+    A.s-fun(l, name, params, args, ann, doc, body, none, none, blocky)
   end,
-  method s-data(self, l, name, params, mixins, variants, shared-members, _):
-    A.s-data(l, name, params, mixins, variants, shared-members, none)
+  method s-data(self, l, name, params, mixins, variants, shared-members, _, _):
+    A.s-data(l, name, params, mixins, variants, shared-members, none, none)
   end,
-  method s-lam(self, l, name, params, args, ann, doc, body, _, blocky):
-    A.s-lam(l, name, params, args, ann, doc, body, none, blocky)
+  method s-lam(self, l, name, params, args, ann, doc, body, _, _, blocky):
+    A.s-lam(l, name, params, args, ann, doc, body, none, none, blocky)
   end,
   method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-name(l, "nothing"))

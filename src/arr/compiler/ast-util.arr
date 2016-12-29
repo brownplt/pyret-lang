@@ -219,7 +219,7 @@ fun default-env-map-visitor<a, c>(
       visit-body = body.visit(new-visitor)
       A.s-letrec(l, visit-binds, visit-body, blocky)
     end,
-    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -231,7 +231,7 @@ fun default-env-map-visitor<a, c>(
       with-args = with-params.{env: args-env}
       new-body = body.visit(with-args)
       new-check = with-args.option(_check)
-      A.s-lam(l, name, params, new-args, ann.visit(with-args), doc, new-body, new-check, blocky)
+      A.s-lam(l, name, params, new-args, ann.visit(with-args), doc, new-body, _check-loc, new-check, blocky)
     end,
     method s-cases-else(self, l, typ, val, branches, _else, blocky):
       A.s-cases-else(l, typ.visit(self), val.visit(self), branches.map(_.visit(self)), _else.visit(self), blocky)
@@ -246,16 +246,16 @@ fun default-env-map-visitor<a, c>(
     method s-singleton-cases-branch(self, l, pat-loc, name, body):
       A.s-singleton-cases-branch(l, pat-loc, name, body.visit(self))
     end,
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
       with-params = self.{type-env: new-type-env}
       A.s-data-expr(l, name, namet.visit(with-params), params,
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
-        shared-members.map(_.visit(with-params)), with-params.option(_check))
+        shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
     end,
-    method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -266,7 +266,7 @@ fun default-env-map-visitor<a, c>(
       end
       new-body = body.visit(with-params.{env: args-env})
       new-check = with-params.{env: args-env}.option(_check)
-      A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, new-check)
+      A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, _check-loc, new-check)
     end
   }
 end
@@ -336,7 +336,7 @@ fun default-env-iter-visitor<a, c>(
       end
       continue-binds and body.visit(new-visitor)
     end,
-    method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
+    method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -366,7 +366,7 @@ fun default-env-iter-visitor<a, c>(
       and body.visit(self.{env: args-env})
     end,
     # s-singleton-cases-branch introduces no new bindings, so default visitor is fine
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check):
+    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -377,7 +377,7 @@ fun default-env-iter-visitor<a, c>(
       and lists.all(_.visit(with-params), shared-members)
       and with-params.option(_check)
     end,
-    method s-method(self, l, params, args, ann, doc, body, _check):
+    method s-method(self, l, params, args, ann, doc, body, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
@@ -521,7 +521,7 @@ end
 inline-lams = A.default-map-visitor.{
   method s-app(self, loc, f, exps):
     cases(A.Expr) f:
-      | s-lam(l, _, _, args, ann, _, body, _, _) =>
+      | s-lam(l, _, _, args, ann, _, body, _, _, _) =>
         if (args.length() == exps.length()):
           a = A.global-names.make-atom("inline_body")
           let-binds = for lists.map2(arg from args, exp from exps):
@@ -623,7 +623,7 @@ set-recursive-visitor = A.default-map-visitor.{
       exps.map(_.visit(self)),
       A.app-info-c(self.is-recursive(f), false))
   end,
-  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
+  method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     A.s-lam(
       l,
       name,
@@ -632,10 +632,11 @@ set-recursive-visitor = A.default-map-visitor.{
       ann.visit(self.clear-scope()),
       doc,
       body.visit(self.activate-fun()),
+      _check-loc,
       self.clear-scope().option(_check),
       blocky)
   end,
-  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky) block:
+  method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     A.s-method(
       l,
       name,
@@ -644,6 +645,7 @@ set-recursive-visitor = A.default-map-visitor.{
       ann.visit(self),
       doc,
       body.visit(self.collect-method-self(args.first)),
+      _check-loc,
       self.option(_check),
       blocky
       )
@@ -748,7 +750,7 @@ set-tail-visitor = A.default-map-visitor.{
       ann.visit(self.{is-tail: false}))
   end,
 
-  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky):
+  method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     A.s-lam(
       l,
       name,
@@ -757,11 +759,12 @@ set-tail-visitor = A.default-map-visitor.{
       ann.visit(self.{is-tail: false}),
       doc,
       body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
+      _check-loc,
       self.{is-tail: false}.option(_check),
       blocky)
   end,
 
-  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
+  method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     A.s-method(
       l,
       name,
@@ -770,6 +773,7 @@ set-tail-visitor = A.default-map-visitor.{
       ann.visit(self.{is-tail: false}),
       doc,
       body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
+      _check-loc,
       self.{is-tail: false}.option(_check),
       blocky)
   end,
@@ -1026,7 +1030,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-top(l, false)
       | s-mutable-field(l, name, ann, val) =>
         T.t-ref(ann-to-typ(ann), false)
-      | s-method-field(l, name, params, args, ann, _, _, _, _) =>
+      | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
         arrow-part =
           T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann), l, false)
         if is-empty(params): arrow-part
@@ -1044,7 +1048,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           members.set(name, member-to-t-member(m))
         | s-mutable-field(l, name, ann, val) =>
           members.set(name, member-to-t-member(m))
-        | s-method-field(l, name, params, args, ann, _, _, _, _) =>
+        | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
           members.set(name, member-to-t-member(m))
       end
     end, [SD.string-dict: ])
@@ -1106,7 +1110,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
   fun data-expr-to-datatype(exp :: A.Expr % (is-s-data-expr)) -> T.DataType:
     cases(A.Expr) exp:
-      | s-data-expr(l, name, _, params, _, variants, shared-members, _) =>
+      | s-data-expr(l, name, _, params, _, variants, shared-members, _, _) =>
 
         tvars = for map(tvar from params):
           T.t-var(tvar, l, false)
