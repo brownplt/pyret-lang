@@ -233,7 +233,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       end
       anf(A.s-let-expr(l, let-binds, A.s-block(l, assigns + [list: body]), true), k)
 
-    | s-data-expr(l, data-name, data-name-t, params, mixins, variants, shared, _check) =>
+    | s-data-expr(l, data-name, data-name-t, params, mixins, variants, shared, _check-loc, _check) =>
       fun anf-member(member :: A.VariantMember):
         cases(A.VariantMember) member:
           | s-variant-member(l2, typ, b) =>
@@ -322,7 +322,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       bindings = [list: A.s-let-bind(l, A.s-bind(l, false, name.id, ann), expr)]
       anf(A.s-let-expr(l, bindings, A.s-id(l, name.id), false), k)
 
-    | s-lam(l, name, params, args, ret, doc, body, _, _) =>
+    | s-lam(l, name, params, args, ret, doc, body, _, _, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-lam(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
@@ -332,7 +332,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 [list: A.s-let-bind(l, A.s-bind(l, false, temp.id, ret), body)],
                 A.s-id(l, temp.id), false))))
       end
-    | s-method(l, name, params, args, ret, doc, body, _, _) =>
+    | s-method(l, name, params, args, ret, doc, body, _, _, _) =>
       if A.is-a-blank(ret) or A.is-a-any(ret):
         k.apply(l, N.a-method(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
@@ -366,7 +366,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
               k.apply(l, N.a-method-app(l, v, m, vs))
             end)
           end)
-        | s-lam(f-l, _, _, params, ann, _, body, _, blocky) =>
+        | s-lam(f-l, _, _, params, ann, _, body, _, _, blocky) =>
           ### NOTE: This case implements the inline-lams visitor transformation
           ### It can be safely eliminated without affecting the semantics of
           ### the transformation, but does help eliminate some unneeded lambdas

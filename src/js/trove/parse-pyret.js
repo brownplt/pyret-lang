@@ -376,6 +376,7 @@
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
+          var checkRes = tr(node.kids[6]);
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1]),
                  header.tyParams,
@@ -383,16 +384,17 @@
                  header.returnAnn,
                  tr(node.kids[4]),
                  tr(node.kids[5]),
-                 tr(node.kids[6]),
+                 checkRes[0], checkRes[1],
                  isBlock);
         },
         'data-expr': function(node) {
           // (data-expr DATA NAME params COLON variant ... sharing-part check END)
+          var checkRes = tr(node.kids[node.kids.length - 2]);
           return RUNTIME.getField(ast, 's-data')
             .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
                  makeListTr(node.kids, 4, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 3]),
-                 tr(node.kids[node.kids.length - 2]));
+                 checkRes[0], checkRes[1]);
         },
         'assign-expr': function(node) {
           // (assign-expr id COLONEQUAL e)
@@ -474,10 +476,11 @@
         'where-clause': function(node) {
           if (node.kids.length === 0) {
             // (where-clause)
-            return RUNTIME.ffi.makeNone();
+            return [RUNTIME.ffi.makeNone(), RUNTIME.ffi.makeNone()];
           } else {
             // (where-clause WHERE block)
-            return RUNTIME.ffi.makeSome(tr(node.kids[1]));
+            return [RUNTIME.ffi.makeSome(makePyretPos(fileName, node.kids[0].pos)),
+                    RUNTIME.ffi.makeSome(tr(node.kids[1]))];
           }
         },
         'check-op': function(node) {
@@ -646,9 +649,10 @@
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
+                   tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
         'tuple-name-list' : function(node) {
@@ -829,9 +833,10 @@
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
+                   tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
         'fields': function(node) {
@@ -1049,17 +1054,19 @@
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
-                 tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+                 tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
         },
         'method-expr': function(node) {
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
-                 tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+                 tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
         },
         'extend-expr': function(node) {
           // (extend-expr e PERIOD LBRACE fields RBRACE)

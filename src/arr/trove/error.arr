@@ -1278,8 +1278,8 @@ data RuntimeError:
                       [raw-array:]
                     end); self.fun-def-loc}
                 | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
                 | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
@@ -1461,8 +1461,8 @@ data RuntimeError:
                       [raw-array:]
                     end); self.fun-def-loc}
                 | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
                 | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
