@@ -320,16 +320,13 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-empty-block(loc :: A.Loc) with:
-    # semi-counterfactual loc on this error
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("block"),[list: self.loc], 0),
           ED.text(" is empty:")],
-        ED.cmcode(self.loc),
-        [ED.para:
-          ED.text("A block should end with an expression.")]]
+        ED.cmcode(self.loc)]
     end,
     method render-reason(self):
       [ED.error:
