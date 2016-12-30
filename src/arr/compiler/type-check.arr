@@ -376,7 +376,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end)
         | s-user-block(l, body) =>
           raise("s-user-block should have already been desugared")
-        | s-fun(l, name, params, args, ann, doc, body, _check) =>
+        | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
           raise("s-fun should have already been desugared")
         | s-type(l, name, params, ann) =>
           raise("checking for s-type not implemented")
@@ -436,9 +436,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-check-expr not implemented")
         | s-paren(l, expr) =>
           raise("s-paren should have already been desugared")
-        | s-lam(l, name, params, args, ann, doc, body, _check, b) =>
-          check-fun(l, body, params, args, ann, expect-type, A.s-lam(l, name, params, _, _, doc, _, _check, b), context)
-        | s-method(l, name, params, args, ann, doc, body, _check, b) =>
+        | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+          check-fun(l, body, params, args, ann, expect-type, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), context)
+        | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
           raise("checking for s-method not implemented")
         | s-extend(l, supe, fields) =>
           check-synthesis(e, expect-type, top-level, context)
@@ -538,9 +538,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-bracket(l, obj, field) =>
           raise("checking for s-bracket not implemented")
-        | s-data(l, name, params, mixins, variants, shared-members, _check) =>
+        | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data should have already been desugared")
-        | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check) =>
+        | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data-expr should have been handled by s-letrec")
         | s-for(l, iterator, bindings, ann, body) =>
           raise("s-for should have already been desugared")
@@ -622,7 +622,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       end)
     | s-user-block(l, body) =>
       raise("s-user-block should have already been desugared")
-    | s-fun(l, name, params, args, ann, doc, body, _check) =>
+    | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       raise("s-fun should have already been desugared")
     | s-type(l, name, params, ann) =>
       raise("synthesis for s-type not implemented")
@@ -685,9 +685,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-check-expr not implemented")
     | s-paren(l, expr) =>
       raise("s-paren should have already been desugared")
-    | s-lam(l, name, params, args, ann, doc, body, _check, b) =>
-      synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check, b), top-level, context)
-    | s-method(l, name, params, args, ann, doc, body, _check, b) =>
+    | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+      synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), top-level, context)
+    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
       raise("synthesis for s-method not implemented")
     | s-extend(l, supe, fields) =>
       synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
@@ -795,9 +795,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       end)
     | s-bracket(l, obj, field) =>
       raise("synthesis for s-bracket not implemented")
-    | s-data(l, name, params, mixins, variants, shared-members, _check) =>
+    | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data should have already been desugared")
-    | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data-expr should have been handled by s-letrec")
     | s-for(l, iterator, bindings, ann, body, blocky) =>
       raise("s-for should have already been desugared")
@@ -884,7 +884,7 @@ fun handle-datatype(data-type-bind :: A.LetrecBind, bindings :: List<A.LetrecBin
 context :: Context) -> FoldResult<List<A.LetrecBind>>:
   data-expr = data-type-bind.value
   cases(Expr) data-expr:
-    | s-data-expr(l, name, namet, params, mixins, variants, fields, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, fields, _check-loc, _check) =>
       shadow context = context.add-level()
       brander-type = t-name(local, namet, l, false)
       t-vars = params.map(t-var(_, l, false))
@@ -1016,13 +1016,13 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
   cases(A.Member) member:
     | s-data-field(l, name, value) =>
       cases(Expr) value:
-        | s-method(m-l, m-name, params, args, ann, doc, body, _check, b) =>
+        | s-method(m-l, m-name, params, args, ann, doc, body, _check-loc, _check, b) =>
           new-type = add-self-type(typ)
-          check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, m-name, params, _, _, doc, _, _check, b), context)
+          check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, m-name, params, _, _, doc, _, _check-loc, _check, b), context)
             .fold-bind(lam(_, out-type, shadow context):
               fold-result(remove-self-type(out-type), context)
             end)
-        | s-lam(l-l, _, params, args, ann, doc, body, _check, b) =>
+        | s-lam(l-l, _, params, args, ann, doc, body, _check-loc, _check, b) =>
           if type-check-functions:
             checking(value, typ, false, context)
               .fold-bind(lam(new-ast, new-type, shadow context):
@@ -1034,9 +1034,9 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
         | else =>
           fold-result(typ, context)
       end
-    | s-method-field(m-l, name, params, args, ann, doc, body, _check, b) =>
+    | s-method-field(m-l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
       new-type = add-self-type(typ)
-      check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, name, params, _, _, doc, _, _check, b), context)
+      check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, name, params, _, _, doc, _, _check-loc, _check, b), context)
         .fold-bind(lam(_, out-type, shadow context):
           fold-result(remove-self-type(out-type), context)
         end)
@@ -1125,7 +1125,7 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
   cases(A.Member) member:
     | s-data-field(l, name, value) =>
       cases(Expr) value:
-        | s-method(m-l, _, params, args, ann, _, _, _, _) =>
+        | s-method(m-l, _, params, args, ann, _, _, _, _, _) =>
           cases(List<A.Bind>) args:
             | empty =>
               fold-errors([list: C.method-missing-self(value)])
@@ -1134,7 +1134,7 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
                 lam-to-type(bindings, m-l, params, args.rest, ann, not(collect-functions), context)
               end)
           end
-        | s-lam(l-l, _, params, args, ann, _, _, _, _) =>
+        | s-lam(l-l, _, params, args, ann, _, _, _, _, _) =>
           if collect-functions:
             collect-bindings(args, context).bind(lam(bindings, shadow context):
               lam-to-type(bindings, l-l, params, args, ann, false, context)
@@ -1151,7 +1151,7 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
               fold-result(value-type, context)
             end)
       end
-    | s-method-field(l, name, params, args, ann, doc, body, _check) =>
+    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check) =>
       cases(List<A.Bind>) args:
         | empty =>
           fold-errors([list: C.method-missing-self(member)])
@@ -1504,7 +1504,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
       | link(first-bind, rest-binds) =>
         first-value = first-bind.value
         cases(Expr) first-value:
-          | s-data-expr(_, _, _, _, _, variants, _, _) =>
+          | s-data-expr(_, _, _, _, _, variants, _, _, _) =>
             num-data-binds = (2 * variants.length()) + 1
             split-list = split-at(num-data-binds, rest-binds)
             data-binds = split-list.prefix
@@ -1516,7 +1516,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
               initial-type = collected.get-value(first-bind.b.id.key())
               if is-t-existential(initial-type):
                 cases(Expr) first-bind.value:
-                  | s-lam(lam-l, _, lam-params, lam-args, lam-ann, _, _, _check, _) =>
+                  | s-lam(lam-l, _, lam-params, lam-args, lam-ann, _, _, _, _check, _) =>
                     collect-bindings(lam-args, context).bind(lam(arg-coll, shadow context) block:
                       cases(Option<Expr>) _check:
                         | some(check-block) =>

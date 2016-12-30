@@ -241,7 +241,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-top(l, false)
       | s-mutable-field(l, name, ann, val) =>
         T.t-ref(ann-to-typ(ann), false)
-      | s-method-field(l, name, params, args, ann, _, _, _, _) =>
+      | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
         arrow-part =
           T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann), l, false)
         if is-empty(params): arrow-part
@@ -259,7 +259,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           members.set(name, member-to-t-member(m))
         | s-mutable-field(l, name, ann, val) =>
           members.set(name, member-to-t-member(m))
-        | s-method-field(l, name, params, args, ann, _, _, _, _) =>
+        | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
           members.set(name, member-to-t-member(m))
       end
     end, [SD.string-dict: ])
@@ -321,7 +321,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
   fun data-expr-to-datatype(exp :: A.Expr % (is-s-data-expr)) -> T.DataType:
     cases(A.Expr) exp:
-      | s-data-expr(l, name, _, params, _, variants, shared-members, _) =>
+      | s-data-expr(l, name, _, params, _, variants, shared-members, _, _) =>
 
         tvars = for map(tvar from params):
           T.t-var(tvar, l, false)
