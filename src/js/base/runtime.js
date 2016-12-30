@@ -4060,29 +4060,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return nothing;
       }
       function eachFun($ar) {
-        try {
-          var res = eachHelp();
-          if(isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-each"],
-              eachFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          return res;
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-each"],
-              eachFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-each"]);
-          }
-          throw $e;
+        var res = eachHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-each"],
+            eachFun,
+            0, // step doesn't matter here
+            [], []);
         }
+        return res;
       }
       return eachFun();
     };
