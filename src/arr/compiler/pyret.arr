@@ -67,18 +67,22 @@ fun main(args):
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
-      allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
-      check-all = r.has-key("check-all")
-      type-check = r.has-key("type-check")
-      tail-calls = not(r.has-key("improper-tail-calls"))
-      compiled-dir = r.get-value("compiled-dir")
-      standalone-file = r.get-value("standalone-file")
-      display-progress = not(r.has-key("no-display-progress"))
+      user-compile-options = CS.default-compile-options.{
+        check-mode: not(r.has-key("no-check-mode") or r.has-key("library")),
+        allow-shadowed: r.has-key("allow-shadow"),
+        check-all: r.has-key("check-all"),
+        type-check: r.has-key("type-check"),
+        tail-calls: not(r.has-key("improper-tail-calls")),
+        compiled-dir: r.get-value("compiled-dir"),
+        standalone-file: r.get-value("standalone-file"),
+        display-progress: not(r.has-key("no-display-progress")),
+        collect-all: false,
+        ignore-unbound: false
+      }
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -101,17 +105,8 @@ fun main(args):
               r.get-value("build-runnable"),
               r.get-value("require-config"),
               outfile,
-              CS.default-compile-options.{
-                standalone-file: standalone-file,
-                check-mode : check-mode,
-                type-check : type-check,
-                allow-shadowed : allow-shadowed,
-                collect-all: false,
-                ignore-unbound: false,
-                proper-tail-calls: tail-calls,
-                compile-module: true,
-                compiled-cache: compiled-dir,
-                display-progress: display-progress
+              user-compile-options.{
+                compile-module: true
               })
         else if r.has-key("serve"):
           port = r.get-value("port")
@@ -134,15 +129,8 @@ fun main(args):
            |#
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
-            CS.default-compile-options.{
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls,
-              compile-module: false,
-              display-progress: display-progress
+            user-compile-options.{
+              compile-module: false
             })
           failures = filter(CS.is-err, result.loadables)
           when is-link(failures):
@@ -155,12 +143,14 @@ fun main(args):
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"), CS.default-compile-options.{
-              standalone-file: standalone-file,
-              compile-module: true,
-              display-progress: display-progress,
-              check-all: check-all
-            })
+          block:
+            result = CLI.run(r.get-value("run"), user-compile-options.{
+                  compile-module: false
+                })
+            print(result.message)
+            print("\n")
+            result.exit-code # TODO: exit process with this code
+          end
         else:
           print(C.usage-info(options).join-str("\n"))
           raise("Unknown command line options")

@@ -307,13 +307,30 @@ fun compile(path, options):
   compiled
 end
 
+fun handle-compilation-errors(problems, options) block:
+  for lists.each(e from problems) block:
+    options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
+    options.log-error("\n")
+  end
+  #raise("There were compilation errors")
+  {
+    message: "There were compilation errors",
+    exit-code: 1
+  }
+end
+
 fun run(path, options):
-  prog = build-program(path, options)
-  result = L.run-program(R.make-runtime(), L.empty-realm(), prog.js-ast.to-ugly-source(), options)
-  if L.is-success-result(result):
-    print(L.render-check-results(result))
-  else:
-    print(L.render-error-message(result))
+  maybe-program = build-program(path, options)
+  cases(Either) maybe-program block:
+    | left(problems) =>
+      handle-compilation-errors(problems, options)
+    | right(program) =>
+      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+      if L.is-success-result(result):
+        L.render-check-results(result)
+      else:
+        L.render-error-message(result)
+      end
   end
 end
 
@@ -384,11 +401,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   maybe-program = build-program(path, options)
   cases(Either) maybe-program block:
     | left(problems) => 
-      for lists.each(e from problems) block:
-        options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
-        options.log-error("\n")
-      end
-      raise("There were compilation errors")
+      handle-compilation-errors(problems, options)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
