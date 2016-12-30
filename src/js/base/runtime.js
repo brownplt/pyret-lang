@@ -4901,7 +4901,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
           },
           function(r) {
-            //CONSOLE.log("Result from module: ", r);
+            // CONSOLE.log("Result from module: ", r);
             realm[uri] = r;
             if(uri in postLoadHooks) {
               return thisRuntime.safeCall(function() {
