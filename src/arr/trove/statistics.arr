@@ -40,7 +40,7 @@ end
 fun mean(l :: L.List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
   if L.length(l) == 0:
-    raise("You can't take the average of an empty list")
+    raise("The input list is empty")
   else:
     math.sum(l) / L.length(l)
   end
@@ -57,7 +57,7 @@ fun median(l :: L.List) -> Number:
   size = L.length(sorted)
   index_of_median = num-floor(size / 2)
   cases (L.List) sorted:
-    |empty => raise("The list is empty")
+    |empty => raise("The input list is empty")
     |link(first, rest) => 
       if is-odd(size):
         sorted.get(index_of_median)
@@ -118,20 +118,21 @@ fun modes(l :: L.List) -> L.List<Number>:
   
 end
 
-fun mode(l :: L.List) -> O.Option<Number>:
+fun mode(l :: L.List) -> Number:
   doc: ```returns an option containing the mode of the
-       input list, or none if the input list is empty.
+       input list, or raises an error if input list is empty.
        If the input has multiple modes, this function
        returns the mode with the least value```
 
   cases (L.List) modes(l):
-    | empty => O.none
-    | link(f, r) => O.some(f)
+    | empty => raise("The input list is empty")
+    | link(f, r) => f
   end
 end
 
 fun stdev(l :: L.List) -> Number:
-  doc: "returns the standard deviation of the list of numbers"
+  doc: ```returns the standard deviation of the list 
+       of numbers, or raises an error if the list is empty```
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = mean(sq-diff)

@@ -24,15 +24,15 @@ check "numeric helpers":
   median([list: ~0, ~1, ~2, ~2, ~6, ~8]) is-roughly ~2
 
   # Mode
-  mode([list: ]) is none
-  mode([list: 1]) is some(1)
-  mode([list: 1, 1, 2]) is some(1)
-  mode([list: -1, 0, -1, 2, 3, -33, ~0.1]) is some(-1)
-  mode([list: ~2, ~1.0002, ~2, ~1.0001, ~1]) is-roughly some(~2)
+  mode([list: ]) raises "empty" 
+  mode([list: 1]) is 1
+  mode([list: 1, 1, 2]) is 1
+  mode([list: -1, 0, -1, 2, 3, -33, ~0.1]) is -1
+  mode([list: ~2, ~1.0002, ~2, ~1.0001, ~1]) is-roughly ~2
 
   # For multimode distributions, returns smallest mode
-  mode([list: -1, 0, 1, 2]) is some(-1)
-  mode([list: ~0.1, ~0.2, ~0.2, ~0.1]) is-roughly some(~0.1)
+  mode([list: -1, 0, 1, 2]) is -1
+  mode([list: ~0.1, ~0.2, ~0.2, ~0.1]) is-roughly ~0.1
 
   # Modes (Plural) returns each mode in a list with multiple
   modes([list: ]) is [list: ]
