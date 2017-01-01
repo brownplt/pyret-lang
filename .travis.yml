@@ -1,9 +1,5 @@
 git:
   submodules: false
-before_install:
-- sudo apt-get update
-- sudo apt-get install parallel
-- export PATH=$PATH:~/bin/
 language: node_js
 node_js:
 - 6.2.1
