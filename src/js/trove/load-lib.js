@@ -215,11 +215,16 @@
           }
         }, function(v) {
           if(execRt.isSuccessResult(v)) {
-            return restarter.resume(v.result)
+            restarter.resume(runtime.makeObject({
+              message: v.result,
+              'exit-code': runtime.makeNumber(EXIT_ERROR)
+            }));
           } else {
-            console.error("load error");
-            console.error("There was an exception while rendering the exception: ", v.exn);
-
+            console.error(v.exn);
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString("Load error: there was an exception while rendering the exception."),
+              'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+            }));
           }
         })
       });
