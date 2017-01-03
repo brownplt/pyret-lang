@@ -1,5 +1,9 @@
 #lang pyret
 
+provide {
+  exit-code: exit-code
+} end
+
 import cmdline as C
 import file as F
 import render-error-display as RED
@@ -149,7 +153,7 @@ fun main(args):
                 })
             print(result.message)
             print("\n")
-            result.exit-code # TODO: exit process with this code
+            result.exit-code
           end
         else:
           print(C.usage-info(options).join-str("\n"))
@@ -162,4 +166,4 @@ fun main(args):
   end
 end
 
-_ = main(C.args)
+exit-code = main(C.args)

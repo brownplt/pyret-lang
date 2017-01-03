@@ -150,39 +150,46 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       runtime.setParam("current-checker", currentChecker);
     }
   };
-  postLoadHooks[main] = runMode ?
-    (function(answer) {
-      //console.dir(answer);
-    }) :
-    (function(answer) {
-        var checkerLib = runtime.modules["builtin://checker"];
-        var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
-        var getStack = function(err) {
-          console.error("The error is: ", err);
-          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
-          var locList = runtime.ffi.makeList(locArray);
-          return locList;
-        };
-        var getStackP = runtime.makeFunction(getStack, "get-stack");
-        var toCall = runtime.getField(checker, "render-check-results-stack");
-        var checks = runtime.getField(answer, "checks");
-        runtime.safeCall(function() {
-          return toCall.app(checks, getStackP);
-        }, function(summary) {
-          if(runtime.isObject(summary)) {
-            process.stdout.write(runtime.getField(summary, "message"));
-            process.stdout.write("\n");
-            var errs = runtime.getField(summary, "errored");
-            var failed = runtime.getField(summary, "failed");
-            if(errs !== 0 || failed !== 0) {
-              process.exit(EXIT_ERROR_CHECK_FAILURES);
-            }
-            else {
-              process.exit(EXIT_SUCCESS);
-            }
+  if (runMode) {
+    postLoadHooks[main] = function(answer) {
+      var definedValues = runtime.getField(answer, "defined-values");
+      var definedExitCode = definedValues["exit-code"];
+      if (typeof definedExitCode !== "number") {
+        definedExitCode = 0;
+      }
+      process.exit(definedExitCode);
+    };
+  } else {
+    postLoadHooks[main] = function(answer) {
+      var checkerLib = runtime.modules["builtin://checker"];
+      var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
+      var getStack = function(err) {
+        console.error("The error is: ", err);
+        var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+        var locList = runtime.ffi.makeList(locArray);
+        return locList;
+      };
+      var getStackP = runtime.makeFunction(getStack, "get-stack");
+      var toCall = runtime.getField(checker, "render-check-results-stack");
+      var checks = runtime.getField(answer, "checks");
+      runtime.safeCall(function() {
+        return toCall.app(checks, getStackP);
+      }, function(summary) {
+        if(runtime.isObject(summary)) {
+          process.stdout.write(runtime.getField(summary, "message"));
+          process.stdout.write("\n");
+          var errs = runtime.getField(summary, "errored");
+          var failed = runtime.getField(summary, "failed");
+          if(errs !== 0 || failed !== 0) {
+            process.exit(EXIT_ERROR_CHECK_FAILURES);
           }
-        });
+          else {
+            process.exit(EXIT_SUCCESS);
+          }
+        }
       });
+    };
+  }
 
   function renderErrorMessageAndExit(execRt, res) {
     if (execRt.isPyretException(res.exn)) {
