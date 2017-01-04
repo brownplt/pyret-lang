@@ -12,6 +12,8 @@ import file("../../src/arr/compiler/type-defaults.arr") as TD
 import file("../../src/arr/compiler/locators/builtin.arr") as BL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 
+print("Running type-check tests: " + tostring(time-now()) + "\n")
+
 fun string-to-locator(name, str :: String):
   {
     method needs-compile(self, provs): true end,
