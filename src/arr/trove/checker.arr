@@ -691,86 +691,9 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   }
 end
 
-# NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
-# require that magical callers provide a get-stack function that produces
-# the list of locations to render
-fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
-  init = {
-      message: "",
-      errored: 0,
-      passed: 0,
-      failed: 0,
-      total: 0
-    }
-  complete-summary = for fold(summary from init, br from block-results.reverse()):
-    block-summary = for fold(s from init, tr from br.test-results.reverse()):
-      cases(TestResult) tr:
-        | success(loc) => s.{
-            message: s.message + "\n  " + loc.format(false) + ": ok",
-            passed: s.passed + 1,
-            total: s.total + 1
-          }
-        | else =>
-          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
-            + RED.display-to-string(tr.render-reason(), torepr, empty)
-          s.{
-            message: m,
-            failed: s.failed + 1,
-            total: s.total + 1
-          }
-      end
-    end
-    ended-in-error = cases(Option) br.maybe-err:
-      | none => ""
-      | some(err) =>
-        stack = get-stack(err)
-        "\n  Block ended in the following error (all tests may not have ran): \n\n  "
-          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
-          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
-          + "\n\n"
-    end
-    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
-    with-error-notification = message + ended-in-error
-    rest-of-message =
-      if block-summary.failed == 0: ""
-      else: block-summary.message
-      end
-    {
-      message: with-error-notification + rest-of-message,
-      errored: summary.errored + if is-some(br.maybe-err): 1 else: 0 end,
-      passed: summary.passed + block-summary.passed,
-      failed: summary.failed + block-summary.failed,
-      total: summary.total + block-summary.total
-    }
-  end
-  if (complete-summary.total == 0) and (complete-summary.errored == 0):
-    complete-summary.{message: "The program didn't define any tests."}
-  else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
-    happy-msg = if complete-summary.passed == 1:
-        "Looks shipshape, your test passed, mate!"
-      else:
-        "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
-      end
-    complete-summary.{message: happy-msg}
-  else:
-    c = complete-summary
-    c.{
-      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
-    }
-  end
-end
-
-fun render-check-results(block-results):
-  results-summary(block-results, lam(err): empty end).message
-end
-
-fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
-  results-summary(block-results, get-stack)
-end
-
-fun make-test-reporter(maybe-ast) -> (TestResult -> {}):
+fun make-test-reporter(maybe-stack-loc, src-available, maybe-ast) -> (TestResult -> {}):
   lam(test-result):
-    loc-formatted = test-result.loc.format(true)
+    loc-formatted = test-result.loc.format(false)
     cases(TestResult) test-result:
       | success(loc) =>
         {
@@ -780,17 +703,14 @@ fun make-test-reporter(maybe-ast) -> (TestResult -> {}):
           loc: loc-formatted
         }
       | else =>
-        block:
-          get-none = lam(x): none end
-          reason = test-result.render-reason()
-          fancy-reason = test-result.render-fancy-reason(get-none, SL.is-srcloc, maybe-ast)
-          {
-            passed: false,
-            reason: RED.display-to-string(reason, torepr, empty),
-            fancy-reason: RED.display-to-string(fancy-reason, torepr, empty),
-            loc: loc-formatted
-          }
-        end
+        reason = test-result.render-reason()
+        fancy-reason = test-result.render-fancy-reason(maybe-stack-loc, src-available, maybe-ast)
+        {
+          passed: false,
+          reason: RED.display-to-string(reason, torepr, empty),
+          fancy-reason: RED.display-to-string(fancy-reason, torepr, empty),
+          loc: loc-formatted
+        }
     end
   end
 end
@@ -800,19 +720,17 @@ end
 # the list of locations to render
 fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-stack-loc, src-available, maybe-ast):
   initBlock = {
+      message: "",
       passed: 0,
       failed: 0,
       total: 0
     }
-  initComplete = {
+  initComplete = initBlock.{
       errored: 0,
-      passed: 0,
-      failed: 0,
-      total: 0,
       blocks: empty
     }
 
-  test-reporter = make-test-reporter(maybe-ast)
+  test-reporter = make-test-reporter(maybe-stack-loc, src-available, maybe-ast)
   complete-summary = for fold(summary from initComplete, br from block-results.reverse()):
     test-reports = br.test-results.reverse().map(test-reporter)
     error-reason = cases(Option) br.maybe-err:
@@ -834,11 +752,13 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
     block-summary = for fold(s from initBlock, tr from test-reports):
       if (tr.passed):
         s.{
+          message: s.message + "\n  " + tr.loc + ": ok",
           passed: s.passed + 1,
           total: s.total + 1
         }
       else:
         s.{
+          message: s.message + "\n  " + tr.loc + ": failed because: \n    " + tr.reason,
           failed: s.failed + 1,
           total: s.total + 1
         }
@@ -849,8 +769,16 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
       tests: test-reports
     }
 
+    ended-in-error = block-summary.reason
+    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+    with-error-notification = message + ended-in-error
+    rest-of-message =
+      if block-summary.failed == 0: ""
+      else: block-summary.message
+      end
+
     {
-      #message: with-error-notification + rest-of-message,
+      message: with-error-notification + rest-of-message,
       errored: summary.errored + if block-summary.is-error: 1 else: 0 end,
       passed: summary.passed + block-summary.passed,
       failed: summary.failed + block-summary.failed,
@@ -858,7 +786,47 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
       blocks: link(block-summary, summary.blocks)
     }
   end
-  complete-summary.{
+
+  complete-summary-with-happy-msg =
+    if (complete-summary.total == 0) and (complete-summary.errored == 0):
+      complete-summary.{message: "The program didn't define any tests."}
+    else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
+      happy-msg = if complete-summary.passed == 1:
+          "Looks shipshape, your test passed, mate!"
+        else:
+          "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
+        end
+      complete-summary.{message: happy-msg}
+    else:
+      c = complete-summary
+      c.{
+        message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
+      }
+    end
+
+  complete-summary-with-happy-msg.{
     blocks: complete-summary.blocks.reverse()
   }
+end
+
+fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
+  maybe-stack-loc = lam(x,y): none end
+  maybe-ast = lam(x): none end
+  test-report = results-report(block-results, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
+
+  {
+    message: test-report.message,
+    errored: test-report.errored,
+    passed: test-report.passed,
+    failed: test-report.failed,
+    total: test-report.total
+  }
+end
+
+fun render-check-results(block-results):
+  results-summary(block-results, lam(err): empty end).message
+end
+
+fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
+  results-summary(block-results, get-stack)
 end
