@@ -204,7 +204,7 @@ check:
   val("includes-a-type") is some(42)
 # TODO(joe): this should produce a good string rendering containing "Number",
 # but need to fix the renderErrorMessage call in load-lib first
-  msg("includes-and-violates") satisfies string-contains(_, "Number")
+  msg("includes-and-violates") satisfies string-contains(_.message, "Number")
 #  msg("includes-and-violates") satisfies string-contains(_, "error message")
   val("type-and-val") is some(12)
   cmsg("overlapping-import") satisfies string-contains(_, "shadows")
