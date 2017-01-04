@@ -55,11 +55,11 @@
               if (message.type === 'utf8') {
                 // console.log('Received Message: ' + message.utf8Data);
                 runtime.runThunk(function() {
-                  onmessage.app(message.utf8Data, respondForPy);
+                  return onmessage.app(message.utf8Data, respondForPy);
                 }, function(result) {
                   if(runtime.isFailureResult(result)) {
-                    connection.close();
                     console.error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
+                    connection.close();
                     restarter.error(result.exn);
                   }
                   else {

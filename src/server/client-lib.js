@@ -20,7 +20,8 @@ function start(options) {
       console.log("Sent kill signal to " + pid);
     }
     catch(e) {
-      console.log("No process to quit: " + pid);
+      console.log("asdf");
+      console.log("No process to quit: " + e);
     }
   }
 
