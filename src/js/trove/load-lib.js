@@ -164,14 +164,10 @@
               }
             }
             else if(execRt.isFailureResult(renderedCheckResults)) {
+              console.error(renderedCheckResults.exn.dict);
               resumeWith.message = execRt.makeString("There was an exception while formatting the check results");
               resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
-              //console.error(renderedCheckResults.exn.dict);
             }
-
-            // process.stdout.write(resumeWith.message);
-            // process.stdout.write("\n");
-            // process.exit(resumeWith["exit-code"]);
 
             restarter.resume(runtime.makeObject({
               message: runtime.makeString(resumeWith.message),
