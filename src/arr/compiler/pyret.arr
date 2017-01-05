@@ -81,7 +81,7 @@ fun main(args):
         check-all: r.has-key("check-all"),
         type-check: r.has-key("type-check"),
         tail-calls: not(r.has-key("improper-tail-calls")),
-        compiled-dir: r.get-value("compiled-dir"),
+        compiled-cache: r.get-value("compiled-dir"),
         standalone-file: r.get-value("standalone-file"),
         display-progress: not(r.has-key("no-display-progress")),
         collect-all: false,
