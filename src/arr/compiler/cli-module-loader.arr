@@ -312,11 +312,7 @@ fun handle-compilation-errors(problems, options) block:
     options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
     options.log-error("\n")
   end
-  #raise("There were compilation errors")
-  {
-    message: "There were compilation errors",
-    exit-code: 1
-  }
+  raise("There were compilation errors")
 end
 
 fun run(path, options):
@@ -401,7 +397,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   maybe-program = build-program(path, options)
   cases(Either) maybe-program block:
     | left(problems) => 
-      raise(handle-compilation-errors(problems, options).message)
+      handle-compilation-errors(problems, options)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
