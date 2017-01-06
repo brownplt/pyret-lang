@@ -401,7 +401,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   maybe-program = build-program(path, options)
   cases(Either) maybe-program block:
     | left(problems) => 
-      handle-compilation-errors(problems, options)
+      raise(handle-compilation-errors(problems, options).message)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
