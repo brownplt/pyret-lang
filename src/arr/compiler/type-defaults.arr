@@ -699,6 +699,7 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
       ])
     ),
   SD.make-string-dict()
+    .set("S-Exp", t-s-exp)
 )
 
 fun make-default-modules() block:

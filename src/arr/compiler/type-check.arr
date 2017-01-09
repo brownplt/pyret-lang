@@ -2118,9 +2118,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
           fold-errors([list: C.no-module(l, obj.toname())])
         | some(mod) =>
           t-mod = context.modules.get-value(mod)
-          if t-mod.types.has-key(field):
-            fold-result(some(t-mod.aliases.get-value(field)), context)
-          else if t-mod.aliases.has-key(field):
+          if t-mod.aliases.has-key(field) block:
             typ = resolve-alias(t-mod.aliases.get-value(field), context)
             fold-result(some(typ), context)
           else:
