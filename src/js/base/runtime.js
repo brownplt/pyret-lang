@@ -5620,6 +5620,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_to_list': raw_array_to_list,
       'raw_array_map': raw_array_map,
       'raw_array_each': raw_array_each,
+      'raw_array_fold': raw_array_fold,
       'raw_array_map1': raw_array_map1,
       'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,

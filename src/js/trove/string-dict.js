@@ -17,13 +17,30 @@
                     name: "ValueSkeleton" },
       "SetOfA": ["tyapp", { tag: "name",
                origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-               name: "ValueSkeleton" }, [["tid", "a"]]]
+               name: "ValueSkeleton" }, [["tid", "a"]]],
+      "idB": ["tid", "b"]
     },
     values: {
       "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
       "make-mutable-string-dict": ["forall", ["a"], ["arrow", [], "msdOfA"]],
       "string-dict": ["forall", ["a"], ["Maker", "Any", "sdOfA"]],
       "mutable-string-dict": ["forall", ["a"], ["Maker", "Any", "msdOfA"]],
+      "map-keys": ["forall", ["a", "b"], ["arrow", [["arrow", ["String"], "idB"],
+                                                    "sdOfA"],
+                                          ["List", "idB"]]],
+      "map-keys-now": ["forall", ["a", "b"], ["arrow", [["arrow", ["String"], "idB"],
+                                                        "msdOfA"],
+                                              ["List", "idB"]]],
+      // NOTE: the signature for this is backwards from the method version,
+      // so as to match the inconsistency in lists.arr
+      "fold-keys": ["forall", ["a", "b"], ["arrow", [["arrow", ["idB", "String"], "idB"],
+                                                     "idB",
+                                                     "sdOfA"],
+                                           "idB"]],
+      "fold-keys-now": ["forall", ["a", "b"], ["arrow", [["arrow", ["idB", "String"], "idB"],
+                                                         "idB",
+                                                         "msdOfA"],
+                                               "idB"]],
       "each-key": ["forall", ["a"], ["arrow", [["arrow", ["String"], "Nothing"], "sdOfA"], "Nothing"]],
       "each-key-now": ["forall", ["a"], ["arrow", [["arrow", ["String"], "Nothing"], "msdOfA"], "Nothing"]],
       "is-mutable-string-dict": ["arrow", ["Any"], "Boolean"],
@@ -42,6 +59,8 @@
         "remove": ["arrow", ["String"], "sdOfA"],
         "keys": ["arrow", [], "SetOfA"],
         "keys-list": ["arrow", [], ["List", ["tid", "a"]]],
+        "map-keys": ["forall", ["b"], ["arrow", [["arrow", ["String"], "idB"]], ["List", "idB"]]],
+        "fold-keys": ["forall", ["b"], ["arrow", [["arrow", ["String", "idB"], "idB"], "idB"], "idB"]],
         "each-key": ["arrow", [["arrow", ["String"], "Nothing"]], "Nothing"],
         "count": ["arrow", [], "Number"],
         "has-key": ["arrow", ["String"], "Boolean"],
@@ -57,6 +76,8 @@
         "remove-now": ["arrow", ["String"], "Nothing"],
         "keys-now": ["arrow", [], "SetOfA"],
         "keys-list-now": ["arrow", [], ["List", ["tid", "a"]]],
+        "map-keys-now": ["forall", ["b"], ["arrow", [["arrow", ["String"], "idB"]], ["List", "idB"]]],
+        "fold-keys-now": ["forall", ["b"], ["arrow", [["arrow", ["String", "idB"], "idB"], "idB"], "idB"]],
         "each-key-now": ["arrow", [["arrow", ["String"], "Nothing"]], "Nothing"],
         "count-now": ["arrow", [], "Number"],
         "has-key-now": ["arrow", ["String"], "Boolean"],
@@ -798,6 +819,22 @@
       return runtime.raw_array_each(f, self.$underlyingMap.keys());
     });
 
+    var mapKeysISD = runtime.makeMethod1(function(self, f) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys"], 2, $a); }
+      runtime.checkFunction(f);
+      return runtime.safeCall(function() { return runtime.raw_array_map(f, self.$underlyingMap.keys()); },
+                              runtime.ffi.makeList,
+                              "map-keys")
+    });
+
+    var foldKeysISD = runtime.makeMethod2(function(self, f, init) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys"], 3, $a); }
+      runtime.checkFunction(f);
+      runtime.checkPyretVal(init);
+      return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
+                                    init, self.$underlyingMap.keys(), 0);
+    });
+
     var keysISD = runtime.makeMethod0(function(self) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a); }
       var keys = self.$underlyingMap.keys();
@@ -870,6 +907,8 @@
         remove: removeISD,
         keys: keysISD,
         "keys-list": keysListISD,
+        'map-keys': mapKeysISD,
+        'fold-keys': foldKeysISD,
         'each-key': eachKeyISD,
         count: countISD,
         'has-key': hasKeyISD,
@@ -973,6 +1012,22 @@
       return runtime.raw_array_each(f, Object.keys(self.$underlyingDict));
     });
 
+    var mapKeysMSD = runtime.makeMethod1(function(self, f) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys-now"], 2, $a); }
+      runtime.checkFunction(f);
+      return runtime.safeCall(function() { return runtime.raw_array_map(f, Object.keys(self.$underlyingDict)); },
+                              runtime.ffi.makeList,
+                              "map-keys-now");
+    });
+
+    var foldKeysMSD = runtime.makeMethod2(function(self, f, init) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys-now"], 3, $a); }
+      runtime.checkFunction(f);
+      runtime.checkPyretVal(init)
+      return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
+                                    init, Object.keys(self.$underlyingDict), 0);
+    });
+
     var countMSD = runtime.makeMethod0(function(self) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a); }
       return runtime.makeNumber(Object.keys(self.$underlyingDict).length);
@@ -1064,6 +1119,8 @@
         'remove-now': removeMSD,
         'keys-now': keysMSD,
         'keys-list-now': keysListMSD,
+        'map-keys-now': mapKeysMSD,
+        'fold-keys-now': foldKeysMSD,
         'each-key-now': eachKeyMSD,
         'count-now': countMSD,
         'has-key-now': hasKeyMSD,
@@ -1166,6 +1223,38 @@
       return makeImmutableStringDict(map);
     }
 
+    function mapKeys(f, isd) {
+      arity(2, arguments, "map-keys");
+      jsCheckISD(isd);
+      runtime.checkFunction(f);
+      return runtime.getColonField(isd, "map-keys").full_meth(isd, f);
+    }
+    
+    function mapKeysNow(f, msd) {
+      arity(2, arguments, "map-keys-now");
+      jsCheckMSD(msd);
+      runtime.checkFunction(f);
+      return runtime.getColonField(msd, "map-keys-now").full_meth(msd, f);
+    }
+
+    function foldKeys(f, init, isd) {
+      arity(3, arguments, "fold-keys");
+      jsCheckISD(isd);
+      runtime.checkFunction(f);
+      runtime.checkPyretVal(init);
+      return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
+                                    init, isd.$underlyingMap.keys(), 0);
+    }
+    
+    function foldKeysNow(f, init, msd) {
+      arity(3, arguments, "fold-keys-now");
+      jsCheckMSD(msd);
+      runtime.checkFunction(f);
+      runtime.checkPyretVal(init);
+      return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
+                                    init, Object.keys(msd.$underlyingDict), 0);
+    }
+
     function eachKey(f, isd) {
       arity(2, arguments, "each-key-now");
       jsCheckISD(isd);
@@ -1179,7 +1268,7 @@
       runtime.checkFunction(f);
       return runtime.getColonField(msd, "each-key-now").full_meth(msd, f);
     }
-    
+
     function createMutableStringDict0() {
       arity(0, arguments, "mutable-string-dict0");
       var dict = Object.create(null);
@@ -1274,6 +1363,10 @@
       }),
       "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
       "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
+      "map-keys": F(mapKeys, "map-keys"),
+      "map-keys-now": F(mapKeysNow, "map-keys-now"),
+      "fold-keys": F(foldKeys, "fold-keys"),
+      "fold-keys-now": F(foldKeysNow, "fold-keys-now"),
       "each-key": F(eachKey, "each-key"),
       "each-key-now": F(eachKeyNow, "each-key-now"),
       "string-dict": O({

@@ -799,7 +799,7 @@ where:
   y = n("y")
   freevars-e(
       a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
-        a-lettable(d, a-val(d, a-id(d, y))))).keys().to-list() is [list: y.key()]
+        a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:

@@ -21,14 +21,14 @@ data JSON:
     method native(self) block:
       d = self.dict
       ret = [SD.mutable-string-dict:]
-      for map(s from d.keys().to-list()):
+      for SD.each-key(s from d):
         ret.set-now(s, d.get-value(s).native())
       end
       ret.freeze()
     end,
     method serialize(self):
       d = self.dict
-      l = for map(s from d.keys().to-list()):
+      l = for SD.map-keys(s from d):
         '"' + s + '": ' + d.get-value(s).serialize()
       end
       "{" + l.join-str(", ") + "}"
@@ -99,13 +99,13 @@ fun tojson(v :: Any) -> JSON:
     j-arr(raw-array-to-list(v).map(lam(x): tojson(x) end))
   else if SD.is-string-dict(v):
     ret = [SD.mutable-string-dict:]
-    for map(s from v.keys().to-list()):
+    for SD.each-key(s from v):
       ret.set-now(s, tojson(v.get-value(s)))
     end
     j-obj(ret.freeze())
   else if SD.is-mutable-string-dict(v):
     ret = [SD.mutable-string-dict:]
-    for map(s from v.keys-now().to-list()):
+    for SD.each-key-now(s from v):
       ret.set-now(s, tojson(v.get-value-now(s)))
     end
     j-obj(ret.freeze())

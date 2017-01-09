@@ -204,7 +204,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
         tvn = A.global-names.make-atom(a)
         new-env.set(a, tvn)
       end
-      params = for map(k from new-env.keys-list()):
+      params = for SD.map-keys(k from new-env):
         T.t-var(new-env.get-value(k), l, false)
       end
       T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l, false)
@@ -242,7 +242,7 @@ fun datatype-from-raw(uri, datatyp):
       tvn = A.global-names.make-atom(a)
       pdict.set(a, tvn)
     end
-    params = for map(k from pdict.keys-list()):
+    params = for SD.map-keys(k from pdict):
       T.t-var(pdict.get-value(k), l, false)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
@@ -2410,14 +2410,14 @@ runtime-provides = provides("builtin://global",
      "RawArray", t-top  ],
   [string-dict:])
 
-runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):
+runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
   rb.set(k, "builtin(global)")
 end
 
-runtime-types = for fold(rt from [string-dict:], k from runtime-provides.aliases.keys().to-list()):
+runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
   rt.set(k, "builtin(global)")
 end
-shadow runtime-types = for fold(rt from runtime-types, k from runtime-provides.data-definitions.keys().to-list()):
+shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
   rt.set(k, "builtin(global)")
 end
 

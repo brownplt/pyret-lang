@@ -18,11 +18,20 @@ import file("desugar.arr") as D
 import file("desugar-check.arr") as CH
 import file("js-ast.arr") as J
 
+cl-empty = CL.concat-empty
+cl-cons = CL.concat-cons
+
+fun cl-map-sd(f, sd):
+  for SD.fold-keys(acc from cl-empty, key from sd):
+    cl-cons(f(key), acc)
+  end
+end
+
 # TODO(joe): add methods for printing to module vs static information
 data CompiledCodePrinter:
   | ccp-dict(dict :: SD.StringDict) with:
     method to-j-expr(self, d):
-      J.j-parens(J.j-obj(for CL.map_list(k from d.keys-list()):
+      J.j-parens(J.j-obj(for cl-map-sd(k from d):
           J.j-field(k, d.get-value(k))
         end))
     end,
@@ -424,7 +433,7 @@ fun get-flat-provides(provides, flatness-env, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
     | provides(uri, values, aliases, datatypes) =>
-      new-values = for fold(s from [SD.string-dict:], k from values.keys-list()):
+      new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
         maybe-flatness = flatness-env.get(dvs-dict.get-value(k))
         existing-val = values.get-value(k)
         new-val = cases(Option) maybe-flatness:

@@ -149,12 +149,12 @@ fun bind-or-unknown(e :: A.Expr, env) -> BindingInfo:
 end
 
 fun binding-type-env-from-env(env):
-  for lists.fold(acc from SD.make-string-dict(), name from env.globals.types.keys-list()):
+  for SD.fold-keys(acc from SD.make-string-dict(), name from env.globals.types):
     acc.set(A.s-type-global(name).key(), e-bind(A.dummy-loc, false, b-typ))
   end
 end
 fun binding-env-from-env(env):
-  for lists.fold(acc from SD.make-string-dict(), name from env.globals.values.keys-list()):
+  for SD.fold-keys(acc from SD.make-string-dict(), name from env.globals.values):
     acc.set(A.s-global(name).key(), e-bind(A.dummy-loc, false, b-prim(name)))
   end
 end
@@ -1134,7 +1134,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
 
         shared-across-variants = collect-shared-fields(variants)
         shared-fields = members-to-t-members(shared-members)
-        all-shared-fields = shared-across-variants.keys-list().foldl(lam(key, all-shared-fields):
+        all-shared-fields = shared-across-variants.fold-keys(lam(key, all-shared-fields):
           if shared-fields.has-key(key):
             all-shared-fields
           else:
@@ -1261,7 +1261,7 @@ end
 
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, transformer):
-    for fold(s from [SD.string-dict: ], v from d.keys-list()):
+    for SD.fold-keys(s from [SD.string-dict: ], v from d):
       s.set(v, canonicalizer(d.get-value(v), uri, transformer))
     end
   end

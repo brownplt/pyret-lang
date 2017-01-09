@@ -34,6 +34,12 @@ cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
+fun cl-map-sd(f, sd):
+  for D.fold-keys(acc from cl-empty, key from sd):
+    cl-cons(f(key), acc)
+  end
+end
+
 fun type-name(str :: String) -> String:
   "$type$" + str
 end
@@ -482,7 +488,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   for D.each-key(d from main-body-cases-and-dead-vars.discardable-vars):
     all-needed-vars.remove-now(d)
   end
-  vars = all-needed-vars.keys-list-now().map(all-needed-vars.get-value-now(_))
+  vars = all-needed-vars.map-keys-now(all-needed-vars.get-value-now(_))
 
   num-vars = vars.length()
   
@@ -1664,9 +1670,9 @@ fun compile-provided-data(typ :: T.DataType):
               j-str(tostring(p))
             end),
           j-list(false, CL.map_list(compile-type-variant, variants)),
-          j-obj(CL.map_list(lam(mem-name):
+          j-obj(for cl-map-sd(mem-name from members):
             compile-type-member(mem-name, members.get-value(mem-name))
-          end, members.keys-list()))])
+          end)])
   end
 end
 
@@ -1699,7 +1705,9 @@ fun compile-provided-type(typ):
       # | t-bot(_) =>
     | t-record(fields, l, _) =>
       j-list(false,
-        [clist: j-str("record"), j-obj(CL.map_list(lam(key): compile-type-member(key, fields.get-value(key)) end, fields.keys-list()))])
+        [clist: j-str("record"), j-obj(for cl-map-sd(key from fields):
+              compile-type-member(key, fields.get-value(key))
+            end)])
     | t-tuple(elts, l, _) =>
       j-list(false,
         [clist: j-str("tuple"), j-list(false, CL.map_list(compile-provided-type, elts))])
@@ -1719,7 +1727,7 @@ end
 fun compile-provides(provides):
   cases(CS.Provides) provides:
     | provides(thismod-uri, values, aliases, data-defs) =>
-      value-fields = for CL.map_list(v from values.keys().to-list()):
+      value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))
           | v-var(t) => j-field(v, j-obj([clist:
@@ -1735,10 +1743,10 @@ fun compile-provides(provides):
             ]))
         end
       end
-      data-fields = for CL.map_list(d from data-defs.keys().to-list()):
+      data-fields = for cl-map-sd(d from data-defs):
         j-field(d, compile-provided-data(data-defs.get-value(d)))
       end
-      alias-fields = for CL.map_list(a from aliases.keys().to-list()):
+      alias-fields = for cl-map-sd(a from aliases):
         j-field(a, compile-provided-type(aliases.get-value(a)))
       end
       j-obj([clist:
@@ -1774,7 +1782,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     end
   end
 
-  free-ids = freevars.keys-list-now().map(freevars.get-value-now(_))
+  free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,

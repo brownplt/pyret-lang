@@ -489,7 +489,7 @@ var step-4-total = 0
 #   ranges = D.make-mutable-string-dict()
 #   for each(lbl from labels):
 #     n = dag.get-value(tostring(lbl))
-#     for each(v from n!live-vars.value.keys-list()):
+#     for SD.each-key(v from n!live-vars.value):
 #       LR.record-range(v, lbl, ranges)
 #     end
 #   end
@@ -563,7 +563,7 @@ fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name) -> Re
   # live-ranges = D.make-mutable-string-dict()
   # for each(lbl from labels):
   #   n = dag.get-value(lbl)
-  #   for each(v from n!live-vars.value.keys-list()):
+  #   for SD.each-key(v from n!live-vars.value):
   #     cur = if live-ranges.has-key-now(v.tosourcestring()): live-ranges.get-value-now(v) else: ns-empty end
   #     live-ranges.set-now(v.tosourcestring(), cur.add(lbl))
   #   end
