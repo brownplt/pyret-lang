@@ -1550,10 +1550,14 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
                           lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, temp-context):
                             cases(Type) lam-type block:
                               | t-arrow(temp-args, temp-ret, temp-l, _) =>
-                                new-exists = new-existential(temp-l, true)
-                                shadow temp-context = temp-context.add-variable(new-exists)
-                                shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _))
-                                fold-result(new-exists, temp-context)
+                                if lam-type.free-variables().size() > 0:
+                                  new-exists = new-existential(temp-l, true)
+                                  shadow temp-context = temp-context.add-variable(new-exists)
+                                  shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _))
+                                  fold-result(new-exists, temp-context)
+                                else:
+                                  lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
+                                end
                               | else =>
                                 lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
                             end
