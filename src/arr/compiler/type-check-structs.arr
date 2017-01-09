@@ -689,7 +689,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
       shadow refinement-constraints = partitioned.is-true
       normal-constraints = partitioned.is-false
       if is-link(normal-constraints):
-        shadow system = constraint-system(variables, normal-constraints, field-constraints, example-types, next-system)
+        shadow system = constraint-system(variables, normal-constraints, refinement-constraints, field-constraints, example-types, next-system)
         solve-helper-constraints(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
           solve-helper-refinements(system, solution, context)
         end)
