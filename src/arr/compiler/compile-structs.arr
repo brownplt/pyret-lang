@@ -1815,7 +1815,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+          ED.text("This program cannot be type-checked. " + "The reason that it cannot be type-checked is: " + self.reason +
         " at "), ED.cmcode(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
