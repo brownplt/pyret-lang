@@ -836,14 +836,15 @@ data CompileError:
             ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
+          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" at "),
               ED.loc(self.ann.l),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" could not be found.")]]
       end
     end
