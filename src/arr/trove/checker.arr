@@ -830,3 +830,13 @@ end
 fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
   results-summary(block-results, get-stack)
 end
+
+fun render-check-report(block-results):
+  results-report(block-results, lam(err): empty end).message
+end
+
+fun render-check-report-stack(block-results :: List<CheckBlockResult>, get-stack):
+  maybe-stack-loc = lam(x,y): none end
+  maybe-ast = lam(x): none end
+  results-report(block-results, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
+end

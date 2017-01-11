@@ -317,6 +317,25 @@ fun run(path, options):
   end
 end
 
+fun run-full-report(path, options):
+  maybe-program = build-program(path, options)
+  cases(Either) maybe-program block:
+    | left(problems) =>
+      for lists.each(e from problems) block:
+        options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
+        options.log-error("\n")
+      end
+      raise("There were compilation errors")
+    | right(program) =>
+      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+      if L.is-success-result(result):
+        print(L.render-check-report(result) + "\n")
+      else:
+        print(L.render-error-message(result))
+      end
+  end
+end
+
 fun build-program(path, options) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```

@@ -28,6 +28,8 @@ fun main(args):
       C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
+    "run-full-report",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
       C.next-val-default(C.String, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
     "builtin-js-dir",
@@ -156,6 +158,13 @@ fun main(args):
           end
         else if r.has-key("run"):
           CLI.run(r.get-value("run"), CS.default-compile-options.{
+              standalone-file: standalone-file,
+              compile-module: true,
+              display-progress: display-progress,
+              check-all: check-all
+            })
+        else if r.has-key("run-full-report"):
+          CLI.run-full-report(r.get-value("run-full-report"), CS.default-compile-options.{
               standalone-file: standalone-file,
               compile-module: true,
               display-progress: display-progress,

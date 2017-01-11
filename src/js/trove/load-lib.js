@@ -153,6 +153,38 @@
           });
       });
     }
+    function renderCheckReport(mr) {
+      runtime.pauseStack(function(restarter) {
+        var res = getModuleResultResult(mr);
+        var execRt = mr.val.runtime;
+        var checkerMod = execRt.modules["builtin://checker"];
+        var checker = execRt.getField(checkerMod, "provide-plus-types");
+        var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-report-stack");
+        var getStack = function(err) {
+          console.error("The error is: ", err);
+          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+          var locList = execRt.ffi.makeList(locArray);
+          return locList;
+        };
+        var getStackP = execRt.makeFunction(getStack, "get-stack");
+        var checks = getModuleResultChecks(mr);
+        execRt.runThunk(function() { return toCall.app(checks, getStackP); },
+          function(printedCheckResult) {
+            if(execRt.isSuccessResult(printedCheckResult)) {
+              var result = printedCheckResult.result;
+              var stats = printedCheckResult.stats;
+              var resultJSON = execRt.ffi.fromPyret(result);
+              resultJSON.stats = stats;
+              var resultStringified = JSON.stringify(resultJSON, null, "\t");
+              restarter.resume(resultStringified);
+            }
+            else if(execRt.isFailureResult(result)) {
+              console.error(result.exn.dict);
+              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+            }
+          });
+      });
+    }
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
@@ -283,6 +315,7 @@
       "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
       "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
       "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
+      "render-check-report": runtime.makeFunction(renderCheckReport, "render-check-report"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
       "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
     };
