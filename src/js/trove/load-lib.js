@@ -168,12 +168,12 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        execRt.runThunk(function() { return toCall.app(checks, getStackP); },
+        execRt.runThunk(function() { return toCall.app(checks, getStackP);  },
           function(printedCheckResult) {
             if(execRt.isSuccessResult(printedCheckResult)) {
               var result = printedCheckResult.result;
               var stats = printedCheckResult.stats;
-              var resultJSON = execRt.ffi.fromPyret(result);
+              var resultJSON = execRt.ffi.toJSON(result);
               resultJSON.stats = stats;
               var resultStringified = JSON.stringify(resultJSON, null, "\t");
               restarter.resume(resultStringified);

@@ -82,9 +82,8 @@
       return runtime.unwrap(gf(S, "is-Srcloc").app(val));
     }, "Srcloc");
 
-    function fromPyret(v) {
-      if (runtime.isNothing(v)) { return null; }
-      else if(runtime.isNumber(v)) {
+    function toJSON(v) {
+      if(runtime.isNumber(v)) {
         if (typeof(v) === "number") {
           return v;
         } else {
@@ -93,24 +92,27 @@
       }
       else if(runtime.isString(v)) { return v; }
       else if(runtime.isBoolean(v)) { return v; }
+      else if (runtime.isNothing(v)) { return null; }
       else if(runtime.isOpaque(v)) { return v.val; }
       else if(isList(v)) {
-        var arr = toArray(v);
-        var arrStripped = [];
-        for (var i in arr) {
-          arrStripped[i] = fromPyret(arr[i]);
+        return toJSON(toArray(v));
+      }
+      else if(Array.isArray(v)) {
+        var arr = [];
+        for (var i in v) {
+          arr[i] = toJSON(v[i]);
         }
-        return arrStripped;
+        return arr;
       }
       else if(runtime.isBase(v)) {
         var fields = runtime.getFields(v);
-        var dictStripped = {};
+        var dict = {};
         for (var i in fields) {
-          dictStripped[fields[i]] = fromPyret(v.dict[fields[i]]);
+          dict[fields[i]] = toJSON(v.dict[fields[i]]);
         }
-        return dictStripped;
+        return dict;
       }
-      else { throwInternalError("Cannot strip brands", makeList([v])); }
+      else { throwInternalError("Cannot convert to JSON", makeList([v])); }
     }
 
 /* NOTE(joe): skipping checker
@@ -647,7 +649,7 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      fromPyret: fromPyret,
+      toJSON: toJSON,
       isList: isList,
       isLink : isLink,
       isEmpty : isEmpty,
