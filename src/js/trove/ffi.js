@@ -110,7 +110,7 @@
         }
         return dictStripped;
       }
-      else { throwInternalError("Cannot strip brands", [v]); }
+      else { throwInternalError("Cannot strip brands", makeList([v])); }
     }
 
 /* NOTE(joe): skipping checker
