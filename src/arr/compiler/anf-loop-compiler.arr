@@ -1390,6 +1390,10 @@ compiler-visitor = {
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,
+  method a-id-safe-letrec(self, l :: Loc, id :: A.Name):
+    s = j-id(js-id-of(id))
+    c-exp(j-dot(s, "$var"), cl-empty)
+  end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = j-id(js-id-of(id))
     if safe:

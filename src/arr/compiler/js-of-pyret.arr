@@ -87,7 +87,7 @@ fun make-expr-data-env(
           type-name-to-variants.set-now(bind.id.key(), val.variants)
           # Make self-mapping entry so we know it's a "type" name
           alias-to-type-name.set-now(bind.id.key(), bind.id.key())
-        else if AA.is-a-id-letrec(val) and val.safe:
+        else if AA.is-a-id-safe-letrec(val):
           # If we say
           # x = Type
           # y = x
@@ -184,6 +184,7 @@ fun make-lettable-data-env(
     | a-method(_, name, args, ret, body) => default-ret
     | a-id-var(_, id) => default-ret
     | a-id-letrec(_, id, safe) => default-ret
+    | a-id-safe-letrec(_, id) => default-ret
     | a-val(_, v) => default-ret
     | a-data-expr(l, name, namet, vars, shared) => default-ret
     | a-cases(_, typ, val, branches, els) => block:
@@ -226,7 +227,7 @@ fun make-expr-flatness-env(
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
         some(0)
-      else if AA.is-a-id-letrec(val) and val.safe:
+      else if AA.is-a-id-safe-letrec(val):
         block:
           # If we're binding this name to something that's already been defined
           # just copy over the definition
@@ -328,6 +329,8 @@ fun make-lettable-flatness-env(
     | a-id-var(_, id) =>
       default-ret
     | a-id-letrec(_, id, safe) =>
+      default-ret
+    | a-id-safe-letrec(_, id) =>
       default-ret
     | a-val(_, v) =>
       default-ret
