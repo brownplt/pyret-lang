@@ -718,13 +718,33 @@ end
 # NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
 # require that magical callers provide a get-stack function that produces
 # the list of locations to render
-fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-stack-loc, src-available, maybe-ast):
-  initBlock = {
-      message: "",
+fun results-report(block-results :: List<CheckBlockResult>, include-messages, get-stack, maybe-stack-loc, src-available, maybe-ast):
+  get-message =
+    if (include-messages):
+      lam(obj):
+        obj.message
+      end
+    else:
+      lam(obj):
+        ""
+      end
+    end
+  with-message =
+    if (include-messages):
+      lam(obj, message):
+        obj.{message: message}
+      end
+    else:
+      lam(obj, message):
+        obj
+      end
+    end
+
+  initBlock = with-message({
       passed: 0,
       failed: 0,
       total: 0
-    }
+    }, "")
   initComplete = initBlock.{
       errored: 0,
       blocks: empty
@@ -751,17 +771,15 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
     end
     block-summary = for fold(s from initBlock, tr from test-reports):
       if (tr.passed):
-        s.{
-          message: s.message + "\n  " + tr.loc + ": ok",
+        with-message(s.{
           passed: s.passed + 1,
           total: s.total + 1
-        }
+        }, get-message(s) + "\n  " + tr.loc + ": ok")
       else:
-        s.{
-          message: s.message + "\n  " + tr.loc + ": failed because: \n    " + tr.reason,
+        with-message(s.{
           failed: s.failed + 1,
           total: s.total + 1
-        }
+        }, get-message(s) + "\n  " + tr.loc + ": failed because: \n    " + tr.reason)
       end
     end.{
       is-error: error-reason.is-error,
@@ -770,21 +788,27 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
     }
 
     ended-in-error = block-summary.reason
-    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
-    with-error-notification = message + ended-in-error
-    rest-of-message =
-      if block-summary.failed == 0: ""
-      else: block-summary.message
+
+    message =
+      if (include-messages):
+        prefix = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+        with-error-notification = prefix + ended-in-error
+        rest-of-message =
+          if block-summary.failed == 0: ""
+          else: block-summary.message
+          end
+        with-error-notification + rest-of-message
+      else:
+        ""
       end
 
-    {
-      message: with-error-notification + rest-of-message,
+    with-message({
       errored: summary.errored + if block-summary.is-error: 1 else: 0 end,
       passed: summary.passed + block-summary.passed,
       failed: summary.failed + block-summary.failed,
       total: summary.total + block-summary.total,
       blocks: link(block-summary, summary.blocks)
-    }
+    }, message)
   end
 
   complete-summary-with-happy-msg =
@@ -799,8 +823,14 @@ fun results-report(block-results :: List<CheckBlockResult>, get-stack, maybe-sta
       complete-summary.{message: happy-msg}
     else:
       c = complete-summary
+      prefix =
+        if (include-messages):
+          c.message + "\n\n"
+        else:
+          ""
+        end
       c.{
-        message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
+        message: prefix + "Passed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
       }
     end
 
@@ -812,7 +842,7 @@ end
 fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
   maybe-stack-loc = lam(x,y): none end
   maybe-ast = lam(x): none end
-  test-report = results-report(block-results, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
+  test-report = results-report(block-results, true, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
 
   {
     message: test-report.message,
@@ -832,11 +862,11 @@ fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stac
 end
 
 fun render-check-report(block-results):
-  results-report(block-results, lam(err): empty end).message
+  render-check-report-stack(block-results, lam(err): empty end)
 end
 
 fun render-check-report-stack(block-results :: List<CheckBlockResult>, get-stack):
   maybe-stack-loc = lam(x,y): none end
   maybe-ast = lam(x): none end
-  results-report(block-results, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
+  results-report(block-results, false, get-stack, maybe-stack-loc, SL.is-srcloc, maybe-ast)
 end
