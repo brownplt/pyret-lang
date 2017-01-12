@@ -154,7 +154,7 @@
             };
 
             if(execRt.isSuccessResult(renderedCheckResults)) {
-              resumeWith.message = execRt.getField(renderedCheckResults.result, "message");
+              resumeWith.message = execRt.unwrap(execRt.getField(renderedCheckResults.result, "message"));
               var errs = execRt.getField(renderedCheckResults.result, "errored");
               var failed = execRt.getField(renderedCheckResults.result, "failed");
               if(errs !== 0 || failed !== 0) {
@@ -165,7 +165,7 @@
             }
             else if(execRt.isFailureResult(renderedCheckResults)) {
               console.error(renderedCheckResults.exn.dict);
-              resumeWith.message = execRt.makeString("There was an exception while formatting the check results");
+              resumeWith.message = "There was an exception while formatting the check results";
               resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
             }
 
