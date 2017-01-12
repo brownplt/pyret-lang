@@ -192,18 +192,30 @@
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks, getStackP);  },
-          function(printedCheckResult) {
-            if(execRt.isSuccessResult(printedCheckResult)) {
-              var result = printedCheckResult.result;
-              var stats = printedCheckResult.stats;
+          function(renderedCheckResults) {
+            var stats = renderedCheckResults.stats;
+            if(execRt.isSuccessResult(renderedCheckResults)) {
+              var result = renderedCheckResults.result;
               var resultJSON = execRt.ffi.toJSON(result);
-              resultJSON.stats = stats;
-              var resultStringified = JSON.stringify(resultJSON, null, "\t");
-              restarter.resume(resultStringified);
-            }
-            else if(execRt.isFailureResult(result)) {
-              console.error(result.exn.dict);
-              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+              var obj = {
+                'is-error': false,
+                message: "",
+                error: null,
+                report: {
+                  result: resultJSON,
+                  stats: stats
+                }
+              };
+              restarter.resume(runtime.makeObject({
+                message: runtime.makeString(JSON.stringify(obj)),
+                'exit-code': runtime.makeNumber(EXIT_SUCCESS)
+              }));
+            } else if(execRt.isFailureResult(renderedCheckResults)) {
+              console.error(renderedCheckResults.exn);
+              restarter.resume(runtime.makeObject({
+                message: runtime.makeString("There was an exception while formatting the check results"),
+                'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+              }));
             }
           });
       });
@@ -247,6 +259,66 @@
               message: v.result,
               'exit-code': runtime.makeNumber(EXIT_ERROR)
             }));
+          } else {
+            console.error(v.exn);
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString("Load error: there was an exception while rendering the exception."),
+              'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+            }));
+          }
+        })
+      });
+    }
+    function renderErrorReport(mr) {
+      var res = getModuleResultResult(mr);
+      var execRt = mr.val.runtime;
+      runtime.pauseStack(function(restarter) {
+        // TODO(joe): This works because it's a builtin and already loaded on execRt.
+        // In what situations may this not work?
+        var rendererrorMod = execRt.modules["builtin://render-error-display"];
+        var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
+        var gf = execRt.getField;
+        execRt.runThunk(function() {
+          if(execRt.isPyretVal(res.exn.exn)
+             && execRt.isObject(res.exn.exn)
+             && execRt.hasField(res.exn.exn, "render-reason")) {
+            return execRt.safeCall(
+              function() {
+                return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
+              }, function(reason) {
+                return execRt.safeCall(
+                  function() {
+                    return gf(gf(rendererror, "values"), "display-to-string").app(
+                      reason,
+                      execRt.namespace.get("torepr"),
+                      execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
+                  }, function(str) {
+                    return execRt.string_append(
+                      str,
+                      execRt.makeString("\nStack trace:\n" +
+                                        execRt.printPyretStack(res.exn.pyretStack)));
+                  }, "errordisplay->to-string");
+              }, "error->display");
+          } else {
+            return String(res.exn + "\n" + res.exn.stack);
+          }
+        }, function(v) {
+          var stats = v.stats;
+          if(execRt.isSuccessResult(v)) {
+              var error = execRt.unwrap(v.result);
+              var obj = {
+                'is-error': true,
+                message: "The run ended in error",
+                error: error,
+                report: {
+                  result: null,
+                  stats: stats
+                }
+              };
+              restarter.resume(runtime.makeObject({
+                message: runtime.makeString(JSON.stringify(obj)),
+                'exit-code': runtime.makeNumber(0)
+              }));
           } else {
             console.error(v.exn);
             restarter.resume(runtime.makeObject({
@@ -345,6 +417,7 @@
       "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
       "render-check-report": runtime.makeFunction(renderCheckReport, "render-check-report"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
+      "render-error-report": runtime.makeFunction(renderErrorReport, "render-error-report"),
       "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
     };
     var types = {

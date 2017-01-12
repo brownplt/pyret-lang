@@ -21,7 +21,8 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
   var EXIT_ERROR_UNKNOWN = 6;
 
   var commandLineArguments = process.argv.slice(1);
-  var runMode = (commandLineArguments.indexOf("--run") > 0);
+  var runMode = (commandLineArguments.indexOf("--run") > 0) ||
+                (commandLineArguments.indexOf("--run-full-report") > 0);
 
   runtime.setParam("command-line-arguments", commandLineArguments);
 

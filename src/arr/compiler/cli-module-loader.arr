@@ -334,17 +334,32 @@ fun run-full-report(path, options):
   maybe-program = build-program(path, options)
   cases(Either) maybe-program block:
     | left(problems) =>
-      for lists.each(e from problems) block:
-        options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
-        options.log-error("\n")
-      end
-      raise("There were compilation errors")
+      rendered-problems = problems.map(
+        lam(e):
+          RED.display-to-string(e.render-reason(), torepr, empty)
+        end
+      )
+
+      obj = JSON.to-json([SD.string-dict:
+        "is-error", true,
+        "message", "There were compilation errors",
+        "error", rendered-problems,
+        "report", [SD.string-dict:
+          "result", nothing,
+          "stats", nothing
+        ]
+      ])
+
+      {
+        message: obj.serialize(),
+        exit-code: 0
+      }
     | right(program) =>
       result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
       if L.is-success-result(result):
-        print(L.render-check-report(result) + "\n")
+        L.render-check-report(result)
       else:
-        print(L.render-error-message(result))
+        L.render-error-report(result)
       end
   end
 end
