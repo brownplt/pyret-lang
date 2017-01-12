@@ -5,6 +5,13 @@
   nativeRequires: ["pyret-base/js/secure-loader"],
   provides: {},
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+    var EXIT_SUCCESS = 0;
+    var EXIT_ERROR = 1;
+    var EXIT_ERROR_RENDERING_ERROR = 2;
+    var EXIT_ERROR_DISPLAYING_ERROR = 3;
+    var EXIT_ERROR_CHECK_FAILURES = 4;
+    var EXIT_ERROR_JS = 5;
+    var EXIT_ERROR_UNKNOWN = 6;
 
 
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
@@ -140,16 +147,32 @@
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks, getStackP); },
-          function(printedCheckResult) {
-            if(execRt.isSuccessResult(printedCheckResult)) {
-              if(execRt.isString(printedCheckResult.result)) {
-                restarter.resume(runtime.makeString(execRt.unwrap(printedCheckResult.result)));
+          function(renderedCheckResults) {
+            var resumeWith = {
+              message: "Unknown error!",
+              'exit-code': EXIT_ERROR_UNKNOWN
+            };
+
+            if(execRt.isSuccessResult(renderedCheckResults)) {
+              resumeWith.message = execRt.getField(renderedCheckResults.result, "message");
+              var errs = execRt.getField(renderedCheckResults.result, "errored");
+              var failed = execRt.getField(renderedCheckResults.result, "failed");
+              if(errs !== 0 || failed !== 0) {
+                resumeWith["exit-code"] = EXIT_ERROR_CHECK_FAILURES;
+              } else {
+                resumeWith["exit-code"] = EXIT_SUCCESS;
               }
             }
-            else if(execRt.isFailureResult(printedCheckResult)) {
-              console.error(printedCheckResult.exn.dict);
-              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+            else if(execRt.isFailureResult(renderedCheckResults)) {
+              console.error(renderedCheckResults.exn.dict);
+              resumeWith.message = execRt.makeString("There was an exception while formatting the check results");
+              resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
             }
+
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString(resumeWith.message),
+              'exit-code': runtime.makeNumber(resumeWith["exit-code"])
+            }));
           });
       });
     }
@@ -220,11 +243,16 @@
           }
         }, function(v) {
           if(execRt.isSuccessResult(v)) {
-            return restarter.resume(v.result)
+            restarter.resume(runtime.makeObject({
+              message: v.result,
+              'exit-code': runtime.makeNumber(EXIT_ERROR)
+            }));
           } else {
-            console.error("load error");
-            console.error("There was an exception while rendering the exception: ", v.exn);
-
+            console.error(v.exn);
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString("Load error: there was an exception while rendering the exception."),
+              'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+            }));
           }
         })
       });
