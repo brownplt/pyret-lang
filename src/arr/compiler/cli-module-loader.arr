@@ -12,6 +12,7 @@ import string-dict as SD
 import render-error-display as RED
 import file as F
 import filelib as FS
+import parse-pyret as PP
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -331,36 +332,55 @@ fun run(path, options):
 end
 
 fun run-full-report(path, options):
-  maybe-program = build-program(path, options)
-  cases(Either) maybe-program block:
-    | left(problems) =>
-      rendered-problems = problems.map(
-        lam(e):
-          RED.display-to-string(e.render-reason(), torepr, empty)
+  maybe-ast = PP.maybe-surface-parse(F.file-to-string(path), path)
+  cases(Either) maybe-ast:
+  | left(e) =>
+    rendered-problems = [list: RED.display-to-string(e.render-reason(), torepr, empty)]
+    obj = JSON.to-json([SD.string-dict:
+      "is-error", true,
+      "message", "There were parse errors",
+      "error", rendered-problems,
+      "report", [SD.string-dict:
+        "result", nothing,
+        "stats", nothing
+      ]
+    ])
+    {
+      message: obj.serialize(),
+      exit-code: 0
+    }
+  | right(_) =>
+    maybe-program = build-program(path, options)
+    cases(Either) maybe-program block:
+      | left(problems) =>
+        rendered-problems = problems.map(
+          lam(e):
+            RED.display-to-string(e.render-reason(), torepr, empty)
+          end
+        )
+
+        obj = JSON.to-json([SD.string-dict:
+          "is-error", true,
+          "message", "There were compilation errors",
+          "error", rendered-problems,
+          "report", [SD.string-dict:
+            "result", nothing,
+            "stats", nothing
+          ]
+        ])
+
+        {
+          message: obj.serialize(),
+          exit-code: 0
+        }
+      | right(program) =>
+        result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+        if L.is-success-result(result):
+          L.render-check-report(result)
+        else:
+          L.render-error-report(result)
         end
-      )
-
-      obj = JSON.to-json([SD.string-dict:
-        "is-error", true,
-        "message", "There were compilation errors",
-        "error", rendered-problems,
-        "report", [SD.string-dict:
-          "result", nothing,
-          "stats", nothing
-        ]
-      ])
-
-      {
-        message: obj.serialize(),
-        exit-code: 0
-      }
-    | right(program) =>
-      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
-      if L.is-success-result(result):
-        L.render-check-report(result)
-      else:
-        L.render-error-report(result)
-      end
+    end
   end
 end
 
