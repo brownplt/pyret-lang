@@ -9,6 +9,7 @@ import equality as equality
 import valueskeleton as VS
 import lists as L
 import math as math
+import string-dict as sd
 
 # A StatModel is a data type for representing
 # statistical models.  We create this type so that
@@ -64,6 +65,80 @@ fun median(l :: L.List):
       else:
         (sorted.get(index_of_median) + sorted.get(index_of_median - 1)) / 2
       end
+  end
+end
+
+fun num-counts(lst :: L.List<Number>) -> sd.StringDict<Number>:
+  doc: "Returns dictionary mapping appearances of each list element"
+  cases (L.List) lst:
+    | empty => [sd.string-dict: ]
+    | link(f, r) => 
+      rest = num-counts(r)
+      key = num-to-string(f)
+      val = rest.get(key)
+
+      cases (O.Option) val:
+        | none => rest.set(key, 1)
+        | some(v) => rest.set(key, v + 1)
+      end
+  end 
+end
+
+fun force-unwrap-string(s :: String) -> Number:
+  cases (O.Option) string-to-number(s):
+    | none => raise("Mode does not appear in list") # Mode counts construction prevents this 
+    | some(v) => v
+  end
+end
+
+fun modes(lst :: L.List<Number>) -> L.List<Number>:
+  doc: "Gives every mode in a list of numbers"
+  count = num-counts(lst)
+  numbers = count.keys().to-list()
+  
+  cases (L.List) numbers:
+    | empty => raise("List is empty")
+    | link(first, rest) =>
+      
+      fun aggregate-modes(prev :: L.List<String>, current :: String) -> L.List<String>:
+        current-count :: Number = count.get-value(current)
+        prev-count :: Number = count.get-value(prev.first)
+        
+        if current-count > prev-count:
+          [L.list: current]
+        else if current-count == prev-count:
+          prev.push(current)
+        else:
+          prev
+        end
+      end
+      
+      m-list = L.fold(aggregate-modes, [L.list: first], rest)
+      L.map(force-unwrap-string, m-list).reverse()
+  end
+end
+
+fun mode(lst :: L.List<Number>):
+  doc: "Gives the mode for a list of numbers.  If multiple modes exist in list, may return any of them"
+  count = num-counts(lst)
+  numbers = count.keys().to-list()
+  
+  cases (L.List) numbers:
+    | empty => raise("List is empty")
+    | link(first, rest) =>
+      
+      fun compare-counts(prev :: String, current :: String) -> String:
+        current-count :: Number = count.get-value(current)
+        prev-count :: Number = count.get-value(prev)
+        if current-count > prev-count:
+          current
+        else:
+          prev
+        end
+      end
+      
+      m = L.fold(compare-counts, first, rest)
+      force-unwrap-string(m)
   end
 end
 
