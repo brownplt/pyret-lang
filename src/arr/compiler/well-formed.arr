@@ -319,8 +319,11 @@ fun wf-table-headers(loc, headers):
     add-error(C.table-empty-header(loc))
     true
   else:
-    for each(i from range(0, num-headers)):
+    for each(i from range(0, num-headers)) block:
       hi = headers.get(i)
+      when (reserved-names.has-key(hi.name)):
+        reserved-name(hi.l, hi.name)
+      end
       for each(j from range(i + 1, num-headers)):
         hj = headers.get(j)
         when hi.name == hj.name:
