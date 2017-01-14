@@ -179,6 +179,12 @@ check "table loading checks":
       + "end") satisfies CS.is-table-sanitizer-bad-column
 end
 
+check "table headers":
+  c("table: a, b, a row: 1, 2, 3 end") satisfies CS.is-table-duplicate-column-name
+  c("load-table: a, b, a source: src end") satisfies CS.is-table-duplicate-column-name
+  c("load-table: timestamp, name, class source: src end") satisfies CS.is-reserved-name
+end
+
 check "tuple bindings":
   cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
   cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
