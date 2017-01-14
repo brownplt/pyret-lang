@@ -139,8 +139,8 @@
         var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-results-stack");
         var getStack = function(err) {
-          console.error("The error is: ", err);
-          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+          // console.error("The error is: ", err);
+          var locArray = err.val.pyretStack.map(execRt.makeSrcloc);
           var locList = execRt.ffi.makeList(locArray);
           return locList;
         };
@@ -164,7 +164,7 @@
               }
             }
             else if(execRt.isFailureResult(renderedCheckResults)) {
-              console.error(renderedCheckResults.exn.dict);
+              console.error(renderedCheckResults.exn);
               resumeWith.message = "There was an exception while formatting the check results";
               resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
             }
