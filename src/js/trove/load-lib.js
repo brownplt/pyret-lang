@@ -184,8 +184,8 @@
         var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-report-stack");
         var getStack = function(err) {
-          console.error("The error is: ", err);
-          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+          // console.error("The error is: ", err);
+          var locArray = err.val.pyretStack.map(execRt.makeSrcloc);
           var locList = execRt.ffi.makeList(locArray);
           return locList;
         };
