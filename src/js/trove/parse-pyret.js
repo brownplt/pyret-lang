@@ -1314,7 +1314,7 @@
       "raises-violates":   function(l){return RUNTIME.getField(ast, "s-op-raises-violates").app(l);},
     }
 
-    function parseDataRaw(data, fileName, logError) {
+    function parseDataRaw(data, fileName) {
       try {
         const toks = tokenizer.Tokenizer;
         const grammar = parser.PyretGrammar;
@@ -1326,11 +1326,9 @@
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
           var nextTok = toks.curTok; 
-          if (logError) {
-            console.error("There were " + countParses + " potential parses.\n" +
-                          "Parse failed, next token is " + nextTok.toString(true) +
-                          " at " + fileName + ", " + nextTok.pos.toString(true));
-          }
+          console.error("There were " + countParses + " potential parses.\n" +
+                        "Parse failed, next token is " + nextTok.toString(true) +
+                        " at " + fileName + ", " + nextTok.pos.toString(true));
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "UNTERMINATED-STRING")
@@ -1366,28 +1364,11 @@
       RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
-      return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName), true);
-    }
-
-    function maybeParsePyret(data, fileName) {
-      RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse");
-      RUNTIME.checkString(data);
-      RUNTIME.checkString(fileName);
-      try {
-       var parsed = parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName), false);
-       return RUNTIME.ffi.makeRight(parsed);
-      } catch (e) {
-        if (RUNTIME.isPyretException(e)) {
-          return RUNTIME.ffi.makeLeft(e.exn);
-        } else {
-          throw e;
-        }
-      }
+      return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
     return RUNTIME.makeModuleReturn({
-          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
-          'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
+          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
         }, {});
   }
 })
