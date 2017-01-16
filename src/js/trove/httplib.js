@@ -11,7 +11,6 @@
 
       var reqFields = {
         protocol: RUNTIME.unwrap(gf(request, "req-protocol")),
-        port: RUNTIME.unwrap(gf(request, "req-port")),
         hostname: RUNTIME.unwrap(gf(request, "req-hostname")),
         path: RUNTIME.unwrap(gf(request, "req-path")),
         method: RUNTIME.unwrap(gf(request, "req-method"))

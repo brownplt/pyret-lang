@@ -6,7 +6,6 @@ import httplib as HTTP
 
 type Request = {
   req-protocol :: String,
-  req-port :: Number,
   req-hostname :: String,
   req-path :: String,
   req-method :: String
@@ -21,7 +20,6 @@ type Response = {
 fun make-get-request(hostname :: String, path :: String) -> Request:
   {
     req-protocol: 'http:',
-    req-port: 80,
     req-hostname: hostname,
     req-path: path,
     req-method: 'GET'
