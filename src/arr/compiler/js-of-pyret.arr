@@ -353,12 +353,25 @@ end
 fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, env :: C.CompileEnvironment) -> SD.StringDict<Number> block:
 
   sd = SD.make-mutable-string-dict()
-
   for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
     when C.is-bo-module(vb.origin):
-      cases(Option) vb.origin.mod:
-        | none => nothing
+      cases(Option) vb.origin.mod block:
+        | none =>
+          when A.is-s-global(vb.atom) block:
+            name = vb.atom.toname()
+            uri = env.globals.values.get-value(name)
+            provides-opt = env.mods.get(uri)
+            cases (Option) provides-opt:
+              | none => nothing
+              | some(provides) =>
+                ve = provides.values.get-value(name)
+                cases(C.ValueExport) ve:
+                  | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
+                  | else => nothing
+                end
+            end
+          end
         | some(import-type) =>
           dep = AU.import-to-dep(import-type).key()
           cases(Option) env.mods.get(dep):
