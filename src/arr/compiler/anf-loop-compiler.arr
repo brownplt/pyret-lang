@@ -78,6 +78,7 @@ j-not = J.j-not
 j-instanceof = J.j-instanceof
 j-ternary = J.j-ternary
 j-null = J.j-null
+j-undefined = J.j-undefined
 j-parens = J.j-parens
 j-switch = J.j-switch
 j-case = J.j-case
@@ -147,6 +148,7 @@ RUNTIME = j-id(const-id("R"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
 THIS = j-id(const-id("this"))
 ARGUMENTS = j-id(const-id("arguments"))
+RESTARGS = j-id(const-id("args"))
 
 j-bool = lam(b):
   if b: j-true else: j-false end
@@ -294,23 +296,19 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   end
 end
 
-fun arity-check(loc-expr, arity :: Number):
-  #|[list:
-    j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
-      j-block([list:
-          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS])]))
-      ]))]|#
-  len = j-id(compiler-name("l"))
-  iter = j-id(compiler-name("i"))
-  t = j-id(compiler-name("t"))
+fun arity-check(loc-expr, arity :: Number, args):
+  # If the arity is 0, a special $$resumer is added as the solo argument.
+  # It had better be _undefined_ on the first call!
+  lastarg = j-id(formal-shadow-name(args.last().id))
+  check-for-undef = if arity == 0: j-neq else: j-eq end
+  no-restargs = j-binop(j-dot(RESTARGS, "length"), j-neq, j-num(0))
+  no-underflow-or-bad-0 = j-binop(lastarg, check-for-undef, j-undefined)
+  condition = j-binop(no-restargs, j-or, no-underflow-or-bad-0)
   [clist:
-    j-var(len.id, j-dot(ARGUMENTS, "length")),
-    j-if1(j-binop(len, j-neq, j-num(arity)),
-      j-block([clist:
-          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
-          j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
-            j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
-          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
+    j-if1(condition,
+      j-block1(
+          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), 
+            j-method(j-list(true, CL.map_list(j-id, args.map(_.id).map(js-id-of))), "concat", [clist: RESTARGS])]))))]
 end
 
 no-vars = D.make-mutable-string-dict
@@ -536,7 +534,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   trace-enter = rt-method("traceEnter", entryExit)
   first-entry-stmts = cases(Option) opt-arity:
     | some(arity) =>
-      arity-check(local-compiler.get-loc(l), arity) +
+      arity-check(local-compiler.get-loc(l), arity, args) +
       copy-formals-to-args +
       if show-stack-trace:
         cl-sing(trace-enter)
@@ -1134,7 +1132,7 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
     [clist:
       j-var(temp,
         j-fun(J.next-j-fun-id(),
-          CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
+          CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args) ^ cl-snoc(_, const-id("...args")),
           compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat)))])
 end
 
@@ -1335,7 +1333,7 @@ compiler-visitor = {
     full-var =
       j-var(temp-full,
         j-fun(J.next-j-fun-id(),
-          CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
+          CL.map_list(lam(a): formal-shadow-name(a.id) end, args) ^ cl-snoc(_, const-id("...args")),
           compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true, false)
         ))
     method-expr = if len < 9:
@@ -1423,9 +1421,9 @@ compiler-visitor = {
         pred-name,
         rt-method("makeFunction", [clist:
             j-fun(J.next-j-fun-id(),
-              [clist: val],
+              [clist: val, const-id("...args")],
               j-block(
-                arity-check(self.get-loc(loc), 1) +
+                arity-check(self.get-loc(loc), 1, [list: val]) +
                 [clist: j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])]))]
                 )
               ),
