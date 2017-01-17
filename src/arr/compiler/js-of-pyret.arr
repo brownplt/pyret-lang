@@ -97,7 +97,7 @@ fun make-expr-data-env(
           when is-some(type-name-opt):
             alias-to-type-name.set-now(bind.id.key(), type-name-opt.value)
           end
-        else if AA.is-a-dot(val) and AA.is-a-id(val.obj):
+        else if AA.is-a-dot(val) and AA.is-a-id-safe-letrec(val.obj):
           # Check for: xyz = Type.is-variant or xyz = Type.flat-constructor
           type-name-opt = alias-to-type-name.get-now(val.obj.id.key())
           when is-some(type-name-opt):
@@ -156,12 +156,18 @@ fun make-lettable-data-env(
       end
     | a-assign(_, id, value) =>
       block:
-        when AA.is-a-id(value) and sd.has-key-now(value.id.key()):
-          sd.set-now(id.key(), sd.get-value-now(value.id.key()))
+        when AA.is-a-id(value) block:
+          when sd.has-key-now(value.id.key()):
+            sd.set-now(id.key(), sd.get-value-now(value.id.key()))
+          end
+
+          when alias-to-type-name.has-key-now(value.id.key()):
+            val-type = alias-to-type-name.get-value-now(value.id.key())
+            alias-to-type-name.set-now(id.key(), val-type)
+          end
         end
 
-        # FIXME: Do I need to check if value.safe is true here?
-        when AA.is-a-id(value):
+        when AA.is-a-id-safe-letrec(value):
           type-name-opt = alias-to-type-name.get-now(value.id.key())
           when is-some(type-name-opt):
             alias-to-type-name.set-now(id.key(), type-name-opt.value)
@@ -394,7 +400,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     | a-program(_, prov, imports, body) => block:
         make-expr-data-env(body, sd,
           SD.make-mutable-string-dict(), SD.make-mutable-string-dict())
-        #print("data env: " + tostring(sd) + "\n\n")
         make-expr-flatness-env(body, sd)
         #print("flatness env: " + tostring(sd) + "\n\n")
         sd
@@ -473,7 +478,7 @@ end
 fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
 #  each(println, program-ast.tosource().pretty(80))
   anfed = N.anf-program(program-ast)
-#  each(println, anfed.tosource().pretty(80))
+  #each(println, anfed.tosource().pretty(80))
   flatness-env = make-prog-flatness-env(anfed, bindings, env)
   flat-provides = get-flat-provides(provides, flatness-env, anfed)
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
