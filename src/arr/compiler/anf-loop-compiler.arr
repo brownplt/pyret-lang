@@ -1110,7 +1110,9 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     b :: Option<BindType>,
     opt-body :: Option<N.AExpr>,
     app-info :: A.AppInfo):
-  app-compiler = if N.is-a-id(f) and is-function-flat(compiler.flatness-env, f.id.key()):
+
+  is-safe-id = N.is-a-id(f) or N.is-a-id-safe-letrec(f)
+  app-compiler = if is-safe-id and is-function-flat(compiler.flatness-env, f.id.key()):
     compile-flat-app
   else:
     compile-split-app
@@ -1395,6 +1397,10 @@ compiler-visitor = {
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
+  end,
+  method a-id-safe-letrec(self, l :: Loc, id :: A.Name):
+    s = j-id(js-id-of(id))
+    c-exp(j-dot(s, "$var"), cl-empty)
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     s = j-id(js-id-of(id))

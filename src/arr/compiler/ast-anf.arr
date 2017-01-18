@@ -474,6 +474,9 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
+  | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
+    method label(self): "a-id-safe-letrec" end,
+    method tosource(self): PP.str("~" + tostring(self.id)) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -576,6 +579,7 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
+    | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
   end
 end
 
@@ -718,6 +722,9 @@ default-map-visitor = {
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     a-id-letrec(l, id, safe)
+  end,
+  method a-id-safe-letrec(self, l :: Loc, id :: A.Name):
+    a-id-safe-letrec(l, id)
   end
 }
 
@@ -949,6 +956,9 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-id-letrec(_, id, _) =>
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
+    | a-id-safe-letrec(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far

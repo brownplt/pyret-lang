@@ -96,7 +96,7 @@ fun make-expr-data-env(
           type-name-to-variants.set-now(bind.id.key(), val.variants)
           # Make self-mapping entry so we know it's a "type" name
           alias-to-type-name.set-now(bind.id.key(), bind.id.key())
-        else if AA.is-a-id-letrec(val) and val.safe:
+        else if AA.is-a-id-safe-letrec(val):
           # If we say
           # x = Type
           # y = x
@@ -106,7 +106,7 @@ fun make-expr-data-env(
           when is-some(type-name-opt):
             alias-to-type-name.set-now(bind.id.key(), type-name-opt.value)
           end
-        else if AA.is-a-dot(val) and AA.is-a-id(val.obj):
+        else if AA.is-a-dot(val) and AA.is-a-id-safe-letrec(val.obj):
           # Check for: xyz = Type.is-variant or xyz = Type.flat-constructor
           type-name-opt = alias-to-type-name.get-now(val.obj.id.key())
           when is-some(type-name-opt):
@@ -165,12 +165,18 @@ fun make-lettable-data-env(
       end
     | a-assign(_, id, value) =>
       block:
-        when AA.is-a-id(value) and sd.has-key-now(value.id.key()):
-          sd.set-now(id.key(), sd.get-value-now(value.id.key()))
+        when AA.is-a-id(value) block:
+          when sd.has-key-now(value.id.key()):
+            sd.set-now(id.key(), sd.get-value-now(value.id.key()))
+          end
+
+          when alias-to-type-name.has-key-now(value.id.key()):
+            val-type = alias-to-type-name.get-value-now(value.id.key())
+            alias-to-type-name.set-now(id.key(), val-type)
+          end
         end
 
-        # FIXME: Do I need to check if value.safe is true here?
-        when AA.is-a-id(value):
+        when AA.is-a-id-safe-letrec(value):
           type-name-opt = alias-to-type-name.get-now(value.id.key())
           when is-some(type-name-opt):
             alias-to-type-name.set-now(id.key(), type-name-opt.value)
@@ -193,6 +199,7 @@ fun make-lettable-data-env(
     | a-method(_, name, args, ret, body) => default-ret
     | a-id-var(_, id) => default-ret
     | a-id-letrec(_, id, safe) => default-ret
+    | a-id-safe-letrec(_, id) => default-ret
     | a-val(_, v) => default-ret
     | a-data-expr(l, name, namet, vars, shared) => default-ret
     | a-cases(_, typ, val, branches, els) => block:
@@ -235,7 +242,7 @@ fun make-expr-flatness-env(
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
         some(0)
-      else if AA.is-a-id-letrec(val) and val.safe:
+      else if AA.is-a-id-safe-letrec(val):
         block:
           # If we're binding this name to something that's already been defined
           # just copy over the definition
@@ -338,6 +345,8 @@ fun make-lettable-flatness-env(
       default-ret
     | a-id-letrec(_, id, safe) =>
       default-ret
+    | a-id-safe-letrec(_, id) =>
+      default-ret
     | a-val(_, v) =>
       default-ret
     | a-data-expr(l, name, namet, vars, shared) =>
@@ -359,12 +368,25 @@ end
 fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, env :: C.CompileEnvironment) -> SD.StringDict<Number> block:
 
   sd = SD.make-mutable-string-dict()
-
   for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
     when C.is-bo-module(vb.origin):
-      cases(Option) vb.origin.mod:
-        | none => nothing
+      cases(Option) vb.origin.mod block:
+        | none =>
+          when A.is-s-global(vb.atom) block:
+            name = vb.atom.toname()
+            uri = env.globals.values.get-value(name)
+            provides-opt = env.mods.get(uri)
+            cases (Option) provides-opt:
+              | none => nothing
+              | some(provides) =>
+                ve = provides.values.get-value(name)
+                cases(C.ValueExport) ve:
+                  | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
+                  | else => nothing
+                end
+            end
+          end
         | some(import-type) =>
           dep = AU.import-to-dep(import-type).key()
           cases(Option) env.mods.get(dep):
@@ -387,7 +409,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     | a-program(_, prov, imports, body) => block:
         make-expr-data-env(body, sd,
           SD.make-mutable-string-dict(), SD.make-mutable-string-dict())
-        #print("data env: " + tostring(sd) + "\n\n")
         make-expr-flatness-env(body, sd)
         #print("flatness env: " + tostring(sd) + "\n\n")
         sd
@@ -466,7 +487,7 @@ end
 fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
 #  each(println, program-ast.tosource().pretty(80))
   anfed = N.anf-program(program-ast)
-#  each(println, anfed.tosource().pretty(80))
+  #each(println, anfed.tosource().pretty(80))
   flatness-env = make-prog-flatness-env(anfed, bindings, env)
   flat-provides = get-flat-provides(provides, flatness-env, anfed)
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))

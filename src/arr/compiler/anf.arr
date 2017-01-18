@@ -410,7 +410,11 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       k(N.a-id-var(l, id))
 
     | s-id-letrec(l, id, safe) =>
-      k(N.a-id-letrec(l, id, safe))
+      if safe:
+        k(N.a-val(l, N.a-id-safe-letrec(l, id)))
+      else:
+        k(N.a-id-letrec(l, id, safe))
+      end
 
     | s-get-bang(l, obj, field) =>
       anf-name(obj, "anf_get_bang", lam(t): k(N.a-get-bang(l, t, field)) end)
