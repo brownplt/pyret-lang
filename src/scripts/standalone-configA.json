@@ -30,6 +30,7 @@
       "s-expression": "empty:",
       "seedrandom": "empty:",
       "websocket": "empty:",
-      "source-map": "empty:"
+      "source-map": "empty:",
+      "stacktrace-js": "empty:"
     }
 }

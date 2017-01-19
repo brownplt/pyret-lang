@@ -3,8 +3,9 @@ define("pyret-base/js/runtime",
    "pyret-base/js/js-numbers",
    "pyret-base/js/codePoint",
    "pyret-base/js/runtime-util",
-   "seedrandom"],
-function (Namespace, jsnums, codePoint, util, seedrandom) {
+   "seedrandom",
+   "stacktrace-js"],
+function (Namespace, jsnums, codePoint, util, seedrandom, stacktrace) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -1800,10 +1801,12 @@ function (Namespace, jsnums, codePoint, util, seedrandom) {
       if(thisRuntime.isObject(val) &&
          (thisRuntime.hasField(val, "render-reason")
           || thisRuntime.hasField(val, "render-fancy-reason"))){
-        throw new PyretFailException(val);
+        var err = new PyretFailException(val);
       } else {
-        throw new PyretFailException(thisRuntime.ffi.makeUserException(val));
+        var err = new PyretFailException(thisRuntime.ffi.makeUserException(val));
       }
+      err.synthStack = stacktrace.get();
+      throw err;
     };
     /** type {!PFunction} */
     // function raiseUserException(err) {
@@ -3357,6 +3360,7 @@ function (Namespace, jsnums, codePoint, util, seedrandom) {
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
+            debugger;
 //            console.error("Exceptions should no longer be thrown: ", e);
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
