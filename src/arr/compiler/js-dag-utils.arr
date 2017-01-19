@@ -197,7 +197,7 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
     | j-binop(left, op, right) => 
       shadow so-far = used-vars-jexpr(left, so-far)
       used-vars-jexpr(right, so-far)
-    | j-fun(id, args, body) =>
+    | j-fun(id, _, args, body) =>
       start = time-now()
       total-before = j-fun-difference
       declared =

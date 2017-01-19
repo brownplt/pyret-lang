@@ -30,6 +30,7 @@
       "requirejs": "empty:",
       "s-expression": "empty:",
       "seedrandom": "empty:",
-      "websocket": "empty:"
+      "websocket": "empty:",
+      "stacktrace-js": "empty:"
     }
 }
