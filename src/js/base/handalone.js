@@ -243,6 +243,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
+      if (runtime.isPyretException(result.exn) && runtime.ffi.isExit(result.exn.exn)) {
+        var exitCode = result.exn.exn.dict.value;
+        process.exit(exitCode);
+      }
       console.error("The run ended in error:");
       try {
         renderErrorMessageAndExit(runtime, result);

@@ -590,6 +590,7 @@
 
       userBreak: gf(ERR, "user-break"),
       isUserBreak: errPred("is-user-break"),
+      isExit: errPred("is-exit"),
 
       errPred: errPred,
 

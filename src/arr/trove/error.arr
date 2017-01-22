@@ -1787,6 +1787,14 @@ data RuntimeError:
     method _output(self):
       VS.vs-value(self.value)
     end
+
+  | exit(value :: Number) with:
+    method render-fancy-reason(self, _, _):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error: ED.text("exit code: "), ED.embed(self.value)]
+    end
 end
 
 data ParseError:

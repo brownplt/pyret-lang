@@ -1,6 +1,7 @@
 #lang pyret
 
 import cmdline as C
+import error as ERR
 import file as F
 import render-error-display as RED
 import string-dict as D
@@ -10,7 +11,10 @@ import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
 
-fun main(args):
+success-code = 0
+failure-code = 1
+
+fun main(args :: List<String>) -> Number:
   options = [D.string-dict:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
@@ -89,7 +93,8 @@ fun main(args):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
       if not(is-empty(rest)):
-        raise("No longer supported")
+        _ = print("No longer supported")
+        failure-code
       else:
         if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
@@ -97,7 +102,7 @@ fun main(args):
           else:
             r.get-value("build-runnable") + ".jarr"
           end
-          CLI.build-runnable-standalone(
+          _ = CLI.build-runnable-standalone(
               r.get-value("build-runnable"),
               r.get-value("require-config"),
               outfile,
@@ -113,11 +118,14 @@ fun main(args):
                 compiled-cache: compiled-dir,
                 display-progress: display-progress
               })
+          success-code
         else if r.has-key("serve"):
           port = r.get-value("port")
           S.serve(port)
+          success-code
         else if r.has-key("build-standalone"):
-          raise("Use build-runnable instead of build-standalone")
+          _ = print("Use build-runnable instead of build-standalone\n")
+          failure-code
           #|
           CLI.build-require-standalone(r.get-value("build-standalone"),
               CS.default-compile-options.{
@@ -151,25 +159,30 @@ fun main(args):
                 print-error(tostring(e))
                 print-error("\n")
               end
-              raise("There were compilation errors")
+              _ = print("There were compilation errors\n")
+              failure-code
             end
           end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"), CS.default-compile-options.{
+          _ = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               compile-module: true,
               display-progress: display-progress,
               check-all: check-all
             })
+          success-code
         else:
-          print(C.usage-info(options).join-str("\n"))
-          raise("Unknown command line options")
+          _ = print(C.usage-info(options).join-str("\n"))
+          _ = print("Unknown command line options\n")
+          failure-code
         end
       end
     | arg-error(message, partial) =>
-      print(message + "\n")
-      print(C.usage-info(options).join-str("\n"))
+      _ = print(message + "\n")
+      _ = print(C.usage-info(options).join-str("\n"))
+      failure-code
   end
 end
 
-_ = main(C.args)
+exit-code = main(C.args)
+raise(ERR.exit(exit-code))
