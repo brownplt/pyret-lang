@@ -591,6 +591,7 @@
       userBreak: gf(ERR, "user-break"),
       isUserBreak: errPred("is-user-break"),
       isExit: errPred("is-exit"),
+      isExitQuiet: errPred("is-exit-quiet"),
 
       errPred: errPred,
 

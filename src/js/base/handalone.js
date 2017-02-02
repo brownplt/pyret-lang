@@ -236,6 +236,20 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     }
   }
 
+  function isExit(execRt, result) {
+    var exn = result.exn.exn;
+    return execRt.ffi.isExit(exn) || execRt.ffi.isExitQuiet(exn);
+  }
+
+  function processExit(execRt, exn) {
+    var exitCode = execRt.getField(exn, "code");
+    if (execRt.ffi.isExit(exn)) {
+      var message = "Exited with code " + exitCode.toString() + "\n";
+      process.stdout.write(message);
+    }
+    process.exit(exitCode);
+  }
+
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
@@ -243,9 +257,9 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
-      if (runtime.isPyretException(result.exn) && runtime.ffi.isExit(result.exn.exn)) {
-        var exitCode = result.exn.exn.dict.value;
-        process.exit(exitCode);
+
+      if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
+        processExit(runtime, result.exn.exn);
       }
       console.error("The run ended in error:");
       try {

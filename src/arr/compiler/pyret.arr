@@ -93,7 +93,7 @@ fun main(args :: List<String>) -> Number:
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
       if not(is-empty(rest)):
-        _ = print("No longer supported")
+        _ = print("No longer supported\n")
         failure-code
       else:
         if r.has-key("build-runnable") block:
@@ -153,7 +153,7 @@ fun main(args :: List<String>) -> Number:
               display-progress: display-progress
             })
           failures = filter(CS.is-err, result.loadables)
-          when is-link(failures):
+          if is-link(failures):
             for each(f from failures) block:
               for lists.each(e from f.errors) block:
                 print-error(tostring(e))
@@ -162,6 +162,8 @@ fun main(args :: List<String>) -> Number:
               _ = print("There were compilation errors\n")
               failure-code
             end
+          else:
+            success-code
           end
         else if r.has-key("run"):
           _ = CLI.run(r.get-value("run"), CS.default-compile-options.{
@@ -185,4 +187,4 @@ fun main(args :: List<String>) -> Number:
 end
 
 exit-code = main(C.args)
-raise(ERR.exit(exit-code))
+raise(ERR.exit-quiet(exit-code))
