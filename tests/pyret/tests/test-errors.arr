@@ -333,4 +333,16 @@ check:
   constr-err = get-err(lam(): fresh-constr.foo end)
   constr-err satisfies E.is-lookup-constructor-not-object
 
+  exit-err-zero = get-err(lam(): raise(E.exit(0)) end)
+  exit-err-zero satisfies E.is-exit
+
+  exit-err-one = get-err(lam(): raise(E.exit(1)) end)
+  exit-err-one satisfies E.is-exit
+
+  exit-quiet-err-zero = get-err(lam(): raise(E.exit-quiet(0)) end)
+  exit-quiet-err-zero satisfies E.is-exit-quiet
+
+  exit-quiet-err-one = get-err(lam(): raise(E.exit-quiet(1)) end)
+  exit-quiet-err-one satisfies E.is-exit-quiet
+
 end
