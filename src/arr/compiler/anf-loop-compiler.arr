@@ -485,6 +485,11 @@ var total-time = 0
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean) -> J.JBlock block:
+  shadow is-flat = if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+    true
+  else:
+    is-flat
+  end
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -1125,17 +1130,21 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
-fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  flatness-opt-opt = flatness-env.get(fun-name)
-  flatness-opt = cases (Option) flatness-opt-opt:
-    | some(f-opt) => f-opt
-    | none => none
+fun is-function-flat(compiler, fun-name :: String) -> Boolean:
+  threshold = compiler.options.flatness-threshold
+  if threshold == CS.INFINITE-FLATNESS-VALUE:
+    true
+  else:
+    flatness-opt-opt = compiler.flatness-env.get(fun-name)
+    cases (Option) flatness-opt-opt:
+      | some(f-opt) => is-some(f-opt) and (f-opt.value < threshold)
+      | none => false
+    end
   end
-  is-some(flatness-opt) and (flatness-opt.value <= 5)
 end
 
 fun is-id-fn-name(flatness-env :: D.StringDict<Option<Number>>, name :: String) -> Boolean:
-    is-some(flatness-env.get(name))
+  flatness-env.has-key(name)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
@@ -1145,7 +1154,9 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     app-info :: A.AppInfo):
 
   is-safe-id = N.is-a-id(f) or N.is-a-id-safe-letrec(f)
-  app-compiler = if is-safe-id and is-function-flat(compiler.flatness-env, f.id.key()):
+  app-compiler = if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+    compile-flat-app
+  else if is-safe-id and is-function-flat(compiler, f.id.key()):
     compile-flat-app
   else:
     compile-split-app
@@ -1158,7 +1169,7 @@ end
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
   is-flat = if is-some(bind-opt) and is-b-let(bind-opt.value):
     bind = bind-opt.value.value
-    is-function-flat(compiler.flatness-env, bind.id.key())
+    is-function-flat(compiler, bind.id.key())
   else:
     false
   end

@@ -41,6 +41,9 @@ is-s-block = A.is-s-block
 
 type Loc = SL.Srcloc
 
+DEFAULT-FLATNESS-THRESHOLD = 0
+INFINITE-FLATNESS-VALUE = -1
+
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
     with:
@@ -2197,7 +2200,8 @@ type CompileOptions = {
   standalone-file :: String,
   log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
-  before-compile :: Function
+  before-compile :: Function,
+  flatness-threshold :: Number
 }
 
 default-compile-options = {
@@ -2227,6 +2231,7 @@ default-compile-options = {
   end,
   method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
+  flatness-threshold: DEFAULT-FLATNESS-THRESHOLD,
   standalone-file: "src/js/base/handalone.js"
 }
 
