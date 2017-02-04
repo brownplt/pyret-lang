@@ -1099,7 +1099,7 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compile-split-app
   end
 
-  is-fn = N.is-a-id(f) and is-id-fn-name(compiler.flatness-env, f.id.key())
+  is-fn = is-safe-id and is-id-fn-name(compiler.flatness-env, f.id.key())
   app-compiler(l, compiler, b, f, args, opt-body, app-info, is-fn)
 end
 
