@@ -242,6 +242,7 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 		--build-runnable tests/all.arr \
     --outfile tests/pyret/all.jarr \
 		-check-all
+		--flatness-threshold 5
 
 .PHONY : all-pyret-test
 all-pyret-test: tests/pyret/all.jarr parse-test
