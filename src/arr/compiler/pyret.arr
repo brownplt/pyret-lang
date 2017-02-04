@@ -92,8 +92,8 @@ fun main(args :: List<String>) -> Number:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
-      if not(is-empty(rest)):
-        _ = print("No longer supported\n")
+      if not(is-empty(rest)) block:
+        print-error("No longer supported\n")
         failure-code
       else:
         if r.has-key("build-runnable") block:
@@ -102,7 +102,7 @@ fun main(args :: List<String>) -> Number:
           else:
             r.get-value("build-runnable") + ".jarr"
           end
-          _ = CLI.build-runnable-standalone(
+          CLI.build-runnable-standalone(
               r.get-value("build-runnable"),
               r.get-value("require-config"),
               outfile,
@@ -124,7 +124,7 @@ fun main(args :: List<String>) -> Number:
           S.serve(port)
           success-code
         else if r.has-key("build-standalone"):
-          _ = print("Use build-runnable instead of build-standalone\n")
+          print-error("Use build-runnable instead of build-standalone\n")
           failure-code
           #|
           CLI.build-require-standalone(r.get-value("build-standalone"),
@@ -153,15 +153,15 @@ fun main(args :: List<String>) -> Number:
               display-progress: display-progress
             })
           failures = filter(CS.is-err, result.loadables)
-          if is-link(failures):
+          if is-link(failures) block:
             for each(f from failures) block:
               for lists.each(e from f.errors) block:
                 print-error(tostring(e))
                 print-error("\n")
               end
-              _ = print("There were compilation errors\n")
-              failure-code
+              print-error("There were compilation errors\n")
             end
+            failure-code
           else:
             success-code
           end
