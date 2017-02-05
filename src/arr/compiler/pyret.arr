@@ -1,10 +1,10 @@
 #lang pyret
 
 import cmdline as C
-import error as ERR
 import file as F
 import render-error-display as RED
 import string-dict as D
+import system as SYS
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
@@ -187,4 +187,4 @@ fun main(args :: List<String>) -> Number:
 end
 
 exit-code = main(C.args)
-raise(ERR.exit-quiet(exit-code))
+SYS.exit-quiet(exit-code)
