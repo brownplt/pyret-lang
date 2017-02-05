@@ -305,6 +305,10 @@ benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
 docs-test: docs
 	cd docs/written && scribble --htmls index.scrbl
 
+.PHONY : ralloc-perf
+ralloc-perf: tools/ralloc-perf
+	cd tools/ralloc-perf && ./run-tests.sh
+
 .PHONY : clean
 clean:
 	$(call RMDIR,$(PHASEA))

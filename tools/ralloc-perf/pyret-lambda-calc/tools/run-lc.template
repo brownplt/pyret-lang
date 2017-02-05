@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+SCRIPT_NAME=$(basename $0)
+SCRIPT_DIR=$(dirname $0)
+JARR_NAME=${SCRIPT_NAME%%.template}.jarr
+PYRET_DIR=pyret-lang
+
+if [ ! -f "${SCRIPT_DIR}/${JARR_NAME}" ]; then
+  >&2 echo "Missing required file: ${JARR_NAME}"
+  >&2 echo "Either run or re-run make, and make sure not to run the template."
+  exit 1
+fi
+
+if [ ! -d "${SCRIPT_DIR}/../${PYRET_DIR}" ]; then
+  >&2 echo "Cannot find path to Pyret directory. Be sure not to move this file from ${SCRIPT_DIR}"
+  exit 1
+fi
+
+NODE_PATH=${NODE_PATH}:${SCRIPT_DIR}/../${PYRET_DIR}/node_modules
+exec node -max-old-space-size=8192 ${SCRIPT_DIR}/${JARR_NAME} "$@"
