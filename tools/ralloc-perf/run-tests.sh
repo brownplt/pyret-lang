@@ -19,4 +19,13 @@ test-lambda-calc() {
     pyret-ar-print --diff ${PHASE0_JARR} ${PHASEA_JARR}
 }
 
+test-pyret-compiler() {
+    (cd ${SCRIPT_DIR}/../.. && make phaseB)
+    PHASEA_JARR=${SCRIPT_DIR}/../../build/phaseA/pyret.jarr
+    PHASEB_JARR=${SCRIPT_DIR}/../../build/phaseB/pyret.jarr
+    echo "Pyret Compiler Results (Phase A -> Phase B)"
+    pyret-ar-print --diff ${PHASEA_JARR} ${PHASEB_JARR}
+}
+
 test-lambda-calc
+test-pyret-compiler
