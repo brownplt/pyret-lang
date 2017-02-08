@@ -903,6 +903,8 @@ fun lookup-id(blame-loc :: A.Loc, id-key :: String, id-expr :: Expr, context :: 
   end
 end
 
+# TODO(MATT): this should require unifying of same-named methods
+#             should it require unifying types of same-named members?
 # Type checks data types
 # Returns the list of all relevant letrec bindings
 # Use the context returned from this function
