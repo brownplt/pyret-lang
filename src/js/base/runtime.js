@@ -827,6 +827,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new PMethod(app8, meth, name);
     }
 
+    function maybeMethodCall(obj, fieldname, loc, ...args) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, ...args);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(...args);
+      }
+    }
+
     function makeMethodFromFun(meth, name) {
       return new PMethod(appN, meth, name);
     }
@@ -5521,6 +5535,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'makeMethod8'   : makeMethod8,
       'makeMethodN'   : makeMethodN,
       'makeMethodFromFun' : makeMethodFromFun,
+      'maybeMethodCall': maybeMethodCall,
       'callIfPossible0' : callIfPossible0,
       'callIfPossible1' : callIfPossible1,
       'callIfPossible2' : callIfPossible2,

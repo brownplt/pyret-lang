@@ -504,6 +504,9 @@ sharing:
         end
     end
   end,
+  method _lessthan(self, other):
+    self.key() < other.key()
+  end,
   method _output(self):
     var current-letter = "A"
     fun helper(typ, free-vars-mapping, tyvar-mapping):
@@ -561,7 +564,6 @@ sharing:
           #end
         | t-existential(id, _, _) =>
           VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
-          #VS.vs-str(typ.key())
       end
     end
     free-vars-list = self.free-variables().to-list()
