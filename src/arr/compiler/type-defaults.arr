@@ -392,7 +392,7 @@ module-const-lists = t-module("builtin://lists",
             "_match", t-top,
             "_plus", t-arrow([list: lotv], lotv),
             "push", t-arrow([list: ], lotv),
-            "split-at", t-arrow(tv-arg, t-record([string-dict:
+            "split-at", t-arrow([list: t-number], t-record([string-dict:
               "prefix", lotv,
               "suffix", lotv
             ])),
@@ -708,6 +708,7 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
       ])
     ),
   SD.make-string-dict()
+    .set("S-Exp", t-s-exp)
 )
 
 fun make-default-modules() block:
