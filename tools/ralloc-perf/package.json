@@ -12,6 +12,7 @@
     "bin" : { }, 
     "scripts" : { },
     "dependencies" : { 
-        "pyret-ar-print" : "git://github.com/belph/pyret-ar-print.git#master"
+        "pyret-ar-print" : "git://github.com/belph/pyret-ar-print.git#master",
+        "js-md5": "^0.4.1"
     }
 }
