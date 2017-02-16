@@ -55,6 +55,6 @@ test-pyret-compiler() {
     pyret-ar-print --diff ${PHASEA_JARR} ${PHASEB_JARR}
 }
 
-#test-lambda-calc
-#test-pyret-compiler
+test-lambda-calc
+test-pyret-compiler
 test-seam-carving
