@@ -5,7 +5,9 @@ import error as Err
 check "Should import only what is exported":
   E.x is 10
   E.f satisfies is-function
-  E.not-provided raises-satisfies Err.is-field-not-found
+  # NOTE (Philip): This is now statically taken care
+  #                of by well-formedness
+  #E.not-provided raises-satisfies Err.is-field-not-found
 end
 
 check "Should import constants": x is 10 end

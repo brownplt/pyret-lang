@@ -3,7 +3,19 @@
     { "import-type": "builtin", "name": "s-exp-structs" }
   ],
   nativeRequires: ["s-expression"],
-  provides: {},
+  provides: {
+    "values": {"s-list": "tany",
+               "s-num": "tany",
+               "s-str": "tany",
+               "s-sym": "tany",
+               "is-s-list": "tany",
+               "is-s-num": "tany",
+               "is-s-str": "tany",
+               "is-s-sym": "tany",
+               "read-s-exp": "tany"},
+    "datatypes": {},
+    "aliases": {"S-Exp": "tany"}
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, sstruct, sexp) {
     var gf = RUNTIME.getField;
     var vals = gf(sstruct, "values");
