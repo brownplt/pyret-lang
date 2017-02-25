@@ -146,13 +146,6 @@ check:
     e16.fun-def-loc.module-name is "format"
   end
 
-  e20 = get-err(lam(): D.to-dict("too", "many", "arguments") end)
-  e20 satisfies E.is-field-not-found
-  when E.is-field-not-found(e20) block:
-    e20.field is "to-dict"
-    e20.obj is D
-  end
-
   e21 = get-err(lam(): D.make-string-dict("too", "many", "arguments") end)
   e21 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e21) block:

@@ -7,7 +7,7 @@ import file("../../../src/arr/compiler/compile-structs.arr") as CM
 import file("../../../src/arr/compiler/locators/file.arr") as FL
 import file("../../../src/arr/compiler/locators/builtin.arr") as BL
 
-fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
+fun worklist-contains-checker(wlist :: List<CL.ToCompile>):
   locs = wlist.map(_.locator)
   lam(loc :: CL.Locator): locs.member(loc) end
 end

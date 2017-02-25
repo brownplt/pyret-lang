@@ -419,7 +419,7 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
   vars
 end
 
-fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+fun copy-mutable-dict<a>(s :: D.MutableStringDict<a>) -> D.MutableStringDict<a>:
   s.freeze().unfreeze()
 end
 
