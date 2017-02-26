@@ -206,7 +206,7 @@ module-const-equality = t-module("builtin://equality",
       [list: ],
       [list:
         t-singleton-variant("Equal", [string-dict: ]),
-        t-variant("NotEqual", [string-dict: "reason", t-string], [string-dict: ]),
+        t-variant("NotEqual", [list: {"reason"; t-string}], [string-dict: ]),
         t-singleton-variant("Unknown", [string-dict: ])],
       [string-dict: ])
     ),
@@ -362,7 +362,7 @@ module-const-lists = t-module("builtin://lists",
           [list: tva],
           [list:
             t-singleton-variant("empty", [string-dict: ]),
-            t-variant("link", [string-dict: "first", tva, "rest", mk-list(tva)], [string-dict: ])
+            t-variant("link", [list: {"first"; tva}, {"rest"; mk-list(tva)}], [string-dict: ])
           ],
           [string-dict:
             "join-str", t-arrow([list: t-string], t-string),
@@ -383,7 +383,7 @@ module-const-lists = t-module("builtin://lists",
             "_match", t-top,
             "_plus", t-arrow([list: lotv], lotv),
             "push", t-arrow([list: ], lotv),
-            "split-at", t-arrow(tv-arg, t-record([string-dict:
+            "split-at", t-arrow([list: t-number], t-record([string-dict:
               "prefix", lotv,
               "suffix", lotv
             ])),
@@ -428,7 +428,7 @@ module-const-option = t-module("builtin://option",
             ]
           ),
           t-variant("some",
-            [string-dict: "value", tva],
+            [list: {"value"; tva}],
             [string-dict:
               "_match", t-top,
               "_torepr", t-torepr,
@@ -529,21 +529,21 @@ module-const-error = t-module("builtin://error",
         "RuntimeError",
         [list: ],
         [list:
-          t-variant("message-exception", [string-dict: "message", t-string], [string-dict: ]),
-          t-variant("no-branches-matched", [string-dict: "loc", t-top, "expression", t-string], [string-dict: ]),
-          t-variant("internal-error", [string-dict: "message", t-top, "info-args", t-top], [string-dict: ]),
-          t-variant("field-not-found", [string-dict: "loc", t-top, "obj", t-top, "field", t-string], [string-dict: ]),
-          t-variant("lookup-non-object", [string-dict: "loc", t-top, "non-obj", t-top, "field", t-string], [string-dict: ]),
-          t-variant("extend-non-object", [string-dict: "loc", t-top, "non-obj", t-top], [string-dict: ]),
-          t-variant("generic-type-mismatch", [string-dict: "val", t-top, "typ", t-string], [string-dict: ]),
-          t-variant("numeric-binop-error", [string-dict: "val1", t-top, "val2", t-top, "opname", t-top, "opdesc", t-top, "methodname", t-top], [string-dict: ]),
-          t-variant("cases-arity-mismatch", [string-dict: "branch-loc", t-top, "num-args", t-top, "actual-arity", t-top, "cases-loc", t-top], [string-dict: ]),
-          t-variant("cases-singleton-mismatch", [string-dict: "branch-loc", t-top, "should-be-singleton", t-boolean, "cases-loc", t-top], [string-dict: ]),
-          t-variant("arity-mismatch", [string-dict: "fun-def-loc", t-top, "fun-def-arity", t-top, "fun-app-args", t-top], [string-dict: ]),
-          t-variant("non-function-app", [string-dict: "loc", t-top, "non-fun-val", t-top], [string-dict: ]),
-          t-variant("uninitialized-id", [string-dict: "loc", t-top, "name", t-string], [string-dict: ]),
-          t-variant("module-load-failure", [string-dict: "names", t-top], [string-dict: ]),
-          t-variant("invalid-array-index", [string-dict: "method-name", t-string, "array", t-top, "index", t-number, "reason", t-string], [string-dict: ]),
+          t-variant("message-exception", [list: {"message"; t-string}], [string-dict: ]),
+          t-variant("no-branches-matched", [list: {"loc"; t-top}, {"expression"; t-string}], [string-dict: ]),
+          t-variant("internal-error", [list: {"message"; t-top}, {"info-args"; t-top}], [string-dict: ]),
+          t-variant("field-not-found", [list: {"loc"; t-top}, {"obj"; t-top}, {"field"; t-string}], [string-dict: ]),
+          t-variant("lookup-non-object", [list: {"loc"; t-top}, {"non-obj"; t-top}, {"field"; t-string}], [string-dict: ]),
+          t-variant("extend-non-object", [list: {"loc"; t-top}, {"non-obj"; t-top}], [string-dict: ]),
+          t-variant("generic-type-mismatch", [list: {"val"; t-top}, {"typ"; t-string}], [string-dict: ]),
+          t-variant("numeric-binop-error", [list: {"val1"; t-top}, {"val2"; t-top}, {"opname"; t-top}, {"opdesc"; t-top}, {"methodname"; t-top}], [string-dict: ]),
+          t-variant("cases-arity-mismatch", [list: {"branch-loc"; t-top}, {"num-args"; t-top}, {"actual-arity"; t-top}, {"cases-loc"; t-top}], [string-dict: ]),
+          t-variant("cases-singleton-mismatch", [list: {"branch-loc"; t-top}, {"should-be-singleton"; t-boolean}, {"cases-loc"; t-top}], [string-dict: ]),
+          t-variant("arity-mismatch", [list: {"fun-def-loc"; t-top}, {"fun-def-arity"; t-top}, {"fun-app-args"; t-top}], [string-dict: ]),
+          t-variant("non-function-app", [list: {"loc"; t-top}, {"non-fun-val"; t-top}], [string-dict: ]),
+          t-variant("uninitialized-id", [list: {"loc"; t-top}, {"name"; t-string}], [string-dict: ]),
+          t-variant("module-load-failure", [list: {"names"; t-top}], [string-dict: ]),
+          t-variant("invalid-array-index", [list: {"method-name"; t-string}, {"array"; t-top}, {"index"; t-number}, {"reason"; t-string}], [string-dict: ]),
           t-singleton-variant("user-break", [string-dict: ])
         ],
         [string-dict:
@@ -555,18 +555,18 @@ module-const-error = t-module("builtin://error",
       "ParseError",
       [list: ],
       [list:
-        t-variant("parse-error-next-token", [string-dict: "loc", t-top, "next-token", t-string], [string-dict: ]),
-        t-variant("parse-error-eof", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("parse-error-unterminated-string", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("empty-block", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("bad-block-stmt", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("bad-check-block-stmt", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("fun-missing-colon", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("fun-missing-end", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("args-missing-comma", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("app-args-missing-comma", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("missing-end", [string-dict: "loc", t-top], [string-dict: ]),
-        t-variant("missing-comma", [string-dict: "loc", t-top], [string-dict: ])
+        t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("parse-error-unterminated-string", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("empty-block", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("bad-block-stmt", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("bad-check-block-stmt", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("fun-missing-colon", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("fun-missing-end", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("args-missing-comma", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("app-args-missing-comma", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("missing-end", [list: {"loc"; t-top}], [string-dict: ]),
+        t-variant("missing-comma", [list: {"loc"; t-top}], [string-dict: ])
       ],
       [string-dict:
         "loc", t-top,
@@ -601,8 +601,8 @@ module-const-either =
           [list: tva, tvb],
           [list:
             t-variant("left",
-              [string-dict:
-                "v", tva
+              [list:
+                {"v"; tva}
               ],
               [string-dict:
                 "_match", t-top,
@@ -610,8 +610,8 @@ module-const-either =
               ]
             ),
             t-variant("right",
-              [string-dict:
-                "v", tvb
+              [list:
+                {"v"; tvb}
               ],
               [string-dict:
                 "_match", t-top,
@@ -658,8 +658,8 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
       [list: ],
       [list:
         t-variant("s-list",
-          [string-dict:
-            "exps", mk-list(t-s-exp)
+          [list:
+            {"exps"; mk-list(t-s-exp)}
           ],
           [string-dict:
             "_match", t-top,
@@ -667,8 +667,8 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
           ]
         ),
         t-variant("s-num",
-          [string-dict:
-            "n", t-number
+          [list:
+            {"n"; t-number}
           ],
           [string-dict:
             "_match", t-top,
@@ -676,8 +676,8 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
           ]
         ),
         t-variant("s-str",
-          [string-dict:
-            "s", t-string
+          [list:
+            {"s"; t-string}
           ],
           [string-dict:
             "_match", t-top,
@@ -685,8 +685,8 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
           ]
         ),
         t-variant("s-sym",
-          [string-dict:
-            "s", t-string
+          [list:
+            {"s"; t-string}
           ],
           [string-dict:
             "_match", t-top,
@@ -699,6 +699,7 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
       ])
     ),
   SD.make-string-dict()
+    .set("S-Exp", t-s-exp)
 )
 
 fun make-default-modules() block:

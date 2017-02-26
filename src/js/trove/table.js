@@ -200,6 +200,7 @@
       TableAnn : annTable,
       makeTable: makeTable,
       openTable: openTable,
-      isTable: isTable });
+      isTable: isTable },
+      {});
   }
 })

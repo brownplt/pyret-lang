@@ -63,3 +63,6 @@ tests/pyret/standalone/importer.jarr
 *.arr.js
 
 compiled/
+
+.pyret-parley.*.pid
+.pyret-parley.*.lock

@@ -128,5 +128,16 @@ check:
   result27 = next-interaction("a + e.{1} + f.{0} + g.{1} + h")
   val(result27) is some(27)
 
+  result28 = restart("var var-to-change-at-repl = 7", false)
+  result29 = next-interaction("var-to-change-at-repl := 5\nvar-to-change-at-repl")
+  val(result29) is some(5)
+  result30 = next-interaction("var-to-change-at-repl")
+  val(result30) is some(5)
+  result31 = next-interaction("fun f(): var-to-change-at-repl end")
+  result32 = next-interaction("var-to-change-at-repl := 22")
+  result33 = next-interaction("f()")
+  val(result33) is some(22)
+
+
 end
 

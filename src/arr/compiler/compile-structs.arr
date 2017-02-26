@@ -54,15 +54,66 @@ data NativeModule:
   | requirejs(path :: String)
 end
 
+data BindOrigin:
+  | bo-local(loc :: Loc)
+  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+end
+
+data ValueBinder:
+  | vb-letrec
+  | vb-let
+  | vb-var
+  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+end
+
+data ValueBind:
+  | value-bind(
+      origin :: BindOrigin,
+      binder :: ValueBinder,
+      atom :: A.Name,
+      ann :: A.Ann,
+      expr :: Option<A.Expr>)
+end
+
+data TypeBinder:
+  | tb-type-let
+  | tb-type-var
+  | tb-module(uri :: URI)
+end
+
+data TypeBind:
+  | type-bind(
+      origin :: BindOrigin,
+      binder :: TypeBinder,
+      atom :: A.Name,
+      ann :: Option<A.Ann>)
+end
+
+#|
+data ScopeBinding:
+  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
+end
+
+data TypeBinding:
+  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
+end
+|#
+
 data NameResolution:
   | resolved(
       ast :: A.Program,
       errors :: List<CompileError>,
-      bindings :: SD.MutableStringDict,
-      type-bindings :: SD.MutableStringDict,
-      datatypes :: SD.MutableStringDict)
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>)
 end
-
 
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
@@ -87,10 +138,16 @@ data Globals:
   | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
+data ValueExport:
+  | v-just-type(t :: T.Type)
+  | v-var(t :: T.Type)
+  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
-      values :: StringDict<T.Type>,
+      values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.Type>
     )
@@ -154,9 +211,9 @@ fun tvariant-from-raw(uri, tvariant, env):
   t = tvariant.tag
   ask:
     | t == "variant" then:
-      members = tvariant.vmembers.foldl(lam(tm, members):
-        members.set(tm.name, type-from-raw(uri, tm.typ, env))
-      end, [string-dict: ])
+      members = tvariant.vmembers.foldr(lam(tm, members):
+        link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
+      end, empty)
       t-variant(tvariant.name, members, [string-dict: ])
     | t == "singleton-variant" then:
       t-singleton-variant(tvariant.name, [string-dict: ])
@@ -190,10 +247,13 @@ fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, t-top)
+      vdict.set(v, v-just-type(t-top))
     else:
-      #print("\n\nYOOOOOOOOOOOOOOOOOOOOOOO: " + tostring(v.name)) 
-      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+      if v.value.bind == "var":
+        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else:
+        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      end
     end
   end
   aliases = raw.aliases
@@ -260,16 +320,13 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-empty-block(loc :: A.Loc) with:
-    # semi-counterfactual loc on this error
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("block"),[list: self.loc], 0),
           ED.text(" is empty:")],
-        ED.cmcode(self.loc),
-        [ED.para:
-          ED.text("A block should end with an expression.")]]
+        ED.cmcode(self.loc)]
     end,
     method render-reason(self):
       [ED.error:
@@ -751,7 +808,10 @@ data CompileError:
             [ED.para:
               ED.text("The identifier "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
-              ED.text(" is unbound. It is "),
+              ED.text(" is unbound:")],
+             ED.cmcode(self.id.l),
+            [ED.para:
+              ED.text("It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
               ED.text(" but not previously defined.")]]
       end
@@ -836,35 +896,69 @@ data CompileError:
             ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
+          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" at "),
               ED.loc(self.ann.l),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" could not be found.")]]
       end
     end
-  | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
+  | type-id-used-in-dot-lookup(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
           ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
-          ED.text(" is being used as a value.")],
+          ED.text(" is being used with a dot accessor as if to access a type within another module.")],
         ED.cmcode(self.loc),
         [ED.para:
-          ED.text("but it is defined as a type.")]]
+          ED.text("but it does not refer to a module.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("The name "),
           ED.text(tostring(self.name)),
-          ED.text(" is used as a value at "),
+          ED.text(" is being used with a dot accessor as if to access a type within another module at "),
           draw-and-highlight(self.loc),
+          ED.text(", but it does not refer to a module.")]]
+    end
+  | type-id-used-as-value(id :: A.Name, origin :: BindOrigin) with:
+    method render-fancy-reason(self):
+      intro =
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("name"), [ED.locs: self.id.l], 0),
+          ED.text(" is being used as a value:")]
+      usage = ED.cmcode(self.id.l)
+      cases(BindOrigin) self.origin:
+        | bo-local(loc) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is "),
+              ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
+              ED.text(":")],
+            ED.cmcode(loc)]
+        | bo-module(_, uri) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is defined as a type in "),
+              ED.embed(uri),
+              ED.text(".")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(self.id.s),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.id.l),
           ED.text(", but it is defined as a type.")]]
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
@@ -1414,7 +1508,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
-         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], 0),
+         ED.highlight(ED.text(self.obj), [list: self.obj-loc], 0),
         [ED.para:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], 1))]]
@@ -1745,6 +1839,21 @@ data CompileError:
           ED.text("argument at"), draw-and-highlight(self.arg.l),
           ED.text(" needs a type annotation. Alternatively, provide a where: block with examples of the function's use.")]]
     end
+  | polymorphic-return-type-unann(function-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("function"), [list: self.function-loc], 0),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The function at "),
+          draw-and-highlight(self.function-loc),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
+    end
   | binop-type-error(binop :: A.Expr, tl :: T.Type, tr :: T.Type, etl :: T.Type, etr :: T.Type) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -1800,7 +1909,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+          ED.text("This program cannot be type-checked. " + "The reason that it cannot be type-checked is: " + self.reason +
         " at "), ED.cmcode(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
@@ -1814,6 +1923,19 @@ data CompileError:
           ED.text(self.message + " (found at "),
           draw-and-highlight(self.blame-loc),
           ED.text(")")]]
+    end
+  | non-object-provide(loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal"),
+          ED.cmcode(self.loc)]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal at "),
+          draw-and-highlight(self.loc)]]
     end
   | no-module(loc :: A.Loc, mod-name :: String) with:
     method render-fancy-reason(self):
@@ -2056,6 +2178,7 @@ type CompileOptions = {
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
+  log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
 }
@@ -2071,6 +2194,19 @@ default-compile-options = {
   compile-module: true,
   compiled-cache: "compiled",
   display-progress: true,
+  log: lam(s, to-clear):
+    cases(Option) to-clear block:
+      | none => print(s)
+      | some(n) =>
+        print("\r")
+        print(string-repeat(" ", n))
+        print("\r")
+        print(s)
+    end
+  end,
+  log-error: lam(s):
+    print-error(s)
+  end,
   method on-compile(_, locator, loadable): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"

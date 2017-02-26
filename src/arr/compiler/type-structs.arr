@@ -62,15 +62,34 @@ fun type-member-output(field-name :: String, typ :: Type):
   VS.vs-seq([list: VS.vs-str(field-name), VS.vs-str(" :: "), VS.vs-value(typ)])
 end
 
+fun variant-field-get-value(fields :: List<{String; Type}>, name :: String) -> {String; Type}:
+  cases(Option<{String; Type}>) variant-field-get(fields, name):
+    | some(result) => result
+    | none => raise("Could not find field with name " + name + " in " + tostring(fields))
+  end
+end
+
+fun variant-field-get(fields :: List<{String; Type}>, name :: String) -> Option<{String; Type}>:
+  cases(List) fields:
+    | empty => none
+    | link({field-name; field-type}, rest) =>
+      if field-name == name:
+        some({field-name; field-type})
+      else:
+        variant-field-get(rest, name)
+      end
+  end
+end
+
 data TypeVariant:
   | t-variant(name        :: String,
-              fields      :: TypeMembers,
+              fields      :: List<{String; Type}>,
               with-fields :: TypeMembers,
               l           :: Loc)
   | t-singleton-variant(name        :: String,
                         with-fields :: TypeMembers,
                         l           :: Loc) with:
-    fields: [string-dict: ]
+    fields: empty
 sharing:
   method substitute(self, new-type :: Type, type-var :: Type):
     fun fields-substitute(fields):
@@ -79,7 +98,7 @@ sharing:
     end
     cases(TypeVariant) self:
       | t-variant(name, fields, with-fields, l) =>
-        new-fields = fields-substitute(fields)
+        new-fields = fields.map(lam({field-name; typ}): {field-name; typ.substitute(new-type, type-var)} end)
         new-with-fields = fields-substitute(with-fields)
         t-variant(name, new-fields, new-with-fields, l)
       | t-singleton-variant(name, with-fields, l) =>
@@ -481,6 +500,9 @@ sharing:
           | else => E.NotEqual("Different types", self, other)
         end
     end
+  end,
+  method _lessthan(self, other):
+    self.key() < other.key()
   end,
   method _output(self):
     var current-letter = "A"
