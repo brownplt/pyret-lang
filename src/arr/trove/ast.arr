@@ -627,7 +627,7 @@ data Expr:
     method label(self): "s-when" end,
     method tosource(self):
       PP.soft-surround(INDENT, 1,
-        str-when + PP.parens(self.test.tosource()) + blocky-colon(self.blocky),
+        str-when + str-space + PP.parens(self.test.tosource()) + blocky-colon(self.blocky),
         self.block.tosource(),
         str-end)
     end
