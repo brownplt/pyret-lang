@@ -198,6 +198,11 @@ check "reactors":
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
 
+check "empty data definitions":
+  cok("data NoVariants: end") is empty
+  cok("data NoVariants:\nend") is empty
+end
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {
