@@ -21,6 +21,8 @@ import file("js-ast.arr") as J
 cl-empty = CL.concat-empty
 cl-cons = CL.concat-cons
 
+INF-FLATNESS = -1
+
 fun cl-map-sd(f, sd):
   for SD.fold-keys(acc from cl-empty, key from sd):
     cl-cons(f(key), acc)
@@ -215,33 +217,28 @@ fun make-lettable-data-env(
 end
 
 
-fun flatness-max(a :: Option<Number>, b :: Option<Number>) -> Option<Number>:
-  # read the docs, maybe there's a quicker way to write this
-  cases (Option) a:
-    | some(a-val) =>
-      cases (Option) b:
-        | some(b-val) =>
-          some(num-max(a-val, b-val))
-        | none => none
-      end
-    | none => none
+fun flatness-max(a :: Number, b :: Number) -> Number:
+  if (a == INF-FLATNESS) or (b == INF-FLATNESS):
+    INF-FLATNESS
+  else:
+    num-max(a, b)
   end
 end
 
 # Maybe compress Option<Number> into a type like FlatnessInfo or something (maybe something without "Info" in the name)
 fun make-expr-flatness-env(
     aexpr :: AA.AExpr,
-    sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
+    sd :: SD.MutableStringDict<Option<Number>>) -> Number:
   cases(AA.AExpr) aexpr:
     | a-type-let(_, bind, body) =>
       make-expr-flatness-env(body, sd)
     | a-let(_, bind, val, body) =>
       val-flatness = if AA.is-a-lam(val) or AA.is-a-method(val) block:
         lam-flatness = make-expr-flatness-env(val.body, sd)
-        sd.set-now(bind.id.key(), lam-flatness)
+        sd.set-now(bind.id.key(), some(lam-flatness))
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
-        some(0)
+        0
       else if AA.is-a-id-safe-letrec(val):
         block:
           # If we're binding this name to something that's already been defined
@@ -253,7 +250,7 @@ fun make-expr-flatness-env(
           end
           # flatness of the binding part of the let is 0 since we don't
           # call anything
-          some(0)
+          0
         end
       else:
         make-lettable-flatness-env(val, sd)
@@ -279,24 +276,19 @@ fun make-expr-flatness-env(
   end
 end
 
-fun get-flatness-for-call(function-name :: String, sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
-  # Look up flatness in the dictionary
-  fun inc-flatness(flat-opt :: Option<Number>):
-    flat-opt.and-then(lam(x): x + 1 end)
-  end
-
+fun get-flatness-for-call(function-name :: String, sd :: SD.MutableStringDict<Option<Number>>) -> Number:
   # If it's not in our lookup dict OR the flatness is none treat it the same
   val = sd.get-now(function-name).or-else(none)
   cases (Option) val:
-    | some(flatness) => some(flatness + 1)
-    | none => none
+    | some(flatness) => flatness + 1
+    | none => INF-FLATNESS
   end
 end
 
 fun make-lettable-flatness-env(
     lettable :: AA.ALettable,
-    sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
-  default-ret = some(0)
+    sd :: SD.MutableStringDict<Option<Number>>) -> Number:
+  default-ret = 0
   cases(AA.ALettable) lettable:
     | a-module(_, answer, dv, dt, provides, types, checks) =>
       default-ret
@@ -318,11 +310,11 @@ fun make-lettable-flatness-env(
       else:
         # This should never happen in a "correct" program, but it's not our job
         # to do this kind of checking here, so don't raise an error.
-        none
+        INF-FLATNESS
       end
     | a-method-app(_, obj, meth, args) =>
       # For now method calls are infinite flatness
-      none
+      INF-FLATNESS
     | a-prim-app(_, f, args) => get-flatness-for-call(f, sd)
       # TODO: Treat prim-app as flat
       # Not worrying about these cases yet, though if they all deal with values, should be trivial
@@ -336,21 +328,14 @@ fun make-lettable-flatness-env(
     | a-extend(_, supe, fields) => default-ret
     | a-dot(_, obj, field) => default-ret
     | a-colon(_, obj, field) => default-ret
-    | a-get-bang(_, obj, field) =>
-      default-ret
+    | a-get-bang(_, obj, field) => default-ret
     | a-lam(_, name, args, ret, body) => default-ret
-    | a-method(_, name, args, ret, body) =>
-      default-ret
-    | a-id-var(_, id) =>
-      default-ret
-    | a-id-letrec(_, id, safe) =>
-      default-ret
-    | a-id-safe-letrec(_, id) =>
-      default-ret
-    | a-val(_, v) =>
-      default-ret
-    | a-data-expr(l, name, namet, vars, shared) =>
-      default-ret
+    | a-method(_, name, args, ret, body) => default-ret
+    | a-id-var(_, id) => default-ret
+    | a-id-letrec(_, id, safe) => default-ret
+    | a-id-safe-letrec(_, id) => default-ret
+    | a-val(_, v) => default-ret
+    | a-data-expr(l, name, namet, vars, shared) => default-ret
     # NOTE -- cases might not be flat b/c it checks annotations
     | a-cases(_, typ, val, branches, els) =>
       # Flatness is the max of the flatness all the cases branches
@@ -358,7 +343,7 @@ fun make-lettable-flatness-env(
         branch-flatness = make-expr-flatness-env(case-branch.body, sd)
         flatness-max(max-flat, branch-flatness)
       end
-      max-flat = branches.foldl(combine, some(0))
+      max-flat = branches.foldl(combine, 0)
 
       else-flat = make-expr-flatness-env(els, sd)
       flatness-max(max-flat, else-flat)
@@ -410,11 +395,9 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
         make-expr-data-env(body, sd,
           SD.make-mutable-string-dict(), SD.make-mutable-string-dict())
         make-expr-flatness-env(body, sd)
-        #print("flatness env: " + tostring(sd) + "\n\n")
         sd
       end
   end
-  #print("flatness env: " + tostring(flatness-env) + "\n")
   flatness-env.freeze()
 end
 
