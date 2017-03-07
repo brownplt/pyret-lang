@@ -166,13 +166,14 @@ fun main(args :: List<String>) -> Number:
             success-code
           end
         else if r.has-key("run"):
-          _ = CLI.run(r.get-value("run"), CS.default-compile-options.{
+          result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               compile-module: true,
               display-progress: display-progress,
               check-all: check-all
             })
-          success-code
+          _ = print(result.message + "\n")
+          result.exit-code
         else:
           _ = print(C.usage-info(options).join-str("\n"))
           _ = print("Unknown command line options\n")
