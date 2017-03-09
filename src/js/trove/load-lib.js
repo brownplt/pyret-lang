@@ -67,6 +67,11 @@
         runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
       }
     }
+    function checkExn(mr) {
+      if (!(mr.val.runtime.isFailureResult(mr.val.result))) {
+        runtime.ffi.throwMessageException("Tried to get exn of non-failing module result.");
+      }
+    }
     function isSuccessResult(mr) {
       return mr.val.runtime.isSuccessResult(mr.val.result);
     }
@@ -130,6 +135,34 @@
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
       return mr.val.runtime.getField(mr.val.result.result, "checks");
+    }
+    function getModuleResultExn(mr) {
+      checkExn(mr);
+      return mr.val.result.exn.exn;
+    }
+    function getErrorModField(mr, field) {
+      var execRt = mr.val.runtime;
+      var errorMod = execRt.modules["builtin://error"];
+      var error = execRt.getField(errorMod, "provide-plus-types");
+      var errorValues = execRt.getField(error, "values")
+      return execRt.getField(errorValues, field);
+    }
+    function isExit(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function isExitQuiet(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit-quiet");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function getExitCode(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      return mr.val.runtime.getField(exn, "code");
     }
     function renderCheckResults(mr) {
       runtime.pauseStack(function(restarter) {
@@ -418,7 +451,10 @@
       "render-check-report": runtime.makeFunction(renderCheckReport, "render-check-report"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
       "render-error-report": runtime.makeFunction(renderErrorReport, "render-error-report"),
-      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
+      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm"),
+      "is-exit": runtime.makeFunction(isExit, "is-exit"),
+      "is-exit-quiet": runtime.makeFunction(isExitQuiet, "is-exit-quiet"),
+      "get-exit-code": runtime.makeFunction(getExitCode, "get-exit-code"),
     };
     var types = {
       Module: annModule,

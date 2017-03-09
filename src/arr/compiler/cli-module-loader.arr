@@ -12,6 +12,7 @@ import string-dict as SD
 import render-error-display as RED
 import file as F
 import filelib as FS
+import system as SYS
 import parse-pyret as PP
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
@@ -316,6 +317,17 @@ fun handle-compilation-errors(problems, options) block:
   raise("There were compilation errors")
 end
 
+fun propagate-exit(result) block:
+  when L.is-exit(result):
+    code = L.get-exit-code(result)
+    SYS.exit(code)
+  end
+  when L.is-exit-quiet(result):
+    code = L.get-exit-code(result)
+    SYS.exit-quiet(code)
+  end
+end
+
 fun run(path, options):
   maybe-program = build-program(path, options)
   cases(Either) maybe-program block:
@@ -326,6 +338,7 @@ fun run(path, options):
       if L.is-success-result(result):
         L.render-check-results(result)
       else:
+        _ = propagate-exit(result)
         L.render-error-message(result)
       end
   end

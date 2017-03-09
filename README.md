@@ -46,6 +46,12 @@ in Pyret development, read on:
 
 The easiest way to *run* a Pyret program from the command-line is:
 
+    $ ./src/scripts/phaseX <path-to-pyret-program-here>
+
+Where `X` is `0`, `A`, `B`, or `C`, indicating a phase (described below).
+
+Alternatively, you can compile and run a standalone JavaScript file via:
+
     $ node build/phaseX/pyret.jarr \
         --build-runnable <path-to-pyret-program-here> \
         --outfile <path-for-standalone-js> \
@@ -53,8 +59,6 @@ The easiest way to *run* a Pyret program from the command-line is:
         --builtin-arr-dir src/arr/trove \
         --require-config src/scripts/standalone-configA.json
     $ node <path-for-standalone-js>
-
-Where X is 0, A, B, or C, indicating a phase (described below).
 
 Phases
 ------

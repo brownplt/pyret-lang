@@ -20,11 +20,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
   var EXIT_ERROR_JS = 5;
   var EXIT_ERROR_UNKNOWN = 6;
 
-  var commandLineArguments = process.argv.slice(1);
-  var runMode = (commandLineArguments.indexOf("--run") > 0) ||
-                (commandLineArguments.indexOf("--run-full-report") > 0);
-
-  runtime.setParam("command-line-arguments", commandLineArguments);
+  runtime.setParam("command-line-arguments", process.argv.slice(1));
 
   var postLoadHooks = {
     "builtin://srcloc": function(srcloc) {
@@ -151,45 +147,34 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       runtime.setParam("current-checker", currentChecker);
     }
   };
-  if (runMode) {
-    postLoadHooks[main] = function(answer) {
-      var definedValues = runtime.getField(answer, "defined-values");
-      var definedExitCode = definedValues["exit-code"];
-      if (typeof definedExitCode !== "number") {
-        definedExitCode = 0;
-      }
-      process.exit(definedExitCode);
+  postLoadHooks[main] = function(answer) {
+    var checkerLib = runtime.modules["builtin://checker"];
+    var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
+    var getStack = function(err) {
+      console.error("The error is: ", err);
+      var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+      var locList = runtime.ffi.makeList(locArray);
+      return locList;
     };
-  } else {
-    postLoadHooks[main] = function(answer) {
-      var checkerLib = runtime.modules["builtin://checker"];
-      var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
-      var getStack = function(err) {
-        console.error("The error is: ", err);
-        var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
-        var locList = runtime.ffi.makeList(locArray);
-        return locList;
-      };
-      var getStackP = runtime.makeFunction(getStack, "get-stack");
-      var toCall = runtime.getField(checker, "render-check-results-stack");
-      var checks = runtime.getField(answer, "checks");
-      runtime.safeCall(function() {
-        return toCall.app(checks, getStackP);
-      }, function(summary) {
-        if(runtime.isObject(summary)) {
-          process.stdout.write(runtime.getField(summary, "message"));
-          process.stdout.write("\n");
-          var errs = runtime.getField(summary, "errored");
-          var failed = runtime.getField(summary, "failed");
-          if(errs !== 0 || failed !== 0) {
-            process.exit(EXIT_ERROR_CHECK_FAILURES);
-          }
-          else {
-            process.exit(EXIT_SUCCESS);
-          }
+    var getStackP = runtime.makeFunction(getStack, "get-stack");
+    var toCall = runtime.getField(checker, "render-check-results-stack");
+    var checks = runtime.getField(answer, "checks");
+    runtime.safeCall(function() {
+      return toCall.app(checks, getStackP);
+    }, function(summary) {
+      if(runtime.isObject(summary)) {
+        process.stdout.write(runtime.getField(summary, "message"));
+        process.stdout.write("\n");
+        var errs = runtime.getField(summary, "errored");
+        var failed = runtime.getField(summary, "failed");
+        if(errs !== 0 || failed !== 0) {
+          process.exit(EXIT_ERROR_CHECK_FAILURES);
         }
-      });
-    };
+        else {
+          process.exit(EXIT_SUCCESS);
+        }
+      }
+    });
   }
 
   function renderErrorMessageAndExit(execRt, res) {
@@ -251,6 +236,20 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     }
   }
 
+  function isExit(execRt, result) {
+    var exn = result.exn.exn;
+    return execRt.ffi.isExit(exn) || execRt.ffi.isExitQuiet(exn);
+  }
+
+  function processExit(execRt, exn) {
+    var exitCode = execRt.getField(exn, "code");
+    if (execRt.ffi.isExit(exn)) {
+      var message = "Exited with code " + exitCode.toString() + "\n";
+      process.stdout.write(message);
+    }
+    process.exit(exitCode);
+  }
+
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
@@ -258,6 +257,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
+
+      if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
+        processExit(runtime, result.exn.exn);
+      }
       console.error("The run ended in error:");
       try {
         renderErrorMessageAndExit(runtime, result);
