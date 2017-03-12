@@ -290,31 +290,21 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-module(l, answer, defined-values, defined-types, provided-values, provided-types, checks) =>
           checking(answer, expect-type, false, context)
             .bind(lam(new-answer, _, shadow context):
-              foldr-fold-result(lam(field, shadow context, info):
-                cases(A.DefinedValue) field:
-                  | s-defined-value(name, value) =>
-                    synthesis(value, false, context).fold-bind(lam(_, field-type, shadow context):
-                      fold-result(TCS.tc-info(info.types.set(name, field-type.set-inferred(false)),
-                                              info.aliases,
-                                              info.data-types),
-                                  context)
-                    end)
-                  | s-defined-var(name, id) =>
-                    lookup-id(l, id.key(), field, context).typing-bind(lam(id-type, shadow context):
-                      cases(Type) id-type:
-                        | t-ref(arg-type, _, _) =>
-                          typing-result(field, arg-type.set-loc(l), context)
-                        | else =>
-                          typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l, false)), l, e)])
-                      end
-                    end).fold-bind(lam(_, field-type, shadow context):
-                      fold-result(TCS.tc-info(info.types.set(name, field-type.set-inferred(false)),
-                                              info.aliases,
-                                              info.data-types),
-                                  context)
-                    end)
-                end
-              end, defined-values, context, TCS.empty-info()).typing-bind(lam(info, shadow context):
+              cases(Expr) provided-values:
+                | s-obj(_, fields) =>
+                  foldr-fold-result(lam(field, shadow context, info):
+                    cases(A.Member) field:
+                      | s-data-field(data-l, name, value) =>
+                        synthesis(value, false, context).fold-bind(lam(_, field-type, shadow context):
+                          fold-result(TCS.tc-info(info.types.set(name, field-type.set-inferred(false)),
+                                                  info.aliases,
+                                                  info.data-types),
+                                      context)
+                        end)
+                    end
+                  end, fields, context, TCS.empty-info())
+                | else => fold-errors([list: C.cant-typecheck("provided-values was not structured as an object.", l)])
+              end.typing-bind(lam(info, shadow context):
                 foldr-fold-result(lam(a-field, shadow context, shadow info):
                   fun add-aliases(typ :: Type, shadow info :: TCInfo, shadow context :: Context) -> TCInfo:
                     cases(Option<Type>) context.aliases.get(typ.key()):
