@@ -176,6 +176,15 @@ fun main(args :: List<String>) -> Number:
             })
           _ = print(result.message + "\n")
           result.exit-code
+        else if r.has-key("run-full-report"):
+          result = CLI.run-full-report(r.get-value("run-full-report"), CS.default-compile-options.{
+              standalone-file: standalone-file,
+              compile-module: true,
+              display-progress: false,
+              check-all: check-all
+            })
+          _ = print(result.message + "\n")
+          result.exit-code
         else:
           _ = print(C.usage-info(options).join-str("\n"))
           _ = print("Unknown command line options\n")
