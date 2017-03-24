@@ -174,7 +174,8 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
           process.exit(EXIT_ERROR_CHECK_FAILURES);
         }
         else {
-          process.exit(EXIT_SUCCESS);
+          console.log("Process exited succesfully...");
+          //process.exit(EXIT_SUCCESS);
         }
       }
     });
@@ -261,7 +262,8 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
       //console.log(result);
-      process.exit(EXIT_SUCCESS);
+      //process.exit(EXIT_SUCCESS);
+        console.log("Program is done...waiting for event loop to clear");
     }
     else if (runtime.isFailureResult(result)) {
 

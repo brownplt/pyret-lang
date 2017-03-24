@@ -3082,7 +3082,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+      if (thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0)) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         skipLoop = true;
         $ans = thisRuntime.makeCont();
@@ -3126,7 +3126,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             i = i + 1;
           }
         }
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+        if (thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0)) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           return thisRuntime.makeCont();
         }
@@ -3137,7 +3137,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
           if (isContinuation(res)) { return res; }
 
-          if (--thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }  
@@ -3501,6 +3501,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function pauseStack(resumer) {
+      if (!thisRuntime.bounceAllowed) {
+        throw new Error("pauseStack called while runtime bounceAllowed is false");
+      }
       // CONSOLE.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3579,7 +3582,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function runThunk(f, then) {
-      return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+      if (thisRuntime.bounceAllowed) {
+        return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+      } else {
+        // Just run it on this stack and use a try/catch handler
+        var result;
+        try {
+          result = f();
+          result = otherRuntime.makeSuccessResult(result, {});
+        } catch (e) {
+          result = otherRuntime.makeFailureResult(e, {});
+        }
+        return then(result);
+      }
     }
 
     function execThunk(thunk) {
@@ -3598,20 +3613,38 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return;
         }
       }
-      return thisRuntime.pauseStack(function(restarter) {
-        thisRuntime.run(function(_, __) {
-          return thunk.app();
-        }, thisRuntime.namespace, {
-          sync: false
-        }, function(result) {
-          if(isFailureResult(result) &&
-             isPyretException(result.exn) &&
-             thisRuntime.ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
-          else {
-            restarter.resume(wrapResult(result));
-          }
+
+
+      var fn = function(_, __) {
+        return thunk.app();
+      };
+
+      if (thisRuntime.bounceAllowed) {
+        /* thunk may bounce, so clear the stack and let it run */
+        return thisRuntime.pauseStack(function(restarter) {
+          thisRuntime.run(fn, thisRuntime.namespace,{
+            sync: false
+          }, function(result) {
+            if(isFailureResult(result) &&
+               isPyretException(result.exn) &&
+               thisRuntime.ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
+            else {
+              restarter.resume(wrapResult(result));
+            }
+          });
         });
-      });
+      } else {
+        /* thunk won't bounce (and we're not allowed to use pauseStack)
+           so we just run on this stack and catch any exceptions */
+        var result;
+        try {
+          result = fn(undefined, undefined);
+          result = new SuccessResult(result, {});
+        } catch(e) {
+          result = makeFailureResult(e, {});
+        }
+        return wrapResult(result);
+      }
     }
 
     function runWhileRunning(thunk) {
@@ -3827,14 +3860,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
+      if (thisRuntime.bounceAllowed && --thisRuntime.GAS <= 0) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
       
       while (cleanQuit && (curIdx < len)) {
-        if (--thisRuntime.RUNGAS <= 0) {
+        if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           cleanQuit = false;
           $ans = thisRuntime.makeCont();
@@ -3885,14 +3918,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
+      if (thisRuntime.bounceAllowed && --thisRuntime.GAS <= 0) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         $ans = thisRuntime.makeCont();
         cleanQuit = false;
       }
       
       while (cleanQuit && curIdx < len) {
-        if (--thisRuntime.RUNGAS <= 0) {
+        if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           $ans = thisRuntime.makeCont();
           cleanQuit = false;
@@ -4002,7 +4035,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function foldHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4039,7 +4072,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4075,7 +4108,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function eachHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4108,7 +4141,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4145,7 +4178,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4188,7 +4221,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4226,7 +4259,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4268,7 +4301,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array();
       function filterHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4310,7 +4343,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -5043,17 +5076,25 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
         return thisRuntime.safeCall(function() {
           if (mod.nativeRequires.length === 0) {
-            // CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            return thisRuntime.pauseStack(function(restarter) {
-              // CONSOLE.log("About to load: ", mod.nativeRequires);
-              require(mod.nativeRequires, function(/* varargs */) {
-                var nativeInstantiated = Array.prototype.slice.call(arguments);
-                //CONSOLE.log("Loaded: ", nativeInstantiated);
-                restarter.resume(nativeInstantiated);
+            if (thisRuntime.bounceAllowed) {
+              /* Use async version of require() */
+              return thisRuntime.pauseStack(function(restarter) {
+                require(mod.nativeRequires, function(/* varargs */) {
+                  var nativeInstantiated = Array.prototype.slice.call(arguments);
+                  restarter.resume(nativeInstantiated);
+                });
               });
-            });
+            } else {
+              /* require() should be synchronous */
+              var arr = [];
+              for(var i = 0; i < mod.nativeRequires.length; i++) {
+                var val = require(mod.nativeRequires[i]);
+                arr.push(val);
+              }
+              return arr;
+            }
           }
         }, function(natives) {
           function continu() {
@@ -5869,6 +5910,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         thisRuntime[nameMap[longName]] = thisRuntime[longName];
     }
+
+    // FIXME: figure out how to set this in pyret code
+    thisRuntime.bounceAllowed = true;
 
     return thisRuntime;
   }
