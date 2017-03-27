@@ -131,10 +131,35 @@
         });
       }
 
+      function order(direction, colname) {
+        var asList = runtime.ffi.makeList(rows);
+        var index = headerIndex["column:" + colname];
+        var comparator = direction ? runtime.lessthan : runtime.greaterthan;
+        var compare = runtime.makeFunction(function(l, r) {
+          return comparator(l[index], r[index]);
+        });
+        var equal = runtime.makeFunction(function(l, r) {
+          return runtime.equal_always(l[index], r[index]);
+        });
+        return runtime.safeCall(function() {
+          return runtime.getField(asList, "sort-by").app(compare, equal);
+        }, function(sortedList) {
+          return makeTable(headers, runtime.ffi.toArray(sortedList));
+        });
+
+      }
+
       return applyBrand(brandTable, runtime.makeObject({
 
         '_header-raw-array': headers,
         '_rows-raw-array': rows,
+
+        'order-increasing': runtime.makeMethod1(function(_, colname) {
+          return order(true, colname);
+        }),
+        'order-decreasing': runtime.makeMethod1(function(_, colname) {
+          return order(false, colname);
+        }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
