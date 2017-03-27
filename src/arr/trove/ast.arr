@@ -1625,7 +1625,7 @@ data Ann:
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
-    method tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
+    method tosource(self): self.ann.tosource() + str-percent + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
