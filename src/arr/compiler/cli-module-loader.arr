@@ -350,6 +350,7 @@ fun run-full-report(path, options):
     | left(e) =>
       rendered-problems = [list: e.message, RED.display-to-string(e.exn.render-reason(), torepr, empty)]
       obj = JSON.to-json([SD.string-dict:
+        "timestamp", time-now(),
         "is-error", true,
         "message", "There were parse errors",
         "error", rendered-problems,
@@ -371,6 +372,7 @@ fun run-full-report(path, options):
               RED.display-to-string(e.render-reason(), torepr, empty)
             end
           obj = JSON.to-json([SD.string-dict:
+            "timestamp", time-now(),
             "is-error", true,
             "message", "There were compilation errors",
             "error", rendered-problems,

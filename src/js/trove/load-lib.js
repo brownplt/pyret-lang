@@ -231,6 +231,7 @@
               var result = renderedCheckResults.result;
               var resultJSON = execRt.ffi.toJSON(result);
               var obj = {
+                'timestamp': new Date().getTime(),
                 'is-error': false,
                 message: "",
                 error: null,
@@ -340,6 +341,7 @@
           if(execRt.isSuccessResult(v)) {
               var error = execRt.unwrap(v.result);
               var obj = {
+                'timestamp': new Date().getTime(),
                 'is-error': true,
                 message: "The run ended in error",
                 error: error,
