@@ -1385,7 +1385,7 @@ data VariantMemberType:
     method tosource(self): PP.mt-doc end
   | s-mutable with:
     method label(self): "s-mutable" end,
-    method tosource(self): PP.str("mutable ") end
+    method tosource(self): PP.str("ref ") end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
