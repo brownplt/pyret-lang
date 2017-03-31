@@ -5558,6 +5558,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'setStdout': function(newStdout) {
         theOutsideWorld.stdout = newStdout;
       },
+      'setStderr': function(newStderr) {
+        theOutsideWorld.stderr = newStderr;
+      },
       'getParam' : getParam,
       'getParamOrSetDefault' : getParamOrSetDefault,
       'setParam' : setParam,

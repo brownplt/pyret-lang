@@ -230,6 +230,8 @@
             if(execRt.isSuccessResult(renderedCheckResults)) {
               var result = renderedCheckResults.result;
               var resultJSON = execRt.ffi.toJSON(result);
+              var stdout = (typeof res.stdout == "string") ? res.stdout : "";
+              var stderr = (typeof res.stderr == "string") ? res.stderr : "";
               var obj = {
                 'timestamp': new Date().getTime(),
                 'is-error': false,
@@ -237,7 +239,9 @@
                 error: null,
                 report: {
                   result: resultJSON,
-                  stats: stats
+                  stats: stats,
+                  stdout: stdout,
+                  stderr: stderr
                 }
               };
               restarter.resume(runtime.makeObject({
@@ -340,6 +344,8 @@
           var stats = v.stats;
           if(execRt.isSuccessResult(v)) {
               var error = execRt.unwrap(v.result);
+              var stdout = (typeof res.stdout == "string") ? res.stdout : "";
+              var stderr = (typeof res.stderr == "string") ? res.stderr : "";
               var obj = {
                 'timestamp': new Date().getTime(),
                 'is-error': true,
@@ -347,7 +353,9 @@
                 error: error,
                 report: {
                   result: null,
-                  stats: stats
+                  stats: stats,
+                  stdout: stdout,
+                  stderr: stderr
                 }
               };
               restarter.resume(runtime.makeObject({
@@ -372,6 +380,7 @@
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
     function runProgram(otherRuntimeObj, realmObj, programString, options) {
       var checkAll = runtime.getField(options, "check-all");
+      var captureOutput = runtime.getField(options, "capture-output");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
@@ -418,6 +427,19 @@
 
 
       runtime.pauseStack(function(restarter) {
+        var stdoutBuffer;
+        var stderrBuffer;
+        if (captureOutput) {
+          stdoutBuffer = "";
+          stderrBuffer = "";
+          otherRuntime.setStdout(function(s) {
+            stdoutBuffer += s;
+          });
+          otherRuntime.setStderr(function(s) {
+            stderrBuffer += s;
+          });
+        }
+
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
@@ -429,6 +451,13 @@
           return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
+            if (captureOutput) {
+              // console.error("Main not reached: should not happen. Dumping captured output.")
+              // process.stdout.write(stdoutBuffer);
+              // process.stderr.write(stderrBuffer);
+              result.stdout = stdoutBuffer;
+              result.stderr = stderrBuffer;
+            }
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
@@ -436,6 +465,10 @@
           else {
             var finalResult = otherRuntime.makeSuccessResult(mainResult);
             finalResult.stats = result.stats;
+            if (captureOutput) {
+              finalResult.stdout = stdoutBuffer;
+              finalResult.stderr = stderrBuffer;
+            }
             restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing));
           }
         });

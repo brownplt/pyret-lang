@@ -334,7 +334,10 @@ fun run(path, options):
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+      run-options = options.{
+        capture-output: false
+      }
+      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), run-options)
       if L.is-success-result(result):
         L.render-check-results(result)
       else:
@@ -387,7 +390,10 @@ fun run-full-report(path, options):
             exit-code: 0
           }
         | right(program) =>
-          result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+          run-options = options.{
+            capture-output: true
+          }
+          result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), run-options)
           if L.is-success-result(result):
             L.render-check-report(result)
           else:
