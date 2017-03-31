@@ -397,6 +397,9 @@ fun run-full-report(path, options):
           if L.is-success-result(result):
             L.render-check-report(result)
           else:
+            # NOTE(awstlaur): Any exit code, even 0, results in checks being
+            # skipped. Thus, it's okay to render "Exited with code 0" as an
+            # error in this context.
             L.render-error-report(result)
           end
       end
