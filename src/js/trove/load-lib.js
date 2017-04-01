@@ -451,9 +451,6 @@
         }, function(result) {
           if(!mainReached) {
             if (captureOutput) {
-              // console.error("Main not reached: should not happen. Dumping captured output.")
-              // process.stdout.write(stdoutBuffer);
-              // process.stderr.write(stderrBuffer);
               result.stdout = stdoutBuffer;
               result.stderr = stderrBuffer;
             }
