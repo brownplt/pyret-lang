@@ -378,9 +378,8 @@
     }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
-    function runProgram(otherRuntimeObj, realmObj, programString, options) {
+    function runProgram(otherRuntimeObj, realmObj, programString, options, captureOutput) {
       var checkAll = runtime.getField(options, "check-all");
-      var captureOutput = runtime.getField(options, "capture-output");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
