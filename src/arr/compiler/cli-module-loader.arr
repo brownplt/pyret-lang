@@ -381,7 +381,6 @@ fun run-full-report(path, options):
               "stats", nothing
             ]
           ])
-
           {
             message: obj.serialize(),
             exit-code: 0
