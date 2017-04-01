@@ -154,6 +154,44 @@ NAMESPACE = j-id(const-id("NAMESPACE"))
 THIS = j-id(const-id("this"))
 ARGUMENTS = j-id(const-id("arguments"))
 
+rt-name-map = [D.string-dict:
+  "addModuleToNamespace", "aMTN",
+  "checkArityC", "cAC",
+  "checkRefAnns", "cRA",
+  "derefField", "dF",
+  "getColonFieldLoc", "gCFL",
+  "getDotAnn", "gDA",
+  "getField", "gF",
+  "getFieldRef", "gFR",
+  "hasBrand", "hB",
+  "isActivationRecord", "isAR",
+  "isCont", "isC",
+  "isFunction", "isF",
+  "isMethod", "isM",
+  "isPyretException", "isPE",
+  "isPyretTrue", "isPT",
+  "makeActivationRecord", "mAR",
+  "makeBoolean", "mB",
+  "makeBranderAnn", "mBA",
+  "makeCont", "mC",
+  "makeDataValue", "mDV",
+  "makeFunction", "mF",
+  "makeGraphableRef", "mGR",
+  "makeMatch", "mM",
+  "makeMethod", "mMet",
+  "makeMethodN", "mMN",
+  "makeObject", "mO",
+  "makePredAnn", "mPA",
+  "makeRecordAnn", "mRA",
+  "makeTupleAnn", "mTA",
+  "makeVariantConstructor", "mVC",
+  "namedBrander", "nB",
+  "traceEnter", "tEn",
+  "traceErrExit", "tErEx",
+  "traceExit", "tEx",
+  '_checkAnn', '_cA'
+]
+
 j-bool = lam(b):
   if b: j-true else: j-false end
 end
@@ -195,7 +233,15 @@ fun add-stack-frame(exn-id, loc):
 end
 
 fun rt-field(name): j-dot(RUNTIME, name) end
-fun rt-method(name, args): j-method(RUNTIME, name, args) end
+
+fun rt-method(name, args):
+  rt-name = cases(Option) rt-name-map.get(name):
+    | none => name
+    | some(short-name) => short-name
+  end
+
+  j-method(RUNTIME, rt-name, args)
+end
 
 fun app(l, f, args):
   j-method(f, "app", args)
