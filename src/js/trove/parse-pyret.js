@@ -986,9 +986,9 @@
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'bracket-expr': function(node) {
-          // (bracket-expr obj PERIOD LBRACK field RBRACK)
+          // (bracket-expr obj LBRACK field RBRACK)
           return RUNTIME.getField(ast, 's-bracket')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'cases-expr': function(node) {
           var isBlock = (node.kids[5].name === "BLOCK");

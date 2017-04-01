@@ -1156,6 +1156,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function getValue(obj, key) {
+      // TODO(joe): faster impl for builtins?
+      return thisRuntime.getField(obj, "get-value").app(key);
+    }
+
     /**The representation of an array
        A PArray is simply a JavaScript array
     */
@@ -1165,7 +1170,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeArray(arr) {
       return arr;
     }
-
+ 
     /************************
           Type Checking
     ************************/
@@ -5069,6 +5074,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     /** type {!PBase} */
     var builtins = makeObject({
+      'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }, "list-to-raw-array"),
       'has-field': makeFunction(hasField, "has-field"),
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
@@ -5469,6 +5475,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_map1': raw_array_map1,
       'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,
+      'raw_array_fold': raw_array_fold,
 
       'not': bool_not,
 
