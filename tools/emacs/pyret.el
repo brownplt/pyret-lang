@@ -181,10 +181,38 @@ This variant of `rx' supports common Pyret named REGEXPS."
             (t
              (rx-to-string (car regexps) t))))))
 
-(defconst pyret-syntax-propertize-function
-  (syntax-propertize-rules
-   ((pyret-rx string-delimiter)
-    (0 (ignore (pyret-syntax-stringify))))))
+(defun pyret-syntax-propertize-extend-region-function (start end)
+  ;;(message "Extending Region")
+  (save-excursion
+    (goto-char start)
+    (let ((new-start (save-excursion
+                       ;;(message "Extending: new-start: goto-char")
+                       (goto-char start)
+                       ;;(message "Extending: new-start: when")
+                       (when (get-text-property (point) 'pyret-string-start)
+                         ;;(message "Extending: new-start: goto-char (property)")
+                         (goto-char (get-text-property (point) 'pyret-string-start)))
+                       ;;(message "Extending: new-start: post-when")
+                       (point)))
+          (new-end (save-excursion
+                     ;;(message "Extending: new-end")
+                     (goto-char end)
+                     (when (get-text-property (point) 'pyret-string-end)
+                       (goto-char (get-text-property (point) 'pyret-string-end)))
+                     (point))))
+      (and (or (not (= start new-start))
+               (not (= end new-end)))
+           (cons new-start new-end)))))
+
+(defun pyret-syntax-propertize-function (start end)
+  ;;(message "Propertizing: removing properties")
+  (remove-text-properties start end '(pyret-string pyret-string-start pyret-string-end syntax-multiline))
+    ;;(message "Propertizing: funcall")
+    (funcall
+     (syntax-propertize-rules
+      ((pyret-rx string-delimiter)
+       (0 (ignore (pyret-syntax-stringify)))))
+     start end))
 
 (defsubst pyret-syntax-count-quotes (quote-char &optional point limit)
   "Count number of quotes around point (max is 3).
@@ -205,26 +233,62 @@ is used to limit the scan."
                    (backward-char num-quotes)
                    (syntax-ppss)
                  (forward-char num-quotes)))
-         (string-start (and (not (nth 4 ppss)) (nth 8 ppss)))
+         (in-comment (nth 4 ppss))
+         (string-start (nth 8 ppss))
          (quote-starting-pos (- (point) num-quotes))
          (quote-ending-pos (point))
          (num-closing-quotes
-          (and string-start
+          (and (not in-comment)
+               string-start
                (pyret-syntax-count-quotes
                 (char-before) string-start quote-starting-pos))))
-    (cond ((and string-start (= num-closing-quotes 0))
+    (cond (in-comment nil)
+          ((and string-start (= num-closing-quotes 0))
            ;; This set of quotes doesn't match the string starting
            ;; kind. Do nothing.
            nil)
+          ((and (not string-start) (= num-quotes 3))
+           ;; TODO: (goto-char (1+ (match-end 1))) ?
+           (when (re-search-forward (rx (and
+                                         (? (not (any ?\\)))
+                                         (group "```")))
+                                    nil t)
+             (progn (goto-char (match-end 1))
+                    (put-text-property (1- (point)) (point)
+                                       'syntax-table (string-to-syntax "|"))
+                    (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                                       'syntax-table (string-to-syntax "|"))
+                    (put-text-property quote-starting-pos (point)
+                                       'pyret-string 'multiline)
+                    (put-text-property quote-starting-pos (point)
+                                       'pyret-string-start quote-starting-pos)
+                    (put-text-property quote-starting-pos (point)
+                                       'pyret-string-end quote-ending-pos)
+                    (put-text-property quote-starting-pos (point)
+                                       'font-lock-multiline t)
+                    (put-text-property quote-starting-pos (point)
+                                       'syntax-multiline t))))
           ((not string-start)
            ;; This set of quotes delimit the start of a string.
            (put-text-property quote-starting-pos (1+ quote-starting-pos)
                               'syntax-table (string-to-syntax "|")))
           ((= num-quotes num-closing-quotes)
+           ;;(when (= num-quotes 3)
+           ;;  (message (format "TQS found: %d--%d" string-start quote-ending-pos)))
+           (put-text-property string-start quote-ending-pos 'pyret-string (if (= 3 num-quotes) 'multiline 'single))
+           (put-text-property string-start quote-ending-pos
+                              'pyret-string-start string-start)
+           (put-text-property string-start quote-ending-pos
+                              'pyret-string-end quote-ending-pos)
+           (put-text-property string-start quote-ending-pos
+                              'font-lock-multiline t)
+           (put-text-property string-start quote-ending-pos
+                              'syntax-multiline t)
            ;; This set of quotes delimit the end of a string.
            (put-text-property (1- quote-ending-pos) quote-ending-pos
                               'syntax-table (string-to-syntax "|")))
-          ((> num-quotes num-closing-quotes)
+          (t nil)
+          (nil ;(> num-quotes num-closing-quotes) <-- we only use backticks for TQS in Pyret, so this is unneeded
            ;; This may only happen whenever a triple quote is closing
            ;; a single quoted string. Add string delimiter syntax to
            ;; all three quotes.
@@ -373,14 +437,12 @@ is used to limit the scan."
         (= c ?-))))
 
 (defsubst pyret-in-string ()
-  (equal (get-text-property (point) 'face) 'font-lock-string-face))
+  (progn
+    (get-text-property (point) 'pyret-string)))
 (defun pyret-in-long-string ()
-  (and (pyret-in-string)
-       (save-excursion
-         (goto-char (previous-single-property-change (point) 'face))
-         (pyret-in-string))))
+  (equal (get-text-property (point) 'pyret-string) 'multiline))
 (defsubst pyret-in-comment ()
-  (equal (get-text-property (point) 'face) 'font-lock-comment-face))
+  (nth 4 (syntax-ppss)))
 (defsubst pyret-keyword (s) 
   (if (or (pyret-is-word (preceding-char))
           (pyret-in-string)) nil
@@ -422,6 +484,7 @@ is used to limit the scan."
 (defsubst pyret-DOES-NOT-RAISE () (pyret-keyword "does-not-raise"))
 (defsubst pyret-RAISES-SATISFIES () (pyret-keyword "raises-satisfies"))
 (defsubst pyret-RAISES-VIOLATES () (pyret-keyword "raises-VIOLATES"))
+(defsubst pyret-DOC () (pyret-keyword "doc:"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))
 (defsubst pyret-OTHERWISE () (pyret-keyword "otherwise:"))
@@ -542,7 +605,7 @@ is used to limit the scan."
   "Stores the indentation information of the parse.  Should only be buffer-local.")
 
 (defun pyret-compute-nestings (char-min char-max)
-  (save-excursion (font-lock-fontify-region (max 1 char-min) char-max))
+  ;;(save-excursion (font-lock-fontify-region (max 1 char-min) char-max))
   (let ((nlen (if pyret-nestings-at-line-start (length pyret-nestings-at-line-start) 0))
         (doclen (count-lines (point-min) (point-max))))
     (cond 
@@ -597,6 +660,7 @@ is used to limit the scan."
         (pyret-zero-indent! cur-opened) (pyret-zero-indent! cur-closed)
         (pyret-zero-indent! defered-opened) (pyret-zero-indent! defered-closed)
         ;;(message "At start of line %d, open is %s" (+ n 1) open)
+        ;;(message "\topens: %s" opens)
         (while (not (eolp))
           (cond
            ((or (> (pyret-indent-block-comment-depth cur-opened) 0)
@@ -749,6 +813,11 @@ is used to limit the scan."
             (push 'ifcond opens)
             (push 'wantcolonorblock opens)
             (forward-char 3))
+           ((pyret-DOC)
+            ;; Would ideally add an indentation if the
+            ;; docstring is on the next line, but that's
+            ;; easier said than done, it seems.
+            (forward-char 4))
            ((pyret-IF)
             (incf (pyret-indent-fun defered-opened))
             (push 'if opens)
@@ -1112,6 +1181,11 @@ is used to limit the scan."
         (message "Open %4d: %s" i (pyret-print-indent defered))
         ))))
 
+(defun pyret-point-on-same-line-p (p1 p2)
+  (let ((p1 (min p1 p2))
+        (p2 (max p1 p2)))
+    (= (count-lines p1 p2) 0)))
+
 (defconst pyret-indent-widths (pyret-make-indent 1 2 2 1 1 1 0 1 1 1 1 1 1.5)) ;; NOTE: 0 = indent for graphs
 (defun pyret-indent-line ()
   "Indent current line as Pyret code"
@@ -1123,8 +1197,15 @@ is used to limit the scan."
       (beginning-of-line)
       (cond
        ((pyret-in-long-string)
-        (if (= 0 (current-indentation))
-            (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
+        (let* ((start-info (save-excursion
+                             (goto-char (get-text-property (point) 'pyret-string-start))
+                             (cons (point) (current-column))))
+               (col-start (cdr start-info))
+               (on-first-line (pyret-point-on-same-line-p (point) (car start-info))))
+          (if (and (= (current-indentation) 0) (not on-first-line))
+              ;; if the current indentation is 0 and we are not on the first line,
+              ;; then this is (almost certainly) a continuation of a TQS from the previous
+              ;; line, so we reindent to match the quotes.
               (indent-line-to col-start))))
        ((or (= 0 (pyret-indent-block-comment-depth indents))
             (= 0 (current-indentation)))
@@ -1154,10 +1235,22 @@ is used to limit the scan."
                (total-indent (pyret-sum-indents (pyret-mul-indent indents pyret-indent-widths))))
           (cond
            ((pyret-in-long-string)
-            (if (= 0 (current-indentation))
-                (let ((col-start (save-excursion (re-search-backward "```" nil t) (current-column))))
-                  (aset indent-widths (- n line-min) col-start))
-              (aset indent-widths (- n line-min) (current-indentation))))
+            (let* ((start-info (save-excursion
+                                 (goto-char (get-text-property (point) 'pyret-string-start))
+                                 (cons (point) (current-column))))
+                   (col-start (cdr start-info))
+                   (on-first-line (pyret-point-on-same-line-p (point) (car start-info))))
+              (cond ((and (= (current-indentation) 0) (not on-first-line))
+                     ;; if the current indentation is 0 and we are not on the first line,
+                     ;; then this is (almost certainly) a continuation of a TQS from the previous
+                     ;; line, so we reindent to match the quotes.
+                     (aset indent-widths (- n line-min) col-start))
+                    ((not on-first-line)
+                     ;; if the current indentation is non-zero and we are not on the first
+                     ;; line, we assume it was manually reindented, so we leave it alone.
+                     ;; We check if it's the first line since we want the TQS itself (i.e. the
+                     ;; start of the TQS) to be indented correctly.
+                     (aset indent-widths (- n line-min) (current-indentation))))))
            ((or (= 0 (pyret-indent-block-comment-depth indents))
                 (= 0 (current-indentation)))
             (if (and (looking-at "^[ \t]*[|]\\($\\|\n\\|[^#]\\)")
@@ -1191,12 +1284,12 @@ For detail, see `comment-dwim'."
 ;; Syntactic keywords.  This syntactic keyword table allows
 ;; pyret-mode to handle triple-quoted strings (almost) correctly.
 
-(defvar pyret-font-lock-syntactic-keywords
-  '((pyret-quote-in-triple-quoted-string-matcher 0 (1 . nil))
-    )
-  "Syntactic keyword table for Pyret, which finds quote marks that
-should not be considered string delimiters because they are inside
-triple-quoted strings, and marks them as punctuation instead.")
+;;(defvar pyret-font-lock-syntactic-keywords
+;;  '((pyret-quote-in-triple-quoted-string-matcher 0 (1 . nil))
+;;    )
+;;  "Syntactic keyword table for Pyret, which finds quote marks that
+;;should not be considered string delimiters because they are inside
+;;triple-quoted strings, and marks them as punctuation instead.")
 
 (defun pyret-quote-in-triple-quoted-string-matcher (limit)
   "A `font-lock-mode' MATCHER that searches for quote marks (\" or \' or \`)
@@ -1262,6 +1355,12 @@ in (nil if we're not in a string).")
 (when (boundp 'text-property-default-nonsticky)
   (add-to-list 'text-property-default-nonsticky '(pyret-strtype . t)))
 
+(defun pyret-font-lock-syntactic-face-function (state)
+  (if (nth 3 state)
+      (progn
+        font-lock-string-face)
+    font-lock-comment-face))
+
 (defun pyret-mode ()
   "Major mode for editing Pyret files"
   (interactive)
@@ -1272,8 +1371,10 @@ in (nil if we're not in a string).")
   (pyret-recompute-lexical-regexes)
   (set (make-local-variable 'pyret-dialect) 'Pyret)
   (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
-  (set (make-local-variable 'syntax-propertize-function) pyret-syntax-propertize-function)
-  (set (make-local-variable 'font-lock-syntactic-keywords) pyret-font-lock-syntactic-keywords)
+  (set (make-local-variable 'syntax-propertize-function) 'pyret-syntax-propertize-function)
+  (set (make-local-variable 'syntax-propertize-extend-region-functions) '(pyret-syntax-propertize-extend-region-function))
+  (set (make-local-variable 'font-lock-syntactic-face-function) 'pyret-font-lock-syntactic-face-function)
+  ;;(set (make-local-variable 'font-lock-syntactic-keywords) pyret-font-lock-syntactic-keywords)
   (font-lock-refresh-defaults)
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")
