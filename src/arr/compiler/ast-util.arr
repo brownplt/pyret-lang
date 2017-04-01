@@ -992,22 +992,26 @@ type NameChanger = (T.Type%(is-t-name) -> T.Type)
 
 fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   fun collect-shared-fields(vs :: List<A.Variant>) -> SD.StringDict<T.Type>:
-    init-members = members-to-t-members(vs.first.with-members)
-    vs.rest.foldl(lam(v, shared-members):
-      v.with-members.foldl(lam(m, shadow shared-members):
-        if shared-members.has-key(m.name):
-          existing-mem-type = shared-members.get-value(m.name)
-          this-mem-type = member-to-t-member(m)
-          if existing-mem-type == this-mem-type:
-            shared-members
+    if is-empty(vs):
+      [SD.string-dict: ]
+    else:
+      init-members = members-to-t-members(vs.first.with-members)
+      vs.rest.foldl(lam(v, shared-members):
+        v.with-members.foldl(lam(m, shadow shared-members):
+          if shared-members.has-key(m.name):
+            existing-mem-type = shared-members.get-value(m.name)
+            this-mem-type = member-to-t-member(m)
+            if existing-mem-type == this-mem-type:
+              shared-members
+            else:
+              shared-members.remove(m.name)
+            end
           else:
-            shared-members.remove(m.name)
+            shared-members
           end
-        else:
-          shared-members
-        end
-      end, shared-members)
-    end, init-members)
+        end, shared-members)
+      end, init-members)
+    end
   end
 
   fun v-members-to-t-members(ms):
