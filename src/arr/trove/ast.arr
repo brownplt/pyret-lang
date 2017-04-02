@@ -319,6 +319,16 @@ data ProvidedAlias:
     end
 end
 
+data ProvidedModule:
+  | p-module(l :: Loc, name :: Name, mod :: Import) with:
+    method label(self):
+      "p-module"
+    end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-as, self.mod.tosource(), PP.str(self.name.toname()))
+    end
+end
+
 data ProvidedDatatype:
   | p-data(l :: Loc, d :: Name, mod :: Option<ImportType>) with:
     method label(self):
@@ -340,7 +350,8 @@ data Provide:
       l :: Loc,
       values :: List<ProvidedValue>,
       aliases :: List<ProvidedAlias>,
-      data-definitions :: List<ProvidedDatatype>
+      data-definitions :: List<ProvidedDatatype>,
+      modules :: List<ProvidedModule>
     ) with:
     method label(self): "s-provide" end,
     method tosource(self):
@@ -350,7 +361,10 @@ data Provide:
             PP.infix(INDENT, 1, str-colon,PP.str("Aliases"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
             PP.infix(INDENT, 1, str-colon,PP.str("Data"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions))),
+            PP.infix(INDENT, 1, str-colon, PP.str("Modules"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.modules)))
+          ]))
     end
   | s-provide-all(l :: Loc) with:
     method label(self): "s-provide-all" end,
@@ -1797,8 +1811,8 @@ default-map-visitor = {
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    s-provide-complete(l, vals, typs, datas)
+  method s-provide-complete(self, l, vals, typs, datas, modules):
+    s-provide-complete(l, vals, typs, datas, modules)
   end,
   method s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
@@ -2333,7 +2347,7 @@ default-iter-visitor = {
   method s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
+  method s-provide-complete(self, l, vals, typs, datas, modules):
     true
   end,
   method s-provide(self, l, expr):
@@ -2862,7 +2876,7 @@ dummy-loc-visitor = {
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
+  method s-provide-complete(self, l, vals, typs, datas, modules):
     s-provide-complete(dummy-loc, vals, typs, datas)
   end,
   method s-provide(self, l, expr):

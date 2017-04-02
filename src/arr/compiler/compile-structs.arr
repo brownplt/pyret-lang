@@ -112,7 +112,9 @@ data NameResolution:
       errors :: List<CompileError>,
       bindings :: SD.MutableStringDict<ValueBind>,
       type-bindings :: SD.MutableStringDict<TypeBind>,
-      datatypes :: SD.MutableStringDict<A.Expr>)
+      datatypes :: SD.MutableStringDict<A.Expr>,
+      # TODO (Philip): This field might not be needed after all
+      modules :: SD.MutableStringDict<Provides>)
 end
 
 # Used to describe when additional module imports should be added to a
@@ -144,12 +146,18 @@ data ValueExport:
   | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
+data ModuleExport:
+  | m-uri(uri :: String)
+  | m-resolved(provides :: Provides)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
-      data-definitions :: StringDict<T.Type>
+      data-definitions :: StringDict<T.Type>,
+      modules :: StringDict<ModuleExport>
     )
 end
 
@@ -268,7 +276,10 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  provides(uri, vdict, adict, ddict)
+  mdict = for fold(mdict from SD.make-string-dict(), m from raw.modules):
+    mdict.set(m.name, provides-from-raw-provides(...))
+  end
+  provides(uri, vdict, adict, ddict, mdict)
 end
 
 
@@ -2385,6 +2396,7 @@ runtime-provides = provides("builtin://global",
      "Method", t-top,
      "Nothing", t-top,
      "RawArray", t-top  ],
+  [string-dict:],
   [string-dict:])
 
 runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):

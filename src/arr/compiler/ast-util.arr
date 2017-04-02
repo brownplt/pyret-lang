@@ -364,7 +364,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   cases(A.Program) resolved.ast:
     | s-program(l, provide-complete, _, _, _) =>
       cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
+        | s-provide-complete(_, values, aliases, datas, modules) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values) block:
             binding = resolved.bindings.get-value-now(v.v.key())
@@ -470,6 +470,17 @@ fun find-mod(compile-env, uri) -> Option<String>:
   end
 end
 
+fun transform-module-dict(d :: SD.StringDict<CS.ModuleExport>, uri :: URI, transformer, compile-env):
+  for fold(s from [SD.string-dict:], v from d.keys-list()):
+    me = d.get-value(v)
+    canonicalized = cases(CS.ModuleExport) me:
+      | m-uri(mod-key) => CS.m-resolved(find-mod(compile-env, mod-key))
+      | m-resolved(_) => me
+    end
+    s.set(v, canonicalized)
+  end
+end
+
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, transformer):
     for fold(s from [SD.string-dict: ], v from d.keys-list()):
@@ -484,11 +495,12 @@ transform-data-dict = transform-dict-helper(canonicalize-data-type)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
-  | provides(from-uri, values, aliases, data-definitions) =>
-    new-vals = transform-value-dict(values, from-uri, transformer)
-    new-aliases = transform-dict(aliases, from-uri, transformer)
-    new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
-    CS.provides(from-uri, new-vals, new-aliases, new-data-definitions)
+  | provides(from-uri, values, aliases, data-definitions, modules) =>
+      new-vals = transform-value-dict(values, from-uri, transformer)
+      new-aliases = transform-dict(aliases, from-uri, transformer)
+      new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
+      new-modules = transform-module-dict(modules, from-uri, transformer, compile-env)
+      CS.provides(from-uri, new-vals, new-aliases, new-data-definitions, new-modules)
   end
 end
 
@@ -586,7 +598,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   cases(A.Program) typed.ast block:
     | s-program(_, provide-complete, _, _, _) =>
       cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
+        | s-provide-complete(_, values, aliases, datas, modules) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
             # TODO(joe): This function needs to take a NameResolution to figure

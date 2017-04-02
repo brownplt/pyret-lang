@@ -82,7 +82,8 @@ fun make-builtin-js-locator(basedir, builtin-name):
         uri: self.uri(),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-        datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+        datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+        modules: raw-array-to-list(raw.get-raw-module-provides())
       })
       some(CL.module-as-string(provs, CM.minimal-builtins,
           CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
@@ -158,7 +159,8 @@ fun make-builtin-arr-locator(basedir, builtin-name):
             uri: self.uri(),
             values: raw-array-to-list(raw.get-raw-value-provides()),
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+            modules: raw-array-to-list(raw.get-module-datatype-provides())
           })
           some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-file(cpath))))
         else:

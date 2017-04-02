@@ -11,7 +11,8 @@
       "builtin-raw-locator-from-str": "tany"
     },
     aliases: {},
-    datatypes: {}
+    datatypes: {},
+    modules: {}
   },
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
@@ -137,6 +138,28 @@
               }
               return [];
             }, "get-raw-value-provides"),
+          "get-raw-module-provides":
+           F(function() {
+             var m = getData(content);
+             if (m.provides) {
+               if (Array.isArray(m.provides.modules)) {
+                 return m.provides.modules;
+               } else if (typeof m.provides.modules === "object") {
+                 var mods = m.provides.modules;
+                 return Object.keys(mods).map(function(k) {
+                   var shorthands = m.provides.shorthands || {};
+                   // TODO (Philip): Is this correct?
+                   var expanded = t.expandType(mods[k], t.expandRecord(shorthands, {}));
+
+                   return RUNTIME.makeObject({
+                     name: k,
+                     value: t.toPyret(RUNTIME, expanded)
+                   });
+                 });
+               }
+             }
+             return [];
+            }, "get-raw-module-provides"),
           "get-raw-compiled":
             F(function() {
               return content;
