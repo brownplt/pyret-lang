@@ -82,30 +82,37 @@ check-stmts-visitor = A.default-map-visitor.{
 
 fun get-checks(stmts):
   var standalone-counter = 0
-  fun add-check(stmt, lst):
-    cases(A.Expr) stmt:
-      | s-fun(l, name, _, _, _, _, _, _, _check, _) =>
-        cases(Option) _check:
-          | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
-          | none => lst
+  fun add-check(shadow stmts):
+    # Note: manually writing this fold, rather than using existing functions
+    # foldr produces numbers that are backwards, and
+    # foldl would require an extra list allocation and reversal
+    cases(List) stmts:
+      | empty => empty
+      | link(stmt, rest) =>
+        cases(A.Expr) stmt:
+          | s-fun(l, name, _, _, _, _, _, _, _check, _) =>
+            cases(Option) _check:
+              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), add-check(rest))
+              | none => add-check(rest)
+            end
+          | s-data(l, name, _, _, _, _, _, _check) =>
+            cases(Option) _check:
+              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), add-check(rest))
+              | none => add-check(rest)
+            end
+          | s-check(l, name, body, keyword-check) =>
+            check-name = cases(Option) name block:
+              | none =>
+                standalone-counter := standalone-counter + 1
+                "check-block-" + tostring(standalone-counter)
+              | some(v) => v
+            end
+            link(check-info(l, check-name, body.visit(check-stmts-visitor)), add-check(rest))
+          | else => add-check(rest)
         end
-      | s-data(l, name, _, _, _, _, _, _check) =>
-        cases(Option) _check:
-          | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), lst)
-          | none => lst
-        end
-     | s-check(l, name, body, keyword-check) =>
-        check-name = cases(Option) name block:
-          | none =>
-            standalone-counter := standalone-counter + 1
-            "check-block-" + tostring(standalone-counter)
-          | some(v) => v
-        end
-        link(check-info(l, check-name, body.visit(check-stmts-visitor)), lst)
-      | else => lst
     end
   end
-  stmts.foldr(add-check, [list: ])
+  add-check(stmts)
 end
 
 fun create-check-block(l, checks):
