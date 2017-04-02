@@ -406,7 +406,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-if-else(l,
         [list:
           A.s-if-branch(l, ds-test, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
-            else: ds-body
+            else: A.s-block(l, [list: ds-body, g-nothing])
             end)],
         A.s-block(l, [list: g-nothing]),
         blocky)
