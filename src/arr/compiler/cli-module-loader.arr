@@ -12,6 +12,8 @@ import string-dict as SD
 import render-error-display as RED
 import file as F
 import filelib as FS
+import error as ERR
+import system as SYS
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -307,13 +309,38 @@ fun compile(path, options):
   compiled
 end
 
+fun handle-compilation-errors(problems, options) block:
+  for lists.each(e from problems) block:
+    options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
+    options.log-error("\n")
+  end
+  raise("There were compilation errors")
+end
+
+fun propagate-exit(result) block:
+  when L.is-exit(result):
+    code = L.get-exit-code(result)
+    SYS.exit(code)
+  end
+  when L.is-exit-quiet(result):
+    code = L.get-exit-code(result)
+    SYS.exit-quiet(code)
+  end
+end
+
 fun run(path, options):
-  prog = build-program(path, options)
-  result = L.run-program(R.make-runtime(), L.empty-realm(), prog.js-ast.to-ugly-source(), options)
-  if L.is-success-result(result):
-    print(L.render-check-results(result))
-  else:
-    print(L.render-error-message(result))
+  maybe-program = build-program(path, options)
+  cases(Either) maybe-program block:
+    | left(problems) =>
+      handle-compilation-errors(problems, options)
+    | right(program) =>
+      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options)
+      if L.is-success-result(result):
+        L.render-check-results(result)
+      else:
+        _ = propagate-exit(result)
+        L.render-error-message(result)
+      end
   end
 end
 
@@ -389,11 +416,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) => 
-      for lists.each(e from problems) block:
-        options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
-        options.log-error("\n")
-      end
-      raise("There were compilation errors")
+      handle-compilation-errors(problems, options)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))

@@ -5,6 +5,13 @@
   nativeRequires: ["pyret-base/js/secure-loader"],
   provides: {},
   theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+    var EXIT_SUCCESS = 0;
+    var EXIT_ERROR = 1;
+    var EXIT_ERROR_RENDERING_ERROR = 2;
+    var EXIT_ERROR_DISPLAYING_ERROR = 3;
+    var EXIT_ERROR_CHECK_FAILURES = 4;
+    var EXIT_ERROR_JS = 5;
+    var EXIT_ERROR_UNKNOWN = 6;
 
 
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
@@ -58,6 +65,11 @@
         console.error(mr.val.result);
         console.error(mr.val.result.exn);
         runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
+      }
+    }
+    function checkExn(mr) {
+      if (!(mr.val.runtime.isFailureResult(mr.val.result))) {
+        runtime.ffi.throwMessageException("Tried to get exn of non-failing module result.");
       }
     }
     function isSuccessResult(mr) {
@@ -124,6 +136,34 @@
       checkSuccess(mr, "checks");
       return mr.val.runtime.getField(mr.val.result.result, "checks");
     }
+    function getModuleResultExn(mr) {
+      checkExn(mr);
+      return mr.val.result.exn.exn;
+    }
+    function getErrorModField(mr, field) {
+      var execRt = mr.val.runtime;
+      var errorMod = execRt.modules["builtin://error"];
+      var error = execRt.getField(errorMod, "provide-plus-types");
+      var errorValues = execRt.getField(error, "values")
+      return execRt.getField(errorValues, field);
+    }
+    function isExit(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function isExitQuiet(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit-quiet");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function getExitCode(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      return mr.val.runtime.getField(exn, "code");
+    }
     function renderCheckResults(mr) {
       return runtime.pauseStack(function(restarter) {
         var res = getModuleResultResult(mr);
@@ -132,24 +172,40 @@
         var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-results-stack");
         var getStack = function(err) {
-          console.error("The error is: ", err);
-          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+          // console.error("The error is: ", err);
+          var locArray = err.val.pyretStack.map(execRt.makeSrcloc);
           var locList = execRt.ffi.makeList(locArray);
           return locList;
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks, getStackP); },
-          function(printedCheckResult) {
-            if(execRt.isSuccessResult(printedCheckResult)) {
-              if(execRt.isString(printedCheckResult.result)) {
-                restarter.resume(runtime.makeString(execRt.unwrap(printedCheckResult.result)));
+          function(renderedCheckResults) {
+            var resumeWith = {
+              message: "Unknown error!",
+              'exit-code': EXIT_ERROR_UNKNOWN
+            };
+
+            if(execRt.isSuccessResult(renderedCheckResults)) {
+              resumeWith.message = execRt.unwrap(execRt.getField(renderedCheckResults.result, "message"));
+              var errs = execRt.getField(renderedCheckResults.result, "errored");
+              var failed = execRt.getField(renderedCheckResults.result, "failed");
+              if(errs !== 0 || failed !== 0) {
+                resumeWith["exit-code"] = EXIT_ERROR_CHECK_FAILURES;
+              } else {
+                resumeWith["exit-code"] = EXIT_SUCCESS;
               }
             }
-            else if(execRt.isFailureResult(printedCheckResult)) {
-              console.error(printedCheckResult.exn.dict);
-              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+            else if(execRt.isFailureResult(renderedCheckResults)) {
+              console.error(renderedCheckResults.exn);
+              resumeWith.message = "There was an exception while formatting the check results";
+              resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
             }
+
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString(resumeWith.message),
+              'exit-code': runtime.makeNumber(resumeWith["exit-code"])
+            }));
           });
       });
     }
@@ -188,11 +244,16 @@
           }
         }, function(v) {
           if(execRt.isSuccessResult(v)) {
-            return restarter.resume(v.result)
+            restarter.resume(runtime.makeObject({
+              message: v.result,
+              'exit-code': runtime.makeNumber(EXIT_ERROR)
+            }));
           } else {
-            console.error("load error");
-            console.error("There was an exception while rendering the exception: ", v.exn);
-
+            console.error(v.exn);
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString("Load error: there was an exception while rendering the exception."),
+              'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+            }));
           }
         })
       });
@@ -284,7 +345,10 @@
       "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
       "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
-      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
+      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm"),
+      "is-exit": runtime.makeFunction(isExit, "is-exit"),
+      "is-exit-quiet": runtime.makeFunction(isExitQuiet, "is-exit-quiet"),
+      "get-exit-code": runtime.makeFunction(getExitCode, "get-exit-code"),
     };
     var types = {
       Module: annModule,

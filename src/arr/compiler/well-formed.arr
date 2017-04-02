@@ -318,6 +318,9 @@ fun wf-table-headers(loc, headers):
       true
     | link(first, rest) =>
       fun dups(shadow first, shadow rest) block:
+        when (reserved-names.has-key(first.name)):
+          reserved-name(first.l, first.name)
+        end
         for each(hname from rest):
           when first.name == hname.name:
             add-error(C.table-duplicate-column-name(first, hname))
@@ -490,10 +493,14 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.wf-empty-block(parent-block-loc))
       true
     else:
-      wf-last-stmt(l, stmts.last())
-      wf-block-stmts(self, l, stmts)
+      wf-last-stmt(parent-block-loc, stmts.last())
+      wf-block-stmts(self, parent-block-loc, stmts)
       true
     end
+  end,
+  method s-user-block(self, l :: Loc, body :: A.Expr) block:
+    parent-block-loc := l
+    body.visit(self)
   end,
   method s-tuple-bind(self, l, fields, as-name) block:
     true

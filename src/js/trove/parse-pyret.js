@@ -982,9 +982,9 @@
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'bracket-expr': function(node) {
-          // (bracket-expr obj PERIOD LBRACK field RBRACK)
+          // (bracket-expr obj LBRACK field RBRACK)
           return RUNTIME.getField(ast, 's-bracket')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'cases-expr': function(node) {
           var isBlock = (node.kids[5].name === "BLOCK");
@@ -1311,6 +1311,7 @@
     }
 
     function parseDataRaw(data, fileName) {
+      var message = "";
       try {
         const toks = tokenizer.Tokenizer;
         const grammar = parser.PyretGrammar;
@@ -1322,9 +1323,9 @@
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
           var nextTok = toks.curTok; 
-          console.error("There were " + countParses + " potential parses.\n" +
-                        "Parse failed, next token is " + nextTok.toString(true) +
-                        " at " + fileName + ", " + nextTok.pos.toString(true));
+          message = "There were " + countParses + " potential parses.\n" +
+                      "Parse failed, next token is " + nextTok.toString(true) +
+                      " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "UNTERMINATED-STRING")
@@ -1340,7 +1341,7 @@
         if (countParses === 1) {
           var ast = grammar.constructUniqueParse(parsed);
           //          console.log(ast.toString());
-          return translate(ast, fileName);
+          return RUNTIME.ffi.makeRight(translate(ast, fileName));
         } else {
           var asts = grammar.constructAllParses(parsed);
           throw "Non-unique parse";
@@ -1348,11 +1349,17 @@
             //console.log("Parse " + i + ": " + asts[i].toString());
             //            console.log(("" + asts[i]) === ("" + asts2[i]));
           }
-          return translate(ast, fileName);
+          return RUNTIME.ffi.makeRight(translate(ast, fileName));
         }
       } catch(e) {
-        // console.error("Fatal error in parsing: ", e);
-        throw e;
+        if (RUNTIME.isPyretException(e)) {
+          return RUNTIME.ffi.makeLeft(RUNTIME.makeObject({
+            exn: e.exn,
+            message: RUNTIME.makeString(message)
+          }));
+        } else {
+          throw e;
+        }
       }
     }
 
@@ -1360,11 +1367,30 @@
       RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
+      var result = parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+      return RUNTIME.ffi.cases(RUNTIME.ffi.isEither, "is-Either", result, {
+        left: function(err) {
+          var exn = RUNTIME.getField(err, "exn");
+          var message = RUNTIME.getField(err, "message");
+          console.error(message);
+          RUNTIME.raise(exn);
+        },
+        right: function(ast) {
+          return ast;
+        }
+      });
+    }
+
+    function maybeParsePyret(data, fileName) {
+      RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse");
+      RUNTIME.checkString(data);
+      RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
     return RUNTIME.makeModuleReturn({
-          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
+          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
+          'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
         }, {});
   }
 })

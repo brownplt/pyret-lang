@@ -1202,6 +1202,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function getValue(obj, key) {
+      // TODO(joe): faster impl for builtins?
+      return thisRuntime.getField(obj, "get-value").app(key);
+    }
+
     /**The representation of an array
        A PArray is simply a JavaScript array
     */
@@ -1211,7 +1216,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeArray(arr) {
       return arr;
     }
-
+ 
     /************************
           Type Checking
     ************************/
@@ -2440,7 +2445,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement);
+      return !(ann.refinement || ann instanceof PRecordAnn || (ann instanceof PTupleAnn && !ann.isCheap));
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2809,7 +2814,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
 
       // Slow path for annotations with refinements, which may call back into Pyret
-
       function deepCheckFields(remainingAnns) {
         var thisAnn;
         return safeCall(function() {
@@ -5229,6 +5233,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     var builtins = makeObject({
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
+      'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }, "list-to-raw-array"),
       'has-field': makeFunction(hasField, "has-field"),
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
@@ -5639,6 +5644,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_map1': raw_array_map1,
       'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,
+      'raw_array_fold': raw_array_fold,
 
       'not': bool_not,
 

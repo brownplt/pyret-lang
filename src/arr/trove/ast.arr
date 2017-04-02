@@ -959,10 +959,10 @@ data Expr:
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
     method label(self): "s-get-bang" end,
     method tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
+  | s-bracket(l :: Loc, obj :: Expr, key :: Expr) with:
     method label(self): "s-bracket" end,
     method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
-        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+        PP.surround(INDENT, 0, PP.lbrack, self.key.tosource(), PP.rbrack))
     end
   | s-data(
       l :: Loc,
@@ -1068,7 +1068,7 @@ data Expr:
       end
     end
   | s-reactor(l :: Loc, fields :: List<Member>) with:
-    method label(self): "s-table-extend" end,
+    method label(self): "s-reactor" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.str("reactor: end"),
         PP.str("reactor:"), PP.commabreak, PP.str("end"), self.fields.map(_.tosource()))
@@ -1397,7 +1397,7 @@ data VariantMemberType:
     method tosource(self): PP.mt-doc end
   | s-mutable with:
     method label(self): "s-mutable" end,
-    method tosource(self): PP.str("mutable ") end
+    method tosource(self): PP.str("ref ") end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1641,7 +1641,7 @@ data Ann:
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
-    method tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
+    method tosource(self): self.ann.tosource() + str-percent + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
@@ -2095,8 +2095,8 @@ default-map-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(l, obj.visit(self), field)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-bracket(l, obj.visit(self), field.visit(self))
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    s-bracket(l, obj.visit(self), key.visit(self))
   end,
   method s-data(
       self,
@@ -2638,8 +2638,8 @@ default-iter-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    obj.visit(self) and field.visit(self)
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    obj.visit(self) and key.visit(self)
   end,
   method s-data(
       self,
@@ -3161,8 +3161,8 @@ dummy-loc-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(dummy-loc, obj.visit(self), field)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-bracket(dummy-loc, obj.visit(self), field.visit(self))
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    s-bracket(dummy-loc, obj.visit(self), key.visit(self))
   end,
   method s-data(
       self,

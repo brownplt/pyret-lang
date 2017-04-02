@@ -25,6 +25,7 @@ var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
+fun bid(l, name): A.s-dot(l, A.s-id(l, g("builtins")), name) end
 
 fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
@@ -428,6 +429,8 @@ fun desugar-expr(expr :: A.Expr):
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
+    | s-bracket(l, obj, key) =>
+      ds-curry(l, bid(l, "get-value"), [list: desugar-expr(obj), desugar-expr(key)])
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))

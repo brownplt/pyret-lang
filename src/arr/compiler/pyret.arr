@@ -4,6 +4,7 @@ import cmdline as C
 import file as F
 import render-error-display as RED
 import string-dict as D
+import system as SYS
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
@@ -13,7 +14,10 @@ import file("server.arr") as S
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
 
-fun main(args):
+success-code = 0
+failure-code = 1
+
+fun main(args :: List<String>) -> Number:
   options = [D.string-dict:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
@@ -27,6 +31,8 @@ fun main(args):
       C.next-val(C.String, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "outfile",
       C.next-val(C.String, C.once, "Output file for build-runnable"),
+    "build",
+      C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
@@ -94,8 +100,9 @@ fun main(args):
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
-      if not(is-empty(rest)):
-        raise("No longer supported")
+      if not(is-empty(rest)) block:
+        print-error("No longer supported\n")
+        failure-code
       else:
         if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
@@ -120,11 +127,14 @@ fun main(args):
                 display-progress: display-progress,
                 inline-case-body-limit: inline-case-body-limit
               })
+          success-code
         else if r.has-key("serve"):
           port = r.get-value("port")
           S.serve(port)
+          success-code
         else if r.has-key("build-standalone"):
-          raise("Use build-runnable instead of build-standalone")
+          print-error("Use build-runnable instead of build-standalone\n")
+          failure-code
           #|
           CLI.build-require-standalone(r.get-value("build-standalone"),
               CS.default-compile-options.{
@@ -139,21 +149,51 @@ fun main(args):
                 display-progress: display-progress
               })
            |#
+        else if r.has-key("build"):
+          result = CLI.compile(r.get-value("build"),
+            CS.default-compile-options.{
+              check-mode : check-mode,
+              type-check : type-check,
+              allow-shadowed : allow-shadowed,
+              collect-all: false,
+              ignore-unbound: false,
+              proper-tail-calls: tail-calls,
+              compile-module: false,
+              display-progress: display-progress
+            })
+          failures = filter(CS.is-err, result.loadables)
+          if is-link(failures) block:
+            for each(f from failures) block:
+              for lists.each(e from f.errors) block:
+                print-error(tostring(e))
+                print-error("\n")
+              end
+              print-error("There were compilation errors\n")
+            end
+            failure-code
+          else:
+            success-code
+          end
         else if r.has-key("run"):
-          CLI.run(r.get-value("run"), CS.default-compile-options.{
+          result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               display-progress: display-progress,
               check-all: check-all
             })
+          _ = print(result.message + "\n")
+          result.exit-code
         else:
-          print(C.usage-info(options).join-str("\n"))
-          raise("Unknown command line options")
+          _ = print(C.usage-info(options).join-str("\n"))
+          _ = print("Unknown command line options\n")
+          failure-code
         end
       end
     | arg-error(message, partial) =>
-      print(message + "\n")
-      print(C.usage-info(options).join-str("\n"))
+      _ = print(message + "\n")
+      _ = print(C.usage-info(options).join-str("\n"))
+      failure-code
   end
 end
 
-_ = main(C.args)
+exit-code = main(C.args)
+SYS.exit-quiet(exit-code)
