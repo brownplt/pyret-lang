@@ -286,7 +286,7 @@ fun reachable-ops(self, l, op-l, op, ast):
         reachable-ops(self, l, op-l, op, left2)
         reachable-ops(self, l, op-l, op, right2)
       else:
-        add-error(C.mixed-binops(opname(op), op-l,  opname(op2), op-l2))
+        add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
       end
       true
     | else => ast.visit(self)

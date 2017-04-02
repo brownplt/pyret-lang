@@ -407,14 +407,14 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
-  | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+  | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Reading this "),
-          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.op-a-loc + self.op-b-loc], -1),
+          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.exp-loc], -1),
           ED.text(" errored:")],
-        ED.cmcode(self.op-a-loc + self.op-b-loc),
+        ED.cmcode(self.exp-loc),
         [ED.para:
           ED.text("The "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
