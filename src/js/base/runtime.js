@@ -3108,13 +3108,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function eachLoop(fun, start, stop) {
       var i = start;
       var started = false;
-      function restart(_fun) {
-        if(thisRuntime.isActivationRecord(_fun)) {
-          var ar = fun
+      function restart(ar) {
+        if(thisRuntime.isActivationRecord(ar)) {
           i = ar.vars[0];
-          fun = ar.vars[1];
-          stop = ar.vars[2];
-          started = ar.vars[3];
+          started = ar.vars[1];
           if (started) {
             i = i + 1;
           }
@@ -3140,7 +3137,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var res = restart();
       if(isContinuation(res)) {
         res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, fun, stop, started]);
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
       }
       return res;
     }
