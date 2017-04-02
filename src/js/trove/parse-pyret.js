@@ -861,7 +861,17 @@
           if (node.kids.length === 0) {
             return empty;
           } else {
-            return makeListComma(node.kids);
+            return tr(node.kids[0]);
+          }
+        },
+        'comma-binops': function(node) {
+          return makeListComma(node.kids);
+        },
+        'trailing-opt-comma-binops': function(node) {
+          if (node.kids.length === 0) {
+            return empty;
+          } else {
+            return tr(node.kids[0]);
           }
         },
         'cases-args': function(node) {
@@ -948,7 +958,7 @@
           }
         },
         'construct-expr': function(node) {
-          // LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
+          // LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
           return RUNTIME.getField(ast, 's-construct')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         },

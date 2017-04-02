@@ -140,7 +140,9 @@ app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE opt-comma-binops RPAREN
-opt-comma-binops: [binop-expr (COMMA binop-expr)*]
+opt-comma-binops: [comma-binops]
+comma-binops: binop-expr (COMMA binop-expr)*
+trailing-opt-comma-binops: (comma-binops [COMMA] | )
 # app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
@@ -163,7 +165,7 @@ field: key COLON binop-expr
      | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
-construct-expr: LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
+construct-expr: LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
 construct-modifier: | LAZY
 
 table-expr: TABLE table-headers table-rows END
