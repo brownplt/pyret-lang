@@ -782,6 +782,7 @@ well-formed-visitor = A.default-iter-visitor.{
           | none => fields-dict.set-now(f.name, f.l)
           | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
         end
+        f.visit(self)
       end
       true
     end

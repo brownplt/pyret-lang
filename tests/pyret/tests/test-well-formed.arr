@@ -204,6 +204,22 @@ check "reactors":
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
 
+check "malformed reactors":
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "      1 + _\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-block-needed
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-mixed-binops
+end  
+
 check "empty data definitions":
   cok("data NoVariants: end") is empty
   cok("data NoVariants:\nend") is empty
