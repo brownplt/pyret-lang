@@ -823,63 +823,6 @@ set-tail-visitor = A.default-map-visitor.{
   end
 }
 
-fun check-unbound(initial-env, ast) block:
-  var errors = [list: ] # THE MUTABLE LIST OF UNBOUND IDS
-  fun add-error(err): errors := err ^ link(_, errors) end
-  fun handle-id(this-id, env):
-    if A.is-s-underscore(this-id.id):
-      add-error(CS.underscore-as-expr(this-id.id.l))
-    else if is-none(bind-exp(this-id, env)):
-      add-error(CS.unbound-id(this-id))
-    else:
-      nothing
-    end
-  end
-  fun handle-type-id(ann, env):
-    if A.is-s-underscore(ann.id):
-      add-error(CS.underscore-as-ann(ann.id.l))
-    else if not(env.has-key(ann.id.key())):
-      add-error(CS.unbound-type-id(ann))
-    else:
-      nothing
-    end
-  end
-  ast.visit(binding-env-iter-visitor(initial-env).{
-      method s-id(self, loc, id) block:
-        handle-id(A.s-id(loc, id), self.env)
-        true
-      end,
-      method s-id-var(self, loc, id) block:
-        handle-id(A.s-id-var(loc, id), self.env)
-        true
-      end,
-      method s-id-letrec(self, loc, id, safe) block:
-        handle-id(A.s-id-letrec(loc, id, safe), self.env)
-        true
-      end,
-      method s-assign(self, loc, id, value) block:
-        when is-none(bind-exp(A.s-id(loc, id), self.env)):
-          add-error(CS.unbound-var(id.toname(), loc))
-        end
-        value.visit(self)
-      end,
-      method a-name(self, loc, id) block:
-        handle-type-id(A.a-name(loc, id), self.type-env)
-        true
-      end,
-      method a-dot(self, loc, name, field) block:
-        handle-type-id(A.a-name(loc, name), self.type-env)
-        true
-      end
-    })
-  errors
-where:
-  p = PP.surface-parse(_, "test")
-  unbound1 = check-unbound(CS.no-builtins, p("x"))
-  unbound1.length() is 1
-
-end
-
 fun value-delays-exec-of(name, expr):
   A.is-s-lam(expr) or A.is-s-method(expr)
 end
