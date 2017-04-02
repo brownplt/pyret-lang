@@ -5822,7 +5822,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     };
 
-<<<<<<< b7f9c9016754ed2a86e852980708822e67ff1fed
     // Deal with name shortening
     var nameMap = {
         'addModuleToNamespace': 'aMTN',
