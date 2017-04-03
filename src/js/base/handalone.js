@@ -242,38 +242,37 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     return execRt.ffi.isExit(exn) || execRt.ffi.isExitQuiet(exn);
   }
 
-  function processExit(execRt, exn) {
+  function processSetExitCode(execRt, exn) {
     var exitCode = execRt.getField(exn, "code");
     if (execRt.ffi.isExit(exn)) {
       var message = "Exited with code " + exitCode.toString() + "\n";
       process.stdout.write(message);
     }
-    process.exit(exitCode);
+    process.exitCode = exitCode;
   }
 
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
-      //console.log("The program completed successfully");
-      //console.log(result);
-      //process.exit(EXIT_SUCCESS);
-        console.log("Program is done...waiting for event loop to clear");
-    }
-    else if (runtime.isFailureResult(result)) {
-
+      // Don't do anything here. Just wait for event loop to clear
+    } else if (runtime.isFailureResult(result)) {
       if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
-        processExit(runtime, result.exn.exn);
-      }
-      console.error("The run ended in error:");
-      try {
-        renderErrorMessageAndExit(runtime, result);
-      } catch(e) {
-        console.error("EXCEPTION!", e);
+        processSetExitCode(runtime, result.exn.exn);
+        // Wait for event loop to clear now
+      } else {
+        console.error("The run ended in error:");
+        try {
+          renderErrorMessageAndExit(runtime, result);
+        } catch(e) {
+          console.error("EXCEPTION!", e);
+        }
       }
     } else {
       console.error("The run ended in an unknown error: ", result);
       console.error(result.exn.stack);
       process.exit(EXIT_ERROR_UNKNOWN);
     }
+
+    console.log("Program is done...waiting for event loop to clear");
   }
 
   return runtime.runThunk(function() {
