@@ -307,6 +307,7 @@ clean:
 .PHONY : test-clean
 test-clean:
 	$(call RMDIR, tests/compiled)
+	$(call RM, tests/pyret/*.jarr)
 
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
