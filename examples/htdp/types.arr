@@ -2,8 +2,8 @@
 
 five :: Number = 5
 s :: String = "hello"
-b :: Bool = true
-#def o :: {x:Number}: {x:10}
+b :: Boolean = true
+o :: {x :: Number} = {x:10}
 
 # this function can never run successfully
 fun bar(x :: Number) -> Number: "hello" end
