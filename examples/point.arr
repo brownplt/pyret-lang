@@ -7,7 +7,7 @@
 import equality as E
 
 point-methods = {
-  dist(self, other):
+  method dist(self, other):
     ysquared = num-sqr(other.y - self.y)
     xsquared = num-sqr(other.x - self.x)
     num-sqrt(ysquared + xsquared)
@@ -24,16 +24,16 @@ end
 
 data Color:
   | red
-    with: torgb(_): rgb(255, 0, 0);
+    with: method torgb(_): rgb(255, 0, 0) end
   | green
-    with: torgb(_): rgb(0, 255, 0);
+    with: method torgb(_): rgb(0, 255, 0) end
   | blue
-    with: torgb(_): rgb(0, 0, 255);
+    with: method torgb(_): rgb(0, 0, 255) end
   | rgb(r, g, b)
-    with: torgb(self): self;
+    with: method torgb(self): self end
 sharing:
-  mix(self, other):
-    fun avg(n1, n2): (n1 + n2) / 2;
+  method mix(self, other):
+    fun avg(n1, n2): (n1 + n2) / 2 end
     rgb1 = self.torgb()
     rgb2 = other.torgb()
     rgb(
@@ -45,13 +45,13 @@ sharing:
 end
 
 rec colorpoint-methods = point-methods.{
-  midpoint(self, other):
+  method midpoint(self, other):
     midx = self.x + ((other.x - self.x) / 2)
     midy = self.y + ((other.y - self.y) / 2)
     midcolor = self.color.mix(other.color)
     make-color-point(midx, midy, midcolor)
   end,
-  _equals(self, other, eq):
+  method _equals(self, other, eq):
     E.equal-and(eq(self.x, other.x),
       E.equal-and(eq(self.y, other.y),
         eq(self.color, other.color)))
