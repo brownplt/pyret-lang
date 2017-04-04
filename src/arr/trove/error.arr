@@ -620,7 +620,7 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
-           ED.embed(self.obj)]
+           ED.embed(self.non-obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -648,14 +648,14 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("The left side was not an object:")],
-          ED.embed(self.obj)]
+          ED.embed(self.non-obj)]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro("object lookup", self.loc),
         [ED.para: ED.text("The left side was not an object:")],
-        ED.embed(self.obj)]
+        ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
