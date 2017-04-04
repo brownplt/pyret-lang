@@ -3,7 +3,7 @@
 # An implementation of Chris Okasaki's skew-binary random access lists.
 
 provide {
-  rlist: rlist
+  rlist: rlist,
   rempty: ra-empty,
   rlink: rlink,
   is-rempty: is-ra-empty,
@@ -129,10 +129,12 @@ fun rget(rlist :: RandomAccessList, n :: Number) -> Any:
   fun nt-search(nt, size, ind):
     cases(NodeTree) nt:
       | nt-leaf(val) =>
-        when ind <> 0:
-          raise("nt-search called with invalid index")
+        block:
+          when ind <> 0:
+            raise("nt-search called with invalid index")
+          end
+          val
         end
-        val
       | nt-branch(val, left, right) =>
         if ind == 0:
           val
@@ -168,10 +170,12 @@ fun rset(rlist :: RandomAccessList, n :: Number, new-val :: Any) -> RandomAccess
   fun nt-change(nt, size, ind, nv):
     cases(NodeTree) nt:
       | nt-leaf(val) =>
-        when ind <> 0:
-          raise("nt-search called with invalid index")
+        block:
+          when ind <> 0:
+            raise("nt-search called with invalid index")
+          end
+          nt-leaf(nv)
         end
-        nt-leaf(nv)
       | nt-branch(val, left, right) =>
         if ind == 0:
           nt-branch(nv, left, right)
@@ -244,16 +248,20 @@ fun reach(f, rlist :: RandomAccessList):
     cases(NodeTree) nt:
       | nt-leaf(val) => f(val)
       | nt-branch(val, left, right) =>
-        f(val)
-        nt-each(left)
-        nt-each(right)
+        block:
+          f(val)
+          nt-each(left)
+          nt-each(right)
+        end
     end
   end
   cases(RandomAccessList) rlist:
     | ra-empty => nothing
     | ra-link(_, tree, next) =>
-      nt-each(tree)
-      reach(f, next)
+      block:
+        nt-each(tree)
+        reach(f, next)
+      end
   end
 where:
   var x = 0
@@ -621,10 +629,10 @@ rlist = {
   make: lam(args): list-to-rlist(raw-array-to-list(args)) end,
   make0: lam(): ra-empty end,
   make1: lam(a): rlink(a, ra-empty) end,
-  make2: lam(a): rlink(a, rlink(b, ra-empty)) end,
-  make3: lam(a): rlink(a, rlink(b, rlink(c, ra-empty))) end,
-  make4: lam(a): rlink(a, rlink(b, rlink(c, rlink(d, ra-empty)))) end,
-  make5: lam(a): rlink(a, rlink(b, rlink(c, rlink(d, rlink(e, ra-empty))))) end,
+  make2: lam(a, b): rlink(a, rlink(b, ra-empty)) end,
+  make3: lam(a, b, c): rlink(a, rlink(b, rlink(c, ra-empty))) end,
+  make4: lam(a, b, c, d): rlink(a, rlink(b, rlink(c, rlink(d, ra-empty)))) end,
+  make5: lam(a, b, c, d, e): rlink(a, rlink(b, rlink(c, rlink(d, rlink(e, ra-empty))))) end,
 }
 
 check:
