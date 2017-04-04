@@ -25,5 +25,5 @@ cases (C.ParsedArguments) parsed:
         each(println, just-parse(file).tosource().pretty(opts.get-value("width")))
     end
   | arg-error(m, _) =>
-    each(println,  ("Error: " + m) ^ link(C.usage-info(options)))
+    each(println,  link("Error: " + m, C.usage-info(options)))
 end
