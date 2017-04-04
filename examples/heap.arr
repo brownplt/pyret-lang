@@ -3,7 +3,6 @@
 # An implementation of binomial heaps.
 
 provide {
-  BinomialHeap: BinomialHeap,
   heap: list-to-heap,
   hempty: bh-empty,
   merge: merge,
@@ -13,6 +12,10 @@ provide {
   heap-to-list: heap-to-list
 } end
 
+provide-types {
+  BinomialHeap :: BinomialHeap
+}
+
 import valueskeleton as VS
 
 data BinomialTree<a>:
@@ -20,12 +23,12 @@ data BinomialTree<a>:
 end
 
 data TaggedTree<a>:
-  | tt(order :: Number, tree :: BinomialTree<a>)
+  | tt(carry-order :: Number, tree :: BinomialTree<a>)
 end
 
 data BinomialHeap<a>:
   | bh-empty
-  | bh-link(order :: Number, tree :: BinomialTree<a>, next :: BinomialHeap<a>)
+  | bh-link(carry-order :: Number, tree :: BinomialTree<a>, next :: BinomialHeap<a>)
 sharing:
   method merge(self, other): merge(self, other) end,
   method insert(self, val): insert(self, val) end,
@@ -66,29 +69,31 @@ fun merge<a>(lbh :: BinomialHeap<a>, rbh :: BinomialHeap<a>) -> BinomialHeap<a>:
   end
   fun merge-with-carry(l, r, c):
     cases(BinomialHeap) l:
-      | bh-empty => merge-without-carry(bh-link(c.order, c.tree, bh-empty), r)
+      | bh-empty => merge-without-carry(bh-link(c.carry-order, c.tree, bh-empty), r)
       | bh-link(lorder, ltree, lnext) =>
         cases(BinomialHeap) r:
-          | bh-empty => merge-without-carry(l, bh-link(c.order, c.tree, bh-empty))
+          | bh-empty => merge-without-carry(l, bh-link(c.carry-order, c.tree, bh-empty))
           | bh-link(rorder, rtree, rnext) =>
-            when (c.order > lorder) or (c.order > rorder):
-              raise("Carry order too high in merge!")
-            end
-            if lorder < rorder:
-              if c.order < lorder:
-                bh-link(c.order, c.tree, bh-link(lorder, ltree, merge-without-carry(lnext, r)))
-              else:
-                merge-with-carry(lnext, r, tt(lorder + 1, merge-same-size(c.tree, ltree)))
+            block:
+              when (c.carry-order > lorder) or (c.carry-order > rorder):
+                raise("Carry order too high in merge!")
               end
-            else if lorder > rorder:
-              if c.order < rorder:
-                bh-link(c.order, c.tree, bh-link(rorder, rtree, merge-without-carry(l, rnext)))
+              if lorder < rorder:
+                if c.carry-order < lorder:
+                  bh-link(c.carry-order, c.tree, bh-link(lorder, ltree, merge-without-carry(lnext, r)))
+                else:
+                  merge-with-carry(lnext, r, tt(lorder + 1, merge-same-size(c.tree, ltree)))
+                end
+              else if lorder > rorder:
+                if c.carry-order < rorder:
+                  bh-link(c.carry-order, c.tree, bh-link(rorder, rtree, merge-without-carry(l, rnext)))
+                else:
+                  merge-with-carry(l, rnext, tt(rorder + 1, merge-same-size(c.tree, rtree)))
+                end
               else:
-                merge-with-carry(l, rnext, tt(rorder + 1, merge-same-size(c.tree, rtree)))
+                bh-link(c.carry-order, c.tree,
+                        merge-with-carry(lnext, rnext, tt(lorder + 1, merge-same-size(ltree, rtree))))
               end
-            else:
-              bh-link(c.order, c.tree,
-                      merge-with-carry(lnext, rnext, tt(lorder + 1, merge-same-size(ltree, rtree))))
             end
         end
     end
@@ -167,11 +172,11 @@ fun remove-min<a>(bh :: BinomialHeap<a>) -> BinomialHeap<a>:
   fun remove-tree(h, target-ord):
     cases(BinomialHeap) h:
       | bh-empty => bh-empty
-      | bh-link(order, tree, next) =>
-        if target-ord == order:
+      | bh-link(carry-order, tree, next) =>
+        if target-ord == carry-order:
           next
         else:
-          bh-link(order, tree, remove-tree(next, target-ord))
+          bh-link(carry-order, tree, remove-tree(next, target-ord))
         end
     end
   end
@@ -179,13 +184,13 @@ fun remove-min<a>(bh :: BinomialHeap<a>) -> BinomialHeap<a>:
     | bh-empty => raise("remove-min on empty heap")
     | bh-link(_, _, _) =>
       least-link = find-tree(bh, bh)
-      if least-link.order == 0:
+      if least-link.carry-order == 0:
         least-link.next
       else:
-        without-least = remove-tree(bh, least-link.order)
+        without-least = remove-tree(bh, least-link.carry-order)
         new-heap = for fold2(h from bh-empty,
                              t from least-link.tree.children,
-                             o from range-by(least-link.order - 1, -1, -1)):
+                             o from range-by(least-link.carry-order - 1, -1, -1)):
           bh-link(o, t, h)
         end
         merge(new-heap, without-least)
