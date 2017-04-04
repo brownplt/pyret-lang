@@ -1,10 +1,10 @@
 #lang pyret
 
-"hello".append("world")
-"hello ".append("world")
-"hell".append("o world")
+string-append("hello", "world")
+string-append("hello ", "world")
+string-append("hell", "o world")
 
-"hello world".length() + 20
+string-length("hello world") + 20
 
 "hello world" == "hello"
 "hello world" == "hello world"
