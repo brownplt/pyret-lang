@@ -31,7 +31,6 @@ check:
 
   string-contains("", "") is true
 
-
   string-append("", "") is ""
   string-append(" ", "") is " "
   string-append("", " ") is " "
@@ -42,9 +41,9 @@ check:
   # zero-width-space
   string-length(string-from-code-point(2083)) is 1
   string-length("a") is 1
-  string-length("\n\r \t") is 4
+  string-length("\b\n\r \t") is 5
   string-length("λjs") is 3
-  
+
   string-tonumber("45") is 45
   # TODO(joe): some string-to-number parsing issue on the number below
   #string-tonumber("100000000000000000000000000000000000001")
@@ -53,7 +52,7 @@ check:
 
   # hyphenated version also bound
   string-to-number("1/2") is some(0.5)
-  
+
   "1/2" satisfies string-is-number
   "abc" violates string-is-number
   "3+5i" violates string-is-number
@@ -87,21 +86,19 @@ check:
 
   string-split-all("abc", "") is [list: "a", "b", "c"]
   string-split-all("abc", "b") is [list: "a", "c"]
-  string-split-all("sentence is a typical use case", " ") is [list: 
+  string-split-all("sentence is a typical use case", " ") is [list:
       "sentence", "is", "a", "typical", "use", "case"
     ]
   string-split-all("aabcb", "b") is [list: "aa", "c", ""]
 
   string-split("abc", "") is [list: "", "abc"]
   string-split("abc", "b") is [list: "a", "c"]
-  string-split("sentence is a typical use case", " ") is [list: 
+  string-split("sentence is a typical use case", " ") is [list:
       "sentence", "is a typical use case"
     ]
   string-split("aabcb", "b") is [list: "aa", "cb"]
 
 end
-
-
 
 check:
   string-to-code-point("a", "b") raises-satisfies E.is-arity-mismatch
@@ -122,6 +119,7 @@ check:
 
   string-to-code-point("a") is 97
   string-to-code-point("\n") is 10
+  string-to-code-point("\b") is 8
 
   string-to-code-point("λ") is 955
   string-from-code-point(955) is "λ"
@@ -145,7 +143,7 @@ check:
   string-from-code-point(65534) is "\uFFFE"
   string-from-code-point(65536) raises "Invalid code point"
   string-from-code-point(65537) raises "Invalid code point"
-  
+
   for each(i from range(0, 1000)):
     ix1 = random(65535)
     ix2 = random(65535)
