@@ -126,6 +126,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 show-comp: build/show-compilation.jarr
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
+	mkdir -p build/show-comp/compiled
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
                       --build-runnable src/scripts/show-compilation.arr \
                       --builtin-js-dir src/js/trove/ \

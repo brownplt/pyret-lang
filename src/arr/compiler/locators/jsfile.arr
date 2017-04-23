@@ -49,11 +49,12 @@ fun make-jsfile-locator(path):
     method set-compiled(_, _, _): nothing end,
     method get-compiled(self):
       provs = convert-provides(self.uri(), {
-        uri: self.uri(),
-        values: raw-array-to-list(raw.get-raw-value-provides()),
-        aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-        datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-      })
+          uri: self.uri(),
+          values: raw-array-to-list(raw.get-raw-value-provides()),
+          aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+          datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+          modules: raw-array-to-list(raw.get-raw-module-provides())
+        })
       some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
     end,
 

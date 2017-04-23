@@ -1562,7 +1562,7 @@ end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-    | provides(thismod-uri, values, aliases, data-defs) =>
+    | provides(thismod-uri, values, aliases, data-defs, modules) =>
       value-fields = for CL.map_list(v from values.keys().to-list()):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))
@@ -1579,10 +1579,15 @@ fun compile-provides(provides):
       alias-fields = for CL.map_list(a from aliases.keys().to-list()):
         j-field(a, compile-provided-type(aliases.get-value(a)))
       end
+      module-fields = for CL.map_list(m from modules.keys().to-list()):
+        # FIXME (Philip): This should check for cycles somehow
+        j-field(m, compile-provides(modules.get-value(m)))
+      end
       j-obj([clist:
           j-field("values", j-obj(value-fields)),
           j-field("datatypes", j-obj(data-fields)),
-          j-field("aliases", j-obj(alias-fields))
+          j-field("aliases", j-obj(alias-fields)),
+          j-field("modules", j-obj(module-fields))
         ])
   end
 end

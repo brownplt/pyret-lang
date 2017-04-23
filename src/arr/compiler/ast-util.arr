@@ -361,6 +361,21 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           l)
     end
   end
+  fun module-to-type(l, provs :: CS.Provides) block:
+    print("Looking up module: " + to-repr(provs) + "@" + to-repr(l) + "\n")
+    # provs = env.mods.get(mod.mod.key())
+    key = provs.from-uri
+    val-types-dict = for fold(sd from [SD.string-dict:], k from provs.values.keys-list()):
+      sd.set(k, provs.values.get-value(k).t)
+    end
+    val-provides = T.t-record(val-types-dict, l, false)
+    T.t-module(
+      key,
+      val-provides,
+      provs.data-definitions,
+      provs.aliases
+      )
+  end
   cases(A.Program) resolved.ast:
     | s-program(l, provide-complete, _, _, _) =>
       cases(A.Provide) provide-complete block:
@@ -394,11 +409,17 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             exp = resolved.datatypes.get-value-now(d.d.key())
             data-typs.set-now(d.d.key(), data-expr-to-datatype(exp))
           end
+          module-typs = SD.make-mutable-string-dict()
+          for each(m from modules):
+            mod = resolved.modules.get-value-now(m.name.key())
+            module-typs.set-now(m.name.toname(), CS.m-resolved(mod))
+          end
           CS.provides(
               uri,
               val-typs.freeze(),
               alias-typs.freeze(),
-              data-typs.freeze()
+              data-typs.freeze(),
+              module-typs.freeze()
             )
       end
   end
@@ -631,11 +652,17 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
           for each(d from datas):
             data-typs.set-now(d.d.toname(), canonicalize-data-type(typed.info.data-types.get-value(d.d.key()), uri, transformer))
           end
+          module-typs = SD.make-mutable-string-dict()
+          for each(m from modules):
+            canonicalized-provs = canonicalize-provides(compile-env.modules.get-value(m.name.key()), compile-env)
+            module-typs.set-now(m.name.toname(), CS.m-resolved(canonicalized-provs))
+          end
           CS.provides(
               uri,
               val-typs.freeze(),
               alias-typs.freeze(),
-              data-typs.freeze()
+              data-typs.freeze(),
+              module-typs.freeze()
             )
       end
   end

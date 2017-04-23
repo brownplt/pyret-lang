@@ -4,6 +4,7 @@ provide *
 provide-types *
 import ast as A
 import either as E
+import lists as L
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
@@ -521,8 +522,23 @@ fun get-origin-loc(o):
   end
 end
 
+# TODO (Philip): Use this or something like it in resolve-names
+data BoundName:
+  | bn-value(name-key :: String) with:
+    method key(self):
+      self.name-key + "#value"
+    end
+  | bn-type(name-key :: String) with:
+    method key(self):
+      self.name-key + "#type"
+    end
+  | bn-module(name-key :: String) with:
+    method key(self):
+      self.name-key + "#module"
+    end
+end
 
-fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
+fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
   doc: ```
        Turn all s-names into s-atom or s-global
        Requires:
@@ -725,12 +741,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             dep = U.import-to-dep(file)
             mod-info = initial-env.mods.get-value(dep.key())
+            module-bindings.set-now(dep.key(), i)
+#            when not(A.is-s-underscore(name-vals)):
+#              print("Making atom import for: " + to-repr(i) + "\n")
+#            end
             atom-env =
               if A.is-s-underscore(name-vals):
-                make-anon-import-for(name-vals.l, "$import", imp-e, module-bindings,
+                make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
                   C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
               else:
-                make-atom-for(name-vals, false, imp-e, module-bindings,
+                make-atom-for(name-vals, false, imp-e, bindings,
                   C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
               end
             atom-env-t =
@@ -820,14 +840,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-defined-var(n, id) => id.key()
         end
       end
-      val-defs = for lists.filter-map(dv from vals) block:
+      val-and-mod-defs = for lists.filter-map(dv from vals) block:
         v-binding = bindings.get-value-now(get-dv-key(dv))
         if provides-dict.has-key(dv.name):
-          some(A.p-value(l, v-binding.atom, v-binding.ann))
+          cases(C.ValueBinder) v-binding.binder:
+            | vb-module(dep, _) =>
+              some(E.right(A.p-module(l, v-binding.atom, module-bindings.get-value-now(dep.key()))))
+            | else =>
+              some(E.left(A.p-value(l, v-binding.atom, v-binding.ann)))
+          end
         else:
           none
         end
-      end
+      end ^ L.partition(E.is-left, _)
+      val-defs = val-and-mod-defs.is-true.map(_.v)
+      module-provs = val-and-mod-defs.is-false.map(_.v)
       alias-defs = for lists.filter-map(td from typs):
         t-binding = type-bindings.get-value-now(td.typ.id.key())
         if provide-types-dict.has-key(td.name):
@@ -840,14 +867,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         dd = datatypes.get-value-now(ddk) 
         if provide-types-dict.has-key(dd.name):
           some(A.p-data(dd.l, dd.namet, none))
-        else:
-          none
-        end
-      end
-      module-provs = for lists.filter-map(mk from module-bindings.keys-list-now()):
-        m = module-bindings.get-value-now(mk)
-        if provides-dict.has-key(mk.name):
-          some(A.p-module(mk.l, mk.namet, none))
         else:
           none
         end
@@ -1182,13 +1201,32 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-table-order(l, table.visit(self), ordering)
     end
   }
-  C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes, modules)
+  visited = p.visit(names-visitor)
+  mod-binds = SD.make-mutable-string-dict()
+  val-binds = SD.make-mutable-string-dict()
+  for each(val from bindings.keys-list-now()):
+    v-binding = bindings.get-value-now(val)
+    cases(C.ValueBinder) v-binding.binder block:
+      | vb-module(dep, uri) =>
+        # print("\nModule binding: " + to-repr({val; v-binding}) + "...")
+        cases (Option) initial-env.mods.get(dep.key()):
+          | none => raise("Bug: Reference to an unknown module: " + to-repr(val) + " " + to-repr(v-binding))
+          | some(provides) =>
+            mod-binds.set-now(val, provides)
+        end
+      | else =>
+        # print("Value binding: " + to-repr({val; v-binding}) + "\n")
+        val-binds.set-now(val, v-binding)
+    end
+  end
+  C.resolved(visited, name-errors, val-binds, type-bindings, datatypes, mod-binds)
 end
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
   var errors = [list: ] # THE MUTABLE LIST OF ERRORS
   bindings = resolved.bindings
   type-bindings = resolved.type-bindings
+  modules = resolved.modules
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(id, loc):
     if A.is-s-underscore(id) block:
@@ -1197,6 +1235,8 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
     else if A.is-s-global(id) and initial-env.globals.values.has-key(id.toname()):
       false
     else if bindings.has-key-now(id.key()):
+      false
+    else if modules.has-key-now(id.key()):
       false
     else:
       # print-error("Cannot find binding for " + id.key() + " at " + loc.format(true) + " in \n")
@@ -1213,10 +1253,28 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         true
       end,
       method s-module-dot(self, l, base, path) block:
-        fun traverse-path(cur-mod, path-elt) :: Option<E.Either<C.ValueExport, C.Provides>>:
+        fun value-to-module(vb :: C.ValueBinder) -> Option<C.Provides>:
+          cases(C.ValueBinder) vb:
+            | vb-module(dep, _) =>
+              mod-info = initial-env.mods.get(dep.key())
+              cases(Option) mod-info:
+                | none =>
+                  raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(vb.binder) )
+                | some(info) => some(info)
+              end
+            | else => none
+          end
+        end
+        fun traverse-path(cur-mod, path-elt) -> Option<E.Either<C.ValueExport, C.Provides>>:
           cases(Option) cur-mod.values.get(path-elt):
             | some(val) =>
-              some(E.left(val))
+              # Maybe we should print a warning here, since
+              # I don't think this should really ever resolve
+              # to a module...
+              cases(Option) value-to-module(val.binder):
+                | none => some(E.left(val))
+                | some(mod-info) => some(E.right(mod-info))
+              end
             | none =>
               cases(Option) cur-mod.modules.get(path-elt):
                 | none => none
@@ -1227,7 +1285,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
                       # FIXME: mods contains by Dependency key, not URI 
                       cases(Option) initial-env.mods.get(uri):
                         | none =>
-                          raise("Bug: Reference to an unknown module. " + to-repr(path-elt) + " " + to-repr(vb.binder) )
+                          raise("Bug: Reference to an unknown module. " + to-repr(path-elt) + " " + to-repr(mod-export) )
                         | some(prov) =>
                           some(E.right(prov))
                       end
@@ -1235,6 +1293,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
               end
           end
         end
+        
         when handle-id(base, l):
           add-error(C.unbound-id(A.s-id(l, base)))
         end
@@ -1248,7 +1307,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
                   | none =>
                     raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(vb.binder) )
                   | some(info) =>
-                    for fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
+                    for L.fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
                       {cur-info; path-so-far} = acc
                       cases(Option) traverse-path(cur-info, path-elt):
                         | none =>
@@ -1256,9 +1315,14 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
                         | some(v) =>
                           cases(E.Either) v:
                             | left(val) =>
-                              # Found a value. Finish
-                              # (although it would be great to
-                              #  traverse further if possible)
+                              # Found a value. Finish.
+                              # Note: Ideally, we would want to
+                              # use some type information to check
+                              # that the remaining path is indeed
+                              # a sequence of fields on whatever value
+                              # we've found at this point. However,
+                              # this information is not available at
+                              # this point.
                               E.right(nothing)
                             | right(nested-mod) =>
                               E.left({nested-mod; link(path-elt, path-so-far)})

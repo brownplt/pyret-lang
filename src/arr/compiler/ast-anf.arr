@@ -476,7 +476,9 @@ data AVal:
     method tosource(self): self.id.to-compiled-source() end
   | a-module-dot(l :: Loc, base :: A.Name, path :: List<String>) with:
     method label(self): "a-module-dot" end,
-    method tosource(self): self.id.to-compiled-source() end
+    method tosource(self):
+      PP.separate(PP.str("."), link(self.base.to-compiled-source(), self.path.map(PP.str)))
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

@@ -47,9 +47,10 @@ end
 
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
+  # Q (Philip): What is going on here w.r.t. imports?
   import-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
+      | s-import(_, _, name) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
@@ -59,7 +60,7 @@ fun get-defined-ids(p, imports, body):
   type-ids = A.block-type-ids(body)
   import-type-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
+      | s-import(_, _, name) => names
       | s-import-fields(_, imp-names, _) => names
       | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))

@@ -401,7 +401,8 @@ check "raw-provide-syntax":
     uri: "test-raw-provides",
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-    datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+    datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+    modules: raw-array-to-list(raw.get-raw-modules-provides())
   })
 
   l = SL.builtin("test-raw-provides")
@@ -441,13 +442,14 @@ check:
       "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
+    mt,
     mt)
 
   ce = CM.compile-env(CM.globals(mt, mt),
     [string-dict:
       "builtin(global)", CM.provides("builtin://global", mt, mt,
         [SD.string-dict:
-          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)])])
+          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)], mt)])
 
   canon = AU.canonicalize-provides(ps, ce)
 
@@ -455,6 +457,7 @@ check:
     [string-dict:
       "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
+    mt,
     mt,
     mt)
 

@@ -68,12 +68,12 @@
     function checkSuccess(mr, field) {
       if(!mr.val) {
         console.error(mr);
-        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.");
+        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.\nModule: " + mr);
       }
       if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
         console.error(mr.val.result);
         console.error(mr.val.result.exn);
-        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
+        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.\nModule: " + mr);
       }
     }
     function isSuccessResult(mr) {
