@@ -15,6 +15,8 @@ PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 
+FLATNESS_THRESHOLD = 5
+
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
@@ -106,8 +108,8 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configB.json
-
+                      --require-config src/scripts/standalone-configB.json \
+                      --flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
@@ -119,7 +121,8 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configC.json
+                      --require-config src/scripts/standalone-configC.json \
+                      --flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
@@ -242,8 +245,8 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 	$(TEST_BUILD) \
 		--build-runnable tests/all.arr \
     --outfile tests/pyret/all.jarr \
-		-check-all
-		--flatness-threshold 5
+		-check-all \
+		--flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : all-pyret-test
 all-pyret-test: tests/pyret/all.jarr parse-test
