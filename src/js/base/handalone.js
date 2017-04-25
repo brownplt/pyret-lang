@@ -7,12 +7,14 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
   var depMap = program.depMap;
   var toLoad = program.toLoad;
   var uris = program.uris;
+  var runtimeOptions = program.runtimeOptions;
 
   var main = toLoad[toLoad.length - 1];
 
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
-    stderr: function(s) { process.stderr.write(s); }
+    stderr: function(s) { process.stderr.write(s); },
+    options: runtimeOptions
   });
 
   var EXIT_SUCCESS = 0;

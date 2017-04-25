@@ -5911,8 +5911,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         thisRuntime[nameMap[longName]] = thisRuntime[longName];
     }
 
-    // FIXME: figure out how to set this in pyret code
-    thisRuntime.bounceAllowed = true;
+    thisRuntime.bounceAllowed = true; // Default
+    if (theOutsideWorld.options) {
+      thisRuntime.bounceAllowed = theOutsideWorld.options.bounceAllowed;
+    }
 
     return thisRuntime;
   }
