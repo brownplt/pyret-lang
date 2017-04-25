@@ -3589,9 +3589,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var result;
         try {
           result = f();
-          result = otherRuntime.makeSuccessResult(result, {});
+          result = thisRuntime.makeSuccessResult(result, {});
         } catch (e) {
-          result = otherRuntime.makeFailureResult(e, {});
+          result = thisRuntime.makeFailureResult(e, {});
         }
         return then(result);
       }
