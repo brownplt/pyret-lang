@@ -4,12 +4,14 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
   var staticModules = program.staticModules;
   var depMap = program.depMap;
   var toLoad = program.toLoad;
+  var runtimeOptions = program.runtimeOptions;
 
   var main = toLoad[toLoad.length - 1];
 
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
-    stderr: function(s) { process.stderr.write(s); }
+    stderr: function(s) { process.stderr.write(s); },
+    options: runtimeOptions
   });
 
   var EXIT_SUCCESS = 0;
