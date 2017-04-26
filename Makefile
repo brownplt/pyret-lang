@@ -15,7 +15,7 @@ PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 
-FLATNESS_THRESHOLD = 5
+FLATNESS_THRESHOLD = -1
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -209,7 +209,8 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 	  --builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config $(PYRET_TEST_CONFIG) \
-		--compiled-dir tests/compiled/
+		--compiled-dir tests/compiled/ \
+		--flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : old-test
 old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
@@ -244,8 +245,7 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 	$(TEST_BUILD) \
 		--build-runnable tests/all.arr \
     --outfile tests/pyret/all.jarr \
-		-check-all \
-		--flatness-threshold $(FLATNESS_THRESHOLD)
+		-check-all
 
 .PHONY : all-pyret-test
 all-pyret-test: tests/pyret/all.jarr parse-test
