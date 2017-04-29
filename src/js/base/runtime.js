@@ -5916,6 +5916,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.bounceAllowed = theOutsideWorld.options.bounceAllowed;
     }
 
+    if (theOutsideWorld.parentRuntime) {
+      thisRuntime.bounceAllowed &= theOutsideWorld.parentRuntime.bounceAllowed;
+    }
+
+    console.log("New runtime. Is bounce allowed: " + thisRuntime.bounceAllowed);
+
     return thisRuntime;
   }
 
