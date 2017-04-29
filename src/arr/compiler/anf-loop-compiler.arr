@@ -852,58 +852,71 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
+fun should-apply-tco(compiler, args, app-info):
+  app-info.is-recursive and
+  app-info.is-tail and
+  compiler.allow-tco and
+  compiler.options.proper-tail-calls and
+  (args.length() == compiler.args.length()) # if it's an arity mismatch, use non-TCO to handle the error
+end
+
+fun compile-tco-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-f = f.visit(compiler).exp
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+
+  c-block(
+    j-block(
+      [clist:
+        j-expr(j-assign(step, j-num(0))),
+        j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
+        if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+          j-expr(j-raw-code("// Omitting rungas decrement and check"))
+        else:
+          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
+            j-block([clist:
+                j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+                j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))          
+        end
+      ] +
+      CL.map_list2(
+        lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
+        compiled-args.to-list(),
+        compiler.args) +
+      # CL.map_list2(
+      #   lam(compiled-arg, arg):
+      #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+      #   end,
+      #   compiled-args.to-list(),
+      #   compiler.args),
+      cl-sing(j-continue)),
+    new-cases)
+end
+
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
-  if app-info.is-recursive and
-     app-info.is-tail and
-     compiler.allow-tco and
-     compiler.options.proper-tail-calls and
-     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
-    c-block(
-      j-block(
+  c-block(
+    j-block(
+      # Update step before the call, so that if it runs out of gas,
+      # the resumer goes to the right step
+      cl-sing(j-expr(j-assign(step, after-app-label))) +
+      if not(is-definitely-fn):
         [clist:
-          # Update step before the call, so that if it runs out of gas,
-          # the resumer goes to the right step
-          j-expr(j-assign(step, j-num(0))),
-          j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
-          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
-            j-block([clist:
-              j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
-              j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list2(
-          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
-          compiled-args.to-list(),
-          compiler.args) +
-        # CL.map_list2(
-        #   lam(compiled-arg, arg):
-        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
-        #   end,
-        #   compiled-args.to-list(),
-        #   compiler.args),
-        cl-sing(j-continue)),
-      new-cases)
-  else:
-    c-block(
-      j-block(
-        # Update step before the call, so that if it runs out of gas,
-        # the resumer goes to the right step
-        [clist:
-          j-expr(j-assign(step, after-app-label)),
-          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
-        if not(is-definitely-fn):
-          cl-sing(check-fun(j-id(compiler.cur-apploc), compiled-f))
-        else:
-          cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
-        end +
-        [clist:
-          j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
-          j-break]),
-      new-cases)
-  end
+          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+          check-fun(j-id(compiler.cur-apploc), compiled-f)]
+      else:
+        cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
+      end +
+      [clist:
+        j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
+        j-break]),
+    new-cases)
 end
 
 fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
@@ -1154,7 +1167,9 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     app-info :: A.AppInfo):
 
   is-safe-id = N.is-a-id(f) or N.is-a-id-safe-letrec(f)
-  app-compiler = if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+  app-compiler = if should-apply-tco(compiler, args, app-info):
+    compile-tco-app
+  else if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
     compile-flat-app
   else if is-safe-id and is-function-flat(compiler, f.id.key()):
     compile-flat-app
